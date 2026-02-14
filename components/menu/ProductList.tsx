@@ -1,96 +1,80 @@
-'use client'
+"use client"
 
-import { useRef, useEffect } from 'react'
 import { MenuCategory, MenuItem } from '@/types/menu'
 import { ProductCard } from './ProductCard'
+import { useRef, useEffect } from 'react'
 
 interface ProductListProps {
   categories: MenuCategory[]
-  products: MenuItem[]
-  onProductClick: (product: MenuItem) => void
-  onCategoryInView: (categoryId: string) => void
+  items: MenuItem[]
+  onProductClick: (item: MenuItem) => void
+  activeCategory: string
+  onCategoryChange: (categoryId: string) => void
 }
 
-export function ProductList({
-  categories,
-  products,
+export function ProductList({ 
+  categories, 
+  items, 
   onProductClick,
-  onCategoryInView
+  activeCategory,
+  onCategoryChange 
 }: ProductListProps) {
-  const observerRef = useRef<IntersectionObserver | null>(null)
   const categoryRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
 
-  // Setup Intersection Observer to detect which category is in view
   useEffect(() => {
-    observerRef.current = new IntersectionObserver(
+    const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const categoryId = entry.target.getAttribute('data-category-id')
             if (categoryId) {
-              onCategoryInView(categoryId)
+              onCategoryChange(categoryId)
             }
           }
         })
       },
-      {
-        rootMargin: '-180px 0px -50% 0px',
-        threshold: 0
-      }
+      { threshold: 0.5, rootMargin: '-100px 0px -50% 0px' }
     )
 
-    // Observe all category sections
     Object.values(categoryRefs.current).forEach((ref) => {
-      if (ref && observerRef.current) {
-        observerRef.current.observe(ref)
-      }
+      if (ref) observer.observe(ref)
     })
 
-    return () => {
-      observerRef.current?.disconnect()
-    }
-  }, [onCategoryInView])
+    return () => observer.disconnect()
+  }, [onCategoryChange])
 
   return (
-    <div className="container mx-auto px-4 py-6 pb-32">
+    <div className="pb-32">
       {categories.map((category) => {
-        const categoryProducts = products.filter(
-          (p) => p.category_id === category.id && p.is_available
-        )
-
-        if (categoryProducts.length === 0) return null
+        const categoryItems = items.filter(item => item.categoryId === category.id)
+        if (categoryItems.length === 0) return null
 
         return (
-          <section
+          <div
             key={category.id}
             ref={(el) => {
-              categoryRefs.current[category.id] = el
+              if (el) {
+                categoryRefs.current[category.id] = el as HTMLDivElement
+              }
             }}
             data-category-id={category.id}
             id={`category-${category.id}`}
-            className="mb-8 scroll-mt-[180px]"
+            className="mb-8"
           >
-            {/* Category header */}
-            <div className="mb-4">
-              <h2 className="text-2xl font-bold">{category.name}</h2>
-              {category.description && (
-                <p className="text-muted-foreground mt-1">
-                  {category.description}
-                </p>
-              )}
-            </div>
-
-            {/* Products grid */}
-            <div className="grid gap-3">
-              {categoryProducts.map((product) => (
+            <h2 className="text-2xl font-bold mb-4 px-4">{category.name}</h2>
+            {category.description && (
+              <p className="text-gray-600 mb-4 px-4">{category.description}</p>
+            )}
+            <div className="grid grid-cols-1 gap-4 px-4">
+              {categoryItems.map((item) => (
                 <ProductCard
-                  key={product.id}
-                  product={product}
-                  onClick={() => onProductClick(product)}
+                  key={item.id}
+                  item={item}
+                  onClick={() => onProductClick(item)}
                 />
               ))}
             </div>
-          </section>
+          </div>
         )
       })}
     </div>
