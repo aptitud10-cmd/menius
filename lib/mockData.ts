@@ -1,371 +1,209 @@
-import { Restaurant, MenuCategory, MenuItem } from '@/types/menu'
+import { MenuCategory, MenuItem } from '@/types/menu'
 
-export const mockRestaurant: Restaurant = {
-  id: 'demo-restaurant-1',
-  name: 'Taquería Los Primos',
-  slug: 'taqueria-los-primos',
-  description: 'Auténtica comida mexicana en el corazón de la ciudad. Tacos, burritos y más, preparados con recetas tradicionales.',
-  logo_url: null,
-  cover_image_url: null,
-  phone: '(555) 123-4567',
-  address: '123 Main Street, Austin, TX 78701',
-  is_active: true,
-  accepts_online_orders: true,
-  delivery_enabled: true,
-  pickup_enabled: true,
-  dine_in_enabled: true,
-  min_order_amount: 10,
-  delivery_fee: 2.99,
-  tax_rate: 0.0825, // 8.25% Texas
-  business_hours: {
-    monday: { open: '11:00', close: '22:00' },
-    tuesday: { open: '11:00', close: '22:00' },
-    wednesday: { open: '11:00', close: '22:00' },
-    thursday: { open: '11:00', close: '22:00' },
-    friday: { open: '11:00', close: '23:00' },
-    saturday: { open: '10:00', close: '23:00' },
-    sunday: { open: '10:00', close: '21:00' },
-  }
-}
-
-export const mockCategories: MenuCategory[] = [
+const categories: MenuCategory[] = [
   {
-    id: 'cat-1',
-    restaurant_id: 'demo-restaurant-1',
+    id: 'tacos',
     name: 'Tacos',
-    description: 'Tacos auténticos con tortillas hechas a mano',
-    display_order: 0,
-    is_active: true
+    description: 'Auténticos tacos mexicanos',
+    order: 0
   },
   {
-    id: 'cat-2',
-    restaurant_id: 'demo-restaurant-1',
+    id: 'burritos',
     name: 'Burritos',
-    description: 'Burritos grandes y deliciosos',
-    display_order: 1,
-    is_active: true
+    description: 'Burritos estilo californiano',
+    order: 1
   },
   {
-    id: 'cat-3',
-    restaurant_id: 'demo-restaurant-1',
+    id: 'quesadillas',
     name: 'Quesadillas',
-    description: 'Quesadillas con queso derretido',
-    display_order: 2,
-    is_active: true
+    description: 'Quesadillas con queso fundido',
+    order: 2
   },
   {
-    id: 'cat-4',
-    restaurant_id: 'demo-restaurant-1',
-    name: 'Entradas',
-    description: 'Para empezar',
-    display_order: 3,
-    is_active: true
-  },
-  {
-    id: 'cat-5',
-    restaurant_id: 'demo-restaurant-1',
+    id: 'bebidas',
     name: 'Bebidas',
-    description: 'Refrescantes bebidas',
-    display_order: 4,
-    is_active: true
-  },
-  {
-    id: 'cat-6',
-    restaurant_id: 'demo-restaurant-1',
-    name: 'Postres',
-    description: 'Dulces tradiciones',
-    display_order: 5,
-    is_active: true
+    description: 'Bebidas refrescantes',
+    order: 3
   }
 ]
 
-export const mockMenuItems: MenuItem[] = [
-  // TACOS
+const items: MenuItem[] = [
+  // Tacos
   {
-    id: 'item-1',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-1',
+    id: 'taco-pastor',
     name: 'Taco al Pastor',
-    description: 'Carne de cerdo marinada con especias, piña, cebolla y cilantro',
+    description: 'Carne de cerdo marinada con piña, cilantro y cebolla',
     price: 3.50,
-    is_available: true,
-    is_featured: true,
-    is_popular: true,
-    spicy_level: 1,
-    dietary_tags: [],
-    modifiers: [
-      {
-        id: 'mod-1',
-        name: 'Tipo de tortilla',
-        required: true,
-        options: [
-          { id: 'opt-1', name: 'Maíz', price: 0 },
-          { id: 'opt-2', name: 'Harina', price: 0.50 }
-        ]
-      },
-      {
-        id: 'mod-2',
-        name: 'Extras',
-        required: false,
-        options: [
-          { id: 'opt-3', name: 'Aguacate', price: 1.50 },
-          { id: 'opt-4', name: 'Queso extra', price: 1.00 },
-          { id: 'opt-5', name: 'Crema', price: 0.75 }
-        ]
-      }
-    ]
+    categoryId: 'tacos',
+    image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=400',
+    available: true,
+    popular: true,
+    spicy: true,
+    vegetarian: false
   },
   {
-    id: 'item-2',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-1',
-    name: 'Taco de Carne Asada',
-    description: 'Carne de res marinada a la parrilla con cebolla, cilantro y limón',
-    price: 4.00,
-    is_available: true,
-    is_featured: false,
-    is_popular: true,
-    spicy_level: 0,
-    dietary_tags: [],
-    modifiers: [
-      {
-        id: 'mod-1',
-        name: 'Tipo de tortilla',
-        required: true,
-        options: [
-          { id: 'opt-1', name: 'Maíz', price: 0 },
-          { id: 'opt-2', name: 'Harina', price: 0.50 }
-        ]
-      }
-    ]
+    id: 'taco-asada',
+    name: 'Taco de Asada',
+    description: 'Carne de res a la parrilla con cilantro y cebolla',
+    price: 3.50,
+    categoryId: 'tacos',
+    image: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=400',
+    available: true,
+    popular: true,
+    spicy: false,
+    vegetarian: false
   },
   {
-    id: 'item-3',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-1',
+    id: 'taco-pollo',
     name: 'Taco de Pollo',
-    description: 'Pollo marinado a la parrilla con pico de gallo',
-    price: 3.25,
-    is_available: true,
-    is_featured: false,
-    spicy_level: 0,
-    dietary_tags: [],
+    description: 'Pollo marinado con especias mexicanas',
+    price: 3.00,
+    categoryId: 'tacos',
+    image: 'https://images.unsplash.com/photo-1599974579688-8dbdd335c77f?w=400',
+    available: true,
+    popular: false,
+    spicy: false,
+    vegetarian: false
   },
   {
-    id: 'item-4',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-1',
+    id: 'taco-veggie',
     name: 'Taco Vegetariano',
-    description: 'Verduras a la parrilla, frijoles, queso y guacamole',
-    price: 3.75,
-    is_available: true,
-    is_featured: false,
-    spicy_level: 0,
-    dietary_tags: ['vegetarian'],
+    description: 'Vegetales asados con frijoles negros y aguacate',
+    price: 2.75,
+    categoryId: 'tacos',
+    image: 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=400',
+    available: true,
+    popular: false,
+    spicy: false,
+    vegetarian: true
   },
 
-  // BURRITOS
+  // Burritos
   {
-    id: 'item-5',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-2',
-    name: 'Burrito California',
-    description: 'Carne asada, papas fritas, queso, crema, guacamole y pico de gallo',
-    price: 12.99,
-    is_available: true,
-    is_featured: true,
-    is_popular: true,
-    spicy_level: 0,
-    dietary_tags: [],
-    modifiers: [
-      {
-        id: 'mod-3',
-        name: 'Proteína',
-        required: true,
-        options: [
-          { id: 'opt-6', name: 'Carne Asada', price: 0 },
-          { id: 'opt-7', name: 'Pollo', price: -1.00 },
-          { id: 'opt-8', name: 'Al Pastor', price: 0 },
-          { id: 'opt-9', name: 'Vegetariano', price: -2.00 }
-        ]
-      }
-    ]
+    id: 'burrito-carne',
+    name: 'Burrito de Carne Asada',
+    description: 'Tortilla de harina rellena con carne asada, arroz, frijoles, queso y guacamole',
+    price: 8.50,
+    categoryId: 'burritos',
+    image: 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=400',
+    available: true,
+    popular: true,
+    spicy: false,
+    vegetarian: false
   },
   {
-    id: 'item-6',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-2',
+    id: 'burrito-pollo',
     name: 'Burrito de Pollo',
-    description: 'Pollo a la parrilla, arroz, frijoles, lechuga, queso y salsa',
-    price: 10.99,
-    is_available: true,
-    is_featured: false,
-    spicy_level: 1,
-    dietary_tags: [],
+    description: 'Pollo a la parrilla con arroz, frijoles y pico de gallo',
+    price: 7.50,
+    categoryId: 'burritos',
+    image: 'https://images.unsplash.com/photo-1574343635105-3ce8c81e48a7?w=400',
+    available: true,
+    popular: false,
+    spicy: false,
+    vegetarian: false
   },
   {
-    id: 'item-7',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-2',
-    name: 'Burrito Bowl',
-    description: 'Todo lo del burrito pero en bowl (sin tortilla)',
-    price: 11.49,
-    is_available: true,
-    is_featured: false,
-    spicy_level: 1,
-    dietary_tags: ['gluten-free'],
+    id: 'burrito-veggie',
+    name: 'Burrito Vegetariano',
+    description: 'Vegetales asados, arroz integral, frijoles negros y salsa verde',
+    price: 7.00,
+    categoryId: 'burritos',
+    image: 'https://images.unsplash.com/photo-1566740933430-b5e70b06d2d5?w=400',
+    available: true,
+    popular: false,
+    spicy: false,
+    vegetarian: true
   },
 
-  // QUESADILLAS
+  // Quesadillas
   {
-    id: 'item-8',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-3',
+    id: 'quesadilla-queso',
     name: 'Quesadilla de Queso',
-    description: 'Tortilla de harina con queso derretido',
-    price: 7.99,
-    is_available: true,
-    is_featured: false,
-    spicy_level: 0,
-    dietary_tags: ['vegetarian'],
-    modifiers: [
-      {
-        id: 'mod-4',
-        name: 'Agregar proteína',
-        required: false,
-        options: [
-          { id: 'opt-10', name: 'Pollo', price: 3.00 },
-          { id: 'opt-11', name: 'Carne Asada', price: 4.00 },
-          { id: 'opt-12', name: 'Al Pastor', price: 3.50 }
-        ]
-      }
-    ]
+    description: 'Tortilla de harina con mezcla de quesos fundidos',
+    price: 5.50,
+    categoryId: 'quesadillas',
+    image: 'https://images.unsplash.com/photo-1618040996337-56904b7850b9?w=400',
+    available: true,
+    popular: true,
+    spicy: false,
+    vegetarian: true
   },
   {
-    id: 'item-9',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-3',
-    name: 'Quesadilla Suprema',
-    description: 'Carne asada, queso, guacamole, crema y pico de gallo',
-    price: 12.99,
-    is_available: true,
-    is_featured: true,
-    spicy_level: 0,
-    dietary_tags: [],
-  },
-
-  // ENTRADAS
-  {
-    id: 'item-10',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-4',
-    name: 'Guacamole Fresco',
-    description: 'Aguacate, cilantro, cebolla, tomate, limón y chips',
-    price: 8.99,
-    is_available: true,
-    is_featured: false,
-    spicy_level: 0,
-    dietary_tags: ['vegan', 'gluten-free'],
+    id: 'quesadilla-pollo',
+    name: 'Quesadilla de Pollo',
+    description: 'Pollo marinado con queso fundido y vegetales',
+    price: 7.00,
+    categoryId: 'quesadillas',
+    image: 'https://images.unsplash.com/photo-1593759608979-65d7be3a5d3d?w=400',
+    available: true,
+    popular: false,
+    spicy: false,
+    vegetarian: false
   },
   {
-    id: 'item-11',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-4',
-    name: 'Nachos Supreme',
-    description: 'Chips de tortilla, queso derretido, frijoles, jalapeños, crema y guacamole',
-    price: 11.99,
-    is_available: true,
-    is_featured: true,
-    is_popular: true,
-    spicy_level: 2,
-    dietary_tags: ['vegetarian'],
-  },
-  {
-    id: 'item-12',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-4',
-    name: 'Elote',
-    description: 'Mazorca de maíz con mayonesa, queso cotija, chile y limón',
-    price: 5.99,
-    is_available: true,
-    is_featured: false,
-    spicy_level: 1,
-    dietary_tags: ['vegetarian'],
+    id: 'quesadilla-champiñones',
+    name: 'Quesadilla de Champiñones',
+    description: 'Champiñones salteados con queso oaxaca',
+    price: 6.50,
+    categoryId: 'quesadillas',
+    image: 'https://images.unsplash.com/photo-1571997478779-2adcbbe9ab2f?w=400',
+    available: true,
+    popular: false,
+    spicy: false,
+    vegetarian: true
   },
 
-  // BEBIDAS
+  // Bebidas
   {
-    id: 'item-13',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-5',
+    id: 'horchata',
     name: 'Horchata',
-    description: 'Bebida de arroz con canela',
-    price: 3.50,
-    is_available: true,
-    is_featured: false,
-    spicy_level: 0,
-    dietary_tags: ['vegetarian'],
-    modifiers: [
-      {
-        id: 'mod-5',
-        name: 'Tamaño',
-        required: true,
-        options: [
-          { id: 'opt-13', name: 'Chico', price: 0 },
-          { id: 'opt-14', name: 'Grande', price: 1.50 }
-        ]
-      }
-    ]
-  },
-  {
-    id: 'item-14',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-5',
-    name: 'Jamaica',
-    description: 'Agua de flor de jamaica',
-    price: 3.50,
-    is_available: true,
-    is_featured: false,
-    spicy_level: 0,
-    dietary_tags: ['vegan'],
-  },
-  {
-    id: 'item-15',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-5',
-    name: 'Coca-Cola',
-    description: 'Refresco',
+    description: 'Bebida tradicional de arroz con canela',
     price: 2.50,
-    is_available: true,
-    is_featured: false,
-    spicy_level: 0,
-    dietary_tags: [],
-  },
-
-  // POSTRES
-  {
-    id: 'item-16',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-6',
-    name: 'Churros',
-    description: 'Churros crujientes con azúcar y canela, servidos con chocolate',
-    price: 6.99,
-    is_available: true,
-    is_featured: true,
-    is_popular: true,
-    spicy_level: 0,
-    dietary_tags: ['vegetarian'],
+    categoryId: 'bebidas',
+    image: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=400',
+    available: true,
+    popular: true,
+    spicy: false,
+    vegetarian: true
   },
   {
-    id: 'item-17',
-    restaurant_id: 'demo-restaurant-1',
-    category_id: 'cat-6',
-    name: 'Flan',
-    description: 'Flan casero de vainilla',
-    price: 5.99,
-    is_available: true,
-    is_featured: false,
-    spicy_level: 0,
-    dietary_tags: ['vegetarian'],
+    id: 'jamaica',
+    name: 'Agua de Jamaica',
+    description: 'Refrescante bebida de flor de jamaica',
+    price: 2.50,
+    categoryId: 'bebidas',
+    image: 'https://images.unsplash.com/photo-1577805947697-89e18249d767?w=400',
+    available: true,
+    popular: true,
+    spicy: false,
+    vegetarian: true
   },
+  {
+    id: 'tamarindo',
+    name: 'Agua de Tamarindo',
+    description: 'Dulce y refrescante agua de tamarindo',
+    price: 2.50,
+    categoryId: 'bebidas',
+    image: 'https://images.unsplash.com/photo-1546171753-97d7676e4602?w=400',
+    available: true,
+    popular: false,
+    spicy: false,
+    vegetarian: true
+  },
+  {
+    id: 'coca-cola',
+    name: 'Coca-Cola Mexicana',
+    description: 'Coca-Cola de botella de vidrio',
+    price: 2.00,
+    categoryId: 'bebidas',
+    image: 'https://images.unsplash.com/photo-1554866585-cd94860890b7?w=400',
+    available: true,
+    popular: false,
+    spicy: false,
+    vegetarian: true
+  }
 ]
+
+export const mockCategories = categories
+export const mockItems = items
