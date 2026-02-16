@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { ShoppingBag, X, Minus, Plus, Trash2, Send } from 'lucide-react';
+import { ShoppingBag, X, Minus, Plus, Trash2, Send, Info, Phone, MapPin, Clock, Globe } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice, cn } from '@/lib/utils';
 import type { Restaurant, Category, Product, ProductVariant, ProductExtra } from '@/types';
@@ -14,9 +14,21 @@ interface PublicMenuClientProps {
   tableName: string | null;
 }
 
+function isRestaurantOpen(hours?: Restaurant['operating_hours']): boolean {
+  if (!hours || Object.keys(hours).length === 0) return true; // assume open if not configured
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const now = new Date();
+  const day = days[now.getDay()];
+  const dayHours = hours[day];
+  if (!dayHours || dayHours.closed) return false;
+  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  return currentTime >= dayHours.open && currentTime <= dayHours.close;
+}
+
 export function PublicMenuClient({ restaurant, categories, products, tableName }: PublicMenuClientProps) {
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id ?? '');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const totalItems = useCartStore((s) => s.totalItems);
@@ -47,19 +59,64 @@ export function PublicMenuClient({ restaurant, categories, products, tableName }
     items: products.filter((p) => p.category_id === cat.id),
   }));
 
+  const open = isRestaurantOpen(restaurant.operating_hours);
+
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold" style={{ fontFamily: "'Sora', sans-serif" }}>{restaurant.name}</h1>
-            {tableName && <p className="text-xs text-gray-400 -mt-0.5">{tableName}</p>}
+      {/* Hero */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-2xl mx-auto px-4 py-5">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              {restaurant.logo_url ? (
+                <div className="relative w-14 h-14 rounded-2xl overflow-hidden bg-gray-100 flex-shrink-0">
+                  <Image src={restaurant.logo_url} alt={restaurant.name} fill sizes="56px" className="object-cover" />
+                </div>
+              ) : (
+                <div className="w-14 h-14 rounded-2xl bg-brand-50 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl font-bold text-brand-600">{restaurant.name.charAt(0)}</span>
+                </div>
+              )}
+              <div>
+                <h1 className="text-lg font-bold" style={{ fontFamily: "'Sora', sans-serif" }}>{restaurant.name}</h1>
+                {restaurant.description && <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">{restaurant.description}</p>}
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={cn(
+                    'inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full',
+                    open ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
+                  )}>
+                    <span className={cn('w-1.5 h-1.5 rounded-full', open ? 'bg-emerald-500' : 'bg-red-500')} />
+                    {open ? 'Abierto' : 'Cerrado'}
+                  </span>
+                  {tableName && <span className="text-[11px] text-gray-400">{tableName}</span>}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => setShowInfo(true)} className="p-2 rounded-xl hover:bg-gray-100">
+                <Info className="w-5 h-5 text-gray-500" />
+              </button>
+              <button onClick={() => setOpen(true)} className="relative p-2 rounded-xl hover:bg-gray-100">
+                <ShoppingBag className="w-5 h-5 text-gray-700" />
+                {totalItems() > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-5 h-5 flex items-center justify-center rounded-full bg-brand-600 text-white text-[10px] font-bold">
+                    {totalItems()}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
-          <button onClick={() => setOpen(true)} className="relative p-2 rounded-xl hover:bg-gray-100">
-            <ShoppingBag className="w-5 h-5 text-gray-700" />
+        </div>
+      </div>
+
+      {/* Sticky header (on scroll) */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100">
+        <div className="max-w-2xl mx-auto px-4 h-11 flex items-center justify-between">
+          <h2 className="text-sm font-bold truncate" style={{ fontFamily: "'Sora', sans-serif" }}>{restaurant.name}</h2>
+          <button onClick={() => setOpen(true)} className="relative p-1.5 rounded-lg hover:bg-gray-100">
+            <ShoppingBag className="w-4 h-4 text-gray-700" />
             {totalItems() > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 flex items-center justify-center rounded-full bg-brand-600 text-white text-[10px] font-bold">
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 flex items-center justify-center rounded-full bg-brand-600 text-white text-[9px] font-bold">
                 {totalItems()}
               </span>
             )}
@@ -145,8 +202,92 @@ export function PublicMenuClient({ restaurant, categories, products, tableName }
         <ProductModal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
       )}
 
+      {/* Info Modal */}
+      {showInfo && <InfoModal restaurant={restaurant} onClose={() => setShowInfo(false)} />}
+
       {/* Cart Drawer */}
       {isOpen && <CartDrawer restaurant={restaurant} tableName={tableName} />}
+    </div>
+  );
+}
+
+// ---- Info Modal ----
+function InfoModal({ restaurant, onClose }: { restaurant: Restaurant; onClose: () => void }) {
+  const days = [
+    { key: 'monday', label: 'Lunes' }, { key: 'tuesday', label: 'Martes' },
+    { key: 'wednesday', label: 'Miércoles' }, { key: 'thursday', label: 'Jueves' },
+    { key: 'friday', label: 'Viernes' }, { key: 'saturday', label: 'Sábado' },
+    { key: 'sunday', label: 'Domingo' },
+  ];
+
+  const hours = restaurant.operating_hours;
+  const hasHours = hours && Object.keys(hours).length > 0;
+  const hasContact = restaurant.phone || restaurant.address || restaurant.email || restaurant.website;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl max-h-[80vh] overflow-y-auto animate-[slideUp_0.3s_ease-out]">
+        <div className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold">{restaurant.name}</h2>
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100"><X className="w-4 h-4" /></button>
+          </div>
+
+          {restaurant.description && (
+            <p className="text-sm text-gray-600 mb-4">{restaurant.description}</p>
+          )}
+
+          {hasContact && (
+            <div className="space-y-3 mb-5">
+              {restaurant.phone && (
+                <a href={`tel:${restaurant.phone}`} className="flex items-center gap-3 text-sm text-gray-700 hover:text-brand-600">
+                  <Phone className="w-4 h-4 text-gray-400" /> {restaurant.phone}
+                </a>
+              )}
+              {restaurant.address && (
+                <div className="flex items-center gap-3 text-sm text-gray-700">
+                  <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" /> {restaurant.address}
+                </div>
+              )}
+              {restaurant.website && (
+                <a href={restaurant.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm text-gray-700 hover:text-brand-600">
+                  <Globe className="w-4 h-4 text-gray-400" /> {restaurant.website}
+                </a>
+              )}
+            </div>
+          )}
+
+          {hasHours && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-gray-400" /> Horario
+              </h3>
+              <div className="space-y-1.5">
+                {days.map((d) => {
+                  const h = hours![d.key];
+                  return (
+                    <div key={d.key} className="flex justify-between text-sm">
+                      <span className="text-gray-500">{d.label}</span>
+                      {h?.closed ? (
+                        <span className="text-red-500 font-medium">Cerrado</span>
+                      ) : h ? (
+                        <span className="text-gray-700 font-medium">{h.open} — {h.close}</span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {!hasContact && !hasHours && !restaurant.description && (
+            <p className="text-sm text-gray-400 text-center py-4">No hay información adicional disponible</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -277,6 +418,8 @@ function CartDrawer({ restaurant, tableName }: { restaurant: Restaurant; tableNa
   const [orderNotes, setOrderNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [payLoading, setPayLoading] = useState(false);
 
   const handleSendOrder = async () => {
     if (!customerName.trim()) return;
@@ -308,6 +451,7 @@ function CartDrawer({ restaurant, tableName }: { restaurant: Restaurant; tableNa
       if (!res.ok) throw new Error(data.error);
 
       setOrderNumber(data.order_number);
+      setOrderId(data.order_id);
       clearCart();
     } catch (err) {
       console.error('Error placing order:', err);
@@ -329,6 +473,27 @@ function CartDrawer({ restaurant, tableName }: { restaurant: Restaurant; tableNa
           <p className="text-gray-500 text-sm mb-4">Tu pedido está en camino a la cocina</p>
           <p className="font-mono font-bold text-lg mb-6">{orderNumber}</p>
           <div className="flex flex-col gap-2 w-full max-w-xs">
+            {orderId && (
+              <button
+                onClick={async () => {
+                  setPayLoading(true);
+                  try {
+                    const res = await fetch('/api/payments/checkout', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ order_id: orderId, slug: restaurant.slug }),
+                    });
+                    const data = await res.json();
+                    if (data.url) window.location.href = data.url;
+                    else setPayLoading(false);
+                  } catch { setPayLoading(false); }
+                }}
+                disabled={payLoading}
+                className="w-full py-2.5 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {payLoading ? 'Redirigiendo...' : 'Pagar ahora'}
+              </button>
+            )}
             <a
               href={`/r/${restaurant.slug}/orden/${orderNumber}`}
               className="w-full py-2.5 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 text-center"
@@ -336,7 +501,7 @@ function CartDrawer({ restaurant, tableName }: { restaurant: Restaurant; tableNa
               Seguir mi pedido
             </a>
             <button
-              onClick={() => { setOpen(false); setOrderNumber(null); }}
+              onClick={() => { setOpen(false); setOrderNumber(null); setOrderId(null); }}
               className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-600 font-medium text-sm hover:bg-gray-200"
             >
               Volver al menú
