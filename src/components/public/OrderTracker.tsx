@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { CheckCircle2, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star } from 'lucide-react';
 import Link from 'next/link';
 import { formatPrice, cn } from '@/lib/utils';
 
@@ -197,6 +197,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, ord
           </div>
         </div>
 
+        {/* Review prompt when delivered */}
+        {isComplete && (
+          <ReviewPrompt restaurantId={restaurantId} orderId={order.id} customerName={order.customer_name} />
+        )}
+
         {/* Back to menu */}
         <Link
           href={`/r/${restaurantSlug}`}
@@ -205,6 +210,59 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, ord
           Volver al menú
         </Link>
       </div>
+    </div>
+  );
+}
+
+function ReviewPrompt({ restaurantId, orderId, customerName }: { restaurantId: string; orderId: string; customerName: string }) {
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restaurant_id: restaurantId, order_id: orderId, customer_name: customerName, rating, comment }),
+      });
+      if (res.ok) setSubmitted(true);
+    } catch {} finally { setSubmitting(false); }
+  };
+
+  if (submitted) {
+    return (
+      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 mb-5 text-center">
+        <Star className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
+        <p className="text-emerald-700 font-semibold">¡Gracias por tu reseña!</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
+      <h3 className="font-bold text-sm mb-3 text-center">¿Cómo estuvo tu experiencia?</h3>
+      <div className="flex justify-center gap-1 mb-3">
+        {[1,2,3,4,5].map(s => (
+          <button key={s} onClick={() => setRating(s)}>
+            <Star className={cn('w-7 h-7 transition', s <= rating ? 'text-amber-500 fill-amber-500' : 'text-gray-300')} />
+          </button>
+        ))}
+      </div>
+      <textarea
+        value={comment} onChange={e => setComment(e.target.value)}
+        placeholder="Cuéntanos tu experiencia (opcional)" rows={2}
+        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 resize-none mb-3"
+      />
+      <button
+        onClick={handleSubmit}
+        disabled={submitting}
+        className="w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-400 disabled:opacity-50 transition"
+      >
+        {submitting ? 'Enviando...' : 'Enviar reseña'}
+      </button>
     </div>
   );
 }

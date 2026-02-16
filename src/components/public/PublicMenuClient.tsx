@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { ShoppingBag, X, Minus, Plus, Trash2, Send, Info, Phone, MapPin, Clock, Globe } from 'lucide-react';
+import { ShoppingBag, X, Minus, Plus, Trash2, Send, Info, Phone, MapPin, Clock, Globe, Star } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice, cn } from '@/lib/utils';
 import type { Restaurant, Category, Product, ProductVariant, ProductExtra } from '@/types';
@@ -178,6 +178,9 @@ export function PublicMenuClient({ restaurant, categories, products, tableName }
           )
         )}
       </div>
+
+      {/* Reviews Section */}
+      <ReviewsSection restaurantId={restaurant.id} />
 
       {/* Bottom Bar */}
       {totalItems() > 0 && (
@@ -421,6 +424,33 @@ function CartDrawer({ restaurant, tableName }: { restaurant: Restaurant; tableNa
   const [orderId, setOrderId] = useState<string | null>(null);
   const [payLoading, setPayLoading] = useState(false);
 
+  // Promo code state
+  const [promoCode, setPromoCode] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoResult, setPromoResult] = useState<{ valid: boolean; discount: number; description?: string } | null>(null);
+  const [promoError, setPromoError] = useState('');
+
+  const discount = promoResult?.valid ? promoResult.discount : 0;
+  const finalTotal = Math.max(0, totalPrice() - discount);
+
+  const validatePromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    setPromoError('');
+    setPromoResult(null);
+    try {
+      const res = await fetch('/api/orders/validate-promo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode, restaurant_id: restaurant.id, order_total: totalPrice() }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setPromoError(data.error); }
+      else { setPromoResult(data); }
+    } catch { setPromoError('Error validando código'); }
+    setPromoLoading(false);
+  };
+
   const handleSendOrder = async () => {
     if (!customerName.trim()) return;
     setSubmitting(true);
@@ -444,6 +474,8 @@ function CartDrawer({ restaurant, tableName }: { restaurant: Restaurant; tableNa
           customer_name: customerName,
           notes: orderNotes,
           items: orderItems,
+          promo_code: promoResult?.valid ? promoCode.toUpperCase().trim() : '',
+          discount_amount: discount,
         }),
       });
 
@@ -591,6 +623,35 @@ function CartDrawer({ restaurant, tableName }: { restaurant: Restaurant; tableNa
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 resize-none"
                 />
               </div>
+              {/* Promo code */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Código de descuento</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={promoCode}
+                    onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); setPromoResult(null); }}
+                    placeholder="Ej: BIENVENIDO20"
+                    className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 uppercase"
+                  />
+                  <button
+                    type="button"
+                    onClick={validatePromo}
+                    disabled={promoLoading || !promoCode.trim()}
+                    className="px-4 py-2.5 rounded-xl bg-gray-100 text-sm font-medium hover:bg-gray-200 disabled:opacity-50"
+                  >
+                    {promoLoading ? '...' : 'Aplicar'}
+                  </button>
+                </div>
+                {promoError && <p className="text-xs text-red-500 mt-1">{promoError}</p>}
+                {promoResult?.valid && (
+                  <p className="text-xs text-emerald-600 mt-1">
+                    Descuento aplicado: -{formatPrice(promoResult.discount)}
+                    {promoResult.description && ` — ${promoResult.description}`}
+                  </p>
+                )}
+              </div>
+
               <div className="bg-gray-50 rounded-xl p-3 space-y-2">
                 {items.map((item, idx) => (
                   <div key={idx} className="flex justify-between text-sm">
@@ -598,9 +659,15 @@ function CartDrawer({ restaurant, tableName }: { restaurant: Restaurant; tableNa
                     <span className="font-medium">{formatPrice(item.lineTotal)}</span>
                   </div>
                 ))}
+                {discount > 0 && (
+                  <div className="flex justify-between text-sm text-emerald-600">
+                    <span>Descuento ({promoCode.toUpperCase()})</span>
+                    <span className="font-medium">-{formatPrice(discount)}</span>
+                  </div>
+                )}
                 <div className="border-t border-gray-200 pt-2 flex justify-between font-bold">
                   <span>Total</span>
-                  <span className="text-brand-600">{formatPrice(totalPrice())}</span>
+                  <span className="text-brand-600">{formatPrice(finalTotal)}</span>
                 </div>
               </div>
             </div>
@@ -621,6 +688,132 @@ function CartDrawer({ restaurant, tableName }: { restaurant: Restaurant; tableNa
             </div>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ---- Reviews Section ----
+function ReviewsSection({ restaurantId }: { restaurantId: string }) {
+  const [reviews, setReviews] = useState<{ id: string; customer_name: string; rating: number; comment: string; created_at: string }[]>([]);
+  const [average, setAverage] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [showForm, setShowForm] = useState(false);
+  const [name, setName] = useState('');
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/reviews?restaurant_id=${restaurantId}`)
+      .then(r => r.json())
+      .then(d => { setReviews(d.reviews ?? []); setAverage(d.average ?? 0); setTotal(d.total ?? 0); })
+      .catch(() => {});
+  }, [restaurantId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restaurant_id: restaurantId, customer_name: name, rating, comment }),
+      });
+      if (res.ok) {
+        setSubmitted(true);
+        const r = await res.json();
+        setReviews(prev => [r.review, ...prev]);
+        setTotal(prev => prev + 1);
+      }
+    } catch {} finally { setSubmitting(false); }
+  };
+
+  if (total === 0 && !showForm) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        <button
+          onClick={() => setShowForm(true)}
+          className="w-full text-center py-3 rounded-xl border-2 border-dashed border-gray-200 text-sm text-gray-400 hover:border-brand-300 hover:text-brand-600 transition"
+        >
+          <Star className="w-4 h-4 inline-block mr-1" /> Sé el primero en dejar una reseña
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+          <h2 className="text-lg font-bold text-gray-800">{average.toFixed(1)}</h2>
+          <span className="text-sm text-gray-400">({total} reseñas)</span>
+        </div>
+        {!showForm && !submitted && (
+          <button onClick={() => setShowForm(true)} className="text-sm text-brand-600 font-medium hover:underline">
+            Escribir reseña
+          </button>
+        )}
+      </div>
+
+      {(showForm && !submitted) && (
+        <form onSubmit={handleSubmit} className="bg-white border border-gray-100 rounded-2xl p-4 mb-4 space-y-3 shadow-sm">
+          <div className="flex gap-3">
+            <input
+              value={name} onChange={e => setName(e.target.value)}
+              placeholder="Tu nombre" required
+              className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+            />
+            <div className="flex items-center gap-0.5">
+              {[1,2,3,4,5].map(s => (
+                <button key={s} type="button" onClick={() => setRating(s)}>
+                  <Star className={`w-5 h-5 transition ${s <= rating ? 'text-amber-500 fill-amber-500' : 'text-gray-300'}`} />
+                </button>
+              ))}
+            </div>
+          </div>
+          <textarea
+            value={comment} onChange={e => setComment(e.target.value)}
+            placeholder="¿Qué te pareció?" rows={2}
+            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 resize-none"
+          />
+          <div className="flex gap-2">
+            <button type="submit" disabled={submitting || !name.trim()} className="px-5 py-2 bg-brand-600 text-white text-sm font-semibold rounded-xl disabled:opacity-50">
+              {submitting ? 'Enviando...' : 'Enviar'}
+            </button>
+            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-gray-100 text-gray-500 text-sm rounded-xl hover:bg-gray-200">
+              Cancelar
+            </button>
+          </div>
+        </form>
+      )}
+
+      {submitted && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-4 text-center">
+          <p className="text-emerald-700 font-medium text-sm">¡Gracias por tu reseña!</p>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {reviews.slice(0, 5).map(r => (
+          <div key={r.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-sm text-gray-800">{r.customer_name}</span>
+                <div className="flex">
+                  {[1,2,3,4,5].map(s => (
+                    <Star key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? 'text-amber-500 fill-amber-500' : 'text-gray-200'}`} />
+                  ))}
+                </div>
+              </div>
+              <span className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString()}</span>
+            </div>
+            {r.comment && <p className="text-sm text-gray-600">{r.comment}</p>}
+          </div>
+        ))}
       </div>
     </div>
   );

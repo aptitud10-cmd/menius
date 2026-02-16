@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { restaurant_id, customer_name, notes, items } = body;
+    const { restaurant_id, customer_name, notes, items, promo_code, discount_amount } = body;
 
     if (!restaurant_id) {
       return NextResponse.json({ error: 'restaurant_id requerido' }, { status: 400 });
@@ -34,7 +34,9 @@ export async function POST(request: NextRequest) {
     const orderNumber = orderNum ?? `ORD-${Date.now().toString(36).toUpperCase()}`;
 
     // Calculate total from items
-    const total = parsed.data.items.reduce((sum, item) => sum + item.line_total, 0);
+    const subtotal = parsed.data.items.reduce((sum, item) => sum + item.line_total, 0);
+    const discountAmt = Number(discount_amount) || 0;
+    const total = Math.max(0, subtotal - discountAmt);
 
     // Create order
     const { data: order, error: orderError } = await supabase
@@ -46,6 +48,8 @@ export async function POST(request: NextRequest) {
         notes: parsed.data.notes,
         total,
         status: 'pending',
+        promo_code: promo_code || '',
+        discount_amount: discountAmt,
       })
       .select()
       .single();
@@ -78,6 +82,15 @@ export async function POST(request: NextRequest) {
             price: ex.price,
           }))
         );
+      }
+    }
+
+    // Increment promo usage if applicable
+    if (promo_code) {
+      try {
+        await supabase.rpc('increment_promo_usage', { p_code: promo_code.toUpperCase().trim(), p_restaurant_id: restaurant_id });
+      } catch {
+        // Non-critical, ignore
       }
     }
 
