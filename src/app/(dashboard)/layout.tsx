@@ -27,7 +27,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <aside className="hidden md:flex flex-col w-60 bg-white border-r border-gray-100 p-4">
-        <Link href="/app/orders" className="text-lg font-bold tracking-tight mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
+        <Link href="/app" className="text-lg font-bold tracking-tight mb-1" style={{ fontFamily: "'Sora', sans-serif" }}>
           <span className="text-brand-600">MEN</span>IUS
         </Link>
         <p className="text-xs text-gray-400 mb-6 truncate">{restaurant?.name ?? 'Mi Restaurante'}</p>
@@ -43,7 +43,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Mobile header */}
       <div className="flex-1 flex flex-col">
         <header className="md:hidden bg-white border-b border-gray-100 px-4 h-14 flex items-center justify-between">
-          <Link href="/app/orders" className="text-lg font-bold tracking-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
+          <Link href="/app" className="text-lg font-bold tracking-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
             <span className="text-brand-600">MEN</span>IUS
           </Link>
           <DashboardNav slug={restaurant?.slug ?? ''} mobile />

@@ -2,16 +2,18 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ClipboardList, Tag, ShoppingBag, QrCode, Settings, LogOut, Menu, X, ExternalLink } from 'lucide-react';
+import { ClipboardList, Tag, ShoppingBag, QrCode, Settings, LogOut, Menu, X, ExternalLink, LayoutDashboard } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { logout } from '@/lib/actions/auth';
 
 const NAV_ITEMS = [
+  { href: '/app', label: 'Inicio', icon: LayoutDashboard, exact: true },
   { href: '/app/orders', label: 'Órdenes', icon: ClipboardList },
   { href: '/app/menu/categories', label: 'Categorías', icon: Tag },
   { href: '/app/menu/products', label: 'Productos', icon: ShoppingBag },
   { href: '/app/tables', label: 'Mesas & QRs', icon: QrCode },
+  { href: '/app/settings', label: 'Configuración', icon: Settings },
 ];
 
 interface DashboardNavProps {
@@ -33,7 +35,7 @@ export function DashboardNav({ slug, mobile }: DashboardNavProps) {
             onClick={() => setOpen(false)}
             className={cn(
               'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-              pathname.startsWith(item.href)
+              ((item as any).exact ? pathname === item.href : pathname.startsWith(item.href))
                 ? 'bg-brand-50 text-brand-700'
                 : 'text-gray-600 hover:bg-gray-50'
             )}

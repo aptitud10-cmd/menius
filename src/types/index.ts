@@ -10,6 +10,13 @@ export interface Restaurant {
   timezone: string;
   currency: string;
   logo_url: string | null;
+  description?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  operating_hours?: Record<string, { open: string; close: string; closed?: boolean }>;
+  is_active?: boolean;
   created_at: string;
 }
 

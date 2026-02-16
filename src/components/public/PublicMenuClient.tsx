@@ -283,9 +283,6 @@ function CartDrawer({ restaurant, tableName }: { restaurant: Restaurant; tableNa
     setSubmitting(true);
 
     try {
-      const { createClient } = await import('@/lib/supabase/browser');
-      const supabase = createClient();
-
       const orderItems = items.map((item) => ({
         product_id: item.product.id,
         variant_id: item.variant?.id ?? null,
@@ -293,43 +290,24 @@ function CartDrawer({ restaurant, tableName }: { restaurant: Restaurant; tableNa
         unit_price: Number(item.product.price) + (item.variant?.price_delta ?? 0),
         line_total: item.lineTotal,
         notes: item.notes,
+        extras: item.extras.map((ex) => ({ extra_id: ex.id, price: Number(ex.price) })),
       }));
 
-      // Generate a simple order number
-      const orderNum = `ORD-${Date.now().toString(36).toUpperCase()}`;
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id: restaurant.id,
+          customer_name: customerName,
+          notes: orderNotes,
+          items: orderItems,
+        }),
+      });
 
-      const { data: order, error } = await supabase.from('orders').insert({
-        restaurant_id: restaurant.id,
-        order_number: orderNum,
-        customer_name: customerName,
-        notes: orderNotes,
-        total: totalPrice(),
-        status: 'pending',
-      }).select().single();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
 
-      if (error) throw error;
-
-      // Insert order items
-      for (const oi of orderItems) {
-        const { data: orderItem } = await supabase.from('order_items').insert({
-          order_id: order.id,
-          ...oi,
-        }).select().single();
-
-        // Insert extras for each item
-        const cartItem = items.find((i) => i.product.id === oi.product_id);
-        if (orderItem && cartItem?.extras.length) {
-          await supabase.from('order_item_extras').insert(
-            cartItem.extras.map((ex) => ({
-              order_item_id: orderItem.id,
-              extra_id: ex.id,
-              price: Number(ex.price),
-            }))
-          );
-        }
-      }
-
-      setOrderNumber(order.order_number);
+      setOrderNumber(data.order_number);
       clearCart();
     } catch (err) {
       console.error('Error placing order:', err);
@@ -350,12 +328,20 @@ function CartDrawer({ restaurant, tableName }: { restaurant: Restaurant; tableNa
           <h2 className="text-xl font-bold mb-1">¡Pedido enviado!</h2>
           <p className="text-gray-500 text-sm mb-4">Tu pedido está en camino a la cocina</p>
           <p className="font-mono font-bold text-lg mb-6">{orderNumber}</p>
-          <button
-            onClick={() => { setOpen(false); setOrderNumber(null); }}
-            className="px-6 py-2.5 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700"
-          >
-            Volver al menú
-          </button>
+          <div className="flex flex-col gap-2 w-full max-w-xs">
+            <a
+              href={`/r/${restaurant.slug}/orden/${orderNumber}`}
+              className="w-full py-2.5 rounded-xl bg-brand-600 text-white font-semibold hover:bg-brand-700 text-center"
+            >
+              Seguir mi pedido
+            </a>
+            <button
+              onClick={() => { setOpen(false); setOrderNumber(null); }}
+              className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-600 font-medium text-sm hover:bg-gray-200"
+            >
+              Volver al menú
+            </button>
+          </div>
         </div>
       </div>
     );
