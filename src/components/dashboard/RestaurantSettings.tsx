@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Save, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { Restaurant } from '@/types';
 
 const DAYS = [
@@ -22,8 +23,15 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     phone: initialData.phone ?? '',
     email: initialData.email ?? '',
     website: initialData.website ?? '',
-    timezone: initialData.timezone ?? 'America/Mexico_City',
-    currency: initialData.currency ?? 'MXN',
+    timezone: initialData.timezone ?? 'America/New_York',
+    currency: initialData.currency ?? 'USD',
+    locale: initialData.locale ?? 'es',
+    custom_domain: initialData.custom_domain ?? '',
+    notification_whatsapp: initialData.notification_whatsapp ?? '',
+    notification_email: initialData.notification_email ?? '',
+    notifications_enabled: initialData.notifications_enabled !== false,
+    order_types_enabled: initialData.order_types_enabled ?? ['dine_in', 'pickup'],
+    payment_methods_enabled: initialData.payment_methods_enabled ?? ['cash'],
   });
 
   const [hours, setHours] = useState<Record<string, { open: string; close: string; closed: boolean }>>(
@@ -95,6 +103,37 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         </div>
       </div>
 
+      {/* Custom Domain */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <Globe className="w-4 h-4 text-brand-600" />
+          <h2 className="font-semibold text-sm">Dominio personalizado</h2>
+          <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-brand-50 text-brand-600 font-medium">Plan Pro+</span>
+        </div>
+        <p className="text-xs text-gray-500 mb-4">Conecta tu propio dominio para que tus clientes accedan al menú desde tu URL.</p>
+        <Field
+          label="Dominio"
+          value={form.custom_domain}
+          onChange={(v) => handleChange('custom_domain', v.toLowerCase().replace(/[^a-z0-9.\-]/g, ''))}
+          placeholder="menu.mirestaurante.com"
+        />
+        {form.custom_domain && (
+          <div className="mt-3 p-3 rounded-xl bg-brand-50 border border-brand-100">
+            <p className="text-xs font-semibold text-brand-800 mb-2">Configuración DNS requerida:</p>
+            <div className="bg-white rounded-lg p-2.5 border border-brand-100">
+              <p className="text-[11px] font-mono text-gray-600">
+                <span className="text-gray-400">Tipo:</span> CNAME<br />
+                <span className="text-gray-400">Nombre:</span> {form.custom_domain}<br />
+                <span className="text-gray-400">Valor:</span> cname.vercel-dns.com
+              </p>
+            </div>
+            <p className="text-[11px] text-brand-600 mt-2">
+              Agrega este registro CNAME en tu proveedor de dominio (GoDaddy, Namecheap, Cloudflare, etc.)
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Basic info */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
         <h2 className="font-semibold text-sm mb-4">Información básica</h2>
@@ -113,7 +152,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       {/* Regional */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
         <h2 className="font-semibold text-sm mb-4">Regional</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Zona horaria</label>
             <select
@@ -121,9 +160,11 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               onChange={(e) => handleChange('timezone', e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white"
             >
+              <option value="America/New_York">New York (EST)</option>
+              <option value="America/Chicago">Chicago (CST)</option>
+              <option value="America/Los_Angeles">Los Angeles (PST)</option>
               <option value="America/Mexico_City">Ciudad de México (GMT-6)</option>
               <option value="America/Cancun">Cancún (GMT-5)</option>
-              <option value="America/Tijuana">Tijuana (GMT-8)</option>
               <option value="America/Bogota">Bogotá (GMT-5)</option>
               <option value="America/Lima">Lima (GMT-5)</option>
               <option value="America/Santiago">Santiago (GMT-4)</option>
@@ -138,8 +179,8 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               onChange={(e) => handleChange('currency', e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white"
             >
+              <option value="USD">USD — US Dollar</option>
               <option value="MXN">MXN — Peso mexicano</option>
-              <option value="USD">USD — Dólar americano</option>
               <option value="COP">COP — Peso colombiano</option>
               <option value="PEN">PEN — Sol peruano</option>
               <option value="CLP">CLP — Peso chileno</option>
@@ -147,6 +188,112 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               <option value="EUR">EUR — Euro</option>
             </select>
           </div>
+          <div>
+            <label className="flex items-center gap-1 text-xs font-medium text-gray-500 mb-1">
+              <Globe className="w-3.5 h-3.5" />
+              Idioma del menú
+            </label>
+            <select
+              value={form.locale}
+              onChange={(e) => handleChange('locale', e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white"
+            >
+              <option value="es">Español</option>
+              <option value="en">English</option>
+            </select>
+            <p className="text-[11px] text-gray-400 mt-1">
+              El idioma que verán tus clientes en el menú público.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Order Types */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <ShoppingBag className="w-4 h-4 text-gray-500" />
+          <h2 className="font-semibold text-sm">Tipos de orden</h2>
+        </div>
+        <p className="text-xs text-gray-400 mb-3">
+          Selecciona qué tipos de orden pueden hacer tus clientes.
+        </p>
+        <div className="space-y-2.5">
+          {([
+            { key: 'dine_in', label: 'Comer aquí', desc: 'El cliente ordena y come en tu restaurante' },
+            { key: 'pickup', label: 'Para recoger', desc: 'El cliente ordena y pasa a recoger' },
+            { key: 'delivery', label: 'Delivery', desc: 'El cliente pone su dirección y tú le envías el pedido' },
+          ] as const).map((opt) => {
+            const checked = form.order_types_enabled.includes(opt.key);
+            return (
+              <label key={opt.key} className={cn(
+                'flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all',
+                checked ? 'border-brand-200 bg-brand-50/50' : 'border-gray-100 hover:border-gray-200'
+              )}>
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => {
+                    setForm((prev) => ({
+                      ...prev,
+                      order_types_enabled: checked
+                        ? prev.order_types_enabled.filter((t) => t !== opt.key)
+                        : [...prev.order_types_enabled, opt.key],
+                    }));
+                    setSaved(false);
+                  }}
+                  className="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500/30"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-700">{opt.label}</span>
+                  <p className="text-[11px] text-gray-400">{opt.desc}</p>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Payment Methods */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <CreditCard className="w-4 h-4 text-gray-500" />
+          <h2 className="font-semibold text-sm">Métodos de pago</h2>
+        </div>
+        <p className="text-xs text-gray-400 mb-3">
+          Cómo pueden pagar tus clientes.
+        </p>
+        <div className="space-y-2.5">
+          {([
+            { key: 'cash', label: 'Efectivo / En caja', desc: 'El cliente paga al recibir su pedido o en caja' },
+            { key: 'online', label: 'Pago en línea', desc: 'El cliente paga con tarjeta al ordenar (requiere Stripe Connect)' },
+          ] as const).map((opt) => {
+            const checked = form.payment_methods_enabled.includes(opt.key);
+            return (
+              <label key={opt.key} className={cn(
+                'flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all',
+                checked ? 'border-brand-200 bg-brand-50/50' : 'border-gray-100 hover:border-gray-200'
+              )}>
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => {
+                    setForm((prev) => ({
+                      ...prev,
+                      payment_methods_enabled: checked
+                        ? prev.payment_methods_enabled.filter((m) => m !== opt.key)
+                        : [...prev.payment_methods_enabled, opt.key],
+                    }));
+                    setSaved(false);
+                  }}
+                  className="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500/30"
+                />
+                <div>
+                  <span className="text-sm font-medium text-gray-700">{opt.label}</span>
+                  <p className="text-[11px] text-gray-400">{opt.desc}</p>
+                </div>
+              </label>
+            );
+          })}
         </div>
       </div>
 
@@ -190,6 +337,69 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Notifications */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Bell className="w-4 h-4 text-gray-500" />
+            <h2 className="font-semibold text-sm">Notificaciones</h2>
+          </div>
+          <button
+            onClick={() => { setForm((prev) => ({ ...prev, notifications_enabled: !prev.notifications_enabled })); setSaved(false); }}
+            className={cn(
+              'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+              form.notifications_enabled ? 'bg-brand-600' : 'bg-gray-200'
+            )}
+          >
+            <span className={cn(
+              'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm',
+              form.notifications_enabled ? 'translate-x-6' : 'translate-x-1'
+            )} />
+          </button>
+        </div>
+
+        {form.notifications_enabled && (
+          <div className="space-y-4">
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
+                <MessageCircle className="w-3.5 h-3.5" />
+                WhatsApp para nuevas órdenes
+              </label>
+              <input
+                type="tel"
+                value={form.notification_whatsapp}
+                onChange={(e) => { setForm((prev) => ({ ...prev, notification_whatsapp: e.target.value })); setSaved(false); }}
+                placeholder="+52 55 1234 5678"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Recibirás un mensaje de WhatsApp cada vez que llegue una nueva orden.
+              </p>
+            </div>
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
+                <Mail className="w-3.5 h-3.5" />
+                Email para notificaciones del negocio
+              </label>
+              <input
+                type="email"
+                value={form.notification_email}
+                onChange={(e) => { setForm((prev) => ({ ...prev, notification_email: e.target.value })); setSaved(false); }}
+                placeholder="owner@mirestaurante.com"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Los clientes que dejen su email recibirán confirmaciones y actualizaciones de su pedido.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {!form.notifications_enabled && (
+          <p className="text-sm text-gray-400">Las notificaciones están desactivadas. Actívalas para recibir alertas de nuevas órdenes.</p>
+        )}
       </div>
 
       {/* Save */}

@@ -78,8 +78,8 @@ export default function PromotionsPage() {
   };
 
   const toggleActive = async (promo: Promotion) => {
-    const { createClient } = await import('@/lib/supabase/browser');
-    const supabase = createClient();
+    const { getSupabaseBrowser } = await import('@/lib/supabase/browser');
+    const supabase = getSupabaseBrowser();
     await supabase
       .from('promotions')
       .update({ is_active: !promo.is_active })

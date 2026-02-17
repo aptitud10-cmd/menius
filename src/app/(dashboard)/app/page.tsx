@@ -17,7 +17,6 @@ export default async function DashboardPage() {
 
   const restaurantId = profile.default_restaurant_id;
 
-  // Fetch restaurant
   const { data: restaurant } = await supabase
     .from('restaurants')
     .select('*')
@@ -26,12 +25,10 @@ export default async function DashboardPage() {
 
   if (!restaurant) redirect('/onboarding/create-restaurant');
 
-  // Get today's start
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  // Parallel queries for stats
-  const [ordersRes, productsRes, tablesRes, recentOrdersRes] = await Promise.all([
+  const [ordersRes, productsRes, tablesRes, recentOrdersRes, subRes] = await Promise.all([
     supabase
       .from('orders')
       .select('id, total, status')
@@ -53,6 +50,11 @@ export default async function DashboardPage() {
       .eq('restaurant_id', restaurantId)
       .order('created_at', { ascending: false })
       .limit(5),
+    supabase
+      .from('subscriptions')
+      .select('status, plan_id, trial_end')
+      .eq('restaurant_id', restaurantId)
+      .single(),
   ]);
 
   const todaysOrders = ordersRes.data ?? [];
@@ -74,6 +76,7 @@ export default async function DashboardPage() {
       restaurant={restaurant}
       stats={stats}
       recentOrders={recentOrdersRes.data ?? []}
+      subscription={subRes.data ?? null}
     />
   );
 }

@@ -2,6 +2,9 @@
 // MENIUS — Types
 // ============================================================
 
+export type OrderType = 'dine_in' | 'pickup' | 'delivery';
+export type PaymentMethod = 'cash' | 'online';
+
 export interface Restaurant {
   id: string;
   name: string;
@@ -9,13 +12,21 @@ export interface Restaurant {
   owner_user_id: string;
   timezone: string;
   currency: string;
+  locale?: 'es' | 'en';
   logo_url: string | null;
+  cover_image_url?: string | null;
   description?: string;
   address?: string;
   phone?: string;
   email?: string;
   website?: string;
+  custom_domain?: string | null;
   operating_hours?: Record<string, { open: string; close: string; closed?: boolean }>;
+  notification_whatsapp?: string | null;
+  notification_email?: string | null;
+  notifications_enabled?: boolean;
+  order_types_enabled?: OrderType[];
+  payment_methods_enabled?: PaymentMethod[];
   is_active?: boolean;
   created_at: string;
 }
@@ -46,6 +57,7 @@ export interface Product {
   price: number;
   image_url: string;
   is_active: boolean;
+  is_featured?: boolean;
   sort_order: number;
   created_at: string;
   // joined
@@ -87,8 +99,12 @@ export interface Order {
   order_number: string;
   status: OrderStatus;
   customer_name: string;
+  customer_email?: string;
   notes: string;
   total: number;
+  order_type?: OrderType;
+  payment_method?: PaymentMethod;
+  delivery_address?: string;
   created_at: string;
   // joined
   items?: OrderItem[];
@@ -117,6 +133,26 @@ export interface OrderItemExtra {
   price: number;
   // joined
   extra?: ProductExtra;
+}
+
+// ---- Subscription / Billing ----
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'incomplete';
+
+export interface Subscription {
+  id: string;
+  restaurant_id: string;
+  stripe_customer_id: string;
+  stripe_subscription_id: string | null;
+  plan_id: string; // 'starter' | 'pro' | 'business'
+  status: SubscriptionStatus;
+  billing_interval: 'monthly' | 'annual';
+  current_period_start: string;
+  current_period_end: string;
+  trial_start: string | null;
+  trial_end: string | null;
+  cancel_at_period_end: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // ---- Cart (client-side) ----

@@ -1,23 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-
-async function getTenant(supabase: any) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('default_restaurant_id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!profile?.default_restaurant_id) return null;
-  return { userId: user.id, restaurantId: profile.default_restaurant_id };
-}
+import { getTenant } from '@/lib/auth/get-tenant';
 
 export async function GET() {
   const supabase = createClient();
-  const tenant = await getTenant(supabase);
+  const tenant = await getTenant();
   if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data: restaurant, error } = await supabase
@@ -32,17 +19,25 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   const supabase = createClient();
-  const tenant = await getTenant(supabase);
+  const tenant = await getTenant();
   if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json();
 
   // Only allow specific fields to be updated
-  const allowed = ['name', 'description', 'address', 'phone', 'email', 'website', 'timezone', 'currency', 'logo_url', 'operating_hours'] as const;
+  const allowed = ['name', 'description', 'address', 'phone', 'email', 'website', 'timezone', 'currency', 'locale', 'logo_url', 'operating_hours', 'notification_whatsapp', 'notification_email', 'notifications_enabled', 'order_types_enabled', 'payment_methods_enabled', 'custom_domain'] as const;
   const updates: Record<string, any> = {};
   for (const key of allowed) {
     if (body[key] !== undefined) {
       updates[key] = body[key];
+    }
+  }
+
+  if (updates.custom_domain !== undefined) {
+    const d = (updates.custom_domain as string).trim().toLowerCase();
+    updates.custom_domain = d || null;
+    if (d && !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(d)) {
+      return NextResponse.json({ error: 'Formato de dominio inválido' }, { status: 400 });
     }
   }
 

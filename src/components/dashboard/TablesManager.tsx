@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useTransition, useEffect, useRef } from 'react';
-import { Plus, Trash2, QrCode, Download } from 'lucide-react';
+import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
+import { Plus, Trash2, QrCode, Download, Share2, Copy, Check, ExternalLink, Printer } from 'lucide-react';
 import { createTable, deleteTable } from '@/lib/actions/restaurant';
+import { cn } from '@/lib/utils';
 import type { Table } from '@/types';
 
 export function TablesManager({ initialTables }: { initialTables: Table[] }) {
@@ -18,7 +19,6 @@ export function TablesManager({ initialTables }: { initialTables: Table[] }) {
     startTransition(async () => {
       const result = await createTable({ name });
       if (result.error) { setError(result.error); return; }
-      // Optimistic — will get real data on revalidation
       setTables((prev) => [...prev, {
         id: `temp-${Date.now()}`, restaurant_id: '', name, qr_code_value: '#', is_active: true, created_at: new Date().toISOString(),
       }]);
@@ -41,26 +41,27 @@ export function TablesManager({ initialTables }: { initialTables: Table[] }) {
       {!showForm && (
         <button
           onClick={() => setShowForm(true)}
-          className="mb-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700"
+          className="mb-6 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" /> Nueva mesa
         </button>
       )}
 
       {showForm && (
-        <div className="mb-4 bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+        <div className="mb-6 bg-white rounded-2xl border border-gray-200 p-5 space-y-4 shadow-sm">
+          <h3 className="font-semibold text-sm">Crear nueva mesa</h3>
           {error && <p className="text-sm text-red-500">{error}</p>}
           <input
             type="text" value={name} onChange={(e) => setName(e.target.value)}
             placeholder="Ej: Mesa 1, Barra 1, Terraza A" autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
           />
           <div className="flex gap-2">
-            <button onClick={handleSubmit} disabled={isPending} className="px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50">
-              Crear
+            <button onClick={handleSubmit} disabled={isPending} className="px-5 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition-colors">
+              Crear mesa
             </button>
-            <button onClick={() => { setShowForm(false); setError(''); }} className="px-4 py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200">
+            <button onClick={() => { setShowForm(false); setError(''); }} className="px-5 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors">
               Cancelar
             </button>
           </div>
@@ -68,13 +69,13 @@ export function TablesManager({ initialTables }: { initialTables: Table[] }) {
       )}
 
       {tables.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <QrCode className="w-10 h-10 mx-auto mb-3 opacity-40" />
-          <p className="font-medium">Sin mesas</p>
-          <p className="text-sm mt-1">Crea mesas para generar códigos QR</p>
+        <div className="text-center py-20 text-gray-400">
+          <QrCode className="w-12 h-12 mx-auto mb-4 opacity-40" />
+          <p className="font-semibold text-gray-500">Sin mesas</p>
+          <p className="text-sm mt-1.5">Crea mesas para generar códigos QR personalizados</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {tables.map((table) => (
             <QRTableCard key={table.id} table={table} onDelete={handleDelete} />
           ))}
@@ -86,40 +87,198 @@ export function TablesManager({ initialTables }: { initialTables: Table[] }) {
 
 function QRTableCard({ table, onDelete }: { table: Table; onDelete: (id: string) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const brandedCanvasRef = useRef<HTMLCanvasElement>(null);
   const [qrReady, setQrReady] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showActions, setShowActions] = useState(false);
 
   useEffect(() => {
     if (!canvasRef.current || table.qr_code_value === '#') return;
     import('qrcode').then((QRCode) => {
-      QRCode.toCanvas(canvasRef.current, table.qr_code_value, { width: 160, margin: 2 }, () => {
+      QRCode.toCanvas(canvasRef.current, table.qr_code_value, {
+        width: 200,
+        margin: 2,
+        color: { dark: '#1f2937', light: '#ffffff' },
+        errorCorrectionLevel: 'H',
+      }, () => {
         setQrReady(true);
+        generateBrandedQR();
       });
     });
   }, [table.qr_code_value]);
 
-  const downloadQR = () => {
-    if (!canvasRef.current) return;
+  const generateBrandedQR = useCallback(() => {
+    if (!canvasRef.current || !brandedCanvasRef.current) return;
+
+    const qrCanvas = canvasRef.current;
+    const canvas = brandedCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const padding = 40;
+    const headerHeight = 60;
+    const footerHeight = 50;
+    const qrSize = qrCanvas.width;
+    const totalWidth = qrSize + padding * 2;
+    const totalHeight = headerHeight + qrSize + footerHeight + padding;
+
+    canvas.width = totalWidth;
+    canvas.height = totalHeight;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(0, 0, totalWidth, totalHeight, 20);
+    ctx.fill();
+
+    const gradient = ctx.createLinearGradient(0, 0, totalWidth, 0);
+    gradient.addColorStop(0, '#7c3aed');
+    gradient.addColorStop(1, '#6d28d9');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.roundRect(0, 0, totalWidth, headerHeight + 10, [20, 20, 0, 0]);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 18px system-ui, -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(table.name, totalWidth / 2, headerHeight / 2 + 6);
+
+    ctx.drawImage(qrCanvas, padding, headerHeight + 10, qrSize, qrSize);
+
+    ctx.fillStyle = '#7c3aed';
+    ctx.font = 'bold 14px system-ui, -apple-system, sans-serif';
+    ctx.textAlign = 'center';
+    const footerY = headerHeight + qrSize + 20;
+    ctx.fillText('MENIUS', totalWidth / 2, footerY + 18);
+
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '10px system-ui, -apple-system, sans-serif';
+    ctx.fillText('Escanea para ver el menú', totalWidth / 2, footerY + 36);
+  }, [table.name]);
+
+  const downloadBrandedQR = () => {
+    if (!brandedCanvasRef.current) return;
     const link = document.createElement('a');
-    link.download = `qr-${table.name}.png`;
-    link.href = canvasRef.current.toDataURL();
+    link.download = `menius-qr-${table.name.toLowerCase().replace(/\s+/g, '-')}.png`;
+    link.href = brandedCanvasRef.current.toDataURL('image/png');
     link.click();
   };
 
+  const copyLink = async () => {
+    if (table.qr_code_value === '#') return;
+    try {
+      await navigator.clipboard.writeText(table.qr_code_value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
+
+  const shareLink = async () => {
+    if (table.qr_code_value === '#') return;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Menú - ${table.name}`,
+          text: `Escanea o visita el enlace para ver el menú`,
+          url: table.qr_code_value,
+        });
+      } catch {}
+    } else {
+      copyLink();
+    }
+  };
+
+  const printQR = () => {
+    if (!brandedCanvasRef.current) return;
+    const dataUrl = brandedCanvasRef.current.toDataURL('image/png');
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head><title>QR - ${table.name}</title></head>
+        <body style="display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#fff;">
+          <img src="${dataUrl}" style="max-width:400px;width:100%;" />
+        </body>
+      </html>
+    `);
+    win.document.close();
+    win.onload = () => { win.print(); };
+  };
+
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
-      <h3 className="font-semibold text-sm mb-3">{table.name}</h3>
-      <div className="flex justify-center mb-3">
-        <canvas ref={canvasRef} className="rounded-lg" />
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden group">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-4 py-3 flex items-center justify-between">
+        <h3 className="font-bold text-white text-sm">{table.name}</h3>
+        <div className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[10px] text-white/80 font-medium">Activo</span>
+        </div>
       </div>
-      <p className="text-xs text-gray-400 mb-3 truncate">{table.qr_code_value}</p>
-      <div className="flex gap-2 justify-center">
+
+      {/* QR */}
+      <div className="p-5 flex flex-col items-center">
+        <div className="bg-gray-50 rounded-xl p-3 mb-3">
+          <canvas ref={canvasRef} className="rounded-lg" />
+        </div>
+        <canvas ref={brandedCanvasRef} className="hidden" />
+        <p className="text-xs text-gray-400 text-center truncate max-w-[200px] mb-4">{table.qr_code_value}</p>
+
+        {/* Actions */}
         {qrReady && (
-          <button onClick={downloadQR} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium hover:bg-gray-200">
-            <Download className="w-3.5 h-3.5" /> Descargar
-          </button>
+          <div className="w-full space-y-2">
+            <button
+              onClick={downloadBrandedQR}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Descargar QR
+            </button>
+
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={printQR}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 text-gray-600 text-xs font-medium hover:bg-gray-100 transition-colors"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                Imprimir
+              </button>
+              <button
+                onClick={shareLink}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 text-gray-600 text-xs font-medium hover:bg-gray-100 transition-colors"
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                Compartir
+              </button>
+              <button
+                onClick={copyLink}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 text-gray-600 text-xs font-medium hover:bg-gray-100 transition-colors"
+              >
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? '¡Copiado!' : 'Copiar'}
+              </button>
+            </div>
+
+            <button
+              onClick={() => window.open(table.qr_code_value, '_blank')}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-gray-400 text-xs font-medium hover:bg-gray-50 hover:text-gray-600 transition-colors"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Ver enlace
+            </button>
+          </div>
         )}
-        <button onClick={() => onDelete(table.id)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100">
-          <Trash2 className="w-3.5 h-3.5" /> Eliminar
+      </div>
+
+      {/* Footer - Delete */}
+      <div className="px-4 py-3 border-t border-gray-50">
+        <button
+          onClick={() => onDelete(table.id)}
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-red-500 text-xs font-medium hover:bg-red-50 transition-colors"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Eliminar mesa
         </button>
       </div>
     </div>

@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { sanitizeText, sanitizeMultiline } from '@/lib/sanitize';
 import type { CreateRestaurantInput, CategoryInput, ProductInput, TableInput } from '@/lib/validations';
 
 // ---- Restaurant ----
@@ -34,11 +35,32 @@ export async function createRestaurant(data: CreateRestaurantInput) {
 
   if (error) return { error: error.message };
 
-  // Update profile with default restaurant
-  await supabase
+  // Update profile with default restaurant — create profile if it doesn't exist
+  const { error: updateError } = await supabase
     .from('profiles')
     .update({ default_restaurant_id: restaurant.id })
     .eq('user_id', user.id);
+
+  if (updateError) {
+    // Profile might not exist (trigger failed) — try to create it
+    const { error: insertError } = await supabase
+      .from('profiles')
+      .insert({
+        user_id: user.id,
+        full_name: user.user_metadata?.full_name || '',
+        role: 'owner',
+        default_restaurant_id: restaurant.id,
+      });
+
+    if (insertError) {
+      return { error: 'Restaurante creado pero hubo un error al vincular tu cuenta. Intenta cerrar sesión y volver a entrar.' };
+    }
+  }
+
+  // Seed with example data so the new owner sees a populated menu
+  const { seedRestaurant } = await import('@/lib/seed-restaurant');
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+  await seedRestaurant(supabase, restaurant.id, restaurant.slug, appUrl);
 
   redirect('/app');
 }
@@ -57,23 +79,23 @@ export async function createCategory(data: CategoryInput) {
 
   if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' };
 
-  const { error } = await supabase.from('categories').insert({
+  const { data: created, error } = await supabase.from('categories').insert({
     restaurant_id: profile.default_restaurant_id,
-    name: data.name,
+    name: sanitizeText(data.name, 100),
     sort_order: data.sort_order,
     is_active: data.is_active,
-  });
+  }).select('id, name').single();
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/categories');
-  return { success: true };
+  return { success: true, id: created?.id, name: created?.name };
 }
 
 export async function updateCategory(id: string, data: CategoryInput) {
   const supabase = createClient();
   const { error } = await supabase
     .from('categories')
-    .update({ name: data.name, sort_order: data.sort_order, is_active: data.is_active })
+    .update({ name: sanitizeText(data.name, 100), sort_order: data.sort_order, is_active: data.is_active })
     .eq('id', id);
 
   if (error) return { error: error.message };
@@ -106,8 +128,8 @@ export async function createProduct(data: ProductInput) {
   const { error } = await supabase.from('products').insert({
     restaurant_id: profile.default_restaurant_id,
     category_id: data.category_id,
-    name: data.name,
-    description: data.description,
+    name: sanitizeText(data.name, 150),
+    description: sanitizeMultiline(data.description, 500),
     price: data.price,
     is_active: data.is_active,
   });
@@ -119,9 +141,12 @@ export async function createProduct(data: ProductInput) {
 
 export async function updateProduct(id: string, data: Partial<ProductInput> & { image_url?: string }) {
   const supabase = createClient();
+  const sanitized = { ...data };
+  if (sanitized.name) sanitized.name = sanitizeText(sanitized.name, 150);
+  if (sanitized.description) sanitized.description = sanitizeMultiline(sanitized.description, 500);
   const { error } = await supabase
     .from('products')
-    .update(data)
+    .update(sanitized)
     .eq('id', id);
 
   if (error) return { error: error.message };
@@ -132,6 +157,92 @@ export async function updateProduct(id: string, data: Partial<ProductInput> & { 
 export async function deleteProduct(id: string) {
   const supabase = createClient();
   const { error } = await supabase.from('products').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidatePath('/app/menu/products');
+  return { success: true };
+}
+
+// ---- Variants ----
+export async function createVariant(productId: string, data: { name: string; price_delta: number; sort_order: number }) {
+  const supabase = createClient();
+  const { data: variant, error } = await supabase
+    .from('product_variants')
+    .insert({
+      product_id: productId,
+      name: sanitizeText(data.name, 100),
+      price_delta: data.price_delta,
+      sort_order: data.sort_order,
+    })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+  revalidatePath('/app/menu/products');
+  return { success: true, variant };
+}
+
+export async function updateVariant(id: string, data: { name: string; price_delta: number; sort_order: number }) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('product_variants')
+    .update({
+      name: sanitizeText(data.name, 100),
+      price_delta: data.price_delta,
+      sort_order: data.sort_order,
+    })
+    .eq('id', id);
+
+  if (error) return { error: error.message };
+  revalidatePath('/app/menu/products');
+  return { success: true };
+}
+
+export async function deleteVariant(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from('product_variants').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidatePath('/app/menu/products');
+  return { success: true };
+}
+
+// ---- Extras ----
+export async function createExtra(productId: string, data: { name: string; price: number; sort_order: number }) {
+  const supabase = createClient();
+  const { data: extra, error } = await supabase
+    .from('product_extras')
+    .insert({
+      product_id: productId,
+      name: sanitizeText(data.name, 100),
+      price: data.price,
+      sort_order: data.sort_order,
+    })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+  revalidatePath('/app/menu/products');
+  return { success: true, extra };
+}
+
+export async function updateExtra(id: string, data: { name: string; price: number; sort_order: number }) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('product_extras')
+    .update({
+      name: sanitizeText(data.name, 100),
+      price: data.price,
+      sort_order: data.sort_order,
+    })
+    .eq('id', id);
+
+  if (error) return { error: error.message };
+  revalidatePath('/app/menu/products');
+  return { success: true };
+}
+
+export async function deleteExtra(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from('product_extras').delete().eq('id', id);
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
   return { success: true };
@@ -183,12 +294,31 @@ export async function deleteTable(id: string) {
 // ---- Orders ----
 export async function updateOrderStatus(orderId: string, status: string) {
   const supabase = createClient();
+
+  const { data: order } = await supabase
+    .from('orders')
+    .select('id, order_number, restaurant_id, customer_name')
+    .eq('id', orderId)
+    .single();
+
   const { error } = await supabase
     .from('orders')
     .update({ status })
     .eq('id', orderId);
 
   if (error) return { error: error.message };
+
+  if (order && ['confirmed', 'preparing', 'ready', 'delivered', 'cancelled'].includes(status)) {
+    import('@/lib/notifications/order-notifications').then(({ notifyStatusChange }) => {
+      notifyStatusChange({
+        orderNumber: order.order_number,
+        restaurantId: order.restaurant_id,
+        status,
+        customerName: order.customer_name,
+      });
+    }).catch(() => {});
+  }
+
   revalidatePath('/app/orders');
   return { success: true };
 }

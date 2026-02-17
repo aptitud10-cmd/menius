@@ -1,21 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-
-async function getTenant(supabase: any) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('default_restaurant_id')
-    .eq('user_id', user.id)
-    .single();
-  if (!profile?.default_restaurant_id) return null;
-  return { userId: user.id, restaurantId: profile.default_restaurant_id };
-}
+import { getTenant } from '@/lib/auth/get-tenant';
 
 export async function GET() {
   const supabase = createClient();
-  const tenant = await getTenant(supabase);
+  const tenant = await getTenant();
   if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data, error } = await supabase
@@ -30,7 +19,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const supabase = createClient();
-  const tenant = await getTenant(supabase);
+  const tenant = await getTenant();
   if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const body = await request.json();
@@ -69,7 +58,7 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const supabase = createClient();
-  const tenant = await getTenant(supabase);
+  const tenant = await getTenant();
   if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const { id, role, status } = await request.json();
@@ -91,7 +80,7 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   const supabase = createClient();
-  const tenant = await getTenant(supabase);
+  const tenant = await getTenant();
   if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   const { id } = await request.json();

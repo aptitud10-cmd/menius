@@ -33,15 +33,17 @@ export async function GET(request: NextRequest) {
       // Check if user has a restaurant
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('default_restaurant_id')
           .eq('user_id', user.id)
           .single();
 
-        if (profile?.default_restaurant_id) {
+        // If profile exists and has a restaurant, go to dashboard
+        if (!profileError && profile?.default_restaurant_id) {
           return NextResponse.redirect(new URL('/app', origin));
         }
+        // Otherwise go to onboarding (profile missing or no restaurant)
         return NextResponse.redirect(new URL('/onboarding/create-restaurant', origin));
       }
 

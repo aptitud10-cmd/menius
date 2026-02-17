@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
-import { Clock, ChefHat, CheckCircle, Package, XCircle, User, ArrowRight, Bell, Volume2, VolumeX } from 'lucide-react';
+import { useState, useTransition, useEffect, useCallback } from 'react';
+import { Clock, ChefHat, CheckCircle, Package, XCircle, User, ArrowRight, Bell, Volume2, VolumeX, BellRing, Wifi, WifiOff } from 'lucide-react';
 import { updateOrderStatus } from '@/lib/actions/restaurant';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
+import { useNotifications } from '@/hooks/use-notifications';
 import type { Order, OrderStatus } from '@/types';
 
 const COLUMNS: { status: OrderStatus; icon: typeof Clock }[] = [
@@ -21,88 +23,56 @@ const NEXT_STATUS: Record<string, OrderStatus> = {
   ready: 'delivered',
 };
 
-// Short beep sound as base64 data URI
-const BEEP_SOUND = 'data:audio/wav;base64,UklGRlQFAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YTAFAABkAKAA0AD4ABIBIAEgARIB+ADQAKAAZAAYAMX/jf9i/0r/Qv9K/2L/jf/F/xgAZACgANAA+AASASABIAESAfgA0ACgAGQAGADF/43/Yv9K/0L/Sv9i/43/xf8YAGQAoADQAPgAEgEgASABEgH4ANAA';
-
 interface OrdersBoardProps {
   initialOrders: Order[];
+  restaurantId: string;
+  currency: string;
 }
 
-export function OrdersBoard({ initialOrders }: OrdersBoardProps) {
-  const [orders, setOrders] = useState(initialOrders);
+export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoardProps) {
   const [isPending, startTransition] = useTransition();
   const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set());
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const lastPollRef = useRef<string>(new Date().toISOString());
-  const knownIdsRef = useRef<Set<string>>(new Set(initialOrders.map((o) => o.id)));
+  const [realtimeConnected, setRealtimeConnected] = useState(true);
 
-  const playNotification = useCallback(() => {
-    if (!soundEnabled) return;
-    try {
-      const audio = new Audio(BEEP_SOUND);
-      audio.volume = 0.5;
-      audio.play().catch(() => {});
-    } catch {}
-  }, [soundEnabled]);
+  const {
+    soundEnabled,
+    setSoundEnabled,
+    hasPermission,
+    requestPermission,
+    notifyNewOrder,
+    updateTabTitle,
+  } = useNotifications({ defaultTitle: 'Órdenes — MENIUS' });
 
-  // Poll for new orders every 8 seconds
-  useEffect(() => {
-    const poll = async () => {
-      try {
-        const res = await fetch(`/api/tenant/orders/poll?since=${encodeURIComponent(lastPollRef.current)}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        const incoming: Order[] = data.orders ?? [];
+  const { orders, updateOrderLocally } = useRealtimeOrders({
+    restaurantId,
+    initialOrders,
+    onNewOrder: useCallback((order: Order) => {
+      const total = formatPrice(Number(order.total), currency);
+      notifyNewOrder(order.order_number, total);
 
-        if (incoming.length === 0) return;
-
-        let hasNew = false;
-        const freshIds = new Set<string>();
-
-        setOrders((prev) => {
-          const map = new Map(prev.map((o) => [o.id, o]));
-          for (const order of incoming) {
-            if (!knownIdsRef.current.has(order.id)) {
-              hasNew = true;
-              freshIds.add(order.id);
-              knownIdsRef.current.add(order.id);
-            }
-            map.set(order.id, order);
-          }
-          return Array.from(map.values()).sort(
-            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
+      setNewOrderIds((prev) => new Set(Array.from(prev).concat(order.id)));
+      setTimeout(() => {
+        setNewOrderIds((prev) => {
+          const next = new Set(prev);
+          next.delete(order.id);
+          return next;
         });
+      }, 12000);
+    }, [currency, notifyNewOrder]),
+  });
 
-        if (hasNew) {
-          playNotification();
-          setNewOrderIds((prev) => new Set(Array.from(prev).concat(Array.from(freshIds))));
-          // Clear "new" badge after 10s
-          setTimeout(() => {
-            setNewOrderIds((prev) => {
-              const next = new Set(prev);
-              freshIds.forEach((id) => next.delete(id));
-              return next;
-            });
-          }, 10000);
-        }
+  const pendingCount = orders.filter((o) => o.status === 'pending').length;
+  const preparingCount = orders.filter((o) => o.status === 'preparing').length;
+  const todayTotal = orders
+    .filter((o) => new Date(o.created_at).toDateString() === new Date().toDateString() && o.status !== 'cancelled')
+    .reduce((s, o) => s + Number(o.total), 0);
 
-        // Update last poll time to the most recent order
-        const latest = incoming.reduce((max, o) =>
-          new Date(o.created_at) > new Date(max) ? o.created_at : max
-        , lastPollRef.current);
-        lastPollRef.current = latest;
-      } catch {}
-    };
-
-    const interval = setInterval(poll, 8000);
-    return () => clearInterval(interval);
-  }, [playNotification]);
+  useEffect(() => {
+    updateTabTitle(pendingCount);
+  }, [pendingCount, updateTabTitle]);
 
   const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
-    );
+    updateOrderLocally(orderId, { status: newStatus });
     startTransition(async () => {
       await updateOrderStatus(orderId, newStatus);
     });
@@ -111,13 +81,6 @@ export function OrdersBoard({ initialOrders }: OrdersBoardProps) {
   const handleCancel = (orderId: string) => {
     handleStatusChange(orderId, 'cancelled');
   };
-
-  // Stats
-  const pendingCount = orders.filter((o) => o.status === 'pending').length;
-  const preparingCount = orders.filter((o) => o.status === 'preparing').length;
-  const todayTotal = orders
-    .filter((o) => new Date(o.created_at).toDateString() === new Date().toDateString() && o.status !== 'cancelled')
-    .reduce((s, o) => s + Number(o.total), 0);
 
   return (
     <div>
@@ -133,30 +96,46 @@ export function OrdersBoard({ initialOrders }: OrdersBoardProps) {
         </div>
         <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
           <p className="text-xs text-gray-500 font-medium">Venta hoy</p>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">{formatPrice(todayTotal)}</p>
+          <p className="text-2xl font-bold text-emerald-600 mt-1">{formatPrice(todayTotal, currency)}</p>
         </div>
       </div>
 
-      {/* Sound toggle */}
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-xs text-gray-400">Actualización automática cada 8s</p>
-        <button
-          onClick={() => setSoundEnabled(!soundEnabled)}
-          className={cn(
-            'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
-            soundEnabled ? 'bg-brand-50 text-brand-700' : 'bg-gray-100 text-gray-500'
+      {/* Controls */}
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+            <Wifi className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Tiempo real activo</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {!hasPermission && (
+            <button
+              onClick={requestPermission}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
+            >
+              <BellRing className="w-3.5 h-3.5" />
+              Activar notificaciones
+            </button>
           )}
-        >
-          {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-          {soundEnabled ? 'Sonido ON' : 'Sonido OFF'}
-        </button>
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
+              soundEnabled ? 'bg-brand-50 text-brand-700' : 'bg-gray-100 text-gray-500'
+            )}
+          >
+            {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+            {soundEnabled ? 'Sonido ON' : 'Sonido OFF'}
+          </button>
+        </div>
       </div>
 
       {orders.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <Package className="w-10 h-10 mx-auto mb-3 opacity-40" />
           <p className="font-medium">No hay órdenes aún</p>
-          <p className="text-sm mt-1">Las órdenes aparecerán aquí cuando tus clientes empiecen a pedir</p>
+          <p className="text-sm mt-1">Las órdenes aparecerán aquí en tiempo real cuando tus clientes empiecen a pedir</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -212,7 +191,7 @@ export function OrdersBoard({ initialOrders }: OrdersBoardProps) {
                       )}
 
                       <div className="flex items-center justify-between mt-2">
-                        <span className="font-bold text-sm">{formatPrice(Number(order.total))}</span>
+                        <span className="font-bold text-sm">{formatPrice(Number(order.total), currency)}</span>
                         <div className="flex gap-1.5">
                           {NEXT_STATUS[status] && (
                             <button
