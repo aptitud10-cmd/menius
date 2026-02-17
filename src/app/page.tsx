@@ -34,12 +34,14 @@ export default function LandingPage() {
 
       {/* ── Footer (Resend style) ── */}
       <footer className="relative bg-black overflow-hidden">
-        {/* Giant MENIUS watermark behind everything */}
-        <div className="absolute inset-0 flex items-center justify-center select-none pointer-events-none overflow-hidden">
-          <span className="text-[16rem] sm:text-[20rem] md:text-[26rem] lg:text-[32rem] font-bold text-white/[0.025] tracking-tighter leading-none whitespace-nowrap">
+        {/* Giant MENIUS watermark — positioned low so columns sit ON TOP of it */}
+        <div className="absolute bottom-[-8%] left-1/2 -translate-x-1/2 select-none pointer-events-none">
+          <span className="text-[18rem] sm:text-[24rem] md:text-[30rem] lg:text-[38rem] font-bold text-white/[0.035] tracking-tighter leading-none whitespace-nowrap block">
             MENIUS
           </span>
         </div>
+        {/* Dark gradient overlay on top half — creates the "behind glass" effect */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-black/90 to-transparent pointer-events-none z-[1]" />
 
         {/* CTA buttons above footer links */}
         <div className="relative z-10 flex items-center justify-center gap-6 pt-20 pb-16">
