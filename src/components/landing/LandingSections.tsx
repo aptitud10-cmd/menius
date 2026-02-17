@@ -29,7 +29,7 @@ const plans = [
     desc: 'Para cadenas y franquicias.',
     popular: false,
     features: ['Todo de Pro', 'Productos y mesas ilimitados', 'IA ilimitada', 'Dominio personalizado', 'Onboarding dedicado', 'Soporte por WhatsApp'],
-    cta: 'Contactar ventas',
+    cta: 'Empezar con Business',
   },
 ];
 
@@ -180,21 +180,33 @@ export function LandingSections() {
 
           <FadeIn delay={0.1}>
             <div className="space-y-2">
+              {/* Column Headers */}
+              <div className="grid grid-cols-3 gap-2 items-center mb-1">
+                <div className="px-4 py-2" />
+                <div className="px-4 py-2 text-center">
+                  <span className="text-sm font-bold text-brand-400 font-heading">MENIUS</span>
+                </div>
+                <div className="px-4 py-2 text-center">
+                  <span className="text-[11px] font-medium text-gray-600">UberEats, DoorDash, Grubhub</span>
+                </div>
+              </div>
+
               {[
                 ['Comisión por pedido', '0%', '15%–30%'],
                 ['Control de clientes', 'Tus datos', 'La app se los queda'],
                 ['Tu marca', 'Dominio propio', 'Junto a la competencia'],
                 ['Fotos del menú', 'IA genera fotos pro', 'Tú las subes'],
                 ['WhatsApp', 'Sí (Plan Pro+)', 'No'],
+                ['Costo mensual', 'Desde $39/mes', 'Gratis (pero 30% por pedido)'],
               ].map(([feature, menius, other]) => (
                 <div key={feature} className="grid grid-cols-3 gap-2 items-center rounded-xl overflow-hidden">
                   <div className="bg-white/[0.02] px-4 py-3.5">
                     <p className="text-xs font-medium text-gray-500">{feature}</p>
                   </div>
-                  <div className="bg-brand-500/[0.06] border border-brand-500/10 px-4 py-3.5 rounded-lg">
+                  <div className="bg-brand-500/[0.06] border border-brand-500/10 px-4 py-3.5 rounded-lg text-center">
                     <p className="text-sm font-semibold text-brand-300">{menius}</p>
                   </div>
-                  <div className="bg-white/[0.02] px-4 py-3.5">
+                  <div className="bg-white/[0.02] px-4 py-3.5 text-center">
                     <p className="text-sm text-gray-600">{other}</p>
                   </div>
                 </div>
@@ -253,7 +265,7 @@ export function LandingSections() {
                     ))}
                   </ul>
                   <Link
-                    href={plan.name === 'Business' ? 'mailto:ventas@menius.app?subject=Plan%20Business' : `/signup?plan=${plan.name.toLowerCase()}`}
+                    href={`/signup?plan=${plan.name.toLowerCase()}`}
                     className={`mt-7 block text-center py-3 rounded-lg font-semibold text-sm transition-all duration-300 ${
                       plan.popular
                         ? 'bg-white text-black hover:bg-gray-100'

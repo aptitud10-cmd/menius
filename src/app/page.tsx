@@ -81,7 +81,7 @@ export default function LandingPage() {
           <div className="line-gradient" />
           <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-[11px] text-gray-700">&copy; {new Date().getFullYear()} MENIUS Inc.</p>
-            <p className="text-[11px] text-gray-700">Hecho en New York</p>
+            <p className="text-[11px] text-gray-700">Hecho en <a href="https://www.scuart.com/" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-300 transition-colors">Scuart Digital</a></p>
           </div>
         </div>
       </footer>
