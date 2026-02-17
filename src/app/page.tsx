@@ -25,14 +25,14 @@ export default function LandingPage() {
         <div className="relative z-10 -mt-[14rem] sm:-mt-[18rem] md:-mt-[22rem] lg:-mt-[28rem] flex items-center justify-center gap-6 pt-8 pb-16">
           <Link
             href="/signup"
-            className="group text-sm font-medium text-gray-400 hover:text-white transition-colors flex items-center gap-1.5 px-6 py-3 rounded-xl border border-white/[0.08] hover:border-white/[0.15] hover:bg-white/[0.03]"
+            className="group text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-1.5 px-7 py-3 rounded-full border border-white/[0.12] hover:border-white/[0.25] hover:bg-white/[0.04] backdrop-blur-sm"
           >
             Empezar gratis
             <span className="group-hover:translate-x-0.5 transition-transform">&rsaquo;</span>
           </Link>
           <Link
             href="mailto:soporte@menius.app"
-            className="group text-sm font-medium text-gray-400 hover:text-white transition-colors flex items-center gap-1.5"
+            className="group text-sm font-medium text-gray-400 hover:text-white transition-colors flex items-center gap-1.5 px-7 py-3"
           >
             Contactar
             <span className="group-hover:translate-x-0.5 transition-transform">&rsaquo;</span>
@@ -58,12 +58,6 @@ export default function LandingPage() {
                     </span>
                   ))}
                 </div>
-                <p className="text-[11px] text-gray-700 mt-5">
-                  Hecho en{' '}
-                  <a href="https://www.scuart.com/" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-300 transition-colors">
-                    Scuart Digital
-                  </a>
-                </p>
               </div>
 
               {/* Col 2: Producto */}
@@ -103,6 +97,12 @@ export default function LandingPage() {
             <div className="separator-gradient mt-12" />
             <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
               <p className="text-[11px] text-gray-700" suppressHydrationWarning>&copy; {new Date().getFullYear()} MENIUS Inc.</p>
+              <p className="text-[11px] text-gray-700">
+                Hecho en{' '}
+                <a href="https://www.scuart.com/" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-300 transition-colors">
+                  Scuart Digital
+                </a>
+              </p>
             </div>
           </div>
         </div>
