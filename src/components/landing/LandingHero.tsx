@@ -106,7 +106,7 @@ export function LandingHero() {
               className="relative flex justify-center lg:justify-end"
             >
               {/* Glow behind phone */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-purple-500/20 blur-[100px]" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] rounded-full bg-purple-500/30 blur-[100px]" />
               <Image
                 src="/images/hero-phone-mockup.webp"
                 alt="MENIUS - Menú digital en iPhone"

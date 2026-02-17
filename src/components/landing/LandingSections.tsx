@@ -139,10 +139,19 @@ function FeatureTabs() {
           </div>
         </div>
 
-        {/* Visual */}
+        {/* Visual — unique image per tab */}
         <div className="relative flex justify-center">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-purple-500/10 blur-[80px]" />
-          {active === 1 ? (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-purple-500/20 blur-[80px]" />
+          {active === 0 && (
+            <Image
+              src="/images/hero-phone-mockup.webp"
+              alt="MENIUS menú digital"
+              width={500}
+              height={500}
+              className="relative z-10 w-[300px] sm:w-[340px] h-auto drop-shadow-2xl"
+            />
+          )}
+          {active === 1 && (
             <Image
               src="/images/hero-dashboard-mockup.webp"
               alt="Dashboard MENIUS"
@@ -150,13 +159,23 @@ function FeatureTabs() {
               height={500}
               className="relative z-10 w-full max-w-[460px] h-auto rounded-xl drop-shadow-2xl"
             />
-          ) : (
+          )}
+          {active === 2 && (
             <Image
-              src="/images/hero-phone-mockup.webp"
-              alt="MENIUS menú digital"
+              src="/images/feature-pagos-mockup.webp"
+              alt="MENIUS pagos con Stripe"
               width={500}
-              height={500}
-              className="relative z-10 w-[300px] sm:w-[340px] h-auto drop-shadow-2xl"
+              height={273}
+              className="relative z-10 w-[300px] sm:w-[380px] h-auto drop-shadow-2xl"
+            />
+          )}
+          {active === 3 && (
+            <Image
+              src="/images/feature-ia-mockup.webp"
+              alt="MENIUS generación de fotos con IA"
+              width={500}
+              height={273}
+              className="relative z-10 w-[300px] sm:w-[380px] h-auto drop-shadow-2xl"
             />
           )}
         </div>
@@ -257,7 +276,7 @@ export function LandingSections() {
       {/* ── Pricing ── */}
       <section id="precios" className="relative py-32 md:py-40 overflow-hidden">
         <div className="section-glow section-glow-blue" />
-        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-purple-600/10 blur-[100px] pointer-events-none" />
+        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-purple-600/18 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 max-w-5xl mx-auto px-6">
           <FadeIn className="text-center mb-14">
@@ -371,7 +390,7 @@ export function LandingSections() {
       {/* ── Final CTA ── */}
       <section className="relative py-40 md:py-52 overflow-hidden">
         {/* Big gradient orb behind CTA */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-gradient-to-br from-purple-600/15 to-blue-600/10 blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-gradient-to-br from-purple-600/25 to-blue-600/18 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
           <FadeIn>
