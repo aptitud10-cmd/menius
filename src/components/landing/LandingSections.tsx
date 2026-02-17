@@ -139,16 +139,15 @@ function FeatureTabs() {
           </div>
         </div>
 
-        {/* Visual placeholder — shows dashboard mockup for Dashboard tab, phone for others */}
-        <div className="relative flex justify-center">
-          <div className="absolute inset-0 scale-105 bg-white/[0.02] rounded-3xl blur-[60px]" />
+        {/* Visual — clean on black, no shadows */}
+        <div className="flex justify-center">
           {active === 1 ? (
             <Image
               src="/images/hero-dashboard-mockup.webp"
               alt="Dashboard MENIUS"
               width={500}
               height={500}
-              className="relative z-10 w-full max-w-[460px] h-auto rounded-xl"
+              className="w-full max-w-[460px] h-auto rounded-xl"
             />
           ) : (
             <Image
@@ -156,7 +155,7 @@ function FeatureTabs() {
               alt="MENIUS menú digital"
               width={500}
               height={500}
-              className="relative z-10 w-[300px] sm:w-[340px] h-auto"
+              className="w-[300px] sm:w-[340px] h-auto"
             />
           )}
         </div>
@@ -171,8 +170,12 @@ export function LandingSections() {
   return (
     <LazyMotion features={domAnimation}>
       {/* ── Features with Tabs ── */}
-      <section id="funciones" className="relative bg-black py-32 md:py-40">
-        <div className="max-w-6xl mx-auto px-6">
+      <section id="funciones" className="relative bg-black py-32 md:py-40 overflow-hidden">
+        {/* Ambient fog — asymmetric depth */}
+        <div className="ambient-fog ambient-fog-left top-[20%]" />
+        <div className="ambient-fog ambient-fog-right top-[60%]" />
+
+        <div className="relative z-10 max-w-6xl mx-auto px-6">
           <FadeIn className="text-center mb-6">
             <p className="text-[14px] text-[#555] uppercase tracking-[0.2em] mb-5">Funciones</p>
             <h2 className="text-[2.5rem] md:text-[3.5rem] font-bold text-white tracking-tight">
@@ -193,8 +196,11 @@ export function LandingSections() {
       <div className="max-w-5xl mx-auto h-px bg-gradient-to-r from-transparent via-[#222] to-transparent" />
 
       {/* ── Comparison ── */}
-      <section className="relative bg-black py-32 md:py-40">
-        <div className="max-w-4xl mx-auto px-6">
+      <section className="relative bg-black py-32 md:py-40 overflow-hidden">
+        {/* Ambient fog */}
+        <div className="ambient-fog ambient-fog-center top-[10%]" />
+
+        <div className="relative z-10 max-w-4xl mx-auto px-6">
           <FadeIn className="text-center mb-14">
             <p className="text-[14px] text-[#555] uppercase tracking-[0.2em] mb-5">Sin intermediarios</p>
             <h2 className="text-[2.5rem] md:text-[3.5rem] font-bold text-white tracking-tight">
@@ -250,8 +256,13 @@ export function LandingSections() {
       <div className="max-w-5xl mx-auto h-px bg-gradient-to-r from-transparent via-[#222] to-transparent" />
 
       {/* ── Pricing ── */}
-      <section id="precios" className="relative bg-black py-32 md:py-40">
-        <div className="max-w-5xl mx-auto px-6">
+      <section id="precios" className="relative bg-black py-32 md:py-40 overflow-hidden">
+        {/* Light ray — diagonal beam */}
+        <div className="light-ray top-[-20%] left-[25%]" />
+        {/* Ambient fog */}
+        <div className="ambient-fog ambient-fog-right top-[40%]" />
+
+        <div className="relative z-10 max-w-5xl mx-auto px-6">
           <FadeIn className="text-center mb-14">
             <p className="text-[14px] text-[#555] uppercase tracking-[0.2em] mb-5">Precios</p>
             <h2 className="text-[2.5rem] md:text-[3.5rem] font-bold text-white tracking-tight">
@@ -320,8 +331,11 @@ export function LandingSections() {
       <div className="max-w-5xl mx-auto h-px bg-gradient-to-r from-transparent via-[#222] to-transparent" />
 
       {/* ── Testimonials ── */}
-      <section className="relative bg-black py-32 md:py-40">
-        <div className="max-w-6xl mx-auto px-6">
+      <section className="relative bg-black py-32 md:py-40 overflow-hidden">
+        {/* Ambient fog */}
+        <div className="ambient-fog ambient-fog-left top-[30%]" />
+
+        <div className="relative z-10 max-w-6xl mx-auto px-6">
           <FadeIn className="text-center mb-14">
             <p className="text-[14px] text-[#555] uppercase tracking-[0.2em] mb-5">Testimonios</p>
             <h2 className="text-[2.5rem] md:text-[3.5rem] font-bold text-white tracking-tight">
@@ -355,7 +369,10 @@ export function LandingSections() {
 
       {/* ── Final CTA (Resend style) ── */}
       <section className="relative py-40 md:py-52 bg-black overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[250px] bg-white/[0.015] rounded-full blur-[120px]" />
+        {/* Floor glow from below */}
+        <div className="floor-glow" />
+        {/* Light ray */}
+        <div className="light-ray top-[-30%] right-[30%]" />
 
         <div className="relative z-10 max-w-2xl mx-auto px-6 text-center">
           <FadeIn>

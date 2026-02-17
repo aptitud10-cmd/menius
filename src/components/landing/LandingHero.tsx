@@ -11,8 +11,10 @@ export function LandingHero() {
   return (
     <LazyMotion features={domAnimation}>
       <section className="relative min-h-[100vh] min-h-[100dvh] flex items-center bg-black overflow-hidden">
-        {/* Subtle radial glow — no grid, no pattern */}
-        <div className="absolute top-[-30%] left-[50%] -translate-x-1/2 w-[900px] h-[500px] bg-white/[0.02] rounded-full blur-[120px]" />
+        {/* Floor glow — light from below */}
+        <div className="floor-glow" />
+        {/* Light ray — diagonal beam */}
+        <div className="light-ray top-[-10%] right-[15%]" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 w-full py-32 md:py-0">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-12 items-center">
@@ -94,17 +96,14 @@ export function LandingHero() {
               transition={{ duration: 1, delay: 0.2, ease }}
               className="relative flex justify-center lg:justify-end"
             >
-              <div className="relative">
-                <div className="absolute inset-0 scale-110 bg-white/[0.03] rounded-[3rem] blur-[80px]" />
-                <Image
-                  src="/images/hero-phone-mockup.webp"
-                  alt="MENIUS - Menú digital en iPhone"
-                  width={500}
-                  height={500}
-                  className="relative z-10 w-[380px] sm:w-[440px] lg:w-[520px] h-auto"
-                  priority
-                />
-              </div>
+              <Image
+                src="/images/hero-phone-mockup.webp"
+                alt="MENIUS - Menú digital en iPhone"
+                width={500}
+                height={500}
+                className="w-[380px] sm:w-[440px] lg:w-[520px] h-auto"
+                priority
+              />
             </m.div>
           </div>
         </div>

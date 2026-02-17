@@ -293,3 +293,55 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(5,200,167,0.3), transparent);
 }
+
+/* ─── RESEND-STYLE BACKGROUND EFFECTS ─── */
+
+/* Floor glow: large radial light from below */
+.floor-glow {
+  position: absolute;
+  bottom: -10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 1200px;
+  height: 400px;
+  background: radial-gradient(ellipse at center, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 40%, transparent 70%);
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+/* Light ray: diagonal beam of light */
+.light-ray {
+  position: absolute;
+  width: 200px;
+  height: 120%;
+  background: linear-gradient(195deg, transparent 0%, rgba(255,255,255,0.015) 30%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.015) 70%, transparent 100%);
+  pointer-events: none;
+  transform: rotate(-15deg);
+}
+
+/* Ambient fog: soft diffuse glow for depth between sections */
+.ambient-fog {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+}
+.ambient-fog-left {
+  left: -10%;
+  width: 500px;
+  height: 300px;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.025) 0%, transparent 70%);
+}
+.ambient-fog-right {
+  right: -10%;
+  width: 450px;
+  height: 350px;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.02) 0%, transparent 70%);
+}
+.ambient-fog-center {
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 250px;
+  background: radial-gradient(ellipse, rgba(255,255,255,0.03) 0%, transparent 70%);
+}
