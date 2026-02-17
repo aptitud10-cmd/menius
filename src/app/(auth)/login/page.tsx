@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [focused, setFocused] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,62 +31,105 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-brand-950 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-brand-950 via-brand-950 to-brand-900" />
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3" />
-      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-teal-500/8 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/3" />
+    <div className="min-h-screen-safe flex items-center justify-center px-4 bg-black relative overflow-hidden">
+      {/* Background */}
+      <div className="absolute inset-0 grid-pattern opacity-30" />
+      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-brand-500/[0.05] rounded-full blur-[180px]" />
+      <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-brand-400/[0.03] rounded-full blur-[120px]" />
 
-      <div className="relative z-10 w-full max-w-sm animate-fade-in-up">
-        <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold tracking-tight font-heading">
+      <div className="relative z-10 w-full max-w-[380px] animate-fade-in-up">
+        {/* Logo */}
+        <div className="text-center mb-10">
+          <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
             <span className="text-brand-400">MEN</span><span className="text-white">IUS</span>
           </Link>
-          <p className="text-gray-400 text-sm mt-2">Inicia sesión en tu cuenta</p>
+          <p className="text-gray-600 text-[13px] mt-2.5 tracking-wide">Inicia sesión en tu cuenta</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl">
-          {error && (
-            <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{error}</div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 transition-all"
-              placeholder="tu@email.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 transition-all"
-              placeholder="••••••"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 rounded-xl bg-brand-500 text-brand-950 font-semibold text-sm hover:bg-brand-400 transition-all shadow-lg shadow-brand-500/20 disabled:opacity-50"
+        {/* Card */}
+        <div className="card-glow rounded-2xl p-[1px]">
+          <form
+            onSubmit={handleSubmit}
+            className="bg-[#0a0a0a] rounded-2xl p-7 space-y-5"
           >
-            {loading ? 'Entrando...' : 'Iniciar sesión'}
-          </button>
-        </form>
+            {/* Error */}
+            {error && (
+              <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/[0.06] border border-red-500/[0.1]">
+                <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                <span className="text-red-400 text-[13px]">{error}</span>
+              </div>
+            )}
 
-        <p className="text-center text-sm text-gray-500 mt-5">
-          ¿No tienes cuenta?{' '}
-          <Link href="/signup" className="text-brand-400 font-medium hover:text-brand-300 transition-colors">Regístrate</Link>
-        </p>
-        <p className="text-center mt-3">
-          <Link href="/" className="text-xs text-gray-600 hover:text-gray-400 transition-colors">← Volver al inicio</Link>
-        </p>
+            {/* Email */}
+            <div>
+              <label className="block text-[13px] font-medium text-gray-400 mb-2">Email</label>
+              <div className={`relative rounded-xl transition-all duration-300 ${
+                focused === 'email'
+                  ? 'ring-1 ring-brand-500/30 shadow-[0_0_20px_rgba(5,200,167,0.06)]'
+                  : ''
+              }`}>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onFocus={() => setFocused('email')}
+                  onBlur={() => setFocused(null)}
+                  className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white text-sm placeholder-gray-700 focus:outline-none transition-colors"
+                  placeholder="tu@email.com"
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-[13px] font-medium text-gray-400 mb-2">Contraseña</label>
+              <div className={`relative rounded-xl transition-all duration-300 ${
+                focused === 'password'
+                  ? 'ring-1 ring-brand-500/30 shadow-[0_0_20px_rgba(5,200,167,0.06)]'
+                  : ''
+              }`}>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setFocused('password')}
+                  onBlur={() => setFocused(null)}
+                  className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white text-sm placeholder-gray-700 focus:outline-none transition-colors"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed mt-1"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  Entrando...
+                </span>
+              ) : 'Iniciar sesión'}
+            </button>
+          </form>
+        </div>
+
+        {/* Links */}
+        <div className="mt-8 space-y-3 text-center">
+          <p className="text-[13px] text-gray-600">
+            ¿No tienes cuenta?{' '}
+            <Link href="/signup" className="text-white font-medium hover:text-brand-400 transition-colors">
+              Regístrate
+            </Link>
+          </p>
+          <Link href="/" className="inline-block text-[12px] text-gray-700 hover:text-gray-400 transition-colors">
+            ← Volver al inicio
+          </Link>
+        </div>
       </div>
     </div>
   );

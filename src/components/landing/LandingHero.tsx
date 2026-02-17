@@ -117,11 +117,11 @@ export function LandingHero() {
                   {/* Glow behind phone */}
                   <div className="absolute inset-0 scale-110 bg-brand-500/[0.08] rounded-[3rem] blur-[60px]" />
                   <Image
-                    src="/images/hero-phone-mockup.png"
+                    src="/images/hero-phone-mockup.webp"
                     alt="MENIUS - Menú digital en iPhone"
-                    width={480}
-                    height={480}
-                    className="relative z-10 w-[320px] sm:w-[380px] lg:w-[440px] h-auto drop-shadow-2xl"
+                    width={500}
+                    height={500}
+                    className="relative z-10 w-[420px] sm:w-[520px] lg:w-[640px] h-auto drop-shadow-2xl"
                     priority
                   />
                 </div>

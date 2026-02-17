@@ -132,9 +132,9 @@ export function LandingSections() {
                 <div className="absolute inset-0 scale-105 bg-brand-500/[0.05] rounded-2xl blur-[40px]" />
                 <div className="relative rounded-2xl overflow-hidden border border-white/[0.06] shadow-2xl shadow-black/50">
                   <Image
-                    src="/images/hero-dashboard-mockup.png"
+                    src="/images/hero-dashboard-mockup.webp"
                     alt="Dashboard de MENIUS"
-                    width={800}
+                    width={500}
                     height={500}
                     className="w-full h-auto"
                   />
