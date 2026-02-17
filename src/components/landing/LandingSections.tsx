@@ -276,7 +276,7 @@ export function LandingSections() {
       {/* ── Pricing ── */}
       <section id="precios" className="relative py-32 md:py-40 overflow-hidden">
         <div className="section-glow section-glow-blue" />
-        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-purple-600/18 blur-[100px] pointer-events-none" />
+        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-purple-600/20 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 max-w-5xl mx-auto px-6">
           <FadeIn className="text-center mb-14">
@@ -390,7 +390,7 @@ export function LandingSections() {
       {/* ── Final CTA ── */}
       <section className="relative py-40 md:py-52 overflow-hidden">
         {/* Big gradient orb behind CTA */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-gradient-to-br from-purple-600/25 to-blue-600/18 blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-gradient-to-br from-purple-600/25 to-blue-600/20 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
           <FadeIn>
