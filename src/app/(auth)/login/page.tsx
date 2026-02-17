@@ -34,14 +34,14 @@ export default function LoginPage() {
     <div className="min-h-screen-safe flex items-center justify-center px-4 bg-black relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 grid-pattern opacity-30" />
-      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-brand-500/[0.05] rounded-full blur-[180px]" />
-      <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-brand-400/[0.03] rounded-full blur-[120px]" />
+      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/[0.08] rounded-full blur-[180px]" />
+      <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-blue-500/[0.05] rounded-full blur-[120px]" />
 
       <div className="relative z-10 w-full max-w-[380px] animate-fade-in-up">
         {/* Logo */}
         <div className="text-center mb-10">
           <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
-            <span className="text-brand-400">MEN</span><span className="text-white">IUS</span>
+            <span className="text-white">MENIUS</span>
           </Link>
           <p className="text-gray-600 text-[13px] mt-2.5 tracking-wide">Inicia sesión en tu cuenta</p>
         </div>
@@ -67,7 +67,7 @@ export default function LoginPage() {
               <label className="block text-[13px] font-medium text-gray-400 mb-2">Email</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused === 'email'
-                  ? 'ring-1 ring-brand-500/30 shadow-[0_0_20px_rgba(5,200,167,0.06)]'
+                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.06)]'
                   : ''
               }`}>
                 <input
@@ -87,7 +87,7 @@ export default function LoginPage() {
               <label className="block text-[13px] font-medium text-gray-400 mb-2">Contraseña</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused === 'password'
-                  ? 'ring-1 ring-brand-500/30 shadow-[0_0_20px_rgba(5,200,167,0.06)]'
+                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.06)]'
                   : ''
               }`}>
                 <input
@@ -122,7 +122,7 @@ export default function LoginPage() {
         <div className="mt-8 space-y-3 text-center">
           <p className="text-[13px] text-gray-600">
             ¿No tienes cuenta?{' '}
-            <Link href="/signup" className="text-white font-medium hover:text-brand-400 transition-colors">
+            <Link href="/signup" className="text-white font-medium hover:text-purple-400 transition-colors">
               Regístrate
             </Link>
           </p>

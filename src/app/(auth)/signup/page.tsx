@@ -40,19 +40,19 @@ export default function SignupPage() {
     return (
       <div className="min-h-screen-safe flex items-center justify-center px-4 bg-black relative overflow-hidden">
         <div className="absolute inset-0 grid-pattern opacity-30" />
-        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-brand-500/[0.05] rounded-full blur-[180px]" />
+        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/[0.08] rounded-full blur-[180px]" />
 
         <div className="relative z-10 w-full max-w-[380px] text-center animate-fade-in-up">
           <div className="text-center mb-8">
             <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
-              <span className="text-brand-400">MEN</span><span className="text-white">IUS</span>
+              <span className="text-white">MENIUS</span>
             </Link>
           </div>
 
           <div className="card-glow rounded-2xl p-[1px]">
             <div className="bg-[#0a0a0a] rounded-2xl p-8">
-              <div className="w-14 h-14 rounded-2xl bg-brand-500/[0.08] border border-brand-500/[0.12] flex items-center justify-center mx-auto mb-5">
-                <svg className="w-7 h-7 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <div className="w-14 h-14 rounded-2xl bg-purple-500/[0.08] border border-purple-500/[0.12] flex items-center justify-center mx-auto mb-5">
+                <svg className="w-7 h-7 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                 </svg>
               </div>
@@ -67,7 +67,7 @@ export default function SignupPage() {
           </div>
 
           <p className="text-[13px] text-gray-600 mt-7">
-            <Link href="/login" className="text-white font-medium hover:text-brand-400 transition-colors">
+            <Link href="/login" className="text-white font-medium hover:text-purple-400 transition-colors">
               Ir a iniciar sesión →
             </Link>
           </p>
@@ -80,14 +80,14 @@ export default function SignupPage() {
     <div className="min-h-screen-safe flex items-center justify-center px-4 py-12 bg-black relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 grid-pattern opacity-30" />
-      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-brand-500/[0.05] rounded-full blur-[180px]" />
-      <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-brand-400/[0.03] rounded-full blur-[120px]" />
+        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/[0.08] rounded-full blur-[180px]" />
+        <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-blue-500/[0.05] rounded-full blur-[120px]" />
 
       <div className="relative z-10 w-full max-w-[380px] animate-fade-in-up">
         {/* Logo */}
         <div className="text-center mb-10">
           <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
-            <span className="text-brand-400">MEN</span><span className="text-white">IUS</span>
+            <span className="text-white">MENIUS</span>
           </Link>
           <p className="text-gray-600 text-[13px] mt-2.5 tracking-wide">Crea tu cuenta gratis — 14 días de prueba</p>
         </div>
@@ -113,7 +113,7 @@ export default function SignupPage() {
               <label className="block text-[13px] font-medium text-gray-400 mb-2">Nombre completo</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused === 'name'
-                  ? 'ring-1 ring-brand-500/30 shadow-[0_0_20px_rgba(5,200,167,0.06)]'
+                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.06)]'
                   : ''
               }`}>
                 <input
@@ -133,7 +133,7 @@ export default function SignupPage() {
               <label className="block text-[13px] font-medium text-gray-400 mb-2">Email</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused === 'email'
-                  ? 'ring-1 ring-brand-500/30 shadow-[0_0_20px_rgba(5,200,167,0.06)]'
+                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.06)]'
                   : ''
               }`}>
                 <input
@@ -153,7 +153,7 @@ export default function SignupPage() {
               <label className="block text-[13px] font-medium text-gray-400 mb-2">Contraseña</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused === 'password'
-                  ? 'ring-1 ring-brand-500/30 shadow-[0_0_20px_rgba(5,200,167,0.06)]'
+                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.06)]'
                   : ''
               }`}>
                 <input
@@ -177,7 +177,7 @@ export default function SignupPage() {
                   onChange={(e) => setAcceptedTerms(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-4 h-4 rounded border border-white/[0.1] bg-white/[0.03] peer-checked:bg-brand-500 peer-checked:border-brand-500 transition-all flex items-center justify-center">
+                <div className="w-4 h-4 rounded border border-white/[0.1] bg-white/[0.03] peer-checked:bg-purple-500 peer-checked:border-purple-500 transition-all flex items-center justify-center">
                   {acceptedTerms && (
                     <svg className="w-2.5 h-2.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -217,7 +217,7 @@ export default function SignupPage() {
         <div className="mt-8 space-y-3 text-center">
           <p className="text-[13px] text-gray-600">
             ¿Ya tienes cuenta?{' '}
-            <Link href="/login" className="text-white font-medium hover:text-brand-400 transition-colors">
+            <Link href="/login" className="text-white font-medium hover:text-purple-400 transition-colors">
               Inicia sesión
             </Link>
           </p>
