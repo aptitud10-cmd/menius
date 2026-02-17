@@ -5,90 +5,72 @@ import Image from 'next/image';
 import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { Counter } from './Animations';
 
-const ease = [0.25, 0.46, 0.45, 0.94] as const;
+const ease = [0.22, 1, 0.36, 1] as const;
 
 export function LandingHero() {
   return (
     <LazyMotion features={domAnimation}>
       <section className="relative min-h-[100vh] min-h-[100dvh] flex items-center bg-black overflow-hidden">
-        {/* Background layers */}
-        <div className="absolute inset-0 grid-pattern" />
-        <div className="absolute inset-0 spotlight" />
-        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-brand-500/[0.06] rounded-full blur-[200px]" />
-        <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-brand-400/[0.04] rounded-full blur-[150px]" />
+        {/* Subtle radial glow — no grid, no pattern */}
+        <div className="absolute top-[-30%] left-[50%] -translate-x-1/2 w-[900px] h-[500px] bg-white/[0.02] rounded-full blur-[120px]" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 w-full py-32 md:py-0">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-            {/* Left: Text */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-12 items-center">
+            {/* Left: Copy */}
             <div>
-              {/* Badge */}
-              <m.div
-                initial={{ opacity: 0, y: 12 }}
+              <m.p
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease }}
-                className="inline-flex items-center gap-2 mb-8 px-3.5 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] text-[13px] text-gray-400"
+                transition={{ duration: 0.6, ease }}
+                className="text-[15px] text-[#888] mb-6"
               >
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-400" />
-                </span>
-                Plataforma #1 de menús digitales
-              </m.div>
+                Plataforma de menús digitales y pedidos en línea
+              </m.p>
 
-              {/* Heading */}
               <m.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.1, ease }}
-                className="text-[2.75rem] sm:text-[3.5rem] md:text-[4rem] lg:text-[4.5rem] font-extrabold leading-[1.05] tracking-tight font-heading"
+                transition={{ duration: 0.7, delay: 0.08, ease }}
+                className="text-[3.2rem] sm:text-[4.2rem] md:text-[5rem] lg:text-[5.5rem] font-bold leading-[1.04] tracking-[-0.03em] text-white"
               >
-                <span className="text-gradient-subtle">Tu menú digital.</span>
-                <br />
-                <span className="text-gradient">Pedidos directos.</span>
+                Menú digital para{' '}
+                <span className="text-[#888]">restaurantes</span>
               </m.h1>
 
-              {/* Subtitle */}
               <m.p
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2, ease }}
-                className="mt-6 text-base sm:text-lg text-gray-400 max-w-md leading-relaxed"
+                transition={{ duration: 0.6, delay: 0.16, ease }}
+                className="mt-8 text-[1.125rem] sm:text-[1.25rem] text-[#888] max-w-[480px] leading-[1.6]"
               >
-                Crea tu menú con fotos IA, genera QRs para tus mesas, y recibe pedidos desde el celular de tus clientes.
-                <span className="text-gray-300"> Sin comisiones. Sin apps de terceros.</span>
+                Crea tu menú con fotos IA, genera QRs para cada mesa, y recibe pedidos directos. Sin comisiones. Sin apps de terceros.
               </m.p>
 
-              {/* CTAs */}
               <m.div
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.35, ease }}
+                transition={{ duration: 0.6, delay: 0.28, ease }}
                 className="mt-10 flex flex-col sm:flex-row gap-3"
               >
                 <Link
                   href="/signup"
-                  className="px-7 py-3.5 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-colors text-center"
+                  className="px-7 py-3.5 rounded-[10px] bg-white text-black font-medium text-[15px] hover:bg-[#e8e8e8] transition-colors text-center"
                 >
-                  Empezar gratis →
+                  Empezar gratis
                 </Link>
                 <Link
                   href="/r/demo"
-                  className="group px-7 py-3.5 rounded-xl border border-white/[0.1] text-white font-medium text-sm hover:bg-white/[0.05] transition-all flex items-center justify-center gap-2"
+                  className="px-7 py-3.5 rounded-[10px] border border-[#222] text-[#888] font-medium text-[15px] hover:text-white hover:border-[#444] transition-all text-center"
                 >
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-                  </span>
                   Ver demo en vivo
                 </Link>
               </m.div>
 
-              {/* Stats */}
               <m.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 0.6, ease }}
-                className="mt-14 flex items-center gap-8 md:gap-10"
+                transition={{ duration: 0.8, delay: 0.5, ease }}
+                className="mt-16 flex items-center gap-10"
               >
                 {[
                   { target: 500, suffix: '+', label: 'Restaurantes' },
@@ -96,42 +78,39 @@ export function LandingHero() {
                   { target: 4.9, suffix: '', label: 'Rating' },
                 ].map((s) => (
                   <div key={s.label}>
-                    <p className="text-2xl font-bold text-white font-heading">
+                    <p className="text-[1.75rem] font-semibold text-white tracking-tight">
                       <Counter target={s.target} suffix={s.suffix} duration={2} />
                     </p>
-                    <p className="text-[11px] text-gray-600 mt-0.5">{s.label}</p>
+                    <p className="text-[13px] text-[#555] mt-1">{s.label}</p>
                   </div>
                 ))}
               </m.div>
             </div>
 
-            {/* Right: Phone Mockup with CSS 3D */}
+            {/* Right: Phone Mockup */}
             <m.div
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.9, delay: 0.3, ease }}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.2, ease }}
               className="relative flex justify-center lg:justify-end"
             >
-              <div className="perspective-container">
-                <div className="float-3d relative">
-                  {/* Glow behind phone */}
-                  <div className="absolute inset-0 scale-110 bg-brand-500/[0.08] rounded-[3rem] blur-[60px]" />
-                  <Image
-                    src="/images/hero-phone-mockup.webp"
-                    alt="MENIUS - Menú digital en iPhone"
-                    width={500}
-                    height={500}
-                    className="relative z-10 w-[420px] sm:w-[520px] lg:w-[640px] h-auto drop-shadow-2xl"
-                    priority
-                  />
-                </div>
+              <div className="relative">
+                <div className="absolute inset-0 scale-110 bg-white/[0.03] rounded-[3rem] blur-[80px]" />
+                <Image
+                  src="/images/hero-phone-mockup.webp"
+                  alt="MENIUS - Menú digital en iPhone"
+                  width={500}
+                  height={500}
+                  className="relative z-10 w-[380px] sm:w-[440px] lg:w-[520px] h-auto"
+                  priority
+                />
               </div>
             </m.div>
           </div>
         </div>
 
-        {/* Bottom gradient fade */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" />
+        {/* Bottom fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black to-transparent" />
       </section>
     </LazyMotion>
   );
