@@ -1,19 +1,12 @@
 import type { Metadata, Viewport } from 'next';
-import { DM_Sans, Sora } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import CookieConsent from '@/components/CookieConsent';
 import CrispChat from '@/components/CrispChat';
 
-const dmSans = DM_Sans({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-dm-sans',
-  display: 'swap',
-});
-
-const sora = Sora({
-  subsets: ['latin'],
-  variable: '--font-sora',
-  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-inter',
   display: 'swap',
 });
 
@@ -67,7 +60,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`${dmSans.variable} ${sora.variable}`}>
+    <html lang="es" className={inter.variable}>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />

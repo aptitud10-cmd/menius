@@ -102,15 +102,15 @@ function FeatureTabs() {
   return (
     <div>
       {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl bg-[#111] border border-[#1a1a1a] w-fit mx-auto mb-12">
+      <div className="flex flex-wrap gap-1 p-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.06] w-fit mx-auto mb-14">
         {features.map((feat, i) => (
           <button
             key={feat.tab}
             onClick={() => setActive(i)}
-            className={`px-5 py-2.5 rounded-lg text-[14px] font-medium transition-all duration-200 ${
+            className={`px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
               active === i
-                ? 'bg-white text-black'
-                : 'text-[#666] hover:text-white'
+                ? 'bg-white text-black shadow-lg shadow-white/10'
+                : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
             }`}
           >
             {feat.tab}
@@ -121,33 +121,34 @@ function FeatureTabs() {
       {/* Content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         <div>
-          <h3 className="text-[2rem] md:text-[2.5rem] font-bold text-white leading-tight tracking-tight">
+          <h3 className="text-3xl md:text-4xl font-semibold text-white leading-tight tracking-tight">
             {f.title}
           </h3>
-          <p className="mt-5 text-[1.1rem] text-[#888] leading-relaxed">
+          <p className="mt-6 text-lg text-gray-400 leading-relaxed font-light">
             {f.desc}
           </p>
-          <div className="mt-8 space-y-3.5">
+          <div className="mt-10 space-y-4">
             {f.details.map((d) => (
-              <div key={d} className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full bg-[#111] border border-[#222] flex items-center justify-center flex-shrink-0">
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+              <div key={d} className="flex items-center gap-3.5">
+                <div className="w-6 h-6 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3.5 h-3.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 </div>
-                <span className="text-[15px] text-[#aaa]">{d}</span>
+                <span className="text-[15px] text-gray-300">{d}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Visual — clean on black, no shadows */}
-        <div className="flex justify-center">
+        {/* Visual */}
+        <div className="relative flex justify-center">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full bg-purple-500/10 blur-[80px]" />
           {active === 1 ? (
             <Image
               src="/images/hero-dashboard-mockup.webp"
               alt="Dashboard MENIUS"
               width={500}
               height={500}
-              className="w-full max-w-[460px] h-auto rounded-xl"
+              className="relative z-10 w-full max-w-[460px] h-auto rounded-xl drop-shadow-2xl"
             />
           ) : (
             <Image
@@ -155,7 +156,7 @@ function FeatureTabs() {
               alt="MENIUS menú digital"
               width={500}
               height={500}
-              className="w-[300px] sm:w-[340px] h-auto"
+              className="relative z-10 w-[300px] sm:w-[340px] h-auto drop-shadow-2xl"
             />
           )}
         </div>
@@ -170,18 +171,16 @@ export function LandingSections() {
   return (
     <LazyMotion features={domAnimation}>
       {/* ── Features with Tabs ── */}
-      <section id="funciones" className="relative bg-black py-32 md:py-40 overflow-hidden">
-        {/* Ambient fog — asymmetric depth */}
-        <div className="ambient-fog ambient-fog-left top-[20%]" />
-        <div className="ambient-fog ambient-fog-right top-[60%]" />
+      <section id="funciones" className="relative py-32 md:py-40 overflow-hidden">
+        <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
-          <FadeIn className="text-center mb-6">
-            <p className="text-[14px] text-[#555] uppercase tracking-[0.2em] mb-5">Funciones</p>
-            <h2 className="text-[2.5rem] md:text-[3.5rem] font-bold text-white tracking-tight">
+          <FadeIn className="text-center mb-8">
+            <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-5">Funciones</p>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Todo en tu control
             </h2>
-            <p className="text-[#888] mt-4 text-lg max-w-lg mx-auto">
+            <p className="text-gray-400 mt-5 text-lg max-w-lg mx-auto font-light">
               Las herramientas que necesitas para digitalizar tu restaurante.
             </p>
           </FadeIn>
@@ -192,59 +191,59 @@ export function LandingSections() {
         </div>
       </section>
 
-      {/* ── Separator ── */}
-      <div className="max-w-5xl mx-auto h-px bg-gradient-to-r from-transparent via-[#222] to-transparent" />
+      {/* Separator */}
+      <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Comparison ── */}
-      <section className="relative bg-black py-32 md:py-40 overflow-hidden">
-        {/* Ambient fog */}
-        <div className="ambient-fog ambient-fog-center top-[10%]" />
+      <section className="relative py-32 md:py-40 overflow-hidden">
+        <div className="section-glow section-glow-teal" />
 
         <div className="relative z-10 max-w-4xl mx-auto px-6">
           <FadeIn className="text-center mb-14">
-            <p className="text-[14px] text-[#555] uppercase tracking-[0.2em] mb-5">Sin intermediarios</p>
-            <h2 className="text-[2.5rem] md:text-[3.5rem] font-bold text-white tracking-tight">
+            <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-5">Sin intermediarios</p>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               MENIUS vs Apps de Delivery
             </h2>
-            <p className="text-[#888] mt-4 text-lg max-w-lg mx-auto">
+            <p className="text-gray-400 mt-5 text-lg max-w-lg mx-auto font-light">
               Las apps cobran hasta 30% por pedido. Con MENIUS, tarifa fija y tus ventas son tuyas.
             </p>
           </FadeIn>
 
           <FadeIn delay={0.1}>
-            {/* Header row */}
-            <div className="grid grid-cols-3 gap-px mb-px">
-              <div className="bg-black p-4" />
-              <div className="bg-[#0a0a0a] p-4 text-center rounded-t-xl">
-                <span className="text-[15px] font-semibold text-white">MENIUS</span>
+            {/* Table */}
+            <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02]">
+              {/* Header */}
+              <div className="grid grid-cols-3">
+                <div className="p-5 border-b border-white/[0.06]" />
+                <div className="p-5 text-center border-b border-white/[0.06] bg-purple-500/[0.06]">
+                  <span className="text-sm font-semibold text-white">MENIUS</span>
+                </div>
+                <div className="p-5 text-center border-b border-white/[0.06]">
+                  <span className="text-xs text-gray-500">UberEats, DoorDash, Grubhub</span>
+                </div>
               </div>
-              <div className="bg-black p-4 text-center">
-                <span className="text-[13px] text-[#555]">UberEats, DoorDash, Grubhub</span>
-              </div>
-            </div>
 
-            {/* Rows */}
-            <div className="space-y-px">
-              {comparison.map(([feature, menius, other]) => (
-                <div key={feature} className="grid grid-cols-3 gap-px">
-                  <div className="bg-[#080808] px-5 py-4">
-                    <p className="text-[14px] text-[#888]">{feature}</p>
+              {/* Rows */}
+              {comparison.map(([feature, menius, other], i) => (
+                <div key={feature} className={`grid grid-cols-3 ${i < comparison.length - 1 ? 'border-b border-white/[0.04]' : ''}`}>
+                  <div className="px-6 py-4">
+                    <p className="text-sm text-gray-400">{feature}</p>
                   </div>
-                  <div className="bg-[#0a0a0a] px-5 py-4 text-center">
-                    <p className="text-[14px] font-medium text-white">{menius}</p>
+                  <div className="px-6 py-4 text-center bg-purple-500/[0.03]">
+                    <p className="text-sm font-medium text-white">{menius}</p>
                   </div>
-                  <div className="bg-[#080808] px-5 py-4 text-center">
-                    <p className="text-[14px] text-[#555]">{other}</p>
+                  <div className="px-6 py-4 text-center">
+                    <p className="text-sm text-gray-600">{other}</p>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* Savings box */}
-            <div className="mt-8 p-6 rounded-xl border border-[#1a1a1a] bg-[#0a0a0a]">
-              <p className="text-[15px] text-[#888] leading-relaxed text-center">
+            <div className="mt-8 p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+              <p className="text-[15px] text-gray-400 leading-relaxed text-center">
                 <strong className="text-white">Ejemplo:</strong> Un restaurante con $10,000/mes pierde{' '}
-                <strong className="text-[#ff4444]">$3,000 en comisiones</strong> con apps. Con MENIUS Pro ($79/mes),
+                <strong className="text-red-400">$3,000 en comisiones</strong> con apps. Con MENIUS Pro ($79/mes),
                 ahorra <strong className="text-white">$35,000 al año</strong>.
               </p>
             </div>
@@ -252,61 +251,59 @@ export function LandingSections() {
         </div>
       </section>
 
-      {/* ── Separator ── */}
-      <div className="max-w-5xl mx-auto h-px bg-gradient-to-r from-transparent via-[#222] to-transparent" />
+      {/* Separator */}
+      <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Pricing ── */}
-      <section id="precios" className="relative bg-black py-32 md:py-40 overflow-hidden">
-        {/* Light ray — diagonal beam */}
-        <div className="light-ray top-[-20%] left-[25%]" />
-        {/* Ambient fog */}
-        <div className="ambient-fog ambient-fog-right top-[40%]" />
+      <section id="precios" className="relative py-32 md:py-40 overflow-hidden">
+        <div className="section-glow section-glow-blue" />
+        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-purple-600/10 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 max-w-5xl mx-auto px-6">
           <FadeIn className="text-center mb-14">
-            <p className="text-[14px] text-[#555] uppercase tracking-[0.2em] mb-5">Precios</p>
-            <h2 className="text-[2.5rem] md:text-[3.5rem] font-bold text-white tracking-tight">
+            <p className="text-sm text-blue-400 uppercase tracking-[0.2em] font-medium mb-5">Precios</p>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Sin comisiones. Sin sorpresas.
             </h2>
-            <p className="text-[#888] mt-4 text-lg">14 días gratis. Sin tarjeta de crédito. Cancela cuando quieras.</p>
+            <p className="text-gray-400 mt-5 text-lg font-light">14 días gratis. Sin tarjeta de crédito. Cancela cuando quieras.</p>
           </FadeIn>
 
           <FadeIn delay={0.1}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {plans.map((plan) => (
                 <div
                   key={plan.name}
                   className={`relative rounded-2xl p-8 flex flex-col transition-all duration-300 ${
                     plan.popular
-                      ? 'bg-[#0a0a0a] border border-[#333] shadow-[0_0_60px_rgba(255,255,255,0.03)]'
-                      : 'bg-[#080808] border border-[#161616] hover:border-[#222]'
+                      ? 'card-popular-glow bg-white/[0.04] border border-purple-500/20 shimmer-border'
+                      : 'card-gradient-border bg-white/[0.02] rounded-2xl hover:bg-white/[0.04]'
                   }`}
                 >
                   {plan.popular && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-white text-black text-[11px] font-semibold rounded-full uppercase tracking-wider">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-5 py-1.5 bg-gradient-to-r from-purple-500 to-blue-500 text-white text-[11px] font-semibold rounded-full uppercase tracking-wider shadow-lg shadow-purple-500/25">
                       Popular
                     </span>
                   )}
-                  <h3 className="text-[18px] font-semibold text-white">{plan.name}</h3>
-                  <p className="text-[14px] text-[#555] mt-1">{plan.desc}</p>
-                  <div className="mt-6 mb-8">
-                    <span className="text-[3rem] font-bold text-white tracking-tight">${plan.price}</span>
-                    <span className="text-[15px] text-[#555] ml-1">/mes</span>
+                  <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
+                  <p className="text-sm text-gray-500 mt-1.5">{plan.desc}</p>
+                  <div className="mt-7 mb-8">
+                    <span className="text-5xl font-bold text-white tracking-tight">${plan.price}</span>
+                    <span className="text-sm text-gray-500 ml-1.5">/mes</span>
                   </div>
-                  <ul className="space-y-3 flex-1">
+                  <ul className="space-y-3.5 flex-1">
                     {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2.5">
-                        <svg className="w-4 h-4 text-[#444] flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                        <span className="text-[14px] text-[#999] leading-snug">{f}</span>
+                      <li key={f} className="flex items-start gap-3">
+                        <svg className="w-4 h-4 text-purple-400/60 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        <span className="text-sm text-gray-400 leading-snug">{f}</span>
                       </li>
                     ))}
                   </ul>
                   <Link
                     href={`/signup?plan=${plan.name.toLowerCase()}`}
-                    className={`mt-8 block text-center py-3.5 rounded-xl font-medium text-[15px] transition-all duration-200 ${
+                    className={`mt-8 block text-center py-3.5 rounded-xl font-medium text-[15px] transition-all duration-300 ${
                       plan.popular
-                        ? 'bg-white text-black hover:bg-[#e8e8e8]'
-                        : 'bg-[#111] text-[#aaa] border border-[#222] hover:text-white hover:border-[#333]'
+                        ? 'bg-white text-black hover:bg-gray-100 btn-glow shadow-lg shadow-white/5'
+                        : 'bg-white/[0.06] text-gray-300 border border-white/[0.08] hover:text-white hover:bg-white/[0.1] hover:border-white/[0.15]'
                     }`}
                   >
                     {plan.cta}
@@ -318,27 +315,26 @@ export function LandingSections() {
             {/* Setup banner */}
             <Link
               href="/setup-profesional"
-              className="mt-6 flex items-center justify-between p-5 rounded-xl border border-[#161616] bg-[#080808] hover:border-[#222] transition-colors group"
+              className="mt-6 flex items-center justify-between p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all group"
             >
-              <span className="text-[14px] text-[#666]">¿No tienes tiempo? <strong className="text-[#aaa]">Te lo configuramos</strong> — desde $149</span>
-              <svg className="w-4 h-4 text-[#444] group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              <span className="text-sm text-gray-500">¿No tienes tiempo? <strong className="text-gray-300">Te lo configuramos</strong> — desde $149</span>
+              <svg className="w-4 h-4 text-gray-600 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
             </Link>
           </FadeIn>
         </div>
       </section>
 
-      {/* ── Separator ── */}
-      <div className="max-w-5xl mx-auto h-px bg-gradient-to-r from-transparent via-[#222] to-transparent" />
+      {/* Separator */}
+      <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Testimonials ── */}
-      <section className="relative bg-black py-32 md:py-40 overflow-hidden">
-        {/* Ambient fog */}
-        <div className="ambient-fog ambient-fog-left top-[30%]" />
+      <section className="relative py-32 md:py-40 overflow-hidden">
+        <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
           <FadeIn className="text-center mb-14">
-            <p className="text-[14px] text-[#555] uppercase tracking-[0.2em] mb-5">Testimonios</p>
-            <h2 className="text-[2.5rem] md:text-[3.5rem] font-bold text-white tracking-tight">
+            <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-5">Testimonios</p>
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Lo que dicen nuestros clientes
             </h2>
           </FadeIn>
@@ -348,14 +344,19 @@ export function LandingSections() {
               {testimonials.map((t) => (
                 <div
                   key={t.name}
-                  className="rounded-2xl border border-[#161616] bg-[#080808] p-7 hover:border-[#222] transition-colors"
+                  className="card-premium rounded-2xl p-8"
                 >
-                  <p className="text-[15px] text-[#999] leading-relaxed mb-6">
+                  <p className="text-[15px] text-gray-400 leading-relaxed mb-7">
                     &ldquo;{t.quote}&rdquo;
                   </p>
-                  <div>
-                    <p className="text-[14px] font-medium text-white">{t.name}</p>
-                    <p className="text-[13px] text-[#555] mt-0.5">{t.role}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center">
+                      <span className="text-sm font-semibold text-white">{t.name[0]}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white">{t.name}</p>
+                      <p className="text-xs text-gray-600 mt-0.5">{t.role}</p>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -364,32 +365,34 @@ export function LandingSections() {
         </div>
       </section>
 
-      {/* ── Separator ── */}
-      <div className="max-w-5xl mx-auto h-px bg-gradient-to-r from-transparent via-[#222] to-transparent" />
+      {/* Separator */}
+      <div className="separator-gradient max-w-5xl mx-auto" />
 
-      {/* ── Final CTA (Resend style) ── */}
-      <section className="relative py-40 md:py-52 bg-black overflow-hidden">
-        {/* Floor glow from below */}
-        <div className="floor-glow" />
-        {/* Light ray */}
-        <div className="light-ray top-[-30%] right-[30%]" />
+      {/* ── Final CTA ── */}
+      <section className="relative py-40 md:py-52 overflow-hidden">
+        {/* Big gradient orb behind CTA */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-gradient-to-br from-purple-600/15 to-blue-600/10 blur-[100px] pointer-events-none" />
 
-        <div className="relative z-10 max-w-2xl mx-auto px-6 text-center">
+        <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
           <FadeIn>
-            <h2 className="text-[2.5rem] md:text-[4rem] font-bold text-white tracking-tight leading-[1.1]">
-              Menú digital.<br />
-              <span className="text-[#555]">Disponible hoy.</span>
+            <h2 className="text-4xl md:text-5xl lg:text-7xl font-semibold text-white tracking-tight leading-[1.05]">
+              Tu menú digital.
+              <br />
+              <span className="text-gradient-premium">Disponible hoy.</span>
             </h2>
+            <p className="mt-6 text-lg text-gray-400 font-light max-w-md mx-auto">
+              Únete a cientos de restaurantes que ya usan MENIUS para recibir más pedidos.
+            </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 href="/signup"
-                className="w-full sm:w-auto px-8 py-4 rounded-xl bg-white text-black font-medium text-[15px] hover:bg-[#e8e8e8] transition-colors"
+                className="w-full sm:w-auto px-10 py-4 rounded-xl bg-white text-black font-medium text-[15px] hover:bg-gray-100 transition-all btn-glow"
               >
-                Empezar gratis
+                Empezar gratis &rarr;
               </Link>
               <Link
                 href="/r/demo"
-                className="w-full sm:w-auto px-8 py-4 rounded-xl border border-[#222] text-[#888] font-medium text-[15px] hover:text-white hover:border-[#444] transition-all"
+                className="w-full sm:w-auto px-10 py-4 rounded-xl border border-white/10 text-gray-400 font-medium text-[15px] hover:text-white hover:border-white/20 transition-all"
               >
                 Ver demo en vivo
               </Link>
