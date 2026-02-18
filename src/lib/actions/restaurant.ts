@@ -62,6 +62,16 @@ export async function createRestaurant(data: CreateRestaurantInput) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
   await seedRestaurant(supabase, restaurant.id, restaurant.slug, appUrl);
 
+  // Create trial subscription (14 days)
+  const trialEnd = new Date();
+  trialEnd.setDate(trialEnd.getDate() + 14);
+  await supabase.from('subscriptions').upsert({
+    restaurant_id: restaurant.id,
+    plan_id: 'starter',
+    status: 'trialing',
+    trial_end: trialEnd.toISOString(),
+  }, { onConflict: 'restaurant_id' }).then(() => {});
+
   // Send welcome email (non-blocking)
   if (user.email) {
     import('@/lib/notifications/email').then(({ sendEmail, buildWelcomeEmail }) => {

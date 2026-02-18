@@ -57,7 +57,7 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-xl font-bold text-white">Bienvenido a {restaurant.name}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Aquí tienes un resumen de tu restaurante</p>
+          <p className="text-sm text-gray-400 mt-0.5">Aquí tienes un resumen de tu restaurante</p>
         </div>
         <div className="flex items-center gap-2">
           <ShareMenuButton slug={restaurant.slug} name={restaurant.name} />
@@ -135,7 +135,7 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
               </div>
             </div>
             <p className="text-2xl font-bold tracking-tight text-white">{kpi.value}</p>
-            <p className="text-xs text-gray-500 mt-1">{kpi.label}</p>
+            <p className="text-xs text-gray-400 mt-1">{kpi.label}</p>
           </div>
         ))}
       </div>
@@ -172,8 +172,8 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
         {recentOrders.length === 0 ? (
           <div className="p-10 text-center">
             <ClipboardList className="w-8 h-8 mx-auto mb-3 text-gray-700" />
-            <p className="text-gray-500 text-sm font-medium">No hay órdenes aún</p>
-            <p className="text-gray-600 text-xs mt-1">Comparte tu menú para empezar a recibir pedidos</p>
+            <p className="text-gray-400 text-sm font-medium">No hay órdenes aún</p>
+            <p className="text-gray-500 text-xs mt-1">Comparte tu menú para empezar a recibir pedidos</p>
           </div>
         ) : (
           <div className="divide-y divide-white/[0.04]">
@@ -184,7 +184,7 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
                   <div className="flex items-center gap-3 min-w-0">
                     <div>
                       <p className="text-sm font-medium text-gray-200 truncate">{order.customer_name || 'Sin nombre'}</p>
-                      <p className="text-xs text-gray-600">{order.order_number} · {timeAgo(order.created_at)}</p>
+                      <p className="text-xs text-gray-500">{order.order_number} · {timeAgo(order.created_at)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
@@ -204,8 +204,36 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <QuickLink href="/app/orders" label="Gestionar órdenes" icon={ClipboardList} />
         <QuickLink href="/app/menu/products" label="Editar menú" icon={ShoppingBag} />
-        <QuickLink href="/app/analytics" label="Ver analytics" icon={TrendingUp} />
+        <QuickLink href="/app/tables" label="Mesas y QR" icon={QrCode} />
       </div>
+
+      {/* Getting started CTA for new restaurants */}
+      {stats.activeProducts === 0 && (
+        <div className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/[0.06] to-blue-500/[0.04] p-6 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-purple-500/[0.12] flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="w-7 h-7 text-purple-400" />
+          </div>
+          <h3 className="text-lg font-bold text-white mb-1">Tu restaurante está listo</h3>
+          <p className="text-sm text-gray-400 max-w-md mx-auto mb-5">
+            Empieza agregando tus productos al menú. Tus clientes podrán ver el menú, hacer pedidos y pagar desde su celular.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/app/menu/products"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-600/20"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              Agregar productos
+            </Link>
+            <Link
+              href="/app/settings"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/[0.1] text-gray-300 text-sm font-medium hover:bg-white/[0.04] transition-colors"
+            >
+              Configurar restaurante
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

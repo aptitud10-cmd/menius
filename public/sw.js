@@ -1,4 +1,4 @@
-const SW_VERSION = '2';
+const SW_VERSION = '3';
 const CACHE_NAME = 'menius-v' + SW_VERSION;
 const STATIC_CACHE = 'menius-static-v' + SW_VERSION;
 const IMAGE_CACHE = 'menius-images-v' + SW_VERSION;

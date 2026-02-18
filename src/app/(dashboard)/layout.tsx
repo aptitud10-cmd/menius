@@ -43,7 +43,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Link href="/app" className="text-lg font-bold tracking-tight font-heading text-white">
               MENIUS
             </Link>
-            <p className="text-xs text-gray-600 mt-1 truncate">{restaurant?.name ?? 'Mi Restaurante'}</p>
+            <p className="text-xs text-gray-400 mt-1 truncate">{restaurant?.name ?? 'Mi Restaurante'}</p>
           </div>
 
           <div className="flex-1 overflow-y-auto px-3 py-2 scrollbar-hide">
@@ -58,7 +58,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-medium text-gray-300 truncate">{profile.full_name || 'Sin nombre'}</p>
-                  <p className="text-[10px] text-gray-600 truncate">{user.email}</p>
+                  <p className="text-[10px] text-gray-500 truncate">{user.email}</p>
                 </div>
               </div>
               <LocaleSwitcher />

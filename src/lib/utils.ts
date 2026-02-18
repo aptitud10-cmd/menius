@@ -34,10 +34,10 @@ export function timeAgo(dateStr: string): string {
 }
 
 export const ORDER_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  pending: { label: 'Pendiente', color: 'text-amber-700', bg: 'bg-amber-100' },
-  confirmed: { label: 'Confirmada', color: 'text-blue-700', bg: 'bg-blue-100' },
-  preparing: { label: 'Preparando', color: 'text-violet-700', bg: 'bg-violet-100' },
-  ready: { label: 'Lista', color: 'text-emerald-700', bg: 'bg-emerald-100' },
-  delivered: { label: 'Entregada', color: 'text-gray-600', bg: 'bg-gray-100' },
-  cancelled: { label: 'Cancelada', color: 'text-red-700', bg: 'bg-red-100' },
+  pending: { label: 'Pendiente', color: 'text-amber-300', bg: 'bg-amber-500/[0.12]' },
+  confirmed: { label: 'Confirmada', color: 'text-blue-300', bg: 'bg-blue-500/[0.12]' },
+  preparing: { label: 'Preparando', color: 'text-violet-300', bg: 'bg-violet-500/[0.12]' },
+  ready: { label: 'Lista', color: 'text-emerald-300', bg: 'bg-emerald-500/[0.12]' },
+  delivered: { label: 'Entregada', color: 'text-gray-400', bg: 'bg-white/[0.06]' },
+  cancelled: { label: 'Cancelada', color: 'text-red-300', bg: 'bg-red-500/[0.12]' },
 };
