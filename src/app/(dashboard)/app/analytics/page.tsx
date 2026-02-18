@@ -257,10 +257,10 @@ export default function AnalyticsPage() {
                   <div key={p.name} className="flex items-center gap-3 group">
                     <span className={cn(
                       'w-7 h-7 flex items-center justify-center rounded-lg text-xs font-bold flex-shrink-0',
-                      i === 0 ? 'bg-amber-100 text-amber-700' :
+                      i === 0 ? 'bg-amber-500/[0.1] text-amber-400' :
                       i === 1 ? 'bg-white/[0.06] text-gray-400' :
-                      i === 2 ? 'bg-orange-50 text-orange-600' :
-                      'bg-white/[0.04] text-gray-400'
+                      i === 2 ? 'bg-orange-500/[0.1] text-orange-400' :
+                      'bg-white/[0.04] text-gray-500'
                     )}>
                       {i + 1}
                     </span>
@@ -296,11 +296,11 @@ function KPICard({
   change?: number | null;
   color: string;
 }) {
-  const colorMap: Record<string, { bg: string; icon: string; badge: string }> = {
-    emerald: { bg: 'bg-emerald-50', icon: 'text-emerald-600', badge: 'bg-emerald-50 text-emerald-700' },
-    blue: { bg: 'bg-blue-50', icon: 'text-blue-600', badge: 'bg-blue-50 text-blue-700' },
-    violet: { bg: 'bg-violet-50', icon: 'text-violet-600', badge: 'bg-violet-50 text-violet-700' },
-    amber: { bg: 'bg-amber-50', icon: 'text-amber-600', badge: 'bg-amber-50 text-amber-700' },
+  const colorMap: Record<string, { bg: string; icon: string }> = {
+    emerald: { bg: 'bg-emerald-500/[0.1]', icon: 'text-emerald-400' },
+    blue: { bg: 'bg-blue-500/[0.1]', icon: 'text-blue-400' },
+    violet: { bg: 'bg-violet-500/[0.1]', icon: 'text-violet-400' },
+    amber: { bg: 'bg-amber-500/[0.1]', icon: 'text-amber-400' },
   };
 
   const c = colorMap[color] ?? colorMap.blue;
@@ -314,7 +314,7 @@ function KPICard({
         {change !== undefined && change !== null && (
           <span className={cn(
             'flex items-center gap-0.5 text-xs font-semibold px-2 py-0.5 rounded-full',
-            change >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
+            change >= 0 ? 'bg-emerald-500/[0.1] text-emerald-400' : 'bg-red-500/[0.1] text-red-400'
           )}>
             {change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
             {Math.abs(change).toFixed(0)}%

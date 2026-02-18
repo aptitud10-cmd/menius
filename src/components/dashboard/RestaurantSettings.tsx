@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard } from 'lucide-react';
+import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Restaurant } from '@/types';
 
@@ -104,35 +104,11 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       </div>
 
       {/* Custom Domain */}
-      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
-        <div className="flex items-center gap-2 mb-1">
-          <Globe className="w-4 h-4 text-purple-400" />
-          <h2 className="font-semibold text-sm text-white">Dominio personalizado</h2>
-          <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-purple-500/[0.1] text-purple-400 font-medium">Plan Pro+</span>
-        </div>
-        <p className="text-xs text-gray-400 mb-4">Conecta tu propio dominio para que tus clientes accedan al menú desde tu URL.</p>
-        <Field
-          label="Dominio"
-          value={form.custom_domain}
-          onChange={(v) => handleChange('custom_domain', v.toLowerCase().replace(/[^a-z0-9.\-]/g, ''))}
-          placeholder="menu.mirestaurante.com"
-        />
-        {form.custom_domain && (
-          <div className="mt-3 p-3 rounded-xl bg-purple-500/[0.1] border border-purple-500/[0.15]">
-            <p className="text-xs font-semibold text-purple-300 mb-2">Configuración DNS requerida:</p>
-            <div className="bg-[#0a0a0a] rounded-lg p-2.5 border border-purple-500/[0.15]">
-              <p className="text-[11px] font-mono text-gray-400">
-                <span className="text-gray-400">Tipo:</span> CNAME<br />
-                <span className="text-gray-400">Nombre:</span> {form.custom_domain}<br />
-                <span className="text-gray-400">Valor:</span> cname.vercel-dns.com
-              </p>
-            </div>
-            <p className="text-[11px] text-purple-400 mt-2">
-              Agrega este registro CNAME en tu proveedor de dominio (GoDaddy, Namecheap, Cloudflare, etc.)
-            </p>
-          </div>
-        )}
-      </div>
+      <DomainSection
+        domain={form.custom_domain}
+        domainVerified={!!(initialData as any).domain_verified}
+        onChange={(v) => handleChange('custom_domain', v.toLowerCase().replace(/[^a-z0-9.\-]/g, ''))}
+      />
 
       {/* Basic info */}
       <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
@@ -432,6 +408,92 @@ function Field({
         <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={2} className={`${cls} resize-none`} />
       ) : (
         <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={cls} />
+      )}
+    </div>
+  );
+}
+
+function DomainSection({ domain, domainVerified, onChange }: { domain: string; domainVerified: boolean; onChange: (v: string) => void }) {
+  const [verifying, setVerifying] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<{ verified: boolean; error?: string } | null>(null);
+
+  const isVerified = domainVerified || verifyResult?.verified;
+
+  const handleVerify = async () => {
+    setVerifying(true);
+    setVerifyResult(null);
+    try {
+      const res = await fetch('/api/domain/verify', { method: 'POST' });
+      const data = await res.json();
+      setVerifyResult(data);
+    } catch {
+      setVerifyResult({ verified: false, error: 'Error de red. Intenta de nuevo.' });
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  return (
+    <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+      <div className="flex items-center gap-2 mb-1">
+        <Globe className="w-4 h-4 text-purple-400" />
+        <h2 className="font-semibold text-sm text-white">Dominio personalizado</h2>
+        <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-purple-500/[0.1] text-purple-400 font-medium">Plan Pro+</span>
+      </div>
+      <p className="text-xs text-gray-400 mb-4">Conecta tu propio dominio para que tus clientes accedan al menú con tu marca.</p>
+
+      <Field
+        label="Dominio"
+        value={domain}
+        onChange={onChange}
+        placeholder="menu.mirestaurante.com"
+      />
+
+      {domain && (
+        <>
+          {/* DNS instructions */}
+          <div className="mt-3 p-3 rounded-xl bg-purple-500/[0.06] border border-purple-500/[0.12]">
+            <p className="text-xs font-semibold text-purple-300 mb-2">Configuración DNS requerida:</p>
+            <div className="bg-[#0a0a0a] rounded-lg p-2.5 border border-purple-500/[0.1]">
+              <div className="grid grid-cols-3 gap-2 text-[11px] font-mono">
+                <div><span className="text-gray-600">Tipo</span><br /><span className="text-white">CNAME</span></div>
+                <div><span className="text-gray-600">Nombre</span><br /><span className="text-white">{domain}</span></div>
+                <div><span className="text-gray-600">Valor</span><br /><span className="text-white">cname.vercel-dns.com</span></div>
+              </div>
+            </div>
+            <p className="text-[11px] text-gray-500 mt-2">
+              Agrega este registro CNAME en tu proveedor de dominio (GoDaddy, Namecheap, Cloudflare, etc.). La propagación puede tardar hasta 48 horas.
+            </p>
+          </div>
+
+          {/* Verification status */}
+          <div className="mt-3 flex items-center gap-3">
+            {isVerified ? (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/[0.15]">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-medium text-emerald-300">Dominio verificado y activo</span>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={handleVerify}
+                  disabled={verifying}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/[0.1] border border-purple-500/[0.15] text-purple-400 text-xs font-medium hover:bg-purple-500/[0.15] transition-colors disabled:opacity-50"
+                >
+                  {verifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                  {verifying ? 'Verificando...' : 'Verificar DNS'}
+                </button>
+
+                {verifyResult && !verifyResult.verified && (
+                  <div className="flex items-center gap-1.5">
+                    <XCircle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                    <span className="text-[11px] text-amber-400">{verifyResult.error}</span>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

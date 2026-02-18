@@ -1,13 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   ClipboardList, ShoppingBag, QrCode, TrendingUp, ExternalLink,
   ArrowRight, Sparkles, AlertTriangle, CreditCard, Clock,
+  Copy, Check, Share2, MessageCircle,
 } from 'lucide-react';
 import { formatPrice, timeAgo } from '@/lib/utils';
 import { ORDER_STATUS_CONFIG } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { OnboardingChecklist } from './OnboardingChecklist';
 import type { Order, Restaurant } from '@/types';
 
 interface DashboardHomeProps {
@@ -25,9 +28,17 @@ interface DashboardHomeProps {
     plan_id: string;
     trial_end?: string | null;
   } | null;
+  onboarding?: {
+    hasLogo: boolean;
+    hasProfile: boolean;
+    hasHours: boolean;
+    hasProducts: boolean;
+    hasTables: boolean;
+    hasOrders: boolean;
+  };
 }
 
-export function DashboardHome({ restaurant, stats, recentOrders, subscription }: DashboardHomeProps) {
+export function DashboardHome({ restaurant, stats, recentOrders, subscription, onboarding }: DashboardHomeProps) {
   const kpis = [
     { label: 'Órdenes hoy', value: stats.ordersToday.toString(), icon: ClipboardList, color: 'text-blue-400', bg: 'bg-blue-500/[0.1]', ring: 'ring-blue-500/20' },
     { label: 'Ventas hoy', value: formatPrice(stats.salesToday, restaurant.currency), icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/[0.1]', ring: 'ring-emerald-500/20' },
@@ -48,14 +59,17 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription }:
           <h1 className="text-xl font-bold text-white">Bienvenido a {restaurant.name}</h1>
           <p className="text-sm text-gray-500 mt-0.5">Aquí tienes un resumen de tu restaurante</p>
         </div>
-        <Link
-          href={`/r/${restaurant.slug}`}
-          target="_blank"
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/[0.1] text-purple-400 text-sm font-medium hover:bg-purple-500/[0.15] transition-colors border border-purple-500/[0.15]"
-        >
-          <ExternalLink className="w-4 h-4" />
-          Ver menú público
-        </Link>
+        <div className="flex items-center gap-2">
+          <ShareMenuButton slug={restaurant.slug} name={restaurant.name} />
+          <Link
+            href={`/r/${restaurant.slug}`}
+            target="_blank"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/[0.1] text-purple-400 text-sm font-medium hover:bg-purple-500/[0.15] transition-colors border border-purple-500/[0.15]"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Ver menú
+          </Link>
+        </div>
       </div>
 
       {/* Trial Banner */}
@@ -104,6 +118,11 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription }:
             Ver planes
           </Link>
         </div>
+      )}
+
+      {/* Onboarding Checklist */}
+      {onboarding && (
+        <OnboardingChecklist restaurantSlug={restaurant.slug} steps={onboarding} />
       )}
 
       {/* KPIs */}
@@ -200,5 +219,79 @@ function QuickLink({ href, label, icon: Icon }: { href: string; label: string; i
       <span className="font-medium text-sm text-gray-400 group-hover:text-gray-200 transition-colors">{label}</span>
       <ArrowRight className="w-4 h-4 text-gray-700 ml-auto group-hover:text-purple-400 group-hover:translate-x-0.5 transition-all" />
     </Link>
+  );
+}
+
+function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const menuUrl = typeof window !== 'undefined' ? `${window.location.origin}/r/${slug}` : `/r/${slug}`;
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(menuUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
+  };
+
+  const shareWhatsApp = () => {
+    const text = encodeURIComponent(`¡Mira el menú de ${name}! Pide directo desde tu celular:\n${menuUrl}`);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
+  const shareNative = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Menú de ${name}`,
+          text: `¡Mira nuestro menú digital!`,
+          url: menuUrl,
+        });
+      } catch {}
+    } else {
+      copyLink();
+    }
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.08] text-gray-400 text-sm font-medium hover:bg-white/[0.04] hover:text-gray-200 transition-colors"
+      >
+        <Share2 className="w-4 h-4" />
+        Compartir
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-2 z-50 w-52 rounded-xl bg-[#111] border border-white/[0.08] shadow-xl overflow-hidden">
+            <button
+              onClick={() => { copyLink(); setOpen(false); }}
+              className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-gray-300 hover:bg-white/[0.04] transition-colors"
+            >
+              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-gray-500" />}
+              {copied ? 'Copiado' : 'Copiar link'}
+            </button>
+            <button
+              onClick={() => { shareWhatsApp(); setOpen(false); }}
+              className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-gray-300 hover:bg-white/[0.04] transition-colors"
+            >
+              <MessageCircle className="w-4 h-4 text-emerald-500" />
+              WhatsApp
+            </button>
+            <button
+              onClick={() => { shareNative(); setOpen(false); }}
+              className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-gray-300 hover:bg-white/[0.04] transition-colors"
+            >
+              <Share2 className="w-4 h-4 text-gray-500" />
+              Más opciones
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   );
 }

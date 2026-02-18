@@ -62,6 +62,23 @@ export async function createRestaurant(data: CreateRestaurantInput) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
   await seedRestaurant(supabase, restaurant.id, restaurant.slug, appUrl);
 
+  // Send welcome email (non-blocking)
+  if (user.email) {
+    import('@/lib/notifications/email').then(({ sendEmail, buildWelcomeEmail }) => {
+      const html = buildWelcomeEmail({
+        ownerName: user.user_metadata?.full_name || data.name,
+        restaurantName: data.name,
+        dashboardUrl: `${appUrl}/app`,
+        menuUrl: `${appUrl}/r/${data.slug}`,
+      });
+      sendEmail({
+        to: user.email!,
+        subject: `¡Bienvenido a MENIUS! — ${data.name} ya tiene su menú digital`,
+        html,
+      }).catch(() => {});
+    });
+  }
+
   redirect('/app');
 }
 
@@ -261,22 +278,66 @@ export async function createTable(data: TableInput) {
     .single();
 
   if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' };
+  const restaurantId = profile.default_restaurant_id;
 
-  // Get restaurant slug for QR
+  const [restaurantRes, tablesCountRes, subscriptionRes] = await Promise.all([
+    supabase.from('restaurants').select('slug').eq('id', restaurantId).single(),
+    supabase.from('tables').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
+    supabase.from('subscriptions').select('plan_id').eq('restaurant_id', restaurantId).single(),
+  ]);
+
+  const currentCount = tablesCountRes.count ?? 0;
+  const planId = subscriptionRes.data?.plan_id ?? 'starter';
+
+  const { getPlan, isWithinLimit } = await import('@/lib/plans');
+  const plan = getPlan(planId);
+  if (plan && !isWithinLimit(currentCount + 1, plan.limits.maxTables)) {
+    return { error: `Tu plan ${plan.name} permite hasta ${plan.limits.maxTables} mesas. Actualiza tu plan para agregar más.` };
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+  const tableName = sanitizeText(data.name, 50);
+  const qrValue = `${appUrl}/r/${restaurantRes.data?.slug}?table=${encodeURIComponent(tableName)}`;
+
+  const { error } = await supabase.from('tables').insert({
+    restaurant_id: restaurantId,
+    name: tableName,
+    qr_code_value: qrValue,
+  });
+
+  if (error) return { error: error.message };
+  revalidatePath('/app/tables');
+  return { success: true };
+}
+
+export async function updateTable(id: string, newName: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'No autenticado' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('default_restaurant_id')
+    .eq('user_id', user.id)
+    .single();
+
+  if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' };
+
   const { data: restaurant } = await supabase
     .from('restaurants')
     .select('slug')
     .eq('id', profile.default_restaurant_id)
     .single();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.vercel.app';
-  const qrValue = `${appUrl}/r/${restaurant?.slug}?table=${data.name}`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+  const name = sanitizeText(newName, 50);
+  const qrValue = `${appUrl}/r/${restaurant?.slug}?table=${encodeURIComponent(name)}`;
 
-  const { error } = await supabase.from('tables').insert({
-    restaurant_id: profile.default_restaurant_id,
-    name: data.name,
-    qr_code_value: qrValue,
-  });
+  const { error } = await supabase
+    .from('tables')
+    .update({ name, qr_code_value: qrValue })
+    .eq('id', id)
+    .eq('restaurant_id', profile.default_restaurant_id);
 
   if (error) return { error: error.message };
   revalidatePath('/app/tables');

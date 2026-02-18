@@ -28,7 +28,7 @@ export default async function DashboardPage() {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const [ordersRes, productsRes, tablesRes, recentOrdersRes, subRes] = await Promise.all([
+  const [ordersRes, productsRes, tablesRes, recentOrdersRes, subRes, totalOrdersRes] = await Promise.all([
     supabase
       .from('orders')
       .select('id, total, status')
@@ -55,6 +55,10 @@ export default async function DashboardPage() {
       .select('status, plan_id, trial_end')
       .eq('restaurant_id', restaurantId)
       .single(),
+    supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurantId),
   ]);
 
   const todaysOrders = ordersRes.data ?? [];
@@ -63,12 +67,30 @@ export default async function DashboardPage() {
     .reduce((sum, o) => sum + Number(o.total), 0);
   const pendingOrders = todaysOrders.filter((o) => o.status === 'pending').length;
 
+  const activeProducts = productsRes.data?.length ?? 0;
+  const activeTables = tablesRes.data?.length ?? 0;
+
   const stats = {
     ordersToday: todaysOrders.length,
     salesToday,
-    activeProducts: productsRes.data?.length ?? 0,
-    activeTables: tablesRes.data?.length ?? 0,
+    activeProducts,
+    activeTables,
     pendingOrders,
+  };
+
+  const hasOpenDay = (() => {
+    const hours = restaurant.operating_hours;
+    if (!hours || typeof hours !== 'object') return false;
+    return Object.values(hours).some((day: any) => day && !day.closed && day.open && day.close);
+  })();
+
+  const onboarding = {
+    hasLogo: !!restaurant.logo_url,
+    hasProfile: !!(restaurant.description && restaurant.phone),
+    hasHours: hasOpenDay,
+    hasProducts: activeProducts >= 5,
+    hasTables: activeTables >= 1,
+    hasOrders: (totalOrdersRes.count ?? 0) > 0,
   };
 
   return (
@@ -77,6 +99,7 @@ export default async function DashboardPage() {
       stats={stats}
       recentOrders={recentOrdersRes.data ?? []}
       subscription={subRes.data ?? null}
+      onboarding={onboarding}
     />
   );
 }

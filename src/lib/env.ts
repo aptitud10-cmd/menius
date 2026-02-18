@@ -17,10 +17,14 @@ const envSchema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
 
+  // Optional — Supabase service role (for admin/webhook operations)
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+
   // Optional — WhatsApp
   WHATSAPP_API_URL: z.string().url().optional(),
   WHATSAPP_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_ID: z.string().optional(),
+  WHATSAPP_VERIFY_TOKEN: z.string().optional(),
 
   // Optional — AI
   GEMINI_API_KEY: z.string().optional(),

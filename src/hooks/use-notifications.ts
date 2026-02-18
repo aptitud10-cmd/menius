@@ -2,8 +2,40 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const NOTIFICATION_SOUND_B64 =
-  'data:audio/mp3;base64,SUQzAwAAAAAAJlRQRTEAAAAcAAAAU291bmQgRWZmZWN0IC0gTm90aWZpY2F0aW9u/+NIxAAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV/+NIxDsAAADSAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+let audioCtx: AudioContext | null = null;
+
+function getAudioContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+  return audioCtx;
+}
+
+function playChime() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  if (ctx.state === 'suspended') ctx.resume();
+
+  const now = ctx.currentTime;
+  const notes = [
+    { freq: 587.33, start: 0, duration: 0.15 },
+    { freq: 880, start: 0.15, duration: 0.25 },
+  ];
+
+  notes.forEach(({ freq, start, duration }) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now + start);
+    gain.gain.setValueAtTime(0.35, now + start);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + start + duration);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now + start);
+    osc.stop(now + start + duration + 0.05);
+  });
+}
 
 interface UseNotificationsOptions {
   defaultTitle?: string;
@@ -40,9 +72,7 @@ export function useNotifications(opts: UseNotificationsOptions = {}) {
   const playSound = useCallback(() => {
     if (!soundEnabled) return;
     try {
-      const audio = new Audio(NOTIFICATION_SOUND_B64);
-      audio.volume = 0.6;
-      audio.play().catch(() => {});
+      playChime();
     } catch {}
   }, [soundEnabled]);
 

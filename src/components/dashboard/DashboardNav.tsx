@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   ClipboardList, Tag, ShoppingBag, QrCode, Settings, LogOut, Menu, X,
-  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard,
+  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,7 @@ const NAV_SECTIONS = [
     items: [
       { href: '/app', label: 'Inicio', icon: LayoutDashboard, exact: true },
       { href: '/app/orders', label: 'Órdenes', icon: ClipboardList },
+      { href: '/app/kds', label: 'Cocina (KDS)', icon: Monitor },
     ],
   },
   {

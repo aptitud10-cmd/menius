@@ -1,11 +1,10 @@
-const CACHE_NAME = 'menius-v1';
-const STATIC_CACHE = 'menius-static-v1';
-const IMAGE_CACHE = 'menius-images-v1';
+const SW_VERSION = '2';
+const CACHE_NAME = 'menius-v' + SW_VERSION;
+const STATIC_CACHE = 'menius-static-v' + SW_VERSION;
+const IMAGE_CACHE = 'menius-images-v' + SW_VERSION;
 
 const PRECACHE_URLS = [
   '/',
-  '/login',
-  '/signup',
   '/offline',
 ];
 
@@ -29,6 +28,12 @@ self.addEventListener('activate', (event) => {
           .filter((name) => name !== CACHE_NAME && name !== STATIC_CACHE && name !== IMAGE_CACHE)
           .map((name) => caches.delete(name))
       );
+    }).then(() => {
+      return self.clients.matchAll({ type: 'window' });
+    }).then((clients) => {
+      clients.forEach((client) => {
+        client.postMessage({ type: 'SW_UPDATED', version: SW_VERSION });
+      });
     })
   );
   self.clients.claim();
@@ -50,7 +55,7 @@ self.addEventListener('fetch', (event) => {
   const ext = url.pathname.substring(url.pathname.lastIndexOf('.'));
 
   if (IMAGE_EXTENSIONS.includes(ext) || url.hostname.includes('unsplash') || url.hostname.includes('supabase')) {
-    event.respondWith(cacheFirstWithNetwork(request, IMAGE_CACHE, 7 * 24 * 60 * 60));
+    event.respondWith(cacheFirstWithNetwork(request, IMAGE_CACHE));
     return;
   }
 
@@ -69,12 +74,12 @@ self.addEventListener('fetch', (event) => {
 
 async function networkFirstWithCache(request, cacheName, timeoutMs = 4000) {
   try {
-    const networkPromise = fetch(request);
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), timeoutMs)
-    );
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-    const response = await Promise.race([networkPromise, timeoutPromise]);
+    const response = await fetch(request, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
     if (response && response.ok) {
       const cache = await caches.open(cacheName);
       cache.put(request, response.clone()).catch(() => {});
@@ -93,7 +98,7 @@ async function networkFirstWithCache(request, cacheName, timeoutMs = 4000) {
   }
 }
 
-async function cacheFirstWithNetwork(request, cacheName, maxAgeSec) {
+async function cacheFirstWithNetwork(request, cacheName) {
   const cached = await caches.match(request);
   if (cached) return cached;
 

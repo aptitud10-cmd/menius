@@ -270,11 +270,43 @@ const categories: FaqCategory[] = [
   },
 ];
 
+function extractText(node: ReactNode): string {
+  if (typeof node === 'string') return node;
+  if (typeof node === 'number') return String(node);
+  if (!node) return '';
+  if (Array.isArray(node)) return node.map(extractText).join('');
+  if (typeof node === 'object' && 'props' in node) {
+    return extractText((node as any).props.children);
+  }
+  return '';
+}
+
+function FaqJsonLd() {
+  const allQuestions = categories.flatMap((cat) => cat.questions);
+  const faqLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: allQuestions.map((q) => ({
+      '@type': 'Question',
+      name: q.q,
+      acceptedAnswer: { '@type': 'Answer', text: extractText(q.a) },
+    })),
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+    />
+  );
+}
+
 export default function FaqPage() {
   const totalQuestions = categories.reduce((acc, cat) => acc + cat.questions.length, 0);
 
   return (
     <div className="min-h-screen landing-bg overflow-x-hidden relative noise-overlay">
+      <FaqJsonLd />
       <LandingNav />
 
       {/* Hero */}

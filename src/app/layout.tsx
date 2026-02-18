@@ -83,8 +83,31 @@ function ServiceWorkerRegister() {
         __html: `
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
-              navigator.serviceWorker.register('/sw.js').catch(function() {});
+              navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                reg.addEventListener('updatefound', function() {
+                  var newWorker = reg.installing;
+                  if (!newWorker) return;
+                  newWorker.addEventListener('statechange', function() {
+                    if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+                      showUpdateBanner();
+                    }
+                  });
+                });
+              }).catch(function() {});
+
+              navigator.serviceWorker.addEventListener('message', function(e) {
+                if (e.data && e.data.type === 'SW_UPDATED') showUpdateBanner();
+              });
             });
+
+            function showUpdateBanner() {
+              if (document.getElementById('sw-update-banner')) return;
+              var d = document.createElement('div');
+              d.id = 'sw-update-banner';
+              d.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;display:flex;align-items:center;gap:12px;padding:12px 20px;border-radius:14px;background:#111;border:1px solid rgba(255,255,255,0.08);box-shadow:0 8px 32px rgba(0,0,0,0.5);font-family:system-ui;';
+              d.innerHTML = '<span style="font-size:13px;color:#d1d5db;">Nueva versión disponible</span><button onclick="location.reload()" style="padding:6px 16px;border-radius:8px;background:#7c3aed;color:#fff;font-size:12px;font-weight:600;border:none;cursor:pointer;">Actualizar</button>';
+              document.body.appendChild(d);
+            }
           }
         `,
       }}

@@ -57,8 +57,8 @@ export default function SubscriptionExpiredPage() {
       <div className="max-w-3xl w-full">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 mb-5">
-            <AlertTriangle className="w-8 h-8 text-amber-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/[0.1] mb-5">
+            <AlertTriangle className="w-8 h-8 text-amber-400" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 font-heading">
             Tu periodo de prueba ha terminado
@@ -92,7 +92,7 @@ export default function SubscriptionExpiredPage() {
               </div>
               <ul className="space-y-1.5 flex-1 mb-4">
                 {plan.features.map((f) => (
-                  <li key={f} className={`text-xs flex items-center gap-1.5 ${plan.popular ? 'text-gray-200' : 'text-gray-600'}`}>
+                  <li key={f} className={`text-xs flex items-center gap-1.5 ${plan.popular ? 'text-gray-200' : 'text-gray-400'}`}>
                     <span className={`w-1 h-1 rounded-full ${plan.popular ? 'bg-purple-400' : 'bg-purple-500'}`} />
                     {f}
                   </li>

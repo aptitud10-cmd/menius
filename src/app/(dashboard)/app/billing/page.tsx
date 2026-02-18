@@ -14,25 +14,54 @@ interface SubscriptionData {
   stripe_subscription_id: string | null;
 }
 
-const PLAN_DISPLAY: Record<string, { name: string; price: { monthly: number; annual: number } }> = {
-  basic: { name: 'Básico', price: { monthly: 19, annual: 190 } },
-  pro: { name: 'Pro', price: { monthly: 49, annual: 490 } },
-  enterprise: { name: 'Enterprise', price: { monthly: 149, annual: 1490 } },
+const PLAN_DISPLAY: Record<string, { name: string; price: { monthly: number; annual: number }; features: string[] }> = {
+  starter: {
+    name: 'Starter',
+    price: { monthly: 39, annual: 390 },
+    features: [
+      'Menú digital con fotos',
+      'QR para hasta 10 mesas',
+      'Pedidos online (dine-in + pickup)',
+      'Imágenes IA (5/mes)',
+      '1 usuario',
+      'Soporte por email',
+    ],
+  },
+  pro: {
+    name: 'Pro',
+    price: { monthly: 79, annual: 790 },
+    features: [
+      'Todo lo de Starter',
+      '200 productos, 50 mesas',
+      'Delivery + WhatsApp',
+      'Analytics avanzado',
+      'Promociones y cupones',
+      'Imágenes IA (50/mes)',
+      '3 usuarios',
+      'Soporte prioritario',
+    ],
+  },
+  business: {
+    name: 'Business',
+    price: { monthly: 149, annual: 1490 },
+    features: [
+      'Todo lo de Pro',
+      'Productos, mesas y usuarios ilimitados',
+      'IA ilimitada',
+      'Dominio personalizado',
+      'Onboarding dedicado',
+      'Soporte por WhatsApp',
+    ],
+  },
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string; bg: string; icon: any }> = {
-  trialing: { label: 'Periodo de prueba', color: 'text-blue-700', bg: 'bg-blue-50', icon: Clock },
-  active: { label: 'Activa', color: 'text-emerald-700', bg: 'bg-emerald-50', icon: Check },
-  past_due: { label: 'Pago pendiente', color: 'text-amber-700', bg: 'bg-amber-50', icon: AlertTriangle },
-  canceled: { label: 'Cancelada', color: 'text-red-700', bg: 'bg-red-50', icon: AlertTriangle },
-  unpaid: { label: 'Sin pagar', color: 'text-red-700', bg: 'bg-red-50', icon: AlertTriangle },
-  incomplete: { label: 'Incompleta', color: 'text-gray-200', bg: 'bg-white/[0.04]', icon: Clock },
-};
-
-const PLAN_FEATURES: Record<string, string[]> = {
-  basic: ['Hasta 50 productos', '10 mesas', '1 usuario', 'Menú digital QR', 'Pedidos en línea', 'Soporte email'],
-  pro: ['500 productos', '100 mesas', '5 usuarios', 'Promos y descuentos', 'Analytics avanzado', 'Pagos Stripe', 'Reseñas', 'Soporte prioritario'],
-  enterprise: ['Productos ilimitados', 'Mesas ilimitadas', 'Usuarios ilimitados', 'Multi-sucursal', 'KDS (cocina)', 'App meseros', 'API personalizada', 'Soporte 24/7'],
+  trialing: { label: 'Periodo de prueba', color: 'text-blue-400', bg: 'bg-blue-500/[0.1]', icon: Clock },
+  active: { label: 'Activa', color: 'text-emerald-400', bg: 'bg-emerald-500/[0.1]', icon: Check },
+  past_due: { label: 'Pago pendiente', color: 'text-amber-400', bg: 'bg-amber-500/[0.1]', icon: AlertTriangle },
+  canceled: { label: 'Cancelada', color: 'text-red-400', bg: 'bg-red-500/[0.1]', icon: AlertTriangle },
+  unpaid: { label: 'Sin pagar', color: 'text-red-400', bg: 'bg-red-500/[0.1]', icon: AlertTriangle },
+  incomplete: { label: 'Incompleta', color: 'text-gray-400', bg: 'bg-white/[0.04]', icon: Clock },
 };
 
 export default function BillingPage() {
@@ -76,8 +105,8 @@ export default function BillingPage() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="skeleton h-8 w-48" />
-        <div className="skeleton h-40 w-full" />
+        <div className="h-8 w-48 rounded-lg bg-white/[0.06] animate-pulse" />
+        <div className="h-40 w-full rounded-2xl bg-white/[0.06] animate-pulse" />
       </div>
     );
   }
@@ -101,7 +130,6 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* Current Plan Card */}
       {sub && planInfo && statusInfo && (
         <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.08] p-6 mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -119,7 +147,7 @@ export default function BillingPage() {
                   {' '}/{sub.billing_interval === 'annual' ? 'año' : 'mes'}
                 </p>
                 {isTrialing && (
-                  <p className="text-sm text-blue-600 font-medium">
+                  <p className="text-sm text-blue-400 font-medium">
                     <Clock className="w-3.5 h-3.5 inline mr-1" />
                     {daysLeft} días restantes de prueba
                   </p>
@@ -130,7 +158,7 @@ export default function BillingPage() {
                   </p>
                 )}
                 {sub.cancel_at_period_end && (
-                  <p className="text-sm text-amber-600 font-medium">
+                  <p className="text-sm text-amber-400 font-medium">
                     <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />
                     Tu plan se cancelará al final del periodo
                   </p>
@@ -161,11 +189,10 @@ export default function BillingPage() {
             </div>
           </div>
 
-          {/* Features of current plan */}
           <div className="mt-5 pt-5 border-t border-white/[0.06]">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Incluye</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {(PLAN_FEATURES[sub.plan_id] ?? []).map((f) => (
+              {planInfo.features.map((f) => (
                 <div key={f} className="flex items-center gap-2 text-sm text-gray-400">
                   <Check className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
                   {f}
@@ -176,7 +203,6 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* Upgrade Section */}
       {sub && sub.plan_id !== 'business' && (
         <div className="bg-gradient-to-r from-purple-950 to-purple-900 rounded-2xl p-6 text-white">
           <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -205,7 +231,6 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* No subscription */}
       {!sub && (
         <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.08] p-8 text-center">
           <CreditCard className="w-10 h-10 mx-auto mb-3 text-gray-300" />
