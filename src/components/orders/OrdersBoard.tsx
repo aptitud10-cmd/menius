@@ -86,17 +86,17 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
     <div>
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
-          <p className="text-xs text-gray-500 font-medium">Pendientes</p>
-          <p className="text-2xl font-bold text-amber-600 mt-1">{pendingCount}</p>
+        <div className="rounded-2xl border border-amber-500/[0.15] bg-amber-500/[0.06] p-4">
+          <p className="text-xs text-gray-400 font-medium">Pendientes</p>
+          <p className="text-2xl font-bold text-amber-400 mt-1">{pendingCount}</p>
         </div>
-        <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4">
-          <p className="text-xs text-gray-500 font-medium">Preparando</p>
-          <p className="text-2xl font-bold text-violet-600 mt-1">{preparingCount}</p>
+        <div className="rounded-2xl border border-violet-500/[0.15] bg-violet-500/[0.06] p-4">
+          <p className="text-xs text-gray-400 font-medium">Preparando</p>
+          <p className="text-2xl font-bold text-violet-400 mt-1">{preparingCount}</p>
         </div>
-        <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-          <p className="text-xs text-gray-500 font-medium">Venta hoy</p>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">{formatPrice(todayTotal, currency)}</p>
+        <div className="rounded-2xl border border-emerald-500/[0.15] bg-emerald-500/[0.06] p-4">
+          <p className="text-xs text-gray-400 font-medium">Venta hoy</p>
+          <p className="text-2xl font-bold text-emerald-400 mt-1">{formatPrice(todayTotal, currency)}</p>
         </div>
       </div>
 
@@ -112,7 +112,7 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
           {!hasPermission && (
             <button
               onClick={requestPermission}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-500/[0.1] text-amber-400 border border-amber-500/[0.15] hover:bg-amber-500/[0.15] transition-colors"
             >
               <BellRing className="w-3.5 h-3.5" />
               Activar notificaciones
@@ -122,7 +122,7 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
             onClick={() => setSoundEnabled(!soundEnabled)}
             className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
-              soundEnabled ? 'bg-purple-50 text-purple-700' : 'bg-white/[0.06] text-gray-500'
+              soundEnabled ? 'bg-purple-500/[0.1] text-purple-400 border border-purple-500/[0.15]' : 'bg-white/[0.06] text-gray-500 border border-white/[0.06]'
             )}
           >
             {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
@@ -157,12 +157,12 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
                   return (
                     <div key={order.id} className={cn(
                       'bg-[#0a0a0a] rounded-xl border p-3.5 transition-all text-white',
-                      isNew ? 'border-purple-400 ring-2 ring-purple-200 animate-pulse' : 'border-white/[0.06]'
+                      isNew ? 'border-purple-500/40 ring-2 ring-purple-500/20 animate-pulse' : 'border-white/[0.06]'
                     )}>
                       {isNew && (
                         <div className="flex items-center gap-1 mb-2">
-                          <Bell className="w-3 h-3 text-purple-600" />
-                          <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">Nueva orden</span>
+                          <Bell className="w-3 h-3 text-purple-400" />
+                          <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Nueva orden</span>
                         </div>
                       )}
                       <div className="flex items-center justify-between mb-2">

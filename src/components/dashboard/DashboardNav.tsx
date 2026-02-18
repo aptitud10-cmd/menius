@@ -120,6 +120,8 @@ export function DashboardNav({ slug, mobile }: DashboardNavProps) {
         <button
           onClick={() => setOpen(!open)}
           className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors"
+          aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+          aria-expanded={open}
         >
           {open ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
         </button>

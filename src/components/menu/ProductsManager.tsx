@@ -86,7 +86,7 @@ function VariantEditor({ variants, productId, onUpdate }: {
           <span className="text-xs text-gray-400">(ej: tamano, termino de coccion)</span>
         </div>
         {!adding && (
-          <button onClick={() => setAdding(true)} className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-700">
+          <button onClick={() => setAdding(true)} className="flex items-center gap-1 text-xs font-medium text-blue-400 hover:text-blue-300">
             <Plus className="w-3.5 h-3.5" /> Agregar
           </button>
         )}
@@ -101,9 +101,9 @@ function VariantEditor({ variants, productId, onUpdate }: {
           <div key={v.id} className="flex items-center gap-2 bg-white/[0.04] rounded-lg px-3 py-2">
             {editId === v.id ? (
               <>
-                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nombre" className="flex-1 text-sm px-2 py-1 rounded border border-white/[0.08] focus:outline-none focus:ring-1 focus:ring-blue-400" />
-                <input value={form.price_delta} onChange={e => setForm({ ...form, price_delta: e.target.value })} placeholder="+0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded border border-white/[0.08] focus:outline-none focus:ring-1 focus:ring-blue-400" />
-                <button onClick={() => handleUpdate(v)} disabled={loading} className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50">Guardar</button>
+                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nombre" className="flex-1 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                <input value={form.price_delta} onChange={e => setForm({ ...form, price_delta: e.target.value })} placeholder="+0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                <button onClick={() => handleUpdate(v)} disabled={loading} className="text-xs font-medium text-blue-400 hover:text-blue-300 disabled:opacity-50">Guardar</button>
                 <button onClick={() => { setEditId(null); setForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-400">Cancelar</button>
               </>
             ) : (
@@ -120,10 +120,10 @@ function VariantEditor({ variants, productId, onUpdate }: {
         ))}
 
         {adding && (
-          <div className="flex items-center gap-2 bg-blue-50 rounded-lg px-3 py-2 border border-blue-100">
-            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Grande, Medium Rare..." autoFocus className="flex-1 text-sm px-2 py-1 rounded border border-white/[0.08] focus:outline-none focus:ring-1 focus:ring-blue-400" />
-            <input value={form.price_delta} onChange={e => setForm({ ...form, price_delta: e.target.value })} placeholder="+0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded border border-white/[0.08] focus:outline-none focus:ring-1 focus:ring-blue-400" />
-            <button onClick={handleAdd} disabled={loading || !form.name.trim()} className="text-xs font-bold text-blue-600 hover:text-blue-700 disabled:opacity-50">{loading ? '...' : 'Agregar'}</button>
+          <div className="flex items-center gap-2 bg-blue-500/[0.06] rounded-lg px-3 py-2 border border-blue-500/[0.15]">
+            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Grande, Medium Rare..." autoFocus className="flex-1 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-blue-400" />
+            <input value={form.price_delta} onChange={e => setForm({ ...form, price_delta: e.target.value })} placeholder="+0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-blue-400" />
+            <button onClick={handleAdd} disabled={loading || !form.name.trim()} className="text-xs font-bold text-blue-400 hover:text-blue-300 disabled:opacity-50">{loading ? '...' : 'Agregar'}</button>
             <button onClick={() => { setAdding(false); setForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-400">Cancelar</button>
           </div>
         )}
@@ -190,7 +190,7 @@ function ExtraEditor({ extras, productId, onUpdate }: {
           <span className="text-xs text-gray-400">(ej: queso extra, tocino)</span>
         </div>
         {!adding && (
-          <button onClick={() => setAdding(true)} className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700">
+          <button onClick={() => setAdding(true)} className="flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300">
             <Plus className="w-3.5 h-3.5" /> Agregar
           </button>
         )}
@@ -205,15 +205,15 @@ function ExtraEditor({ extras, productId, onUpdate }: {
           <div key={ex.id} className="flex items-center gap-2 bg-white/[0.04] rounded-lg px-3 py-2">
             {editId === ex.id ? (
               <>
-                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nombre" className="flex-1 text-sm px-2 py-1 rounded border border-white/[0.08] focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                <input value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded border border-white/[0.08] focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                <button onClick={() => handleUpdate(ex)} disabled={loading} className="text-xs font-medium text-emerald-600 hover:text-emerald-700 disabled:opacity-50">Guardar</button>
+                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nombre" className="flex-1 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                <input value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                <button onClick={() => handleUpdate(ex)} disabled={loading} className="text-xs font-medium text-emerald-400 hover:text-emerald-300 disabled:opacity-50">Guardar</button>
                 <button onClick={() => { setEditId(null); setForm({ name: '', price: '' }); }} className="text-xs text-gray-400">Cancelar</button>
               </>
             ) : (
               <>
                 <span className="flex-1 text-sm text-gray-200 font-medium">{ex.name}</span>
-                <span className="text-sm text-emerald-600 font-mono">+${ex.price.toFixed(2)}</span>
+                <span className="text-sm text-emerald-400 font-mono">+${ex.price.toFixed(2)}</span>
                 <button onClick={() => { setEditId(ex.id); setForm({ name: ex.name, price: String(ex.price) }); }} className="p-1 rounded hover:bg-white/[0.08] text-gray-400"><Pencil className="w-3.5 h-3.5" /></button>
                 <button onClick={() => handleDelete(ex.id)} className="p-1 rounded hover:bg-red-500/[0.08] text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
               </>
@@ -222,10 +222,10 @@ function ExtraEditor({ extras, productId, onUpdate }: {
         ))}
 
         {adding && (
-          <div className="flex items-center gap-2 bg-emerald-50 rounded-lg px-3 py-2 border border-emerald-100">
-            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Extra queso, Tocino..." autoFocus className="flex-1 text-sm px-2 py-1 rounded border border-white/[0.08] focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-            <input value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded border border-white/[0.08] focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-            <button onClick={handleAdd} disabled={loading || !form.name.trim()} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 disabled:opacity-50">{loading ? '...' : 'Agregar'}</button>
+          <div className="flex items-center gap-2 bg-emerald-500/[0.06] rounded-lg px-3 py-2 border border-emerald-500/[0.15]">
+            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Extra queso, Tocino..." autoFocus className="flex-1 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+            <input value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+            <button onClick={handleAdd} disabled={loading || !form.name.trim()} className="text-xs font-bold text-emerald-400 hover:text-emerald-300 disabled:opacity-50">{loading ? '...' : 'Agregar'}</button>
             <button onClick={() => { setAdding(false); setForm({ name: '', price: '' }); }} className="text-xs text-gray-400">Cancelar</button>
           </div>
         )}
@@ -401,7 +401,7 @@ function ProductEditor({ product, categories, onClose, onSave }: {
         {/* Content */}
         <div className="p-5">
           {error && (
-            <div className="mb-4 px-4 py-2.5 rounded-xl bg-red-500/[0.08] border border-red-100 text-red-600 text-sm">
+            <div className="mb-4 px-4 py-2.5 rounded-xl bg-red-500/[0.08] border border-red-500/[0.15] text-red-400 text-sm">
               {error}
             </div>
           )}
@@ -433,23 +433,23 @@ function ProductEditor({ product, categories, onClose, onSave }: {
                     <button onClick={() => fileRef.current?.click()} disabled={generatingAI} className="h-28 rounded-xl border-2 border-dashed border-white/[0.08] hover:border-purple-400 flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-purple-400 transition-all disabled:opacity-50">
                       <Camera className="w-5 h-5" /><span className="text-xs font-medium">Subir foto</span>
                     </button>
-                    <button onClick={() => { if (!form.name.trim()) { setError('Escribe el nombre primero'); return; } setShowStylePicker(true); }} disabled={generatingAI} className="h-28 rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/50 hover:border-violet-400 flex flex-col items-center justify-center gap-2 text-violet-400 hover:text-violet-600 transition-all disabled:opacity-50">
+                    <button onClick={() => { if (!form.name.trim()) { setError('Escribe el nombre primero'); return; } setShowStylePicker(true); }} disabled={generatingAI} className="h-28 rounded-xl border-2 border-dashed border-violet-500/20 bg-violet-500/[0.04] hover:border-violet-400 flex flex-col items-center justify-center gap-2 text-violet-400 hover:text-violet-300 transition-all disabled:opacity-50">
                       {generatingAI ? <><Loader2 className="w-5 h-5 animate-spin" /><span className="text-xs font-medium">Generando...</span></> : <><Sparkles className="w-5 h-5" /><span className="text-xs font-medium">Generar con IA</span></>}
                     </button>
                   </div>
                 )}
 
                 {showStylePicker && !imagePreview && (
-                  <div className="mt-3 p-4 rounded-xl bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-100">
+                  <div className="mt-3 p-4 rounded-xl bg-violet-500/[0.06] border border-violet-500/[0.15]">
                     <div className="flex items-center gap-2 mb-3">
-                      <Wand2 className="w-4 h-4 text-violet-600" />
-                      <span className="text-sm font-semibold text-violet-800">Estilo de imagen IA</span>
+                      <Wand2 className="w-4 h-4 text-violet-400" />
+                      <span className="text-sm font-semibold text-violet-300">Estilo de imagen IA</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2 mb-3">
                       {AI_STYLES.map((s) => (
-                        <button key={s.id} onClick={() => setAiStyle(s.id)} className={cn('px-3 py-2 rounded-lg text-left transition-all text-xs', aiStyle === s.id ? 'bg-violet-600 text-white' : 'bg-[#0a0a0a] text-gray-400 hover:bg-violet-100 border border-violet-200')}>
+                        <button key={s.id} onClick={() => setAiStyle(s.id)} className={cn('px-3 py-2 rounded-lg text-left transition-all text-xs', aiStyle === s.id ? 'bg-violet-600 text-white' : 'bg-white/[0.04] text-gray-400 hover:bg-white/[0.08] border border-white/[0.08]')}>
                           <p className="font-medium">{s.label}</p>
-                          <p className={cn('mt-0.5', aiStyle === s.id ? 'text-violet-200' : 'text-gray-400')}>{s.desc}</p>
+                          <p className={cn('mt-0.5', aiStyle === s.id ? 'text-violet-200' : 'text-gray-500')}>{s.desc}</p>
                         </button>
                       ))}
                     </div>
@@ -457,14 +457,14 @@ function ProductEditor({ product, categories, onClose, onSave }: {
                       <button onClick={generateAIImage} disabled={generatingAI} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 disabled:opacity-50 transition-colors">
                         {generatingAI ? <><Loader2 className="w-4 h-4 animate-spin" />Generando...</> : <><Sparkles className="w-4 h-4" />Generar</>}
                       </button>
-                      <button onClick={() => setShowStylePicker(false)} className="px-4 py-2.5 rounded-xl bg-[#0a0a0a] text-gray-400 text-sm hover:bg-white/[0.04] border border-violet-200">Cancelar</button>
+                      <button onClick={() => setShowStylePicker(false)} className="px-4 py-2.5 rounded-xl bg-white/[0.04] text-gray-400 text-sm hover:bg-white/[0.06] border border-white/[0.08]">Cancelar</button>
                     </div>
                   </div>
                 )}
 
                 {imagePreview && !generatingAI && (
                   <div className="mt-2 flex gap-2">
-                    <button onClick={() => { setImagePreview(null); setImageFile(null); setShowStylePicker(true); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 text-violet-600 text-xs font-medium hover:bg-violet-100"><Sparkles className="w-3.5 h-3.5" />Regenerar con IA</button>
+                    <button onClick={() => { setImagePreview(null); setImageFile(null); setShowStylePicker(true); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/[0.1] text-violet-400 text-xs font-medium hover:bg-violet-500/[0.15] border border-violet-500/[0.15]"><Sparkles className="w-3.5 h-3.5" />Regenerar con IA</button>
                     <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] text-gray-400 text-xs font-medium hover:bg-white/[0.06]"><Camera className="w-3.5 h-3.5" />Subir otra</button>
                   </div>
                 )}
@@ -473,24 +473,24 @@ function ProductEditor({ product, categories, onClose, onSave }: {
               {/* Name */}
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Nombre *</label>
-                <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ej: Hamburguesa clasica" autoFocus className="w-full px-4 py-3 rounded-xl border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400" />
+                <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ej: Hamburguesa clasica" autoFocus className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400" />
               </div>
 
               {/* Description */}
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Descripcion</label>
-                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Describe el producto..." rows={3} className="w-full px-4 py-3 rounded-xl border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 resize-none" />
+                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Describe el producto..." rows={3} className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 resize-none" />
               </div>
 
               {/* Price & Category */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Precio base *</label>
-                  <input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0.00" min="0" className="w-full px-4 py-3 rounded-xl border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400" />
+                  <input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0.00" min="0" className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Categoria *</label>
-                  <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="w-full px-4 py-3 rounded-xl border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400">
+                  <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400">
                     {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
@@ -498,8 +498,8 @@ function ProductEditor({ product, categories, onClose, onSave }: {
 
               {/* Hint for variants/extras on new products */}
               {!isEditing && (
-                <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                  <p className="text-xs text-blue-700">
+                <div className="bg-blue-500/[0.06] rounded-xl p-3 border border-blue-500/[0.15]">
+                  <p className="text-xs text-blue-300">
                     <strong>Tip:</strong> Despues de crear el producto podras agregar variantes (tamanos, terminos de coccion) y extras (ingredientes adicionales) desde las pestanas de arriba.
                   </p>
                 </div>
@@ -613,7 +613,7 @@ export function ProductsManager({ initialProducts, categories, restaurantId, cur
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="text-sm px-3 py-1.5 rounded-lg border border-white/[0.08] focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                className="text-sm px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
               >
                 <option value="all">Todas las categorias</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -658,12 +658,12 @@ export function ProductsManager({ initialProducts, categories, restaurantId, cur
                       <span className="text-sm font-bold text-purple-400">{formatPrice(Number(p.price))}</span>
                       <span className="text-xs bg-white/[0.06] text-gray-500 px-1.5 py-0.5 rounded flex-shrink-0">{getCategoryName(p.category_id)}</span>
                       {(p.variants?.length ?? 0) > 0 && (
-                        <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+                        <span className="text-[10px] bg-blue-500/[0.1] text-blue-400 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
                           {p.variants!.length} var
                         </span>
                       )}
                       {(p.extras?.length ?? 0) > 0 && (
-                        <span className="text-[10px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+                        <span className="text-[10px] bg-emerald-500/[0.1] text-emerald-400 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
                           {p.extras!.length} ext
                         </span>
                       )}
