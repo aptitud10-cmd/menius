@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import { LandingNav } from '@/components/landing/LandingNav';
 
 export const metadata: Metadata = {
@@ -17,8 +18,10 @@ interface FaqCategory {
   id: string;
   title: string;
   icon: string;
-  questions: { q: string; a: string }[];
+  questions: { q: string; a: ReactNode }[];
 }
+
+const lnk = 'text-purple-400 hover:text-purple-300 transition-colors';
 
 const categories: FaqCategory[] = [
   {
@@ -48,7 +51,7 @@ const categories: FaqCategory[] = [
       },
       {
         q: '¿Puedo ver un demo antes de registrarme?',
-        a: 'Sí. Tenemos demos en vivo disponibles sin necesidad de crear cuenta. Puedes explorar un restaurante de ejemplo completo con menú, carrito, checkout y seguimiento de pedido. Visita la sección Demo en nuestro sitio.',
+        a: <>Sí. Tenemos demos en vivo disponibles sin necesidad de crear cuenta. Puedes explorar un restaurante de ejemplo completo con menú, carrito, checkout y seguimiento de pedido. <Link href="/r/demo" className={lnk}>Ver demo en vivo →</Link></>,
       },
     ],
   },
@@ -87,7 +90,7 @@ const categories: FaqCategory[] = [
       },
       {
         q: '¿Puedo conectar un dominio personalizado?',
-        a: 'Sí. En los planes Pro y Business puedes conectar tu propio dominio (ej: menu.turestaurante.com) para que tus clientes accedan al menú con tu marca. La configuración es sencilla y viene con SSL incluido.',
+        a: 'Sí. En los planes Pro y Business puedes conectar tu propio dominio (ej: menu.turestaurante.com) para que tus clientes accedan al menú con tu marca. La configuración es sencilla y viene con certificado SSL incluido.',
       },
     ],
   },
@@ -98,7 +101,7 @@ const categories: FaqCategory[] = [
     questions: [
       {
         q: '¿Cómo recibo los pedidos?',
-        a: 'Los pedidos llegan en tiempo real a tu dashboard con un sonido de alerta. Ves un tablero Kanban donde puedes gestionar los pedidos: pendiente → preparando → listo → entregado. También puedes recibir notificaciones por WhatsApp y email en planes superiores.',
+        a: 'Los pedidos llegan en tiempo real a tu dashboard con un sonido de alerta. Ves un tablero Kanban donde puedes gestionar los pedidos: pendiente → preparando → listo → entregado. También puedes recibir notificaciones por WhatsApp y email en los planes Pro y Business.',
       },
       {
         q: '¿Funciona para dine-in, pickup y delivery?',
@@ -117,6 +120,10 @@ const categories: FaqCategory[] = [
         a: 'Sí. Desde el dashboard puedes desactivar temporalmente la recepción de pedidos (por ejemplo, cuando tu cocina está saturada o fuera de horario). Tus clientes verán un aviso de que el restaurante no está aceptando pedidos en ese momento.',
       },
       {
+        q: '¿El dashboard incluye analytics y reportes?',
+        a: 'Sí. El dashboard incluye métricas de pedidos, productos más vendidos, ingresos por período, y datos de rendimiento de tu restaurante. Puedes usar esta información para tomar decisiones informadas sobre tu menú y operación.',
+      },
+      {
         q: '¿Qué pasa si hay un problema con un pedido?',
         a: 'Desde el dashboard puedes ver los detalles completos de cada pedido, las notas del cliente, y cambiar el estado manualmente. Si necesitas contactar al cliente, puedes ver su nombre y los datos que proporcionó al hacer el pedido.',
       },
@@ -133,7 +140,7 @@ const categories: FaqCategory[] = [
       },
       {
         q: '¿Puedo probar MENIUS antes de pagar?',
-        a: 'Sí. Todos los planes incluyen 14 días de prueba gratuita con acceso a todas las funciones. No necesitas tarjeta de crédito para empezar. También puedes explorar nuestros demos en vivo sin crear una cuenta.',
+        a: <>Sí. Todos los planes incluyen 14 días de prueba gratuita con acceso a todas las funciones. No necesitas tarjeta de crédito para empezar. También puedes explorar nuestros <Link href="/r/demo" className={lnk}>demos en vivo</Link> sin crear una cuenta.</>,
       },
       {
         q: '¿Qué pasa después de los 14 días de prueba?',
@@ -141,7 +148,7 @@ const categories: FaqCategory[] = [
       },
       {
         q: '¿Cuáles son los planes disponibles?',
-        a: 'Ofrecemos tres planes: Starter ($39/mes) ideal para restaurantes pequeños con funciones esenciales; Pro ($79/mes) con IA, pagos online, dominio personalizado y WhatsApp; y Business ($149/mes) con soporte dedicado, múltiples ubicaciones y onboarding personalizado. Todos sin comisiones por pedido.',
+        a: <>Ofrecemos tres planes: Starter ($39/mes) ideal para restaurantes pequeños con funciones esenciales; Pro ($79/mes) con IA, pagos online, dominio personalizado y WhatsApp; y Business ($149/mes) con soporte dedicado, múltiples ubicaciones y onboarding personalizado. Todos sin comisiones por pedido. <Link href="/#precios" className={lnk}>Ver planes y precios →</Link></>,
       },
       {
         q: '¿Puedo cambiar de plan en cualquier momento?',
@@ -202,6 +209,10 @@ const categories: FaqCategory[] = [
         a: 'MENIUS incluye inteligencia artificial (Google Gemini) que genera fotos profesionales de tus platillos. Describes el platillo (ej: "tacos al pastor con piña y cilantro en plato de barro") y la IA crea una imagen realista y atractiva en segundos. Ideal para restaurantes que no tienen fotos profesionales.',
       },
       {
+        q: '¿Puedo gestionar múltiples ubicaciones?',
+        a: 'Sí. El Plan Business permite gestionar varias sucursales desde una sola cuenta. Cada ubicación tiene su propio menú, QR, configuración y pedidos, pero puedes supervisar todo desde un dashboard centralizado.',
+      },
+      {
         q: '¿Qué tecnologías usa MENIUS?',
         a: 'MENIUS está construido con tecnología de última generación: Next.js (React) para el frontend, Supabase (PostgreSQL) para la base de datos con actualizaciones en tiempo real, Stripe para pagos seguros, y Google Gemini para funciones de inteligencia artificial. Todo alojado en infraestructura global para máxima velocidad.',
       },
@@ -218,7 +229,7 @@ const categories: FaqCategory[] = [
       },
       {
         q: '¿Qué datos recopilan de mis clientes?',
-        a: 'Solo recopilamos la información estrictamente necesaria para procesar pedidos: nombre del cliente, artículos ordenados, y opcionalmente email y dirección de entrega. No usamos cookies de rastreo ni publicidad de terceros. Puedes leer nuestra Política de Privacidad completa para más detalles.',
+        a: <>Solo recopilamos la información estrictamente necesaria para procesar pedidos: nombre del cliente, artículos ordenados, y opcionalmente email y dirección de entrega. No usamos cookies de rastreo ni publicidad de terceros. Puedes leer nuestra <Link href="/privacy" className={lnk}>Política de Privacidad</Link> completa para más detalles.</>,
       },
       {
         q: '¿Cumplen con regulaciones de privacidad?',
@@ -237,23 +248,23 @@ const categories: FaqCategory[] = [
     questions: [
       {
         q: '¿Qué tipo de soporte ofrecen?',
-        a: 'El nivel de soporte depende del plan. Plan Starter: soporte por email con respuesta en 48 horas y acceso al FAQ. Plan Pro: soporte prioritario por email con respuesta en 24 horas. Plan Business: soporte dedicado por WhatsApp, onboarding personalizado y sesiones de configuración asistida.',
+        a: 'El nivel de soporte depende del plan. Plan Starter: soporte por email con respuesta en 48 horas hábiles. Plan Pro: soporte prioritario por email con respuesta en 24 horas. Plan Business: soporte dedicado por WhatsApp, onboarding personalizado y sesiones de configuración asistida.',
       },
       {
         q: '¿Ofrecen servicio de configuración profesional?',
-        a: 'Sí. Para restaurantes que prefieren no configurar nada por su cuenta, ofrecemos un servicio de Setup Profesional. Nuestro equipo configura tu menú completo, sube tus productos con fotos, configura métodos de pago, genera los códigos QR y te entrega todo funcionando. Visita la página de Setup Profesional para más información.',
+        a: <>Sí. Para restaurantes que prefieren no configurar nada por su cuenta, ofrecemos un servicio de Setup Profesional. Nuestro equipo configura tu menú completo, sube tus productos con fotos, configura métodos de pago, genera los códigos QR y te entrega todo funcionando. <Link href="/setup-profesional" className={lnk}>Más información sobre Setup Profesional →</Link></>,
       },
       {
         q: '¿Puedo solicitar una demostración personalizada?',
-        a: 'Sí. Si estás interesado en el Plan Business o tienes preguntas específicas sobre cómo MENIUS se adapta a tu restaurante, puedes contactarnos a soporte@menius.app para agendar una demostración personalizada donde te mostramos la plataforma en detalle.',
+        a: <>Sí. Si estás interesado en el Plan Business o tienes preguntas específicas sobre cómo MENIUS se adapta a tu restaurante, puedes contactarnos a <a href="mailto:soporte@menius.app" className={lnk}>soporte@menius.app</a> para agendar una demostración personalizada.</>,
       },
       {
         q: '¿Tienen tutoriales o guías?',
-        a: 'Sí. Nuestro blog contiene guías detalladas, tutoriales paso a paso y artículos sobre cómo aprovechar al máximo MENIUS: desde crear tu menú digital hasta estrategias de marketing para restaurantes. Nuevos artículos se publican regularmente.',
+        a: <>Sí. Nuestro <Link href="/blog" className={lnk}>blog</Link> contiene guías detalladas, tutoriales paso a paso y artículos sobre cómo aprovechar al máximo MENIUS: desde cómo crear tu menú digital hasta estrategias para aumentar ventas, fotos con IA, y tendencias del sector. Nuevos artículos se publican regularmente.</>,
       },
       {
         q: '¿Cómo reporto un error o sugiero una mejora?',
-        a: 'Puedes reportar errores o enviar sugerencias directamente a soporte@menius.app. Leemos y respondemos todos los mensajes. Las sugerencias de mejora se evalúan y las más solicitadas se incorporan en futuras actualizaciones de la plataforma.',
+        a: <>Puedes reportar errores o enviar sugerencias directamente a <a href="mailto:soporte@menius.app" className={lnk}>soporte@menius.app</a>. Leemos y respondemos todos los mensajes. Las sugerencias de mejora se evalúan y las más solicitadas se incorporan en futuras actualizaciones de la plataforma.</>,
       },
     ],
   },
@@ -338,14 +349,14 @@ export default function FaqPage() {
               ¿No encontraste tu respuesta?
             </h2>
             <p className="text-gray-400 mb-8 max-w-md mx-auto leading-relaxed font-light">
-              Escríbenos a soporte@menius.app y te respondemos en menos de 24 horas.
+              Escríbenos y nuestro equipo te responderá lo antes posible.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <a
                 href="mailto:soporte@menius.app"
                 className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white text-black font-medium text-[15px] hover:bg-gray-100 transition-all btn-glow"
               >
-                Enviar email
+                soporte@menius.app
               </a>
               <Link
                 href="/r/demo"
