@@ -142,7 +142,7 @@ export function KitchenDisplay({ initialOrders, restaurantId, restaurantName, cu
             onClick={() => setSoundEnabled(!soundEnabled)}
             className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
-              soundEnabled ? 'bg-purple-500/[0.1] text-purple-400' : 'bg-white/[0.04] text-gray-600'
+              soundEnabled ? 'bg-purple-500/[0.1] text-purple-400' : 'bg-white/[0.04] text-gray-400'
             )}
           >
             {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
@@ -162,9 +162,9 @@ export function KitchenDisplay({ initialOrders, restaurantId, restaurantName, cu
       {activeOrders.length === 0 ? (
         <div className="flex-1 flex items-center justify-center py-20">
           <div className="text-center">
-            <ChefHat className="w-12 h-12 text-gray-700 mx-auto mb-3" />
+            <ChefHat className="w-12 h-12 text-gray-500 mx-auto mb-3" />
             <p className="text-gray-500 font-medium">Sin órdenes activas</p>
-            <p className="text-xs text-gray-600 mt-1">Las nuevas órdenes aparecerán aquí en tiempo real</p>
+            <p className="text-xs text-gray-400 mt-1">Las nuevas órdenes aparecerán aquí en tiempo real</p>
           </div>
         </div>
       ) : (
@@ -287,7 +287,7 @@ export function KitchenDisplay({ initialOrders, restaurantId, restaurantName, cu
                             {status === 'pending' && (
                               <button
                                 onClick={() => handleStatusChange(order.id, 'cancelled')}
-                                className="p-1.5 rounded-lg text-gray-600 hover:bg-red-500/[0.08] hover:text-red-400 transition-colors"
+                                className="p-1.5 rounded-lg text-gray-400 hover:bg-red-500/[0.08] hover:text-red-400 transition-colors"
                               >
                                 <XCircle className="w-4 h-4" />
                               </button>

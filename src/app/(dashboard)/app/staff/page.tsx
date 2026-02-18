@@ -14,10 +14,10 @@ interface StaffMember {
 }
 
 const ROLE_LABELS: Record<string, { label: string; color: string; icon: any }> = {
-  admin: { label: 'Administrador', color: 'bg-purple-100 text-purple-700', icon: Shield },
-  manager: { label: 'Gerente', color: 'bg-blue-100 text-blue-700', icon: Shield },
-  staff: { label: 'Mesero', color: 'bg-green-100 text-green-700', icon: UserCheck },
-  kitchen: { label: 'Cocina', color: 'bg-orange-100 text-orange-700', icon: ChefHat },
+  admin: { label: 'Administrador', color: 'bg-purple-500/[0.1] text-purple-400', icon: Shield },
+  manager: { label: 'Gerente', color: 'bg-blue-500/[0.1] text-blue-400', icon: Shield },
+  staff: { label: 'Mesero', color: 'bg-green-500/[0.1] text-green-400', icon: UserCheck },
+  kitchen: { label: 'Cocina', color: 'bg-orange-500/[0.1] text-orange-400', icon: ChefHat },
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -211,11 +211,11 @@ export default function StaffPage() {
                   <button
                     onClick={() => handleToggleStatus(m)}
                     title={m.status === 'active' ? 'Desactivar' : 'Activar'}
-                    className={`p-1.5 rounded-lg transition ${m.status === 'active' ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-zinc-600 hover:bg-zinc-800'}`}
+                    className={`p-1.5 rounded-lg transition ${m.status === 'active' ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-zinc-400 hover:bg-zinc-800'}`}
                   >
                     {m.status === 'active' ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4" />}
                   </button>
-                  <button onClick={() => handleDelete(m.id)} className="text-zinc-600 hover:text-red-400 p-1.5 rounded-lg transition">
+                  <button onClick={() => handleDelete(m.id)} className="text-zinc-400 hover:text-red-400 p-1.5 rounded-lg transition">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>

@@ -226,7 +226,7 @@ export default function PromotionsPage() {
                     {' '}de descuento
                   </div>
                   {p.description && <p className="text-sm text-zinc-500">{p.description}</p>}
-                  <div className="flex gap-3 text-xs text-zinc-600 mt-1">
+                  <div className="flex gap-3 text-xs text-zinc-400 mt-1">
                     {p.min_order > 0 && <span>Min: ${Number(p.min_order).toFixed(2)}</span>}
                     {p.max_uses && <span>Usos: {p.current_uses}/{p.max_uses}</span>}
                     {p.expires_at && <span>Expira: {new Date(p.expires_at).toLocaleDateString()}</span>}
@@ -237,9 +237,9 @@ export default function PromotionsPage() {
                 <button onClick={() => toggleActive(p)} title={p.is_active ? 'Desactivar' : 'Activar'}>
                   {p.is_active
                     ? <ToggleRight className="w-6 h-6 text-green-500" />
-                    : <ToggleLeft className="w-6 h-6 text-zinc-600" />}
+                    : <ToggleLeft className="w-6 h-6 text-zinc-400" />}
                 </button>
-                <button onClick={() => handleDelete(p.id)} className="text-zinc-600 hover:text-red-400 transition">
+                <button onClick={() => handleDelete(p.id)} className="text-zinc-400 hover:text-red-400 transition">
                   <Trash2 className="w-5 h-5" />
                 </button>
               </div>

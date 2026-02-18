@@ -111,7 +111,7 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
       </div>
 
       {tables.length === 0 ? (
-        <div className="text-center py-20 text-gray-600">
+        <div className="text-center py-20 text-gray-400">
           <QrCode className="w-12 h-12 mx-auto mb-4 opacity-40" />
           <p className="font-semibold text-gray-400">Sin mesas</p>
           <p className="text-sm mt-1.5">Crea mesas para generar códigos QR personalizados</p>
@@ -337,7 +337,7 @@ function QRTableCard({ table, onDelete, onEdit }: { table: Table; onDelete: (id:
                 onClick={copyLink}
                 className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] text-gray-400 text-xs font-medium hover:bg-white/[0.06] transition-colors"
               >
-                {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 {copied ? '¡Copiado!' : 'Copiar'}
               </button>
             </div>
@@ -518,7 +518,7 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
               <canvas ref={canvasRef} className="rounded-lg" />
             </div>
             <canvas ref={brandedCanvasRef} className="hidden" />
-            <p className="text-[11px] text-gray-600 text-center truncate max-w-[220px]">{menuUrl}</p>
+            <p className="text-[11px] text-gray-400 text-center truncate max-w-[220px]">{menuUrl}</p>
           </div>
 
           {/* Actions */}

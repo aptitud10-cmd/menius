@@ -198,11 +198,11 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
               )}
 
               {error && (
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-100">
-                  <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/[0.06] border border-red-500/[0.15]">
+                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-red-800">{error}</p>
-                    <p className="text-xs text-red-600 mt-1">Asegúrate de que la foto sea clara y legible.</p>
+                    <p className="text-sm font-medium text-red-400">{error}</p>
+                    <p className="text-xs text-red-400/70 mt-1">Asegúrate de que la foto sea clara y legible.</p>
                   </div>
                 </div>
               )}
@@ -254,7 +254,7 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
                           }`}
                         >
                           <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                            item.selected ? 'bg-purple-500 border-purple-500' : 'border-gray-300'
+                            item.selected ? 'bg-purple-500 border-purple-500' : 'border-white/[0.15]'
                           }`}>
                             {item.selected && <Check className="w-3 h-3 text-white" />}
                           </div>

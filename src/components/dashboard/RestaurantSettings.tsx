@@ -203,7 +203,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             return (
               <label key={opt.key} className={cn(
                 'flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all',
-                checked ? 'border-purple-500/[0.2] bg-purple-500/[0.06]' : 'border-gray-100 hover:border-white/[0.08]'
+                checked ? 'border-purple-500/[0.2] bg-purple-500/[0.06]' : 'border-white/[0.06] hover:border-white/[0.08]'
               )}>
                 <input
                   type="checkbox"
@@ -217,7 +217,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                     }));
                     setSaved(false);
                   }}
-                  className="w-4 h-4 rounded border-gray-300 text-purple-400 focus:ring-purple-500/30"
+                  className="w-4 h-4 rounded border-white/[0.15] bg-white/[0.04] text-purple-400 focus:ring-purple-500/30"
                 />
                 <div>
                   <span className="text-sm font-medium text-gray-200">{opt.label}</span>
@@ -247,7 +247,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             return (
               <label key={opt.key} className={cn(
                 'flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all',
-                checked ? 'border-purple-500/[0.2] bg-purple-500/[0.06]' : 'border-gray-100 hover:border-white/[0.08]'
+                checked ? 'border-purple-500/[0.2] bg-purple-500/[0.06]' : 'border-white/[0.06] hover:border-white/[0.08]'
               )}>
                 <input
                   type="checkbox"
@@ -261,7 +261,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                     }));
                     setSaved(false);
                   }}
-                  className="w-4 h-4 rounded border-gray-300 text-purple-400 focus:ring-purple-500/30"
+                  className="w-4 h-4 rounded border-white/[0.15] bg-white/[0.04] text-purple-400 focus:ring-purple-500/30"
                 />
                 <div>
                   <span className="text-sm font-medium text-gray-200">{opt.label}</span>
@@ -456,9 +456,9 @@ function DomainSection({ domain, domainVerified, onChange }: { domain: string; d
             <p className="text-xs font-semibold text-purple-300 mb-2">Configuración DNS requerida:</p>
             <div className="bg-[#0a0a0a] rounded-lg p-2.5 border border-purple-500/[0.1]">
               <div className="grid grid-cols-3 gap-2 text-[11px] font-mono">
-                <div><span className="text-gray-600">Tipo</span><br /><span className="text-white">CNAME</span></div>
-                <div><span className="text-gray-600">Nombre</span><br /><span className="text-white">{domain}</span></div>
-                <div><span className="text-gray-600">Valor</span><br /><span className="text-white">cname.vercel-dns.com</span></div>
+                <div><span className="text-gray-400">Tipo</span><br /><span className="text-white">CNAME</span></div>
+                <div><span className="text-gray-400">Nombre</span><br /><span className="text-white">{domain}</span></div>
+                <div><span className="text-gray-400">Valor</span><br /><span className="text-white">cname.vercel-dns.com</span></div>
               </div>
             </div>
             <p className="text-[11px] text-gray-500 mt-2">
