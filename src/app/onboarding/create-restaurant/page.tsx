@@ -42,6 +42,7 @@ export default function CreateRestaurantPage() {
   const [timezone, setTimezone] = useState('America/New_York');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [focused, setFocused] = useState<string | null>(null);
 
   const handleNameChange = (val: string) => {
     setName(val);
@@ -73,98 +74,139 @@ export default function CreateRestaurantPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-brand-950 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-brand-950 via-brand-950 to-brand-900" />
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand-500/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3" />
+    <div className="min-h-screen-safe flex items-center justify-center px-4 py-12 landing-bg noise-overlay relative overflow-hidden">
+      {/* Ambient glows */}
+      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/[0.12] rounded-full blur-[180px]" />
+      <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-blue-500/[0.08] rounded-full blur-[120px]" />
 
       <div className="relative z-10 w-full max-w-md animate-fade-in-up">
+        {/* Header */}
         <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold tracking-tight font-heading">
-            <span className="text-brand-400">MEN</span><span className="text-white">IUS</span>
+          <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
+            <span className="text-white">MENIUS</span>
           </Link>
-          <h1 className="text-xl font-bold mt-5 text-white">Crea tu restaurante</h1>
-          <p className="text-gray-400 text-sm mt-1.5 max-w-sm mx-auto">
-            Configura lo basico y te prepararemos un menu de ejemplo con categorias, productos y mesas listas para editar.
+
+          {/* Step indicator */}
+          <div className="flex items-center justify-center gap-2 mt-6 mb-4">
+            <div className="w-8 h-1 rounded-full bg-purple-500" />
+            <div className="w-8 h-1 rounded-full bg-white/[0.08]" />
+            <div className="w-8 h-1 rounded-full bg-white/[0.08]" />
+          </div>
+
+          <h1 className="text-xl font-bold text-white">Crea tu restaurante</h1>
+          <p className="text-gray-400 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
+            Configura lo básico y te prepararemos un menú de ejemplo con categorías, productos y mesas listas para editar.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl">
-          {error && (
-            <div className="px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">{error}</div>
-          )}
+        {/* Card */}
+        <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
+          <form onSubmit={handleSubmit} className="bg-[#0a0a0a] rounded-2xl p-7 space-y-5">
+            {error && (
+              <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/[0.06] border border-red-500/[0.1]">
+                <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+                <span className="text-red-400 text-[13px]">{error}</span>
+              </div>
+            )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Nombre del restaurante</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => handleNameChange(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 transition-all"
-              placeholder="Mi Restaurante"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">URL de tu menu</label>
-            <div className="flex items-center rounded-xl bg-white/5 border border-white/10 overflow-hidden focus-within:ring-2 focus-within:ring-brand-500/40">
-              <span className="px-3 py-2.5 text-sm text-gray-500 border-r border-white/10 bg-white/5 flex-shrink-0">
-                menius.app/r/
-              </span>
-              <input
-                type="text"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                className="flex-1 px-3 py-2.5 text-sm bg-transparent text-white placeholder-gray-500 focus:outline-none"
-                placeholder="mi-restaurante"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
+            {/* Restaurant name */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Moneda</label>
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 transition-all appearance-none"
-              >
-                {CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code} className="bg-gray-900 text-white">{c.label}</option>
-                ))}
-              </select>
+              <label className="block text-[13px] font-medium text-gray-400 mb-2">Nombre del restaurante</label>
+              <div className={`relative rounded-xl transition-all duration-300 ${
+                focused === 'name'
+                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.08)]'
+                  : ''
+              }`}>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  onFocus={() => setFocused('name')}
+                  onBlur={() => setFocused(null)}
+                  className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder-gray-600 focus:outline-none transition-colors"
+                  placeholder="Mi Restaurante"
+                />
+              </div>
             </div>
 
+            {/* URL slug */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Zona horaria</label>
-              <select
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500/40 transition-all appearance-none"
-              >
-                {TIMEZONES.map((t) => (
-                  <option key={t.tz} value={t.tz} className="bg-gray-900 text-white">{t.label}</option>
-                ))}
-              </select>
+              <label className="block text-[13px] font-medium text-gray-400 mb-2">URL de tu menú</label>
+              <div className={`flex items-center rounded-xl overflow-hidden transition-all duration-300 ${
+                focused === 'slug'
+                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.08)]'
+                  : ''
+              }`}>
+                <span className="px-3.5 py-3 text-sm text-gray-500 border-r border-white/[0.08] bg-white/[0.04] flex-shrink-0">
+                  menius.app/r/
+                </span>
+                <input
+                  type="text"
+                  value={slug}
+                  onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                  onFocus={() => setFocused('slug')}
+                  onBlur={() => setFocused(null)}
+                  className="flex-1 px-3 py-3 text-sm bg-white/[0.04] border-y border-r border-white/[0.08] rounded-r-xl text-white placeholder-gray-600 focus:outline-none"
+                  placeholder="mi-restaurante"
+                />
+              </div>
+              {slug && (
+                <p className="text-[11px] text-gray-600 mt-1.5 ml-1">
+                  Tu menú estará en: <span className="text-gray-400">menius.app/r/{slug}</span>
+                </p>
+              )}
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading || !name.trim()}
-            className="w-full py-2.5 rounded-xl bg-brand-500 text-brand-950 font-semibold text-sm hover:bg-brand-400 transition-all shadow-lg shadow-brand-500/20 disabled:opacity-50"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                Creando tu restaurante...
-              </span>
-            ) : 'Crear restaurante'}
-          </button>
+            {/* Currency + Timezone */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[13px] font-medium text-gray-400 mb-2">Moneda</label>
+                <select
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="w-full px-3.5 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/30 transition-all appearance-none cursor-pointer"
+                >
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code} className="bg-[#0a0a0a] text-white">{c.label}</option>
+                  ))}
+                </select>
+              </div>
 
-          <p className="text-center text-[11px] text-gray-600 leading-relaxed">
-            Al crear tu restaurante se generara un menu de ejemplo con categorias, productos y mesas para que veas como funciona. Puedes editarlo todo desde tu dashboard.
-          </p>
-        </form>
+              <div>
+                <label className="block text-[13px] font-medium text-gray-400 mb-2">Zona horaria</label>
+                <select
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  className="w-full px-3.5 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/30 transition-all appearance-none cursor-pointer"
+                >
+                  {TIMEZONES.map((t) => (
+                    <option key={t.tz} value={t.tz} className="bg-[#0a0a0a] text-white">{t.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading || !name.trim()}
+              className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed btn-glow"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  Creando tu restaurante...
+                </span>
+              ) : 'Crear restaurante →'}
+            </button>
+
+            <p className="text-center text-[11px] text-gray-600 leading-relaxed">
+              Se generará un menú de ejemplo con categorías, productos y mesas para que veas como funciona. Puedes editarlo todo desde tu dashboard.
+            </p>
+          </form>
+        </div>
       </div>
     </div>
   );
