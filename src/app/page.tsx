@@ -21,26 +21,8 @@ export default function LandingPage() {
           </span>
         </div>
 
-        {/* ── Layer 2: CTA buttons — sit on top of the watermark ── */}
-        <div className="relative z-10 -mt-[14rem] sm:-mt-[18rem] md:-mt-[22rem] lg:-mt-[28rem] flex items-center justify-center gap-6 pt-8 pb-16">
-          <Link
-            href="/signup"
-            className="group text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-1.5 px-7 py-3 rounded-full border border-white/[0.12] hover:border-white/[0.25] hover:bg-white/[0.04] backdrop-blur-sm"
-          >
-            Empezar gratis
-            <span className="group-hover:translate-x-0.5 transition-transform">&rsaquo;</span>
-          </Link>
-          <Link
-            href="mailto:soporte@menius.app"
-            className="group text-sm font-medium text-gray-400 hover:text-white transition-colors flex items-center gap-1.5 px-7 py-3"
-          >
-            Contactar
-            <span className="group-hover:translate-x-0.5 transition-transform">&rsaquo;</span>
-          </Link>
-        </div>
-
-        {/* ── Layer 3: Footer columns — solid black bg covers bottom half of watermark ── */}
-        <div className="relative z-10 bg-black pt-10 pb-16">
+        {/* ── Footer columns — solid black bg covers bottom half of watermark ── */}
+        <div className="relative z-10 -mt-[10rem] sm:-mt-[14rem] md:-mt-[18rem] lg:-mt-[24rem] bg-black pt-10 pb-16">
           <div className="max-w-6xl mx-auto px-6">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-x-8 gap-y-10">
               {/* Col 1: Brand info */}
