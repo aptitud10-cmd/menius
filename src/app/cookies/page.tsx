@@ -1,33 +1,34 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { LandingNav } from '@/components/landing/LandingNav';
 
 export const metadata: Metadata = {
   title: 'Política de Cookies — MENIUS',
   description: 'Política de cookies de MENIUS. Qué cookies usamos y por qué.',
+  alternates: { canonical: '/cookies' },
 };
 
 export default function CookiesPage() {
   return (
-    <div className="min-h-screen bg-white">
-      {/* Nav */}
-      <header className="fixed top-0 w-full z-50 bg-brand-950/90 backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold tracking-tight font-heading">
-            <span className="text-brand-400">MEN</span><span className="text-white">IUS</span>
-          </Link>
-          <Link href="/" className="text-sm text-gray-300 hover:text-white transition-colors">
-            ← Volver al inicio
-          </Link>
+    <div className="min-h-screen landing-bg overflow-x-hidden relative noise-overlay">
+      <LandingNav />
+
+      {/* Hero */}
+      <section className="relative pt-32 pb-12 md:pt-40 md:pb-16 overflow-hidden">
+        <div className="section-glow section-glow-purple" />
+        <div className="relative z-10 max-w-3xl mx-auto px-6">
+          <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-5">Legal</p>
+          <h1 className="text-4xl md:text-5xl font-semibold text-white tracking-tight mb-3">
+            Política de Cookies
+          </h1>
+          <p className="text-sm text-gray-500">Última actualización: 16 de febrero de 2026</p>
         </div>
-      </header>
+      </section>
 
-      <main className="max-w-3xl mx-auto px-6 pt-28 pb-20">
-        <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-2 font-heading">
-          Política de Cookies
-        </h1>
-        <p className="text-sm text-gray-400 mb-10">Última actualización: 16 de febrero de 2026</p>
+      <div className="separator-gradient max-w-3xl mx-auto" />
 
-        <div className="prose prose-gray max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-p:text-gray-600 prose-p:leading-relaxed prose-li:text-gray-600 prose-a:text-brand-600 prose-a:no-underline hover:prose-a:underline">
+      <main className="relative z-10 max-w-3xl mx-auto px-6 py-12 md:py-16">
+        <div className="prose prose-invert prose-lg max-w-none prose-headings:font-semibold prose-headings:text-white prose-headings:tracking-tight prose-h2:text-xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-base prose-h3:mt-6 prose-h3:mb-3 prose-p:text-gray-400 prose-p:leading-relaxed prose-p:text-[15px] prose-li:text-gray-400 prose-li:text-[15px] prose-strong:text-white prose-a:text-purple-400 prose-a:no-underline hover:prose-a:text-purple-300 prose-th:bg-white/[0.04] prose-th:text-gray-300 prose-th:text-[13px] prose-td:text-gray-400 prose-td:text-[13px] prose-td:border-b prose-td:border-white/[0.06] prose-code:text-purple-300 prose-code:bg-purple-500/[0.08] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none">
 
           <h2>1. ¿Qué son las Cookies?</h2>
           <p>
@@ -41,7 +42,7 @@ export default function CookiesPage() {
             Estas cookies son esenciales para el funcionamiento de la Plataforma. Sin ellas, no podrías iniciar sesión ni usar las funciones básicas. <strong>No requieren tu consentimiento</strong> ya que son necesarias para proveer el servicio.
           </p>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
             <table>
               <thead>
                 <tr>
@@ -79,7 +80,7 @@ export default function CookiesPage() {
             Estas cookies mejoran la funcionalidad de la Plataforma recordando tus preferencias.
           </p>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
             <table>
               <thead>
                 <tr>
@@ -105,7 +106,7 @@ export default function CookiesPage() {
             Cuando realizas un pago, Stripe puede establecer cookies propias para procesar la transacción de forma segura y prevenir fraudes.
           </p>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
             <table>
               <thead>
                 <tr>
@@ -174,16 +175,49 @@ export default function CookiesPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-brand-950 border-t border-white/5">
-        <div className="max-w-3xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <Link href="/" className="text-lg font-bold tracking-tight font-heading">
-            <span className="text-brand-400">MEN</span><span className="text-white">IUS</span>
-          </Link>
-          <div className="flex items-center gap-6">
-            <Link href="/privacy" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">Privacidad</Link>
-            <Link href="/terms" className="text-sm text-gray-500 hover:text-gray-300 transition-colors">Términos</Link>
+      <footer className="relative bg-black overflow-hidden">
+        <div className="separator-gradient max-w-5xl mx-auto" />
+        <div className="relative z-10 bg-black pt-10 pb-16">
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-x-8 gap-y-10">
+              <div className="col-span-2 md:col-span-1">
+                <Link href="/" className="text-lg font-bold tracking-tight text-white">MENIUS</Link>
+                <p className="text-[13px] text-gray-600 mt-4 leading-relaxed max-w-[200px]">Menús digitales y pedidos en línea para restaurantes.</p>
+              </div>
+              <div>
+                <h4 className="text-[11px] font-medium text-gray-500 uppercase tracking-[0.15em] mb-4">Producto</h4>
+                <ul className="space-y-2.5">
+                  <li><Link href="/#funciones" className="text-[13px] text-gray-600 hover:text-white transition-colors">Funciones</Link></li>
+                  <li><Link href="/#precios" className="text-[13px] text-gray-600 hover:text-white transition-colors">Precios</Link></li>
+                  <li><Link href="/r/demo" className="text-[13px] text-gray-600 hover:text-white transition-colors">Demo en vivo</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-[11px] font-medium text-gray-500 uppercase tracking-[0.15em] mb-4">Recursos</h4>
+                <ul className="space-y-2.5">
+                  <li><Link href="/blog" className="text-[13px] text-gray-600 hover:text-white transition-colors">Blog</Link></li>
+                  <li><Link href="/faq" className="text-[13px] text-gray-600 hover:text-white transition-colors">FAQ</Link></li>
+                  <li><a href="mailto:soporte@menius.app" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-[11px] font-medium text-gray-500 uppercase tracking-[0.15em] mb-4">Legal</h4>
+                <ul className="space-y-2.5">
+                  <li><Link href="/privacy" className="text-[13px] text-gray-600 hover:text-white transition-colors">Privacidad</Link></li>
+                  <li><Link href="/terms" className="text-[13px] text-gray-600 hover:text-white transition-colors">Términos</Link></li>
+                  <li><Link href="/cookies" className="text-[13px] text-gray-600 hover:text-white transition-colors">Cookies</Link></li>
+                </ul>
+              </div>
+            </div>
+            <div className="separator-gradient mt-12" />
+            <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-[11px] text-gray-700" suppressHydrationWarning>&copy; {new Date().getFullYear()} MENIUS Inc.</p>
+              <p className="text-[11px] text-gray-700">
+                Hecho en{' '}
+                <a href="https://www.scuart.com/" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-300 transition-colors">Scuart Digital</a>
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-gray-600">&copy; {new Date().getFullYear()} MENIUS</p>
         </div>
       </footer>
     </div>
