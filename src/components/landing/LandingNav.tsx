@@ -24,18 +24,18 @@ export function LandingNav() {
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-8">
-          <Link href="/#funciones" className="text-sm text-gray-500 hover:text-white transition-colors">Funciones</Link>
-          <Link href="/#precios" className="text-sm text-gray-500 hover:text-white transition-colors">Precios</Link>
-          <Link href="/blog" className="text-sm text-gray-500 hover:text-white transition-colors">Blog</Link>
-          <Link href="/faq" className="text-sm text-gray-500 hover:text-white transition-colors">FAQ</Link>
-          <Link href="/r/demo" className="text-sm text-gray-500 hover:text-white transition-colors">Demo</Link>
+          <Link href="/#funciones" className="text-sm text-gray-400 hover:text-white transition-colors">Funciones</Link>
+          <Link href="/#precios" className="text-sm text-gray-400 hover:text-white transition-colors">Precios</Link>
+          <Link href="/blog" className="text-sm text-gray-400 hover:text-white transition-colors">Blog</Link>
+          <Link href="/faq" className="text-sm text-gray-400 hover:text-white transition-colors">FAQ</Link>
+          <Link href="/r/demo" className="text-sm text-gray-400 hover:text-white transition-colors">Demo</Link>
         </nav>
 
-        <div className="flex items-center gap-4">
-          <Link href="/login" className="text-sm text-gray-500 hover:text-white transition-colors hidden sm:block">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors hidden md:block">
             Iniciar sesión
           </Link>
-          <Link href="/signup" className="text-sm font-medium px-5 py-2.5 rounded-xl bg-white text-black hover:bg-gray-100 transition-all btn-glow hidden sm:block">
+          <Link href="/signup" className="text-xs sm:text-sm font-medium px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-white text-black hover:bg-gray-100 transition-all btn-glow">
             Empezar gratis
           </Link>
 

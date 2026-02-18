@@ -40,7 +40,7 @@ export function LandingHero() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.08, ease }}
-                className="text-[3.5rem] sm:text-[4.5rem] md:text-[5.5rem] lg:text-[6rem] font-semibold leading-[0.95] tracking-[-0.04em] text-white"
+                className="text-[2.5rem] sm:text-[4.5rem] md:text-[5.5rem] lg:text-[6rem] font-semibold leading-[0.95] tracking-[-0.04em] text-white"
               >
                 El menú digital
                 <br />
@@ -71,7 +71,7 @@ export function LandingHero() {
                 </Link>
                 <Link
                   href="/r/demo"
-                  className="px-8 py-4 rounded-xl border border-white/10 text-gray-400 font-medium text-[15px] hover:text-white hover:border-white/20 hover:bg-white/[0.03] transition-all text-center"
+                  className="px-8 py-4 rounded-xl border border-white/10 text-gray-300 font-medium text-[15px] hover:text-white hover:border-white/20 hover:bg-white/[0.03] transition-all text-center"
                 >
                   Ver demo en vivo
                 </Link>
@@ -81,18 +81,28 @@ export function LandingHero() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.8, delay: 0.5, ease }}
-                className="mt-16 flex items-center gap-12"
+                className="mt-16 flex items-center justify-center sm:justify-start gap-6 sm:gap-12 flex-wrap"
               >
                 {[
-                  { target: 500, suffix: '+', label: 'Restaurantes' },
-                  { target: 0, suffix: '%', label: 'Comisiones' },
-                  { target: 4.9, suffix: '', label: 'Rating' },
+                  { target: 500, suffix: '+', label: 'Restaurantes', stars: false },
+                  { target: 0, suffix: '%', label: 'Comisiones', stars: false },
+                  { target: 4.9, suffix: '', label: 'Rating', stars: true },
                 ].map((s) => (
-                  <div key={s.label}>
+                  <div key={s.label} className="text-center sm:text-left">
                     <p className="text-2xl font-semibold text-white tracking-tight">
                       <Counter target={s.target} suffix={s.suffix} duration={2} />
                     </p>
-                    <p className="text-[13px] text-gray-600 mt-1 font-medium">{s.label}</p>
+                    {s.stars ? (
+                      <div className="flex items-center gap-0.5 mt-1 justify-center sm:justify-start">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <svg key={i} className="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[13px] text-gray-500 mt-1 font-medium">{s.label}</p>
+                    )}
                   </div>
                 ))}
               </m.div>

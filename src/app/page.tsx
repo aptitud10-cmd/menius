@@ -30,12 +30,12 @@ export default function LandingPage() {
                 <Link href="/" className="text-lg font-bold tracking-tight text-white">
                   MENIUS
                 </Link>
-                <p className="text-[13px] text-gray-600 mt-4 leading-relaxed max-w-[200px]">
+                <p className="text-[13px] text-gray-500 mt-4 leading-relaxed max-w-[200px]">
                   Menús digitales y pedidos en línea para restaurantes.
                 </p>
                 <div className="flex items-center gap-2 mt-5">
                   {['SSL', 'Stripe', 'CCPA'].map((b) => (
-                    <span key={b} className="px-2 py-0.5 rounded border border-white/[0.06] bg-white/[0.02] text-[9px] text-gray-600 font-medium tracking-wide">
+                    <span key={b} className="px-2 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-[9px] text-gray-500 font-medium tracking-wide">
                       {b}
                     </span>
                   ))}
@@ -46,10 +46,10 @@ export default function LandingPage() {
               <div>
                 <h4 className="text-[11px] font-medium text-gray-500 uppercase tracking-[0.15em] mb-4">Producto</h4>
                 <ul className="space-y-2.5">
-                  <li><a href="#funciones" className="text-[13px] text-gray-600 hover:text-white transition-colors">Funciones</a></li>
-                  <li><a href="#precios" className="text-[13px] text-gray-600 hover:text-white transition-colors">Precios</a></li>
-                  <li><Link href="/r/demo" className="text-[13px] text-gray-600 hover:text-white transition-colors">Demo en vivo</Link></li>
-                  <li><Link href="/r/buccaneer-diner" className="text-[13px] text-gray-600 hover:text-white transition-colors">Demo (English)</Link></li>
+                  <li><a href="#funciones" className="text-[13px] text-gray-500 hover:text-white transition-colors">Funciones</a></li>
+                  <li><a href="#precios" className="text-[13px] text-gray-500 hover:text-white transition-colors">Precios</a></li>
+                  <li><Link href="/r/demo" className="text-[13px] text-gray-500 hover:text-white transition-colors">Demo en vivo</Link></li>
+                  <li><Link href="/r/buccaneer-diner" className="text-[13px] text-gray-500 hover:text-white transition-colors">Demo (English)</Link></li>
                 </ul>
               </div>
 
@@ -57,10 +57,10 @@ export default function LandingPage() {
               <div>
                 <h4 className="text-[11px] font-medium text-gray-500 uppercase tracking-[0.15em] mb-4">Recursos</h4>
                 <ul className="space-y-2.5">
-                  <li><Link href="/blog" className="text-[13px] text-gray-600 hover:text-white transition-colors">Blog</Link></li>
-                  <li><Link href="/faq" className="text-[13px] text-gray-600 hover:text-white transition-colors">FAQ</Link></li>
-                  <li><Link href="/setup-profesional" className="text-[13px] text-gray-600 hover:text-white transition-colors">Setup profesional</Link></li>
-                  <li><a href="mailto:soporte@menius.app" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
+                  <li><Link href="/blog" className="text-[13px] text-gray-500 hover:text-white transition-colors">Blog</Link></li>
+                  <li><Link href="/faq" className="text-[13px] text-gray-500 hover:text-white transition-colors">FAQ</Link></li>
+                  <li><Link href="/setup-profesional" className="text-[13px] text-gray-500 hover:text-white transition-colors">Setup profesional</Link></li>
+                  <li><a href="mailto:soporte@menius.app" className="text-[13px] text-gray-500 hover:text-white transition-colors">Soporte</a></li>
                 </ul>
               </div>
 
@@ -68,9 +68,9 @@ export default function LandingPage() {
               <div>
                 <h4 className="text-[11px] font-medium text-gray-500 uppercase tracking-[0.15em] mb-4">Legal</h4>
                 <ul className="space-y-2.5">
-                  <li><Link href="/privacy" className="text-[13px] text-gray-600 hover:text-white transition-colors">Privacidad</Link></li>
-                  <li><Link href="/terms" className="text-[13px] text-gray-600 hover:text-white transition-colors">Términos</Link></li>
-                  <li><Link href="/cookies" className="text-[13px] text-gray-600 hover:text-white transition-colors">Cookies</Link></li>
+                  <li><Link href="/privacy" className="text-[13px] text-gray-500 hover:text-white transition-colors">Privacidad</Link></li>
+                  <li><Link href="/terms" className="text-[13px] text-gray-500 hover:text-white transition-colors">Términos</Link></li>
+                  <li><Link href="/cookies" className="text-[13px] text-gray-500 hover:text-white transition-colors">Cookies</Link></li>
                 </ul>
               </div>
             </div>

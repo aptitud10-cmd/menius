@@ -107,10 +107,10 @@ function FeatureTabs() {
           <button
             key={feat.tab}
             onClick={() => setActive(i)}
-            className={`px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${
               active === i
                 ? 'bg-white text-black shadow-lg shadow-white/10'
-                : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.03]'
+                : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.03]'
             }`}
           >
             {feat.tab}
@@ -230,32 +230,34 @@ export function LandingSections() {
 
           <FadeIn delay={0.1}>
             {/* Table */}
-            <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02]">
-              {/* Header */}
-              <div className="grid grid-cols-3">
-                <div className="p-5 border-b border-white/[0.06]" />
-                <div className="p-5 text-center border-b border-white/[0.06] bg-purple-500/[0.06]">
-                  <span className="text-sm font-semibold text-white">MENIUS</span>
+            <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02] overflow-x-auto">
+              <div className="min-w-[480px]">
+                {/* Header */}
+                <div className="grid grid-cols-3">
+                  <div className="p-4 sm:p-5 border-b border-white/[0.06]" />
+                  <div className="p-4 sm:p-5 text-center border-b border-white/[0.06] bg-purple-500/[0.06]">
+                    <span className="text-sm font-semibold text-white">MENIUS</span>
+                  </div>
+                  <div className="p-4 sm:p-5 text-center border-b border-white/[0.06]">
+                    <span className="text-xs text-gray-400">UberEats, DoorDash, Grubhub</span>
+                  </div>
                 </div>
-                <div className="p-5 text-center border-b border-white/[0.06]">
-                  <span className="text-xs text-gray-500">UberEats, DoorDash, Grubhub</span>
-                </div>
-              </div>
 
-              {/* Rows */}
-              {comparison.map(([feature, menius, other], i) => (
-                <div key={feature} className={`grid grid-cols-3 ${i < comparison.length - 1 ? 'border-b border-white/[0.04]' : ''}`}>
-                  <div className="px-6 py-4">
-                    <p className="text-sm text-gray-400">{feature}</p>
+                {/* Rows */}
+                {comparison.map(([feature, menius, other], i) => (
+                  <div key={feature} className={`grid grid-cols-3 ${i < comparison.length - 1 ? 'border-b border-white/[0.04]' : ''}`}>
+                    <div className="px-4 sm:px-6 py-3 sm:py-4">
+                      <p className="text-xs sm:text-sm text-gray-400">{feature}</p>
+                    </div>
+                    <div className="px-4 sm:px-6 py-3 sm:py-4 text-center bg-purple-500/[0.03]">
+                      <p className="text-xs sm:text-sm font-medium text-white">{menius}</p>
+                    </div>
+                    <div className="px-4 sm:px-6 py-3 sm:py-4 text-center">
+                      <p className="text-xs sm:text-sm text-gray-500">{other}</p>
+                    </div>
                   </div>
-                  <div className="px-6 py-4 text-center bg-purple-500/[0.03]">
-                    <p className="text-sm font-medium text-white">{menius}</p>
-                  </div>
-                  <div className="px-6 py-4 text-center">
-                    <p className="text-sm text-gray-600">{other}</p>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             {/* Savings box */}
@@ -304,10 +306,10 @@ export function LandingSections() {
                     </span>
                   )}
                   <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1.5">{plan.desc}</p>
+                  <p className="text-sm text-gray-400 mt-1.5">{plan.desc}</p>
                   <div className="mt-7 mb-8">
                     <span className="text-5xl font-bold text-white tracking-tight">${plan.price}</span>
-                    <span className="text-sm text-gray-500 ml-1.5">/mes</span>
+                    <span className="text-sm text-gray-400 ml-1.5">/mes</span>
                   </div>
                   <ul className="space-y-3.5 flex-1">
                     {plan.features.map((f) => (
@@ -336,8 +338,8 @@ export function LandingSections() {
               href="/setup-profesional"
               className="mt-6 flex items-center justify-between p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all group"
             >
-              <span className="text-sm text-gray-500">¿No tienes tiempo? <strong className="text-gray-300">Te lo configuramos</strong> — desde $149</span>
-              <svg className="w-4 h-4 text-gray-600 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              <span className="text-sm text-gray-400">¿No tienes tiempo? <strong className="text-gray-200">Te lo configuramos</strong> — desde $149</span>
+              <svg className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
             </Link>
           </FadeIn>
         </div>
@@ -374,7 +376,7 @@ export function LandingSections() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-white">{t.name}</p>
-                      <p className="text-xs text-gray-600 mt-0.5">{t.role}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{t.role}</p>
                     </div>
                   </div>
                 </div>
