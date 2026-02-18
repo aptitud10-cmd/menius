@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { FadeIn, LazyMotion, domAnimation } from './Animations';
 
 /* ─── DATA ─── */
@@ -13,26 +12,86 @@ const features = [
     title: 'Menú con QR y pedidos directos',
     desc: 'Tus clientes escanean el QR, ven el menú con fotos y precios, y ordenan desde su celular. Sin descargar apps.',
     details: ['QR único por mesa', 'Fotos generadas con IA', 'Pedidos dine-in, pickup y delivery', 'Variantes y extras por producto'],
+    icon: (
+      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5z" />
+      </svg>
+    ),
+    gradient: 'from-purple-500/20 to-blue-500/20',
+    accent: 'purple',
+    visualItems: [
+      { label: 'Escanea QR', value: 'Mesa 5' },
+      { label: 'Hamburguesa Clásica', value: '$14.99' },
+      { label: 'Limonada Fresca', value: '$4.00' },
+      { label: 'Total del pedido', value: '$18.99' },
+    ],
   },
   {
     tab: 'Dashboard',
     title: 'Gestiona todo desde un solo lugar',
     desc: 'Pedidos en tiempo real con tablero Kanban, analytics de ventas, editor visual de menú, equipo con roles y permisos.',
     details: ['Pedidos en tiempo real', 'Analytics y reportes', 'Editor de menú drag & drop', 'Roles de equipo'],
+    icon: (
+      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      </svg>
+    ),
+    gradient: 'from-blue-500/20 to-cyan-500/20',
+    accent: 'blue',
+    visualItems: [
+      { label: 'Órdenes hoy', value: '47' },
+      { label: 'Ventas hoy', value: '$1,240' },
+      { label: 'Productos activos', value: '38' },
+      { label: 'Mesas activas', value: '12' },
+    ],
   },
   {
     tab: 'Pagos',
     title: 'Cobra online sin complicaciones',
     desc: 'Acepta pagos con tarjeta vía Stripe. También efectivo y otros métodos. El dinero va directo a tu cuenta.',
     details: ['Stripe integrado', 'Pagos en efectivo', 'Propinas opcionales', 'Historial de transacciones'],
+    icon: (
+      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+      </svg>
+    ),
+    gradient: 'from-emerald-500/20 to-green-500/20',
+    accent: 'emerald',
+    visualItems: [
+      { label: 'Pago recibido', value: '$45.80' },
+      { label: 'Propina (18%)', value: '$8.24' },
+      { label: 'Método', value: 'Visa •4242' },
+      { label: 'Estado', value: '✓ Exitoso' },
+    ],
   },
   {
     tab: 'IA',
     title: 'Fotos profesionales con un clic',
     desc: 'Google Gemini genera fotos de tus platillos automáticamente. Importa tu menú completo desde una foto con OCR inteligente.',
     details: ['Generación de fotos con IA', 'Importar menú con foto (OCR)', 'Edición de imágenes', 'Formato WebP optimizado'],
+    icon: (
+      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+      </svg>
+    ),
+    gradient: 'from-amber-500/20 to-orange-500/20',
+    accent: 'amber',
+    visualItems: [
+      { label: 'Foto generada', value: 'Risotto' },
+      { label: 'Calidad', value: '4K WebP' },
+      { label: 'Menú importado', value: '38 items' },
+      { label: 'Tiempo', value: '< 30 seg' },
+    ],
   },
 ];
+
+const accentColors: Record<string, { bg: string; text: string; border: string; glow: string }> = {
+  purple: { bg: 'bg-purple-500/[0.08]', text: 'text-purple-400', border: 'border-purple-500/20', glow: 'bg-purple-500/20' },
+  blue: { bg: 'bg-blue-500/[0.08]', text: 'text-blue-400', border: 'border-blue-500/20', glow: 'bg-blue-500/20' },
+  emerald: { bg: 'bg-emerald-500/[0.08]', text: 'text-emerald-400', border: 'border-emerald-500/20', glow: 'bg-emerald-500/20' },
+  amber: { bg: 'bg-amber-500/[0.08]', text: 'text-amber-400', border: 'border-amber-500/20', glow: 'bg-amber-500/20' },
+};
 
 const plans = [
   {
@@ -98,6 +157,7 @@ const comparison = [
 function FeatureTabs() {
   const [active, setActive] = useState(0);
   const f = features[active];
+  const colors = accentColors[f.accent];
 
   return (
     <div>
@@ -130,8 +190,8 @@ function FeatureTabs() {
           <div className="mt-10 space-y-4">
             {f.details.map((d) => (
               <div key={d} className="flex items-center gap-3.5">
-                <div className="w-6 h-6 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-3.5 h-3.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                <div className={`w-6 h-6 rounded-lg ${colors.bg} border ${colors.border} flex items-center justify-center flex-shrink-0`}>
+                  <svg className={`w-3.5 h-3.5 ${colors.text}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 </div>
                 <span className="text-[15px] text-gray-300">{d}</span>
               </div>
@@ -139,45 +199,48 @@ function FeatureTabs() {
           </div>
         </div>
 
-        {/* Visual — unique image per tab */}
+        {/* Visual — dynamic card per tab */}
         <div className="relative flex justify-center">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-purple-500/20 blur-[80px]" />
-          {active === 0 && (
-            <Image
-              src="/images/hero-phone-mockup.webp"
-              alt="MENIUS menú digital"
-              width={500}
-              height={500}
-              className="relative z-10 w-[300px] sm:w-[340px] h-auto drop-shadow-2xl"
-            />
-          )}
-          {active === 1 && (
-            <Image
-              src="/images/hero-dashboard-mockup.webp"
-              alt="Dashboard MENIUS"
-              width={500}
-              height={500}
-              className="relative z-10 w-full max-w-[460px] h-auto rounded-xl drop-shadow-2xl"
-            />
-          )}
-          {active === 2 && (
-            <Image
-              src="/images/feature-pagos-mockup.webp"
-              alt="MENIUS pagos con Stripe"
-              width={500}
-              height={273}
-              className="relative z-10 w-[300px] sm:w-[380px] h-auto drop-shadow-2xl"
-            />
-          )}
-          {active === 3 && (
-            <Image
-              src="/images/feature-ia-mockup.webp"
-              alt="MENIUS generación de fotos con IA"
-              width={500}
-              height={273}
-              className="relative z-10 w-[300px] sm:w-[380px] h-auto drop-shadow-2xl"
-            />
-          )}
+          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full ${colors.glow} blur-[80px]`} />
+
+          <div className="relative z-10 w-full max-w-[380px]">
+            {/* Icon header */}
+            <div className={`rounded-2xl border ${colors.border} bg-white/[0.02] backdrop-blur-sm overflow-hidden`}>
+              <div className={`px-6 py-5 border-b ${colors.border} flex items-center gap-4`}>
+                <div className={`w-12 h-12 rounded-xl ${colors.bg} border ${colors.border} flex items-center justify-center ${colors.text}`}>
+                  {f.icon}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">{f.tab}</p>
+                  <p className="text-xs text-gray-500">MENIUS</p>
+                </div>
+                <div className="ml-auto flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[10px] text-gray-500">Activo</span>
+                </div>
+              </div>
+
+              {/* Data rows */}
+              <div className="divide-y divide-white/[0.04]">
+                {f.visualItems.map((item, i) => (
+                  <div key={i} className="px-6 py-4 flex items-center justify-between">
+                    <span className="text-sm text-gray-500">{item.label}</span>
+                    <span className="text-sm font-medium text-white">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className={`px-6 py-4 border-t ${colors.border} bg-white/[0.01]`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-600">Actualizado en tiempo real</span>
+                  <div className={`px-3 py-1 rounded-full text-[10px] font-semibold ${colors.bg} ${colors.text} border ${colors.border}`}>
+                    En vivo
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -197,7 +260,7 @@ export function LandingSections() {
           <FadeIn className="text-center mb-8">
             <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-5">Funciones</p>
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
-              Todo en tu control
+              Todo bajo control
             </h2>
             <p className="text-gray-400 mt-5 text-lg max-w-lg mx-auto font-light">
               Las herramientas que necesitas para digitalizar tu restaurante.
@@ -229,10 +292,8 @@ export function LandingSections() {
           </FadeIn>
 
           <FadeIn delay={0.1}>
-            {/* Table */}
             <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02] overflow-x-auto">
               <div className="min-w-[480px]">
-                {/* Header */}
                 <div className="grid grid-cols-3">
                   <div className="p-4 sm:p-5 border-b border-white/[0.06]" />
                   <div className="p-4 sm:p-5 text-center border-b border-white/[0.06] bg-purple-500/[0.06]">
@@ -243,7 +304,6 @@ export function LandingSections() {
                   </div>
                 </div>
 
-                {/* Rows */}
                 {comparison.map(([feature, menius, other], i) => (
                   <div key={feature} className={`grid grid-cols-3 ${i < comparison.length - 1 ? 'border-b border-white/[0.04]' : ''}`}>
                     <div className="px-4 sm:px-6 py-3 sm:py-4">
@@ -260,7 +320,6 @@ export function LandingSections() {
               </div>
             </div>
 
-            {/* Savings box */}
             <div className="mt-8 p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
               <p className="text-[15px] text-gray-400 leading-relaxed text-center">
                 <strong className="text-white">Ejemplo:</strong> Un restaurante con $10,000/mes pierde{' '}
@@ -312,10 +371,10 @@ export function LandingSections() {
                     <span className="text-sm text-gray-400 ml-1.5">/mes</span>
                   </div>
                   <ul className="space-y-3.5 flex-1">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-3">
+                    {plan.features.map((feat) => (
+                      <li key={feat} className="flex items-start gap-3">
                         <svg className="w-4 h-4 text-purple-400/60 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                        <span className="text-sm text-gray-400 leading-snug">{f}</span>
+                        <span className="text-sm text-gray-400 leading-snug">{feat}</span>
                       </li>
                     ))}
                   </ul>
@@ -333,7 +392,6 @@ export function LandingSections() {
               ))}
             </div>
 
-            {/* Setup banner */}
             <Link
               href="/setup-profesional"
               className="mt-6 flex items-center justify-between p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all group"
@@ -363,10 +421,7 @@ export function LandingSections() {
           <FadeIn delay={0.1}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {testimonials.map((t) => (
-                <div
-                  key={t.name}
-                  className="card-premium rounded-2xl p-8"
-                >
+                <div key={t.name} className="card-premium rounded-2xl p-8">
                   <p className="text-[15px] text-gray-400 leading-relaxed mb-7">
                     &ldquo;{t.quote}&rdquo;
                   </p>
@@ -391,7 +446,6 @@ export function LandingSections() {
 
       {/* ── Final CTA ── */}
       <section className="relative py-40 md:py-52 overflow-hidden">
-        {/* Big gradient orb behind CTA */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-gradient-to-br from-purple-600/25 to-blue-600/20 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
