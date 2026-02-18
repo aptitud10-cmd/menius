@@ -17,7 +17,7 @@ export async function createRestaurant(data: CreateRestaurantInput) {
     .from('restaurants')
     .select('id')
     .eq('slug', data.slug)
-    .single();
+    .maybeSingle();
 
   if (existing) return { error: 'Ese slug ya está en uso' };
 

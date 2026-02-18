@@ -23,7 +23,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .from('restaurants')
     .select('name, slug, locale')
     .eq('id', profile.default_restaurant_id)
-    .single();
+    .maybeSingle();
+
+  if (!restaurant) redirect('/onboarding/create-restaurant');
 
   const initials = (profile.full_name || user.email || 'U')
     .split(' ')

@@ -51,6 +51,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 });
     }
 
+    // Validate that items requiring a variant have one selected
+    const productIds = parsed.data.items.map((i) => i.product_id);
+    const { data: productsWithVariants } = await supabase
+      .from('product_variants')
+      .select('product_id')
+      .in('product_id', productIds);
+
+    if (productsWithVariants && productsWithVariants.length > 0) {
+      const productsRequiringVariant = new Set(productsWithVariants.map((v) => v.product_id));
+      for (const item of parsed.data.items) {
+        if (productsRequiringVariant.has(item.product_id) && !item.variant_id) {
+          return NextResponse.json(
+            { error: 'Selecciona una variante para todos los productos que lo requieran.' },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     const { data: orderNum } = await supabase.rpc('generate_order_number', { rest_id: restaurant_id });
     const orderNumber = orderNum ?? `ORD-${Date.now().toString(36).toUpperCase()}`;
 
@@ -114,13 +133,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch product names for notification (non-blocking)
-    const productIds = parsed.data.items.map((i) => i.product_id);
+    const notifProductIds = parsed.data.items.map((i) => i.product_id);
     (async () => {
       try {
         const { data: products } = await supabase
           .from('products')
           .select('id, name')
-          .in('id', productIds);
+          .in('id', notifProductIds);
 
         const productMap = new Map((products ?? []).map((p) => [p.id, p.name]));
         const notifItems = parsed.data.items.map((i) => ({

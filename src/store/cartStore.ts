@@ -18,8 +18,8 @@ interface CartState {
 }
 
 function calcLineTotal(product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number): number {
-  const basePrice = product.price + (variant?.price_delta ?? 0);
-  const extrasTotal = extras.reduce((sum, e) => sum + e.price, 0);
+  const basePrice = Number(product.price) + Number(variant?.price_delta ?? 0);
+  const extrasTotal = extras.reduce((sum, e) => sum + Number(e.price), 0);
   return (basePrice + extrasTotal) * qty;
 }
 

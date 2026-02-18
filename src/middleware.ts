@@ -38,7 +38,7 @@ export async function middleware(request: NextRequest) {
       .from('restaurants')
       .select('slug')
       .eq('custom_domain', cleanHost)
-      .single();
+      .maybeSingle();
 
     if (restaurant?.slug) {
       const url = request.nextUrl.clone();
@@ -76,7 +76,7 @@ export async function middleware(request: NextRequest) {
     .from('profiles')
     .select('default_restaurant_id')
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
   const hasRestaurant = !profileError && !!profile?.default_restaurant_id;
 

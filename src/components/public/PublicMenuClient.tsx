@@ -705,6 +705,7 @@ function ProductDetailView({
   const extras = product.extras ?? [];
   const hasOptions = variants.length > 0 || extras.length > 0;
 
+  const needsVariant = variants.length > 0 && !selectedVariant;
   const unitPrice = Number(product.price) + (selectedVariant?.price_delta ?? 0) + selectedExtras.reduce((s, e) => s + Number(e.price), 0);
 
   const animateClose = useCallback(() => {
@@ -999,17 +1000,21 @@ function ProductDetailView({
             {/* Add button */}
             <button
               onClick={handleAdd}
-              disabled={added}
+              disabled={added || needsVariant}
               className={cn(
                 'flex-1 h-12 rounded-2xl font-semibold text-sm transition-all duration-200',
                 added
                   ? 'bg-emerald-500 text-white scale-[0.98]'
-                  : 'bg-brand-600 text-white shadow-lg shadow-brand-600/20 hover:bg-brand-700 active:scale-[0.98]'
+                  : needsVariant
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-brand-600 text-white shadow-lg shadow-brand-600/20 hover:bg-brand-700 active:scale-[0.98]'
               )}
             >
               {added
                 ? (locale === 'es' ? '✓ Agregado al carrito' : '✓ Added to cart')
-                : `${t.add} · ${fmtPrice(unitPrice * qty)}`
+                : needsVariant
+                  ? (locale === 'es' ? 'Elige una opción' : 'Select an option')
+                  : `${t.add} · ${fmtPrice(unitPrice * qty)}`
               }
             </button>
           </div>
