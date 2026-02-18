@@ -16,13 +16,13 @@ export default function LandingPage() {
 
         {/* ── Layer 1: Giant MENIUS watermark — centered, visible top half ── */}
         <div className="relative flex justify-center pt-12 pb-0 select-none pointer-events-none" aria-hidden="true">
-          <span className="text-[16rem] sm:text-[22rem] md:text-[28rem] lg:text-[36rem] font-bold text-white/[0.04] tracking-tighter leading-none whitespace-nowrap">
+          <span className="text-[13rem] sm:text-[18rem] md:text-[22rem] lg:text-[29rem] font-bold text-white/[0.04] tracking-tighter leading-none whitespace-nowrap">
             MENIUS
           </span>
         </div>
 
         {/* ── Footer columns — solid black bg covers bottom half of watermark ── */}
-        <div className="relative z-10 -mt-[10rem] sm:-mt-[14rem] md:-mt-[18rem] lg:-mt-[24rem] bg-black pt-10 pb-16">
+        <div className="relative z-10 -mt-[7rem] sm:-mt-[10rem] md:-mt-[12rem] lg:-mt-[16rem] bg-black pt-10 pb-16">
           <div className="max-w-6xl mx-auto px-6">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-x-8 gap-y-10">
               {/* Col 1: Brand info */}
