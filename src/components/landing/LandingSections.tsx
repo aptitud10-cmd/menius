@@ -219,7 +219,7 @@ export function LandingSections() {
 
         <div className="relative z-10 max-w-4xl mx-auto px-6">
           <FadeIn className="text-center mb-14">
-            <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-5">Sin intermediarios</p>
+            <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-5">Sin intermediarios</p>
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               MENIUS vs Apps de Delivery
             </h2>

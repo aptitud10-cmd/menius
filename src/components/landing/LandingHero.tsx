@@ -32,7 +32,7 @@ export function LandingHero() {
                 transition={{ duration: 0.6, ease }}
                 className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/[0.04] mb-8"
               >
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
                 <span className="text-[13px] text-gray-400 tracking-wide">Plataforma de menús digitales</span>
               </m.div>
 
