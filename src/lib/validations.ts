@@ -12,7 +12,8 @@ export const loginSchema = z.object({
 });
 
 export const createRestaurantSchema = z.object({
-  name: z.string().min(2, 'Mínimo 2 caracteres'),
+  name: z.string().min(2, 'Mínimo 2 caracteres').max(80, 'Máximo 80 caracteres')
+    .refine(v => !/@/.test(v), { message: 'Ingresa el nombre del restaurante, no un email' }),
   slug: z.string().min(2, 'Mínimo 2 caracteres')
     .regex(/^[a-z0-9-]+$/, 'Solo letras minúsculas, números y guiones'),
   timezone: z.string().default('America/Mexico_City'),

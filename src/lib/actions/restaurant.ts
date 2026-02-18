@@ -92,6 +92,47 @@ export async function createRestaurant(data: CreateRestaurantInput) {
   redirect('/app');
 }
 
+// ---- Re-seed ----
+export async function reseedMyRestaurant() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'No autenticado' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('default_restaurant_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (!profile?.default_restaurant_id) return { error: 'Sin restaurante vinculado' };
+  const restaurantId = profile.default_restaurant_id;
+
+  const { data: restaurant } = await supabase
+    .from('restaurants')
+    .select('slug, owner_user_id')
+    .eq('id', restaurantId)
+    .single();
+
+  if (!restaurant || restaurant.owner_user_id !== user.id) return { error: 'No autorizado' };
+
+  const { count: productCount } = await supabase
+    .from('products')
+    .select('id', { count: 'exact', head: true })
+    .eq('restaurant_id', restaurantId);
+
+  if ((productCount ?? 0) > 0) {
+    return { error: 'Tu restaurante ya tiene productos. Edítalos desde el menú.' };
+  }
+
+  const { seedRestaurant } = await import('@/lib/seed-restaurant');
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+  await seedRestaurant(supabase, restaurantId, restaurant.slug, appUrl);
+
+  revalidatePath('/app');
+  revalidatePath(`/r/${restaurant.slug}`);
+  return { success: true };
+}
+
 // ---- Categories ----
 export async function createCategory(data: CategoryInput) {
   const supabase = createClient();

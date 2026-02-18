@@ -209,29 +209,97 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
 
       {/* Getting started CTA for new restaurants */}
       {stats.activeProducts === 0 && (
-        <div className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/[0.06] to-blue-500/[0.04] p-6 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-purple-500/[0.12] flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="w-7 h-7 text-purple-400" />
-          </div>
-          <h3 className="text-lg font-bold text-white mb-1">Tu restaurante está listo</h3>
-          <p className="text-sm text-gray-400 max-w-md mx-auto mb-5">
-            Empieza agregando tus productos al menú. Tus clientes podrán ver el menú, hacer pedidos y pagar desde su celular.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href="/app/menu/products"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-600/20"
-            >
-              <ShoppingBag className="w-4 h-4" />
-              Agregar productos
-            </Link>
-            <Link
-              href="/app/settings"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/[0.1] text-gray-300 text-sm font-medium hover:bg-white/[0.04] transition-colors"
-            >
-              Configurar restaurante
-            </Link>
-          </div>
+        <EmptyRestaurantCTA restaurantSlug={restaurant.slug} />
+      )}
+    </div>
+  );
+}
+
+function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
+  const [seeding, setSeeding] = useState(false);
+  const [seeded, setSeeded] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSeed = async () => {
+    setSeeding(true);
+    setError('');
+    try {
+      const { reseedMyRestaurant } = await import('@/lib/actions/restaurant');
+      const result = await reseedMyRestaurant();
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        setSeeded(true);
+        setTimeout(() => window.location.reload(), 1200);
+      }
+    } catch {
+      setError('Error al generar datos de ejemplo');
+    } finally {
+      setSeeding(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/[0.06] to-blue-500/[0.04] p-6 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-purple-500/[0.12] flex items-center justify-center mx-auto mb-4">
+        <Sparkles className="w-7 h-7 text-purple-400" />
+      </div>
+      <h3 className="text-lg font-bold text-white mb-1">
+        {seeded ? '¡Menú de ejemplo creado!' : 'Tu restaurante está listo'}
+      </h3>
+      <p className="text-sm text-gray-400 max-w-md mx-auto mb-5">
+        {seeded
+          ? 'Ya tienes categorías, productos y mesas de ejemplo. Edítalos desde tu dashboard.'
+          : 'Puedes agregar productos manualmente o cargar un menú de ejemplo para ver cómo funciona.'}
+      </p>
+      {error && (
+        <p className="text-xs text-red-400 mb-3">{error}</p>
+      )}
+      {!seeded && (
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            onClick={handleSeed}
+            disabled={seeding}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-600/20 disabled:opacity-50"
+          >
+            {seeding ? (
+              <>
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                Generando...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Cargar menú de ejemplo
+              </>
+            )}
+          </button>
+          <Link
+            href="/app/menu/products"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/[0.1] text-gray-300 text-sm font-medium hover:bg-white/[0.04] transition-colors"
+          >
+            <ShoppingBag className="w-4 h-4" />
+            Agregar manualmente
+          </Link>
+        </div>
+      )}
+      {seeded && (
+        <div className="flex items-center justify-center gap-3">
+          <Link
+            href="/app/menu/products"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition-colors"
+          >
+            <ShoppingBag className="w-4 h-4" />
+            Ver mis productos
+          </Link>
+          <Link
+            href={`/r/${restaurantSlug}`}
+            target="_blank"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/[0.1] text-gray-300 text-sm font-medium hover:bg-white/[0.04] transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Ver mi menú
+          </Link>
         </div>
       )}
     </div>

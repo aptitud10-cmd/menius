@@ -93,7 +93,7 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold">Analytics</h1>
+          <h1 className="text-xl font-bold text-white">Analytics</h1>
           <p className="text-sm text-gray-500 mt-0.5">Métricas y rendimiento de tu restaurante</p>
         </div>
         <div className="flex items-center gap-1.5 bg-[#0a0a0a] rounded-xl border border-white/[0.08] p-1">
@@ -155,7 +155,7 @@ export default function AnalyticsPage() {
       {/* Sales Chart */}
       <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-semibold text-sm">Ventas por día</h2>
+          <h2 className="font-semibold text-sm text-white">Ventas por día</h2>
           <div className="flex items-center gap-4 text-xs text-gray-400">
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-purple-500" /> Ingresos</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-purple-500/[0.2]" /> Órdenes</span>
@@ -191,7 +191,7 @@ export default function AnalyticsPage() {
 
       {/* Hourly Distribution */}
       <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
-        <h2 className="font-semibold text-sm mb-4">Distribución por hora</h2>
+        <h2 className="font-semibold text-sm mb-4 text-white">Distribución por hora</h2>
         <div className="flex items-end gap-px h-32">
           {hourlyDistribution.map((count, hour) => {
             const height = Math.max((count / maxHourly) * 100, 2);
@@ -220,7 +220,7 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Status Distribution */}
         <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
-          <h2 className="font-semibold text-sm mb-4">Estado de órdenes</h2>
+          <h2 className="font-semibold text-sm mb-4 text-white">Estado de órdenes</h2>
           <div className="space-y-3">
             {Object.entries(statusCount)
               .sort((a, b) => b[1] - a[1])
@@ -246,7 +246,7 @@ export default function AnalyticsPage() {
 
         {/* Top Products */}
         <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
-          <h2 className="font-semibold text-sm mb-4">Top productos</h2>
+          <h2 className="font-semibold text-sm mb-4 text-white">Top productos</h2>
           {topProducts.length === 0 ? (
             <p className="text-gray-400 text-sm text-center py-12">Sin datos</p>
           ) : (
@@ -321,7 +321,7 @@ function KPICard({
           </span>
         )}
       </div>
-      <p className="text-2xl font-bold tracking-tight">{value}</p>
+      <p className="text-2xl font-bold tracking-tight text-white">{value}</p>
       <p className="text-xs text-gray-500 mt-1">{label}</p>
     </div>
   );
@@ -333,7 +333,7 @@ function MiniStat({ icon, label, value }: { icon: React.ReactNode; label: string
       <span className="text-gray-400">{icon}</span>
       <div className="min-w-0">
         <p className="text-xs text-gray-400">{label}</p>
-        <p className="text-sm font-bold truncate">{value}</p>
+        <p className="text-sm font-bold truncate text-white">{value}</p>
       </div>
     </div>
   );
