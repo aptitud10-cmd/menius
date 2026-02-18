@@ -78,10 +78,10 @@ export default function LandingPage() {
             {/* Bottom bar */}
             <div className="separator-gradient mt-12" />
             <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <p className="text-[11px] text-gray-700" suppressHydrationWarning>&copy; {new Date().getFullYear()} MENIUS Inc.</p>
-              <p className="text-[11px] text-gray-700">
+              <p className="text-[11px] text-gray-500" suppressHydrationWarning>&copy; {new Date().getFullYear()} MENIUS Inc.</p>
+              <p className="text-[11px] text-gray-500">
                 Hecho en{' '}
-                <a href="https://www.scuart.com/" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-300 transition-colors">
+                <a href="https://www.scuart.com/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-200 transition-colors">
                   Scuart Digital
                 </a>
               </p>

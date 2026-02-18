@@ -55,14 +55,13 @@ export async function login(data: LoginInput) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Error de autenticación' };
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile } = await supabase
     .from('profiles')
     .select('default_restaurant_id')
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
-  // If profile query failed or profile doesn't exist, send to onboarding
-  if (profileError || !profile) {
+  if (!profile) {
     redirect('/onboarding/create-restaurant');
   }
 
@@ -70,6 +69,36 @@ export async function login(data: LoginInput) {
     redirect('/app');
   }
   redirect('/onboarding/create-restaurant');
+}
+
+export async function requestPasswordReset(email: string) {
+  const ip = getIPFromHeaders();
+  const { allowed } = checkRateLimit(`reset:${ip}`, { limit: 3, windowSec: 300 });
+  if (!allowed) return { error: 'Demasiados intentos. Espera unos minutos.' };
+
+  const supabase = createClient();
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${appUrl}/auth/callback?next=/reset-password`,
+  });
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function updatePassword(newPassword: string) {
+  if (!newPassword || newPassword.length < 6) {
+    return { error: 'La contraseña debe tener al menos 6 caracteres' };
+  }
+
+  const supabase = createClient();
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+  if (error) return { error: error.message };
+  return { success: true };
 }
 
 export async function logout() {

@@ -51,7 +51,7 @@ export function LandingHero() {
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.16, ease }}
-              className="mt-8 text-lg sm:text-xl text-gray-400 max-w-[560px] mx-auto leading-relaxed font-light"
+              className="mt-8 text-lg sm:text-xl text-gray-300 max-w-[560px] mx-auto leading-relaxed font-light"
             >
               Crea tu menú con fotos IA, genera QRs para cada mesa, y recibe pedidos directos. Sin comisiones. Sin apps de terceros.
             </m.p>
@@ -103,7 +103,7 @@ export function LandingHero() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-[13px] text-gray-500 mt-1.5 font-medium">{s.label}</p>
+                    <p className="text-[13px] text-gray-400 mt-1.5 font-medium">{s.label}</p>
                   )}
                 </div>
               ))}

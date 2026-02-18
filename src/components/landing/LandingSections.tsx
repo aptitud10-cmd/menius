@@ -184,7 +184,7 @@ function FeatureTabs() {
           <h3 className="text-3xl md:text-4xl font-semibold text-white leading-tight tracking-tight">
             {f.title}
           </h3>
-          <p className="mt-6 text-lg text-gray-400 leading-relaxed font-light">
+          <p className="mt-6 text-lg text-gray-300 leading-relaxed font-light">
             {f.desc}
           </p>
           <div className="mt-10 space-y-4">
@@ -262,7 +262,7 @@ export function LandingSections() {
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Todo bajo control
             </h2>
-            <p className="text-gray-400 mt-5 text-lg max-w-lg mx-auto font-light">
+            <p className="text-gray-300 mt-5 text-lg max-w-lg mx-auto font-light">
               Las herramientas que necesitas para digitalizar tu restaurante.
             </p>
           </FadeIn>
@@ -286,7 +286,7 @@ export function LandingSections() {
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               MENIUS vs Apps de Delivery
             </h2>
-            <p className="text-gray-400 mt-5 text-lg max-w-lg mx-auto font-light">
+            <p className="text-gray-300 mt-5 text-lg max-w-lg mx-auto font-light">
               Las apps cobran hasta 30% por pedido. Con MENIUS, tarifa fija y tus ventas son tuyas.
             </p>
           </FadeIn>
@@ -345,7 +345,7 @@ export function LandingSections() {
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Sin comisiones. Sin sorpresas.
             </h2>
-            <p className="text-gray-400 mt-5 text-lg font-light">14 días gratis. Sin tarjeta de crédito. Cancela cuando quieras.</p>
+            <p className="text-gray-300 mt-5 text-lg font-light">14 días gratis. Sin tarjeta de crédito. Cancela cuando quieras.</p>
           </FadeIn>
 
           <FadeIn delay={0.1}>
@@ -455,7 +455,7 @@ export function LandingSections() {
               <br />
               <span className="text-gradient-premium">Disponible hoy.</span>
             </h2>
-            <p className="mt-6 text-lg text-gray-400 font-light max-w-md mx-auto">
+            <p className="mt-6 text-lg text-gray-300 font-light max-w-md mx-auto">
               Únete a cientos de restaurantes que ya usan MENIUS para recibir más pedidos.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
