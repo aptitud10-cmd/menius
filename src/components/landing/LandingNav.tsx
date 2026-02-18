@@ -24,8 +24,8 @@ export function LandingNav() {
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-8">
-          <a href="#funciones" className="text-sm text-gray-500 hover:text-white transition-colors">Funciones</a>
-          <a href="#precios" className="text-sm text-gray-500 hover:text-white transition-colors">Precios</a>
+          <Link href="/#funciones" className="text-sm text-gray-500 hover:text-white transition-colors">Funciones</Link>
+          <Link href="/#precios" className="text-sm text-gray-500 hover:text-white transition-colors">Precios</Link>
           <Link href="/blog" className="text-sm text-gray-500 hover:text-white transition-colors">Blog</Link>
           <Link href="/faq" className="text-sm text-gray-500 hover:text-white transition-colors">FAQ</Link>
           <Link href="/r/demo" className="text-sm text-gray-500 hover:text-white transition-colors">Demo</Link>
@@ -56,8 +56,8 @@ export function LandingNav() {
       {open && (
         <div className="md:hidden absolute top-16 left-0 w-full bg-[#050505]/95 backdrop-blur-2xl border-b border-white/[0.04] animate-fade-in">
           <nav className="flex flex-col px-6 py-6 gap-1">
-            <a href="#funciones" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-400 hover:text-white transition-colors border-b border-white/[0.04]">Funciones</a>
-            <a href="#precios" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-400 hover:text-white transition-colors border-b border-white/[0.04]">Precios</a>
+            <Link href="/#funciones" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-400 hover:text-white transition-colors border-b border-white/[0.04]">Funciones</Link>
+            <Link href="/#precios" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-400 hover:text-white transition-colors border-b border-white/[0.04]">Precios</Link>
             <Link href="/blog" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-400 hover:text-white transition-colors border-b border-white/[0.04]">Blog</Link>
             <Link href="/faq" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-400 hover:text-white transition-colors border-b border-white/[0.04]">FAQ</Link>
             <Link href="/r/demo" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-400 hover:text-white transition-colors border-b border-white/[0.04]">Demo</Link>
