@@ -93,24 +93,24 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
   return (
     <div className="space-y-6 max-w-2xl">
       {/* Public URL */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h2 className="font-semibold text-sm mb-3">Enlace público del menú</h2>
-        <div className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 border border-gray-200">
-          <span className="text-sm text-gray-600 truncate flex-1 font-mono">{publicUrl}</span>
-          <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg hover:bg-gray-200">
-            <ExternalLink className="w-4 h-4 text-gray-500" />
+      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+        <h2 className="font-semibold text-sm mb-3 text-white">Enlace público del menú</h2>
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-white/[0.04] border border-white/[0.08]">
+          <span className="text-sm text-gray-400 truncate flex-1 font-mono">{publicUrl}</span>
+          <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg hover:bg-white/[0.08]">
+            <ExternalLink className="w-4 h-4 text-gray-400" />
           </a>
         </div>
       </div>
 
       {/* Custom Domain */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
         <div className="flex items-center gap-2 mb-1">
-          <Globe className="w-4 h-4 text-brand-600" />
-          <h2 className="font-semibold text-sm">Dominio personalizado</h2>
-          <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-brand-50 text-brand-600 font-medium">Plan Pro+</span>
+          <Globe className="w-4 h-4 text-purple-400" />
+          <h2 className="font-semibold text-sm text-white">Dominio personalizado</h2>
+          <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-purple-500/[0.1] text-purple-400 font-medium">Plan Pro+</span>
         </div>
-        <p className="text-xs text-gray-500 mb-4">Conecta tu propio dominio para que tus clientes accedan al menú desde tu URL.</p>
+        <p className="text-xs text-gray-400 mb-4">Conecta tu propio dominio para que tus clientes accedan al menú desde tu URL.</p>
         <Field
           label="Dominio"
           value={form.custom_domain}
@@ -118,16 +118,16 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           placeholder="menu.mirestaurante.com"
         />
         {form.custom_domain && (
-          <div className="mt-3 p-3 rounded-xl bg-brand-50 border border-brand-100">
-            <p className="text-xs font-semibold text-brand-800 mb-2">Configuración DNS requerida:</p>
-            <div className="bg-white rounded-lg p-2.5 border border-brand-100">
-              <p className="text-[11px] font-mono text-gray-600">
+          <div className="mt-3 p-3 rounded-xl bg-purple-500/[0.1] border border-purple-500/[0.15]">
+            <p className="text-xs font-semibold text-purple-300 mb-2">Configuración DNS requerida:</p>
+            <div className="bg-[#0a0a0a] rounded-lg p-2.5 border border-purple-500/[0.15]">
+              <p className="text-[11px] font-mono text-gray-400">
                 <span className="text-gray-400">Tipo:</span> CNAME<br />
                 <span className="text-gray-400">Nombre:</span> {form.custom_domain}<br />
                 <span className="text-gray-400">Valor:</span> cname.vercel-dns.com
               </p>
             </div>
-            <p className="text-[11px] text-brand-600 mt-2">
+            <p className="text-[11px] text-purple-400 mt-2">
               Agrega este registro CNAME en tu proveedor de dominio (GoDaddy, Namecheap, Cloudflare, etc.)
             </p>
           </div>
@@ -135,8 +135,8 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       </div>
 
       {/* Basic info */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h2 className="font-semibold text-sm mb-4">Información básica</h2>
+      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+        <h2 className="font-semibold text-sm mb-4 text-white">Información básica</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Nombre del restaurante" value={form.name} onChange={(v) => handleChange('name', v)} />
           <Field label="Teléfono" value={form.phone} onChange={(v) => handleChange('phone', v)} placeholder="+52 55 1234 5678" />
@@ -150,15 +150,15 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       </div>
 
       {/* Regional */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h2 className="font-semibold text-sm mb-4">Regional</h2>
+      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+        <h2 className="font-semibold text-sm mb-4 text-white">Regional</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Zona horaria</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Zona horaria</label>
             <select
               value={form.timezone}
               onChange={(e) => handleChange('timezone', e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 bg-[#0a0a0a]"
             >
               <option value="America/New_York">New York (EST)</option>
               <option value="America/Chicago">Chicago (CST)</option>
@@ -173,11 +173,11 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Moneda</label>
+            <label className="block text-xs font-medium text-gray-400 mb-1">Moneda</label>
             <select
               value={form.currency}
               onChange={(e) => handleChange('currency', e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 bg-[#0a0a0a]"
             >
               <option value="USD">USD — US Dollar</option>
               <option value="MXN">MXN — Peso mexicano</option>
@@ -189,14 +189,14 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             </select>
           </div>
           <div>
-            <label className="flex items-center gap-1 text-xs font-medium text-gray-500 mb-1">
+            <label className="flex items-center gap-1 text-xs font-medium text-gray-400 mb-1">
               <Globe className="w-3.5 h-3.5" />
               Idioma del menú
             </label>
             <select
               value={form.locale}
               onChange={(e) => handleChange('locale', e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 bg-[#0a0a0a]"
             >
               <option value="es">Español</option>
               <option value="en">English</option>
@@ -209,10 +209,10 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       </div>
 
       {/* Order Types */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
         <div className="flex items-center gap-2 mb-4">
-          <ShoppingBag className="w-4 h-4 text-gray-500" />
-          <h2 className="font-semibold text-sm">Tipos de orden</h2>
+          <ShoppingBag className="w-4 h-4 text-gray-400" />
+          <h2 className="font-semibold text-sm text-white">Tipos de orden</h2>
         </div>
         <p className="text-xs text-gray-400 mb-3">
           Selecciona qué tipos de orden pueden hacer tus clientes.
@@ -227,7 +227,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             return (
               <label key={opt.key} className={cn(
                 'flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all',
-                checked ? 'border-brand-200 bg-brand-50/50' : 'border-gray-100 hover:border-gray-200'
+                checked ? 'border-purple-500/[0.2] bg-purple-500/[0.06]' : 'border-gray-100 hover:border-white/[0.08]'
               )}>
                 <input
                   type="checkbox"
@@ -241,10 +241,10 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                     }));
                     setSaved(false);
                   }}
-                  className="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500/30"
+                  className="w-4 h-4 rounded border-gray-300 text-purple-400 focus:ring-purple-500/30"
                 />
                 <div>
-                  <span className="text-sm font-medium text-gray-700">{opt.label}</span>
+                  <span className="text-sm font-medium text-gray-200">{opt.label}</span>
                   <p className="text-[11px] text-gray-400">{opt.desc}</p>
                 </div>
               </label>
@@ -254,10 +254,10 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       </div>
 
       {/* Payment Methods */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
         <div className="flex items-center gap-2 mb-4">
-          <CreditCard className="w-4 h-4 text-gray-500" />
-          <h2 className="font-semibold text-sm">Métodos de pago</h2>
+          <CreditCard className="w-4 h-4 text-gray-400" />
+          <h2 className="font-semibold text-sm text-white">Métodos de pago</h2>
         </div>
         <p className="text-xs text-gray-400 mb-3">
           Cómo pueden pagar tus clientes.
@@ -271,7 +271,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             return (
               <label key={opt.key} className={cn(
                 'flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all',
-                checked ? 'border-brand-200 bg-brand-50/50' : 'border-gray-100 hover:border-gray-200'
+                checked ? 'border-purple-500/[0.2] bg-purple-500/[0.06]' : 'border-gray-100 hover:border-white/[0.08]'
               )}>
                 <input
                   type="checkbox"
@@ -285,10 +285,10 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                     }));
                     setSaved(false);
                   }}
-                  className="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500/30"
+                  className="w-4 h-4 rounded border-gray-300 text-purple-400 focus:ring-purple-500/30"
                 />
                 <div>
-                  <span className="text-sm font-medium text-gray-700">{opt.label}</span>
+                  <span className="text-sm font-medium text-gray-200">{opt.label}</span>
                   <p className="text-[11px] text-gray-400">{opt.desc}</p>
                 </div>
               </label>
@@ -298,14 +298,14 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       </div>
 
       {/* Operating hours */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h2 className="font-semibold text-sm mb-4">Horario de operación</h2>
+      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+        <h2 className="font-semibold text-sm mb-4 text-white">Horario de operación</h2>
         <div className="space-y-2.5">
           {DAYS.map((day) => (
             <div key={day.key} className="flex items-center gap-3">
               <button
                 onClick={() => toggleClosed(day.key)}
-                className={`w-24 text-left text-sm font-medium ${hours[day.key].closed ? 'text-gray-400 line-through' : 'text-gray-700'}`}
+                className={`w-24 text-left text-sm font-medium ${hours[day.key].closed ? 'text-gray-400 line-through' : 'text-gray-200'}`}
               >
                 {day.label}
               </button>
@@ -317,20 +317,20 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                     type="time"
                     value={hours[day.key].open}
                     onChange={(e) => handleHourChange(day.key, 'open', e.target.value)}
-                    className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                    className="px-2.5 py-1.5 rounded-lg border border-white/[0.08] text-sm bg-white/[0.04] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30"
                   />
                   <span className="text-gray-400 text-sm">a</span>
                   <input
                     type="time"
                     value={hours[day.key].close}
                     onChange={(e) => handleHourChange(day.key, 'close', e.target.value)}
-                    className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                    className="px-2.5 py-1.5 rounded-lg border border-white/[0.08] text-sm bg-white/[0.04] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30"
                   />
                 </div>
               )}
               <button
                 onClick={() => toggleClosed(day.key)}
-                className={`ml-auto text-xs font-medium px-2.5 py-1 rounded-lg ${hours[day.key].closed ? 'bg-gray-100 text-gray-500 hover:bg-gray-200' : 'bg-red-50 text-red-500 hover:bg-red-100'}`}
+                className={`ml-auto text-xs font-medium px-2.5 py-1 rounded-lg ${hours[day.key].closed ? 'bg-white/[0.06] text-gray-400 hover:bg-white/[0.08]' : 'bg-red-500/[0.08] text-red-400 hover:bg-red-500/[0.12]'}`}
               >
                 {hours[day.key].closed ? 'Abrir' : 'Cerrar'}
               </button>
@@ -340,17 +340,17 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       </div>
 
       {/* Notifications */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Bell className="w-4 h-4 text-gray-500" />
-            <h2 className="font-semibold text-sm">Notificaciones</h2>
+            <Bell className="w-4 h-4 text-gray-400" />
+            <h2 className="font-semibold text-sm text-white">Notificaciones</h2>
           </div>
           <button
             onClick={() => { setForm((prev) => ({ ...prev, notifications_enabled: !prev.notifications_enabled })); setSaved(false); }}
             className={cn(
               'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-              form.notifications_enabled ? 'bg-brand-600' : 'bg-gray-200'
+              form.notifications_enabled ? 'bg-purple-500' : 'bg-white/[0.08]'
             )}
           >
             <span className={cn(
@@ -363,7 +363,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         {form.notifications_enabled && (
           <div className="space-y-4">
             <div>
-              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1">
                 <MessageCircle className="w-3.5 h-3.5" />
                 WhatsApp para nuevas órdenes
               </label>
@@ -372,14 +372,14 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                 value={form.notification_whatsapp}
                 onChange={(e) => { setForm((prev) => ({ ...prev, notification_whatsapp: e.target.value })); setSaved(false); }}
                 placeholder="+52 55 1234 5678"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm bg-white/[0.04] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30"
               />
               <p className="text-[11px] text-gray-400 mt-1">
                 Recibirás un mensaje de WhatsApp cada vez que llegue una nueva orden.
               </p>
             </div>
             <div>
-              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1">
                 <Mail className="w-3.5 h-3.5" />
                 Email para notificaciones del negocio
               </label>
@@ -388,7 +388,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                 value={form.notification_email}
                 onChange={(e) => { setForm((prev) => ({ ...prev, notification_email: e.target.value })); setSaved(false); }}
                 placeholder="owner@mirestaurante.com"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm bg-white/[0.04] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30"
               />
               <p className="text-[11px] text-gray-400 mt-1">
                 Los clientes que dejen su email recibirán confirmaciones y actualizaciones de su pedido.
@@ -404,13 +404,13 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
       {/* Save */}
       {error && (
-        <div className="px-4 py-2.5 rounded-xl bg-red-50 text-red-600 text-sm">{error}</div>
+        <div className="px-4 py-2.5 rounded-xl bg-red-500/[0.06] text-red-400 border border-red-500/[0.1] text-sm">{error}</div>
       )}
 
       <button
         onClick={handleSave}
         disabled={saving}
-        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand-600 text-white font-semibold text-sm shadow-lg shadow-brand-600/25 hover:bg-brand-700 hover:-translate-y-0.5 transition-all disabled:opacity-50"
+        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-purple-500 text-white font-semibold text-sm hover:bg-purple-600 hover:-translate-y-0.5 transition-all disabled:opacity-50"
       >
         {saved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
         {saving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar cambios'}
@@ -424,10 +424,10 @@ function Field({
 }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; textarea?: boolean;
 }) {
-  const cls = 'w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30';
+  const cls = 'w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30';
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+      <label className="block text-xs font-medium text-gray-400 mb-1">{label}</label>
       {textarea ? (
         <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={2} className={`${cls} resize-none`} />
       ) : (

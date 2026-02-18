@@ -78,7 +78,7 @@ export default function AnalyticsPage() {
   if (loading || !data) {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
         <p className="text-sm text-gray-400">Cargando analytics...</p>
       </div>
     );
@@ -96,7 +96,7 @@ export default function AnalyticsPage() {
           <h1 className="text-xl font-bold">Analytics</h1>
           <p className="text-sm text-gray-500 mt-0.5">Métricas y rendimiento de tu restaurante</p>
         </div>
-        <div className="flex items-center gap-1.5 bg-white rounded-xl border border-gray-200 p-1">
+        <div className="flex items-center gap-1.5 bg-[#0a0a0a] rounded-xl border border-white/[0.08] p-1">
           {[7, 14, 30].map(d => (
             <button
               key={d}
@@ -104,8 +104,8 @@ export default function AnalyticsPage() {
               className={cn(
                 'px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all',
                 days === d
-                  ? 'bg-brand-600 text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'bg-purple-500 text-white'
+                  : 'text-gray-500 hover:text-gray-200 hover:bg-white/[0.04]'
               )}
             >
               {d}d
@@ -153,12 +153,12 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Sales Chart */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-semibold text-sm">Ventas por día</h2>
           <div className="flex items-center gap-4 text-xs text-gray-400">
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-brand-500" /> Ingresos</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-brand-200" /> Órdenes</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-purple-500" /> Ingresos</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-purple-500/[0.2]" /> Órdenes</span>
           </div>
         </div>
         {salesByDay.length === 0 ? (
@@ -176,7 +176,7 @@ export default function AnalyticsPage() {
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
                   </div>
                   <div
-                    className="w-full bg-brand-500 rounded-t-lg transition-all duration-300 hover:bg-brand-400 cursor-pointer"
+                    className="w-full bg-purple-500 rounded-t-lg transition-all duration-300 hover:bg-purple-400 cursor-pointer"
                     style={{ height: `${height}%` }}
                   />
                   <span className="text-[10px] text-gray-400 truncate w-full text-center mt-1">
@@ -190,7 +190,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Hourly Distribution */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
         <h2 className="font-semibold text-sm mb-4">Distribución por hora</h2>
         <div className="flex items-end gap-px h-32">
           {hourlyDistribution.map((count, hour) => {
@@ -219,7 +219,7 @@ export default function AnalyticsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Status Distribution */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
           <h2 className="font-semibold text-sm mb-4">Estado de órdenes</h2>
           <div className="space-y-3">
             {Object.entries(statusCount)
@@ -229,10 +229,10 @@ export default function AnalyticsPage() {
                 return (
                   <div key={status}>
                     <div className="flex justify-between text-sm mb-1.5">
-                      <span className="text-gray-600 font-medium">{STATUS_LABELS[status] ?? status}</span>
-                      <span className="text-gray-900 font-semibold">{count} <span className="text-gray-400 font-normal">({pct.toFixed(0)}%)</span></span>
+                      <span className="text-gray-400 font-medium">{STATUS_LABELS[status] ?? status}</span>
+                      <span className="text-white font-semibold">{count} <span className="text-gray-400 font-normal">({pct.toFixed(0)}%)</span></span>
                     </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
                       <div
                         className={cn('h-full rounded-full transition-all duration-500', STATUS_COLORS[status] ?? 'bg-gray-400')}
                         style={{ width: `${pct}%` }}
@@ -245,7 +245,7 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Top Products */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
           <h2 className="font-semibold text-sm mb-4">Top productos</h2>
           {topProducts.length === 0 ? (
             <p className="text-gray-400 text-sm text-center py-12">Sin datos</p>
@@ -258,20 +258,20 @@ export default function AnalyticsPage() {
                     <span className={cn(
                       'w-7 h-7 flex items-center justify-center rounded-lg text-xs font-bold flex-shrink-0',
                       i === 0 ? 'bg-amber-100 text-amber-700' :
-                      i === 1 ? 'bg-gray-100 text-gray-600' :
+                      i === 1 ? 'bg-white/[0.06] text-gray-400' :
                       i === 2 ? 'bg-orange-50 text-orange-600' :
-                      'bg-gray-50 text-gray-400'
+                      'bg-white/[0.04] text-gray-400'
                     )}>
                       {i + 1}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <h4 className="text-sm text-gray-700 font-medium truncate">{p.name}</h4>
-                        <span className="text-sm text-gray-900 font-bold flex-shrink-0 ml-2">{formatMoney(p.revenue)}</span>
+                        <h4 className="text-sm text-gray-200 font-medium truncate">{p.name}</h4>
+                        <span className="text-sm text-white font-bold flex-shrink-0 ml-2">{formatMoney(p.revenue)}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-brand-400 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                        <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                          <div className="h-full bg-purple-400 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                         </div>
                         <span className="text-xs text-gray-400 flex-shrink-0">{p.qty}u</span>
                       </div>
@@ -306,7 +306,7 @@ function KPICard({
   const c = colorMap[color] ?? colorMap.blue;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+    <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-4">
       <div className="flex items-center justify-between mb-3">
         <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', c.bg)}>
           <span className={c.icon}>{icon}</span>
@@ -329,7 +329,7 @@ function KPICard({
 
 function MiniStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 flex items-center gap-3">
+    <div className="bg-[#0a0a0a] rounded-xl border border-white/[0.06] px-4 py-3 flex items-center gap-3">
       <span className="text-gray-400">{icon}</span>
       <div className="min-w-0">
         <p className="text-xs text-gray-400">{label}</p>

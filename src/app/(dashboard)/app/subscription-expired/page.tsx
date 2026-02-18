@@ -53,17 +53,17 @@ export default function SubscriptionExpiredPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-white/[0.04] flex items-center justify-center px-4">
       <div className="max-w-3xl w-full">
         {/* Header */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 mb-5">
             <AlertTriangle className="w-8 h-8 text-amber-600" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2 font-heading">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 font-heading">
             Tu periodo de prueba ha terminado
           </h1>
-          <p className="text-gray-500 max-w-md mx-auto">
+          <p className="text-gray-400 max-w-md mx-auto">
             Para seguir usando MENIUS y recibir pedidos, elige un plan. Tu menú y tus datos están seguros y listos.
           </p>
         </div>
@@ -75,25 +75,25 @@ export default function SubscriptionExpiredPage() {
               key={plan.id}
               className={`relative rounded-2xl p-5 flex flex-col ${
                 plan.popular
-                  ? 'bg-brand-950 text-white ring-2 ring-brand-400 shadow-xl'
-                  : 'bg-white border border-gray-200 shadow-sm'
+                  ? 'bg-purple-950 text-white ring-2 ring-purple-400 shadow-xl'
+                  : 'bg-[#0a0a0a] border border-white/[0.08]'
               }`}
             >
               {plan.popular && (
-                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-brand-400 text-brand-950 text-[10px] font-bold rounded-full uppercase tracking-wider">
+                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-purple-400 text-purple-950 text-[10px] font-bold rounded-full uppercase tracking-wider">
                   Recomendado
                 </span>
               )}
-              <h3 className={`text-base font-bold ${plan.popular ? 'text-white' : 'text-gray-900'}`}>{plan.name}</h3>
-              <p className={`text-xs mt-0.5 mb-3 ${plan.popular ? 'text-gray-300' : 'text-gray-500'}`}>{plan.desc}</p>
+              <h3 className={`text-base font-bold ${plan.popular ? 'text-white' : 'text-white'}`}>{plan.name}</h3>
+              <p className={`text-xs mt-0.5 mb-3 ${plan.popular ? 'text-gray-300' : 'text-gray-400'}`}>{plan.desc}</p>
               <div className="mb-4">
-                <span className={`text-3xl font-extrabold ${plan.popular ? 'text-white' : 'text-gray-900'}`}>${plan.price}</span>
-                <span className={`text-xs ${plan.popular ? 'text-gray-400' : 'text-gray-500'}`}> /mes</span>
+                <span className={`text-3xl font-extrabold ${plan.popular ? 'text-white' : 'text-white'}`}>${plan.price}</span>
+                <span className={`text-xs ${plan.popular ? 'text-gray-400' : 'text-gray-400'}`}> /mes</span>
               </div>
               <ul className="space-y-1.5 flex-1 mb-4">
                 {plan.features.map((f) => (
                   <li key={f} className={`text-xs flex items-center gap-1.5 ${plan.popular ? 'text-gray-200' : 'text-gray-600'}`}>
-                    <span className={`w-1 h-1 rounded-full ${plan.popular ? 'bg-brand-400' : 'bg-brand-500'}`} />
+                    <span className={`w-1 h-1 rounded-full ${plan.popular ? 'bg-purple-400' : 'bg-purple-500'}`} />
                     {f}
                   </li>
                 ))}
@@ -103,8 +103,8 @@ export default function SubscriptionExpiredPage() {
                 disabled={loading !== null}
                 className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${
                   plan.popular
-                    ? 'bg-brand-400 text-brand-950 hover:bg-brand-300'
-                    : 'bg-brand-50 text-brand-700 hover:bg-brand-100'
+                    ? 'bg-purple-400 text-purple-950 hover:bg-purple-300'
+                    : 'bg-purple-500/[0.1] text-purple-400 hover:bg-white/[0.06]'
                 }`}
               >
                 {loading === plan.id ? (
@@ -124,14 +124,14 @@ export default function SubscriptionExpiredPage() {
         <div className="text-center space-y-3">
           <Link
             href="/app/billing"
-            className="inline-flex items-center gap-1.5 text-sm text-brand-600 font-medium hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm text-purple-400 font-medium hover:underline"
           >
             Ver detalles de facturación <ArrowRight className="w-3.5 h-3.5" />
           </Link>
           <div>
             <button
               onClick={() => logout()}
-              className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-400 transition-colors"
             >
               <LogOut className="w-3.5 h-3.5" /> Cerrar sesión
             </button>

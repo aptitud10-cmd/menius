@@ -68,7 +68,7 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
       {!showForm && (
         <button
           onClick={() => setShowForm(true)}
-          className="mb-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors"
+          className="mb-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500 text-white text-sm font-medium hover:bg-purple-600 transition-colors"
         >
           <Plus className="w-4 h-4" /> Nueva categoría
         </button>
@@ -76,14 +76,14 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
 
       {/* Form */}
       {showForm && (
-        <div className="mb-4 bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+        <div className="mb-4 bg-[#0a0a0a] rounded-xl border border-white/[0.08] p-4 space-y-3">
           {error && <p className="text-sm text-red-500">{error}</p>}
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nombre de la categoría"
-            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500"
             autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
           />
@@ -91,11 +91,11 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
             <button
               onClick={handleSubmit}
               disabled={isPending}
-              className="px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50"
+              className="px-4 py-2 rounded-xl bg-purple-500 text-white text-sm font-medium hover:bg-purple-600 disabled:opacity-50"
             >
               {editingId ? 'Guardar' : 'Crear'}
             </button>
-            <button onClick={resetForm} className="px-4 py-2 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200">
+            <button onClick={resetForm} className="px-4 py-2 rounded-xl bg-white/[0.06] text-gray-400 text-sm font-medium hover:bg-white/[0.08]">
               Cancelar
             </button>
           </div>
@@ -111,23 +111,23 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
       ) : (
         <div className="space-y-2">
           {categories.map((cat) => (
-            <div key={cat.id} className="flex items-center justify-between bg-white rounded-xl border border-gray-100 px-4 py-3">
+            <div key={cat.id} className="flex items-center justify-between bg-[#0a0a0a] rounded-xl border border-white/[0.06] px-4 py-3">
               <div className="flex items-center gap-3">
-                <span className={`text-sm font-medium ${cat.is_active ? 'text-gray-900' : 'text-gray-400 line-through'}`}>
+                <span className={`text-sm font-medium ${cat.is_active ? 'text-white' : 'text-gray-400 line-through'}`}>
                   {cat.name}
                 </span>
                 {!cat.is_active && (
-                  <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">Inactiva</span>
+                  <span className="text-xs bg-white/[0.06] text-gray-500 px-2 py-0.5 rounded">Inactiva</span>
                 )}
               </div>
               <div className="flex items-center gap-1">
-                <button onClick={() => handleToggle(cat)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+                <button onClick={() => handleToggle(cat)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-gray-400">
                   {cat.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                 </button>
-                <button onClick={() => handleEdit(cat)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+                <button onClick={() => handleEdit(cat)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-gray-400">
                   <Pencil className="w-4 h-4" />
                 </button>
-                <button onClick={() => handleDelete(cat.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500">
+                <button onClick={() => handleDelete(cat.id)} className="p-1.5 rounded-lg hover:bg-red-500/[0.08] text-gray-400 hover:text-red-500">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>

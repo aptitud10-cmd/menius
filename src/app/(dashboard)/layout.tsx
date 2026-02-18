@@ -31,28 +31,28 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .slice(0, 2);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-[#050505] flex">
       {/* Sidebar */}
-      <aside className="hidden md:flex flex-col w-60 bg-white border-r border-gray-100 sticky top-0 h-screen">
+      <aside className="hidden md:flex flex-col w-60 bg-[#0a0a0a] border-r border-white/[0.06] sticky top-0 h-screen">
         <div className="p-4 pb-2">
-          <Link href="/app" className="text-lg font-bold tracking-tight font-heading">
-            <span className="text-brand-600">MEN</span>IUS
+          <Link href="/app" className="text-lg font-bold tracking-tight font-heading text-white">
+            MENIUS
           </Link>
-          <p className="text-xs text-gray-400 mt-1 truncate">{restaurant?.name ?? 'Mi Restaurante'}</p>
+          <p className="text-xs text-gray-600 mt-1 truncate">{restaurant?.name ?? 'Mi Restaurante'}</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-2 sidebar-scroll">
+        <div className="flex-1 overflow-y-auto px-3 py-2 scrollbar-hide">
           <DashboardNav slug={restaurant?.slug ?? ''} />
         </div>
 
-        <div className="p-4 pt-2 border-t border-gray-100">
+        <div className="p-4 pt-2 border-t border-white/[0.06]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-brand-100 text-brand-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-purple-500/[0.15] text-purple-400 flex items-center justify-center text-xs font-bold flex-shrink-0">
               {initials}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-medium text-gray-700 truncate">{profile.full_name || 'Sin nombre'}</p>
-              <p className="text-[10px] text-gray-400 truncate">{user.email}</p>
+              <p className="text-xs font-medium text-gray-300 truncate">{profile.full_name || 'Sin nombre'}</p>
+              <p className="text-[10px] text-gray-600 truncate">{user.email}</p>
             </div>
           </div>
         </div>
@@ -61,9 +61,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile header */}
-        <header className="md:hidden bg-white border-b border-gray-100 px-4 h-14 flex items-center justify-between sticky top-0 z-30">
-          <Link href="/app" className="text-lg font-bold tracking-tight font-heading">
-            <span className="text-brand-600">MEN</span>IUS
+        <header className="md:hidden bg-[#0a0a0a] border-b border-white/[0.06] px-4 h-14 flex items-center justify-between sticky top-0 z-30">
+          <Link href="/app" className="text-lg font-bold tracking-tight font-heading text-white">
+            MENIUS
           </Link>
           <DashboardNav slug={restaurant?.slug ?? ''} mobile />
         </header>

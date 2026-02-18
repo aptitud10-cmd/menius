@@ -41,27 +41,27 @@ export function TablesManager({ initialTables }: { initialTables: Table[] }) {
       {!showForm && (
         <button
           onClick={() => setShowForm(true)}
-          className="mb-6 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors shadow-sm"
+          className="mb-6 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-500 text-white text-sm font-medium hover:bg-purple-600 transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" /> Nueva mesa
         </button>
       )}
 
       {showForm && (
-        <div className="mb-6 bg-white rounded-2xl border border-gray-200 p-5 space-y-4 shadow-sm">
-          <h3 className="font-semibold text-sm">Crear nueva mesa</h3>
-          {error && <p className="text-sm text-red-500">{error}</p>}
+        <div className="mb-6 bg-[#0a0a0a] rounded-2xl border border-white/[0.08] p-5 space-y-4">
+          <h3 className="font-semibold text-sm text-white">Crear nueva mesa</h3>
+          {error && <p className="text-sm text-red-400">{error}</p>}
           <input
             type="text" value={name} onChange={(e) => setName(e.target.value)}
             placeholder="Ej: Mesa 1, Barra 1, Terraza A" autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
+            className="w-full px-4 py-3 rounded-xl border border-white/[0.08] text-sm bg-white/[0.04] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30 transition-all"
           />
           <div className="flex gap-2">
-            <button onClick={handleSubmit} disabled={isPending} className="px-5 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition-colors">
+            <button onClick={handleSubmit} disabled={isPending} className="px-5 py-2.5 rounded-xl bg-purple-500 text-white text-sm font-medium hover:bg-purple-600 disabled:opacity-50 transition-colors">
               Crear mesa
             </button>
-            <button onClick={() => { setShowForm(false); setError(''); }} className="px-5 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium hover:bg-gray-200 transition-colors">
+            <button onClick={() => { setShowForm(false); setError(''); }} className="px-5 py-2.5 rounded-xl bg-white/[0.06] text-gray-400 text-sm font-medium hover:bg-white/[0.08] transition-colors">
               Cancelar
             </button>
           </div>
@@ -69,9 +69,9 @@ export function TablesManager({ initialTables }: { initialTables: Table[] }) {
       )}
 
       {tables.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-gray-600">
           <QrCode className="w-12 h-12 mx-auto mb-4 opacity-40" />
-          <p className="font-semibold text-gray-500">Sin mesas</p>
+          <p className="font-semibold text-gray-400">Sin mesas</p>
           <p className="text-sm mt-1.5">Crea mesas para generar códigos QR personalizados</p>
         </div>
       ) : (
@@ -207,7 +207,7 @@ function QRTableCard({ table, onDelete }: { table: Table; onDelete: (id: string)
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all overflow-hidden group">
+    <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] hover:border-white/[0.1] transition-all overflow-hidden group">
       {/* Header */}
       <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-4 py-3 flex items-center justify-between">
         <h3 className="font-bold text-white text-sm">{table.name}</h3>
@@ -219,18 +219,18 @@ function QRTableCard({ table, onDelete }: { table: Table; onDelete: (id: string)
 
       {/* QR */}
       <div className="p-5 flex flex-col items-center">
-        <div className="bg-gray-50 rounded-xl p-3 mb-3">
+        <div className="bg-white/[0.04] rounded-xl p-3 mb-3">
           <canvas ref={canvasRef} className="rounded-lg" />
         </div>
         <canvas ref={brandedCanvasRef} className="hidden" />
-        <p className="text-xs text-gray-400 text-center truncate max-w-[200px] mb-4">{table.qr_code_value}</p>
+        <p className="text-xs text-gray-500 text-center truncate max-w-[200px] mb-4">{table.qr_code_value}</p>
 
         {/* Actions */}
         {qrReady && (
           <div className="w-full space-y-2">
             <button
               onClick={downloadBrandedQR}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500 text-white text-sm font-medium hover:bg-purple-600 transition-colors"
             >
               <Download className="w-4 h-4" />
               Descargar QR
@@ -239,21 +239,21 @@ function QRTableCard({ table, onDelete }: { table: Table; onDelete: (id: string)
             <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={printQR}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 text-gray-600 text-xs font-medium hover:bg-gray-100 transition-colors"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] text-gray-400 text-xs font-medium hover:bg-white/[0.06] transition-colors"
               >
                 <Printer className="w-3.5 h-3.5" />
                 Imprimir
               </button>
               <button
                 onClick={shareLink}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 text-gray-600 text-xs font-medium hover:bg-gray-100 transition-colors"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] text-gray-400 text-xs font-medium hover:bg-white/[0.06] transition-colors"
               >
                 <Share2 className="w-3.5 h-3.5" />
                 Compartir
               </button>
               <button
                 onClick={copyLink}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 text-gray-600 text-xs font-medium hover:bg-gray-100 transition-colors"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] text-gray-400 text-xs font-medium hover:bg-white/[0.06] transition-colors"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                 {copied ? '¡Copiado!' : 'Copiar'}
@@ -262,7 +262,7 @@ function QRTableCard({ table, onDelete }: { table: Table; onDelete: (id: string)
 
             <button
               onClick={() => window.open(table.qr_code_value, '_blank')}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-gray-400 text-xs font-medium hover:bg-gray-50 hover:text-gray-600 transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-gray-400 text-xs font-medium hover:bg-white/[0.06] hover:text-gray-300 transition-colors"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               Ver enlace
@@ -272,10 +272,10 @@ function QRTableCard({ table, onDelete }: { table: Table; onDelete: (id: string)
       </div>
 
       {/* Footer - Delete */}
-      <div className="px-4 py-3 border-t border-gray-50">
+      <div className="px-4 py-3 border-t border-white/[0.04]">
         <button
           onClick={() => onDelete(table.id)}
-          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-red-500 text-xs font-medium hover:bg-red-50 transition-colors"
+          className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-red-400 text-xs font-medium hover:bg-red-500/[0.08] transition-colors"
         >
           <Trash2 className="w-3.5 h-3.5" />
           Eliminar mesa
