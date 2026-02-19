@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { PublicMenuClient } from '@/components/public/PublicMenuClient';
 import { MenuShell } from '@/components/public/MenuShell';
 import { fetchMenuData } from './menu-data';
 import { demoRestaurant, demoCategories, demoProducts } from '@/lib/demo-data';
@@ -83,19 +82,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function PublicMenuPage({ params, searchParams }: PageProps) {
-  // Demo slugs — use legacy PublicMenuClient for full demo experience
+  // Demo slugs — also use new MenuShell
   const demoConfig = DEMO_SLUGS[params.slug];
   if (demoConfig) {
     return (
       <>
         <JsonLdScript restaurant={demoConfig.restaurant} slug={params.slug} />
-        <PublicMenuClient
+        <MenuShell
           restaurant={demoConfig.restaurant}
           categories={demoConfig.categories}
           products={demoConfig.products}
           tableName={searchParams.table ?? null}
           locale={demoConfig.locale}
-          isDemo
         />
       </>
     );
