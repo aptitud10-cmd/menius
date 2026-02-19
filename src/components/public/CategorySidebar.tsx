@@ -12,6 +12,22 @@ interface CategorySidebarProps {
   allLabel: string;
 }
 
+const CATEGORY_ICONS: Record<string, string> = {
+  desayunos: '🍳', breakfast: '🍳',
+  almuerzos: '🥘', lunch: '🥘',
+  cenas: '🍽️', dinner: '🍽️',
+  aperitivos: '🥗', appetizer: '🥗', entradas: '🥗',
+  bebidas: '🥤', beverage: '🥤',
+  licores: '🍷', drinks: '🍷',
+  tortas: '🍰', desserts: '🍰', postres: '🍰',
+  platos: '🍖',
+};
+
+function getCategoryIcon(name: string): string {
+  const key = name.toLowerCase().split(' ')[0];
+  return CATEGORY_ICONS[key] ?? '📋';
+}
+
 export const CategorySidebar = memo(function CategorySidebar({
   categories,
   products,
@@ -20,50 +36,59 @@ export const CategorySidebar = memo(function CategorySidebar({
   allLabel,
 }: CategorySidebarProps) {
   return (
-    <nav className="py-6 pr-4">
-      <div className="space-y-0.5">
-        <button
-          onClick={() => onSelect(null)}
-          className={cn(
-            'w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-colors duration-150',
-            activeCategory === null
-              ? 'bg-gray-900 text-white font-semibold'
-              : 'text-gray-600 hover:bg-gray-50'
-          )}
-        >
-          <span>{allLabel}</span>
-          <span className={cn(
-            'text-xs tabular-nums',
-            activeCategory === null ? 'text-gray-400' : 'text-gray-300'
-          )}>
-            {products.length}
-          </span>
-        </button>
+    <nav className="py-5 pr-3">
+      <p className="px-3 mb-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Menú</p>
 
+      <div className="space-y-0.5">
         {categories.map((cat) => {
           const count = products.filter((p) => p.category_id === cat.id).length;
           if (count === 0) return null;
+          const isActive = activeCategory === cat.id;
           return (
             <button
               key={cat.id}
               onClick={() => onSelect(cat.id)}
               className={cn(
-                'w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-colors duration-150',
-                activeCategory === cat.id
-                  ? 'bg-gray-900 text-white font-semibold'
+                'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 relative',
+                isActive
+                  ? 'bg-emerald-50 text-emerald-700 font-semibold'
                   : 'text-gray-600 hover:bg-gray-50'
               )}
             >
-              <span className="truncate">{cat.name}</span>
+              {isActive && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald-500" />
+              )}
+              <span className="text-base">{getCategoryIcon(cat.name)}</span>
+              <span className="truncate flex-1 text-left">{cat.name}</span>
               <span className={cn(
-                'text-xs tabular-nums flex-shrink-0 ml-2',
-                activeCategory === cat.id ? 'text-gray-400' : 'text-gray-300'
+                'text-xs tabular-nums flex-shrink-0',
+                isActive ? 'text-emerald-500' : 'text-gray-300'
               )}>
                 {count}
               </span>
             </button>
           );
         })}
+      </div>
+
+      <div className="mt-6 px-3">
+        <div className="h-px bg-gray-100 mb-4" />
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Filtros</p>
+        <button
+          onClick={() => onSelect(null)}
+          className={cn(
+            'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all duration-150',
+            activeCategory === null
+              ? 'bg-emerald-50 text-emerald-700 font-semibold'
+              : 'text-gray-600 hover:bg-gray-50'
+          )}
+        >
+          <span className="text-base">📋</span>
+          <span className="flex-1 text-left">{allLabel}</span>
+          <span className={cn('text-xs tabular-nums', activeCategory === null ? 'text-emerald-500' : 'text-gray-300')}>
+            {products.length}
+          </span>
+        </button>
       </div>
     </nav>
   );

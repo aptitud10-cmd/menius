@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice, cn } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
@@ -128,8 +128,8 @@ export function MenuShell({
         className={cn(
           'flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap',
           activeCategory === null
-            ? 'bg-gray-900 text-white'
-            : 'bg-gray-100 text-gray-500'
+            ? 'bg-emerald-500 text-white'
+            : 'bg-gray-100 text-gray-600'
         )}
       >
         {t.allCategories}
@@ -141,8 +141,8 @@ export function MenuShell({
           className={cn(
             'flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap',
             activeCategory === cat.id
-              ? 'bg-gray-900 text-white'
-              : 'bg-gray-100 text-gray-500'
+              ? 'bg-emerald-500 text-white'
+              : 'bg-gray-100 text-gray-600'
           )}
         >
           {cat.name}
@@ -185,9 +185,44 @@ export function MenuShell({
 
           {/* Center: Products grid */}
           <main className={cn(
-            'flex-1 min-w-0 px-4 lg:px-6 py-6',
+            'flex-1 min-w-0 px-4 lg:px-6 py-5',
             'lg:pb-6 pb-28'
           )}>
+            {/* Restaurant info + category tabs (desktop) */}
+            <div className="hidden lg:block mb-5">
+              <h2 className="text-xl font-bold text-gray-900">{restaurant.name}</h2>
+              {restaurant.description && (
+                <p className="text-sm text-gray-400 mt-0.5">{restaurant.description}</p>
+              )}
+              <div className="flex items-center gap-1 mt-4 border-b border-gray-100">
+                <button
+                  onClick={() => handleCategorySelect(null)}
+                  className={cn(
+                    'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px',
+                    activeCategory === null
+                      ? 'border-emerald-500 text-emerald-600'
+                      : 'border-transparent text-gray-400 hover:text-gray-600'
+                  )}
+                >
+                  {t.allCategories}
+                </button>
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategorySelect(cat.id)}
+                    className={cn(
+                      'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px',
+                      activeCategory === cat.id
+                        ? 'border-emerald-500 text-emerald-600'
+                        : 'border-transparent text-gray-400 hover:text-gray-600'
+                    )}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Filter pills */}
             <div className="flex gap-2 mb-5 overflow-x-auto scrollbar-hide">
               {([
@@ -201,8 +236,8 @@ export function MenuShell({
                   className={cn(
                     'flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap border',
                     activeFilter === key
-                      ? 'bg-gray-900 text-white border-gray-900'
-                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                      ? 'bg-emerald-500 text-white border-emerald-500'
+                      : 'bg-white text-gray-500 border-gray-200 hover:border-emerald-300'
                   )}
                 >
                   {label}
@@ -288,12 +323,12 @@ export function MenuShell({
             <div className="max-w-lg mx-auto pointer-events-auto">
               <button
                 onClick={() => setOpen(true)}
-                className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl bg-gray-900 text-white shadow-[0_4px_20px_rgba(0,0,0,0.15)] active:scale-[0.98] transition-all duration-150"
+                className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl bg-emerald-500 text-white shadow-[0_4px_20px_rgba(16,185,129,0.3)] active:scale-[0.98] transition-all duration-150"
               >
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <ShoppingBag className="w-5 h-5" />
-                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-white text-gray-900 text-[10px] font-bold">
+                    <ShoppingCart className="w-5 h-5" />
+                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-white text-emerald-600 text-[10px] font-bold">
                       {totalItems()}
                     </span>
                   </div>

@@ -48,38 +48,40 @@ export const ProductCard = memo(function ProductCard({
   return (
     <div
       onClick={handleClick}
-      className="group relative bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200"
+      className="group relative bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md hover:border-gray-200 transition-all duration-200"
     >
+      {/* Image — 4:3 aspect */}
       {showImage ? (
-        <div className="relative w-full aspect-video bg-gray-100 overflow-hidden">
+        <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
           <Image
             src={product.image_url}
             alt={product.name}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1280px) 33vw, 300px"
-            className="object-cover"
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
             onError={() => setImgError(true)}
           />
           {product.is_featured && (
-            <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/90 text-white text-[10px] font-bold">
+            <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold shadow-sm">
               <Flame className="w-3 h-3" /> {popularLabel}
             </span>
           )}
         </div>
       ) : (
-        <div className="relative w-full aspect-video bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-          <UtensilsCrossed className="w-8 h-8 text-gray-200" />
+        <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+          <UtensilsCrossed className="w-10 h-10 text-gray-200" />
           {product.is_featured && (
-            <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/90 text-white text-[10px] font-bold">
+            <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold">
               <Flame className="w-3 h-3" /> {popularLabel}
             </span>
           )}
         </div>
       )}
 
-      <div className="p-3">
+      <div className="p-3.5">
+        {/* Name + Price */}
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-[15px] text-gray-900 line-clamp-1 leading-snug">
+          <h3 className="font-bold text-sm text-gray-900 line-clamp-1 leading-snug">
             {product.name}
           </h3>
           <span className="text-sm font-bold text-gray-900 flex-shrink-0 tabular-nums">
@@ -88,37 +90,39 @@ export const ProductCard = memo(function ProductCard({
         </div>
 
         {product.description && (
-          <p className="text-xs text-gray-400 line-clamp-1 mt-1">{product.description}</p>
+          <p className="text-xs text-gray-400 line-clamp-2 mt-1 leading-relaxed">{product.description}</p>
         )}
 
         {/* Inline variant pills */}
         {hasVariants && (
-          <div className="flex items-center gap-1.5 mt-2 overflow-hidden">
-            {product.variants!.slice(0, 3).map((v) => (
-              <span key={v.id} className="flex-shrink-0 px-2 py-0.5 rounded-md bg-gray-100 text-[10px] font-medium text-gray-500">
+          <div className="flex items-center gap-1 mt-2.5 flex-wrap">
+            <span className="text-[10px] text-gray-400 mr-0.5">Sizes:</span>
+            {product.variants!.slice(0, 4).map((v) => (
+              <span key={v.id} className="px-2 py-0.5 rounded-md border border-gray-200 bg-white text-[10px] font-medium text-gray-600 hover:border-emerald-300 hover:text-emerald-600 transition-colors">
                 {v.name}
               </span>
             ))}
-            {product.variants!.length > 3 && (
-              <span className="text-[10px] text-gray-300">+{product.variants!.length - 3}</span>
+            {product.variants!.length > 4 && (
+              <span className="text-[10px] text-gray-300">+{product.variants!.length - 4}</span>
             )}
           </div>
         )}
 
-        {/* Extras count */}
+        {/* Extras indicator */}
         {hasExtras && !hasVariants && (
-          <p className="text-[10px] text-gray-400 mt-1.5">
-            +{product.extras!.length} extras
+          <p className="text-[10px] text-gray-400 mt-2">
+            +{product.extras!.length} extras disponibles
           </p>
         )}
 
-        <div className="flex items-center justify-between mt-2.5">
+        {/* Actions */}
+        <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-50">
           {hasModifiers ? (
             <button
               onClick={handleAddClick}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 text-xs font-semibold hover:bg-gray-200 active:scale-95 transition-all duration-150"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-500 text-xs font-medium hover:bg-gray-50 transition-colors"
             >
-              <Settings2 className="w-3 h-3" />
+              <Settings2 className="w-3.5 h-3.5" />
               {customizeLabel}
             </button>
           ) : (
@@ -126,9 +130,9 @@ export const ProductCard = memo(function ProductCard({
           )}
           <button
             onClick={handleAddClick}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gray-900 text-white text-xs font-semibold hover:bg-gray-800 active:scale-95 transition-all duration-150"
+            className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 active:scale-95 transition-all duration-150"
           >
-            <Plus className="w-3 h-3" />
+            <Plus className="w-3.5 h-3.5" />
             {addLabel}
           </button>
         </div>
