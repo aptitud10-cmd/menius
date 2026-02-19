@@ -1,323 +1,482 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
+import { FadeIn, LazyMotion, domAnimation } from './Animations';
 
-/* ══════════════════════════════════════════════════
-   IMPACT
-   ══════════════════════════════════════════════════ */
+/* ─── DATA ─── */
 
-function ImpactSection() {
+const features = [
+  {
+    tab: 'Menú Digital',
+    title: 'Menú con QR y pedidos directos',
+    desc: 'Tus clientes escanean el QR, ven el menú con fotos y precios, y ordenan desde su celular. Sin descargar apps.',
+    details: ['QR elegantes por mesa, listos para imprimir', 'Fotos generadas con IA', 'Pedidos dine-in, pickup y delivery', 'Variantes, extras y teléfono con código de área'],
+    icon: (
+      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5z" />
+      </svg>
+    ),
+    gradient: 'from-purple-500/20 to-blue-500/20',
+    accent: 'purple',
+    visualItems: [
+      { label: 'Escanea QR', value: 'Mesa 5' },
+      { label: 'Hamburguesa Clásica', value: '$14.99' },
+      { label: 'Limonada Fresca', value: '$4.00' },
+      { label: 'Total del pedido', value: '$18.99' },
+    ],
+  },
+  {
+    tab: 'Dashboard',
+    title: 'Gestiona todo desde un solo lugar',
+    desc: 'Pedidos en tiempo real, cocina KDS en pantalla dedicada, analytics de ventas, notificaciones WhatsApp, editor de menú y gestión de equipo.',
+    details: ['Pedidos en tiempo real + Cocina KDS', 'Analytics y reportes avanzados', 'Notificaciones WhatsApp y email', 'Google Maps integrado en tu tienda'],
+    icon: (
+      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      </svg>
+    ),
+    gradient: 'from-blue-500/20 to-cyan-500/20',
+    accent: 'blue',
+    visualItems: [
+      { label: 'Órdenes hoy', value: '47' },
+      { label: 'Ventas hoy', value: '$1,240' },
+      { label: 'Productos activos', value: '38' },
+      { label: 'Mesas activas', value: '12' },
+    ],
+  },
+  {
+    tab: 'Pagos',
+    title: 'Cobra online sin complicaciones',
+    desc: 'Acepta pagos con tarjeta vía Stripe. También efectivo y otros métodos. El dinero va directo a tu cuenta.',
+    details: ['Stripe integrado', 'Pagos en efectivo', 'Propinas opcionales', 'Historial de transacciones'],
+    icon: (
+      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+      </svg>
+    ),
+    gradient: 'from-emerald-500/20 to-green-500/20',
+    accent: 'emerald',
+    visualItems: [
+      { label: 'Pago recibido', value: '$45.80' },
+      { label: 'Propina (18%)', value: '$8.24' },
+      { label: 'Método', value: 'Visa •4242' },
+      { label: 'Estado', value: '✓ Exitoso' },
+    ],
+  },
+  {
+    tab: 'IA',
+    title: 'Tu asistente inteligente con IA',
+    desc: 'MENIUS AI es tu consultor de negocio 24/7. Pregúntale sobre ventas, clientes, estrategias, y te guía paso a paso en todo el dashboard. Además, genera fotos e importa menús con OCR.',
+    details: ['Asistente IA en el dashboard (MENIUS AI)', 'Fotos de platillos generadas con IA', 'Importar menú desde foto (OCR)', 'Análisis y sugerencias de negocio'],
+    icon: (
+      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+      </svg>
+    ),
+    gradient: 'from-amber-500/20 to-orange-500/20',
+    accent: 'amber',
+    visualItems: [
+      { label: 'MENIUS AI', value: 'Online 24/7' },
+      { label: '¿Cuánto vendí hoy?', value: '$1,240' },
+      { label: 'Producto estrella', value: 'Tacos' },
+      { label: 'Menú importado con OCR', value: '38 items' },
+    ],
+  },
+];
+
+const accentColors: Record<string, { bg: string; text: string; border: string; glow: string }> = {
+  purple: { bg: 'bg-purple-500/[0.08]', text: 'text-purple-400', border: 'border-purple-500/20', glow: 'bg-purple-500/20' },
+  blue: { bg: 'bg-blue-500/[0.08]', text: 'text-blue-400', border: 'border-blue-500/20', glow: 'bg-blue-500/20' },
+  emerald: { bg: 'bg-emerald-500/[0.08]', text: 'text-emerald-400', border: 'border-emerald-500/20', glow: 'bg-emerald-500/20' },
+  amber: { bg: 'bg-amber-500/[0.08]', text: 'text-amber-400', border: 'border-amber-500/20', glow: 'bg-amber-500/20' },
+};
+
+const plans = [
+  {
+    name: 'Starter',
+    price: 39,
+    desc: 'Para restaurantes que inician.',
+    popular: false,
+    features: ['Menú digital con fotos', 'QR elegantes hasta 10 mesas', 'Pedidos (dine-in + pickup)', 'MENIUS AI (asistente IA)', 'Imágenes IA (5/mes)', 'Google Maps integrado', 'Login con Google', 'Soporte por email'],
+    cta: 'Empezar gratis',
+  },
+  {
+    name: 'Pro',
+    price: 79,
+    desc: 'Para restaurantes que quieren crecer.',
+    popular: true,
+    features: ['Todo de Starter', '200 productos, 50 mesas', 'Delivery + WhatsApp + email', 'Cocina KDS en tiempo real', 'Analytics avanzado', 'Promociones y cupones', 'Imágenes IA (50/mes)', 'Sin marca MENIUS'],
+    cta: 'Empezar con Pro',
+  },
+  {
+    name: 'Business',
+    price: 149,
+    desc: 'Para cadenas y franquicias.',
+    popular: false,
+    features: ['Todo de Pro', 'Productos y mesas ilimitados', 'IA ilimitada', 'Dominio personalizado', 'Onboarding dedicado', 'Soporte dedicado por WhatsApp'],
+    cta: 'Empezar con Business',
+  },
+];
+
+const testimonials = [
+  {
+    quote: 'Desde que usamos MENIUS, nuestros pedidos aumentaron un 40%. Los clientes aman pedir desde su celular.',
+    name: 'María González',
+    role: 'Dueña de La Cocina de María',
+  },
+  {
+    quote: 'Dejamos UberEats y ahorramos $2,800 al mes en comisiones. MENIUS se pagó solo en la primera semana.',
+    name: 'Carlos Rivera',
+    role: 'Fundador de Taquería El Patrón',
+  },
+  {
+    quote: 'MENIUS AI es como tener un consultor 24/7. Le pregunto cuánto vendí y me da sugerencias para vender más. Increíble.',
+    name: 'Ana Martínez',
+    role: 'Gerente de Sabor Urbano',
+  },
+  {
+    quote: 'La cocina recibe las órdenes al instante en la pantalla KDS. Ya no se pierden pedidos. El asistente IA nos ayudó a optimizar el menú.',
+    name: 'Roberto Díaz',
+    role: 'Chef & Propietario de Fuego Lento',
+  },
+];
+
+const comparison = [
+  ['Comisión por pedido', '0%', '15% – 30%'],
+  ['Control de clientes', 'Tus datos', 'La app se los queda'],
+  ['Tu marca', 'Dominio propio', 'Junto a la competencia'],
+  ['Asistente IA', 'Incluido (MENIUS AI)', 'No disponible'],
+  ['Fotos del menú', 'IA genera fotos', 'Tú las subes'],
+  ['WhatsApp + email', 'Integrado', 'No disponible'],
+  ['Google Maps', 'Integrado', 'No disponible'],
+  ['Costo mensual', 'Desde $39/mes', 'Gratis (pero 30% por pedido)'],
+];
+
+/* ─── COMPONENTS ─── */
+
+function FeatureTabs() {
+  const [active, setActive] = useState(0);
+  const f = features[active];
+  const colors = accentColors[f.accent];
+
   return (
-    <section className="relative py-16 md:py-24 bg-[#050505]">
-      <div className="max-w-[1140px] mx-auto px-5 text-center">
-        <p className="text-5xl md:text-7xl font-bold text-white tracking-tight">30%</p>
-        <p className="text-lg md:text-xl text-gray-400 mt-2">No es crecimiento.</p>
-
-        <div className="my-8 flex justify-center">
-          <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" /></svg>
-        </div>
-
-        <p className="text-5xl md:text-7xl font-bold text-emerald-400 tracking-tight">0%</p>
-        <p className="text-lg md:text-xl text-gray-400 mt-2">Es control.</p>
-
-        <p className="text-sm text-gray-500 mt-8 max-w-md mx-auto">
-          Deja de pagar comisiones por cada pedido. Tus clientes, tus datos, tu dinero.
-        </p>
+    <div>
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-1 p-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.06] w-fit mx-auto mb-10 md:mb-14">
+        {features.map((feat, i) => (
+          <button
+            key={feat.tab}
+            onClick={() => setActive(i)}
+            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+              active === i
+                ? 'bg-white text-black shadow-lg shadow-white/10'
+                : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.03]'
+            }`}
+          >
+            {feat.tab}
+          </button>
+        ))}
       </div>
-    </section>
-  );
-}
 
-/* ══════════════════════════════════════════════════
-   HOW IT WORKS
-   ══════════════════════════════════════════════════ */
-
-function HowItWorksSection() {
-  const steps = [
-    { num: '1', icon: '📱', title: 'QR para cada mesa', desc: 'Tu cliente escanea con su celular.' },
-    { num: '2', icon: '🛒', title: 'Pide desde el menú', desc: 'Elige, personaliza y ordena.' },
-    { num: '3', icon: '🍳', title: 'Cocina recibe al instante', desc: 'Pedido directo a pantalla KDS.' },
-  ];
-
-  return (
-    <section id="producto" className="relative py-16 md:py-24 bg-[#0a0a0a]">
-      <div className="max-w-[1140px] mx-auto px-5">
-        <div className="text-center mb-12 md:mb-16">
-          <h2 className="text-[1.75rem] md:text-4xl font-bold text-white tracking-tight">
-            Escanea. Pide. Listo.
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-          {steps.map((s) => (
-            <div key={s.num} className="relative p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-center">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">{s.icon}</span>
+      {/* Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+        <div>
+          <h3 className="text-2xl md:text-4xl font-semibold text-white leading-tight tracking-tight">
+            {f.title}
+          </h3>
+          <p className="mt-4 md:mt-6 text-base md:text-lg text-gray-200 md:text-gray-300 leading-relaxed font-light">
+            {f.desc}
+          </p>
+          <div className="mt-7 md:mt-10 space-y-3.5 md:space-y-4">
+            {f.details.map((d) => (
+              <div key={d} className="flex items-center gap-3">
+                <div className={`w-6 h-6 rounded-lg ${colors.bg} border ${colors.border} flex items-center justify-center flex-shrink-0`}>
+                  <svg className={`w-3.5 h-3.5 ${colors.text}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                </div>
+                <span className="text-sm md:text-[15px] text-gray-200 md:text-gray-300">{d}</span>
               </div>
-              <h3 className="text-base font-semibold text-white mb-1.5">{s.title}</h3>
-              <p className="text-sm text-gray-500">{s.desc}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-10 md:mt-14 flex items-center justify-center gap-6 text-xs text-gray-500">
-          <span className="flex items-center gap-1.5">
-            <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
-            Rápido
-          </span>
-          <span className="flex items-center gap-1.5">
-            <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
-            Moderno
-          </span>
-          <span className="flex items-center gap-1.5">
-            <svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-            Confiable
-          </span>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ══════════════════════════════════════════════════
-   COMPARISON CARDS
-   ══════════════════════════════════════════════════ */
-
-function ComparisonSection() {
-  return (
-    <section className="relative py-16 md:py-24 bg-[#050505]">
-      <div className="max-w-[600px] mx-auto px-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-6 rounded-2xl border border-red-500/20 bg-red-500/[0.04]">
-            <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-3">Apps de delivery</p>
-            <p className="text-xl font-bold text-white mb-2">15–30% por pedido</p>
-            <p className="text-sm text-gray-500">La app se queda con tus clientes y tus datos.</p>
+            ))}
           </div>
-          <div className="p-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.06]">
-            <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-3">MENIUS</p>
-            <p className="text-xl font-bold text-white mb-2">0% comisiones</p>
-            <p className="text-sm text-gray-500">Tu marca, tus datos, tus clientes. Siempre.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ══════════════════════════════════════════════════
-   FEATURES GRID
-   ══════════════════════════════════════════════════ */
-
-function FeaturesSection() {
-  const features = [
-    { icon: '📋', title: 'Pedidos directos', desc: 'Dine-in, pickup y delivery sin intermediarios.' },
-    { icon: '💳', title: 'Pagos integrados', desc: 'Stripe, efectivo o pago en mesa.' },
-    { icon: '🍳', title: 'Cocina en tiempo real', desc: 'Pantalla KDS para tu equipo de cocina.' },
-    { icon: '🤖', title: 'IA integrada', desc: 'Asistente que ayuda a vender más.' },
-  ];
-
-  return (
-    <section className="relative py-16 md:py-24 bg-[#0a0a0a]">
-      <div className="max-w-[1140px] mx-auto px-5">
-        <div className="text-center mb-10 md:mb-14">
-          <h2 className="text-[1.75rem] md:text-4xl font-bold text-white tracking-tight">
-            Hecho para restaurantes modernos
-          </h2>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {features.map((f) => (
-            <div key={f.title} className="p-5 md:p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06] text-center">
-              <span className="text-2xl md:text-3xl block mb-3">{f.icon}</span>
-              <h3 className="text-sm md:text-base font-semibold text-white mb-1">{f.title}</h3>
-              <p className="text-xs md:text-sm text-gray-500 leading-relaxed">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ══════════════════════════════════════════════════
-   PRICING
-   ══════════════════════════════════════════════════ */
-
-function PricingSection() {
-  const plans = [
-    {
-      name: 'Starter',
-      price: 39,
-      desc: 'Para empezar a digitalizar tu menú.',
-      features: ['Menú QR', 'Pedidos directos', 'Hasta 50 productos'],
-      popular: false,
-    },
-    {
-      name: 'Pro',
-      price: 79,
-      desc: 'Todo lo que necesitas para crecer.',
-      features: ['Todo de Starter', 'Asistente IA', '0% comisiones', '200 productos', 'Analytics'],
-      popular: true,
-    },
-    {
-      name: 'Business',
-      price: 149,
-      desc: 'Para operaciones avanzadas.',
-      features: ['Todo de Pro', 'Productos ilimitados', 'Multi-sucursal', 'API access', 'Soporte prioritario'],
-      popular: false,
-    },
-  ];
-
-  return (
-    <section id="precios" className="relative py-16 md:py-24 bg-[#050505]">
-      <div className="max-w-[1140px] mx-auto px-5">
-        <div className="text-center mb-10 md:mb-14">
-          <h2 className="text-[1.75rem] md:text-4xl font-bold text-white tracking-tight">
-            Precios simples
-          </h2>
-          <p className="text-sm text-gray-500 mt-3">14 días gratis. Sin tarjeta.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-[900px] mx-auto">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative p-6 rounded-2xl border ${
-                plan.popular
-                  ? 'border-emerald-500/40 bg-emerald-500/[0.06]'
-                  : 'border-white/[0.06] bg-white/[0.02]'
-              }`}
-            >
-              {plan.popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider">
-                  Popular
-                </span>
-              )}
-              <p className="text-sm font-semibold text-gray-400">{plan.name}</p>
-              <div className="mt-3 flex items-baseline gap-1">
-                <span className="text-4xl font-bold text-white">${plan.price}</span>
-                <span className="text-sm text-gray-500">/mes</span>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">{plan.desc}</p>
+        {/* Visual — dynamic card per tab */}
+        <div className="relative flex justify-center">
+          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full ${colors.glow} blur-[80px]`} />
 
-              <ul className="mt-5 space-y-2.5">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm text-gray-400">
-                    <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-
-              <Link
-                href="/signup"
-                className={`block w-full text-center mt-6 py-3 rounded-xl font-semibold text-sm transition-colors ${
-                  plan.popular
-                    ? 'bg-emerald-500 text-white hover:bg-emerald-400'
-                    : 'bg-white/[0.06] text-white hover:bg-white/10'
-                }`}
-              >
-                Empezar gratis
-              </Link>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ══════════════════════════════════════════════════
-   TESTIMONIALS
-   ══════════════════════════════════════════════════ */
-
-function TestimonialsSection() {
-  const testimonials = [
-    { quote: 'Dejamos de pagar $23k al año en comisiones. MENIUS se pagó solo el primer mes.', name: 'Carlos R.', role: 'Taquería El Patrón' },
-    { quote: 'Mis clientes piden desde su celular y la cocina recibe al instante. Cero errores.', name: 'María G.', role: 'La Cocina de María' },
-    { quote: 'El menú QR se ve increíble. Mis clientes creen que es una app propia.', name: 'Roberto S.', role: 'Mariscos Don Beto' },
-  ];
-
-  return (
-    <section className="relative py-16 md:py-24 bg-[#0a0a0a]">
-      <div className="max-w-[1140px] mx-auto px-5">
-        <div className="text-center mb-10 md:mb-14">
-          <h2 className="text-[1.75rem] md:text-4xl font-bold text-white tracking-tight">
-            Restaurantes que confían en MENIUS
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 max-w-[900px] mx-auto">
-          {testimonials.map((t) => (
-            <div key={t.name} className="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-              <div className="flex gap-0.5 mb-4">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <svg key={i} className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                ))}
-              </div>
-              <p className="text-sm text-gray-300 leading-relaxed mb-4">&ldquo;{t.quote}&rdquo;</p>
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                  <span className="text-xs font-bold text-emerald-400">{t.name.charAt(0)}</span>
+          <div className="relative z-10 w-full max-w-[380px]">
+            {/* Icon header */}
+            <div className={`rounded-2xl border ${colors.border} bg-white/[0.02] backdrop-blur-sm overflow-hidden`}>
+              <div className={`px-6 py-5 border-b ${colors.border} flex items-center gap-4`}>
+                <div className={`w-12 h-12 rounded-xl ${colors.bg} border ${colors.border} flex items-center justify-center ${colors.text}`}>
+                  {f.icon}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">{t.name}</p>
-                  <p className="text-xs text-gray-500">{t.role}</p>
+                  <p className="text-sm font-semibold text-white">{f.tab}</p>
+                  <p className="text-xs text-gray-500">MENIUS</p>
+                </div>
+                <div className="ml-auto flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[10px] text-gray-500">Activo</span>
+                </div>
+              </div>
+
+              {/* Data rows */}
+              <div className="divide-y divide-white/[0.04]">
+                {f.visualItems.map((item, i) => (
+                  <div key={i} className="px-6 py-4 flex items-center justify-between">
+                    <span className="text-sm text-gray-500">{item.label}</span>
+                    <span className="text-sm font-medium text-white">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              <div className={`px-6 py-4 border-t ${colors.border} bg-white/[0.01]`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-600">Actualizado en tiempo real</span>
+                  <div className={`px-3 py-1 rounded-full text-[10px] font-semibold ${colors.bg} ${colors.text} border ${colors.border}`}>
+                    En vivo
+                  </div>
                 </div>
               </div>
             </div>
-          ))}
+          </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }
 
-/* ══════════════════════════════════════════════════
-   CTA FINAL
-   ══════════════════════════════════════════════════ */
-
-function CTASection() {
-  return (
-    <section className="relative py-20 md:py-28 bg-[#050505]">
-      <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/[0.05] to-transparent" />
-      <div className="relative z-10 max-w-[1140px] mx-auto px-5 text-center">
-        <h2 className="text-[1.75rem] md:text-5xl font-bold text-white tracking-tight">
-          Tu menú digital.
-          <br />
-          Disponible hoy.
-        </h2>
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 px-4 sm:px-0">
-          <Link
-            href="/signup"
-            className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-emerald-500 text-white font-semibold text-[15px] hover:bg-emerald-400 active:scale-[0.98] transition-all text-center"
-          >
-            Empezar gratis
-          </Link>
-          <Link
-            href="/r/demo"
-            className="w-full sm:w-auto px-8 py-3.5 rounded-xl border border-white/10 text-gray-300 font-semibold text-[15px] hover:text-white hover:border-white/20 transition-all text-center"
-          >
-            Ver demo en vivo
-          </Link>
-        </div>
-        <p className="mt-5 text-xs text-gray-500">14 días gratis · Sin tarjeta de crédito</p>
-      </div>
-    </section>
-  );
-}
-
-/* ══════════════════════════════════════════════════
-   EXPORT ALL
-   ══════════════════════════════════════════════════ */
+/* ─── MAIN ─── */
 
 export function LandingSections() {
   return (
-    <>
-      <ImpactSection />
-      <HowItWorksSection />
-      <ComparisonSection />
-      <FeaturesSection />
-      <PricingSection />
-      <TestimonialsSection />
-      <CTASection />
-    </>
+    <LazyMotion features={domAnimation}>
+      {/* ── Features with Tabs ── */}
+      <section id="funciones" className="relative py-20 md:py-40 overflow-hidden">
+        <div className="section-glow section-glow-purple" />
+
+        <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">
+          <FadeIn className="text-center mb-8">
+            <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Funciones</p>
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+              Todo bajo control
+            </h2>
+            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-base md:text-lg max-w-lg mx-auto font-light">
+              Las herramientas que necesitas para digitalizar tu restaurante.
+            </p>
+          </FadeIn>
+
+          <FadeIn delay={0.15}>
+            <FeatureTabs />
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* Separator */}
+      <div className="separator-gradient max-w-5xl mx-auto" />
+
+      {/* ── Comparison ── */}
+      <section className="relative py-20 md:py-40 overflow-hidden">
+        <div className="section-glow section-glow-teal" />
+
+        <div className="relative z-10 max-w-4xl mx-auto px-5 sm:px-6">
+          <FadeIn className="text-center mb-10 md:mb-14">
+            <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Sin intermediarios</p>
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+              MENIUS vs Apps de Delivery
+            </h2>
+            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-base md:text-lg max-w-lg mx-auto font-light">
+              Las apps cobran hasta 30% por pedido. Con MENIUS, tarifa fija y tus ventas son tuyas.
+            </p>
+          </FadeIn>
+
+          <FadeIn delay={0.1}>
+            <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02] overflow-x-auto">
+              <div className="min-w-[480px]">
+                <div className="grid grid-cols-3">
+                  <div className="p-4 sm:p-5 border-b border-white/[0.06]" />
+                  <div className="p-4 sm:p-5 text-center border-b border-white/[0.06] bg-purple-500/[0.06]">
+                    <span className="text-sm font-semibold text-white">MENIUS</span>
+                  </div>
+                  <div className="p-4 sm:p-5 text-center border-b border-white/[0.06]">
+                    <span className="text-xs text-gray-400">UberEats, DoorDash, Grubhub</span>
+                  </div>
+                </div>
+
+                {comparison.map(([feature, menius, other], i) => (
+                  <div key={feature} className={`grid grid-cols-3 ${i < comparison.length - 1 ? 'border-b border-white/[0.04]' : ''}`}>
+                    <div className="px-4 sm:px-6 py-3 sm:py-4">
+                      <p className="text-xs sm:text-sm text-gray-400">{feature}</p>
+                    </div>
+                    <div className="px-4 sm:px-6 py-3 sm:py-4 text-center bg-purple-500/[0.03]">
+                      <p className="text-xs sm:text-sm font-medium text-white">{menius}</p>
+                    </div>
+                    <div className="px-4 sm:px-6 py-3 sm:py-4 text-center">
+                      <p className="text-xs sm:text-sm text-gray-500">{other}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-8 p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+              <p className="text-[15px] text-gray-400 leading-relaxed text-center">
+                <strong className="text-white">Ejemplo:</strong> Un restaurante con $10,000/mes pierde{' '}
+                <strong className="text-red-400">$3,000 en comisiones</strong> con apps. Con MENIUS Pro ($79/mes),
+                ahorra <strong className="text-white">$35,000 al año</strong>.
+              </p>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* Separator */}
+      <div className="separator-gradient max-w-5xl mx-auto" />
+
+      {/* ── Pricing ── */}
+      <section id="precios" className="relative py-20 md:py-40 overflow-hidden">
+        <div className="section-glow section-glow-blue" />
+        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-purple-600/20 blur-[100px] pointer-events-none" />
+
+        <div className="relative z-10 max-w-5xl mx-auto px-5 sm:px-6">
+          <FadeIn className="text-center mb-10 md:mb-14">
+            <p className="text-sm text-blue-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Precios</p>
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+              Sin comisiones. Sin sorpresas.
+            </h2>
+            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-base md:text-lg font-light">14 días gratis. Sin tarjeta. Cancela cuando quieras.</p>
+          </FadeIn>
+
+          <FadeIn delay={0.1}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {plans.map((plan) => (
+                <div
+                  key={plan.name}
+                  className={`relative rounded-2xl p-8 flex flex-col transition-all duration-300 ${
+                    plan.popular
+                      ? 'card-popular-glow bg-white/[0.04] border border-purple-500/20 shimmer-border'
+                      : 'card-gradient-border bg-white/[0.02] rounded-2xl hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {plan.popular && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-5 py-1.5 bg-gradient-to-r from-purple-500 to-blue-500 text-white text-[11px] font-semibold rounded-full uppercase tracking-wider shadow-lg shadow-purple-500/25">
+                      Popular
+                    </span>
+                  )}
+                  <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
+                  <p className="text-sm text-gray-400 mt-1.5">{plan.desc}</p>
+                  <div className="mt-7 mb-8">
+                    <span className="text-5xl font-bold text-white tracking-tight">${plan.price}</span>
+                    <span className="text-sm text-gray-400 ml-1.5">/mes</span>
+                  </div>
+                  <ul className="space-y-3.5 flex-1">
+                    {plan.features.map((feat) => (
+                      <li key={feat} className="flex items-start gap-3">
+                        <svg className="w-4 h-4 text-purple-400/60 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        <span className="text-sm text-gray-400 leading-snug">{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link
+                    href={`/signup?plan=${plan.name.toLowerCase()}`}
+                    className={`mt-8 block text-center py-3.5 rounded-xl font-medium text-[15px] transition-all duration-300 ${
+                      plan.popular
+                        ? 'bg-white text-black hover:bg-gray-100 btn-glow shadow-lg shadow-white/5'
+                        : 'bg-white/[0.06] text-gray-300 border border-white/[0.08] hover:text-white hover:bg-white/[0.1] hover:border-white/[0.15]'
+                    }`}
+                  >
+                    {plan.cta}
+                  </Link>
+                </div>
+              ))}
+            </div>
+
+            <Link
+              href="/setup-profesional"
+              className="mt-6 flex items-center justify-between p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all group"
+            >
+              <span className="text-sm text-gray-400">¿No tienes tiempo? <strong className="text-gray-200">Te lo configuramos</strong> — desde $149</span>
+              <svg className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </Link>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* Separator */}
+      <div className="separator-gradient max-w-5xl mx-auto" />
+
+      {/* ── Testimonials ── */}
+      <section className="relative py-20 md:py-40 overflow-hidden">
+        <div className="section-glow section-glow-purple" />
+
+        <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">
+          <FadeIn className="text-center mb-10 md:mb-14">
+            <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Testimonios</p>
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+              Lo que dicen nuestros clientes
+            </h2>
+          </FadeIn>
+
+          <FadeIn delay={0.1}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+              {testimonials.map((t) => (
+                <div key={t.name} className="card-premium rounded-2xl p-6 md:p-8">
+                  <p className="text-sm md:text-[15px] text-gray-300 md:text-gray-400 leading-relaxed mb-5 md:mb-7">
+                    &ldquo;{t.quote}&rdquo;
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center">
+                      <span className="text-sm font-semibold text-white">{t.name[0]}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-white">{t.name}</p>
+                      <p className="text-xs text-gray-400 md:text-gray-500 mt-0.5">{t.role}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* Separator */}
+      <div className="separator-gradient max-w-5xl mx-auto" />
+
+      {/* ── Final CTA ── */}
+      <section className="relative py-24 md:py-52 overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-gradient-to-br from-purple-600/25 to-blue-600/20 blur-[100px] pointer-events-none" />
+
+        <div className="relative z-10 max-w-3xl mx-auto px-5 sm:px-6 text-center">
+          <FadeIn>
+            <h2 className="text-3xl md:text-5xl lg:text-7xl font-semibold text-white tracking-tight leading-[1.05]">
+              Tu menú digital.
+              <br />
+              <span className="text-gradient-premium">Disponible hoy.</span>
+            </h2>
+            <p className="mt-5 md:mt-6 text-base md:text-lg text-gray-200 md:text-gray-300 font-light max-w-md mx-auto">
+              Únete a cientos de restaurantes que ya usan MENIUS para recibir más pedidos.
+            </p>
+            <div className="mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 px-2 sm:px-0">
+              <Link
+                href="/signup"
+                className="w-full sm:w-auto px-10 py-4 rounded-2xl bg-white text-black font-semibold text-base sm:text-[15px] hover:bg-gray-100 transition-all btn-glow"
+              >
+                Empezar gratis &rarr;
+              </Link>
+              <Link
+                href="/r/demo"
+                className="w-full sm:w-auto px-10 py-4 rounded-2xl border border-white/10 text-gray-200 font-semibold text-base sm:text-[15px] hover:text-white hover:border-white/20 transition-all"
+              >
+                Ver demo en vivo
+              </Link>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+    </LazyMotion>
   );
 }
