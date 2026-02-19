@@ -152,7 +152,8 @@ export function MenuShell({
   );
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="h-screen flex flex-col bg-white overflow-hidden">
+      {/* Fixed header */}
       <MenuHeader
         restaurant={restaurant}
         tableName={tableName}
@@ -166,97 +167,124 @@ export function MenuShell({
         closedLabel={t.closed}
       />
 
-      {mobileCategoryPills}
+      {/* Mobile category pills — scrolls with content on mobile */}
+      <div className="lg:hidden flex-shrink-0">
+        {mobileCategoryPills}
+      </div>
 
-      {/* ── 3-Column Layout ── */}
-      <div className="max-w-[1280px] mx-auto px-4 lg:px-6">
-        <div className="flex items-start">
+      {/* ── 3-Column Layout — fills remaining viewport ── */}
+      <div className="flex-1 flex overflow-hidden max-w-[1280px] w-full mx-auto">
 
-          {/* Left: Categories — 260px, sticky */}
-          <aside className="hidden lg:block w-[260px] flex-shrink-0 sticky overflow-y-auto border-r border-gray-50" style={{ top: HEADER_HEIGHT, height: `calc(100vh - ${HEADER_HEIGHT}px)` }}>
-            <CategorySidebar
-              categories={categories}
-              products={products}
-              activeCategory={activeCategory}
-              onSelect={handleCategorySelect}
-              allLabel={t.allCategories}
-            />
-          </aside>
+        {/* Left: Categories — fixed column with own scroll */}
+        <aside className="hidden lg:flex flex-col w-[260px] flex-shrink-0 border-r border-gray-100 overflow-y-auto">
+          <CategorySidebar
+            categories={categories}
+            products={products}
+            activeCategory={activeCategory}
+            onSelect={handleCategorySelect}
+            allLabel={t.allCategories}
+          />
+        </aside>
 
-          {/* Center: Products grid */}
-          <main className={cn(
-            'flex-1 min-w-0 px-4 lg:px-6 py-5',
-            'lg:pb-6 pb-28'
-          )}>
-            {/* Restaurant info + category tabs (desktop) */}
-            <div className="hidden lg:block mb-5">
-              <h2 className="text-xl font-bold text-gray-900">{restaurant.name}</h2>
-              {restaurant.description && (
-                <p className="text-sm text-gray-400 mt-0.5">{restaurant.description}</p>
-              )}
-              <div className="flex items-center gap-1 mt-4 border-b border-gray-100">
+        {/* Center: Products grid — scrolls independently */}
+        <main className="flex-1 min-w-0 overflow-y-auto px-4 lg:px-6 py-5 pb-28 lg:pb-6">
+          {/* Restaurant info + category tabs (desktop) */}
+          <div className="hidden lg:block mb-5">
+            <h2 className="text-xl font-bold text-gray-900">{restaurant.name}</h2>
+            {restaurant.description && (
+              <p className="text-sm text-gray-400 mt-0.5">{restaurant.description}</p>
+            )}
+            <div className="flex items-center gap-1 mt-4 border-b border-gray-100 overflow-x-auto scrollbar-hide">
+              <button
+                onClick={() => handleCategorySelect(null)}
+                className={cn(
+                  'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap',
+                  activeCategory === null
+                    ? 'border-emerald-500 text-emerald-600'
+                    : 'border-transparent text-gray-400 hover:text-gray-600'
+                )}
+              >
+                {t.allCategories}
+              </button>
+              {categories.map((cat) => (
                 <button
-                  onClick={() => handleCategorySelect(null)}
+                  key={cat.id}
+                  onClick={() => handleCategorySelect(cat.id)}
                   className={cn(
-                    'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px',
-                    activeCategory === null
+                    'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap',
+                    activeCategory === cat.id
                       ? 'border-emerald-500 text-emerald-600'
                       : 'border-transparent text-gray-400 hover:text-gray-600'
                   )}
                 >
-                  {t.allCategories}
-                </button>
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => handleCategorySelect(cat.id)}
-                    className={cn(
-                      'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px',
-                      activeCategory === cat.id
-                        ? 'border-emerald-500 text-emerald-600'
-                        : 'border-transparent text-gray-400 hover:text-gray-600'
-                    )}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Filter pills */}
-            <div className="flex gap-2 mb-5 overflow-x-auto scrollbar-hide">
-              {([
-                ['all', t.filterAll],
-                ['popular', t.filterPopular],
-                ['options', t.filterWithOptions],
-              ] as const).map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setActiveFilter(key)}
-                  className={cn(
-                    'flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap border',
-                    activeFilter === key
-                      ? 'bg-emerald-500 text-white border-emerald-500'
-                      : 'bg-white text-gray-500 border-gray-200 hover:border-emerald-300'
-                  )}
-                >
-                  {label}
+                  {cat.name}
                 </button>
               ))}
             </div>
+          </div>
 
-            {searchResults !== null ? (
-              <div>
-                <p className="text-sm text-gray-500 mb-4">
-                  {searchResults.length} {searchResults.length === 1 ? 'resultado' : 'resultados'}
-                </p>
-                {searchResults.length === 0 ? (
-                  <div className="text-center py-20 text-gray-400">
-                    <p className="font-medium">{t.noResults}</p>
-                  </div>
-                ) : (
+          {/* Filter pills */}
+          <div className="flex gap-2 mb-5 overflow-x-auto scrollbar-hide">
+            {([
+              ['all', t.filterAll],
+              ['popular', t.filterPopular],
+              ['options', t.filterWithOptions],
+            ] as const).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setActiveFilter(key)}
+                className={cn(
+                  'flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap border',
+                  activeFilter === key
+                    ? 'bg-emerald-500 text-white border-emerald-500'
+                    : 'bg-white text-gray-500 border-gray-200 hover:border-emerald-300'
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {searchResults !== null ? (
+            <div>
+              <p className="text-sm text-gray-500 mb-4">
+                {searchResults.length} {searchResults.length === 1 ? 'resultado' : 'resultados'}
+              </p>
+              {searchResults.length === 0 ? (
+                <div className="text-center py-20 text-gray-400">
+                  <p className="font-medium">{t.noResults}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {searchResults.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onSelect={handleProductSelect}
+                      onQuickAdd={handleQuickAdd}
+                      fmtPrice={fmtPrice}
+                      addLabel={t.addToCart}
+                      customizeLabel={t.customize}
+                      popularLabel={t.popular}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="font-semibold text-gray-600 mb-1">{t.noProductsYet}</p>
+            </div>
+          ) : (
+            <div className="space-y-10">
+              {itemsByCategory.map(({ category, items }) => (
+                <section key={category.id}>
+                  <h2 className="text-lg font-bold text-gray-900 mb-4 bg-white py-2 z-10">
+                    {category.name}
+                    <span className="text-sm font-normal text-gray-400 ml-2">({items.length})</span>
+                  </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {searchResults.map((product) => (
+                    {items.map((product) => (
                       <ProductCard
                         key={product.id}
                         product={product}
@@ -269,51 +297,22 @@ export function MenuShell({
                       />
                     ))}
                   </div>
-                )}
-              </div>
-            ) : products.length === 0 ? (
-              <div className="text-center py-20">
-                <p className="font-semibold text-gray-600 mb-1">{t.noProductsYet}</p>
-              </div>
-            ) : (
-              <div className="space-y-10">
-                {itemsByCategory.map(({ category, items }) => (
-                  <section key={category.id}>
-                    <h2 className="text-lg font-bold text-gray-900 mb-4 sticky bg-white py-2 z-10" style={{ top: HEADER_HEIGHT }}>
-                      {category.name}
-                      <span className="text-sm font-normal text-gray-400 ml-2">({items.length})</span>
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {items.map((product) => (
-                        <ProductCard
-                          key={product.id}
-                          product={product}
-                          onSelect={handleProductSelect}
-                          onQuickAdd={handleQuickAdd}
-                          fmtPrice={fmtPrice}
-                          addLabel={t.addToCart}
-                          customizeLabel={t.customize}
-                          popularLabel={t.popular}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            )}
-          </main>
+                </section>
+              ))}
+            </div>
+          )}
+        </main>
 
-          {/* Right: Cart — 360px, sticky, desktop only */}
-          <aside className="hidden lg:block w-[360px] flex-shrink-0 sticky border-l border-gray-50" style={{ top: HEADER_HEIGHT, height: `calc(100vh - ${HEADER_HEIGHT}px)` }}>
-            <CartPanel
-              fmtPrice={fmtPrice}
-              t={t}
-              onEdit={handleEditCartItem}
-              onCheckout={handleOpenCheckout}
-              estimatedMinutes={25}
-            />
-          </aside>
-        </div>
+        {/* Right: Cart — fixed column with own scroll, desktop only */}
+        <aside className="hidden lg:flex flex-col w-[360px] flex-shrink-0 border-l border-gray-100">
+          <CartPanel
+            fmtPrice={fmtPrice}
+            t={t}
+            onEdit={handleEditCartItem}
+            onCheckout={handleOpenCheckout}
+            estimatedMinutes={25}
+          />
+        </aside>
       </div>
 
       {/* ── Mobile: Bottom cart bar ── */}
@@ -390,22 +389,6 @@ export function MenuShell({
         />
       )}
 
-      {/* ── Footer ── */}
-      <footer className="border-t border-gray-100 bg-white">
-        <div className="max-w-[1280px] mx-auto px-4 lg:px-6 py-6">
-          <div className="flex items-center justify-between text-xs text-gray-400">
-            <span>
-              {t.poweredBy}{' '}
-              <a href="/" className="font-bold text-gray-600 hover:text-gray-900 transition-colors">
-                MENIUS
-              </a>
-            </span>
-            <a href="/signup" className="hover:text-gray-600 transition-colors">
-              {t.createYourMenu} &rarr;
-            </a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

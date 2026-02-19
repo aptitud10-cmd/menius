@@ -51,7 +51,7 @@ export const MenuHeader = memo(function MenuHeader({
   const open = isRestaurantOpen(restaurant.operating_hours);
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
+    <header className="flex-shrink-0 z-40 bg-white border-b border-gray-200">
       <div className="h-14 max-w-[1280px] mx-auto px-4 lg:px-6 flex items-center gap-4">
         {/* Logo + Name */}
         <div className="flex items-center gap-2.5 flex-shrink-0">
