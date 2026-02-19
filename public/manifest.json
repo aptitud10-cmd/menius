@@ -3,7 +3,7 @@
   "short_name": "MENIUS",
   "description": "Menú digital inteligente para restaurantes. Escanea, pide y paga.",
   "start_url": "/",
-  "display": "standalone",
+  "display": "browser",
   "background_color": "#050505",
   "theme_color": "#050505",
   "orientation": "portrait-primary",
