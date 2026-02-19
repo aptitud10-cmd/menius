@@ -6,13 +6,16 @@ interface CartState {
   items: CartItem[];
   isOpen: boolean;
   restaurantId: string | null;
+  tableName: string | null;
   addItem: (product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, notes: string) => void;
+  replaceItem: (index: number, product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, notes: string) => void;
   removeItem: (index: number) => void;
   updateQty: (index: number, qty: number) => void;
   clearCart: () => void;
   toggleCart: () => void;
   setOpen: (open: boolean) => void;
   setRestaurantId: (id: string) => void;
+  setTableName: (name: string | null) => void;
   totalItems: () => number;
   totalPrice: () => number;
 }
@@ -29,6 +32,7 @@ export const useCartStore = create<CartState>()(
       items: [],
       isOpen: false,
       restaurantId: null,
+      tableName: null,
 
       setRestaurantId: (id) => {
         const current = get().restaurantId;
@@ -39,11 +43,29 @@ export const useCartStore = create<CartState>()(
         }
       },
 
+      setTableName: (name) => set({ tableName: name }),
+
       addItem: (product, variant, extras, qty, notes) => {
         const lineTotal = calcLineTotal(product, variant, extras, qty);
         set((state) => ({
           items: [...state.items, { product, variant, extras, qty, notes, lineTotal }],
         }));
+      },
+
+      replaceItem: (index, product, variant, extras, qty, notes) => {
+        set((state) => {
+          const items = [...state.items];
+          if (index < 0 || index >= items.length) return state;
+          items[index] = {
+            product,
+            variant,
+            extras,
+            qty,
+            notes,
+            lineTotal: calcLineTotal(product, variant, extras, qty),
+          };
+          return { items };
+        });
       },
 
       removeItem: (index) => {
@@ -86,6 +108,7 @@ export const useCartStore = create<CartState>()(
       partialize: (state) => ({
         items: state.items,
         restaurantId: state.restaurantId,
+        tableName: state.tableName,
       }),
     }
   )

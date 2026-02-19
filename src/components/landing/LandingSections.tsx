@@ -11,7 +11,7 @@ const features = [
     tab: 'Menú Digital',
     title: 'Menú con QR y pedidos directos',
     desc: 'Tus clientes escanean el QR, ven el menú con fotos y precios, y ordenan desde su celular. Sin descargar apps.',
-    details: ['QR único por mesa', 'Fotos generadas con IA', 'Pedidos dine-in, pickup y delivery', 'Variantes y extras por producto'],
+    details: ['QR elegantes por mesa, listos para imprimir', 'Fotos generadas con IA', 'Pedidos dine-in, pickup y delivery', 'Variantes, extras y teléfono con código de área'],
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
@@ -30,8 +30,8 @@ const features = [
   {
     tab: 'Dashboard',
     title: 'Gestiona todo desde un solo lugar',
-    desc: 'Pedidos en tiempo real con tablero Kanban, analytics de ventas, editor visual de menú, equipo con roles y permisos.',
-    details: ['Pedidos en tiempo real', 'Analytics y reportes', 'Editor de menú drag & drop', 'Roles de equipo'],
+    desc: 'Pedidos en tiempo real, cocina KDS en pantalla dedicada, analytics de ventas, notificaciones WhatsApp, editor de menú y gestión de equipo.',
+    details: ['Pedidos en tiempo real + Cocina KDS', 'Analytics y reportes avanzados', 'Notificaciones WhatsApp y email', 'Google Maps integrado en tu tienda'],
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
@@ -67,9 +67,9 @@ const features = [
   },
   {
     tab: 'IA',
-    title: 'Fotos profesionales con un clic',
-    desc: 'Google Gemini genera fotos de tus platillos automáticamente. Importa tu menú completo desde una foto con OCR inteligente.',
-    details: ['Generación de fotos con IA', 'Importar menú con foto (OCR)', 'Edición de imágenes', 'Formato WebP optimizado'],
+    title: 'Tu asistente inteligente con IA',
+    desc: 'MENIUS AI es tu consultor de negocio 24/7. Pregúntale sobre ventas, clientes, estrategias, y te guía paso a paso en todo el dashboard. Además, genera fotos e importa menús con OCR.',
+    details: ['Asistente IA en el dashboard (MENIUS AI)', 'Fotos de platillos generadas con IA', 'Importar menú desde foto (OCR)', 'Análisis y sugerencias de negocio'],
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
@@ -78,10 +78,10 @@ const features = [
     gradient: 'from-amber-500/20 to-orange-500/20',
     accent: 'amber',
     visualItems: [
-      { label: 'Foto generada', value: 'Risotto' },
-      { label: 'Calidad', value: '4K WebP' },
-      { label: 'Menú importado', value: '38 items' },
-      { label: 'Tiempo', value: '< 30 seg' },
+      { label: 'MENIUS AI', value: 'Online 24/7' },
+      { label: '¿Cuánto vendí hoy?', value: '$1,240' },
+      { label: 'Producto estrella', value: 'Tacos' },
+      { label: 'Menú importado con OCR', value: '38 items' },
     ],
   },
 ];
@@ -99,7 +99,7 @@ const plans = [
     price: 39,
     desc: 'Para restaurantes que inician.',
     popular: false,
-    features: ['Menú digital con fotos', 'QR hasta 10 mesas', 'Pedidos (dine-in + pickup)', 'Imágenes IA (5/mes)', 'Soporte por email'],
+    features: ['Menú digital con fotos', 'QR elegantes hasta 10 mesas', 'Pedidos (dine-in + pickup)', 'MENIUS AI (asistente IA)', 'Imágenes IA (5/mes)', 'Google Maps integrado', 'Login con Google', 'Soporte por email'],
     cta: 'Empezar gratis',
   },
   {
@@ -107,7 +107,7 @@ const plans = [
     price: 79,
     desc: 'Para restaurantes que quieren crecer.',
     popular: true,
-    features: ['Todo de Starter', '200 productos, 50 mesas', 'Delivery + WhatsApp', 'Analytics avanzado', 'Promociones y cupones', 'Imágenes IA (50/mes)', 'Sin marca MENIUS'],
+    features: ['Todo de Starter', '200 productos, 50 mesas', 'Delivery + WhatsApp + email', 'Cocina KDS en tiempo real', 'Analytics avanzado', 'Promociones y cupones', 'Imágenes IA (50/mes)', 'Sin marca MENIUS'],
     cta: 'Empezar con Pro',
   },
   {
@@ -115,7 +115,7 @@ const plans = [
     price: 149,
     desc: 'Para cadenas y franquicias.',
     popular: false,
-    features: ['Todo de Pro', 'Productos y mesas ilimitados', 'IA ilimitada', 'Dominio personalizado', 'Onboarding dedicado', 'Soporte por WhatsApp'],
+    features: ['Todo de Pro', 'Productos y mesas ilimitados', 'IA ilimitada', 'Dominio personalizado', 'Onboarding dedicado', 'Soporte dedicado por WhatsApp'],
     cta: 'Empezar con Business',
   },
 ];
@@ -132,12 +132,12 @@ const testimonials = [
     role: 'Fundador de Taquería El Patrón',
   },
   {
-    quote: 'La función de fotos con IA es increíble. Subimos el menú en 20 minutos sin necesidad de fotógrafo.',
+    quote: 'MENIUS AI es como tener un consultor 24/7. Le pregunto cuánto vendí y me da sugerencias para vender más. Increíble.',
     name: 'Ana Martínez',
     role: 'Gerente de Sabor Urbano',
   },
   {
-    quote: 'El dashboard es muy intuitivo. Puedo ver los pedidos en tiempo real y los analytics me ayudan a tomar decisiones.',
+    quote: 'La cocina recibe las órdenes al instante en la pantalla KDS. Ya no se pierden pedidos. El asistente IA nos ayudó a optimizar el menú.',
     name: 'Roberto Díaz',
     role: 'Chef & Propietario de Fuego Lento',
   },
@@ -147,8 +147,10 @@ const comparison = [
   ['Comisión por pedido', '0%', '15% – 30%'],
   ['Control de clientes', 'Tus datos', 'La app se los queda'],
   ['Tu marca', 'Dominio propio', 'Junto a la competencia'],
+  ['Asistente IA', 'Incluido (MENIUS AI)', 'No disponible'],
   ['Fotos del menú', 'IA genera fotos', 'Tú las subes'],
-  ['WhatsApp', 'Integrado', 'No disponible'],
+  ['WhatsApp + email', 'Integrado', 'No disponible'],
+  ['Google Maps', 'Integrado', 'No disponible'],
   ['Costo mensual', 'Desde $39/mes', 'Gratis (pero 30% por pedido)'],
 ];
 
@@ -162,12 +164,12 @@ function FeatureTabs() {
   return (
     <div>
       {/* Tabs */}
-      <div className="flex flex-wrap gap-1 p-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.06] w-fit mx-auto mb-14">
+      <div className="flex flex-wrap gap-1 p-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.06] w-fit mx-auto mb-10 md:mb-14">
         {features.map((feat, i) => (
           <button
             key={feat.tab}
             onClick={() => setActive(i)}
-            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-medium transition-all duration-300 ${
+            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
               active === i
                 ? 'bg-white text-black shadow-lg shadow-white/10'
                 : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.03]'
@@ -179,21 +181,21 @@ function FeatureTabs() {
       </div>
 
       {/* Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
         <div>
-          <h3 className="text-3xl md:text-4xl font-semibold text-white leading-tight tracking-tight">
+          <h3 className="text-2xl md:text-4xl font-semibold text-white leading-tight tracking-tight">
             {f.title}
           </h3>
-          <p className="mt-6 text-lg text-gray-300 leading-relaxed font-light">
+          <p className="mt-4 md:mt-6 text-base md:text-lg text-gray-200 md:text-gray-300 leading-relaxed font-light">
             {f.desc}
           </p>
-          <div className="mt-10 space-y-4">
+          <div className="mt-7 md:mt-10 space-y-3.5 md:space-y-4">
             {f.details.map((d) => (
-              <div key={d} className="flex items-center gap-3.5">
+              <div key={d} className="flex items-center gap-3">
                 <div className={`w-6 h-6 rounded-lg ${colors.bg} border ${colors.border} flex items-center justify-center flex-shrink-0`}>
                   <svg className={`w-3.5 h-3.5 ${colors.text}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 </div>
-                <span className="text-[15px] text-gray-300">{d}</span>
+                <span className="text-sm md:text-[15px] text-gray-200 md:text-gray-300">{d}</span>
               </div>
             ))}
           </div>
@@ -253,16 +255,16 @@ export function LandingSections() {
   return (
     <LazyMotion features={domAnimation}>
       {/* ── Features with Tabs ── */}
-      <section id="funciones" className="relative py-32 md:py-40 overflow-hidden">
+      <section id="funciones" className="relative py-20 md:py-40 overflow-hidden">
         <div className="section-glow section-glow-purple" />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-6">
+        <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">
           <FadeIn className="text-center mb-8">
-            <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-5">Funciones</p>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+            <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Funciones</p>
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Todo bajo control
             </h2>
-            <p className="text-gray-300 mt-5 text-lg max-w-lg mx-auto font-light">
+            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-base md:text-lg max-w-lg mx-auto font-light">
               Las herramientas que necesitas para digitalizar tu restaurante.
             </p>
           </FadeIn>
@@ -277,16 +279,16 @@ export function LandingSections() {
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Comparison ── */}
-      <section className="relative py-32 md:py-40 overflow-hidden">
+      <section className="relative py-20 md:py-40 overflow-hidden">
         <div className="section-glow section-glow-teal" />
 
-        <div className="relative z-10 max-w-4xl mx-auto px-6">
-          <FadeIn className="text-center mb-14">
-            <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-5">Sin intermediarios</p>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+        <div className="relative z-10 max-w-4xl mx-auto px-5 sm:px-6">
+          <FadeIn className="text-center mb-10 md:mb-14">
+            <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Sin intermediarios</p>
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               MENIUS vs Apps de Delivery
             </h2>
-            <p className="text-gray-300 mt-5 text-lg max-w-lg mx-auto font-light">
+            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-base md:text-lg max-w-lg mx-auto font-light">
               Las apps cobran hasta 30% por pedido. Con MENIUS, tarifa fija y tus ventas son tuyas.
             </p>
           </FadeIn>
@@ -335,17 +337,17 @@ export function LandingSections() {
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Pricing ── */}
-      <section id="precios" className="relative py-32 md:py-40 overflow-hidden">
+      <section id="precios" className="relative py-20 md:py-40 overflow-hidden">
         <div className="section-glow section-glow-blue" />
         <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-purple-600/20 blur-[100px] pointer-events-none" />
 
-        <div className="relative z-10 max-w-5xl mx-auto px-6">
-          <FadeIn className="text-center mb-14">
-            <p className="text-sm text-blue-400 uppercase tracking-[0.2em] font-medium mb-5">Precios</p>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+        <div className="relative z-10 max-w-5xl mx-auto px-5 sm:px-6">
+          <FadeIn className="text-center mb-10 md:mb-14">
+            <p className="text-sm text-blue-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Precios</p>
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Sin comisiones. Sin sorpresas.
             </h2>
-            <p className="text-gray-300 mt-5 text-lg font-light">14 días gratis. Sin tarjeta de crédito. Cancela cuando quieras.</p>
+            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-base md:text-lg font-light">14 días gratis. Sin tarjeta. Cancela cuando quieras.</p>
           </FadeIn>
 
           <FadeIn delay={0.1}>
@@ -407,22 +409,22 @@ export function LandingSections() {
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Testimonials ── */}
-      <section className="relative py-32 md:py-40 overflow-hidden">
+      <section className="relative py-20 md:py-40 overflow-hidden">
         <div className="section-glow section-glow-purple" />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-6">
-          <FadeIn className="text-center mb-14">
-            <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-5">Testimonios</p>
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+        <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">
+          <FadeIn className="text-center mb-10 md:mb-14">
+            <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Testimonios</p>
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Lo que dicen nuestros clientes
             </h2>
           </FadeIn>
 
           <FadeIn delay={0.1}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
               {testimonials.map((t) => (
-                <div key={t.name} className="card-premium rounded-2xl p-8">
-                  <p className="text-[15px] text-gray-400 leading-relaxed mb-7">
+                <div key={t.name} className="card-premium rounded-2xl p-6 md:p-8">
+                  <p className="text-sm md:text-[15px] text-gray-300 md:text-gray-400 leading-relaxed mb-5 md:mb-7">
                     &ldquo;{t.quote}&rdquo;
                   </p>
                   <div className="flex items-center gap-3">
@@ -431,7 +433,7 @@ export function LandingSections() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-white">{t.name}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">{t.role}</p>
+                      <p className="text-xs text-gray-400 md:text-gray-500 mt-0.5">{t.role}</p>
                     </div>
                   </div>
                 </div>
@@ -445,29 +447,29 @@ export function LandingSections() {
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Final CTA ── */}
-      <section className="relative py-40 md:py-52 overflow-hidden">
+      <section className="relative py-24 md:py-52 overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-gradient-to-br from-purple-600/25 to-blue-600/20 blur-[100px] pointer-events-none" />
 
-        <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
+        <div className="relative z-10 max-w-3xl mx-auto px-5 sm:px-6 text-center">
           <FadeIn>
-            <h2 className="text-4xl md:text-5xl lg:text-7xl font-semibold text-white tracking-tight leading-[1.05]">
+            <h2 className="text-3xl md:text-5xl lg:text-7xl font-semibold text-white tracking-tight leading-[1.05]">
               Tu menú digital.
               <br />
               <span className="text-gradient-premium">Disponible hoy.</span>
             </h2>
-            <p className="mt-6 text-lg text-gray-300 font-light max-w-md mx-auto">
+            <p className="mt-5 md:mt-6 text-base md:text-lg text-gray-200 md:text-gray-300 font-light max-w-md mx-auto">
               Únete a cientos de restaurantes que ya usan MENIUS para recibir más pedidos.
             </p>
-            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 px-2 sm:px-0">
               <Link
                 href="/signup"
-                className="w-full sm:w-auto px-10 py-4 rounded-xl bg-white text-black font-medium text-[15px] hover:bg-gray-100 transition-all btn-glow"
+                className="w-full sm:w-auto px-10 py-4 rounded-2xl bg-white text-black font-semibold text-base sm:text-[15px] hover:bg-gray-100 transition-all btn-glow"
               >
                 Empezar gratis &rarr;
               </Link>
               <Link
                 href="/r/demo"
-                className="w-full sm:w-auto px-10 py-4 rounded-xl border border-white/10 text-gray-400 font-medium text-[15px] hover:text-white hover:border-white/20 transition-all"
+                className="w-full sm:w-auto px-10 py-4 rounded-2xl border border-white/10 text-gray-200 font-semibold text-base sm:text-[15px] hover:text-white hover:border-white/20 transition-all"
               >
                 Ver demo en vivo
               </Link>

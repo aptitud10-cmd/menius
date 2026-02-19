@@ -1,39 +1,32 @@
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { KitchenDisplay } from '@/components/orders/KitchenDisplay';
 
 export default async function KDSPage() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
+  const { supabase, restaurantId } = await getDashboardContext();
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('default_restaurant_id')
-    .eq('user_id', user.id)
-    .single();
+  const [{ data: restaurant }, { data: orders }] = await Promise.all([
+    supabase
+      .from('restaurants')
+      .select('currency, name')
+      .eq('id', restaurantId)
+      .maybeSingle(),
+    supabase
+      .from('orders')
+      .select('*, order_items(*, product:products(name))')
+      .eq('restaurant_id', restaurantId)
+      .in('status', ['pending', 'confirmed', 'preparing', 'ready'])
+      .order('created_at', { ascending: true })
+      .limit(100),
+  ]);
 
-  if (!profile?.default_restaurant_id) redirect('/onboarding/create-restaurant');
-
-  const restaurantId = profile.default_restaurant_id;
-
-  const { data: restaurant } = await supabase
-    .from('restaurants')
-    .select('currency, name')
-    .eq('id', restaurantId)
-    .single();
-
-  const { data: orders } = await supabase
-    .from('orders')
-    .select('*, order_items(*, product:products(name))')
-    .eq('restaurant_id', restaurantId)
-    .in('status', ['pending', 'confirmed', 'preparing', 'ready'])
-    .order('created_at', { ascending: true })
-    .limit(100);
+  const mappedOrders = (orders ?? []).map((o: any) => ({
+    ...o,
+    items: o.order_items ?? [],
+  }));
 
   return (
     <KitchenDisplay
-      initialOrders={orders ?? []}
+      initialOrders={mappedOrders}
       restaurantId={restaurantId}
       restaurantName={restaurant?.name ?? ''}
       currency={restaurant?.currency ?? 'USD'}

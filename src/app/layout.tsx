@@ -93,7 +93,7 @@ function ServiceWorkerRegister() {
                     }
                   });
                 });
-              }).catch(function() {});
+              }).catch(function(err) { console.error('[Layout] SW registration failed:', err); });
 
               navigator.serviceWorker.addEventListener('message', function(e) {
                 if (e.data && e.data.type === 'SW_UPDATED') showUpdateBanner();

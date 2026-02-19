@@ -35,46 +35,43 @@ export async function createRestaurant(data: CreateRestaurantInput) {
 
   if (error) return { error: error.message };
 
-  // Update profile with default restaurant — create profile if it doesn't exist
-  const { error: updateError } = await supabase
+  // Link profile to restaurant — upsert guarantees it works even if profile doesn't exist yet
+  const { error: profileError } = await supabase
     .from('profiles')
-    .update({ default_restaurant_id: restaurant.id })
-    .eq('user_id', user.id);
+    .upsert({
+      user_id: user.id,
+      full_name: user.user_metadata?.full_name || '',
+      role: 'owner',
+      default_restaurant_id: restaurant.id,
+    }, { onConflict: 'user_id' });
 
-  if (updateError) {
-    // Profile might not exist (trigger failed) — try to create it
-    const { error: insertError } = await supabase
-      .from('profiles')
-      .insert({
-        user_id: user.id,
-        full_name: user.user_metadata?.full_name || '',
-        role: 'owner',
-        default_restaurant_id: restaurant.id,
-      });
-
-    if (insertError) {
-      return { error: 'Restaurante creado pero hubo un error al vincular tu cuenta. Intenta cerrar sesión y volver a entrar.' };
-    }
+  if (profileError) {
+    return { error: 'Restaurante creado pero hubo un error al vincular tu cuenta. Intenta cerrar sesión y volver a entrar.' };
   }
 
-  // Seed with example data so the new owner sees a populated menu
-  const { seedRestaurant } = await import('@/lib/seed-restaurant');
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-  await seedRestaurant(supabase, restaurant.id, restaurant.slug, appUrl);
-
-  // Create trial subscription (14 days)
+  // Create trial subscription (14 days) — must complete before redirect
   const trialEnd = new Date();
   trialEnd.setDate(trialEnd.getDate() + 14);
   await supabase.from('subscriptions').upsert({
     restaurant_id: restaurant.id,
-    plan_id: 'starter',
+    plan_id: 'basic',
     status: 'trialing',
     trial_end: trialEnd.toISOString(),
-  }, { onConflict: 'restaurant_id' }).then(() => {});
+  }, { onConflict: 'restaurant_id' });
 
-  // Send welcome email (non-blocking)
+  // Seed example data — runs before redirect (batch inserts, ~1-2s)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+  try {
+    const { seedRestaurant } = await import('@/lib/seed-restaurant');
+    await seedRestaurant(supabase, restaurant.id, restaurant.slug, appUrl);
+  } catch {
+    // Seed failure should not block onboarding
+  }
+
+  // Welcome email to new restaurant owner
   if (user.email) {
-    import('@/lib/notifications/email').then(({ sendEmail, buildWelcomeEmail }) => {
+    try {
+      const { sendEmail, buildWelcomeEmail } = await import('@/lib/notifications/email');
       const html = buildWelcomeEmail({
         ownerName: user.user_metadata?.full_name || data.name,
         restaurantName: data.name,
@@ -86,7 +83,39 @@ export async function createRestaurant(data: CreateRestaurantInput) {
         subject: `¡Bienvenido a MENIUS! — ${data.name} ya tiene su menú digital`,
         html,
       }).catch(() => {});
-    });
+    } catch {
+      // Email failure should not block onboarding
+    }
+  }
+
+  // Notify SaaS admin about new registration
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (adminEmail) {
+    try {
+      const { sendEmail } = await import('@/lib/notifications/email');
+      sendEmail({
+        to: adminEmail,
+        subject: `🚀 Nuevo restaurante registrado: ${data.name}`,
+        html: `
+          <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:20px;">
+            <h2 style="color:#7c3aed;margin:0 0 16px;">Nuevo registro en MENIUS</h2>
+            <table style="width:100%;border-collapse:collapse;">
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Restaurante</td><td style="padding:8px 0;font-size:14px;font-weight:600;">${data.name}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Slug</td><td style="padding:8px 0;font-size:14px;">${data.slug}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Email</td><td style="padding:8px 0;font-size:14px;">${user.email}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Nombre</td><td style="padding:8px 0;font-size:14px;">${user.user_metadata?.full_name || 'N/A'}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Moneda</td><td style="padding:8px 0;font-size:14px;">${data.currency}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Fecha</td><td style="padding:8px 0;font-size:14px;">${new Date().toLocaleString('es')}</td></tr>
+            </table>
+            <div style="margin-top:20px;">
+              <a href="${appUrl}/r/${data.slug}" style="display:inline-block;padding:10px 20px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Ver menú</a>
+              <a href="${appUrl}/admin" style="display:inline-block;padding:10px 20px;background:#059669;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;margin-left:8px;">Admin Panel</a>
+            </div>
+          </div>`,
+      }).catch(() => {});
+    } catch {
+      // Admin notification failure should not block onboarding
+    }
   }
 
   redirect('/app');
@@ -111,7 +140,7 @@ export async function reseedMyRestaurant() {
     .from('restaurants')
     .select('slug, owner_user_id')
     .eq('id', restaurantId)
-    .single();
+    .maybeSingle();
 
   if (!restaurant || restaurant.owner_user_id !== user.id) return { error: 'No autorizado' };
 
@@ -143,7 +172,7 @@ export async function createCategory(data: CategoryInput) {
     .from('profiles')
     .select('default_restaurant_id')
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
   if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' };
 
@@ -189,7 +218,7 @@ export async function createProduct(data: ProductInput) {
     .from('profiles')
     .select('default_restaurant_id')
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
   if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' };
 
@@ -326,16 +355,18 @@ export async function createTable(data: TableInput) {
     .from('profiles')
     .select('default_restaurant_id')
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
   if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' };
   const restaurantId = profile.default_restaurant_id;
 
   const [restaurantRes, tablesCountRes, subscriptionRes] = await Promise.all([
-    supabase.from('restaurants').select('slug').eq('id', restaurantId).single(),
+    supabase.from('restaurants').select('slug').eq('id', restaurantId).maybeSingle(),
     supabase.from('tables').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
-    supabase.from('subscriptions').select('plan_id').eq('restaurant_id', restaurantId).single(),
+    supabase.from('subscriptions').select('plan_id').eq('restaurant_id', restaurantId).maybeSingle(),
   ]);
+
+  if (!restaurantRes.data?.slug) return { error: 'Restaurante no encontrado' };
 
   const currentCount = tablesCountRes.count ?? 0;
   const planId = subscriptionRes.data?.plan_id ?? 'starter';
@@ -348,7 +379,7 @@ export async function createTable(data: TableInput) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
   const tableName = sanitizeText(data.name, 50);
-  const qrValue = `${appUrl}/r/${restaurantRes.data?.slug}?table=${encodeURIComponent(tableName)}`;
+  const qrValue = `${appUrl}/r/${restaurantRes.data.slug}?table=${encodeURIComponent(tableName)}`;
 
   const { error } = await supabase.from('tables').insert({
     restaurant_id: restaurantId,
@@ -370,7 +401,7 @@ export async function updateTable(id: string, newName: string) {
     .from('profiles')
     .select('default_restaurant_id')
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
   if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' };
 
@@ -378,11 +409,13 @@ export async function updateTable(id: string, newName: string) {
     .from('restaurants')
     .select('slug')
     .eq('id', profile.default_restaurant_id)
-    .single();
+    .maybeSingle();
+
+  if (!restaurant?.slug) return { error: 'Restaurante no encontrado' };
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
   const name = sanitizeText(newName, 50);
-  const qrValue = `${appUrl}/r/${restaurant?.slug}?table=${encodeURIComponent(name)}`;
+  const qrValue = `${appUrl}/r/${restaurant.slug}?table=${encodeURIComponent(name)}`;
 
   const { error } = await supabase
     .from('tables')
@@ -409,9 +442,9 @@ export async function updateOrderStatus(orderId: string, status: string) {
 
   const { data: order } = await supabase
     .from('orders')
-    .select('id, order_number, restaurant_id, customer_name')
+    .select('id, order_number, restaurant_id, customer_name, customer_email, customer_phone')
     .eq('id', orderId)
-    .single();
+    .maybeSingle();
 
   const { error } = await supabase
     .from('orders')
@@ -427,6 +460,8 @@ export async function updateOrderStatus(orderId: string, status: string) {
         restaurantId: order.restaurant_id,
         status,
         customerName: order.customer_name,
+        customerEmail: order.customer_email || undefined,
+        customerPhone: order.customer_phone || undefined,
       });
     }).catch(() => {});
   }

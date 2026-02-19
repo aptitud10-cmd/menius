@@ -31,11 +31,11 @@ const categories: FaqCategory[] = [
     questions: [
       {
         q: '¿Qué es MENIUS?',
-        a: 'MENIUS es una plataforma SaaS que permite a restaurantes crear su propio menú digital con QR, recibir pedidos en tiempo real, gestionar su operación desde un dashboard intuitivo, y aceptar pagos en línea con Stripe. Todo por una tarifa mensual fija, sin comisiones por pedido.',
+        a: 'MENIUS es una plataforma SaaS todo-en-uno para restaurantes: menú digital con QR, pedidos en tiempo real, cocina KDS, asistente inteligente con IA (MENIUS AI), analytics avanzados, notificaciones WhatsApp y email, Google Maps integrado, pagos con Stripe, y más. Todo por una tarifa mensual fija, sin comisiones por pedido.',
       },
       {
         q: '¿Necesito conocimientos técnicos para usar MENIUS?',
-        a: 'No. MENIUS está diseñado para que cualquier persona pueda configurar su menú digital en minutos. Si sabes usar un celular, puedes usar MENIUS. Al crear tu cuenta se genera automáticamente un menú de ejemplo completo con categorías, productos y mesas para que empieces rápidamente.',
+        a: 'No. MENIUS está diseñado para que cualquier persona pueda configurar su menú digital en minutos. Si sabes usar un celular, puedes usar MENIUS. Al crear tu cuenta se genera automáticamente un menú de ejemplo completo. Y si tienes dudas, MENIUS AI te guía paso a paso dentro del dashboard.',
       },
       {
         q: '¿Mis clientes necesitan descargar una app?',
@@ -121,7 +121,7 @@ const categories: FaqCategory[] = [
       },
       {
         q: '¿El dashboard incluye analytics y reportes?',
-        a: 'Sí. El dashboard incluye métricas de pedidos, productos más vendidos, ingresos por período, y datos de rendimiento de tu restaurante. Puedes usar esta información para tomar decisiones informadas sobre tu menú y operación.',
+        a: 'Sí. El dashboard incluye métricas de pedidos, productos más vendidos, ingresos por período, hora pico, ticket promedio, y datos de rendimiento. Además, puedes preguntarle a MENIUS AI directamente: "¿Cuánto vendí esta semana?" y te responde con datos reales al instante.',
       },
       {
         q: '¿Qué pasa si hay un problema con un pedido?',
@@ -148,7 +148,7 @@ const categories: FaqCategory[] = [
       },
       {
         q: '¿Cuáles son los planes disponibles?',
-        a: <>Ofrecemos tres planes: Starter ($39/mes) ideal para restaurantes pequeños con funciones esenciales; Pro ($79/mes) con IA, pagos online, dominio personalizado y WhatsApp; y Business ($149/mes) con soporte dedicado, múltiples ubicaciones y onboarding personalizado. Todos sin comisiones por pedido. <Link href="/#precios" className={lnk}>Ver planes y precios →</Link></>,
+        a: <>Ofrecemos tres planes: Starter ($39/mes) con menú digital, QR elegantes, MENIUS AI, Google Maps y login con Google; Pro ($79/mes) con delivery, WhatsApp, cocina KDS, analytics avanzado y promociones; y Business ($149/mes) con todo ilimitado, dominio propio y soporte dedicado. Todos sin comisiones por pedido. <Link href="/#precios" className={lnk}>Ver planes y precios →</Link></>,
       },
       {
         q: '¿Puedo cambiar de plan en cualquier momento?',
@@ -188,25 +188,60 @@ const categories: FaqCategory[] = [
     ],
   },
   {
+    id: 'ia',
+    title: 'Inteligencia Artificial',
+    icon: '✨',
+    questions: [
+      {
+        q: '¿Qué es MENIUS AI?',
+        a: 'MENIUS AI es un asistente inteligente integrado en tu dashboard, disponible 24/7. Puedes preguntarle sobre ventas, clientes, productos más vendidos, estrategias de negocio, y también pedirle que te guíe paso a paso en cualquier función del dashboard. Es como tener un consultor de negocio personalizado dentro de tu restaurante.',
+      },
+      {
+        q: '¿Qué puedo preguntarle a MENIUS AI?',
+        a: 'Prácticamente todo sobre tu negocio: "¿Cuánto vendí hoy?", "¿Cuál es mi producto estrella?", "¿Tengo pedidos pendientes?", "Sugiéreme una promoción para el fin de semana", "¿Cómo agrego un producto nuevo?", "¿Quién es mi mejor cliente?", "¿A qué hora tengo más pedidos?". MENIUS AI tiene acceso a tus datos reales y responde con información precisa.',
+      },
+      {
+        q: '¿MENIUS AI tiene costo adicional?',
+        a: 'No. MENIUS AI está incluido en todos los planes sin costo extra. Usa tecnología Google Gemini optimizada para ser eficiente y económica. Puedes hacer hasta 60 preguntas por hora sin limitaciones adicionales.',
+      },
+      {
+        q: '¿Qué es la generación de fotos con IA?',
+        a: 'MENIUS incluye inteligencia artificial que genera fotos profesionales de tus platillos. Describes el platillo (ej: "tacos al pastor con piña y cilantro en plato de barro") y la IA crea una imagen realista y atractiva en segundos. Ideal para restaurantes que no tienen fotógrafo profesional.',
+      },
+      {
+        q: '¿Puedo importar mi menú con una foto?',
+        a: 'Sí. La función OCR inteligente permite tomar una foto de tu menú impreso (carta, pizarra, PDF) y nuestra IA extrae automáticamente nombres de platillos, descripciones y precios. Solo revisas, ajustas si es necesario, y los productos se agregan a tu menú digital.',
+      },
+    ],
+  },
+  {
     id: 'integraciones',
     title: 'Integraciones y Tecnología',
     icon: '🔗',
     questions: [
       {
         q: '¿MENIUS se integra con WhatsApp?',
-        a: 'Sí. En el Plan Pro y Business, puedes recibir notificaciones de nuevos pedidos directamente en tu WhatsApp Business. Solo configura tu número en el dashboard y recibirás alertas instantáneas cada vez que entre un pedido.',
+        a: 'Sí. Puedes recibir notificaciones de nuevos pedidos directamente en tu WhatsApp Business y contactar a tus clientes con un clic. Además, el sistema puede enviar confirmaciones automáticas de pedido vía WhatsApp.',
+      },
+      {
+        q: '¿Puedo iniciar sesión con Google?',
+        a: 'Sí. MENIUS soporta inicio de sesión con Google (OAuth). Puedes registrarte y acceder a tu cuenta con un solo clic usando tu cuenta de Google, sin necesidad de crear una contraseña. También funciona el registro tradicional con email y contraseña.',
+      },
+      {
+        q: '¿Google Maps está integrado?',
+        a: 'Sí. La tienda pública de tu restaurante muestra automáticamente un mapa de Google Maps con tu ubicación. Tus clientes pueden ver exactamente dónde estás y obtener direcciones. Solo necesitas configurar tu dirección en el dashboard.',
+      },
+      {
+        q: '¿Cómo funcionan los códigos QR?',
+        a: 'MENIUS genera códigos QR elegantes y de alta resolución para cada mesa, listos para imprimir. Incluyen el nombre de tu restaurante, el número de mesa, y un diseño premium. Los imprimes y los colocas en las mesas. Cuando el cliente escanea, ve tu menú con la mesa ya seleccionada.',
+      },
+      {
+        q: '¿Qué es la Cocina KDS?',
+        a: 'KDS (Kitchen Display System) es una pantalla dedicada para la cocina de tu restaurante. Muestra los pedidos en tiempo real con todos los detalles: productos, variantes, extras, notas del cliente, y datos de contacto. El equipo de cocina puede marcar pedidos como "preparando" y "listo" directamente desde la pantalla.',
       },
       {
         q: '¿Puedo usar MENIUS como app en mi celular?',
-        a: 'Sí. MENIUS es una Progressive Web App (PWA). Puedes "instalarla" en tu celular desde el navegador sin pasar por la App Store o Google Play. Funciona como una app nativa con acceso rápido desde tu pantalla de inicio.',
-      },
-      {
-        q: '¿Funciona sin internet?',
-        a: 'La funcionalidad principal requiere conexión a internet para procesar pedidos en tiempo real. Sin embargo, la PWA tiene soporte offline básico: si pierdes conexión momentáneamente, la interfaz sigue disponible y se reconecta automáticamente cuando vuelve la señal.',
-      },
-      {
-        q: '¿Qué es la generación de imágenes con IA?',
-        a: 'MENIUS incluye inteligencia artificial (Google Gemini) que genera fotos profesionales de tus platillos. Describes el platillo (ej: "tacos al pastor con piña y cilantro en plato de barro") y la IA crea una imagen realista y atractiva en segundos. Ideal para restaurantes que no tienen fotos profesionales.',
+        a: 'Sí. MENIUS es una Progressive Web App (PWA). Puedes "instalarla" en tu celular desde el navegador sin pasar por la App Store ni Google Play. Funciona como una app nativa con acceso rápido desde tu pantalla de inicio.',
       },
       {
         q: '¿Puedo gestionar múltiples ubicaciones?',
@@ -214,7 +249,7 @@ const categories: FaqCategory[] = [
       },
       {
         q: '¿Qué tecnologías usa MENIUS?',
-        a: 'MENIUS está construido con tecnología de última generación: Next.js (React) para el frontend, Supabase (PostgreSQL) para la base de datos con actualizaciones en tiempo real, Stripe para pagos seguros, y Google Gemini para funciones de inteligencia artificial. Todo alojado en infraestructura global para máxima velocidad.',
+        a: 'MENIUS está construido con tecnología de última generación: Next.js 14 (React) para el frontend, Supabase (PostgreSQL) para la base de datos con actualizaciones en tiempo real, Stripe para pagos seguros, Google Gemini para IA, Google Maps para ubicación, y Resend para emails transaccionales. Todo alojado en Vercel para máxima velocidad global.',
       },
     ],
   },
@@ -248,7 +283,7 @@ const categories: FaqCategory[] = [
     questions: [
       {
         q: '¿Qué tipo de soporte ofrecen?',
-        a: 'El nivel de soporte depende del plan. Plan Starter: soporte por email con respuesta en 48 horas hábiles. Plan Pro: soporte prioritario por email con respuesta en 24 horas. Plan Business: soporte dedicado por WhatsApp, onboarding personalizado y sesiones de configuración asistida.',
+        a: 'Todos los planes incluyen MENIUS AI, un asistente inteligente 24/7 que responde preguntas sobre el dashboard y tu negocio al instante. Además: Plan Starter tiene soporte por email (48h). Plan Pro tiene soporte prioritario por email (24h). Plan Business tiene soporte dedicado por WhatsApp y onboarding personalizado.',
       },
       {
         q: '¿Ofrecen servicio de configuración profesional?',
@@ -256,15 +291,15 @@ const categories: FaqCategory[] = [
       },
       {
         q: '¿Puedo solicitar una demostración personalizada?',
-        a: <>Sí. Si estás interesado en el Plan Business o tienes preguntas específicas sobre cómo MENIUS se adapta a tu restaurante, puedes contactarnos a <a href="mailto:soporte@menius.app" className={lnk}>soporte@menius.app</a> para agendar una demostración personalizada.</>,
+        a: <>Sí. Si estás interesado en el Plan Business o tienes preguntas específicas sobre cómo MENIUS se adapta a tu restaurante, puedes contactarnos a <a href="mailto:soportemenius@gmail.com" className={lnk}>soportemenius@gmail.com</a> para agendar una demostración personalizada.</>,
       },
       {
         q: '¿Tienen tutoriales o guías?',
-        a: <>Sí. Nuestro <Link href="/blog" className={lnk}>blog</Link> contiene guías detalladas, tutoriales paso a paso y artículos sobre cómo aprovechar al máximo MENIUS: desde cómo crear tu menú digital hasta estrategias para aumentar ventas, fotos con IA, y tendencias del sector. Nuevos artículos se publican regularmente.</>,
+        a: <>Sí. Nuestro <Link href="/blog" className={lnk}>blog</Link> contiene guías detalladas y artículos sobre cómo aprovechar MENIUS. Además, MENIUS AI dentro del dashboard te explica paso a paso cómo usar cualquier función: &quot;¿Cómo agrego un producto?&quot;, &quot;¿Cómo creo un QR?&quot;. Es como tener un tutor personal 24/7.</>,
       },
       {
         q: '¿Cómo reporto un error o sugiero una mejora?',
-        a: <>Puedes reportar errores o enviar sugerencias directamente a <a href="mailto:soporte@menius.app" className={lnk}>soporte@menius.app</a>. Leemos y respondemos todos los mensajes. Las sugerencias de mejora se evalúan y las más solicitadas se incorporan en futuras actualizaciones de la plataforma.</>,
+        a: <>Puedes reportar errores o enviar sugerencias directamente a <a href="mailto:soportemenius@gmail.com" className={lnk}>soportemenius@gmail.com</a>. Leemos y respondemos todos los mensajes. Las sugerencias de mejora se evalúan y las más solicitadas se incorporan en futuras actualizaciones de la plataforma.</>,
       },
     ],
   },
@@ -385,10 +420,10 @@ export default function FaqPage() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <a
-                href="mailto:soporte@menius.app"
+                href="mailto:soportemenius@gmail.com"
                 className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white text-black font-medium text-[15px] hover:bg-gray-100 transition-all btn-glow"
               >
-                soporte@menius.app
+                soportemenius@gmail.com
               </a>
               <Link
                 href="/r/demo"
@@ -424,7 +459,7 @@ export default function FaqPage() {
                 <ul className="space-y-2.5">
                   <li><Link href="/blog" className="text-[13px] text-gray-600 hover:text-white transition-colors">Blog</Link></li>
                   <li><Link href="/faq" className="text-[13px] text-gray-600 hover:text-white transition-colors">FAQ</Link></li>
-                  <li><a href="mailto:soporte@menius.app" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
+                  <li><a href="mailto:soportemenius@gmail.com" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
                 </ul>
               </div>
               <div>

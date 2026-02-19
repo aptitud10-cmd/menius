@@ -56,7 +56,7 @@ export default function TermsPage() {
           </p>
           <h3>3.2 Seguridad de la Cuenta</h3>
           <p>
-            Eres responsable de mantener la confidencialidad de tus credenciales de acceso. Debes notificarnos inmediatamente si sospechas de un acceso no autorizado a tu cuenta en <a href="mailto:soporte@menius.app">soporte@menius.app</a>.
+            Eres responsable de mantener la confidencialidad de tus credenciales de acceso. Debes notificarnos inmediatamente si sospechas de un acceso no autorizado a tu cuenta en <a href="mailto:soportemenius@gmail.com">soportemenius@gmail.com</a>.
           </p>
           <h3>3.3 Una Cuenta por Restaurante</h3>
           <p>
@@ -171,7 +171,7 @@ export default function TermsPage() {
           <h2>16. Contacto</h2>
           <p>Para preguntas sobre estos Términos:</p>
           <ul>
-            <li><strong>Email:</strong> <a href="mailto:legal@menius.app">legal@menius.app</a></li>
+            <li><strong>Email:</strong> <a href="mailto:soportemenius@gmail.com">soportemenius@gmail.com</a></li>
             <li><strong>Sitio web:</strong> <a href="https://menius.app">menius.app</a></li>
           </ul>
         </div>
@@ -200,7 +200,7 @@ export default function TermsPage() {
                 <ul className="space-y-2.5">
                   <li><Link href="/blog" className="text-[13px] text-gray-600 hover:text-white transition-colors">Blog</Link></li>
                   <li><Link href="/faq" className="text-[13px] text-gray-600 hover:text-white transition-colors">FAQ</Link></li>
-                  <li><a href="mailto:soporte@menius.app" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
+                  <li><a href="mailto:soportemenius@gmail.com" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
                 </ul>
               </div>
               <div>

@@ -7,9 +7,7 @@ import {
   ArrowRight, Sparkles, AlertTriangle, CreditCard, Clock,
   Copy, Check, Share2, MessageCircle,
 } from 'lucide-react';
-import { formatPrice, timeAgo } from '@/lib/utils';
-import { ORDER_STATUS_CONFIG } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { OnboardingChecklist } from './OnboardingChecklist';
 import type { Order, Restaurant } from '@/types';
 
@@ -328,7 +326,9 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
       await navigator.clipboard.writeText(menuUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {}
+    } catch (err) {
+      console.error('[DashboardHome] copyLink failed:', err);
+    }
   };
 
   const shareWhatsApp = () => {
@@ -344,7 +344,9 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
           text: `¡Mira nuestro menú digital!`,
           url: menuUrl,
         });
-      } catch {}
+      } catch (err) {
+        console.error('[DashboardHome] shareNative failed:', err);
+      }
     } else {
       copyLink();
     }

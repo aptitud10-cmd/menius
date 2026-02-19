@@ -121,8 +121,14 @@ export const PLANS: Record<PlanId, PlanConfig> = {
   },
 };
 
+const PLAN_ALIASES: Record<string, PlanId> = {
+  basic: 'starter',
+  enterprise: 'business',
+};
+
 export function getPlan(planId: PlanId | string): PlanConfig | null {
-  return PLANS[planId as PlanId] ?? null;
+  const resolved = PLAN_ALIASES[planId] ?? planId;
+  return PLANS[resolved as PlanId] ?? null;
 }
 
 export function getPlanByStripePrice(priceId: string): PlanConfig | null {

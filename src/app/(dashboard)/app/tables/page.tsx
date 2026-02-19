@@ -1,31 +1,20 @@
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { TablesManager } from '@/components/dashboard/TablesManager';
 
 export default async function TablesPage() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('default_restaurant_id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!profile?.default_restaurant_id) redirect('/onboarding/create-restaurant');
+  const { supabase, restaurantId } = await getDashboardContext();
 
   const [tablesRes, restaurantRes] = await Promise.all([
     supabase
       .from('tables')
       .select('*')
-      .eq('restaurant_id', profile.default_restaurant_id)
+      .eq('restaurant_id', restaurantId)
       .order('created_at'),
     supabase
       .from('restaurants')
       .select('name, slug')
-      .eq('id', profile.default_restaurant_id)
-      .single(),
+      .eq('id', restaurantId)
+      .maybeSingle(),
   ]);
 
   return (

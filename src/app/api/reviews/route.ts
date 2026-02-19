@@ -2,29 +2,34 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const restaurantId = searchParams.get('restaurant_id');
+  try {
+    const { searchParams } = new URL(request.url);
+    const restaurantId = searchParams.get('restaurant_id');
 
-  if (!restaurantId) {
-    return NextResponse.json({ error: 'restaurant_id requerido' }, { status: 400 });
+    if (!restaurantId) {
+      return NextResponse.json({ error: 'restaurant_id requerido' }, { status: 400 });
+    }
+
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('id, customer_name, rating, comment, created_at')
+      .eq('restaurant_id', restaurantId)
+      .eq('is_visible', true)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Compute average
+    const reviews = data ?? [];
+    const avg = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+
+    return NextResponse.json({ reviews, average: Math.round(avg * 10) / 10, total: reviews.length });
+  } catch (err) {
+    console.error('[reviews GET]', err);
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
-
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('reviews')
-    .select('id, customer_name, rating, comment, created_at')
-    .eq('restaurant_id', restaurantId)
-    .eq('is_visible', true)
-    .order('created_at', { ascending: false })
-    .limit(20);
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-  // Compute average
-  const reviews = data ?? [];
-  const avg = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
-
-  return NextResponse.json({ reviews, average: Math.round(avg * 10) / 10, total: reviews.length });
 }
 
 export async function POST(request: NextRequest) {

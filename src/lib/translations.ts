@@ -94,6 +94,9 @@ export interface Translations {
   paymentMethod: string;
   payCash: string;
   payOnline: string;
+  // Phone
+  yourPhone: string;
+  yourPhonePlaceholder: string;
   // Email
   yourEmail: string;
   yourEmailPlaceholder: string;
@@ -163,7 +166,7 @@ const es: Translations = {
   searchPlaceholder: 'Buscar platillos...',
   noResults: 'No se encontraron resultados',
   orderType: 'Tipo de orden',
-  dineIn: 'Comer aquí',
+  dineIn: 'En el restaurante',
   pickup: 'Para recoger',
   delivery: 'Delivery',
   deliveryAddress: 'Dirección de entrega',
@@ -171,6 +174,8 @@ const es: Translations = {
   paymentMethod: 'Método de pago',
   payCash: 'Pago en caja / efectivo',
   payOnline: 'Pagar en línea',
+  yourPhone: 'Tu teléfono',
+  yourPhonePlaceholder: 'Para confirmar por WhatsApp',
   yourEmail: 'Tu email (opcional)',
   yourEmailPlaceholder: 'Para recibir confirmación',
 };
@@ -247,6 +252,8 @@ const en: Translations = {
   paymentMethod: 'Payment method',
   payCash: 'Pay at counter / cash',
   payOnline: 'Pay online',
+  yourPhone: 'Your phone',
+  yourPhonePlaceholder: 'To confirm via WhatsApp',
   yourEmail: 'Your email (optional)',
   yourEmailPlaceholder: 'To receive confirmation',
 };

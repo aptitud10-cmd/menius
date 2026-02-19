@@ -100,6 +100,7 @@ export interface Order {
   status: OrderStatus;
   customer_name: string;
   customer_email?: string;
+  customer_phone?: string;
   notes: string;
   total: number;
   order_type?: OrderType;

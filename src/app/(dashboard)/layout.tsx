@@ -1,33 +1,31 @@
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { DashboardNav } from '@/components/dashboard/DashboardNav';
 import { DashboardLocaleProvider } from '@/hooks/use-dashboard-locale';
 import { LocaleSwitcher } from '@/components/dashboard/LocaleSwitcher';
+import { AIChatWidget } from '@/components/dashboard/AIChatWidget';
+import { redirect } from 'next/navigation';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { supabase, userId, restaurantId } = await getDashboardContext();
 
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, default_restaurant_id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!profile?.default_restaurant_id) redirect('/onboarding/create-restaurant');
-
-  const { data: restaurant } = await supabase
-    .from('restaurants')
-    .select('name, slug, locale')
-    .eq('id', profile.default_restaurant_id)
-    .maybeSingle();
+  const [{ data: profile }, { data: restaurant }, { data: { user } }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('user_id', userId)
+      .maybeSingle(),
+    supabase
+      .from('restaurants')
+      .select('name, slug, locale')
+      .eq('id', restaurantId)
+      .maybeSingle(),
+    supabase.auth.getUser(),
+  ]);
 
   if (!restaurant) redirect('/onboarding/create-restaurant');
 
-  const initials = (profile.full_name || user.email || 'U')
+  const initials = (profile?.full_name || user?.email || 'U')
     .split(' ')
     .map((w: string) => w[0])
     .join('')
@@ -38,7 +36,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <DashboardLocaleProvider defaultLocale={defaultLocale}>
-      <div className="min-h-screen bg-[#050505] flex">
+      <div className="min-h-screen bg-[#050505] text-gray-100 flex">
         {/* Sidebar */}
         <aside className="hidden md:flex flex-col w-60 bg-[#0a0a0a] border-r border-white/[0.06] sticky top-0 h-screen">
           <div className="p-4 pb-2">
@@ -59,8 +57,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
                   {initials}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-medium text-gray-300 truncate">{profile.full_name || 'Sin nombre'}</p>
-                  <p className="text-[10px] text-gray-500 truncate">{user.email}</p>
+                  <p className="text-xs font-medium text-gray-300 truncate">{profile?.full_name || 'Sin nombre'}</p>
+                  <p className="text-[10px] text-gray-500 truncate">{user?.email}</p>
                 </div>
               </div>
               <LocaleSwitcher />
@@ -85,6 +83,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
             {children}
           </main>
         </div>
+
+        <AIChatWidget />
       </div>
     </DashboardLocaleProvider>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useTransition, useRef, lazy, Suspense } from 'react';
 import {
   Plus, Pencil, Trash2, Eye, EyeOff, ImagePlus, X, Sparkles,
   Loader2, Camera, Wand2, Package, Layers, ListPlus, ChevronRight,
@@ -553,6 +553,16 @@ export function ProductsManager({ initialProducts, categories, restaurantId, cur
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [showImport, setShowImport] = useState(false);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get('edit');
+    if (editId) {
+      const product = initialProducts.find(p => p.id === editId);
+      if (product) setEditorProduct(product);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [initialProducts]);
+
   const handleSave = (saved: Product) => {
     if (products.find(p => p.id === saved.id)) {
       setProducts(prev => prev.map(p => p.id === saved.id ? saved : p));
@@ -613,7 +623,7 @@ export function ProductsManager({ initialProducts, categories, restaurantId, cur
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="text-sm px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                className="text-sm px-3 py-1.5 rounded-lg bg-[#0a0a0a] border border-white/[0.08] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20"
               >
                 <option value="all">Todas las categorias</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -651,7 +661,7 @@ export function ProductsManager({ initialProducts, categories, restaurantId, cur
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className={cn('text-sm font-semibold truncate', !p.is_active && 'line-through text-gray-400')}>{p.name}</span>
+                      <span className={cn('text-sm font-semibold truncate', p.is_active ? 'text-white' : 'line-through text-gray-400')}>{p.name}</span>
                       {!p.is_active && <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-gray-400 font-medium flex-shrink-0">Oculto</span>}
                     </div>
                     <div className="flex items-center gap-2">

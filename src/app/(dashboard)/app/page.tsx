@@ -1,34 +1,19 @@
-import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { DashboardHome } from '@/components/dashboard/DashboardHome';
 
 export default async function DashboardPage() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('default_restaurant_id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!profile?.default_restaurant_id) redirect('/onboarding/create-restaurant');
-
-  const restaurantId = profile.default_restaurant_id;
-
-  const { data: restaurant } = await supabase
-    .from('restaurants')
-    .select('*')
-    .eq('id', restaurantId)
-    .single();
-
-  if (!restaurant) redirect('/onboarding/create-restaurant');
+  const { supabase, restaurantId } = await getDashboardContext();
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const [ordersRes, productsRes, tablesRes, recentOrdersRes, subRes, totalOrdersRes] = await Promise.all([
+  const [restaurantRes, ordersRes, productsRes, tablesRes, recentOrdersRes, subRes, totalOrdersRes] = await Promise.all([
+    supabase
+      .from('restaurants')
+      .select('*')
+      .eq('id', restaurantId)
+      .maybeSingle(),
     supabase
       .from('orders')
       .select('id, total, status')
@@ -46,7 +31,7 @@ export default async function DashboardPage() {
       .eq('is_active', true),
     supabase
       .from('orders')
-      .select('id, restaurant_id, table_id, order_number, status, customer_name, notes, total, created_at')
+      .select('id, restaurant_id, table_id, order_number, status, customer_name, customer_phone, notes, total, created_at')
       .eq('restaurant_id', restaurantId)
       .order('created_at', { ascending: false })
       .limit(5),
@@ -54,12 +39,15 @@ export default async function DashboardPage() {
       .from('subscriptions')
       .select('status, plan_id, trial_end')
       .eq('restaurant_id', restaurantId)
-      .single(),
+      .maybeSingle(),
     supabase
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('restaurant_id', restaurantId),
   ]);
+
+  const restaurant = restaurantRes.data;
+  if (!restaurant) redirect('/onboarding/create-restaurant');
 
   const todaysOrders = ordersRes.data ?? [];
   const salesToday = todaysOrders

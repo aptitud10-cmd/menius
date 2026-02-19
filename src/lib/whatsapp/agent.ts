@@ -32,7 +32,7 @@ async function findRestaurantByPhone(phone: string) {
     .from('restaurants')
     .select('id, name, slug, locale, currency, notification_whatsapp')
     .or(`notification_whatsapp.eq.${phone},notification_whatsapp.eq.+${phone}`)
-    .single();
+    .maybeSingle();
 
   return data;
 }
@@ -185,7 +185,7 @@ export async function handleIncomingMessage({ from, text, name }: IncomingMessag
         .from('restaurants')
         .select('operating_hours')
         .eq('id', session.restaurantId)
-        .single();
+        .maybeSingle();
 
       if (!restaurant?.operating_hours) {
         reply = isEn

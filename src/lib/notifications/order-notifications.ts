@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { sendWhatsApp, formatNewOrderWhatsApp, formatStatusUpdateWhatsApp } from './whatsapp';
-import { sendEmail, buildOrderConfirmationEmail, buildStatusUpdateEmail } from './email';
+import { sendEmail, buildOrderConfirmationEmail, buildStatusUpdateEmail, buildOwnerNewOrderEmail } from './email';
 import { formatPrice } from '@/lib/utils';
 
 interface OrderNotificationPayload {
@@ -9,6 +9,8 @@ interface OrderNotificationPayload {
   restaurantId: string;
   customerName: string;
   customerEmail?: string;
+  customerPhone?: string;
+  orderType?: string;
   total: number;
   items: { name: string; qty: number; price: number }[];
 }
@@ -20,7 +22,7 @@ interface OrderNotificationPayload {
  * Non-blocking — errors are logged but don't affect the order flow.
  */
 export async function notifyNewOrder(payload: OrderNotificationPayload) {
-  const { orderId, orderNumber, restaurantId, customerName, customerEmail, total, items } = payload;
+  const { orderNumber, restaurantId, customerName, customerEmail, customerPhone, orderType, total, items } = payload;
 
   try {
     const supabase = createClient();
@@ -29,7 +31,7 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
       .from('restaurants')
       .select('name, slug, currency, notification_whatsapp, notification_email, notifications_enabled')
       .eq('id', restaurantId)
-      .single();
+      .maybeSingle();
 
     if (!restaurant) return;
 
@@ -46,13 +48,14 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
       sendWhatsApp({ to: restaurant.notification_whatsapp, text }).catch(() => {});
     }
 
-    if (notificationsOn && customerEmail) {
-      const emailItems = items.map((i) => ({
-        name: i.name,
-        qty: i.qty,
-        price: formatPrice(i.price, currency),
-      }));
+    const emailItems = items.map((i) => ({
+      name: i.name,
+      qty: i.qty,
+      price: formatPrice(i.price, currency),
+    }));
 
+    // Email to customer
+    if (notificationsOn && customerEmail) {
       const html = buildOrderConfirmationEmail({
         customerName,
         orderNumber,
@@ -66,6 +69,25 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
         to: customerEmail,
         subject: `Pedido #${orderNumber} confirmado — ${restaurant.name}`,
         html,
+      }).catch(() => {});
+    }
+
+    // Email to restaurant owner
+    if (notificationsOn && restaurant.notification_email) {
+      const ownerHtml = buildOwnerNewOrderEmail({
+        orderNumber,
+        customerName,
+        customerPhone,
+        orderType: orderType ?? 'dine_in',
+        total: totalFormatted,
+        items: emailItems,
+        dashboardUrl: `${appUrl}/app/orders`,
+      });
+
+      sendEmail({
+        to: restaurant.notification_email,
+        subject: `🔔 Nuevo pedido #${orderNumber} — ${customerName} — ${totalFormatted}`,
+        html: ownerHtml,
       }).catch(() => {});
     }
   } catch (err) {
@@ -84,8 +106,9 @@ export async function notifyStatusChange(params: {
   status: string;
   customerName: string;
   customerEmail?: string;
+  customerPhone?: string;
 }) {
-  const { orderNumber, restaurantId, status, customerName, customerEmail } = params;
+  const { orderNumber, restaurantId, status, customerName, customerEmail, customerPhone } = params;
 
   try {
     const supabase = createClient();
@@ -94,11 +117,11 @@ export async function notifyStatusChange(params: {
       .from('restaurants')
       .select('name, slug, notifications_enabled')
       .eq('id', restaurantId)
-      .single();
+      .maybeSingle();
 
     if (!restaurant || restaurant.notifications_enabled === false) return;
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
     const trackingUrl = `${appUrl}/r/${restaurant.slug}/orden/${orderNumber}`;
 
     if (customerEmail) {
@@ -115,6 +138,11 @@ export async function notifyStatusChange(params: {
         subject: getStatusSubject(status, orderNumber, restaurant.name),
         html,
       }).catch(() => {});
+    }
+
+    if (customerPhone) {
+      const text = formatStatusUpdateWhatsApp(orderNumber, status, restaurant.name);
+      sendWhatsApp({ to: customerPhone, text }).catch(() => {});
     }
   } catch (err) {
     console.error('[Notifications] Error sending status update:', err);

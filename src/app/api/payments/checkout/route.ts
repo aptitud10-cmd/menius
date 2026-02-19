@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
         order_items ( qty, unit_price, line_total, products ( name ) )
       `)
       .eq('id', order_id)
-      .single();
+      .maybeSingle();
 
     if (error || !order) {
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });

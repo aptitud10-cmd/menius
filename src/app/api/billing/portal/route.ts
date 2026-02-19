@@ -20,7 +20,7 @@ export async function POST() {
       .from('subscriptions')
       .select('stripe_customer_id')
       .eq('restaurant_id', tenant.restaurantId)
-      .single();
+      .maybeSingle();
 
     if (!subscription?.stripe_customer_id) {
       return NextResponse.json({ error: 'No hay suscripción activa' }, { status: 400 });

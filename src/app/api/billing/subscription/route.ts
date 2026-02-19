@@ -12,7 +12,7 @@ export async function GET() {
       .from('subscriptions')
       .select('*')
       .eq('restaurant_id', tenant.restaurantId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       return NextResponse.json({ subscription: null });

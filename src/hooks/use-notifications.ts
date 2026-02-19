@@ -73,7 +73,9 @@ export function useNotifications(opts: UseNotificationsOptions = {}) {
     if (!soundEnabled) return;
     try {
       playChime();
-    } catch {}
+    } catch (err) {
+      console.error('[useNotifications] playSound failed:', err);
+    }
   }, [soundEnabled]);
 
   const updateTabTitle = useCallback((count: number) => {
@@ -126,7 +128,9 @@ export function useNotifications(opts: UseNotificationsOptions = {}) {
         };
       }
       setTimeout(() => notification.close(), 8000);
-    } catch {}
+    } catch (err) {
+      console.error('[useNotifications] sendBrowserNotification failed:', err);
+    }
   }, [hasPermission]);
 
   const notifyNewOrder = useCallback((orderNumber: string, total: string) => {

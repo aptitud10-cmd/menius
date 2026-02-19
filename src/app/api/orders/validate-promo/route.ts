@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       .eq('restaurant_id', restaurant_id)
       .eq('code', code.toUpperCase().trim())
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (error || !promo) {
       return NextResponse.json({ error: 'Código no válido' }, { status: 404 });

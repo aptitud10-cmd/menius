@@ -262,7 +262,9 @@ function ReviewPrompt({ restaurantId, orderId, customerName }: { restaurantId: s
         body: JSON.stringify({ restaurant_id: restaurantId, order_id: orderId, customer_name: customerName, rating, comment }),
       });
       if (res.ok) setSubmitted(true);
-    } catch {} finally { setSubmitting(false); }
+    } catch (err) {
+      console.error('[OrderTracker] submit review failed:', err);
+    } finally { setSubmitting(false); }
   };
 
   if (submitted) {

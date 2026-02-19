@@ -678,6 +678,178 @@ La lógica es simple:
 Las apps de delivery seguirán existiendo y tienen su lugar en la estrategia de un restaurante. Pero depender exclusivamente de ellas es un error financiero. Los restaurantes más inteligentes están construyendo sus propios canales digitales para controlar su destino.
     `,
   },
+  {
+    slug: 'asistente-ia-restaurantes-menius-ai',
+    title: 'MENIUS AI: Cómo un asistente inteligente está transformando la gestión de restaurantes',
+    description: 'Descubre cómo MENIUS AI, el asistente inteligente integrado en tu dashboard, te ayuda a analizar ventas, entender a tus clientes y tomar mejores decisiones para tu restaurante.',
+    category: 'Tecnología',
+    readTime: 7,
+    date: '2026-02-16',
+    author: 'MENIUS',
+    content: `
+## La inteligencia artificial llega al restaurante
+
+Hasta hace poco, las herramientas de IA eran exclusivas de grandes corporaciones con presupuestos millonarios. En 2026, eso cambió. Ahora, un restaurante local puede tener su propio asistente inteligente — y eso es exactamente lo que ofrece MENIUS AI.
+
+## ¿Qué es MENIUS AI?
+
+MENIUS AI es un asistente inteligente integrado directamente en el dashboard de tu restaurante. No es un chatbot genérico — tiene acceso a **todos los datos de tu negocio en tiempo real**: ventas, pedidos, clientes, menú, reseñas, promociones y más.
+
+Puedes hacerle preguntas como:
+
+- "¿Cuánto vendí hoy?"
+- "¿Cuál es mi producto más vendido esta semana?"
+- "¿Tengo pedidos pendientes?"
+- "¿Quién es mi mejor cliente?"
+- "Sugiéreme una promoción para el fin de semana"
+- "¿Cómo configuro delivery?"
+
+## 5 formas en que MENIUS AI ayuda a tu restaurante
+
+### 1. Análisis instantáneo de ventas
+
+En lugar de revisar gráficas y números, simplemente pregunta: "¿Cómo van las ventas esta semana?" y MENIUS AI te da un resumen claro con comparaciones vs la semana anterior, ticket promedio, y tendencias.
+
+### 2. Conoce a tus clientes
+
+MENIUS AI analiza los datos de tus pedidos para identificar a tus clientes más frecuentes, sus preferencias, y cuánto gastan. Información que antes requería un CRM costoso.
+
+### 3. Guía paso a paso del dashboard
+
+¿No sabes cómo agregar un producto o crear un QR? Pregúntale a MENIUS AI y te explica paso a paso, como si tuvieras un tutor personalizado 24/7.
+
+### 4. Estrategias de negocio
+
+MENIUS AI puede sugerir promociones basadas en tus datos reales: "Tu hora más baja es de 3 a 5 PM. Podrías crear un descuento de Happy Hour para esas horas."
+
+### 5. Disponible 24/7 sin costo adicional
+
+A diferencia de un consultor que cobra por hora, MENIUS AI está siempre disponible y viene incluido en todos los planes sin costo extra.
+
+## ¿Cuánto cuesta?
+
+Nada adicional. MENIUS AI está incluido en todos los planes de MENIUS, incluyendo el plan Starter de $39/mes. Usa tecnología Google Gemini optimizada para ser eficiente y económica.
+
+## Conclusión
+
+La IA ya no es el futuro — es el presente. Los restaurantes que adopten herramientas inteligentes hoy tendrán una ventaja competitiva enorme. Con MENIUS AI, tienes un analista de negocio, un consultor, y un asistente técnico — todo en uno, todo gratis, todo el tiempo.
+    `,
+  },
+  {
+    slug: 'google-maps-menu-digital-restaurante',
+    title: 'Por qué Google Maps en tu menú digital es clave para atraer más clientes',
+    description: 'Integrar Google Maps en tu menú digital ayuda a los clientes a encontrarte fácilmente y aumenta la confianza en tu restaurante. Descubre cómo MENIUS lo hace automáticamente.',
+    category: 'Marketing',
+    readTime: 5,
+    date: '2026-02-14',
+    author: 'MENIUS',
+    content: `
+## La ubicación importa más de lo que crees
+
+Cuando un cliente nuevo descubre tu menú digital — ya sea por un QR, un link en redes sociales, o una recomendación — una de las primeras cosas que quiere saber es: **¿dónde están?**
+
+Si tu menú digital no muestra tu ubicación de forma clara e interactiva, estás perdiendo clientes potenciales.
+
+## El problema con la dirección en texto
+
+Muchos restaurantes ponen su dirección en texto plano: "Calle 5 #123, Colonia Centro". El problema:
+
+- El cliente tiene que copiar la dirección y pegarla en otra app
+- Las direcciones escritas pueden ser confusas
+- No transmiten la misma confianza que un mapa visual
+
+## La solución: Google Maps integrado
+
+MENIUS integra Google Maps directamente en la página pública de tu restaurante. Esto significa que:
+
+1. **Tus clientes ven un mapa interactivo** con tu ubicación exacta
+2. **Pueden obtener direcciones** con un clic
+3. **Genera confianza** — un mapa de Google es sinónimo de legitimidad
+4. **Funciona para delivery** — el cliente sabe exactamente qué tan lejos está
+
+## Cómo activar Google Maps en MENIUS
+
+Es automático. Solo necesitas:
+
+1. Ir a **Configuración** en tu dashboard
+2. Escribir tu dirección completa
+3. El mapa aparece automáticamente en tu tienda pública
+
+No necesitas configurar APIs ni código. MENIUS se encarga de todo.
+
+## El impacto en números
+
+Según estudios de Google:
+
+- **76% de las personas** que buscan un negocio local lo visitan en 24 horas
+- Los negocios con ubicación en Google Maps reciben **2.7x más solicitudes** de dirección
+- **86% de los consumidores** buscan la ubicación de un negocio en línea antes de visitarlo
+
+## Conclusión
+
+Un mapa no es un detalle menor — es una herramienta de conversión. Los restaurantes que facilitan que sus clientes los encuentren, venden más. Con MENIUS, Google Maps viene integrado sin costo y sin configuración técnica.
+    `,
+  },
+  {
+    slug: 'cocina-kds-pedidos-tiempo-real',
+    title: 'Kitchen Display System (KDS): La pantalla que elimina errores en tu cocina',
+    description: 'Un KDS muestra los pedidos en tiempo real en la cocina, elimina los tickets de papel y reduce errores. Descubre cómo funciona el KDS de MENIUS.',
+    category: 'Operación',
+    readTime: 6,
+    date: '2026-02-12',
+    author: 'MENIUS',
+    content: `
+## ¿Qué es un KDS (Kitchen Display System)?
+
+Un KDS es una pantalla digital en la cocina que reemplaza los tickets de papel. Muestra los pedidos en tiempo real conforme van entrando, con todos los detalles que el equipo de cocina necesita: productos, variantes, extras, notas del cliente, y datos de contacto.
+
+## El problema con los tickets de papel
+
+En muchos restaurantes, el proceso es:
+
+1. El mesero anota el pedido (a veces con letra ilegible)
+2. Lleva el papel a la cocina
+3. El cocinero interpreta el pedido
+4. Se pierden tickets, se confunden pedidos, se olvidan extras
+
+Resultado: **errores, comida devuelta, clientes insatisfechos y dinero perdido**.
+
+## Cómo funciona el KDS de MENIUS
+
+Con MENIUS, el flujo es completamente digital:
+
+1. El cliente ordena desde su celular (escanea QR o usa el link)
+2. El pedido aparece **instantáneamente** en la pantalla de cocina
+3. El cocinero ve todos los detalles: productos, variantes, extras, notas especiales
+4. Marca cada pedido como "preparando" → "listo"
+5. El cliente recibe la actualización de estado en tiempo real
+
+### ¿Qué muestra la pantalla KDS?
+
+- **Número de orden** y hora del pedido
+- **Nombre y teléfono del cliente** (con link directo a WhatsApp)
+- **Cada producto** con cantidad, variante y extras
+- **Notas especiales** (alergias, preferencias)
+- **Tipo de orden**: mesa, pickup o delivery
+- **Tiempo transcurrido** desde que se hizo el pedido
+
+## Beneficios concretos
+
+1. **Cero errores de interpretación** — La información es exacta y legible
+2. **Ahorro en papel** — No más rollos de tickets
+3. **Velocidad** — El pedido llega a cocina en 0 segundos
+4. **Seguimiento** — Sabes exactamente en qué estado está cada pedido
+5. **Contacto directo** — Si hay dudas, contactas al cliente por WhatsApp con un clic
+
+## ¿Qué necesito para usar el KDS?
+
+Solo una tablet o monitor en la cocina con conexión a internet. Abres la sección "Cocina" del dashboard de MENIUS y listo — los pedidos aparecen en tiempo real. No necesitas hardware especializado ni software adicional.
+
+## Conclusión
+
+Un KDS no es un lujo — es una necesidad operativa. Elimina errores, acelera la cocina, y mejora la experiencia del cliente. Con MENIUS, el KDS viene incluido en todos los planes y funciona desde cualquier dispositivo con navegador.
+    `,
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {

@@ -6,8 +6,7 @@ import {
   Maximize, Minimize, Volume2, VolumeX, Wifi,
 } from 'lucide-react';
 import { updateOrderStatus } from '@/lib/actions/restaurant';
-import { formatPrice, timeAgo, ORDER_STATUS_CONFIG } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useNotifications } from '@/hooks/use-notifications';
 import type { Order, OrderStatus } from '@/types';
@@ -239,6 +238,18 @@ export function KitchenDisplay({ initialOrders, restaurantId, restaurantName, cu
                           </div>
                           <ElapsedTimer since={order.created_at} />
                         </div>
+
+                        {/* Customer info */}
+                        {(order.customer_name || order.customer_phone) && (
+                          <div className="flex items-center gap-2 text-[11px] text-gray-400 mb-2">
+                            {order.customer_name && <span>{order.customer_name}</span>}
+                            {order.customer_phone && (
+                              <a href={`https://wa.me/${order.customer_phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 transition-colors">
+                                {order.customer_phone}
+                              </a>
+                            )}
+                          </div>
+                        )}
 
                         {/* Items */}
                         {order.items && order.items.length > 0 && (

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { signup } from '@/lib/actions/auth';
 import { signupSchema } from '@/lib/validations';
+import { getSupabaseBrowser } from '@/lib/supabase/browser';
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState('');
@@ -81,18 +82,18 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen-safe flex items-center justify-center px-4 py-12 landing-bg noise-overlay relative overflow-hidden">
+    <div className="min-h-screen-safe md:flex md:items-center md:justify-center px-5 md:px-4 py-6 md:py-12 landing-bg noise-overlay relative overflow-x-hidden overflow-y-auto w-full max-w-[100vw]">
       {/* Ambient glows */}
       <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/[0.12] rounded-full blur-[180px]" />
       <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-blue-500/[0.08] rounded-full blur-[120px]" />
 
-      <div className="relative z-10 w-full max-w-[380px] animate-fade-in-up">
+      <div className="relative z-10 w-full max-w-[380px] mx-auto pt-14 md:pt-0 animate-fade-in-up">
         {/* Logo */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-6 md:mb-10">
           <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
             <span className="text-white">MENIUS</span>
           </Link>
-          <p className="text-gray-500 text-[13px] mt-2.5 tracking-wide">Crea tu cuenta gratis — 14 días de prueba</p>
+          <p className="text-gray-400 md:text-gray-500 text-sm md:text-[13px] mt-2 tracking-wide">Crea tu cuenta gratis — 14 días de prueba</p>
         </div>
 
         {/* Card */}
@@ -124,8 +125,9 @@ export default function SignupPage() {
                   onChange={(e) => setFullName(e.target.value)}
                   onFocus={() => setFocused('name')}
                   onBlur={() => setFocused(null)}
-                  className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder-gray-600 focus:outline-none transition-colors"
+                  className="w-full px-4 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
                   placeholder="Juan García"
+                  autoComplete="name"
                 />
               </div>
             </div>
@@ -144,8 +146,9 @@ export default function SignupPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={() => setFocused('email')}
                   onBlur={() => setFocused(null)}
-                  className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder-gray-600 focus:outline-none transition-colors"
+                  className="w-full px-4 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
                   placeholder="tu@email.com"
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -164,8 +167,9 @@ export default function SignupPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => setFocused('password')}
                   onBlur={() => setFocused(null)}
-                  className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder-gray-600 focus:outline-none transition-colors"
+                  className="w-full px-4 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
                   placeholder="Mínimo 6 caracteres"
+                  autoComplete="new-password"
                 />
               </div>
             </div>
@@ -211,6 +215,29 @@ export default function SignupPage() {
                   Creando cuenta...
                 </span>
               ) : 'Crear cuenta gratis'}
+            </button>
+
+            {/* Divider */}
+            <div className="flex items-center gap-4 py-1">
+              <div className="flex-1 h-px bg-white/[0.06]" />
+              <span className="text-[11px] text-gray-600 uppercase tracking-widest">o</span>
+              <div className="flex-1 h-px bg-white/[0.06]" />
+            </div>
+
+            {/* Google OAuth */}
+            <button
+              type="button"
+              onClick={async () => {
+                const supabase = getSupabaseBrowser();
+                await supabase.auth.signInWithOAuth({
+                  provider: 'google',
+                  options: { redirectTo: `${window.location.origin}/auth/callback` },
+                });
+              }}
+              className="w-full py-3 rounded-xl border border-white/[0.08] bg-white/[0.02] text-gray-300 font-medium text-sm hover:bg-white/[0.06] hover:text-white transition-all flex items-center justify-center gap-2.5"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+              Registrarse con Google
             </button>
           </form>
         </div>

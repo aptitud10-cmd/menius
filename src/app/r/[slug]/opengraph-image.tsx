@@ -30,7 +30,9 @@ export default async function Image({ params }: { params: { slug: string } }) {
         name = data.name;
         description = data.description ?? '';
       }
-    } catch {}
+    } catch (err) {
+      console.error('[opengraph-image] fetch restaurant failed:', err);
+    }
   }
 
   const initial = name.charAt(0).toUpperCase();

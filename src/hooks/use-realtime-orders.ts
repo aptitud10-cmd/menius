@@ -30,11 +30,11 @@ export function useRealtimeOrders({
     const { data } = await supabase
       .from('orders')
       .select(`
-        id, restaurant_id, table_id, order_number, status, customer_name, notes, total, created_at,
+        id, restaurant_id, table_id, order_number, status, customer_name, customer_phone, notes, total, created_at,
         order_items ( id, qty, unit_price, line_total, notes, products ( name ) )
       `)
       .eq('id', orderId)
-      .single();
+      .maybeSingle();
 
     if (!data) return null;
 

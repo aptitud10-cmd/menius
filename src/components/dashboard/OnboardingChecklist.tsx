@@ -30,15 +30,16 @@ interface OnboardingChecklistProps {
   };
 }
 
-const STORAGE_KEY = 'menius-onboarding-dismissed';
-
 export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingChecklistProps) {
-  const [dismissed, setDismissed] = useState(true);
+  const storageKey = `menius-onboarding-dismissed-${restaurantSlug}`;
+  const [dismissed, setDismissed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(storageKey);
     setDismissed(stored === 'true');
-  }, []);
+  }, [storageKey]);
+
+  if (dismissed === null) return null;
 
   const allSteps: OnboardingStep[] = [
     {
@@ -101,7 +102,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
   if (dismissed && allComplete) return null;
 
   const handleDismiss = () => {
-    localStorage.setItem(STORAGE_KEY, 'true');
+    localStorage.setItem(storageKey, 'true');
     setDismissed(true);
   };
 

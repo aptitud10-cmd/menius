@@ -1,25 +1,15 @@
-import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { RestaurantSettings } from '@/components/dashboard/RestaurantSettings';
 
 export default async function SettingsPage() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('default_restaurant_id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!profile?.default_restaurant_id) redirect('/onboarding/create-restaurant');
+  const { supabase, restaurantId } = await getDashboardContext();
 
   const { data: restaurant } = await supabase
     .from('restaurants')
     .select('*')
-    .eq('id', profile.default_restaurant_id)
-    .single();
+    .eq('id', restaurantId)
+    .maybeSingle();
 
   if (!restaurant) redirect('/onboarding/create-restaurant');
 

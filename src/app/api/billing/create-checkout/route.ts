@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       .from('subscriptions')
       .select('stripe_customer_id, stripe_subscription_id')
       .eq('restaurant_id', tenant.restaurantId)
-      .single();
+      .maybeSingle();
 
     let customerId = subscription?.stripe_customer_id;
 
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
         .from('restaurants')
         .select('name')
         .eq('id', tenant.restaurantId)
-        .single();
+        .maybeSingle();
 
       const customer = await stripe.customers.create({
         email: (await supabase.auth.getUser()).data.user?.email,

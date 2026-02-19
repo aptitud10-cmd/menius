@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
     const restaurant_id = body.restaurant_id;
     const customer_name = sanitizeText(body.customer_name, 100);
     const customer_email = sanitizeEmail(body.customer_email);
+    const customer_phone = sanitizeText(body.customer_phone, 20);
     const notes = sanitizeMultiline(body.notes, 500);
     const items = body.items;
     const promo_code = sanitizeText(body.promo_code, 50);
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'restaurant_id requerido' }, { status: 400 });
     }
 
-    const parsed = publicOrderSchema.safeParse({ customer_name, notes, items });
+    const parsed = publicOrderSchema.safeParse({ customer_name, customer_phone, notes, items });
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
       .from('restaurants')
       .select('id, slug')
       .eq('id', restaurant_id)
-      .single();
+      .maybeSingle();
 
     if (!restaurant) {
       return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 });
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
         order_number: orderNumber,
         customer_name: parsed.data.customer_name,
         customer_email: customer_email || null,
+        customer_phone: parsed.data.customer_phone || null,
         notes: parsed.data.notes,
         total,
         status: 'pending',
@@ -129,8 +131,22 @@ export async function POST(request: NextRequest) {
     if (promo_code) {
       try {
         await supabase.rpc('increment_promo_usage', { p_code: promo_code.toUpperCase().trim(), p_restaurant_id: restaurant_id });
-      } catch {}
+      } catch (err) {
+        console.error('[orders] increment_promo_usage failed:', err);
+      }
     }
+
+    // Upsert customer record (non-blocking)
+    supabase.rpc('upsert_customer_from_order', {
+      p_restaurant_id: restaurant_id,
+      p_name: parsed.data.customer_name,
+      p_email: customer_email || '',
+      p_phone: parsed.data.customer_phone || '',
+      p_address: delivery_address || '',
+      p_order_total: total,
+    }).then(({ error: custErr }) => {
+      if (custErr) console.error('[orders] upsert_customer failed:', custErr);
+    });
 
     // Fetch product names for notification (non-blocking)
     const notifProductIds = parsed.data.items.map((i) => i.product_id);
@@ -154,10 +170,14 @@ export async function POST(request: NextRequest) {
           restaurantId: restaurant_id,
           customerName: parsed.data.customer_name,
           customerEmail: customer_email || undefined,
+          customerPhone: parsed.data.customer_phone || undefined,
+          orderType: order_type || 'dine_in',
           total,
           items: notifItems,
         });
-      } catch {}
+      } catch (err) {
+        console.error('[orders] notifyNewOrder failed:', err);
+      }
     })();
 
     return NextResponse.json({

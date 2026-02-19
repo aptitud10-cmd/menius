@@ -1,3 +1,5 @@
+const { withSentryConfig } = require('@sentry/nextjs');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -27,7 +29,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://client.crisp.chat",
               "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://*.stripe.com https://image.crisp.chat https://storage.crisp.chat",
               "font-src 'self' https://fonts.gstatic.com https://client.crisp.chat",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://generativelanguage.googleapis.com https://api.resend.com https://client.crisp.chat wss://client.relay.crisp.chat https://storage.crisp.chat",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://generativelanguage.googleapis.com https://api.resend.com https://client.crisp.chat wss://client.relay.crisp.chat https://storage.crisp.chat https://*.sentry.io https://*.ingest.sentry.io",
               "frame-src https://js.stripe.com https://hooks.stripe.com https://game.crisp.chat",
               "object-src 'none'",
               "base-uri 'self'",
@@ -62,4 +64,12 @@ const nextConfig = {
   poweredByHeader: false,
 };
 
-module.exports = nextConfig;
+module.exports = withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  disableLogger: true,
+  tunnelRoute: '/monitoring',
+  hideSourceMaps: true,
+});

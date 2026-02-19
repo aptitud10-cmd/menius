@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   BarChart3, TrendingUp, TrendingDown, DollarSign, ShoppingBag, Loader2,
-  Calendar, Percent, Clock, XCircle, ArrowUpRight, ArrowDownRight, Flame,
+  Calendar, Percent, Clock, XCircle, ArrowUpRight, ArrowDownRight, Flame, Download, FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -69,7 +69,9 @@ export default function AnalyticsPage() {
       const res = await fetch(`/api/tenant/analytics?days=${days}`);
       const json = await res.json();
       setData(json);
-    } catch {}
+    } catch (err) {
+      console.error('[Analytics] fetchData failed:', err);
+    }
     setLoading(false);
   }, [days]);
 
@@ -96,21 +98,41 @@ export default function AnalyticsPage() {
           <h1 className="text-xl font-bold text-white">Analytics</h1>
           <p className="text-sm text-gray-500 mt-0.5">Métricas y rendimiento de tu restaurante</p>
         </div>
-        <div className="flex items-center gap-1.5 bg-[#0a0a0a] rounded-xl border border-white/[0.08] p-1">
-          {[7, 14, 30].map(d => (
-            <button
-              key={d}
-              onClick={() => setDays(d)}
-              className={cn(
-                'px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all',
-                days === d
-                  ? 'bg-purple-500 text-white'
-                  : 'text-gray-500 hover:text-gray-200 hover:bg-white/[0.04]'
-              )}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-[#0a0a0a] rounded-xl border border-white/[0.08] p-1">
+            {[7, 14, 30].map(d => (
+              <button
+                key={d}
+                onClick={() => setDays(d)}
+                className={cn(
+                  'px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all',
+                  days === d
+                    ? 'bg-purple-500 text-white'
+                    : 'text-gray-500 hover:text-gray-200 hover:bg-white/[0.04]'
+                )}
+              >
+                {d}d
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-1">
+            <a
+              href={`/api/tenant/reports?period=${days}&format=csv`}
+              className="p-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+              title="Exportar CSV"
             >
-              {d}d
-            </button>
-          ))}
+              <Download className="w-4 h-4" />
+            </a>
+            <a
+              href={`/api/tenant/reports?period=${days}&format=html`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+              title="Reporte PDF (imprimir)"
+            >
+              <FileText className="w-4 h-4" />
+            </a>
+          </div>
         </div>
       </div>
 

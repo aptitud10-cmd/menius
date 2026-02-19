@@ -20,7 +20,7 @@ export async function getTenant(): Promise<TenantInfo | null> {
     .from('profiles')
     .select('default_restaurant_id')
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
   if (!profile?.default_restaurant_id) return null;
 

@@ -119,7 +119,7 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {tables.map((table) => (
-            <QRTableCard key={table.id} table={table} onDelete={handleDelete} onEdit={handleEdit} />
+            <QRTableCard key={table.id} table={table} onDelete={handleDelete} onEdit={handleEdit} restaurantName={restaurantName} />
           ))}
         </div>
       )}
@@ -127,7 +127,7 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
   );
 }
 
-function QRTableCard({ table, onDelete, onEdit }: { table: Table; onDelete: (id: string) => void; onEdit: (id: string, name: string) => void }) {
+function QRTableCard({ table, onDelete, onEdit, restaurantName }: { table: Table; onDelete: (id: string) => void; onEdit: (id: string, name: string) => void; restaurantName?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const brandedCanvasRef = useRef<HTMLCanvasElement>(null);
   const [qrReady, setQrReady] = useState(false);
@@ -159,46 +159,70 @@ function QRTableCard({ table, onDelete, onEdit }: { table: Table; onDelete: (id:
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const padding = 40;
-    const headerHeight = 60;
-    const footerHeight = 50;
-    const qrSize = qrCanvas.width;
-    const totalWidth = qrSize + padding * 2;
-    const totalHeight = headerHeight + qrSize + footerHeight + padding;
+    const scale = 3;
+    const w = 320 * scale;
+    const qrSize = 240 * scale;
+    const pad = 40 * scale;
+    const h = (420) * scale;
 
-    canvas.width = totalWidth;
-    canvas.height = totalHeight;
+    canvas.width = w;
+    canvas.height = h;
 
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.roundRect(0, 0, totalWidth, totalHeight, 20);
+    ctx.roundRect(0, 0, w, h, 24 * scale);
     ctx.fill();
 
-    const gradient = ctx.createLinearGradient(0, 0, totalWidth, 0);
-    gradient.addColorStop(0, '#7c3aed');
-    gradient.addColorStop(1, '#6d28d9');
-    ctx.fillStyle = gradient;
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 1 * scale;
     ctx.beginPath();
-    ctx.roundRect(0, 0, totalWidth, headerHeight + 10, [20, 20, 0, 0]);
-    ctx.fill();
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 18px system-ui, -apple-system, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(table.name, totalWidth / 2, headerHeight / 2 + 6);
-
-    ctx.drawImage(qrCanvas, padding, headerHeight + 10, qrSize, qrSize);
+    ctx.roundRect(0, 0, w, h, 24 * scale);
+    ctx.stroke();
 
     ctx.fillStyle = '#7c3aed';
-    ctx.font = 'bold 14px system-ui, -apple-system, sans-serif';
+    ctx.font = `bold ${11 * scale}px system-ui, -apple-system, sans-serif`;
     ctx.textAlign = 'center';
-    const footerY = headerHeight + qrSize + 20;
-    ctx.fillText('MENIUS', totalWidth / 2, footerY + 18);
+    ctx.letterSpacing = `${4 * scale}px`;
+    ctx.fillText('MENIUS', w / 2, 36 * scale);
+    ctx.letterSpacing = '0px';
 
-    ctx.fillStyle = '#9ca3af';
-    ctx.font = '10px system-ui, -apple-system, sans-serif';
-    ctx.fillText('Escanea para ver el menú', totalWidth / 2, footerY + 36);
-  }, [table.name]);
+    if (restaurantName) {
+      ctx.fillStyle = '#111827';
+      ctx.font = `600 ${14 * scale}px system-ui, -apple-system, sans-serif`;
+      ctx.fillText(restaurantName, w / 2, 58 * scale);
+    }
+
+    const sep1Y = 72 * scale;
+    ctx.strokeStyle = '#f3f4f6';
+    ctx.lineWidth = 1 * scale;
+    ctx.beginPath();
+    ctx.moveTo(pad, sep1Y);
+    ctx.lineTo(w - pad, sep1Y);
+    ctx.stroke();
+
+    const qrX = (w - qrSize) / 2;
+    const qrY = 84 * scale;
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(qrX - 8 * scale, qrY - 8 * scale, qrSize + 16 * scale, qrSize + 16 * scale, 16 * scale);
+    ctx.fillStyle = '#fafafa';
+    ctx.fill();
+    ctx.restore();
+
+    ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
+
+    const belowQR = qrY + qrSize + 24 * scale;
+
+    ctx.fillStyle = '#111827';
+    ctx.font = `bold ${20 * scale}px system-ui, -apple-system, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(table.name, w / 2, belowQR);
+
+    ctx.fillStyle = '#6b7280';
+    ctx.font = `${10 * scale}px system-ui, -apple-system, sans-serif`;
+    ctx.fillText('Escanea el código para ver el menú', w / 2, belowQR + 20 * scale);
+
+  }, [table.name, restaurantName]);
 
   const downloadBrandedQR = () => {
     if (!brandedCanvasRef.current) return;
@@ -214,7 +238,9 @@ function QRTableCard({ table, onDelete, onEdit }: { table: Table; onDelete: (id:
       await navigator.clipboard.writeText(table.qr_code_value);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {}
+    } catch (err) {
+      console.error('[TablesManager] copyLink failed:', err);
+    }
   };
 
   const shareLink = async () => {
@@ -226,7 +252,9 @@ function QRTableCard({ table, onDelete, onEdit }: { table: Table; onDelete: (id:
           text: `Escanea o visita el enlace para ver el menú`,
           url: table.qr_code_value,
         });
-      } catch {}
+      } catch (err) {
+        console.error('[TablesManager] shareLink failed:', err);
+      }
     } else {
       copyLink();
     }
@@ -456,7 +484,9 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
       await navigator.clipboard.writeText(menuUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {}
+    } catch (err) {
+      console.error('[TablesManager] copyLink (menu) failed:', err);
+    }
   };
 
   const shareNative = async () => {
@@ -467,7 +497,9 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
           text: `¡Mira nuestro menú digital! Pide y paga desde tu celular.`,
           url: menuUrl,
         });
-      } catch {}
+      } catch (err) {
+        console.error('[TablesManager] shareNative failed:', err);
+      }
     } else {
       copyLink();
     }

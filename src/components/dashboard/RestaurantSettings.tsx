@@ -1,9 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, ImagePlus, Trash2 } from 'lucide-react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type { Restaurant } from '@/types';
+import { PhoneField } from '@/components/ui/PhoneField';
+import { AddressAutocomplete } from '@/components/ui/AddressAutocomplete';
 
 const DAYS = [
   { key: 'monday', label: 'Lunes' },
@@ -46,6 +49,13 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     }, {} as Record<string, { open: string; close: string; closed: boolean }>)
   );
 
+  const [logoUrl, setLogoUrl] = useState(initialData.logo_url ?? '');
+  const [coverUrl, setCoverUrl] = useState(initialData.cover_image_url ?? '');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const logoRef = useRef<HTMLInputElement>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
+
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -68,6 +78,39 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     setSaved(false);
   };
 
+  const uploadImage = async (file: File): Promise<string | null> => {
+    if (!file.type.startsWith('image/')) { setError('Solo se permiten imágenes'); return null; }
+    if (file.size > 10 * 1024 * 1024) { setError('Máximo 10MB'); return null; }
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch('/api/tenant/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) { setError(data.error ?? 'Error subiendo imagen'); return null; }
+    return data.url;
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    setError('');
+    const url = await uploadImage(file);
+    if (url) { setLogoUrl(url); setSaved(false); }
+    setUploadingLogo(false);
+    if (logoRef.current) logoRef.current.value = '';
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCover(true);
+    setError('');
+    const url = await uploadImage(file);
+    if (url) { setCoverUrl(url); setSaved(false); }
+    setUploadingCover(false);
+    if (coverRef.current) coverRef.current.value = '';
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setError('');
@@ -77,7 +120,12 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       const res = await fetch('/api/tenant/restaurant', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, operating_hours: hours }),
+        body: JSON.stringify({
+          ...form,
+          operating_hours: hours,
+          logo_url: logoUrl || null,
+          cover_image_url: coverUrl || null,
+        }),
       });
 
       const data = await res.json();
@@ -92,6 +140,84 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
   return (
     <div className="space-y-6 max-w-2xl">
+      {/* Logo & Banner */}
+      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] overflow-hidden">
+        {/* Banner */}
+        <div className="relative h-40 bg-gradient-to-br from-purple-900/40 to-blue-900/30">
+          <input ref={coverRef} type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+          {coverUrl ? (
+            <>
+              <Image src={coverUrl} alt="Banner" fill className="object-cover" sizes="700px" />
+              <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center gap-2 group">
+                <button
+                  onClick={() => coverRef.current?.click()}
+                  disabled={uploadingCover}
+                  className="opacity-0 group-hover:opacity-100 p-2.5 rounded-xl bg-black/70 text-white text-xs font-medium transition-all flex items-center gap-1.5"
+                >
+                  {uploadingCover ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                  Cambiar banner
+                </button>
+                <button
+                  onClick={() => { setCoverUrl(''); setSaved(false); }}
+                  className="opacity-0 group-hover:opacity-100 p-2.5 rounded-xl bg-black/70 text-red-400 transition-all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </>
+          ) : (
+            <button
+              onClick={() => coverRef.current?.click()}
+              disabled={uploadingCover}
+              className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-purple-400 transition-colors"
+            >
+              {uploadingCover ? (
+                <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+              ) : (
+                <>
+                  <ImagePlus className="w-6 h-6" />
+                  <span className="text-xs font-medium">Subir banner del restaurante</span>
+                </>
+              )}
+            </button>
+          )}
+
+          {/* Logo overlaid on banner */}
+          <div className="absolute -bottom-10 left-5">
+            <input ref={logoRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+            <div className="relative w-20 h-20 rounded-2xl border-4 border-[#0a0a0a] overflow-hidden bg-[#111] group">
+              {logoUrl ? (
+                <>
+                  <Image src={logoUrl} alt="Logo" fill className="object-cover" sizes="80px" />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                    <button
+                      onClick={() => logoRef.current?.click()}
+                      disabled={uploadingLogo}
+                      className="opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      {uploadingLogo ? <Loader2 className="w-5 h-5 animate-spin text-white" /> : <Camera className="w-5 h-5 text-white" />}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  onClick={() => logoRef.current?.click()}
+                  disabled={uploadingLogo}
+                  className="w-full h-full flex flex-col items-center justify-center text-gray-500 hover:text-purple-400 transition-colors"
+                >
+                  {uploadingLogo ? <Loader2 className="w-5 h-5 animate-spin text-purple-400" /> : <Camera className="w-5 h-5" />}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-12 px-5 pb-5">
+          <h2 className="font-semibold text-sm text-white">Identidad visual</h2>
+          <p className="text-xs text-gray-500 mt-0.5">El logo y banner se muestran en tu menú público. Haz clic en cada uno para cambiarlos.</p>
+        </div>
+      </div>
+
       {/* Public URL */}
       <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
         <h2 className="font-semibold text-sm mb-3 text-white">Enlace público del menú</h2>
@@ -102,6 +228,12 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           </a>
         </div>
       </div>
+
+      {/* Logo & Banner */}
+      <ImageUploadSection
+        logoUrl={initialData.logo_url}
+        coverUrl={initialData.cover_image_url ?? null}
+      />
 
       {/* Custom Domain */}
       <DomainSection
@@ -115,11 +247,11 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         <h2 className="font-semibold text-sm mb-4 text-white">Información básica</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Nombre del restaurante" value={form.name} onChange={(v) => handleChange('name', v)} />
-          <Field label="Teléfono" value={form.phone} onChange={(v) => handleChange('phone', v)} placeholder="+52 55 1234 5678" />
+          <PhoneField label="Teléfono" value={form.phone} onChange={(v) => handleChange('phone', v)} />
           <div className="sm:col-span-2">
             <Field label="Descripción" value={form.description} onChange={(v) => handleChange('description', v)} placeholder="Describe tu restaurante..." textarea />
           </div>
-          <Field label="Dirección" value={form.address} onChange={(v) => handleChange('address', v)} placeholder="Calle, número, colonia, ciudad" />
+          <AddressAutocomplete label="Dirección" value={form.address} onChange={(v) => handleChange('address', v)} placeholder="Buscar dirección..." />
           <Field label="Email" value={form.email} onChange={(v) => handleChange('email', v)} placeholder="contacto@mirestaurante.com" />
           <Field label="Sitio web" value={form.website} onChange={(v) => handleChange('website', v)} placeholder="https://..." />
         </div>
@@ -134,7 +266,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             <select
               value={form.timezone}
               onChange={(e) => handleChange('timezone', e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 bg-[#0a0a0a]"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm text-white bg-[#0a0a0a] focus:outline-none focus:ring-2 focus:ring-purple-500/30"
             >
               <option value="America/New_York">New York (EST)</option>
               <option value="America/Chicago">Chicago (CST)</option>
@@ -153,7 +285,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             <select
               value={form.currency}
               onChange={(e) => handleChange('currency', e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 bg-[#0a0a0a]"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm text-white bg-[#0a0a0a] focus:outline-none focus:ring-2 focus:ring-purple-500/30"
             >
               <option value="USD">USD — US Dollar</option>
               <option value="MXN">MXN — Peso mexicano</option>
@@ -172,7 +304,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             <select
               value={form.locale}
               onChange={(e) => handleChange('locale', e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 bg-[#0a0a0a]"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm text-white bg-[#0a0a0a] focus:outline-none focus:ring-2 focus:ring-purple-500/30"
             >
               <option value="es">Español</option>
               <option value="en">English</option>
@@ -339,16 +471,13 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         {form.notifications_enabled && (
           <div className="space-y-4">
             <div>
-              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1">
                 <MessageCircle className="w-3.5 h-3.5" />
                 WhatsApp para nuevas órdenes
-              </label>
-              <input
-                type="tel"
+              </div>
+              <PhoneField
                 value={form.notification_whatsapp}
-                onChange={(e) => { setForm((prev) => ({ ...prev, notification_whatsapp: e.target.value })); setSaved(false); }}
-                placeholder="+52 55 1234 5678"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm bg-white/[0.04] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                onChange={(v) => { setForm((prev) => ({ ...prev, notification_whatsapp: v })); setSaved(false); }}
               />
               <p className="text-[11px] text-gray-400 mt-1">
                 Recibirás un mensaje de WhatsApp cada vez que llegue una nueva orden.
@@ -400,7 +529,7 @@ function Field({
 }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; textarea?: boolean;
 }) {
-  const cls = 'w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30';
+  const cls = 'w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 placeholder-gray-500';
   return (
     <div>
       <label className="block text-xs font-medium text-gray-400 mb-1">{label}</label>
@@ -495,6 +624,191 @@ function DomainSection({ domain, domainVerified, onChange }: { domain: string; d
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+function ImageUploadSection({ logoUrl, coverUrl }: { logoUrl: string | null; coverUrl: string | null }) {
+  const [logo, setLogo] = useState<string | null>(logoUrl);
+  const [cover, setCover] = useState<string | null>(coverUrl);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [error, setError] = useState('');
+  const logoRef = useRef<HTMLInputElement>(null);
+  const coverRef = useRef<HTMLInputElement>(null);
+
+  const uploadAndSave = async (
+    file: File,
+    field: 'logo_url' | 'cover_image_url',
+    setUploading: (v: boolean) => void,
+    setUrl: (v: string | null) => void
+  ) => {
+    if (!file.type.startsWith('image/')) { setError('Solo se permiten imágenes'); return; }
+    if (file.size > 10 * 1024 * 1024) { setError('Máximo 10MB'); return; }
+
+    setUploading(true);
+    setError('');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const uploadRes = await fetch('/api/tenant/upload', { method: 'POST', body: fd });
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) throw new Error(uploadData.error);
+
+      const patchRes = await fetch('/api/tenant/restaurant', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: uploadData.url }),
+      });
+      if (!patchRes.ok) {
+        const patchData = await patchRes.json();
+        throw new Error(patchData.error);
+      }
+
+      setUrl(uploadData.url);
+    } catch (err: any) {
+      setError(err.message ?? 'Error al subir imagen');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = async (field: 'logo_url' | 'cover_image_url', setUrl: (v: string | null) => void) => {
+    setError('');
+    try {
+      const res = await fetch('/api/tenant/restaurant', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: null }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error);
+      }
+      setUrl(null);
+    } catch (err: any) {
+      setError(err.message ?? 'Error al eliminar imagen');
+    }
+  };
+
+  return (
+    <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <Camera className="w-4 h-4 text-purple-400" />
+        <h2 className="font-semibold text-sm text-white">Logo y banner</h2>
+      </div>
+
+      {error && (
+        <div className="mb-4 px-3 py-2 rounded-xl bg-red-500/[0.06] border border-red-500/[0.1] text-red-400 text-xs">
+          {error}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        {/* Logo */}
+        <div>
+          <label className="block text-xs font-medium text-gray-400 mb-2">Logo del restaurante</label>
+          <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) uploadAndSave(f, 'logo_url', setUploadingLogo, setLogo);
+            e.target.value = '';
+          }} />
+
+          {logo ? (
+            <div className="relative w-28 h-28 rounded-2xl overflow-hidden bg-white/[0.06] group">
+              <Image src={logo} alt="Logo" fill className="object-cover" sizes="112px" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2">
+                <button
+                  onClick={() => logoRef.current?.click()}
+                  disabled={uploadingLogo}
+                  className="opacity-0 group-hover:opacity-100 p-2 rounded-xl bg-[#0a0a0a]/80 text-white transition-all"
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => removeImage('logo_url', setLogo)}
+                  className="opacity-0 group-hover:opacity-100 p-2 rounded-xl bg-[#0a0a0a]/80 text-red-400 transition-all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              {uploadingLogo && (
+                <div className="absolute inset-0 bg-[#0a0a0a]/70 flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => logoRef.current?.click()}
+              disabled={uploadingLogo}
+              className="w-28 h-28 rounded-2xl border-2 border-dashed border-white/[0.1] hover:border-purple-400/40 flex flex-col items-center justify-center gap-1.5 text-gray-500 hover:text-purple-400 transition-all disabled:opacity-50"
+            >
+              {uploadingLogo ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <ImagePlus className="w-5 h-5" />
+                  <span className="text-[10px] font-medium">Subir logo</span>
+                </>
+              )}
+            </button>
+          )}
+          <p className="text-[11px] text-gray-500 mt-1.5">Cuadrado, min 200x200px</p>
+        </div>
+
+        {/* Banner / Cover */}
+        <div>
+          <label className="block text-xs font-medium text-gray-400 mb-2">Banner / Portada</label>
+          <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) uploadAndSave(f, 'cover_image_url', setUploadingCover, setCover);
+            e.target.value = '';
+          }} />
+
+          {cover ? (
+            <div className="relative w-full h-28 rounded-2xl overflow-hidden bg-white/[0.06] group">
+              <Image src={cover} alt="Banner" fill className="object-cover" sizes="400px" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2">
+                <button
+                  onClick={() => coverRef.current?.click()}
+                  disabled={uploadingCover}
+                  className="opacity-0 group-hover:opacity-100 p-2 rounded-xl bg-[#0a0a0a]/80 text-white transition-all"
+                >
+                  <Camera className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => removeImage('cover_image_url', setCover)}
+                  className="opacity-0 group-hover:opacity-100 p-2 rounded-xl bg-[#0a0a0a]/80 text-red-400 transition-all"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+              {uploadingCover && (
+                <div className="absolute inset-0 bg-[#0a0a0a]/70 flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => coverRef.current?.click()}
+              disabled={uploadingCover}
+              className="w-full h-28 rounded-2xl border-2 border-dashed border-white/[0.1] hover:border-purple-400/40 flex flex-col items-center justify-center gap-1.5 text-gray-500 hover:text-purple-400 transition-all disabled:opacity-50"
+            >
+              {uploadingCover ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <ImagePlus className="w-5 h-5" />
+                  <span className="text-[10px] font-medium">Subir banner</span>
+                </>
+              )}
+            </button>
+          )}
+          <p className="text-[11px] text-gray-500 mt-1.5">Horizontal, recomendado 1200x400px</p>
+        </div>
+      </div>
     </div>
   );
 }

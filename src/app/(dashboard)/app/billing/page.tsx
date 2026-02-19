@@ -14,7 +14,7 @@ interface SubscriptionData {
   stripe_subscription_id: string | null;
 }
 
-const PLAN_DISPLAY: Record<string, { name: string; price: { monthly: number; annual: number }; features: string[] }> = {
+const PLAN_DATA: Record<string, { name: string; price: { monthly: number; annual: number }; features: string[] }> = {
   starter: {
     name: 'Starter',
     price: { monthly: 39, annual: 390 },
@@ -55,6 +55,10 @@ const PLAN_DISPLAY: Record<string, { name: string; price: { monthly: number; ann
   },
 };
 
+const PLAN_ALIASES: Record<string, string> = { basic: 'starter', enterprise: 'business' };
+const resolvePlan = (id: string) => PLAN_ALIASES[id] ?? id;
+const PLAN_DISPLAY = PLAN_DATA;
+
 const STATUS_LABELS: Record<string, { label: string; color: string; bg: string; icon: any }> = {
   trialing: { label: 'Periodo de prueba', color: 'text-blue-400', bg: 'bg-blue-500/[0.1]', icon: Clock },
   active: { label: 'Activa', color: 'text-emerald-400', bg: 'bg-emerald-500/[0.1]', icon: Check },
@@ -86,7 +90,9 @@ export default function BillingPage() {
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
-    } catch {} finally {
+    } catch (err) {
+      console.error('[Billing] createCheckout failed:', err);
+    } finally {
       setActionLoading(null);
     }
   };
@@ -97,7 +103,9 @@ export default function BillingPage() {
       const res = await fetch('/api/billing/portal', { method: 'POST' });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
-    } catch {} finally {
+    } catch (err) {
+      console.error('[Billing] handlePortal failed:', err);
+    } finally {
       setActionLoading(null);
     }
   };
@@ -111,7 +119,8 @@ export default function BillingPage() {
     );
   }
 
-  const planInfo = sub ? PLAN_DISPLAY[sub.plan_id] : null;
+  const resolvedPlanId = sub ? resolvePlan(sub.plan_id) : '';
+  const planInfo = sub ? PLAN_DISPLAY[resolvedPlanId] : null;
   const statusInfo = sub ? STATUS_LABELS[sub.status] : null;
   const isTrialing = sub?.status === 'trialing';
   const daysLeft = sub?.trial_end
@@ -203,29 +212,29 @@ export default function BillingPage() {
         </div>
       )}
 
-      {sub && sub.plan_id !== 'business' && (
+      {sub && resolvedPlanId !== 'business' && (
         <div className="bg-gradient-to-r from-purple-950 to-purple-900 rounded-2xl p-6 text-white">
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <Sparkles className="w-5 h-5 text-purple-400" />
                 <h3 className="text-lg font-bold">
-                  {sub.plan_id === 'starter' ? '¿Necesitas más?' : 'Lleva tu restaurante al siguiente nivel'}
-                </h3>
+                {resolvedPlanId === 'starter' ? '¿Necesitas más?' : 'Lleva tu restaurante al siguiente nivel'}
+              </h3>
               </div>
               <p className="text-sm text-gray-300">
-                {sub.plan_id === 'starter'
+                {resolvedPlanId === 'starter'
                   ? 'Actualiza a Pro para desbloquear delivery, WhatsApp, analytics y más.'
                   : 'Actualiza a Business para productos ilimitados y soporte dedicado.'
                 }
               </p>
             </div>
             <button
-              onClick={() => handleCheckout(sub.plan_id === 'starter' ? 'pro' : 'business')}
+              onClick={() => handleCheckout(resolvedPlanId === 'starter' ? 'pro' : 'business')}
               disabled={actionLoading !== null}
               className="flex-shrink-0 px-6 py-2.5 rounded-xl bg-purple-400 text-purple-950 text-sm font-bold hover:bg-purple-300 disabled:opacity-50 transition-all"
             >
-              {actionLoading ? 'Redirigiendo...' : `Actualizar a ${sub.plan_id === 'starter' ? 'Pro' : 'Business'}`}
+              {actionLoading ? 'Redirigiendo...' : `Actualizar a ${resolvedPlanId === 'starter' ? 'Pro' : 'Business'}`}
             </button>
           </div>
         </div>

@@ -3,8 +3,7 @@
 import { useState, useTransition, useEffect, useCallback } from 'react';
 import { Clock, ChefHat, CheckCircle, Package, XCircle, User, ArrowRight, Bell, Volume2, VolumeX, BellRing, Wifi, WifiOff } from 'lucide-react';
 import { updateOrderStatus } from '@/lib/actions/restaurant';
-import { formatPrice, timeAgo, ORDER_STATUS_CONFIG } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useNotifications } from '@/hooks/use-notifications';
 import type { Order, OrderStatus } from '@/types';
@@ -170,10 +169,15 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
                         <span className="text-xs text-gray-500">{timeAgo(order.created_at)}</span>
                       </div>
 
-                      {order.customer_name && (
+                      {(order.customer_name || order.customer_phone) && (
                         <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-2">
                           <User className="w-3.5 h-3.5 text-gray-500" />
-                          {order.customer_name}
+                          <span>{order.customer_name}</span>
+                          {order.customer_phone && (
+                            <a href={`https://wa.me/${order.customer_phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-emerald-500 hover:text-emerald-400 text-xs transition-colors">
+                              {order.customer_phone}
+                            </a>
+                          )}
                         </div>
                       )}
 

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { handleIncomingMessage } from '@/lib/whatsapp/agent';
 
-const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'menius-verify-token';
+const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || '';
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;

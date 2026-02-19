@@ -118,6 +118,7 @@ const SEED_TABLES = [
 /**
  * Seeds a new restaurant with example categories, products, and tables
  * so the owner sees a populated menu and dashboard right away.
+ * Uses batch inserts (5 queries total) instead of sequential ones for speed.
  */
 export async function seedRestaurant(
   supabase: SupabaseClient,
@@ -126,78 +127,96 @@ export async function seedRestaurant(
   appUrl: string
 ) {
   try {
-    // 1. Insert categories and get their IDs
-    const categoryMap: Record<string, string> = {};
-
-    for (const cat of SEED_CATEGORIES) {
-      const { data } = await supabase
-        .from('categories')
-        .insert({
-          restaurant_id: restaurantId,
-          name: cat.name,
-          sort_order: cat.sort_order,
-          is_active: true,
-        })
-        .select('id, name')
-        .single();
-
-      if (data) {
-        categoryMap[data.name] = data.id;
-      }
-    }
-
-    // 2. Insert products with variants and extras
-    for (const [categoryName, products] of Object.entries(SEED_PRODUCTS)) {
-      const categoryId = categoryMap[categoryName];
-      if (!categoryId) continue;
-
-      for (const product of products) {
-        const { data: created } = await supabase.from('products').insert({
-          restaurant_id: restaurantId,
-          category_id: categoryId,
-          name: product.name,
-          description: product.description,
-          price: product.price,
-          is_active: true,
-        }).select('id').single();
-
-        if (!created) continue;
-
-        if (product.variants?.length) {
-          await supabase.from('product_variants').insert(
-            product.variants.map((v) => ({
-              product_id: created.id,
-              name: v.name,
-              price_delta: v.price_delta,
-              sort_order: v.sort_order,
-            }))
-          );
-        }
-
-        if (product.extras?.length) {
-          await supabase.from('product_extras').insert(
-            product.extras.map((e) => ({
-              product_id: created.id,
-              name: e.name,
-              price: e.price,
-              sort_order: e.sort_order,
-            }))
-          );
-        }
-      }
-    }
-
-    // 3. Insert tables with QR values
-    for (const table of SEED_TABLES) {
-      const qrValue = `${appUrl}/r/${restaurantSlug}?table=${encodeURIComponent(table.name)}`;
-      await supabase.from('tables').insert({
+    // Query 1: Batch insert all categories
+    const { data: categories } = await supabase
+      .from('categories')
+      .insert(SEED_CATEGORIES.map((c) => ({
         restaurant_id: restaurantId,
-        name: table.name,
-        qr_code_value: qrValue,
-      });
+        name: c.name,
+        sort_order: c.sort_order,
+        is_active: true,
+      })))
+      .select('id, name');
+
+    if (!categories?.length) return;
+
+    const categoryMap: Record<string, string> = {};
+    for (const c of categories) categoryMap[c.name] = c.id;
+
+    // Query 2: Batch insert all products
+    const productRows: Array<{
+      restaurant_id: string;
+      category_id: string;
+      name: string;
+      description: string;
+      price: number;
+      is_active: boolean;
+      _key: string;
+    }> = [];
+
+    for (const [catName, products] of Object.entries(SEED_PRODUCTS)) {
+      const catId = categoryMap[catName];
+      if (!catId) continue;
+      for (const p of products) {
+        productRows.push({
+          restaurant_id: restaurantId,
+          category_id: catId,
+          name: p.name,
+          description: p.description,
+          price: p.price,
+          is_active: true,
+          _key: p.name,
+        });
+      }
     }
+
+    const { data: createdProducts } = await supabase
+      .from('products')
+      .insert(productRows.map(({ _key, ...row }) => row))
+      .select('id, name');
+
+    if (!createdProducts?.length) return;
+
+    const productMap: Record<string, string> = {};
+    for (const p of createdProducts) productMap[p.name] = p.id;
+
+    // Flatten all variants and extras using the product IDs we just got
+    const allVariants: Array<{ product_id: string; name: string; price_delta: number; sort_order: number }> = [];
+    const allExtras: Array<{ product_id: string; name: string; price: number; sort_order: number }> = [];
+
+    for (const products of Object.values(SEED_PRODUCTS)) {
+      for (const p of products) {
+        const productId = productMap[p.name];
+        if (!productId) continue;
+
+        if (p.variants) {
+          for (const v of p.variants) {
+            allVariants.push({ product_id: productId, name: v.name, price_delta: v.price_delta, sort_order: v.sort_order });
+          }
+        }
+        if (p.extras) {
+          for (const e of p.extras) {
+            allExtras.push({ product_id: productId, name: e.name, price: e.price, sort_order: e.sort_order });
+          }
+        }
+      }
+    }
+
+    // Query 3 & 4: Batch insert variants and extras in parallel
+    await Promise.all([
+      allVariants.length ? supabase.from('product_variants').insert(allVariants) : null,
+      allExtras.length ? supabase.from('product_extras').insert(allExtras) : null,
+    ]);
+
+    // Query 5: Batch insert all tables
+    await supabase.from('tables').insert(
+      SEED_TABLES.map((t) => ({
+        restaurant_id: restaurantId,
+        name: t.name,
+        qr_code_value: `${appUrl}/r/${restaurantSlug}?table=${encodeURIComponent(t.name)}`,
+      }))
+    );
   } catch {
-    // Seed failure should not block restaurant creation
     console.error('Failed to seed restaurant data — continuing without seed.');
   }
 }

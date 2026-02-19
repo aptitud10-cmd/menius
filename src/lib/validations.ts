@@ -38,12 +38,18 @@ export const tableSchema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
 });
 
+const uuidOrNull = z.preprocess(
+  (v) => (v === '' || v === undefined ? null : v),
+  z.string().uuid().nullable()
+);
+
 export const publicOrderSchema = z.object({
   customer_name: z.string().min(1, 'Nombre requerido'),
+  customer_phone: z.string().min(7, 'Teléfono requerido'),
   notes: z.string().default(''),
   items: z.array(z.object({
     product_id: z.string().uuid(),
-    variant_id: z.string().uuid().nullable(),
+    variant_id: uuidOrNull,
     qty: z.number().min(1),
     unit_price: z.number(),
     line_total: z.number(),

@@ -1,16 +1,21 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, memo, lazy, Suspense } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import {
   ShoppingBag, X, Minus, Plus, Trash2, Send, Info, Phone, MapPin,
-  Clock, Globe, Star, Search, ChevronRight, Flame, ArrowUp, Download,
+  Clock, Globe, Star, Search, ChevronRight, Flame, ArrowUp, Download, Pencil,
 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice, cn } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
 import { usePWAInstall } from '@/hooks/use-pwa-install';
 import type { Restaurant, Category, Product, ProductVariant, ProductExtra } from '@/types';
+
+const AddressAutocomplete = dynamic(() => import('@/components/ui/AddressAutocomplete').then(m => ({ default: m.AddressAutocomplete })), { ssr: false });
+const PhoneField = dynamic(() => import('@/components/ui/PhoneField').then(m => ({ default: m.PhoneField })), { ssr: false });
 
 // ============================================================
 // Props
@@ -23,6 +28,7 @@ interface PublicMenuClientProps {
   tableName: string | null;
   isDemo?: boolean;
   locale?: Locale;
+  isOwner?: boolean;
 }
 
 // ============================================================
@@ -55,6 +61,7 @@ export function PublicMenuClient({
   tableName,
   isDemo,
   locale: initialLocale = 'es',
+  isOwner = false,
 }: PublicMenuClientProps) {
   const [locale, setLocale] = useState<Locale>(initialLocale);
   const t = getTranslations(locale);
@@ -122,6 +129,10 @@ export function PublicMenuClient({
         <div className="sticky top-0 z-50 bg-brand-950 text-white">
           <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0">
+              <a href="/" className="flex items-center gap-1.5 text-white/70 hover:text-white transition-colors flex-shrink-0 mr-1">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                <span className="text-xs font-semibold hidden sm:inline">MENIUS</span>
+              </a>
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
               <p className="text-xs sm:text-sm font-medium truncate">
                 <span className="hidden sm:inline">{t.demoInteractive} </span>{t.wantThisForYours}
@@ -133,6 +144,36 @@ export function PublicMenuClient({
             >
               {t.createFree}
             </a>
+          </div>
+        </div>
+      )}
+
+      {/* ── Owner Toolbar ── */}
+      {isOwner && !isDemo && (
+        <div className="sticky top-0 z-50 bg-gray-900 text-white">
+          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <Pencil className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
+              <p className="text-xs sm:text-sm font-medium truncate">
+                <span className="hidden sm:inline">Estás viendo tu menú como lo ven tus clientes — </span>
+                <span className="sm:hidden">Modo propietario — </span>
+                <span className="text-purple-300">toca un producto para editarlo</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Link
+                href="/app/menu/products"
+                className="px-3 py-1.5 bg-purple-500 text-white text-xs font-bold rounded-lg hover:bg-purple-400 transition-all"
+              >
+                Editar menú
+              </Link>
+              <Link
+                href="/app"
+                className="px-3 py-1.5 bg-white/10 text-white text-xs font-medium rounded-lg hover:bg-white/20 transition-all hidden sm:block"
+              >
+                Dashboard
+              </Link>
+            </div>
           </div>
         </div>
       )}
@@ -222,7 +263,7 @@ export function PublicMenuClient({
       {/* ── Sticky Navigation Bar ── */}
       <header className={cn(
         'sticky z-40 bg-white/98 backdrop-blur-xl border-b border-gray-100/80',
-        isDemo ? 'top-[41px]' : 'top-0'
+        isDemo ? 'top-[41px]' : isOwner ? 'top-[37px]' : 'top-0'
       )}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-12 sm:h-14">
@@ -415,7 +456,7 @@ export function PublicMenuClient({
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                     {filteredItems.map((item) => (
-                      <ProductCard key={item.id} item={item} onClick={setSelectedProduct} fmtPrice={fmtPrice} t={t} />
+                      <ProductCard key={item.id} item={item} onClick={setSelectedProduct} fmtPrice={fmtPrice} t={t} isOwner={isOwner} />
                     ))}
                   </div>
                 )}
@@ -441,7 +482,7 @@ export function PublicMenuClient({
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                       {featuredProducts.map((item) => (
-                        <ProductCard key={`feat-${item.id}`} item={item} onClick={setSelectedProduct} fmtPrice={fmtPrice} t={t} featured />
+                        <ProductCard key={`feat-${item.id}`} item={item} onClick={setSelectedProduct} fmtPrice={fmtPrice} t={t} featured isOwner={isOwner} />
                       ))}
                     </div>
                   </div>
@@ -474,6 +515,7 @@ export function PublicMenuClient({
                             fmtPrice={fmtPrice}
                             t={t}
                             style={{ animationDelay: `${idx * 50}ms` }}
+                            isOwner={isOwner}
                           />
                         ))}
                       </div>
@@ -609,68 +651,81 @@ interface ProductCardProps {
   t: ReturnType<typeof getTranslations>;
   featured?: boolean;
   style?: React.CSSProperties;
+  isOwner?: boolean;
 }
 
-function ProductCard({ item, onClick, fmtPrice, t, featured, style }: ProductCardProps) {
+const ProductCard = memo(function ProductCard({ item, onClick, fmtPrice, t, featured, style, isOwner }: ProductCardProps) {
   const hasOptions = (item.variants?.length ?? 0) > 0 || (item.extras?.length ?? 0) > 0;
   return (
-    <button
-      onClick={() => onClick(item)}
-      className={cn(
-        'w-full text-left rounded-2xl bg-white border border-gray-100/80',
-        'hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group overflow-hidden',
-        'animate-fade-in-up',
-        featured && 'ring-2 ring-orange-200/60'
-      )}
-      style={style}
-    >
-      {item.image_url ? (
-        <div className="relative w-full aspect-[16/10] bg-gray-100 overflow-hidden">
-          <Image
-            src={item.image_url}
-            alt={item.name}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          {item.is_featured && (
-            <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/90 backdrop-blur-sm text-white text-[11px] font-bold shadow-lg">
-              <Flame className="w-3 h-3" /> {t.popular}
-            </span>
-          )}
-        </div>
-      ) : (
-        <div className="relative w-full aspect-[16/10] bg-gradient-to-br from-brand-50/60 via-gray-50 to-purple-50/40 flex items-center justify-center">
-          <div className="w-12 h-12 rounded-2xl bg-white/60 flex items-center justify-center shadow-sm">
-            <span className="text-2xl">🍽️</span>
-          </div>
-          {item.is_featured && (
-            <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/90 backdrop-blur-sm text-white text-[11px] font-bold shadow-lg">
-              <Flame className="w-3 h-3" /> {t.popular}
-            </span>
-          )}
-        </div>
-      )}
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-[15px] text-gray-900 line-clamp-1">{item.name}</h3>
-          <span className="text-sm font-bold text-brand-600 flex-shrink-0 tabular-nums">{fmtPrice(Number(item.price))}</span>
-        </div>
-        {item.description && (
-          <p className="text-[13px] text-gray-400 line-clamp-2 mt-1 leading-relaxed">{item.description}</p>
+    <div className="relative group/card">
+      <button
+        onClick={() => onClick(item)}
+        className={cn(
+          'w-full text-left rounded-2xl bg-white border border-gray-100/80',
+          'hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group overflow-hidden',
+          'animate-fade-in-up',
+          featured && 'ring-2 ring-orange-200/60'
         )}
-        {hasOptions && (
-          <div className="flex items-center gap-1.5 mt-2.5">
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full">
-              {t.extras} <ChevronRight className="w-3 h-3" />
-            </span>
+        style={style}
+      >
+        {item.image_url ? (
+          <div className="relative w-full aspect-[16/10] bg-gray-100 overflow-hidden">
+            <Image
+              src={item.image_url}
+              alt={item.name}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            {item.is_featured && (
+              <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/90 backdrop-blur-sm text-white text-[11px] font-bold shadow-lg">
+                <Flame className="w-3 h-3" /> {t.popular}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="relative w-full aspect-[16/10] bg-gradient-to-br from-brand-50/60 via-gray-50 to-purple-50/40 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-white/60 flex items-center justify-center shadow-sm">
+              <span className="text-2xl">🍽️</span>
+            </div>
+            {item.is_featured && (
+              <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/90 backdrop-blur-sm text-white text-[11px] font-bold shadow-lg">
+                <Flame className="w-3 h-3" /> {t.popular}
+              </span>
+            )}
           </div>
         )}
-      </div>
-    </button>
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold text-[15px] text-gray-900 line-clamp-1">{item.name}</h3>
+            <span className="text-sm font-bold text-brand-600 flex-shrink-0 tabular-nums">{fmtPrice(Number(item.price))}</span>
+          </div>
+          {item.description && (
+            <p className="text-[13px] text-gray-400 line-clamp-2 mt-1 leading-relaxed">{item.description}</p>
+          )}
+          {hasOptions && (
+            <div className="flex items-center gap-1.5 mt-2.5">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full">
+                {t.extras} <ChevronRight className="w-3 h-3" />
+              </span>
+            </div>
+          )}
+        </div>
+      </button>
+      {isOwner && (
+        <Link
+          href={`/app/menu/products?edit=${item.id}`}
+          className="absolute top-2.5 right-2.5 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-gray-900/70 backdrop-blur-sm text-white hover:bg-purple-600 transition-all shadow-lg sm:opacity-0 sm:group-hover/card:opacity-100"
+          title="Editar producto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </Link>
+      )}
+    </div>
   );
-}
+});
 
 // ============================================================
 // Product Detail View — Bottom Sheet (Mobile) / Modal (Desktop)
@@ -1081,12 +1136,25 @@ function InfoModal({
                 </a>
               )}
               {restaurant.address && (
-                <div className="flex items-center gap-3 text-sm text-gray-700">
-                  <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-4 h-4 text-brand-600" />
+                <>
+                  <div className="flex items-center gap-3 text-sm text-gray-700">
+                    <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-4 h-4 text-brand-600" />
+                    </div>
+                    {restaurant.address}
                   </div>
-                  {restaurant.address}
-                </div>
+                  <div className="rounded-xl overflow-hidden border border-gray-100 -mx-1">
+                    <iframe
+                      title="Ubicación"
+                      width="100%"
+                      height="180"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(restaurant.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                    />
+                  </div>
+                </>
               )}
               {restaurant.website && (
                 <a href={restaurant.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-sm text-gray-700 hover:text-brand-600 transition-colors">
@@ -1159,11 +1227,14 @@ function CartDrawer({
 
   const [showCheckout, setShowCheckout] = useState(false);
   const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
-  const [orderType, setOrderType] = useState<string>(
-    restaurant.order_types_enabled?.[0] ?? 'dine_in'
-  );
+  const [orderType, setOrderType] = useState<string>(() => {
+    const enabled = restaurant.order_types_enabled ?? ['dine_in', 'pickup'];
+    if (enabled.includes('delivery')) return 'delivery';
+    return enabled[0] ?? 'dine_in';
+  });
   const [paymentMethod, setPaymentMethod] = useState<string>(
     restaurant.payment_methods_enabled?.[0] ?? 'cash'
   );
@@ -1216,6 +1287,10 @@ function CartDrawer({
       setOrderError(locale === 'es' ? 'Ingresa tu nombre' : 'Please enter your name');
       return;
     }
+    if (!customerPhone || customerPhone.length < 7) {
+      setOrderError(locale === 'es' ? 'Ingresa tu número de teléfono' : 'Please enter your phone number');
+      return;
+    }
     if (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
       setOrderError(locale === 'es' ? 'Email no válido' : 'Invalid email');
       return;
@@ -1228,12 +1303,12 @@ function CartDrawer({
     try {
       const orderItems = items.map((item) => ({
         product_id: item.product.id,
-        variant_id: item.variant?.id ?? null,
+        variant_id: item.variant && item.variant.id ? item.variant.id : null,
         qty: item.qty,
         unit_price: Number(item.product.price) + (item.variant?.price_delta ?? 0),
         line_total: item.lineTotal,
-        notes: item.notes,
-        extras: item.extras.map((ex) => ({ extra_id: ex.id, price: Number(ex.price) })),
+        notes: item.notes || '',
+        extras: (item.extras ?? []).map((ex) => ({ extra_id: ex.id, price: Number(ex.price) })),
       }));
 
       const res = await fetch('/api/orders', {
@@ -1242,6 +1317,7 @@ function CartDrawer({
         body: JSON.stringify({
           restaurant_id: restaurant.id,
           customer_name: customerName,
+          customer_phone: customerPhone,
           customer_email: customerEmail || undefined,
           notes: orderNotes,
           order_type: orderType,
@@ -1482,16 +1558,13 @@ function CartDrawer({
               )}
 
               {orderType === 'delivery' && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{t.deliveryAddress}</label>
-                  <textarea
-                    value={deliveryAddress}
-                    onChange={(e) => setDeliveryAddress(e.target.value)}
-                    placeholder={t.deliveryAddressPlaceholder}
-                    rows={2}
-                    className="w-full px-4 py-3 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-brand-400 transition-colors resize-none"
-                  />
-                </div>
+                <AddressAutocomplete
+                  label={t.deliveryAddress}
+                  value={deliveryAddress}
+                  onChange={setDeliveryAddress}
+                  placeholder={t.deliveryAddressPlaceholder}
+                  dark={false}
+                />
               )}
 
               {/* Customer details */}
@@ -1507,6 +1580,14 @@ function CartDrawer({
                     autoFocus
                   />
                 </div>
+                <PhoneField
+                  label={t.yourPhone}
+                  value={customerPhone}
+                  onChange={setCustomerPhone}
+                  placeholder={t.yourPhonePlaceholder}
+                  required
+                  dark={false}
+                />
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                     {t.yourEmail} <span className="text-gray-300 font-normal normal-case">({locale === 'es' ? 'opcional' : 'optional'})</span>
@@ -1690,7 +1771,9 @@ function ReviewsSection({
         setReviews((prev) => [r.review, ...prev]);
         setTotal((prev) => prev + 1);
       }
-    } catch {} finally {
+    } catch (err) {
+      console.error('[PublicMenuClient] submit review failed:', err);
+    } finally {
       setSubmitting(false);
     }
   };

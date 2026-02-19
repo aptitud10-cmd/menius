@@ -168,7 +168,7 @@ export default function CookiesPage() {
           <h2>7. Contacto</h2>
           <p>Si tienes preguntas sobre nuestra Política de Cookies:</p>
           <ul>
-            <li><strong>Email:</strong> <a href="mailto:privacy@menius.app">privacy@menius.app</a></li>
+            <li><strong>Email:</strong> <a href="mailto:soportemenius@gmail.com">soportemenius@gmail.com</a></li>
             <li><strong>Sitio web:</strong> <a href="https://menius.app">menius.app</a></li>
           </ul>
         </div>
@@ -197,7 +197,7 @@ export default function CookiesPage() {
                 <ul className="space-y-2.5">
                   <li><Link href="/blog" className="text-[13px] text-gray-600 hover:text-white transition-colors">Blog</Link></li>
                   <li><Link href="/faq" className="text-[13px] text-gray-600 hover:text-white transition-colors">FAQ</Link></li>
-                  <li><a href="mailto:soporte@menius.app" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
+                  <li><a href="mailto:soportemenius@gmail.com" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
                 </ul>
               </div>
               <div>

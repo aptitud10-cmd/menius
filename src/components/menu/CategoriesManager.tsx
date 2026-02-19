@@ -83,7 +83,7 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nombre de la categoría"
-            className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500"
+            className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500"
             autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
           />
