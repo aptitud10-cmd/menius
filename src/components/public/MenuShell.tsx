@@ -7,7 +7,7 @@ import { formatPrice, cn } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, Category, Product } from '@/types';
 
-import { MenuHeader } from './MenuHeader';
+import { MenuHeader, HEADER_HEIGHT } from './MenuHeader';
 import { CategorySidebar } from './CategorySidebar';
 import { ProductCard } from './ProductCard';
 import { CartPanel } from './CartPanel';
@@ -116,7 +116,7 @@ export function MenuShell({
 
   // Mobile category pills
   const mobileCategoryPills = (
-    <div className="lg:hidden -mx-4 px-4 py-2.5 flex gap-2 overflow-x-auto scrollbar-hide scroll-touch border-b border-gray-100 bg-white sticky top-14 z-30">
+    <div className={`lg:hidden -mx-4 px-4 py-2.5 flex gap-2 overflow-x-auto scrollbar-hide scroll-touch border-b border-gray-100 bg-white sticky z-30`} style={{ top: HEADER_HEIGHT }}>
       <button
         onClick={() => handleCategorySelect(null)}
         className={cn(
@@ -167,7 +167,7 @@ export function MenuShell({
         <div className="flex">
 
           {/* Left: Categories — 260px, sticky */}
-          <aside className="hidden lg:block w-[260px] flex-shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] overflow-y-auto border-r border-gray-50">
+          <aside className="hidden lg:block w-[260px] flex-shrink-0 sticky overflow-y-auto border-r border-gray-50" style={{ top: HEADER_HEIGHT, height: `calc(100vh - ${HEADER_HEIGHT}px)` }}>
             <CategorySidebar
               categories={categories}
               products={products}
@@ -217,7 +217,7 @@ export function MenuShell({
               <div className="space-y-10">
                 {itemsByCategory.map(({ category, items }) => (
                   <section key={category.id}>
-                    <h2 className="text-lg font-bold text-gray-900 mb-4 sticky top-14 lg:top-[3.5rem] bg-white py-2 z-10">
+                    <h2 className="text-lg font-bold text-gray-900 mb-4 sticky bg-white py-2 z-10" style={{ top: HEADER_HEIGHT }}>
                       {category.name}
                       <span className="text-sm font-normal text-gray-400 ml-2">({items.length})</span>
                     </h2>
@@ -241,7 +241,7 @@ export function MenuShell({
           </main>
 
           {/* Right: Cart — 360px, sticky, desktop only */}
-          <aside className="hidden lg:block w-[360px] flex-shrink-0 sticky top-14 h-[calc(100vh-3.5rem)] border-l border-gray-50">
+          <aside className="hidden lg:block w-[360px] flex-shrink-0 sticky border-l border-gray-50" style={{ top: HEADER_HEIGHT, height: `calc(100vh - ${HEADER_HEIGHT}px)` }}>
             <CartPanel
               fmtPrice={fmtPrice}
               t={t}

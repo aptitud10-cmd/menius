@@ -19,7 +19,7 @@ export const buccaneerRestaurant: Restaurant = {
   timezone: 'America/New_York',
   currency: 'USD',
   locale: 'en',
-  logo_url: null,
+  logo_url: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=200&h=200&fit=crop&q=80',
   cover_image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1400&h=600&fit=crop&q=80',
   description: 'Where Greek tradition meets American comfort. Fresh ingredients, bold flavors since 1987.',
   address: '742 Harbor Blvd, Oceanside, CA 92054',

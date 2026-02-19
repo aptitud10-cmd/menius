@@ -1,8 +1,8 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import Image from 'next/image';
-import { Plus, Flame } from 'lucide-react';
+import { Plus, Flame, UtensilsCrossed } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types';
 
@@ -24,6 +24,7 @@ export const ProductCard = memo(function ProductCard({
   popularLabel,
 }: ProductCardProps) {
   const hasModifiers = (product.variants?.length ?? 0) > 0 || (product.extras?.length ?? 0) > 0;
+  const [imgError, setImgError] = useState(false);
 
   const handleClick = () => {
     if (hasModifiers) {
@@ -38,12 +39,14 @@ export const ProductCard = memo(function ProductCard({
     handleClick();
   };
 
+  const showImage = product.image_url && !imgError;
+
   return (
     <div
       onClick={handleClick}
       className="group relative bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200"
     >
-      {product.image_url ? (
+      {showImage ? (
         <div className="relative w-full aspect-video bg-gray-100 overflow-hidden">
           <Image
             src={product.image_url}
@@ -51,6 +54,7 @@ export const ProductCard = memo(function ProductCard({
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1280px) 33vw, 300px"
             className="object-cover"
+            onError={() => setImgError(true)}
           />
           {product.is_featured && (
             <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/90 text-white text-[10px] font-bold">
@@ -60,7 +64,7 @@ export const ProductCard = memo(function ProductCard({
         </div>
       ) : (
         <div className="relative w-full aspect-video bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-          <span className="text-3xl opacity-20">🍽️</span>
+          <UtensilsCrossed className="w-8 h-8 text-gray-200" />
           {product.is_featured && (
             <span className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/90 text-white text-[10px] font-bold">
               <Flame className="w-3 h-3" /> {popularLabel}
