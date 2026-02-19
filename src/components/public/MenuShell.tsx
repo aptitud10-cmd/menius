@@ -170,7 +170,7 @@ export function MenuShell({
 
       {/* ── 3-Column Layout ── */}
       <div className="max-w-[1280px] mx-auto px-4 lg:px-6">
-        <div className="flex">
+        <div className="flex items-start">
 
           {/* Left: Categories — 260px, sticky */}
           <aside className="hidden lg:block w-[260px] flex-shrink-0 sticky overflow-y-auto border-r border-gray-50" style={{ top: HEADER_HEIGHT, height: `calc(100vh - ${HEADER_HEIGHT}px)` }}>
