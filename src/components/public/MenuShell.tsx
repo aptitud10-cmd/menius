@@ -53,6 +53,7 @@ export function MenuShell({
   }, [restaurant.id, tableName, setRestaurantId, setTableName]);
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'popular' | 'options'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [customization, setCustomization] = useState<CustomizationTarget | null>(null);
@@ -92,7 +93,12 @@ export function MenuShell({
     setShowCheckout(false);
   }, []);
 
-  // Filter products by category
+  const applyFilter = useCallback((list: Product[]) => {
+    if (activeFilter === 'popular') return list.filter((p) => p.is_featured);
+    if (activeFilter === 'options') return list.filter((p) => (p.variants?.length ?? 0) > 0 || (p.extras?.length ?? 0) > 0);
+    return list;
+  }, [activeFilter]);
+
   const itemsByCategory = useMemo(() => {
     const cats = activeCategory
       ? categories.filter((c) => c.id === activeCategory)
@@ -100,10 +106,10 @@ export function MenuShell({
     return cats
       .map((cat) => ({
         category: cat,
-        items: products.filter((p) => p.category_id === cat.id),
+        items: applyFilter(products.filter((p) => p.category_id === cat.id)),
       }))
       .filter((g) => g.items.length > 0);
-  }, [categories, products, activeCategory]);
+  }, [categories, products, activeCategory, applyFilter]);
 
   // Search results
   const searchResults = useMemo(() => {
@@ -182,8 +188,29 @@ export function MenuShell({
             'flex-1 min-w-0 px-4 lg:px-6 py-6',
             'lg:pb-6 pb-28'
           )}>
+            {/* Filter pills */}
+            <div className="flex gap-2 mb-5 overflow-x-auto scrollbar-hide">
+              {([
+                ['all', t.filterAll],
+                ['popular', t.filterPopular],
+                ['options', t.filterWithOptions],
+              ] as const).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveFilter(key)}
+                  className={cn(
+                    'flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap border',
+                    activeFilter === key
+                      ? 'bg-gray-900 text-white border-gray-900'
+                      : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
             {searchResults !== null ? (
-              /* Search results */
               <div>
                 <p className="text-sm text-gray-500 mb-4">
                   {searchResults.length} {searchResults.length === 1 ? 'resultado' : 'resultados'}
@@ -202,6 +229,7 @@ export function MenuShell({
                         onQuickAdd={handleQuickAdd}
                         fmtPrice={fmtPrice}
                         addLabel={t.addToCart}
+                        customizeLabel={t.customize}
                         popularLabel={t.popular}
                       />
                     ))}
@@ -213,7 +241,6 @@ export function MenuShell({
                 <p className="font-semibold text-gray-600 mb-1">{t.noProductsYet}</p>
               </div>
             ) : (
-              /* Category sections */
               <div className="space-y-10">
                 {itemsByCategory.map(({ category, items }) => (
                   <section key={category.id}>
@@ -230,6 +257,7 @@ export function MenuShell({
                           onQuickAdd={handleQuickAdd}
                           fmtPrice={fmtPrice}
                           addLabel={t.addToCart}
+                          customizeLabel={t.customize}
                           popularLabel={t.popular}
                         />
                       ))}

@@ -2,7 +2,7 @@
 
 import { memo, useState } from 'react';
 import Image from 'next/image';
-import { Plus, Flame, UtensilsCrossed } from 'lucide-react';
+import { Plus, Flame, UtensilsCrossed, Settings2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types';
 
@@ -12,6 +12,7 @@ interface ProductCardProps {
   onQuickAdd: (p: Product) => void;
   fmtPrice: (n: number) => string;
   addLabel: string;
+  customizeLabel: string;
   popularLabel: string;
 }
 
@@ -21,9 +22,12 @@ export const ProductCard = memo(function ProductCard({
   onQuickAdd,
   fmtPrice,
   addLabel,
+  customizeLabel,
   popularLabel,
 }: ProductCardProps) {
-  const hasModifiers = (product.variants?.length ?? 0) > 0 || (product.extras?.length ?? 0) > 0;
+  const hasVariants = (product.variants?.length ?? 0) > 0;
+  const hasExtras = (product.extras?.length ?? 0) > 0;
+  const hasModifiers = hasVariants || hasExtras;
   const [imgError, setImgError] = useState(false);
 
   const handleClick = () => {
@@ -82,16 +86,41 @@ export const ProductCard = memo(function ProductCard({
             {fmtPrice(Number(product.price))}
           </span>
         </div>
+
         {product.description && (
           <p className="text-xs text-gray-400 line-clamp-1 mt-1">{product.description}</p>
         )}
+
+        {/* Inline variant pills */}
+        {hasVariants && (
+          <div className="flex items-center gap-1.5 mt-2 overflow-hidden">
+            {product.variants!.slice(0, 3).map((v) => (
+              <span key={v.id} className="flex-shrink-0 px-2 py-0.5 rounded-md bg-gray-100 text-[10px] font-medium text-gray-500">
+                {v.name}
+              </span>
+            ))}
+            {product.variants!.length > 3 && (
+              <span className="text-[10px] text-gray-300">+{product.variants!.length - 3}</span>
+            )}
+          </div>
+        )}
+
+        {/* Extras count */}
+        {hasExtras && !hasVariants && (
+          <p className="text-[10px] text-gray-400 mt-1.5">
+            +{product.extras!.length} extras
+          </p>
+        )}
+
         <div className="flex items-center justify-between mt-2.5">
           {hasModifiers ? (
-            <span className="text-[11px] text-gray-400">
-              {product.variants?.length ? `${product.variants.length} opciones` : ''}
-              {product.variants?.length && product.extras?.length ? ' · ' : ''}
-              {product.extras?.length ? `${product.extras.length} extras` : ''}
-            </span>
+            <button
+              onClick={handleAddClick}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 text-xs font-semibold hover:bg-gray-200 active:scale-95 transition-all duration-150"
+            >
+              <Settings2 className="w-3 h-3" />
+              {customizeLabel}
+            </button>
           ) : (
             <span />
           )}

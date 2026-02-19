@@ -80,6 +80,10 @@ export interface Translations {
   sunday: string;
   // Menu
   noProductsYet: string;
+  customize: string;
+  filterAll: string;
+  filterPopular: string;
+  filterWithOptions: string;
   // Search
   searchPlaceholder: string;
   noResults: string;
@@ -163,6 +167,10 @@ const es: Translations = {
   saturday: 'Sábado',
   sunday: 'Domingo',
   noProductsYet: 'Este menú aún no tiene productos',
+  customize: 'Personalizar',
+  filterAll: 'Todos',
+  filterPopular: 'Populares',
+  filterWithOptions: 'Con opciones',
   searchPlaceholder: 'Buscar platillos...',
   noResults: 'No se encontraron resultados',
   orderType: 'Tipo de orden',
@@ -241,6 +249,10 @@ const en: Translations = {
   saturday: 'Saturday',
   sunday: 'Sunday',
   noProductsYet: 'This menu has no products yet',
+  customize: 'Customize',
+  filterAll: 'All',
+  filterPopular: 'Popular',
+  filterWithOptions: 'With options',
   searchPlaceholder: 'Search dishes...',
   noResults: 'No results found',
   orderType: 'Order type',
