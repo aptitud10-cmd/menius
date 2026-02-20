@@ -47,10 +47,16 @@ export function MenuShell({
   const isOpen = useCartStore((s) => s.isOpen);
   const addItem = useCartStore((s) => s.addItem);
 
+  const [hasMounted, setHasMounted] = useState(false);
+
   useEffect(() => {
+    setHasMounted(true);
     setRestaurantId(restaurant.id);
     setTableName(tableName);
   }, [restaurant.id, tableName, setRestaurantId, setTableName]);
+
+  const cartCount = hasMounted ? totalItems() : 0;
+  const cartTotal = hasMounted ? totalPrice() : 0;
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'popular' | 'options'>('all');
@@ -316,7 +322,7 @@ export function MenuShell({
       </div>
 
       {/* ── Mobile: Bottom cart bar ── */}
-      {totalItems() > 0 && (
+      {cartCount > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden pointer-events-none pb-[env(safe-area-inset-bottom)]">
           <div className="p-4 pt-8 bg-gradient-to-t from-white via-white/95 to-transparent">
             <div className="max-w-lg mx-auto pointer-events-auto">
@@ -328,12 +334,12 @@ export function MenuShell({
                   <div className="relative">
                     <ShoppingCart className="w-5 h-5" />
                     <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-white text-emerald-600 text-[10px] font-bold">
-                      {totalItems()}
+                      {cartCount}
                     </span>
                   </div>
                   <span className="font-semibold text-sm">{t.viewCart}</span>
                 </div>
-                <span className="font-bold text-sm tabular-nums">{fmtPrice(totalPrice())}</span>
+                <span className="font-bold text-sm tabular-nums">{fmtPrice(cartTotal)}</span>
               </button>
             </div>
           </div>
