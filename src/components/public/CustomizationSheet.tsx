@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { X, Minus, Plus, Check } from 'lucide-react';
+import { X, Minus, Plus, Check, ArrowLeft } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import type { Product, ProductVariant, ProductExtra } from '@/types';
@@ -91,19 +91,33 @@ export function CustomizationSheet({
 
       <div
         className={cn(
-          'absolute inset-y-0 right-0 w-full sm:w-[500px] lg:w-[600px] bg-white flex flex-col shadow-2xl',
+          'absolute bottom-0 left-0 right-0 lg:inset-y-0 lg:left-auto lg:right-0 lg:w-[600px]',
+          'bg-white flex flex-col shadow-2xl',
+          'max-h-[92vh] lg:max-h-none rounded-t-2xl lg:rounded-none',
           'transition-transform duration-250 ease-out',
-          closing ? 'translate-x-full' : 'translate-x-0'
+          closing ? 'translate-y-full lg:translate-y-0 lg:translate-x-full' : 'translate-y-0 lg:translate-x-0'
         )}
-        style={{ animationDuration: '250ms' }}
       >
+        {/* Drag handle — mobile */}
+        <div className="flex justify-center pt-2 pb-1 lg:hidden">
+          <div className="w-10 h-1 rounded-full bg-gray-300" />
+        </div>
+
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 flex-shrink-0">
-          <h2 className="text-base font-bold text-gray-900">
-            {isEditing
-              ? (locale === 'es' ? 'Editar producto' : 'Edit item')
-              : product.name}
-          </h2>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={animateClose}
+              className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            <h2 className="text-base font-bold text-gray-900 truncate">
+              {isEditing
+                ? (locale === 'es' ? 'Editar producto' : 'Edit item')
+                : product.name}
+            </h2>
+          </div>
           <button
             onClick={animateClose}
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors"

@@ -158,7 +158,7 @@ export function MenuShell({
   );
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-white overflow-hidden overscroll-none">
+    <div className="h-[100dvh] flex flex-col bg-white overflow-hidden overscroll-none touch-pan-y">
       {/* Fixed header */}
       <MenuHeader
         restaurant={restaurant}

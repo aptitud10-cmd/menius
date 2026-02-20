@@ -240,38 +240,70 @@ export function CheckoutSheet({
     );
   }
 
+  const inputClass = 'w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors';
+
   // ── Checkout form ──
   return (
     <div className="fixed inset-0 z-50">
       <div
-        className={cn('absolute inset-0 bg-black/40 transition-opacity duration-200', closing ? 'opacity-0' : 'opacity-100')}
+        className={cn('absolute inset-0 bg-black/50 transition-opacity duration-200', closing ? 'opacity-0' : 'opacity-100')}
         onClick={animateClose}
       />
       <div
         className={cn(
-          'absolute inset-y-0 right-0 w-full sm:w-[500px] lg:w-[600px] bg-white flex flex-col shadow-2xl',
+          'absolute inset-0 lg:inset-y-0 lg:left-auto lg:right-0 lg:w-[600px]',
+          'bg-white flex flex-col shadow-2xl',
           'transition-transform duration-250 ease-out',
-          closing ? 'translate-x-full' : 'translate-x-0'
+          closing ? 'translate-y-full lg:translate-y-0 lg:translate-x-full' : 'translate-y-0 lg:translate-x-0'
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <button onClick={animateClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-              <ArrowLeft className="w-4 h-4 text-gray-500" />
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0 bg-white">
+          <div className="flex items-center gap-3">
+            <button onClick={animateClose} className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors">
+              <ArrowLeft className="w-5 h-5 text-gray-700" />
             </button>
-            <h2 className="text-base font-bold text-gray-900">{t.checkout}</h2>
+            <h2 className="text-lg font-bold text-gray-900">{t.checkout}</h2>
           </div>
-          <button onClick={animateClose} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-            <X className="w-4 h-4 text-gray-400" />
+          <button onClick={animateClose} className="p-2 rounded-lg hover:bg-gray-100 transition-colors lg:hidden">
+            <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
 
         {/* Scrollable form */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-5 space-y-5">
+        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-6 space-y-6">
+
+          {/* Order summary — at top for context */}
+          <div className="bg-gray-50 rounded-2xl p-5 space-y-3 border border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+              {locale === 'es' ? 'Tu pedido' : 'Your order'}
+            </p>
+            {items.map((item, idx) => (
+              <div key={idx} className="flex justify-between text-[15px]">
+                <span className="text-gray-700 truncate mr-3">
+                  {item.qty}x {item.product.name}
+                  {item.variant ? ` (${item.variant.name})` : ''}
+                </span>
+                <span className="font-semibold text-gray-900 flex-shrink-0 tabular-nums">
+                  {fmtPrice(item.lineTotal)}
+                </span>
+              </div>
+            ))}
+            {discount > 0 && (
+              <div className="flex justify-between text-[15px] text-emerald-600">
+                <span>{t.discount}</span>
+                <span className="font-semibold">-{fmtPrice(discount)}</span>
+              </div>
+            )}
+            <div className="border-t border-gray-200 pt-3 flex justify-between font-bold text-lg">
+              <span>{t.total}</span>
+              <span className="tabular-nums">{fmtPrice(finalTotal)}</span>
+            </div>
+          </div>
+
           {/* Order type */}
           <div>
-            <label className="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2.5">
+            <label className="block text-sm font-semibold text-gray-900 mb-3">
               {t.orderType}
             </label>
             <div className={cn('grid gap-2', enabledOrderTypes.length === 3 ? 'grid-cols-3' : enabledOrderTypes.length === 2 ? 'grid-cols-2' : 'grid-cols-1')}>
@@ -280,10 +312,10 @@ export function CheckoutSheet({
                   key={type}
                   onClick={() => setOrderType(type)}
                   className={cn(
-                    'py-3 px-2 rounded-xl text-sm font-semibold text-center transition-all duration-150 border',
+                    'py-3.5 px-3 rounded-xl text-[15px] font-semibold text-center transition-all duration-150 border-2',
                     orderType === type
                       ? 'bg-gray-900 text-white border-gray-900'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                      : 'bg-white text-gray-600 border-gray-200 active:border-gray-400'
                   )}
                 >
                   {type === 'dine_in' ? t.dineIn : type === 'pickup' ? t.pickup : t.delivery}
@@ -303,18 +335,17 @@ export function CheckoutSheet({
           )}
 
           {/* Customer details */}
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2">
-                {t.yourName}
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                {t.yourName} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder={t.yourNamePlaceholder}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 transition-shadow"
-                autoFocus
+                className={inputClass}
               />
             </div>
             <PhoneField
@@ -326,27 +357,27 @@ export function CheckoutSheet({
               dark={false}
             />
             <div>
-              <label className="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2">
-                {t.yourEmail}
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                {t.yourEmail} <span className="text-gray-400 font-normal text-xs">({locale === 'es' ? 'opcional' : 'optional'})</span>
               </label>
               <input
                 type="email"
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}
                 placeholder={t.yourEmailPlaceholder}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 transition-shadow"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2">
-                {t.orderNotes} <span className="text-gray-400 font-normal normal-case">({locale === 'es' ? 'opcional' : 'optional'})</span>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                {t.orderNotes} <span className="text-gray-400 font-normal text-xs">({locale === 'es' ? 'opcional' : 'optional'})</span>
               </label>
               <textarea
                 value={orderNotes}
                 onChange={(e) => setOrderNotes(e.target.value)}
                 placeholder={t.orderNotesPlaceholder}
                 rows={2}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 transition-shadow resize-none"
+                className={cn(inputClass, 'resize-none')}
               />
             </div>
           </div>
@@ -354,7 +385,7 @@ export function CheckoutSheet({
           {/* Payment method */}
           {enabledPaymentMethods.length > 1 && (
             <div>
-              <label className="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2.5">
+              <label className="block text-sm font-semibold text-gray-900 mb-3">
                 {t.paymentMethod}
               </label>
               <div className="space-y-2">
@@ -362,10 +393,10 @@ export function CheckoutSheet({
                   <label
                     key={method}
                     className={cn(
-                      'flex items-center gap-3 p-3.5 rounded-xl border cursor-pointer transition-all duration-150',
+                      'flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-150',
                       paymentMethod === method
                         ? 'border-gray-900 bg-gray-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-gray-200'
                     )}
                   >
                     <input
@@ -374,9 +405,9 @@ export function CheckoutSheet({
                       value={method}
                       checked={paymentMethod === method}
                       onChange={() => setPaymentMethod(method)}
-                      className="w-4 h-4 text-gray-900 focus:ring-gray-900/20"
+                      className="w-5 h-5 text-gray-900 focus:ring-gray-900/20"
                     />
-                    <span className="text-sm font-medium text-gray-700">
+                    <span className="text-[15px] font-medium text-gray-800">
                       {method === 'cash' ? t.payCash : t.payOnline}
                     </span>
                   </label>
@@ -387,7 +418,7 @@ export function CheckoutSheet({
 
           {/* Promo code */}
           <div>
-            <label className="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2">
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
               {t.promoCode}
             </label>
             <div className="flex gap-2">
@@ -396,69 +427,41 @@ export function CheckoutSheet({
                 value={promoCode}
                 onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); setPromoResult(null); }}
                 placeholder={t.promoCodePlaceholder}
-                className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900/10 uppercase transition-shadow"
+                className={cn(inputClass, 'flex-1 uppercase')}
               />
               <button
                 onClick={validatePromo}
                 disabled={promoLoading || !promoCode.trim()}
-                className="px-5 py-3 rounded-xl bg-gray-100 text-sm font-semibold hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                className="px-5 py-3.5 rounded-xl bg-gray-900 text-white text-[15px] font-semibold disabled:opacity-30 transition-colors"
               >
                 {promoLoading ? '...' : t.apply}
               </button>
             </div>
-            {promoError && <p className="text-xs text-red-500 mt-1.5">{promoError}</p>}
+            {promoError && <p className="text-sm text-red-500 mt-2">{promoError}</p>}
             {promoResult?.valid && (
-              <p className="text-xs text-emerald-600 mt-1.5 font-medium">
+              <p className="text-sm text-emerald-600 mt-2 font-medium">
                 {t.discount}: -{fmtPrice(promoResult.discount)}
                 {promoResult.description && ` — ${promoResult.description}`}
               </p>
             )}
           </div>
-
-          {/* Order summary */}
-          <div className="bg-gray-50 rounded-xl p-4 space-y-2 border border-gray-100">
-            <p className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-2">
-              {locale === 'es' ? 'Resumen' : 'Summary'}
-            </p>
-            {items.map((item, idx) => (
-              <div key={idx} className="flex justify-between text-sm">
-                <span className="text-gray-600 truncate mr-2">
-                  {item.qty}x {item.product.name}
-                  {item.variant ? ` (${item.variant.name})` : ''}
-                </span>
-                <span className="font-medium text-gray-800 flex-shrink-0 tabular-nums">
-                  {fmtPrice(item.lineTotal)}
-                </span>
-              </div>
-            ))}
-            {discount > 0 && (
-              <div className="flex justify-between text-sm text-emerald-600">
-                <span>{t.discount}</span>
-                <span className="font-medium">-{fmtPrice(discount)}</span>
-              </div>
-            )}
-            <div className="border-t border-gray-200 pt-2 flex justify-between font-bold text-base">
-              <span>{t.total}</span>
-              <span className="tabular-nums">{fmtPrice(finalTotal)}</span>
-            </div>
-          </div>
         </div>
 
         {/* Sticky footer */}
-        <div className="border-t border-gray-100 px-5 py-4 flex-shrink-0 bg-white space-y-2">
+        <div className="border-t-2 border-gray-100 px-5 py-4 flex-shrink-0 bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
           {orderError && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 border border-red-100">
-              <span className="text-red-600 text-xs font-medium">{orderError}</span>
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200 mb-3">
+              <span className="text-red-700 text-sm font-medium">{orderError}</span>
             </div>
           )}
           <button
             onClick={handleSubmitOrder}
             disabled={submitting || items.length === 0}
-            className="w-full py-3 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 active:scale-[0.98] transition-all duration-150 disabled:opacity-50"
+            className="w-full py-4 rounded-xl bg-emerald-500 text-white font-bold text-base active:scale-[0.98] transition-all duration-150 disabled:opacity-50 shadow-[0_4px_20px_rgba(16,185,129,0.3)]"
           >
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                 {t.sending}
               </span>
             ) : (
