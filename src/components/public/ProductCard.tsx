@@ -111,18 +111,18 @@ export const ProductCard = memo(function ProductCard({
         )}
       </div>
 
-      {/* ── Desktop: vertical card ── */}
+      {/* ── Desktop: landscape card (wider than tall) ── */}
       <div
         onClick={handleClick}
         className="hidden lg:block group relative bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg hover:border-gray-200 transition-all duration-200"
       >
         {showImage ? (
-          <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
+          <div className="relative w-full aspect-[16/9] bg-gray-100 overflow-hidden">
             <Image
               src={product.image_url}
               alt={product.name}
               fill
-              sizes="(max-width: 1280px) 33vw, 300px"
+              sizes="(max-width: 1280px) 50vw, 400px"
               className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
               onError={() => setImgError(true)}
             />
@@ -133,7 +133,7 @@ export const ProductCard = memo(function ProductCard({
             )}
           </div>
         ) : (
-          <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+          <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
             <UtensilsCrossed className="w-10 h-10 text-gray-200" />
             {product.is_featured && (
               <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-bold">
@@ -145,21 +145,21 @@ export const ProductCard = memo(function ProductCard({
 
         <div className="p-4">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-bold text-[15px] text-gray-900 line-clamp-1 leading-snug">
+            <h3 className="font-bold text-base text-gray-900 line-clamp-1 leading-snug">
               {product.name}
             </h3>
-            <span className="text-[15px] font-bold text-gray-900 flex-shrink-0 tabular-nums">
+            <span className="text-base font-bold text-gray-900 flex-shrink-0 tabular-nums">
               {fmtPrice(Number(product.price))}
             </span>
           </div>
 
           {product.description && (
-            <p className="text-sm text-gray-500 line-clamp-2 mt-1.5 leading-relaxed">{product.description}</p>
+            <p className="text-sm text-gray-500 line-clamp-1 mt-1 leading-relaxed">{product.description}</p>
           )}
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
             {hasModifiers ? (
-              <span className="inline-flex items-center gap-1 text-xs text-gray-400 font-medium">
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
                 {customizeLabel}
                 <ChevronRight className="w-3 h-3" />
               </span>
@@ -169,7 +169,7 @@ export const ProductCard = memo(function ProductCard({
             <button
               onClick={handleAddClick}
               className={cn(
-                'flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95',
+                'flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95',
                 justAdded
                   ? 'bg-emerald-600 text-white'
                   : 'bg-emerald-500 text-white hover:bg-emerald-600'
