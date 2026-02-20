@@ -73,8 +73,28 @@ export function CheckoutSheet({
   const discount = promoResult?.valid ? promoResult.discount : 0;
   const finalTotal = Math.max(0, cartTotal - discount);
 
+  const [vvH, setVvH] = useState<string>('100dvh');
+
   useEffect(() => {
     document.body.style.overflow = 'hidden';
+
+    const vv = window.visualViewport;
+    if (vv) {
+      const sync = () => {
+        setVvH(`${vv.height}px`);
+        document.documentElement.style.setProperty('--vv-top', `${vv.offsetTop}px`);
+      };
+      sync();
+      vv.addEventListener('resize', sync);
+      vv.addEventListener('scroll', sync);
+      return () => {
+        document.body.style.overflow = '';
+        vv.removeEventListener('resize', sync);
+        vv.removeEventListener('scroll', sync);
+        document.documentElement.style.removeProperty('--vv-top');
+      };
+    }
+
     return () => { document.body.style.overflow = ''; };
   }, []);
 
@@ -251,21 +271,22 @@ export function CheckoutSheet({
       />
       <div
         className={cn(
-          'absolute inset-0 lg:inset-y-0 lg:left-auto lg:right-0 lg:w-[600px]',
+          'fixed top-0 left-0 right-0 lg:left-auto lg:w-[600px]',
           'bg-white flex flex-col shadow-2xl',
           'transition-transform duration-250 ease-out',
           closing ? 'translate-y-full lg:translate-y-0 lg:translate-x-full' : 'translate-y-0 lg:translate-x-0'
         )}
+        style={{ height: vvH, top: 'var(--vv-top, 0px)' }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0 bg-white">
+        {/* Header — always visible */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0 bg-white z-10">
           <div className="flex items-center gap-3">
-            <button onClick={animateClose} className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors">
+            <button onClick={animateClose} className="p-2 -ml-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Back">
               <ArrowLeft className="w-5 h-5 text-gray-700" />
             </button>
             <h2 className="text-lg font-bold text-gray-900">{t.checkout}</h2>
           </div>
-          <button onClick={animateClose} className="p-2 rounded-lg hover:bg-gray-100 transition-colors lg:hidden">
+          <button onClick={animateClose} className="p-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Close">
             <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>

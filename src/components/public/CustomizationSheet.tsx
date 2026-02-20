@@ -51,8 +51,27 @@ export function CustomizationSheet({
     (selectedVariant?.price_delta ?? 0) +
     selectedExtras.reduce((s, e) => s + Number(e.price), 0);
 
+  const [vvH, setVvH] = useState<string>('92vh');
+
   useEffect(() => {
     document.body.style.overflow = 'hidden';
+
+    const vv = window.visualViewport;
+    if (vv) {
+      const sync = () => {
+        const h = Math.min(vv.height, window.innerHeight * 0.92);
+        setVvH(`${h}px`);
+      };
+      sync();
+      vv.addEventListener('resize', sync);
+      vv.addEventListener('scroll', sync);
+      return () => {
+        document.body.style.overflow = '';
+        vv.removeEventListener('resize', sync);
+        vv.removeEventListener('scroll', sync);
+      };
+    }
+
     return () => { document.body.style.overflow = ''; };
   }, []);
 
@@ -91,20 +110,21 @@ export function CustomizationSheet({
 
       <div
         className={cn(
-          'absolute bottom-0 left-0 right-0 lg:inset-y-0 lg:left-auto lg:right-0 lg:w-[600px]',
+          'fixed bottom-0 left-0 right-0 lg:top-0 lg:bottom-0 lg:left-auto lg:w-[600px]',
           'bg-white flex flex-col shadow-2xl',
-          'max-h-[92vh] lg:max-h-none rounded-t-2xl lg:rounded-none',
+          'rounded-t-2xl lg:rounded-none',
           'transition-transform duration-250 ease-out',
           closing ? 'translate-y-full lg:translate-y-0 lg:translate-x-full' : 'translate-y-0 lg:translate-x-0'
         )}
+        style={{ maxHeight: vvH }}
       >
         {/* Drag handle — mobile */}
         <div className="flex justify-center pt-2 pb-1 lg:hidden">
           <div className="w-10 h-1 rounded-full bg-gray-300" />
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
+        {/* Header — always visible */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0 bg-white z-10">
           <div className="flex items-center gap-2">
             <button
               onClick={animateClose}
@@ -261,7 +281,7 @@ export function CustomizationSheet({
               placeholder={t.specialNotesPlaceholder}
               rows={2}
               maxLength={120}
-              className="w-full px-4 py-2.5 rounded-xl bg-gray-50 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/10 resize-none border border-gray-100"
+              className="w-full px-4 py-2.5 rounded-xl bg-gray-50 text-base text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/10 resize-none border border-gray-100"
             />
             <p className="text-[10px] text-gray-300 text-right mt-1">{notes.length}/120</p>
           </div>
