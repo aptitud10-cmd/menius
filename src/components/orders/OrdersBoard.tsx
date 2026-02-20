@@ -86,15 +86,15 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div className="rounded-2xl border border-amber-500/[0.15] bg-amber-500/[0.06] p-4">
-          <p className="text-xs text-gray-400 font-medium">Pendientes</p>
+          <p className="text-xs text-gray-500 font-medium">Pendientes</p>
           <p className="text-2xl font-bold text-amber-400 mt-1">{pendingCount}</p>
         </div>
         <div className="rounded-2xl border border-violet-500/[0.15] bg-violet-500/[0.06] p-4">
-          <p className="text-xs text-gray-400 font-medium">Preparando</p>
+          <p className="text-xs text-gray-500 font-medium">Preparando</p>
           <p className="text-2xl font-bold text-violet-400 mt-1">{preparingCount}</p>
         </div>
         <div className="rounded-2xl border border-emerald-500/[0.15] bg-emerald-500/[0.06] p-4">
-          <p className="text-xs text-gray-400 font-medium">Venta hoy</p>
+          <p className="text-xs text-gray-500 font-medium">Venta hoy</p>
           <p className="text-2xl font-bold text-emerald-400 mt-1">{formatPrice(todayTotal, currency)}</p>
         </div>
       </div>
@@ -121,7 +121,7 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
             onClick={() => setSoundEnabled(!soundEnabled)}
             className={cn(
               'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
-              soundEnabled ? 'bg-purple-500/[0.1] text-purple-400 border border-purple-500/[0.15]' : 'bg-white/[0.06] text-gray-500 border border-white/[0.06]'
+              soundEnabled ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-gray-50 text-gray-500 border border-gray-200'
             )}
           >
             {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
@@ -145,7 +145,7 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
               <div key={status} className="space-y-3">
                 <div className="flex items-center gap-2 mb-2">
                   <Icon className={`w-4 h-4 ${config.color}`} />
-                  <span className="text-sm font-semibold text-white">{config.label}</span>
+                  <span className="text-sm font-semibold text-gray-900">{config.label}</span>
                   <span className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-full ${config.bg} ${config.color}`}>
                     {columnOrders.length}
                   </span>
@@ -155,13 +155,13 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
                   const isNew = newOrderIds.has(order.id);
                   return (
                     <div key={order.id} className={cn(
-                      'bg-[#0a0a0a] rounded-xl border p-3.5 transition-all text-white',
-                      isNew ? 'border-purple-500/40 ring-2 ring-purple-500/20 animate-pulse' : 'border-white/[0.06]'
+                      'bg-white rounded-xl border p-3.5 transition-all text-gray-900',
+                      isNew ? 'border-emerald-500/40 ring-2 ring-emerald-500/20 animate-pulse' : 'border-gray-200'
                     )}>
                       {isNew && (
                         <div className="flex items-center gap-1 mb-2">
-                          <Bell className="w-3 h-3 text-purple-400" />
-                          <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">Nueva orden</span>
+                          <Bell className="w-3 h-3 text-emerald-600" />
+                          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Nueva orden</span>
                         </div>
                       )}
                       <div className="flex items-center justify-between mb-2">
@@ -186,7 +186,7 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
                           {order.items.map((item, idx) => {
                             const prod = item.product as { name: string } | undefined;
                             return (
-                              <span key={idx} className="text-xs bg-white/[0.04] px-1.5 py-0.5 rounded">
+                              <span key={idx} className="text-xs bg-gray-50 px-1.5 py-0.5 rounded">
                                 {item.qty}x {prod?.name ?? 'Producto'}
                               </span>
                             );
@@ -200,7 +200,7 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
                           {NEXT_STATUS[status] && (
                             <button
                               onClick={() => handleStatusChange(order.id, NEXT_STATUS[status])}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-600 text-white text-xs font-medium hover:bg-purple-700 transition-colors"
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500 text-white text-xs font-medium hover:bg-emerald-600 transition-colors"
                             >
                               <ArrowRight className="w-3 h-3" />
                             </button>

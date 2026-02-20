@@ -82,8 +82,8 @@ function VariantEditor({ variants, productId, onUpdate }: {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Layers className="w-4 h-4 text-blue-500" />
-          <span className="text-sm font-semibold text-gray-200">Variantes</span>
-          <span className="text-xs text-gray-400">(ej: tamano, termino de coccion)</span>
+          <span className="text-sm font-semibold text-gray-700">Variantes</span>
+          <span className="text-xs text-gray-500">(ej: tamano, termino de coccion)</span>
         </div>
         {!adding && (
           <button onClick={() => setAdding(true)} className="flex items-center gap-1 text-xs font-medium text-blue-400 hover:text-blue-300">
@@ -93,27 +93,27 @@ function VariantEditor({ variants, productId, onUpdate }: {
       </div>
 
       {items.length === 0 && !adding && (
-        <p className="text-xs text-gray-400 py-2">Sin variantes. Los clientes veran solo el precio base.</p>
+        <p className="text-xs text-gray-500 py-2">Sin variantes. Los clientes veran solo el precio base.</p>
       )}
 
       <div className="space-y-1.5">
         {items.map((v) => (
-          <div key={v.id} className="flex items-center gap-2 bg-white/[0.04] rounded-lg px-3 py-2">
+          <div key={v.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
             {editId === v.id ? (
               <>
-                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nombre" className="flex-1 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-blue-400" />
-                <input value={form.price_delta} onChange={e => setForm({ ...form, price_delta: e.target.value })} placeholder="+0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nombre" className="flex-1 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-400" />
+                <input value={form.price_delta} onChange={e => setForm({ ...form, price_delta: e.target.value })} placeholder="+0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-400" />
                 <button onClick={() => handleUpdate(v)} disabled={loading} className="text-xs font-medium text-blue-400 hover:text-blue-300 disabled:opacity-50">Guardar</button>
-                <button onClick={() => { setEditId(null); setForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-400">Cancelar</button>
+                <button onClick={() => { setEditId(null); setForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-500">Cancelar</button>
               </>
             ) : (
               <>
-                <span className="flex-1 text-sm text-gray-200 font-medium">{v.name}</span>
+                <span className="flex-1 text-sm text-gray-700 font-medium">{v.name}</span>
                 <span className="text-sm text-gray-500 font-mono">
                   {v.price_delta > 0 ? `+$${v.price_delta.toFixed(2)}` : v.price_delta < 0 ? `-$${Math.abs(v.price_delta).toFixed(2)}` : 'Base'}
                 </span>
-                <button onClick={() => { setEditId(v.id); setForm({ name: v.name, price_delta: String(v.price_delta) }); }} className="p-1 rounded hover:bg-white/[0.08] text-gray-400"><Pencil className="w-3.5 h-3.5" /></button>
-                <button onClick={() => handleDelete(v.id)} className="p-1 rounded hover:bg-red-500/[0.08] text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                <button onClick={() => { setEditId(v.id); setForm({ name: v.name, price_delta: String(v.price_delta) }); }} className="p-1 rounded hover:bg-gray-100 text-gray-500"><Pencil className="w-3.5 h-3.5" /></button>
+                <button onClick={() => handleDelete(v.id)} className="p-1 rounded hover:bg-red-500/[0.08] text-gray-500 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
               </>
             )}
           </div>
@@ -121,10 +121,10 @@ function VariantEditor({ variants, productId, onUpdate }: {
 
         {adding && (
           <div className="flex items-center gap-2 bg-blue-500/[0.06] rounded-lg px-3 py-2 border border-blue-500/[0.15]">
-            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Grande, Medium Rare..." autoFocus className="flex-1 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-blue-400" />
-            <input value={form.price_delta} onChange={e => setForm({ ...form, price_delta: e.target.value })} placeholder="+0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-blue-400" />
+            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Grande, Medium Rare..." autoFocus className="flex-1 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-400" />
+            <input value={form.price_delta} onChange={e => setForm({ ...form, price_delta: e.target.value })} placeholder="+0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-400" />
             <button onClick={handleAdd} disabled={loading || !form.name.trim()} className="text-xs font-bold text-blue-400 hover:text-blue-300 disabled:opacity-50">{loading ? '...' : 'Agregar'}</button>
-            <button onClick={() => { setAdding(false); setForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-400">Cancelar</button>
+            <button onClick={() => { setAdding(false); setForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-500">Cancelar</button>
           </div>
         )}
       </div>
@@ -186,8 +186,8 @@ function ExtraEditor({ extras, productId, onUpdate }: {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <ListPlus className="w-4 h-4 text-emerald-500" />
-          <span className="text-sm font-semibold text-gray-200">Extras</span>
-          <span className="text-xs text-gray-400">(ej: queso extra, tocino)</span>
+          <span className="text-sm font-semibold text-gray-700">Extras</span>
+          <span className="text-xs text-gray-500">(ej: queso extra, tocino)</span>
         </div>
         {!adding && (
           <button onClick={() => setAdding(true)} className="flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300">
@@ -197,25 +197,25 @@ function ExtraEditor({ extras, productId, onUpdate }: {
       </div>
 
       {items.length === 0 && !adding && (
-        <p className="text-xs text-gray-400 py-2">Sin extras. Agrega opciones adicionales para este producto.</p>
+        <p className="text-xs text-gray-500 py-2">Sin extras. Agrega opciones adicionales para este producto.</p>
       )}
 
       <div className="space-y-1.5">
         {items.map((ex) => (
-          <div key={ex.id} className="flex items-center gap-2 bg-white/[0.04] rounded-lg px-3 py-2">
+          <div key={ex.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
             {editId === ex.id ? (
               <>
-                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nombre" className="flex-1 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                <input value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nombre" className="flex-1 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                <input value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
                 <button onClick={() => handleUpdate(ex)} disabled={loading} className="text-xs font-medium text-emerald-400 hover:text-emerald-300 disabled:opacity-50">Guardar</button>
-                <button onClick={() => { setEditId(null); setForm({ name: '', price: '' }); }} className="text-xs text-gray-400">Cancelar</button>
+                <button onClick={() => { setEditId(null); setForm({ name: '', price: '' }); }} className="text-xs text-gray-500">Cancelar</button>
               </>
             ) : (
               <>
-                <span className="flex-1 text-sm text-gray-200 font-medium">{ex.name}</span>
+                <span className="flex-1 text-sm text-gray-700 font-medium">{ex.name}</span>
                 <span className="text-sm text-emerald-400 font-mono">+${ex.price.toFixed(2)}</span>
-                <button onClick={() => { setEditId(ex.id); setForm({ name: ex.name, price: String(ex.price) }); }} className="p-1 rounded hover:bg-white/[0.08] text-gray-400"><Pencil className="w-3.5 h-3.5" /></button>
-                <button onClick={() => handleDelete(ex.id)} className="p-1 rounded hover:bg-red-500/[0.08] text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                <button onClick={() => { setEditId(ex.id); setForm({ name: ex.name, price: String(ex.price) }); }} className="p-1 rounded hover:bg-gray-100 text-gray-500"><Pencil className="w-3.5 h-3.5" /></button>
+                <button onClick={() => handleDelete(ex.id)} className="p-1 rounded hover:bg-red-500/[0.08] text-gray-500 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
               </>
             )}
           </div>
@@ -223,10 +223,10 @@ function ExtraEditor({ extras, productId, onUpdate }: {
 
         {adding && (
           <div className="flex items-center gap-2 bg-emerald-500/[0.06] rounded-lg px-3 py-2 border border-emerald-500/[0.15]">
-            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Extra queso, Tocino..." autoFocus className="flex-1 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-            <input value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Extra queso, Tocino..." autoFocus className="flex-1 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+            <input value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
             <button onClick={handleAdd} disabled={loading || !form.name.trim()} className="text-xs font-bold text-emerald-400 hover:text-emerald-300 disabled:opacity-50">{loading ? '...' : 'Agregar'}</button>
-            <button onClick={() => { setAdding(false); setForm({ name: '', price: '' }); }} className="text-xs text-gray-400">Cancelar</button>
+            <button onClick={() => { setAdding(false); setForm({ name: '', price: '' }); }} className="text-xs text-gray-500">Cancelar</button>
           </div>
         )}
       </div>
@@ -368,19 +368,19 @@ function ProductEditor({ product, categories, onClose, onSave }: {
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-[#0a0a0a] shadow-2xl overflow-y-auto animate-slide-in-right">
+      <div className="relative w-full max-w-lg bg-white shadow-2xl overflow-y-auto animate-slide-in-right">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-[#0a0a0a] border-b border-white/[0.06] px-5 py-4 flex items-center justify-between">
-          <h2 className="font-bold text-base text-white">
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between">
+          <h2 className="font-bold text-base text-gray-900">
             {isEditing ? 'Editar producto' : 'Nuevo producto'}
           </h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-gray-400">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-50 text-gray-500">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="sticky top-[65px] z-10 bg-[#0a0a0a] border-b border-white/[0.06] px-5 flex gap-1">
+        <div className="sticky top-[65px] z-10 bg-white border-b border-gray-200 px-5 flex gap-1">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -388,8 +388,8 @@ function ProductEditor({ product, categories, onClose, onSave }: {
               className={cn(
                 'flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors',
                 tab === t.id
-                  ? 'border-purple-500 text-purple-400'
-                  : 'border-transparent text-gray-400 hover:text-gray-400'
+                  ? 'border-emerald-500 text-emerald-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-500'
               )}
             >
               <t.icon className="w-4 h-4" />
@@ -415,57 +415,57 @@ function ProductEditor({ product, categories, onClose, onSave }: {
                 <input ref={fileRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
 
                 {imagePreview ? (
-                  <div className="relative w-full h-48 rounded-xl overflow-hidden bg-white/[0.06] group">
+                  <div className="relative w-full h-48 rounded-xl overflow-hidden bg-gray-50 group">
                     <Image src={imagePreview} alt="Preview" fill className="object-cover" sizes="500px" />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2">
-                      <button onClick={() => fileRef.current?.click()} className="opacity-0 group-hover:opacity-100 p-2.5 rounded-xl bg-[#0a0a0a]/90 text-gray-200 hover:bg-[#0a0a0a] transition-all"><Camera className="w-4 h-4" /></button>
-                      <button onClick={() => { setImageFile(null); setImagePreview(null); }} className="opacity-0 group-hover:opacity-100 p-2.5 rounded-xl bg-[#0a0a0a]/90 text-red-600 hover:bg-[#0a0a0a] transition-all"><Trash2 className="w-4 h-4" /></button>
+                      <button onClick={() => fileRef.current?.click()} className="opacity-0 group-hover:opacity-100 p-2.5 rounded-xl bg-white/90 text-gray-700 hover:bg-white transition-all"><Camera className="w-4 h-4" /></button>
+                      <button onClick={() => { setImageFile(null); setImagePreview(null); }} className="opacity-0 group-hover:opacity-100 p-2.5 rounded-xl bg-white/90 text-red-600 hover:bg-white transition-all"><Trash2 className="w-4 h-4" /></button>
                     </div>
                     {generatingAI && (
-                      <div className="absolute inset-0 bg-[#0a0a0a]/80 flex flex-col items-center justify-center gap-2">
-                        <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
-                        <span className="text-sm font-medium text-purple-400">Generando con IA...</span>
+                      <div className="absolute inset-0 bg-white/80 flex flex-col items-center justify-center gap-2">
+                        <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                        <span className="text-sm font-medium text-emerald-600">Generando con IA...</span>
                       </div>
                     )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => fileRef.current?.click()} disabled={generatingAI} className="h-28 rounded-xl border-2 border-dashed border-white/[0.08] hover:border-purple-400 flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-purple-400 transition-all disabled:opacity-50">
+                    <button onClick={() => fileRef.current?.click()} disabled={generatingAI} className="h-28 rounded-xl border-2 border-dashed border-gray-200 hover:border-emerald-400 flex flex-col items-center justify-center gap-2 text-gray-500 hover:text-emerald-600 transition-all disabled:opacity-50">
                       <Camera className="w-5 h-5" /><span className="text-xs font-medium">Subir foto</span>
                     </button>
-                    <button onClick={() => { if (!form.name.trim()) { setError('Escribe el nombre primero'); return; } setShowStylePicker(true); }} disabled={generatingAI} className="h-28 rounded-xl border-2 border-dashed border-violet-500/20 bg-violet-500/[0.04] hover:border-violet-400 flex flex-col items-center justify-center gap-2 text-violet-400 hover:text-violet-300 transition-all disabled:opacity-50">
+                    <button onClick={() => { if (!form.name.trim()) { setError('Escribe el nombre primero'); return; } setShowStylePicker(true); }} disabled={generatingAI} className="h-28 rounded-xl border-2 border-dashed border-emerald-200 bg-emerald-50 hover:border-emerald-400 flex flex-col items-center justify-center gap-2 text-emerald-600 hover:text-emerald-700 transition-all disabled:opacity-50">
                       {generatingAI ? <><Loader2 className="w-5 h-5 animate-spin" /><span className="text-xs font-medium">Generando...</span></> : <><Sparkles className="w-5 h-5" /><span className="text-xs font-medium">Generar con IA</span></>}
                     </button>
                   </div>
                 )}
 
                 {showStylePicker && !imagePreview && (
-                  <div className="mt-3 p-4 rounded-xl bg-violet-500/[0.06] border border-violet-500/[0.15]">
+                  <div className="mt-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200">
                     <div className="flex items-center gap-2 mb-3">
-                      <Wand2 className="w-4 h-4 text-violet-400" />
-                      <span className="text-sm font-semibold text-violet-300">Estilo de imagen IA</span>
+                      <Wand2 className="w-4 h-4 text-emerald-600" />
+                      <span className="text-sm font-semibold text-emerald-700">Estilo de imagen IA</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2 mb-3">
                       {AI_STYLES.map((s) => (
-                        <button key={s.id} onClick={() => setAiStyle(s.id)} className={cn('px-3 py-2 rounded-lg text-left transition-all text-xs', aiStyle === s.id ? 'bg-violet-600 text-white' : 'bg-white/[0.04] text-gray-400 hover:bg-white/[0.08] border border-white/[0.08]')}>
+                        <button key={s.id} onClick={() => setAiStyle(s.id)} className={cn('px-3 py-2 rounded-lg text-left transition-all text-xs', aiStyle === s.id ? 'bg-emerald-600 text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100 border border-gray-200')}>
                           <p className="font-medium">{s.label}</p>
-                          <p className={cn('mt-0.5', aiStyle === s.id ? 'text-violet-200' : 'text-gray-500')}>{s.desc}</p>
+                          <p className={cn('mt-0.5', aiStyle === s.id ? 'text-emerald-100' : 'text-gray-500')}>{s.desc}</p>
                         </button>
                       ))}
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={generateAIImage} disabled={generatingAI} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 disabled:opacity-50 transition-colors">
+                      <button onClick={generateAIImage} disabled={generatingAI} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors">
                         {generatingAI ? <><Loader2 className="w-4 h-4 animate-spin" />Generando...</> : <><Sparkles className="w-4 h-4" />Generar</>}
                       </button>
-                      <button onClick={() => setShowStylePicker(false)} className="px-4 py-2.5 rounded-xl bg-white/[0.04] text-gray-400 text-sm hover:bg-white/[0.06] border border-white/[0.08]">Cancelar</button>
+                      <button onClick={() => setShowStylePicker(false)} className="px-4 py-2.5 rounded-xl bg-gray-50 text-gray-500 text-sm hover:bg-gray-100 border border-gray-200">Cancelar</button>
                     </div>
                   </div>
                 )}
 
                 {imagePreview && !generatingAI && (
                   <div className="mt-2 flex gap-2">
-                    <button onClick={() => { setImagePreview(null); setImageFile(null); setShowStylePicker(true); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/[0.1] text-violet-400 text-xs font-medium hover:bg-violet-500/[0.15] border border-violet-500/[0.15]"><Sparkles className="w-3.5 h-3.5" />Regenerar con IA</button>
-                    <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] text-gray-400 text-xs font-medium hover:bg-white/[0.06]"><Camera className="w-3.5 h-3.5" />Subir otra</button>
+                    <button onClick={() => { setImagePreview(null); setImageFile(null); setShowStylePicker(true); }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-xs font-medium hover:bg-emerald-100 border border-emerald-200"><Sparkles className="w-3.5 h-3.5" />Regenerar con IA</button>
+                    <button onClick={() => fileRef.current?.click()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-gray-500 text-xs font-medium hover:bg-gray-100"><Camera className="w-3.5 h-3.5" />Subir otra</button>
                   </div>
                 )}
               </div>
@@ -473,24 +473,24 @@ function ProductEditor({ product, categories, onClose, onSave }: {
               {/* Name */}
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Nombre *</label>
-                <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ej: Hamburguesa clasica" autoFocus className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400" />
+                <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ej: Hamburguesa clasica" autoFocus className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-900 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400" />
               </div>
 
               {/* Description */}
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Descripcion</label>
-                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Describe el producto..." rows={3} className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 resize-none" />
+                <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Describe el producto..." rows={3} className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-900 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 resize-none" />
               </div>
 
               {/* Price & Category */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Precio base *</label>
-                  <input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0.00" min="0" className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400" />
+                  <input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0.00" min="0" className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-900 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Categoria *</label>
-                  <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400">
+                  <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400">
                     {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
@@ -499,7 +499,7 @@ function ProductEditor({ product, categories, onClose, onSave }: {
               {/* Hint for variants/extras on new products */}
               {!isEditing && (
                 <div className="bg-blue-500/[0.06] rounded-xl p-3 border border-blue-500/[0.15]">
-                  <p className="text-xs text-blue-300">
+                  <p className="text-xs text-blue-600">
                     <strong>Tip:</strong> Despues de crear el producto podras agregar variantes (tamanos, terminos de coccion) y extras (ingredientes adicionales) desde las pestanas de arriba.
                   </p>
                 </div>
@@ -528,11 +528,11 @@ function ProductEditor({ product, categories, onClose, onSave }: {
 
         {/* Footer */}
         {tab === 'info' && (
-          <div className="sticky bottom-0 bg-[#0a0a0a] border-t border-white/[0.06] px-5 py-4 flex gap-2">
-            <button onClick={handleSubmit} disabled={isPending || uploading || generatingAI} className="flex-1 px-5 py-3 rounded-xl bg-purple-500 text-white text-sm font-semibold hover:bg-purple-600 disabled:opacity-50 transition-colors">
+          <div className="sticky bottom-0 bg-white border-t border-gray-200 px-5 py-4 flex gap-2">
+            <button onClick={handleSubmit} disabled={isPending || uploading || generatingAI} className="flex-1 px-5 py-3 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 disabled:opacity-50 transition-colors">
               {uploading ? 'Subiendo imagen...' : isPending ? 'Guardando...' : isEditing ? 'Guardar cambios' : 'Crear producto'}
             </button>
-            <button onClick={onClose} className="px-5 py-3 rounded-xl bg-white/[0.06] text-gray-400 text-sm font-medium hover:bg-white/[0.08]">
+            <button onClick={onClose} className="px-5 py-3 rounded-xl bg-gray-50 text-gray-500 text-sm font-medium hover:bg-gray-100">
               Cancelar
             </button>
           </div>
@@ -607,23 +607,23 @@ export function ProductsManager({ initialProducts, categories, restaurantId, cur
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setEditorProduct('new')}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-500 text-white text-sm font-medium hover:bg-purple-600 transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors"
               >
                 <Plus className="w-4 h-4" /> Nuevo producto
               </button>
               <button
                 onClick={() => setShowImport(true)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500/[0.1] text-purple-400 text-sm font-medium hover:bg-purple-500/[0.1] transition-colors border border-purple-500/20"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 text-emerald-600 text-sm font-medium hover:bg-emerald-50 transition-colors border border-emerald-200"
               >
                 <Sparkles className="w-4 h-4" /> Importar con IA
               </button>
             </div>
             <div className="flex items-center gap-3 ml-auto">
-              <span className="text-xs text-gray-400">{activeCount} activos de {products.length}</span>
+              <span className="text-xs text-gray-500">{activeCount} activos de {products.length}</span>
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="text-sm px-3 py-1.5 rounded-lg bg-[#0a0a0a] border border-white/[0.08] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                className="text-sm px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
               >
                 <option value="all">Todas las categorias</option>
                 {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -633,7 +633,7 @@ export function ProductsManager({ initialProducts, categories, restaurantId, cur
 
           {/* Product List */}
           {filteredProducts.length === 0 ? (
-            <div className="text-center py-20 text-gray-400">
+            <div className="text-center py-20 text-gray-500">
               <Package className="w-10 h-10 mx-auto mb-3 opacity-40" />
               <p className="font-semibold text-gray-500">Sin productos</p>
               <p className="text-sm mt-1.5">Agrega productos a tu menu</p>
@@ -644,29 +644,29 @@ export function ProductsManager({ initialProducts, categories, restaurantId, cur
                 <div
                   key={p.id}
                   className={cn(
-                    'flex items-center gap-3 bg-[#0a0a0a] rounded-xl border px-4 py-3 transition-all hover: group cursor-pointer',
-                    p.is_active ? 'border-white/[0.06]' : 'border-white/[0.06] opacity-60'
+                    'flex items-center gap-3 bg-white rounded-xl border border-gray-200 px-4 py-3 transition-all hover: group cursor-pointer',
+                    p.is_active ? 'border-gray-200' : 'border-gray-200 opacity-60'
                   )}
                   onClick={() => setEditorProduct(p)}
                 >
                   {p.image_url ? (
-                    <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-white/[0.06] flex-shrink-0">
+                    <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
                       <Image src={p.image_url} alt={p.name} fill sizes="56px" className="object-cover" />
                     </div>
                   ) : (
-                    <div className="w-14 h-14 rounded-xl bg-white/[0.04] flex items-center justify-center flex-shrink-0 border border-white/[0.06]">
-                      <ImagePlus className="w-5 h-5 text-gray-300" />
+                    <div className="w-14 h-14 rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0 border border-gray-200">
+                      <ImagePlus className="w-5 h-5 text-gray-700" />
                     </div>
                   )}
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <span className={cn('text-sm font-semibold truncate', p.is_active ? 'text-white' : 'line-through text-gray-400')}>{p.name}</span>
-                      {!p.is_active && <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.06] text-gray-400 font-medium flex-shrink-0">Oculto</span>}
+                      <span className={cn('text-sm font-semibold truncate', p.is_active ? 'text-gray-900' : 'line-through text-gray-500')}>{p.name}</span>
+                      {!p.is_active && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-50 text-gray-500 font-medium flex-shrink-0">Oculto</span>}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-purple-400">{formatPrice(Number(p.price))}</span>
-                      <span className="text-xs bg-white/[0.06] text-gray-500 px-1.5 py-0.5 rounded flex-shrink-0">{getCategoryName(p.category_id)}</span>
+                      <span className="text-sm font-bold text-emerald-600">{formatPrice(Number(p.price))}</span>
+                      <span className="text-xs bg-gray-50 text-gray-500 px-1.5 py-0.5 rounded flex-shrink-0">{getCategoryName(p.category_id)}</span>
                       {(p.variants?.length ?? 0) > 0 && (
                         <span className="text-[10px] bg-blue-500/[0.1] text-blue-400 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
                           {p.variants!.length} var
@@ -683,19 +683,19 @@ export function ProductsManager({ initialProducts, categories, restaurantId, cur
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <button
                       onClick={(e) => { e.stopPropagation(); handleToggle(p); }}
-                      className={cn('p-2 rounded-lg transition-colors', p.is_active ? 'text-gray-400 hover:bg-white/[0.06]' : 'text-gray-300 hover:bg-white/[0.06]')}
+                      className={cn('p-2 rounded-lg transition-colors', p.is_active ? 'text-gray-500 hover:bg-gray-50' : 'text-gray-700 hover:bg-gray-50')}
                       title={p.is_active ? 'Ocultar' : 'Mostrar'}
                     >
                       {p.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
-                      className="p-2 rounded-lg text-gray-400 hover:bg-red-500/[0.08] hover:text-red-500 transition-colors"
+                      className="p-2 rounded-lg text-gray-500 hover:bg-red-500/[0.08] hover:text-red-500 transition-colors"
                       title="Eliminar"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
-                    <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
+                    <ChevronRight className="w-4 h-4 text-gray-700 group-hover:text-gray-500 transition-colors" />
                   </div>
                 </div>
               ))}

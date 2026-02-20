@@ -128,16 +128,16 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-2xl max-h-[90vh] bg-[#0a0a0a] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+      <div className="relative w-full max-w-2xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/[0.1] border border-purple-500/[0.15] flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-purple-400" />
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Importar menú con IA</h2>
-              <p className="text-xs text-gray-400">
+              <h2 className="text-lg font-bold text-gray-900">Importar menú con IA</h2>
+              <p className="text-xs text-gray-500">
                 {step === 'upload' && 'Sube una foto de tu menú'}
                 {step === 'review' && `${items.length} productos encontrados`}
                 {step === 'importing' && `Importando ${progress.current}/${progress.total}...`}
@@ -145,8 +145,8 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors">
-            <X className="w-5 h-5 text-gray-400" />
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-50 transition-colors">
+            <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
@@ -158,25 +158,25 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
               <div
                 onDrop={handleDrop}
                 onDragOver={(e) => e.preventDefault()}
-                className="relative border-2 border-dashed border-white/[0.08] rounded-2xl p-10 text-center hover:border-purple-500/30 hover:bg-purple-500/[0.15] transition-colors cursor-pointer"
+                className="relative border-2 border-dashed border-gray-200 rounded-2xl p-10 text-center hover:border-emerald-500/30 hover:bg-emerald-50 transition-colors cursor-pointer"
                 onClick={() => fileRef.current?.click()}
               >
                 {loading ? (
                   <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-10 h-10 text-purple-400 animate-spin" />
-                    <p className="text-sm text-gray-400 font-medium">Analizando menú con IA...</p>
-                    <p className="text-xs text-gray-400">Esto puede tomar 10-20 segundos</p>
+                    <Loader2 className="w-10 h-10 text-emerald-600 animate-spin" />
+                    <p className="text-sm text-gray-500 font-medium">Analizando menú con IA...</p>
+                    <p className="text-xs text-gray-500">Esto puede tomar 10-20 segundos</p>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-3">
-                    <div className="w-16 h-16 rounded-2xl bg-purple-500/[0.1] flex items-center justify-center">
-                      <Camera className="w-8 h-8 text-purple-400" />
+                    <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                      <Camera className="w-8 h-8 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-gray-200">Sube una foto de tu menú</p>
-                      <p className="text-xs text-gray-400 mt-1">Arrastra una imagen o haz clic para seleccionar</p>
+                      <p className="text-sm font-semibold text-gray-700">Sube una foto de tu menú</p>
+                      <p className="text-xs text-gray-500 mt-1">Arrastra una imagen o haz clic para seleccionar</p>
                     </div>
-                    <p className="text-[11px] text-gray-400">JPG, PNG, WebP • Máximo 10MB</p>
+                    <p className="text-[11px] text-gray-500">JPG, PNG, WebP • Máximo 10MB</p>
                   </div>
                 )}
                 <input
@@ -192,8 +192,8 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
               </div>
 
               {preview && (
-                <div className="rounded-xl overflow-hidden border border-white/[0.08]">
-                  <img src={preview} alt="Preview" className="w-full max-h-64 object-contain bg-white/[0.04]" />
+                <div className="rounded-xl overflow-hidden border border-gray-200">
+                  <img src={preview} alt="Preview" className="w-full max-h-64 object-contain bg-gray-50" />
                 </div>
               )}
 
@@ -207,9 +207,9 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
                 </div>
               )}
 
-              <div className="bg-white/[0.04] rounded-xl p-4 space-y-2">
-                <p className="text-xs font-semibold text-gray-200">Tips para mejores resultados:</p>
-                <ul className="text-xs text-gray-400 space-y-1">
+              <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                <p className="text-xs font-semibold text-gray-700">Tips para mejores resultados:</p>
+                <ul className="text-xs text-gray-500 space-y-1">
                   <li>• Foto bien iluminada y enfocada</li>
                   <li>• Menú completo visible en una sola imagen</li>
                   <li>• Texto legible (no borroso ni cortado)</li>
@@ -223,15 +223,15 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
           {step === 'review' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-400">
-                  <span className="font-semibold text-white">{selectedCount}</span> de {items.length} productos seleccionados
+                <p className="text-sm text-gray-500">
+                  <span className="font-semibold text-gray-900">{selectedCount}</span> de {items.length} productos seleccionados
                 </p>
                 <div className="flex gap-2">
-                  <button onClick={() => toggleAll(true)} className="text-xs text-purple-400 font-medium hover:text-purple-400">
+                  <button onClick={() => toggleAll(true)} className="text-xs text-emerald-600 font-medium hover:text-emerald-600">
                     Seleccionar todos
                   </button>
-                  <span className="text-gray-300">|</span>
-                  <button onClick={() => toggleAll(false)} className="text-xs text-gray-400 font-medium hover:text-gray-200">
+                  <span className="text-gray-700">|</span>
+                  <button onClick={() => toggleAll(false)} className="text-xs text-gray-500 font-medium hover:text-gray-700">
                     Deseleccionar
                   </button>
                 </div>
@@ -239,7 +239,7 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
 
               {categories.map((cat) => (
                 <div key={cat}>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1">{cat}</p>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-1">{cat}</p>
                   <div className="space-y-2">
                     {items.filter((i) => i.category === cat).map((item, idx) => {
                       const globalIdx = items.indexOf(item);
@@ -249,22 +249,22 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
                           onClick={() => toggleItem(globalIdx)}
                           className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
                             item.selected
-                              ? 'border-purple-500/[0.2] bg-purple-500/[0.15]'
-                              : 'border-white/[0.06] bg-[#0a0a0a] opacity-50'
+                              ? 'border-emerald-200 bg-emerald-50'
+                              : 'border-gray-200 bg-white opacity-50'
                           }`}
                         >
                           <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                            item.selected ? 'bg-purple-500 border-purple-500' : 'border-white/[0.15]'
+                            item.selected ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300'
                           }`}>
                             {item.selected && <Check className="w-3 h-3 text-white" />}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-white truncate">{item.name}</p>
+                            <p className="text-sm font-semibold text-gray-900 truncate">{item.name}</p>
                             {item.description && (
-                              <p className="text-xs text-gray-400 truncate mt-0.5">{item.description}</p>
+                              <p className="text-xs text-gray-500 truncate mt-0.5">{item.description}</p>
                             )}
                           </div>
-                          <span className="text-sm font-bold text-gray-200 flex-shrink-0">
+                          <span className="text-sm font-bold text-gray-700 flex-shrink-0">
                             {item.price > 0 ? `${currency === 'USD' ? '$' : ''}${item.price.toFixed(2)}` : '—'}
                           </span>
                         </button>
@@ -279,18 +279,18 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
           {/* Importing step */}
           {step === 'importing' && (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
-              <Loader2 className="w-12 h-12 text-purple-400 animate-spin" />
+              <Loader2 className="w-12 h-12 text-emerald-600 animate-spin" />
               <div className="text-center">
-                <p className="text-lg font-bold text-white">
+                <p className="text-lg font-bold text-gray-900">
                   Importando productos...
                 </p>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-sm text-gray-500 mt-1">
                   {progress.current} de {progress.total} productos
                 </p>
               </div>
-              <div className="w-64 h-2 bg-white/[0.08] rounded-full overflow-hidden">
+              <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-purple-500 rounded-full transition-all duration-300"
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-300"
                   style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
                 />
               </div>
@@ -300,14 +300,14 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
           {/* Done step */}
           {step === 'done' && (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
-              <div className="w-16 h-16 rounded-full bg-purple-500/[0.15] flex items-center justify-center">
-                <Check className="w-8 h-8 text-purple-400" />
+              <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center">
+                <Check className="w-8 h-8 text-emerald-600" />
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold text-white">
+                <p className="text-lg font-bold text-gray-900">
                   ¡{progress.current} productos importados!
                 </p>
-                <p className="text-sm text-gray-400 mt-1">
+                <p className="text-sm text-gray-500 mt-1">
                   Tu menú ha sido actualizado exitosamente.
                 </p>
               </div>
@@ -316,16 +316,16 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-white/[0.06] flex items-center justify-between">
+        <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
           {step === 'review' && (
             <>
-              <button onClick={() => { setStep('upload'); setItems([]); setPreview(null); }} className="text-sm text-gray-400 hover:text-gray-200">
+              <button onClick={() => { setStep('upload'); setItems([]); setPreview(null); }} className="text-sm text-gray-500 hover:text-gray-700">
                 ← Otra foto
               </button>
               <button
                 onClick={handleImport}
                 disabled={selectedCount === 0}
-                className="px-6 py-2.5 rounded-xl bg-purple-500 text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-purple-600 transition-colors flex items-center gap-2"
+                className="px-6 py-2.5 rounded-xl bg-emerald-500 text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-emerald-600 transition-colors flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 Importar {selectedCount} productos
@@ -335,7 +335,7 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
           {step === 'done' && (
             <button
               onClick={() => { onComplete(); onClose(); }}
-              className="ml-auto px-6 py-2.5 rounded-xl bg-purple-500 text-white font-semibold text-sm hover:bg-purple-600 transition-colors"
+              className="ml-auto px-6 py-2.5 rounded-xl bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 transition-colors"
             >
               Ver productos
             </button>

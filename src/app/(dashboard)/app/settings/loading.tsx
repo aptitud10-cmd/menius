@@ -6,7 +6,7 @@ export default function SettingsLoading() {
         <div className="skeleton h-4 w-64" />
       </div>
 
-      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-6 space-y-5">
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i}>
             <div className="skeleton h-3.5 w-28 mb-2" />

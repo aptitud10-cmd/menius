@@ -279,7 +279,7 @@ function QRTableCard({ table, onDelete, onEdit, restaurantName }: { table: Table
   return (
     <div className="bg-white rounded-2xl border border-gray-200 hover:border-gray-300 transition-all overflow-hidden group">
       {/* Header */}
-      <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-4 py-3 flex items-center justify-between">
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 py-3 flex items-center justify-between">
         {editing ? (
           <div className="flex items-center gap-2 flex-1">
             <input

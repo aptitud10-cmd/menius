@@ -309,7 +309,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               <option value="es">Español</option>
               <option value="en">English</option>
             </select>
-            <p className="text-[11px] text-gray-400 mt-1">
+            <p className="text-[11px] text-gray-500 mt-1">
               El idioma que verán tus clientes en el menú público.
             </p>
           </div>

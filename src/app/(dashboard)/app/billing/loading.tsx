@@ -7,7 +7,7 @@ export default function BillingLoading() {
       </div>
 
       {/* Current plan */}
-      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-6">
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <div className="skeleton h-5 w-24 mb-4" />
         <div className="flex items-center gap-4 mb-4">
           <div className="skeleton h-12 w-12 rounded-xl" />
@@ -22,7 +22,7 @@ export default function BillingLoading() {
       {/* Plans */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+          <div key={i} className="bg-white rounded-2xl border border-gray-200 p-5">
             <div className="skeleton h-5 w-20 mb-2" />
             <div className="skeleton h-8 w-28 mb-3" />
             <div className="space-y-2 mb-4">

@@ -9,7 +9,7 @@ export default function AnalyticsLoading() {
       {/* KPI row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-4">
+          <div key={i} className="bg-white rounded-2xl border border-gray-200 p-4">
             <div className="skeleton h-3.5 w-24 mb-3" />
             <div className="skeleton h-8 w-28" />
           </div>
@@ -18,18 +18,18 @@ export default function AnalyticsLoading() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-6">
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
           <div className="skeleton h-5 w-32 mb-4" />
           <div className="skeleton h-48 w-full rounded-lg" />
         </div>
-        <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-6">
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
           <div className="skeleton h-5 w-40 mb-4" />
           <div className="skeleton h-48 w-full rounded-lg" />
         </div>
       </div>
 
       {/* Top products */}
-      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-6">
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <div className="skeleton h-5 w-36 mb-4" />
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
