@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -18,11 +20,12 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient();
 
-    // Fetch order with items
+    // Fetch order with items + restaurant currency
     const { data: order, error } = await supabase
       .from('orders')
       .select(`
         id, order_number, total, customer_name, restaurant_id,
+        restaurants ( currency ),
         order_items ( qty, unit_price, line_total, products ( name ) )
       `)
       .eq('id', order_id)
@@ -32,10 +35,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
     }
 
+    const currency = ((order as any).restaurants?.currency || 'usd').toLowerCase();
+
     // Build line items for Stripe
     const lineItems = (order.order_items ?? []).map((item: any) => ({
       price_data: {
-        currency: 'mxn',
+        currency,
         product_data: {
           name: item.products?.name ?? 'Producto',
         },

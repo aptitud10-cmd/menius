@@ -1,6 +1,6 @@
 // ============================================================
 // MENIUS — UI Translations (es / en)
-// Used by PublicMenuClient to render in the restaurant's language
+// Used by MenuShell to render in the restaurant's language
 // ============================================================
 
 export type Locale = 'es' | 'en';

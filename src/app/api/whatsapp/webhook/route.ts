@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse, type NextRequest } from 'next/server';
 import { handleIncomingMessage } from '@/lib/whatsapp/agent';
 

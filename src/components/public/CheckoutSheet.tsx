@@ -35,7 +35,7 @@ export function CheckoutSheet({
   locale,
 }: CheckoutSheetProps) {
   const items = useCartStore((s) => s.items);
-  const totalPrice = useCartStore((s) => s.totalPrice);
+  const cartTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
   const clearCart = useCartStore((s) => s.clearCart);
   const tableName = useCartStore((s) => s.tableName);
 
@@ -71,7 +71,7 @@ export function CheckoutSheet({
   const [payLoading, setPayLoading] = useState(false);
 
   const discount = promoResult?.valid ? promoResult.discount : 0;
-  const finalTotal = Math.max(0, totalPrice() - discount);
+  const finalTotal = Math.max(0, cartTotal - discount);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -94,7 +94,7 @@ export function CheckoutSheet({
         body: JSON.stringify({
           code: promoCode,
           restaurant_id: restaurant.id,
-          order_total: totalPrice(),
+          order_total: cartTotal,
         }),
       });
       const data = await res.json();

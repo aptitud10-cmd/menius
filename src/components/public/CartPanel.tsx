@@ -19,7 +19,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes }:
   const updateQty = useCartStore((s) => s.updateQty);
   const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clearCart);
-  const totalPrice = useCartStore((s) => s.totalPrice);
+  const cartTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
 
   const handleClear = () => {
     if (window.confirm(t.yourCart + ' — ¿Vaciar todo?')) {
@@ -132,7 +132,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes }:
       <div className="border-t border-gray-100 px-5 py-4 flex-shrink-0 space-y-3">
         <div className="flex justify-between items-baseline">
           <span className="text-sm text-gray-500">{t.subtotal}</span>
-          <span className="text-lg font-bold text-gray-900 tabular-nums">{fmtPrice(totalPrice())}</span>
+          <span className="text-lg font-bold text-gray-900 tabular-nums">{fmtPrice(cartTotal)}</span>
         </div>
         <button
           onClick={onCheckout}
