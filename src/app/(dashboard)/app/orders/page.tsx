@@ -25,7 +25,7 @@ export default async function OrdersPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-6 text-white">Órdenes</h1>
+      <h1 className="text-xl font-bold mb-6 text-gray-900">Órdenes</h1>
       <OrdersBoard
         initialOrders={mappedOrders}
         restaurantId={restaurantId}

@@ -70,27 +70,27 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
       {!showForm && (
         <button
           onClick={handleShowForm}
-          className="mb-6 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-500 text-white text-sm font-medium hover:bg-purple-600 transition-colors shadow-sm"
+          className="mb-6 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" /> Nueva mesa
         </button>
       )}
 
       {showForm && (
-        <div className="mb-6 bg-[#0a0a0a] rounded-2xl border border-white/[0.08] p-5 space-y-4">
-          <h3 className="font-semibold text-sm text-white">Crear nueva mesa</h3>
+        <div className="mb-6 bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+          <h3 className="font-semibold text-sm text-gray-900">Crear nueva mesa</h3>
           {error && <p className="text-sm text-red-400">{error}</p>}
           <input
             type="text" value={name} onChange={(e) => setName(e.target.value)}
             placeholder="Ej: Mesa 1, Barra 1, Terraza A" autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-            className="w-full px-4 py-3 rounded-xl border border-white/[0.08] text-sm bg-white/[0.04] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30 transition-all"
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
           />
           <div className="flex gap-2">
-            <button onClick={handleSubmit} disabled={isPending} className="px-5 py-2.5 rounded-xl bg-purple-500 text-white text-sm font-medium hover:bg-purple-600 disabled:opacity-50 transition-colors">
+            <button onClick={handleSubmit} disabled={isPending} className="px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 disabled:opacity-50 transition-colors">
               Crear mesa
             </button>
-            <button onClick={() => { setShowForm(false); setError(''); }} className="px-5 py-2.5 rounded-xl bg-white/[0.06] text-gray-400 text-sm font-medium hover:bg-white/[0.08] transition-colors">
+            <button onClick={() => { setShowForm(false); setError(''); }} className="px-5 py-2.5 rounded-xl bg-gray-50 text-gray-500 text-sm font-medium hover:bg-gray-100 transition-colors">
               Cancelar
             </button>
           </div>
@@ -105,13 +105,13 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
       {/* Table-specific QRs */}
       <div className="flex items-center gap-3 mb-4 mt-8">
         <QrCode className="w-4 h-4 text-gray-500" />
-        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">QR por mesa (Dine-in)</h2>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">QR por mesa (Dine-in)</h2>
       </div>
 
       {tables.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-gray-500">
           <QrCode className="w-12 h-12 mx-auto mb-4 opacity-40" />
-          <p className="font-semibold text-gray-400">Sin mesas</p>
+          <p className="font-semibold text-gray-500">Sin mesas</p>
           <p className="text-sm mt-1.5">Crea mesas para generar códigos QR personalizados</p>
         </div>
       ) : (
@@ -277,7 +277,7 @@ function QRTableCard({ table, onDelete, onEdit, restaurantName }: { table: Table
   };
 
   return (
-    <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] hover:border-white/[0.1] transition-all overflow-hidden group">
+    <div className="bg-white rounded-2xl border border-gray-200 hover:border-gray-300 transition-all overflow-hidden group">
       {/* Header */}
       <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-4 py-3 flex items-center justify-between">
         {editing ? (
@@ -327,7 +327,7 @@ function QRTableCard({ table, onDelete, onEdit, restaurantName }: { table: Table
 
       {/* QR */}
       <div className="p-5 flex flex-col items-center">
-        <div className="bg-white/[0.04] rounded-xl p-3 mb-3">
+        <div className="bg-gray-50 rounded-xl p-3 mb-3">
           <canvas ref={canvasRef} className="rounded-lg" />
         </div>
         <canvas ref={brandedCanvasRef} className="hidden" />
@@ -338,7 +338,7 @@ function QRTableCard({ table, onDelete, onEdit, restaurantName }: { table: Table
           <div className="w-full space-y-2">
             <button
               onClick={downloadBrandedQR}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500 text-white text-sm font-medium hover:bg-purple-600 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors"
             >
               <Download className="w-4 h-4" />
               Descargar QR
@@ -347,21 +347,21 @@ function QRTableCard({ table, onDelete, onEdit, restaurantName }: { table: Table
             <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={printQR}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] text-gray-400 text-xs font-medium hover:bg-white/[0.06] transition-colors"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 text-gray-500 text-xs font-medium hover:bg-gray-100 transition-colors"
               >
                 <Printer className="w-3.5 h-3.5" />
                 Imprimir
               </button>
               <button
                 onClick={shareLink}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] text-gray-400 text-xs font-medium hover:bg-white/[0.06] transition-colors"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 text-gray-500 text-xs font-medium hover:bg-gray-100 transition-colors"
               >
                 <Share2 className="w-3.5 h-3.5" />
                 Compartir
               </button>
               <button
                 onClick={copyLink}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] text-gray-400 text-xs font-medium hover:bg-white/[0.06] transition-colors"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 text-gray-500 text-xs font-medium hover:bg-gray-100 transition-colors"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 {copied ? '¡Copiado!' : 'Copiar'}
@@ -370,7 +370,7 @@ function QRTableCard({ table, onDelete, onEdit, restaurantName }: { table: Table
 
             <button
               onClick={() => window.open(table.qr_code_value, '_blank')}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-gray-400 text-xs font-medium hover:bg-white/[0.06] hover:text-gray-300 transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-gray-500 text-xs font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               Ver enlace
@@ -380,7 +380,7 @@ function QRTableCard({ table, onDelete, onEdit, restaurantName }: { table: Table
       </div>
 
       {/* Footer - Delete */}
-      <div className="px-4 py-3 border-t border-white/[0.04]">
+      <div className="px-4 py-3 border-t border-gray-200">
         <button
           onClick={() => onDelete(table.id)}
           className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-red-400 text-xs font-medium hover:bg-red-500/[0.08] transition-colors"
@@ -527,14 +527,14 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
   };
 
   return (
-    <div className="rounded-2xl border border-purple-500/20 bg-purple-500/[0.04] overflow-hidden">
+    <div className="rounded-2xl border border-emerald-200 bg-emerald-50 overflow-hidden">
       <div className="p-5">
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-9 h-9 rounded-xl bg-purple-500/[0.12] flex items-center justify-center">
-            <Globe className="w-4.5 h-4.5 text-purple-400" />
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+            <Globe className="w-4.5 h-4.5 text-emerald-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm text-white">QR General — Pickup & Delivery</h3>
+            <h3 className="font-semibold text-sm text-gray-900">QR General — Pickup & Delivery</h3>
             <p className="text-xs text-gray-500">Comparte este QR en redes sociales, stickers, tarjetas, flyers</p>
           </div>
         </div>
@@ -556,7 +556,7 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
             <div className="flex-1 w-full space-y-2.5">
               <button
                 onClick={downloadQR}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-purple-500 text-white text-sm font-medium hover:bg-purple-600 transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors"
               >
                 <Download className="w-4 h-4" />
                 Descargar QR
@@ -573,21 +573,21 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={printQR}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-gray-400 text-xs font-medium hover:bg-white/[0.06] transition-colors"
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-100 transition-colors"
                 >
                   <Printer className="w-3.5 h-3.5" />
                   Imprimir
                 </button>
                 <button
                   onClick={shareNative}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-gray-400 text-xs font-medium hover:bg-white/[0.06] transition-colors"
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-100 transition-colors"
                 >
                   <Share2 className="w-3.5 h-3.5" />
                   Compartir
                 </button>
                 <button
                   onClick={copyLink}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-gray-400 text-xs font-medium hover:bg-white/[0.06] transition-colors"
+                  className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-100 transition-colors"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   {copied ? '¡Copiado!' : 'Copiar'}
@@ -596,7 +596,7 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
 
               <button
                 onClick={() => window.open(menuUrl, '_blank')}
-                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-gray-500 text-xs font-medium hover:bg-white/[0.04] hover:text-gray-300 transition-colors"
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-gray-500 text-xs font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
                 Abrir menú

@@ -19,7 +19,7 @@ export default async function TablesPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-6 text-white">Mesas & Códigos QR</h1>
+      <h1 className="text-xl font-bold mb-6 text-gray-900">Mesas & Códigos QR</h1>
       <TablesManager
         initialTables={tablesRes.data ?? []}
         restaurantSlug={restaurantRes.data?.slug ?? ''}

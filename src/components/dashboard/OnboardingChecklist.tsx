@@ -111,7 +111,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
       <div className="relative rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-5">
         <button
           onClick={handleDismiss}
-          className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-600 hover:text-gray-400 hover:bg-white/[0.04] transition-colors"
+          className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-600 hover:text-gray-500 hover:bg-gray-50 transition-colors"
           aria-label="Cerrar"
         >
           <X className="w-4 h-4" />
@@ -134,22 +134,22 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
   const nextStep = allSteps.find((s) => !s.completed);
 
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden">
+    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
       {/* Header */}
       <div className="p-5 pb-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-purple-500/[0.12] flex items-center justify-center">
-              <Sparkles className="w-4.5 h-4.5 text-purple-400" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+              <Sparkles className="w-4.5 h-4.5 text-emerald-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-sm text-white">Configura tu restaurante</h3>
+              <h3 className="font-semibold text-sm text-gray-900">Configura tu restaurante</h3>
               <p className="text-xs text-gray-500 mt-0.5">{completedCount} de {totalSteps} pasos completados</p>
             </div>
           </div>
           <button
             onClick={handleDismiss}
-            className="p-1.5 rounded-lg text-gray-600 hover:text-gray-400 hover:bg-white/[0.04] transition-colors"
+            className="p-1.5 rounded-lg text-gray-600 hover:text-gray-500 hover:bg-gray-50 transition-colors"
             aria-label="Ocultar"
           >
             <X className="w-4 h-4" />
@@ -157,16 +157,16 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
         </div>
 
         {/* Progress bar */}
-        <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
           <div
-            className="h-full bg-purple-500 rounded-full transition-all duration-700 ease-out"
+            className="h-full bg-emerald-500 rounded-full transition-all duration-700 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
       {/* Steps */}
-      <div className="border-t border-white/[0.06]">
+      <div className="border-t border-gray-200">
         {allSteps.map((step, i) => {
           const isNext = nextStep?.id === step.id;
           const LinkComponent = step.external ? 'a' : Link;
@@ -180,12 +180,12 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
               {...linkProps as any}
               className={cn(
                 'flex items-center gap-3.5 px-5 py-3.5 transition-colors group',
-                i < allSteps.length - 1 && 'border-b border-white/[0.04]',
+                i < allSteps.length - 1 && 'border-b border-gray-200',
                 step.completed
                   ? 'opacity-60'
                   : isNext
-                    ? 'bg-purple-500/[0.04]'
-                    : 'hover:bg-white/[0.02]'
+                    ? 'bg-emerald-50'
+                    : 'hover:bg-gray-50'
               )}
             >
               {/* Status indicator */}
@@ -194,14 +194,14 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
                 step.completed
                   ? 'bg-emerald-500/[0.12]'
                   : isNext
-                    ? 'bg-purple-500/[0.12]'
-                    : 'bg-white/[0.04]'
+                    ? 'bg-emerald-50'
+                    : 'bg-gray-50'
               )}>
                 {step.completed ? (
                   <Check className="w-4 h-4 text-emerald-400" />
                 ) : (
                   <span className={cn(
-                    isNext ? 'text-purple-400' : 'text-gray-600'
+                    isNext ? 'text-emerald-600' : 'text-gray-600'
                   )}>
                     {step.icon}
                   </span>
@@ -212,7 +212,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
               <div className="flex-1 min-w-0">
                 <p className={cn(
                   'text-sm font-medium',
-                  step.completed ? 'text-gray-500 line-through' : 'text-gray-200'
+                  step.completed ? 'text-gray-500 line-through' : 'text-gray-700'
                 )}>
                   {step.title}
                 </p>
@@ -229,7 +229,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
                 <ChevronRight className={cn(
                   'w-4 h-4 flex-shrink-0 transition-all',
                   isNext
-                    ? 'text-purple-400 group-hover:translate-x-0.5'
+                    ? 'text-emerald-600 group-hover:translate-x-0.5'
                     : 'text-gray-700 group-hover:text-gray-500 group-hover:translate-x-0.5'
                 )} />
               )}

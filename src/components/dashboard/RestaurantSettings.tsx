@@ -141,7 +141,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
   return (
     <div className="space-y-6 max-w-2xl">
       {/* Logo & Banner */}
-      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         {/* Banner */}
         <div className="relative h-40 bg-gradient-to-br from-purple-900/40 to-blue-900/30">
           <input ref={coverRef} type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
@@ -169,10 +169,10 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             <button
               onClick={() => coverRef.current?.click()}
               disabled={uploadingCover}
-              className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-purple-400 transition-colors"
+              className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-500 hover:text-emerald-600 transition-colors"
             >
               {uploadingCover ? (
-                <Loader2 className="w-6 h-6 animate-spin text-purple-400" />
+                <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
               ) : (
                 <>
                   <ImagePlus className="w-6 h-6" />
@@ -185,7 +185,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           {/* Logo overlaid on banner */}
           <div className="absolute -bottom-10 left-5">
             <input ref={logoRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-            <div className="relative w-20 h-20 rounded-2xl border-4 border-[#0a0a0a] overflow-hidden bg-[#111] group">
+            <div className="relative w-20 h-20 rounded-2xl border-4 border-white overflow-hidden bg-gray-100 group">
               {logoUrl ? (
                 <>
                   <Image src={logoUrl} alt="Logo" fill className="object-cover" sizes="80px" />
@@ -200,12 +200,12 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                   </div>
                 </>
               ) : (
-                <button
-                  onClick={() => logoRef.current?.click()}
-                  disabled={uploadingLogo}
-                  className="w-full h-full flex flex-col items-center justify-center text-gray-500 hover:text-purple-400 transition-colors"
-                >
-                  {uploadingLogo ? <Loader2 className="w-5 h-5 animate-spin text-purple-400" /> : <Camera className="w-5 h-5" />}
+            <button
+              onClick={() => logoRef.current?.click()}
+              disabled={uploadingLogo}
+              className="w-full h-full flex flex-col items-center justify-center text-gray-500 hover:text-emerald-600 transition-colors"
+            >
+              {uploadingLogo ? <Loader2 className="w-5 h-5 animate-spin text-emerald-600" /> : <Camera className="w-5 h-5" />}
                 </button>
               )}
             </div>
@@ -213,18 +213,18 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         </div>
 
         <div className="pt-12 px-5 pb-5">
-          <h2 className="font-semibold text-sm text-white">Identidad visual</h2>
+          <h2 className="font-semibold text-sm text-gray-900">Identidad visual</h2>
           <p className="text-xs text-gray-500 mt-0.5">El logo y banner se muestran en tu menú público. Haz clic en cada uno para cambiarlos.</p>
         </div>
       </div>
 
       {/* Public URL */}
-      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
-        <h2 className="font-semibold text-sm mb-3 text-white">Enlace público del menú</h2>
-        <div className="flex items-center gap-2 p-3 rounded-xl bg-white/[0.04] border border-white/[0.08]">
-          <span className="text-sm text-gray-400 truncate flex-1 font-mono">{publicUrl}</span>
-          <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg hover:bg-white/[0.08]">
-            <ExternalLink className="w-4 h-4 text-gray-400" />
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <h2 className="font-semibold text-sm mb-3 text-gray-900">Enlace público del menú</h2>
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 border border-gray-200">
+          <span className="text-sm text-gray-500 truncate flex-1 font-mono">{publicUrl}</span>
+          <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg hover:bg-gray-100">
+            <ExternalLink className="w-4 h-4 text-gray-500" />
           </a>
         </div>
       </div>
@@ -243,8 +243,8 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       />
 
       {/* Basic info */}
-      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
-        <h2 className="font-semibold text-sm mb-4 text-white">Información básica</h2>
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <h2 className="font-semibold text-sm mb-4 text-gray-900">Información básica</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Nombre del restaurante" value={form.name} onChange={(v) => handleChange('name', v)} />
           <PhoneField label="Teléfono" value={form.phone} onChange={(v) => handleChange('phone', v)} />
@@ -258,15 +258,15 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       </div>
 
       {/* Regional */}
-      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
-        <h2 className="font-semibold text-sm mb-4 text-white">Regional</h2>
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <h2 className="font-semibold text-sm mb-4 text-gray-900">Regional</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">Zona horaria</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Zona horaria</label>
             <select
               value={form.timezone}
               onChange={(e) => handleChange('timezone', e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm text-white bg-[#0a0a0a] focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
             >
               <option value="America/New_York">New York (EST)</option>
               <option value="America/Chicago">Chicago (CST)</option>
@@ -281,11 +281,11 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-400 mb-1">Moneda</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Moneda</label>
             <select
               value={form.currency}
               onChange={(e) => handleChange('currency', e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm text-white bg-[#0a0a0a] focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
             >
               <option value="USD">USD — US Dollar</option>
               <option value="MXN">MXN — Peso mexicano</option>
@@ -297,14 +297,14 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             </select>
           </div>
           <div>
-            <label className="flex items-center gap-1 text-xs font-medium text-gray-400 mb-1">
+            <label className="flex items-center gap-1 text-xs font-medium text-gray-500 mb-1">
               <Globe className="w-3.5 h-3.5" />
               Idioma del menú
             </label>
             <select
               value={form.locale}
               onChange={(e) => handleChange('locale', e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm text-white bg-[#0a0a0a] focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
             >
               <option value="es">Español</option>
               <option value="en">English</option>
@@ -317,12 +317,12 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       </div>
 
       {/* Order Types */}
-      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
         <div className="flex items-center gap-2 mb-4">
-          <ShoppingBag className="w-4 h-4 text-gray-400" />
-          <h2 className="font-semibold text-sm text-white">Tipos de orden</h2>
+          <ShoppingBag className="w-4 h-4 text-gray-500" />
+          <h2 className="font-semibold text-sm text-gray-900">Tipos de orden</h2>
         </div>
-        <p className="text-xs text-gray-400 mb-3">
+        <p className="text-xs text-gray-500 mb-3">
           Selecciona qué tipos de orden pueden hacer tus clientes.
         </p>
         <div className="space-y-2.5">
@@ -335,7 +335,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             return (
               <label key={opt.key} className={cn(
                 'flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all',
-                checked ? 'border-purple-500/[0.2] bg-purple-500/[0.06]' : 'border-white/[0.06] hover:border-white/[0.08]'
+                checked ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 hover:border-gray-300'
               )}>
                 <input
                   type="checkbox"
@@ -349,11 +349,11 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                     }));
                     setSaved(false);
                   }}
-                  className="w-4 h-4 rounded border-white/[0.15] bg-white/[0.04] text-purple-400 focus:ring-purple-500/30"
+                  className="w-4 h-4 rounded border-gray-300 bg-gray-50 text-emerald-600 focus:ring-emerald-500/30"
                 />
                 <div>
-                  <span className="text-sm font-medium text-gray-200">{opt.label}</span>
-                  <p className="text-[11px] text-gray-400">{opt.desc}</p>
+                  <span className="text-sm font-medium text-gray-700">{opt.label}</span>
+                  <p className="text-[11px] text-gray-500">{opt.desc}</p>
                 </div>
               </label>
             );
@@ -362,12 +362,12 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       </div>
 
       {/* Payment Methods */}
-      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
         <div className="flex items-center gap-2 mb-4">
-          <CreditCard className="w-4 h-4 text-gray-400" />
-          <h2 className="font-semibold text-sm text-white">Métodos de pago</h2>
+          <CreditCard className="w-4 h-4 text-gray-500" />
+          <h2 className="font-semibold text-sm text-gray-900">Métodos de pago</h2>
         </div>
-        <p className="text-xs text-gray-400 mb-3">
+        <p className="text-xs text-gray-500 mb-3">
           Cómo pueden pagar tus clientes.
         </p>
         <div className="space-y-2.5">
@@ -379,7 +379,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             return (
               <label key={opt.key} className={cn(
                 'flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all',
-                checked ? 'border-purple-500/[0.2] bg-purple-500/[0.06]' : 'border-white/[0.06] hover:border-white/[0.08]'
+                checked ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 hover:border-gray-300'
               )}>
                 <input
                   type="checkbox"
@@ -393,11 +393,11 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                     }));
                     setSaved(false);
                   }}
-                  className="w-4 h-4 rounded border-white/[0.15] bg-white/[0.04] text-purple-400 focus:ring-purple-500/30"
+                  className="w-4 h-4 rounded border-gray-300 bg-gray-50 text-emerald-600 focus:ring-emerald-500/30"
                 />
                 <div>
-                  <span className="text-sm font-medium text-gray-200">{opt.label}</span>
-                  <p className="text-[11px] text-gray-400">{opt.desc}</p>
+                  <span className="text-sm font-medium text-gray-700">{opt.label}</span>
+                  <p className="text-[11px] text-gray-500">{opt.desc}</p>
                 </div>
               </label>
             );
@@ -406,14 +406,14 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       </div>
 
       {/* Operating hours */}
-      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
-        <h2 className="font-semibold text-sm mb-4 text-white">Horario de operación</h2>
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <h2 className="font-semibold text-sm mb-4 text-gray-900">Horario de operación</h2>
         <div className="space-y-2.5">
           {DAYS.map((day) => (
             <div key={day.key} className="flex items-center gap-3">
               <button
                 onClick={() => toggleClosed(day.key)}
-                className={`w-24 text-left text-sm font-medium ${hours[day.key].closed ? 'text-gray-400 line-through' : 'text-gray-200'}`}
+                className={`w-24 text-left text-sm font-medium ${hours[day.key].closed ? 'text-gray-500 line-through' : 'text-gray-700'}`}
               >
                 {day.label}
               </button>
@@ -425,20 +425,20 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                     type="time"
                     value={hours[day.key].open}
                     onChange={(e) => handleHourChange(day.key, 'open', e.target.value)}
-                    className="px-2.5 py-1.5 rounded-lg border border-white/[0.08] text-sm bg-white/[0.04] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                    className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                   />
-                  <span className="text-gray-400 text-sm">a</span>
+                  <span className="text-gray-500 text-sm">a</span>
                   <input
                     type="time"
                     value={hours[day.key].close}
                     onChange={(e) => handleHourChange(day.key, 'close', e.target.value)}
-                    className="px-2.5 py-1.5 rounded-lg border border-white/[0.08] text-sm bg-white/[0.04] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                    className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                   />
                 </div>
               )}
               <button
                 onClick={() => toggleClosed(day.key)}
-                className={`ml-auto text-xs font-medium px-2.5 py-1 rounded-lg ${hours[day.key].closed ? 'bg-white/[0.06] text-gray-400 hover:bg-white/[0.08]' : 'bg-red-500/[0.08] text-red-400 hover:bg-red-500/[0.12]'}`}
+                className={`ml-auto text-xs font-medium px-2.5 py-1 rounded-lg ${hours[day.key].closed ? 'bg-gray-50 text-gray-500 hover:bg-gray-100' : 'bg-red-500/[0.08] text-red-400 hover:bg-red-500/[0.12]'}`}
               >
                 {hours[day.key].closed ? 'Abrir' : 'Cerrar'}
               </button>
@@ -448,17 +448,17 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       </div>
 
       {/* Notifications */}
-      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Bell className="w-4 h-4 text-gray-400" />
-            <h2 className="font-semibold text-sm text-white">Notificaciones</h2>
+            <Bell className="w-4 h-4 text-gray-500" />
+            <h2 className="font-semibold text-sm text-gray-900">Notificaciones</h2>
           </div>
           <button
             onClick={() => { setForm((prev) => ({ ...prev, notifications_enabled: !prev.notifications_enabled })); setSaved(false); }}
             className={cn(
               'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-              form.notifications_enabled ? 'bg-purple-500' : 'bg-white/[0.08]'
+              form.notifications_enabled ? 'bg-emerald-500' : 'bg-gray-200'
             )}
           >
             <span className={cn(
@@ -471,7 +471,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         {form.notifications_enabled && (
           <div className="space-y-4">
             <div>
-              <div className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
                 <MessageCircle className="w-3.5 h-3.5" />
                 WhatsApp para nuevas órdenes
               </div>
@@ -479,12 +479,12 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                 value={form.notification_whatsapp}
                 onChange={(v) => { setForm((prev) => ({ ...prev, notification_whatsapp: v })); setSaved(false); }}
               />
-              <p className="text-[11px] text-gray-400 mt-1">
+              <p className="text-[11px] text-gray-500 mt-1">
                 Recibirás un mensaje de WhatsApp cada vez que llegue una nueva orden.
               </p>
             </div>
             <div>
-              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-400 mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
                 <Mail className="w-3.5 h-3.5" />
                 Email para notificaciones del negocio
               </label>
@@ -493,9 +493,9 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                 value={form.notification_email}
                 onChange={(e) => { setForm((prev) => ({ ...prev, notification_email: e.target.value })); setSaved(false); }}
                 placeholder="owner@mirestaurante.com"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm bg-white/[0.04] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               />
-              <p className="text-[11px] text-gray-400 mt-1">
+              <p className="text-[11px] text-gray-500 mt-1">
                 Los clientes que dejen su email recibirán confirmaciones y actualizaciones de su pedido.
               </p>
             </div>
@@ -503,7 +503,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         )}
 
         {!form.notifications_enabled && (
-          <p className="text-sm text-gray-400">Las notificaciones están desactivadas. Actívalas para recibir alertas de nuevas órdenes.</p>
+          <p className="text-sm text-gray-500">Las notificaciones están desactivadas. Actívalas para recibir alertas de nuevas órdenes.</p>
         )}
       </div>
 
@@ -515,7 +515,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       <button
         onClick={handleSave}
         disabled={saving}
-        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-purple-500 text-white font-semibold text-sm hover:bg-purple-600 hover:-translate-y-0.5 transition-all disabled:opacity-50"
+        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 hover:-translate-y-0.5 transition-all disabled:opacity-50"
       >
         {saved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
         {saving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar cambios'}
@@ -529,10 +529,10 @@ function Field({
 }: {
   label: string; value: string; onChange: (v: string) => void; placeholder?: string; textarea?: boolean;
 }) {
-  const cls = 'w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/30 placeholder-gray-500';
+  const cls = 'w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-500';
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-400 mb-1">{label}</label>
+      <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
       {textarea ? (
         <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={2} className={`${cls} resize-none`} />
       ) : (
@@ -563,13 +563,13 @@ function DomainSection({ domain, domainVerified, onChange }: { domain: string; d
   };
 
   return (
-    <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+    <div className="bg-white rounded-2xl border border-gray-200 p-5">
       <div className="flex items-center gap-2 mb-1">
-        <Globe className="w-4 h-4 text-purple-400" />
-        <h2 className="font-semibold text-sm text-white">Dominio personalizado</h2>
-        <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-purple-500/[0.1] text-purple-400 font-medium">Plan Pro+</span>
+        <Globe className="w-4 h-4 text-emerald-600" />
+        <h2 className="font-semibold text-sm text-gray-900">Dominio personalizado</h2>
+        <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium">Plan Pro+</span>
       </div>
-      <p className="text-xs text-gray-400 mb-4">Conecta tu propio dominio para que tus clientes accedan al menú con tu marca.</p>
+      <p className="text-xs text-gray-500 mb-4">Conecta tu propio dominio para que tus clientes accedan al menú con tu marca.</p>
 
       <Field
         label="Dominio"
@@ -581,13 +581,13 @@ function DomainSection({ domain, domainVerified, onChange }: { domain: string; d
       {domain && (
         <>
           {/* DNS instructions */}
-          <div className="mt-3 p-3 rounded-xl bg-purple-500/[0.06] border border-purple-500/[0.12]">
-            <p className="text-xs font-semibold text-purple-300 mb-2">Configuración DNS requerida:</p>
-            <div className="bg-[#0a0a0a] rounded-lg p-2.5 border border-purple-500/[0.1]">
+          <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+            <p className="text-xs font-semibold text-emerald-700 mb-2">Configuración DNS requerida:</p>
+            <div className="bg-white rounded-lg p-2.5 border border-emerald-200">
               <div className="grid grid-cols-3 gap-2 text-[11px] font-mono">
-                <div><span className="text-gray-400">Tipo</span><br /><span className="text-white">CNAME</span></div>
-                <div><span className="text-gray-400">Nombre</span><br /><span className="text-white">{domain}</span></div>
-                <div><span className="text-gray-400">Valor</span><br /><span className="text-white">cname.vercel-dns.com</span></div>
+                <div><span className="text-gray-500">Tipo</span><br /><span className="text-gray-900">CNAME</span></div>
+                <div><span className="text-gray-500">Nombre</span><br /><span className="text-gray-900">{domain}</span></div>
+                <div><span className="text-gray-500">Valor</span><br /><span className="text-gray-900">cname.vercel-dns.com</span></div>
               </div>
             </div>
             <p className="text-[11px] text-gray-500 mt-2">
@@ -607,7 +607,7 @@ function DomainSection({ domain, domainVerified, onChange }: { domain: string; d
                 <button
                   onClick={handleVerify}
                   disabled={verifying}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/[0.1] border border-purple-500/[0.15] text-purple-400 text-xs font-medium hover:bg-purple-500/[0.15] transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 text-xs font-medium hover:bg-emerald-50 transition-colors disabled:opacity-50"
                 >
                   {verifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                   {verifying ? 'Verificando...' : 'Verificar DNS'}
@@ -692,10 +692,10 @@ function ImageUploadSection({ logoUrl, coverUrl }: { logoUrl: string | null; cov
   };
 
   return (
-    <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+    <div className="bg-white rounded-2xl border border-gray-200 p-5">
       <div className="flex items-center gap-2 mb-4">
-        <Camera className="w-4 h-4 text-purple-400" />
-        <h2 className="font-semibold text-sm text-white">Logo y banner</h2>
+        <Camera className="w-4 h-4 text-emerald-600" />
+        <h2 className="font-semibold text-sm text-gray-900">Logo y banner</h2>
       </div>
 
       {error && (
@@ -707,7 +707,7 @@ function ImageUploadSection({ logoUrl, coverUrl }: { logoUrl: string | null; cov
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {/* Logo */}
         <div>
-          <label className="block text-xs font-medium text-gray-400 mb-2">Logo del restaurante</label>
+          <label className="block text-xs font-medium text-gray-500 mb-2">Logo del restaurante</label>
           <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) uploadAndSave(f, 'logo_url', setUploadingLogo, setLogo);
@@ -715,26 +715,26 @@ function ImageUploadSection({ logoUrl, coverUrl }: { logoUrl: string | null; cov
           }} />
 
           {logo ? (
-            <div className="relative w-28 h-28 rounded-2xl overflow-hidden bg-white/[0.06] group">
+            <div className="relative w-28 h-28 rounded-2xl overflow-hidden bg-gray-50 group">
               <Image src={logo} alt="Logo" fill className="object-cover" sizes="112px" />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2">
                 <button
                   onClick={() => logoRef.current?.click()}
                   disabled={uploadingLogo}
-                  className="opacity-0 group-hover:opacity-100 p-2 rounded-xl bg-[#0a0a0a]/80 text-white transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-2 rounded-xl bg-gray-900/80 text-white transition-all"
                 >
                   <Camera className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => removeImage('logo_url', setLogo)}
-                  className="opacity-0 group-hover:opacity-100 p-2 rounded-xl bg-[#0a0a0a]/80 text-red-400 transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-2 rounded-xl bg-gray-900/80 text-red-400 transition-all"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
               {uploadingLogo && (
-                <div className="absolute inset-0 bg-[#0a0a0a]/70 flex items-center justify-center">
-                  <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+                <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
                 </div>
               )}
             </div>
@@ -742,7 +742,7 @@ function ImageUploadSection({ logoUrl, coverUrl }: { logoUrl: string | null; cov
             <button
               onClick={() => logoRef.current?.click()}
               disabled={uploadingLogo}
-              className="w-28 h-28 rounded-2xl border-2 border-dashed border-white/[0.1] hover:border-purple-400/40 flex flex-col items-center justify-center gap-1.5 text-gray-500 hover:text-purple-400 transition-all disabled:opacity-50"
+              className="w-28 h-28 rounded-2xl border-2 border-dashed border-gray-200 hover:border-emerald-400/40 flex flex-col items-center justify-center gap-1.5 text-gray-500 hover:text-emerald-600 transition-all disabled:opacity-50"
             >
               {uploadingLogo ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -759,7 +759,7 @@ function ImageUploadSection({ logoUrl, coverUrl }: { logoUrl: string | null; cov
 
         {/* Banner / Cover */}
         <div>
-          <label className="block text-xs font-medium text-gray-400 mb-2">Banner / Portada</label>
+          <label className="block text-xs font-medium text-gray-500 mb-2">Banner / Portada</label>
           <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
             const f = e.target.files?.[0];
             if (f) uploadAndSave(f, 'cover_image_url', setUploadingCover, setCover);
@@ -767,26 +767,26 @@ function ImageUploadSection({ logoUrl, coverUrl }: { logoUrl: string | null; cov
           }} />
 
           {cover ? (
-            <div className="relative w-full h-28 rounded-2xl overflow-hidden bg-white/[0.06] group">
+            <div className="relative w-full h-28 rounded-2xl overflow-hidden bg-gray-50 group">
               <Image src={cover} alt="Banner" fill className="object-cover" sizes="400px" />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2">
                 <button
                   onClick={() => coverRef.current?.click()}
                   disabled={uploadingCover}
-                  className="opacity-0 group-hover:opacity-100 p-2 rounded-xl bg-[#0a0a0a]/80 text-white transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-2 rounded-xl bg-gray-900/80 text-white transition-all"
                 >
                   <Camera className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => removeImage('cover_image_url', setCover)}
-                  className="opacity-0 group-hover:opacity-100 p-2 rounded-xl bg-[#0a0a0a]/80 text-red-400 transition-all"
+                  className="opacity-0 group-hover:opacity-100 p-2 rounded-xl bg-gray-900/80 text-red-400 transition-all"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
               {uploadingCover && (
-                <div className="absolute inset-0 bg-[#0a0a0a]/70 flex items-center justify-center">
-                  <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
                 </div>
               )}
             </div>
@@ -794,10 +794,10 @@ function ImageUploadSection({ logoUrl, coverUrl }: { logoUrl: string | null; cov
             <button
               onClick={() => coverRef.current?.click()}
               disabled={uploadingCover}
-              className="w-full h-28 rounded-2xl border-2 border-dashed border-white/[0.1] hover:border-purple-400/40 flex flex-col items-center justify-center gap-1.5 text-gray-500 hover:text-purple-400 transition-all disabled:opacity-50"
+              className="w-full h-28 rounded-2xl border-2 border-dashed border-gray-200 hover:border-emerald-400/40 flex flex-col items-center justify-center gap-1.5 text-gray-500 hover:text-emerald-600 transition-all disabled:opacity-50"
             >
               {uploadingCover ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
               ) : (
                 <>
                   <ImagePlus className="w-5 h-5" />

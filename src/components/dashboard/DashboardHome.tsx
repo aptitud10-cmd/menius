@@ -40,7 +40,7 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
   const kpis = [
     { label: 'Órdenes hoy', value: stats.ordersToday.toString(), icon: ClipboardList, color: 'text-blue-400', bg: 'bg-blue-500/[0.1]', ring: 'ring-blue-500/20' },
     { label: 'Ventas hoy', value: formatPrice(stats.salesToday, restaurant.currency), icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/[0.1]', ring: 'ring-emerald-500/20' },
-    { label: 'Productos activos', value: stats.activeProducts.toString(), icon: ShoppingBag, color: 'text-purple-400', bg: 'bg-purple-500/[0.1]', ring: 'ring-purple-500/20' },
+    { label: 'Productos activos', value: stats.activeProducts.toString(), icon: ShoppingBag, color: 'text-indigo-500', bg: 'bg-indigo-500/[0.1]', ring: 'ring-indigo-500/20' },
     { label: 'Mesas activas', value: stats.activeTables.toString(), icon: QrCode, color: 'text-amber-400', bg: 'bg-amber-500/[0.1]', ring: 'ring-amber-500/20' },
   ];
 
@@ -54,15 +54,15 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
       {/* Welcome */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-white">Bienvenido a {restaurant.name}</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Aquí tienes un resumen de tu restaurante</p>
+          <h1 className="text-xl font-bold text-gray-900">Bienvenido a {restaurant.name}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Aquí tienes un resumen de tu restaurante</p>
         </div>
         <div className="flex items-center gap-2">
           <ShareMenuButton slug={restaurant.slug} name={restaurant.name} />
           <Link
             href={`/r/${restaurant.slug}`}
             target="_blank"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-500/[0.1] text-purple-400 text-sm font-medium hover:bg-purple-500/[0.15] transition-colors border border-purple-500/[0.15]"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-600 text-sm font-medium hover:bg-emerald-50 transition-colors border border-emerald-200"
           >
             <ExternalLink className="w-4 h-4" />
             Ver menú
@@ -76,26 +76,26 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
           'rounded-2xl p-4 flex items-center justify-between gap-4 border',
           trialDaysLeft <= 3
             ? 'bg-red-500/[0.06] border-red-500/[0.15]'
-            : 'bg-purple-500/[0.06] border-purple-500/[0.15]'
+            : 'bg-emerald-50 border-emerald-200'
         )}>
           <div className="flex items-center gap-3 min-w-0">
             <div className={cn(
               'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
-              trialDaysLeft <= 3 ? 'bg-red-500/[0.15]' : 'bg-purple-500/[0.15]'
+              trialDaysLeft <= 3 ? 'bg-red-500/[0.15]' : 'bg-emerald-50'
             )}>
               {trialDaysLeft <= 3
                 ? <AlertTriangle className="w-5 h-5 text-red-400" />
-                : <Sparkles className="w-5 h-5 text-purple-400" />
+                : <Sparkles className="w-5 h-5 text-emerald-600" />
               }
             </div>
             <div className="min-w-0">
-              <p className={cn('font-semibold text-sm', trialDaysLeft <= 3 ? 'text-red-300' : 'text-purple-300')}>
+              <p className={cn('font-semibold text-sm', trialDaysLeft <= 3 ? 'text-red-700' : 'text-emerald-700')}>
                 {trialDaysLeft <= 3
                   ? `¡Tu prueba gratis termina en ${trialDaysLeft} día${trialDaysLeft !== 1 ? 's' : ''}!`
                   : `${trialDaysLeft} días restantes de prueba gratis`
                 }
               </p>
-              <p className={cn('text-xs', trialDaysLeft <= 3 ? 'text-red-400/70' : 'text-purple-400/70')}>
+              <p className={cn('text-xs', trialDaysLeft <= 3 ? 'text-red-500/80' : 'text-emerald-600/80')}>
                 {trialDaysLeft <= 3
                   ? 'Elige un plan para no perder acceso'
                   : 'Disfruta todas las funciones mientras exploras MENIUS'
@@ -109,7 +109,7 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
               'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-colors flex-shrink-0',
               trialDaysLeft <= 3
                 ? 'bg-red-500 text-white hover:bg-red-600'
-                : 'bg-purple-500 text-white hover:bg-purple-600'
+                : 'bg-emerald-500 text-white hover:bg-emerald-600'
             )}
           >
             <CreditCard className="w-4 h-4" />
@@ -126,14 +126,14 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.map((kpi) => (
-          <div key={kpi.label} className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-4 hover:border-white/[0.1] transition-colors">
+          <div key={kpi.label} className="bg-white rounded-2xl border border-gray-200 p-4 hover:border-gray-300 transition-colors">
             <div className="flex items-center gap-2 mb-3">
               <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center ring-2', kpi.bg, kpi.ring)}>
                 <kpi.icon className={cn('w-4 h-4', kpi.color)} />
               </div>
             </div>
-            <p className="text-2xl font-bold tracking-tight text-white">{kpi.value}</p>
-            <p className="text-xs text-gray-400 mt-1">{kpi.label}</p>
+            <p className="text-2xl font-bold tracking-tight text-gray-900">{kpi.value}</p>
+            <p className="text-xs text-gray-500 mt-1">{kpi.label}</p>
           </div>
         ))}
       </div>
@@ -160,28 +160,28 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
       )}
 
       {/* Recent orders */}
-      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06]">
-        <div className="flex items-center justify-between p-4 border-b border-white/[0.06]">
-          <h2 className="font-semibold text-sm text-white">Últimas órdenes</h2>
-          <Link href="/app/orders" className="text-xs text-purple-400 font-medium hover:text-purple-300 flex items-center gap-1 transition-colors">
+      <div className="bg-white rounded-2xl border border-gray-200">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <h2 className="font-semibold text-sm text-gray-900">Últimas órdenes</h2>
+          <Link href="/app/orders" className="text-xs text-emerald-600 font-medium hover:text-emerald-700 flex items-center gap-1 transition-colors">
             Ver todas <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
         {recentOrders.length === 0 ? (
           <div className="p-10 text-center">
-            <ClipboardList className="w-8 h-8 mx-auto mb-3 text-gray-700" />
-            <p className="text-gray-400 text-sm font-medium">No hay órdenes aún</p>
+            <ClipboardList className="w-8 h-8 mx-auto mb-3 text-gray-500" />
+            <p className="text-gray-500 text-sm font-medium">No hay órdenes aún</p>
             <p className="text-gray-500 text-xs mt-1">Comparte tu menú para empezar a recibir pedidos</p>
           </div>
         ) : (
-          <div className="divide-y divide-white/[0.04]">
+          <div className="divide-y divide-gray-200">
             {recentOrders.map((order) => {
               const statusCfg = ORDER_STATUS_CONFIG[order.status];
               return (
-                <div key={order.id} className="flex items-center justify-between px-4 py-3 hover:bg-white/[0.02] transition-colors">
+                <div key={order.id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
                     <div>
-                      <p className="text-sm font-medium text-gray-200 truncate">{order.customer_name || 'Sin nombre'}</p>
+                      <p className="text-sm font-medium text-gray-700 truncate">{order.customer_name || 'Sin nombre'}</p>
                       <p className="text-xs text-gray-500">{order.order_number} · {timeAgo(order.created_at)}</p>
                     </div>
                   </div>
@@ -189,7 +189,7 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
                     <span className={cn('px-2.5 py-0.5 rounded-full text-xs font-medium', statusCfg?.bg, statusCfg?.color)}>
                       {statusCfg?.label ?? order.status}
                     </span>
-                    <span className="font-semibold text-sm text-white">{formatPrice(Number(order.total), restaurant.currency)}</span>
+                    <span className="font-semibold text-sm text-gray-900">{formatPrice(Number(order.total), restaurant.currency)}</span>
                   </div>
                 </div>
               );
@@ -238,14 +238,14 @@ function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
   };
 
   return (
-    <div className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/[0.06] to-blue-500/[0.04] p-6 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-purple-500/[0.12] flex items-center justify-center mx-auto mb-4">
-        <Sparkles className="w-7 h-7 text-purple-400" />
+    <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-gray-50 p-6 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+        <Sparkles className="w-7 h-7 text-emerald-600" />
       </div>
-      <h3 className="text-lg font-bold text-white mb-1">
+      <h3 className="text-lg font-bold text-gray-900 mb-1">
         {seeded ? '¡Menú de ejemplo creado!' : 'Tu restaurante está listo'}
       </h3>
-      <p className="text-sm text-gray-400 max-w-md mx-auto mb-5">
+      <p className="text-sm text-gray-500 max-w-md mx-auto mb-5">
         {seeded
           ? 'Ya tienes categorías, productos y mesas de ejemplo. Edítalos desde tu dashboard.'
           : 'Puedes agregar productos manualmente o cargar un menú de ejemplo para ver cómo funciona.'}
@@ -258,7 +258,7 @@ function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
           <button
             onClick={handleSeed}
             disabled={seeding}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-600/20 disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 disabled:opacity-50"
           >
             {seeding ? (
               <>
@@ -274,7 +274,7 @@ function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
           </button>
           <Link
             href="/app/menu/products"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/[0.1] text-gray-300 text-sm font-medium hover:bg-white/[0.04] transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
           >
             <ShoppingBag className="w-4 h-4" />
             Agregar manualmente
@@ -285,7 +285,7 @@ function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
         <div className="flex items-center justify-center gap-3">
           <Link
             href="/app/menu/products"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
           >
             <ShoppingBag className="w-4 h-4" />
             Ver mis productos
@@ -293,7 +293,7 @@ function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
           <Link
             href={`/r/${restaurantSlug}`}
             target="_blank"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/[0.1] text-gray-300 text-sm font-medium hover:bg-white/[0.04] transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
             Ver mi menú
@@ -306,12 +306,12 @@ function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
 
 function QuickLink({ href, label, icon: Icon }: { href: string; label: string; icon: any }) {
   return (
-    <Link href={href} className="flex items-center gap-3 p-4 rounded-2xl bg-[#0a0a0a] border border-white/[0.06] hover:border-white/[0.1] transition-all group">
-      <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center group-hover:bg-purple-500/[0.1] transition-colors">
-        <Icon className="w-5 h-5 text-gray-500 group-hover:text-purple-400 transition-colors" />
+    <Link href={href} className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-gray-200 hover:border-gray-300 transition-all group">
+      <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
+        <Icon className="w-5 h-5 text-gray-500 group-hover:text-emerald-600 transition-colors" />
       </div>
-      <span className="font-medium text-sm text-gray-400 group-hover:text-gray-200 transition-colors">{label}</span>
-      <ArrowRight className="w-4 h-4 text-gray-700 ml-auto group-hover:text-purple-400 group-hover:translate-x-0.5 transition-all" />
+      <span className="font-medium text-sm text-gray-500 group-hover:text-gray-700 transition-colors">{label}</span>
+      <ArrowRight className="w-4 h-4 text-gray-500 ml-auto group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
     </Link>
   );
 }
@@ -356,7 +356,7 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.08] text-gray-400 text-sm font-medium hover:bg-white/[0.04] hover:text-gray-200 transition-colors"
+        className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors"
       >
         <Share2 className="w-4 h-4" />
         Compartir
@@ -365,24 +365,24 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 z-50 w-52 rounded-xl bg-[#111] border border-white/[0.08] shadow-xl overflow-hidden">
+          <div className="absolute right-0 top-full mt-2 z-50 w-52 rounded-xl bg-white border border-gray-200 shadow-xl overflow-hidden">
             <button
               onClick={() => { copyLink(); setOpen(false); }}
-              className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-gray-300 hover:bg-white/[0.04] transition-colors"
+              className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-gray-500" />}
               {copied ? 'Copiado' : 'Copiar link'}
             </button>
             <button
               onClick={() => { shareWhatsApp(); setOpen(false); }}
-              className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-gray-300 hover:bg-white/[0.04] transition-colors"
+              className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <MessageCircle className="w-4 h-4 text-emerald-500" />
               WhatsApp
             </button>
             <button
               onClick={() => { shareNative(); setOpen(false); }}
-              className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-gray-300 hover:bg-white/[0.04] transition-colors"
+              className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <Share2 className="w-4 h-4 text-gray-500" />
               Más opciones

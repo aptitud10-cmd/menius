@@ -80,8 +80,8 @@ export default function AnalyticsPage() {
   if (loading || !data) {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
-        <p className="text-sm text-gray-400">Cargando analytics...</p>
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+        <p className="text-sm text-gray-500">Cargando analytics...</p>
       </div>
     );
   }
@@ -95,11 +95,11 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-bold text-white">Analytics</h1>
+          <h1 className="text-xl font-bold text-gray-900">Analytics</h1>
           <p className="text-sm text-gray-500 mt-0.5">Métricas y rendimiento de tu restaurante</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-[#0a0a0a] rounded-xl border border-white/[0.08] p-1">
+          <div className="flex items-center gap-1.5 bg-white rounded-xl border border-gray-200 p-1">
             {[7, 14, 30].map(d => (
               <button
                 key={d}
@@ -107,8 +107,8 @@ export default function AnalyticsPage() {
                 className={cn(
                   'px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all',
                   days === d
-                    ? 'bg-purple-500 text-white'
-                    : 'text-gray-500 hover:text-gray-200 hover:bg-white/[0.04]'
+                    ? 'bg-emerald-500 text-white'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 )}
               >
                 {d}d
@@ -118,7 +118,7 @@ export default function AnalyticsPage() {
           <div className="flex gap-1">
             <a
               href={`/api/tenant/reports?period=${days}&format=csv`}
-              className="p-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+              className="p-2 rounded-lg bg-gray-50 border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
               title="Exportar CSV"
             >
               <Download className="w-4 h-4" />
@@ -127,7 +127,7 @@ export default function AnalyticsPage() {
               href={`/api/tenant/reports?period=${days}&format=html`}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors"
+              className="p-2 rounded-lg bg-gray-50 border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
               title="Reporte PDF (imprimir)"
             >
               <FileText className="w-4 h-4" />
@@ -175,16 +175,16 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Sales Chart */}
-      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-semibold text-sm text-white">Ventas por día</h2>
-          <div className="flex items-center gap-4 text-xs text-gray-400">
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-purple-500" /> Ingresos</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-purple-500/[0.2]" /> Órdenes</span>
+          <h2 className="font-semibold text-sm text-gray-900">Ventas por día</h2>
+          <div className="flex items-center gap-4 text-xs text-gray-500">
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" /> Ingresos</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/40" /> Órdenes</span>
           </div>
         </div>
         {salesByDay.length === 0 ? (
-          <p className="text-gray-400 text-sm text-center py-12">Sin datos en este periodo</p>
+          <p className="text-gray-500 text-sm text-center py-12">Sin datos en este periodo</p>
         ) : (
           <div className="flex items-end gap-1.5 h-52">
             {salesByDay.map((d) => {
@@ -193,15 +193,15 @@ export default function AnalyticsPage() {
                 <div key={d.date} className="flex-1 flex flex-col items-center gap-1 group relative">
                   <div className="hidden group-hover:block absolute -top-20 left-1/2 -translate-x-1/2 bg-gray-900 rounded-xl px-3.5 py-2.5 text-xs text-white z-10 whitespace-nowrap shadow-lg">
                     <p className="font-bold">{formatDayLabel(d.date)}</p>
-                    <p className="text-gray-300">{d.orders} órdenes</p>
+                    <p className="text-gray-200">{d.orders} órdenes</p>
                     <p className="text-emerald-400 font-semibold">{formatMoney(d.revenue)}</p>
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
                   </div>
                   <div
-                    className="w-full bg-purple-500 rounded-t-lg transition-all duration-300 hover:bg-purple-400 cursor-pointer"
+                    className="w-full bg-emerald-500 rounded-t-lg transition-all duration-300 hover:bg-emerald-400 cursor-pointer"
                     style={{ height: `${height}%` }}
                   />
-                  <span className="text-[10px] text-gray-400 truncate w-full text-center mt-1">
+                  <span className="text-[10px] text-gray-500 truncate w-full text-center mt-1">
                     {formatDayLabel(d.date)}
                   </span>
                 </div>
@@ -212,8 +212,8 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Hourly Distribution */}
-      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
-        <h2 className="font-semibold text-sm mb-4 text-white">Distribución por hora</h2>
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <h2 className="font-semibold text-sm mb-4 text-gray-900">Distribución por hora</h2>
         <div className="flex items-end gap-px h-32">
           {hourlyDistribution.map((count, hour) => {
             const height = Math.max((count / maxHourly) * 100, 2);
@@ -231,7 +231,7 @@ export default function AnalyticsPage() {
                   style={{ height: `${height}%` }}
                 />
                 {hour % 3 === 0 && (
-                  <span className="text-[9px] text-gray-400">{hour.toString().padStart(2, '0')}</span>
+                  <span className="text-[9px] text-gray-500">{hour.toString().padStart(2, '0')}</span>
                 )}
               </div>
             );
@@ -241,8 +241,8 @@ export default function AnalyticsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Status Distribution */}
-        <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
-          <h2 className="font-semibold text-sm mb-4 text-white">Estado de órdenes</h2>
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <h2 className="font-semibold text-sm mb-4 text-gray-900">Estado de órdenes</h2>
           <div className="space-y-3">
             {Object.entries(statusCount)
               .sort((a, b) => b[1] - a[1])
@@ -251,10 +251,10 @@ export default function AnalyticsPage() {
                 return (
                   <div key={status}>
                     <div className="flex justify-between text-sm mb-1.5">
-                      <span className="text-gray-400 font-medium">{STATUS_LABELS[status] ?? status}</span>
-                      <span className="text-white font-semibold">{count} <span className="text-gray-400 font-normal">({pct.toFixed(0)}%)</span></span>
+                      <span className="text-gray-500 font-medium">{STATUS_LABELS[status] ?? status}</span>
+                      <span className="text-gray-900 font-semibold">{count} <span className="text-gray-500 font-normal">({pct.toFixed(0)}%)</span></span>
                     </div>
-                    <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div
                         className={cn('h-full rounded-full transition-all duration-500', STATUS_COLORS[status] ?? 'bg-gray-400')}
                         style={{ width: `${pct}%` }}
@@ -267,10 +267,10 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Top Products */}
-        <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
-          <h2 className="font-semibold text-sm mb-4 text-white">Top productos</h2>
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <h2 className="font-semibold text-sm mb-4 text-gray-900">Top productos</h2>
           {topProducts.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-12">Sin datos</p>
+            <p className="text-gray-500 text-sm text-center py-12">Sin datos</p>
           ) : (
             <div className="space-y-2">
               {topProducts.map((p, i) => {
@@ -280,22 +280,22 @@ export default function AnalyticsPage() {
                     <span className={cn(
                       'w-7 h-7 flex items-center justify-center rounded-lg text-xs font-bold flex-shrink-0',
                       i === 0 ? 'bg-amber-500/[0.1] text-amber-400' :
-                      i === 1 ? 'bg-white/[0.06] text-gray-400' :
+                      i === 1 ? 'bg-gray-100 text-gray-500' :
                       i === 2 ? 'bg-orange-500/[0.1] text-orange-400' :
-                      'bg-white/[0.04] text-gray-500'
+                      'bg-gray-50 text-gray-500'
                     )}>
                       {i + 1}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <h4 className="text-sm text-gray-200 font-medium truncate">{p.name}</h4>
-                        <span className="text-sm text-white font-bold flex-shrink-0 ml-2">{formatMoney(p.revenue)}</span>
+                        <h4 className="text-sm text-gray-700 font-medium truncate">{p.name}</h4>
+                        <span className="text-sm text-gray-900 font-bold flex-shrink-0 ml-2">{formatMoney(p.revenue)}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                          <div className="h-full bg-purple-400 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                         </div>
-                        <span className="text-xs text-gray-400 flex-shrink-0">{p.qty}u</span>
+                        <span className="text-xs text-gray-500 flex-shrink-0">{p.qty}u</span>
                       </div>
                     </div>
                   </div>
@@ -328,7 +328,7 @@ function KPICard({
   const c = colorMap[color] ?? colorMap.blue;
 
   return (
-    <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-4">
+    <div className="bg-white rounded-2xl border border-gray-200 p-4">
       <div className="flex items-center justify-between mb-3">
         <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center', c.bg)}>
           <span className={c.icon}>{icon}</span>
@@ -343,7 +343,7 @@ function KPICard({
           </span>
         )}
       </div>
-      <p className="text-2xl font-bold tracking-tight text-white">{value}</p>
+      <p className="text-2xl font-bold tracking-tight text-gray-900">{value}</p>
       <p className="text-xs text-gray-500 mt-1">{label}</p>
     </div>
   );
@@ -351,11 +351,11 @@ function KPICard({
 
 function MiniStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="bg-[#0a0a0a] rounded-xl border border-white/[0.06] px-4 py-3 flex items-center gap-3">
-      <span className="text-gray-400">{icon}</span>
+    <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 flex items-center gap-3">
+      <span className="text-gray-500">{icon}</span>
       <div className="min-w-0">
-        <p className="text-xs text-gray-400">{label}</p>
-        <p className="text-sm font-bold truncate text-white">{value}</p>
+        <p className="text-xs text-gray-500">{label}</p>
+        <p className="text-sm font-bold truncate text-gray-900">{value}</p>
       </div>
     </div>
   );

@@ -100,23 +100,23 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div className="bg-white/[0.04] border border-white/[0.06] rounded-xl p-4">
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
             <Users className="w-3.5 h-3.5" /> Total clientes
           </div>
-          <p className="text-xl font-bold text-white">{totalCustomers}</p>
+          <p className="text-xl font-bold text-gray-900">{totalCustomers}</p>
         </div>
-        <div className="bg-white/[0.04] border border-white/[0.06] rounded-xl p-4">
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
             <Mail className="w-3.5 h-3.5" /> Con email
           </div>
-          <p className="text-xl font-bold text-white">{customersWithEmail}</p>
+          <p className="text-xl font-bold text-gray-900">{customersWithEmail}</p>
         </div>
-        <div className="bg-white/[0.04] border border-white/[0.06] rounded-xl p-4 col-span-2 md:col-span-1">
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 col-span-2 md:col-span-1">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
             <Filter className="w-3.5 h-3.5" /> Alcanzables
           </div>
-          <p className="text-xl font-bold text-purple-400">{customersWithEmail}</p>
+          <p className="text-xl font-bold text-emerald-600">{customersWithEmail}</p>
           <p className="text-[10px] text-gray-600 mt-0.5">clientes recibirán el email</p>
         </div>
       </div>
@@ -131,9 +131,9 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
             <button
               key={t.name}
               onClick={() => applyTemplate(t)}
-              className="text-left p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-purple-500/[0.06] hover:border-purple-500/20 transition-all group"
+              className="text-left p-3 rounded-xl bg-gray-50 border border-gray-200 hover:bg-emerald-50 hover:border-emerald-200 transition-all group"
             >
-              <p className="text-xs font-medium text-gray-300 group-hover:text-white truncate">{t.name}</p>
+              <p className="text-xs font-medium text-gray-700 group-hover:text-gray-900 truncate">{t.name}</p>
               <p className="text-[10px] text-gray-600 mt-0.5 truncate">{t.subject}</p>
             </button>
           ))}
@@ -141,15 +141,15 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
       </div>
 
       {/* Compose */}
-      <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-6 space-y-4">
-        <h3 className="text-sm font-semibold text-white">Componer campaña</h3>
+      <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-4">
+        <h3 className="text-sm font-semibold text-gray-900">Componer campaña</h3>
 
         <div>
           <label className="text-xs text-gray-500 mb-1.5 block">Audiencia</label>
           <select
             value={filter}
             onChange={e => setFilter(e.target.value)}
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-gray-300 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
+            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
           >
             {FILTERS.map(f => (
               <option key={f.value} value={f.value}>{f.label} — {f.desc}</option>
@@ -164,7 +164,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
             value={subject}
             onChange={e => setSubject(e.target.value)}
             placeholder="🎉 ¡Oferta especial en tu restaurante!"
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
+            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
           />
           <p className="text-[10px] text-gray-600 mt-1">Usa {'{nombre}'} para personalizar con el nombre del cliente, {'{restaurante}'} para tu restaurante</p>
         </div>
@@ -176,7 +176,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
             onChange={e => setMessage(e.target.value)}
             rows={6}
             placeholder="Hola {nombre}, tenemos algo especial para ti..."
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500/30 resize-none"
+            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 resize-none"
           />
           <p className="text-[10px] text-gray-600 mt-1">Variables: {'{nombre}'}, {'{total_ordenes}'}, {'{total_gastado}'}, {'{restaurante}'}</p>
         </div>
@@ -188,7 +188,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
             value={ctaText}
             onChange={e => setCtaText(e.target.value)}
             placeholder="Ver menú"
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
+            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
           />
         </div>
 
@@ -208,11 +208,11 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
         <button
           onClick={handleSend}
           disabled={sending || !subject.trim() || !message.trim()}
-          className="flex items-center justify-center gap-2 w-full px-5 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center justify-center gap-2 w-full px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {sending ? (
             <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
               Enviando...
             </>
           ) : (

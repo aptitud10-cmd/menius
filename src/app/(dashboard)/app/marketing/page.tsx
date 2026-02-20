@@ -12,7 +12,7 @@ export default async function MarketingPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-6 text-white">Email Marketing</h1>
+      <h1 className="text-xl font-bold mb-6 text-gray-900">Email Marketing</h1>
       <EmailCampaigns
         restaurantName={restaurant?.name ?? ''}
         menuSlug={restaurant?.slug ?? ''}

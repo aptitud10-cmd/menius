@@ -12,7 +12,7 @@ export default async function CustomersPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-6 text-white">Clientes</h1>
+      <h1 className="text-xl font-bold mb-6 text-gray-900">Clientes</h1>
       <CustomersManager
         restaurantId={restaurantId}
         currency={restaurant?.currency ?? 'USD'}

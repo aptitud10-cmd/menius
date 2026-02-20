@@ -117,30 +117,30 @@ export function CustomersManager({ currency }: Props) {
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white/[0.04] border border-white/[0.06] rounded-xl p-4">
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
             <Users className="w-3.5 h-3.5" /> Total clientes
           </div>
-          <p className="text-xl font-bold text-white">{total}</p>
+          <p className="text-xl font-bold text-gray-900">{total}</p>
         </div>
-        <div className="bg-white/[0.04] border border-white/[0.06] rounded-xl p-4">
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
             <TrendingUp className="w-3.5 h-3.5" /> Gasto promedio
           </div>
-          <p className="text-xl font-bold text-white">{formatPrice(avgSpend, currency)}</p>
+          <p className="text-xl font-bold text-gray-900">{formatPrice(avgSpend, currency)}</p>
         </div>
-        <div className="bg-white/[0.04] border border-white/[0.06] rounded-xl p-4">
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
             <TrendingUp className="w-3.5 h-3.5" /> Top cliente
           </div>
-          <p className="text-sm font-semibold text-white truncate">{topSpender?.name || '—'}</p>
+          <p className="text-sm font-semibold text-gray-900 truncate">{topSpender?.name || '—'}</p>
           <p className="text-xs text-gray-500">{topSpender ? formatPrice(topSpender.total_spent, currency) : ''}</p>
         </div>
-        <div className="bg-white/[0.04] border border-white/[0.06] rounded-xl p-4">
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
             <Clock className="w-3.5 h-3.5" /> Último pedido
           </div>
-          <p className="text-sm font-semibold text-white">
+          <p className="text-sm font-semibold text-gray-900">
             {customers[0]?.last_order_at ? formatDate(customers[0].last_order_at) : '—'}
           </p>
         </div>
@@ -155,14 +155,14 @@ export function CustomersManager({ currency }: Props) {
             placeholder="Buscar por nombre, teléfono o email..."
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-10 pr-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
           />
         </div>
         <div className="relative">
           <select
             value={sortBy}
             onChange={e => { setSortBy(e.target.value as SortKey); setPage(1); }}
-            className="appearance-none bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 pr-10 text-sm text-gray-300 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
+            className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
           >
             {SORT_OPTIONS.map(o => (
               <option key={o.value} value={o.value}>{o.label}</option>
@@ -173,10 +173,10 @@ export function CustomersManager({ currency }: Props) {
       </div>
 
       {/* Table */}
-      <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl overflow-hidden">
+      <div className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : customers.length === 0 ? (
           <div className="text-center py-20">
@@ -189,7 +189,7 @@ export function CustomersManager({ currency }: Props) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/[0.06] text-gray-500 text-xs uppercase tracking-wider">
+                <tr className="border-b border-gray-200 text-gray-500 text-xs uppercase tracking-wider">
                   <th className="text-left px-4 py-3 font-medium">Cliente</th>
                   <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Contacto</th>
                   <th className="text-right px-4 py-3 font-medium">Órdenes</th>
@@ -203,10 +203,10 @@ export function CustomersManager({ currency }: Props) {
                   <tr
                     key={c.id}
                     onClick={() => openDetail(c)}
-                    className={`border-b border-white/[0.04] hover:bg-white/[0.03] cursor-pointer transition-colors ${selectedId === c.id ? 'bg-purple-500/[0.06]' : ''}`}
+                    className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors ${selectedId === c.id ? 'bg-emerald-50' : ''}`}
                   >
                     <td className="px-4 py-3">
-                      <p className="text-white font-medium truncate max-w-[200px]">{c.name || 'Sin nombre'}</p>
+                      <p className="text-gray-900 font-medium truncate max-w-[200px]">{c.name || 'Sin nombre'}</p>
                       {c.address && <p className="text-gray-600 text-xs truncate max-w-[200px]">{c.address}</p>}
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
@@ -223,13 +223,13 @@ export function CustomersManager({ currency }: Props) {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right text-white">{c.total_orders}</td>
+                    <td className="px-4 py-3 text-right text-gray-900">{c.total_orders}</td>
                     <td className="px-4 py-3 text-right text-emerald-400 font-medium">{formatPrice(c.total_spent, currency)}</td>
                     <td className="px-4 py-3 text-right text-gray-500 text-xs hidden sm:table-cell">{formatDate(c.last_order_at)}</td>
                     <td className="px-4 py-3 text-right hidden lg:table-cell">
                       <div className="flex flex-wrap gap-1 justify-end">
                         {(c.tags || []).slice(0, 3).map(t => (
-                          <span key={t} className="px-2 py-0.5 text-[10px] rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                          <span key={t} className="px-2 py-0.5 text-[10px] rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200">
                             {t}
                           </span>
                         ))}
@@ -244,13 +244,13 @@ export function CustomersManager({ currency }: Props) {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-white/[0.06]">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
             <p className="text-xs text-gray-500">{total} clientes</p>
             <div className="flex gap-2">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage(p => p - 1)}
-                className="px-3 py-1.5 text-xs rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 disabled:opacity-30 hover:bg-white/[0.08] transition-colors"
+                className="px-3 py-1.5 text-xs rounded-lg bg-gray-50 border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-100 transition-colors"
               >
                 Anterior
               </button>
@@ -258,7 +258,7 @@ export function CustomersManager({ currency }: Props) {
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1.5 text-xs rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 disabled:opacity-30 hover:bg-white/[0.08] transition-colors"
+                className="px-3 py-1.5 text-xs rounded-lg bg-gray-50 border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-100 transition-colors"
               >
                 Siguiente
               </button>
@@ -269,15 +269,15 @@ export function CustomersManager({ currency }: Props) {
 
       {/* Detail Panel */}
       {selected && (
-        <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-6 space-y-5">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-5">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-white">{selected.name || 'Sin nombre'}</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{selected.name || 'Sin nombre'}</h3>
               <p className="text-xs text-gray-500">Cliente desde {formatDate(selected.created_at)}</p>
             </div>
             <button
               onClick={() => setSelectedId(null)}
-              className="text-gray-600 hover:text-white transition-colors text-sm"
+              className="text-gray-600 hover:text-gray-900 transition-colors text-sm"
             >
               Cerrar
             </button>
@@ -286,15 +286,15 @@ export function CustomersManager({ currency }: Props) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">Órdenes</p>
-              <p className="text-white font-semibold">{selected.total_orders}</p>
+              <p className="text-gray-900 font-semibold">{selected.total_orders}</p>
             </div>
             <div>
               <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">Total gastado</p>
-              <p className="text-emerald-400 font-semibold">{formatPrice(selected.total_spent, currency)}</p>
+              <p className="text-emerald-600 font-semibold">{formatPrice(selected.total_spent, currency)}</p>
             </div>
             <div>
               <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">Ticket promedio</p>
-              <p className="text-white font-semibold">
+              <p className="text-gray-900 font-semibold">
                 {selected.total_orders > 0
                   ? formatPrice(selected.total_spent / selected.total_orders, currency)
                   : '—'}
@@ -302,7 +302,7 @@ export function CustomersManager({ currency }: Props) {
             </div>
             <div>
               <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">Última orden</p>
-              <p className="text-white text-sm">{formatDate(selected.last_order_at)}</p>
+              <p className="text-gray-900 text-sm">{formatDate(selected.last_order_at)}</p>
             </div>
           </div>
 
@@ -351,7 +351,7 @@ export function CustomersManager({ currency }: Props) {
               value={editTags}
               onChange={e => setEditTags(e.target.value)}
               placeholder="VIP, frecuente, delivery..."
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
+              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
             />
           </div>
 
@@ -362,14 +362,14 @@ export function CustomersManager({ currency }: Props) {
               onChange={e => setEditNotes(e.target.value)}
               rows={3}
               placeholder="Alergias, preferencias, notas sobre este cliente..."
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500/30 resize-none"
+              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 resize-none"
             />
           </div>
 
           <button
             onClick={saveNotes}
             disabled={saving}
-            className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
+            className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium transition-colors disabled:opacity-50"
           >
             {saving ? 'Guardando...' : 'Guardar notas y tags'}
           </button>

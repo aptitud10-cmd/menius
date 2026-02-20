@@ -99,7 +99,7 @@ export default function StaffPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Users className="w-7 h-7 text-blue-500" />
-          <h1 className="text-2xl font-bold text-white">Equipo</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Equipo</h1>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -111,35 +111,35 @@ export default function StaffPage() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleInvite} className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
+        <form onSubmit={handleInvite} className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Nombre completo*</label>
+              <label className="block text-sm text-gray-500 mb-1">Nombre completo*</label>
               <input
                 value={fullName}
                 onChange={e => setFullName(e.target.value)}
                 placeholder="Juan Pérez"
                 required
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900"
               />
             </div>
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Email*</label>
+              <label className="block text-sm text-gray-500 mb-1">Email*</label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="juan@correo.com"
                 required
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900"
               />
             </div>
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Rol*</label>
+              <label className="block text-sm text-gray-500 mb-1">Rol*</label>
               <select
                 value={role}
                 onChange={e => setRole(e.target.value)}
-                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900"
               >
                 <option value="admin">Administrador</option>
                 <option value="manager">Gerente</option>
@@ -158,7 +158,7 @@ export default function StaffPage() {
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               Invitar
             </button>
-            <button type="button" onClick={resetForm} className="px-4 py-2 bg-zinc-800 text-zinc-400 rounded-lg hover:bg-zinc-700 transition">
+            <button type="button" onClick={resetForm} className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200 transition">
               Cancelar
             </button>
           </div>
@@ -170,7 +170,7 @@ export default function StaffPage() {
           <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
         </div>
       ) : members.length === 0 ? (
-        <div className="text-center py-20 text-zinc-500">
+        <div className="text-center py-20 text-gray-500">
           <Users className="w-12 h-12 mx-auto mb-3 opacity-40" />
           <p>No hay miembros en el equipo.</p>
           <p className="text-sm mt-1">Invita a tu equipo para que ayuden a gestionar el restaurante.</p>
@@ -181,18 +181,18 @@ export default function StaffPage() {
             const roleInfo = ROLE_LABELS[m.role] || ROLE_LABELS.staff;
             const statusInfo = STATUS_LABELS[m.status] || STATUS_LABELS.pending;
             return (
-              <div key={m.id} className="flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+              <div key={m.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 font-bold text-sm">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-sm">
                     {m.full_name.charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-white font-medium">{m.full_name}</h3>
+                      <h3 className="text-gray-900 font-medium">{m.full_name}</h3>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleInfo.color}`}>{roleInfo.label}</span>
                       <span className={`text-xs font-medium ${statusInfo.color}`}>{statusInfo.label}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-zinc-500 text-sm mt-0.5">
+                    <div className="flex items-center gap-1.5 text-gray-500 text-sm mt-0.5">
                       <Mail className="w-3.5 h-3.5" /> {m.email}
                     </div>
                   </div>
@@ -201,7 +201,7 @@ export default function StaffPage() {
                   <select
                     value={m.role}
                     onChange={e => handleChangeRole(m.id, e.target.value)}
-                    className="text-xs bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-zinc-300"
+                    className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700"
                   >
                     <option value="admin">Admin</option>
                     <option value="manager">Gerente</option>
@@ -211,11 +211,11 @@ export default function StaffPage() {
                   <button
                     onClick={() => handleToggleStatus(m)}
                     title={m.status === 'active' ? 'Desactivar' : 'Activar'}
-                    className={`p-1.5 rounded-lg transition ${m.status === 'active' ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-zinc-400 hover:bg-zinc-800'}`}
+                    className={`p-1.5 rounded-lg transition ${m.status === 'active' ? 'text-emerald-600 hover:bg-emerald-50' : 'text-gray-500 hover:bg-gray-100'}`}
                   >
                     {m.status === 'active' ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4" />}
                   </button>
-                  <button onClick={() => handleDelete(m.id)} className="text-zinc-400 hover:text-red-400 p-1.5 rounded-lg transition">
+                  <button onClick={() => handleDelete(m.id)} className="text-gray-500 hover:text-red-400 p-1.5 rounded-lg transition">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>

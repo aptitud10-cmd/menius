@@ -17,8 +17,8 @@ export default function DashboardError({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
           </svg>
         </div>
-        <h2 className="text-xl font-bold text-white mb-1.5">Error en el dashboard</h2>
-        <p className="text-sm text-gray-400 mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-1.5">Error en el dashboard</h2>
+        <p className="text-sm text-gray-500 mb-6">
           Algo falló al cargar esta sección. Puedes reintentar o volver al inicio.
           {error.digest && (
             <span className="block mt-2 text-xs text-gray-600 font-mono">Ref: {error.digest}</span>
@@ -27,13 +27,13 @@ export default function DashboardError({
         <div className="flex gap-2.5 justify-center">
           <button
             onClick={() => reset()}
-            className="px-4 py-2 bg-purple-500 text-white rounded-xl text-sm font-medium hover:bg-purple-600 transition-colors"
+            className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 transition-colors"
           >
             Reintentar
           </button>
           <Link
             href="/app"
-            className="px-4 py-2 bg-white/[0.06] text-gray-300 rounded-xl text-sm font-medium hover:bg-white/[0.08] transition-colors"
+            className="px-4 py-2 bg-gray-50 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors"
           >
             Dashboard
           </Link>
