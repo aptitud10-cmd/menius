@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice, cn } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
@@ -20,6 +20,7 @@ interface MenuShellProps {
   products: Product[];
   tableName: string | null;
   locale?: Locale;
+  backUrl?: string;
 }
 
 interface CustomizationTarget {
@@ -33,6 +34,7 @@ export function MenuShell({
   products,
   tableName,
   locale: initialLocale = 'es',
+  backUrl,
 }: MenuShellProps) {
   const [locale] = useState<Locale>(initialLocale);
   const t = getTranslations(locale);
@@ -176,6 +178,7 @@ export function MenuShell({
         fmtPrice={fmtPrice}
         openLabel={t.open}
         closedLabel={t.closed}
+        backUrl={backUrl}
       />
 
       {/* Mobile category pills — scrolls with content on mobile */}
@@ -351,7 +354,12 @@ export function MenuShell({
                 <ChevronLeft className="w-5 h-5" />
                 <span className="text-sm font-medium">{t.backToMenu}</span>
               </button>
-              <h2 className="text-base font-bold text-gray-900">{t.yourCart}</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-base font-bold text-gray-900">{t.yourCart}</h2>
+                <button onClick={() => setOpen(false)} className="p-2 -mr-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Close">
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-hidden">
               <CartPanel

@@ -94,6 +94,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
           products={demoConfig.products}
           tableName={searchParams.table ?? null}
           locale={demoConfig.locale}
+          backUrl="/"
         />
       </>
     );

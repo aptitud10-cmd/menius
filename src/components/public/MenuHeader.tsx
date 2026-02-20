@@ -2,7 +2,8 @@
 
 import { memo } from 'react';
 import Image from 'next/image';
-import { ShoppingCart, Search, X } from 'lucide-react';
+import Link from 'next/link';
+import { ShoppingCart, Search, X, ArrowLeft } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import type { Restaurant } from '@/types';
@@ -31,6 +32,7 @@ interface MenuHeaderProps {
   fmtPrice: (n: number) => string;
   openLabel: string;
   closedLabel: string;
+  backUrl?: string;
 }
 
 export const MenuHeader = memo(function MenuHeader({
@@ -44,6 +46,7 @@ export const MenuHeader = memo(function MenuHeader({
   fmtPrice,
   openLabel,
   closedLabel,
+  backUrl,
 }: MenuHeaderProps) {
   const itemCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.qty, 0));
   const itemTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
@@ -52,7 +55,14 @@ export const MenuHeader = memo(function MenuHeader({
 
   return (
     <header className="flex-shrink-0 z-40 bg-white border-b border-gray-200">
-      <div className="h-14 max-w-[1280px] mx-auto px-4 lg:px-6 flex items-center gap-4">
+      <div className="h-14 max-w-[1280px] mx-auto px-4 lg:px-6 flex items-center gap-3">
+        {/* Back button (demo/external) */}
+        {backUrl && (
+          <Link href={backUrl} className="flex-shrink-0 p-1.5 -ml-1.5 rounded-lg active:bg-gray-100 transition-colors" aria-label="Back">
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </Link>
+        )}
+
         {/* Logo + Name */}
         <div className="flex items-center gap-2.5 flex-shrink-0 min-w-0">
           {restaurant.logo_url ? (
