@@ -404,12 +404,26 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
 .phone-field--light .PhoneInputCountry {
   background: #fff;
   border: 2px solid #e5e7eb;
-  border-radius: 1rem;
-  padding: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.5rem;
   margin-right: 0.5rem;
 }
 .phone-field--light .PhoneInputCountrySelectArrow {
   border-color: #6b7280;
+}
+.phone-field--light .PhoneInputInput {
+  font-size: 16px !important;
+}
+.phone-field--light .PhoneInput {
+  display: flex;
+  align-items: center;
+}
+.phone-field--light .PhoneInputCountryIcon {
+  width: 24px;
+  height: 18px;
+}
+.phone-field--light .PhoneInputCountrySelect {
+  font-size: 16px;
 }
 
 /* Animated shimmer on borders */

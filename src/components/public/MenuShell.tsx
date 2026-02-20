@@ -128,7 +128,7 @@ export function MenuShell({
 
   // Mobile category pills
   const mobileCategoryPills = (
-    <div className={`lg:hidden -mx-4 px-4 py-2.5 flex gap-2 overflow-x-auto scrollbar-hide scroll-touch border-b border-gray-100 bg-white sticky z-30`} style={{ top: HEADER_HEIGHT }}>
+    <div className="lg:hidden py-2.5 px-4 flex gap-2 overflow-x-auto scrollbar-hide border-b border-gray-100 bg-white sticky z-30" style={{ top: HEADER_HEIGHT }}>
       <button
         onClick={() => handleCategorySelect(null)}
         className={cn(
@@ -158,7 +158,7 @@ export function MenuShell({
   );
 
   return (
-    <div className="h-screen flex flex-col bg-white overflow-hidden">
+    <div className="h-[100dvh] flex flex-col bg-white overflow-hidden overscroll-none">
       {/* Fixed header */}
       <MenuHeader
         restaurant={restaurant}

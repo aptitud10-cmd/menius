@@ -45,8 +45,8 @@ export const MenuHeader = memo(function MenuHeader({
   openLabel,
   closedLabel,
 }: MenuHeaderProps) {
-  const totalItems = useCartStore((s) => s.totalItems);
-  const totalPrice = useCartStore((s) => s.totalPrice);
+  const itemCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.qty, 0));
+  const itemTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
   const setOpen = useCartStore((s) => s.setOpen);
   const open = isRestaurantOpen(restaurant.operating_hours);
 
@@ -54,7 +54,7 @@ export const MenuHeader = memo(function MenuHeader({
     <header className="flex-shrink-0 z-40 bg-white border-b border-gray-200">
       <div className="h-14 max-w-[1280px] mx-auto px-4 lg:px-6 flex items-center gap-4">
         {/* Logo + Name */}
-        <div className="flex items-center gap-2.5 flex-shrink-0">
+        <div className="flex items-center gap-2.5 flex-shrink-0 min-w-0">
           {restaurant.logo_url ? (
             <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
               <Image src={restaurant.logo_url} alt={restaurant.name} fill sizes="32px" className="object-cover" />
@@ -64,7 +64,7 @@ export const MenuHeader = memo(function MenuHeader({
               <span className="text-xs font-bold text-white">{restaurant.name.charAt(0).toUpperCase()}</span>
             </div>
           )}
-          <span className="text-sm font-bold text-gray-900 hidden sm:block truncate max-w-[160px]">{restaurant.name}</span>
+          <span className="text-sm font-bold text-gray-900 truncate max-w-[140px]">{restaurant.name}</span>
         </div>
 
         {/* Center: Search bar (desktop) */}
@@ -86,7 +86,7 @@ export const MenuHeader = memo(function MenuHeader({
           </div>
         </div>
 
-        {/* Right side: nav links + cart */}
+        {/* Right side */}
         <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0 ml-auto">
           <span className={cn(
             'hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold',
@@ -107,32 +107,28 @@ export const MenuHeader = memo(function MenuHeader({
             <Search className="w-4 h-4 text-gray-500" />
           </button>
 
-          {/* Cart button */}
+          {/* Mobile cart button */}
           <button
             onClick={() => setOpen(true)}
             className={cn(
-              'flex items-center gap-2 px-3 py-2 rounded-lg transition-colors lg:hidden',
-              totalItems() > 0 ? 'bg-emerald-500 text-white' : 'hover:bg-gray-100'
+              'relative flex items-center gap-2 px-3 py-2 rounded-lg transition-colors lg:hidden',
+              itemCount > 0 ? 'bg-emerald-500 text-white' : 'hover:bg-gray-100'
             )}
           >
-            <ShoppingCart className={cn('w-4 h-4', totalItems() > 0 ? 'text-white' : 'text-gray-500')} />
-            {totalItems() > 0 && (
-              <>
-                <span className="text-xs font-bold">{totalItems()}</span>
-                <span className="text-xs font-bold">{fmtPrice(totalPrice())}</span>
-              </>
+            <ShoppingCart className={cn('w-4 h-4', itemCount > 0 ? 'text-white' : 'text-gray-500')} />
+            {itemCount > 0 && (
+              <span className="text-xs font-bold tabular-nums">{itemCount}</span>
             )}
           </button>
 
           {/* Desktop cart summary */}
           <div className="hidden lg:flex items-center gap-2 pl-3 border-l border-gray-200">
             <ShoppingCart className="w-4 h-4 text-gray-400" />
-            <span className="text-xs text-gray-500">Carro</span>
-            <span className={cn('text-sm font-bold tabular-nums', totalItems() > 0 ? 'text-gray-900' : 'text-gray-300')}>
-              {totalItems() > 0 ? `${totalItems()}` : '0'}
+            <span className={cn('text-sm font-bold tabular-nums', itemCount > 0 ? 'text-gray-900' : 'text-gray-300')}>
+              {itemCount}
             </span>
-            {totalItems() > 0 && (
-              <span className="text-sm font-bold text-emerald-600 tabular-nums">{fmtPrice(totalPrice())}</span>
+            {itemCount > 0 && (
+              <span className="text-sm font-bold text-emerald-600 tabular-nums">{fmtPrice(itemTotal)}</span>
             )}
           </div>
         </div>

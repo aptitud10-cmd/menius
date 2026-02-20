@@ -41,7 +41,7 @@ export function CheckoutSheet({
 
   const enabledOrderTypes = restaurant.order_types_enabled?.length
     ? restaurant.order_types_enabled
-    : (['dine_in'] as OrderType[]);
+    : (['dine_in', 'pickup', 'delivery'] as OrderType[]);
   const enabledPaymentMethods = restaurant.payment_methods_enabled?.length
     ? restaurant.payment_methods_enabled
     : (['cash'] as PaymentMethod[]);
@@ -270,29 +270,27 @@ export function CheckoutSheet({
         {/* Scrollable form */}
         <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-5 space-y-5">
           {/* Order type */}
-          {enabledOrderTypes.length > 1 && (
-            <div>
-              <label className="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2.5">
-                {t.orderType}
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {enabledOrderTypes.map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setOrderType(type)}
-                    className={cn(
-                      'py-2.5 px-2 rounded-xl text-sm font-semibold text-center transition-all duration-150 border',
-                      orderType === type
-                        ? 'bg-gray-900 text-white border-gray-900'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                    )}
-                  >
-                    {type === 'dine_in' ? t.dineIn : type === 'pickup' ? t.pickup : t.delivery}
-                  </button>
-                ))}
-              </div>
+          <div>
+            <label className="block text-xs font-bold text-gray-900 uppercase tracking-wide mb-2.5">
+              {t.orderType}
+            </label>
+            <div className={cn('grid gap-2', enabledOrderTypes.length === 3 ? 'grid-cols-3' : enabledOrderTypes.length === 2 ? 'grid-cols-2' : 'grid-cols-1')}>
+              {enabledOrderTypes.map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setOrderType(type)}
+                  className={cn(
+                    'py-3 px-2 rounded-xl text-sm font-semibold text-center transition-all duration-150 border',
+                    orderType === type
+                      ? 'bg-gray-900 text-white border-gray-900'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                  )}
+                >
+                  {type === 'dine_in' ? t.dineIn : type === 'pickup' ? t.pickup : t.delivery}
+                </button>
+              ))}
             </div>
-          )}
+          </div>
 
           {orderType === 'delivery' && (
             <AddressAutocomplete
