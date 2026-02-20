@@ -62,7 +62,7 @@ export const demoProducts: Product[] = [
     id: P_CHILAQUILES, restaurant_id: RID, category_id: CAT_DESAYUNOS,
     name: 'Chilaquiles Verdes',
     description: 'Totopos bañados en salsa verde con crema, queso fresco, cebolla y huevo estrellado.',
-    price: 95, image_url: 'https://images.unsplash.com/photo-1588157850899-6548e0cc1ed0?w=600&h=340&fit=crop&q=80',
+    price: 95, image_url: 'https://images.unsplash.com/photo-1534352956036-cd81e27dd615?w=600&h=400&fit=crop&q=80',
     is_active: true, is_featured: true, sort_order: 1, created_at: now,
     variants: [
       { id: 'v-chil-huevo', product_id: P_CHILAQUILES, name: 'Con huevo estrellado', price_delta: 0, sort_order: 1 },
@@ -238,7 +238,7 @@ export const demoProducts: Product[] = [
     id: 'demo-p-empanadas', restaurant_id: RID, category_id: CAT_APERITIVOS,
     name: 'Empanadas de Queso',
     description: 'Tres empanadas crujientes rellenas de queso con salsa ranchera.',
-    price: 75, image_url: 'https://images.unsplash.com/photo-1604579278540-db6507ee0fdb?w=600&h=340&fit=crop&q=80',
+    price: 75, image_url: 'https://images.unsplash.com/photo-1601924582970-9238bcb495d9?w=600&h=400&fit=crop&q=80',
     is_active: true, sort_order: 4, created_at: now, variants: [], extras: [],
   },
   {
@@ -252,7 +252,7 @@ export const demoProducts: Product[] = [
     id: P_ALITAS, restaurant_id: RID, category_id: CAT_APERITIVOS,
     name: 'Alitas BBQ',
     description: 'Alitas de pollo bañadas en salsa barbecue, servidas con apio y aderezo ranch.',
-    price: 125, image_url: 'https://images.unsplash.com/photo-1608039829572-9b0088ca6e13?w=600&h=340&fit=crop&q=80',
+    price: 125, image_url: 'https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=600&h=400&fit=crop&q=80',
     is_active: true, sort_order: 6, created_at: now,
     variants: [
       { id: 'v-alitas-6', product_id: P_ALITAS, name: '6 piezas', price_delta: 0, sort_order: 1 },
@@ -372,7 +372,7 @@ export const demoProducts: Product[] = [
     id: P_CHURROS, restaurant_id: RID, category_id: CAT_TORTAS,
     name: 'Churros con Chocolate',
     description: 'Churros crujientes espolvoreados con azúcar y canela, con salsa de chocolate belga.',
-    price: 65, image_url: 'https://images.unsplash.com/photo-1624371414361-e670246c0660?w=600&h=340&fit=crop&q=80',
+    price: 65, image_url: 'https://images.unsplash.com/photo-1481391319762-47dff72954d9?w=600&h=400&fit=crop&q=80',
     is_active: true, sort_order: 2, created_at: now,
     variants: [],
     extras: [

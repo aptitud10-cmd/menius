@@ -29,12 +29,13 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes }:
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-gray-300 px-6 py-20">
-        <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mb-4">
-          <ShoppingCart className="w-7 h-7 opacity-30" />
+      <div className="flex flex-col items-center justify-center h-full px-8 py-16">
+        <div className="w-24 h-24 rounded-3xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-5">
+          <ShoppingCart className="w-9 h-9 text-gray-300" strokeWidth={1.5} />
         </div>
-        <p className="font-semibold text-gray-500 text-sm mb-1">{t.cartEmpty}</p>
-        <p className="text-xs text-center text-gray-400">{t.cartEmptyDesc}</p>
+        <p className="font-semibold text-gray-700 text-base mb-1.5">{t.cartEmpty}</p>
+        <p className="text-sm text-center text-gray-400 leading-relaxed max-w-[220px]">{t.cartEmptyDesc}</p>
+        <div className="mt-6 w-full max-w-[200px] h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
       </div>
     );
   }

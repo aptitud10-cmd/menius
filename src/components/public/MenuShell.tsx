@@ -222,28 +222,6 @@ export function MenuShell({
             </div>
           </div>
 
-          {/* Filter pills */}
-          <div className="flex gap-2 mb-5 overflow-x-auto scrollbar-hide">
-            {([
-              ['all', t.filterAll],
-              ['popular', `🔥 ${t.filterPopular}`],
-              ['options', t.filterWithOptions],
-            ] as const).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setActiveFilter(key)}
-                className={cn(
-                  'flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 whitespace-nowrap border',
-                  activeFilter === key
-                    ? 'bg-emerald-500 text-white border-emerald-500'
-                    : 'bg-white text-gray-500 border-gray-200 active:bg-gray-50'
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
           {searchResults !== null ? (
             <div>
               <p className="text-sm text-gray-500 mb-4">
