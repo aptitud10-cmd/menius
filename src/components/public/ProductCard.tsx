@@ -84,8 +84,8 @@ export const ProductCard = memo(function ProductCard({
               className={cn(
                 'flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 active:scale-90',
                 justAdded
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-gray-900 text-white'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-emerald-500 text-white'
               )}
             >
               {justAdded ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -171,8 +171,8 @@ export const ProductCard = memo(function ProductCard({
               className={cn(
                 'flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95',
                 justAdded
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-gray-900 text-white hover:bg-gray-800'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-emerald-500 text-white hover:bg-emerald-600'
               )}
             >
               {justAdded ? (

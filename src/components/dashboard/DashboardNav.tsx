@@ -80,13 +80,13 @@ export function DashboardNav({ slug, mobile }: DashboardNavProps) {
                 className={cn(
                   'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all',
                   isActive(item.href, (item as any).exact)
-                    ? 'bg-purple-500/[0.12] text-white'
-                    : 'text-gray-500 hover:bg-white/[0.04] hover:text-gray-300'
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 )}
               >
                 <item.icon className={cn(
                   'w-4 h-4 transition-colors',
-                  isActive(item.href, (item as any).exact) ? 'text-purple-400' : 'text-gray-600'
+                  isActive(item.href, (item as any).exact) ? 'text-emerald-500' : 'text-gray-400'
                 )} />
                 {item.label}
               </Link>
@@ -95,21 +95,21 @@ export function DashboardNav({ slug, mobile }: DashboardNavProps) {
         ))}
       </nav>
 
-      <div className="mt-4 pt-4 border-t border-white/[0.06] flex flex-col gap-0.5">
+      <div className="mt-4 pt-4 border-t border-gray-200 flex flex-col gap-0.5">
         <Link
           href={`/r/${slug}`}
           target="_blank"
           onClick={() => setOpen(false)}
-          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-white/[0.04] hover:text-gray-300 transition-colors"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
         >
-          <ExternalLink className="w-4 h-4 text-gray-600" />
+          <ExternalLink className="w-4 h-4 text-gray-400" />
           Ver menú público
         </Link>
         <button
           onClick={() => logout()}
-          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-red-500/[0.08] hover:text-red-400 transition-colors w-full text-left"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors w-full text-left"
         >
-          <LogOut className="w-4 h-4 text-gray-600" />
+          <LogOut className="w-4 h-4 text-gray-400" />
           Cerrar sesión
         </button>
       </div>
@@ -121,16 +121,16 @@ export function DashboardNav({ slug, mobile }: DashboardNavProps) {
       <>
         <button
           onClick={() => setOpen(!open)}
-          className="p-2 rounded-lg hover:bg-white/[0.06] transition-colors"
+          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
           aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
           aria-expanded={open}
         >
-          {open ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
+          {open ? <X className="w-5 h-5 text-gray-700" /> : <Menu className="w-5 h-5 text-gray-700" />}
         </button>
         {open && (
           <>
-            <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setOpen(false)} />
-            <div className="fixed top-14 left-0 right-0 bottom-0 bg-[#0a0a0a] z-50 p-4 overflow-y-auto">
+            <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setOpen(false)} />
+            <div className="fixed top-14 left-0 right-0 bottom-0 bg-white z-50 p-4 overflow-y-auto">
               {navContent}
             </div>
           </>

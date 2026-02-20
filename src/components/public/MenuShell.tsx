@@ -149,7 +149,7 @@ export function MenuShell({
       className={cn(
         'flex-shrink-0 px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap',
         isActive
-          ? 'bg-gray-900 text-white shadow-sm'
+          ? 'bg-emerald-500 text-white shadow-sm'
           : 'bg-gray-100 text-gray-600 active:bg-gray-200'
       )}
     >
@@ -235,7 +235,7 @@ export function MenuShell({
                 className={cn(
                   'flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 whitespace-nowrap border',
                   activeFilter === key
-                    ? 'bg-gray-900 text-white border-gray-900'
+                    ? 'bg-emerald-500 text-white border-emerald-500'
                     : 'bg-white text-gray-500 border-gray-200 active:bg-gray-50'
                 )}
               >
@@ -326,7 +326,7 @@ export function MenuShell({
             <div className="max-w-lg mx-auto pointer-events-auto">
               <button
                 onClick={() => setOpen(true)}
-                className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-gray-900 text-white shadow-[0_8px_30px_rgba(0,0,0,0.2)] active:scale-[0.98] transition-all duration-150"
+                className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-emerald-500 text-white shadow-[0_8px_30px_rgba(16,185,129,0.3)] active:scale-[0.98] transition-all duration-150"
               >
                 <div className="flex items-center gap-3">
                   <div className="relative">
@@ -398,10 +398,10 @@ export function MenuShell({
 
       {/* ── Toast notification ── */}
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] pointer-events-none animate-[toastIn_0.3s_ease-out]">
-          <div className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gray-900 text-white shadow-[0_8px_30px_rgba(0,0,0,0.2)]">
-            <CheckCircle className="w-4.5 h-4.5 text-emerald-400 flex-shrink-0" />
-            <span className="text-sm font-medium whitespace-nowrap">{toast}</span>
+        <div className="fixed bottom-28 left-4 right-4 z-[60] pointer-events-none animate-[toastIn_0.25s_ease-out] flex justify-center lg:left-auto lg:right-6 lg:bottom-6 lg:w-auto">
+          <div className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-emerald-500 text-white shadow-lg">
+            <CheckCircle className="w-4 h-4 flex-shrink-0" />
+            <span className="text-sm font-semibold">{toast}</span>
           </div>
         </div>
       )}

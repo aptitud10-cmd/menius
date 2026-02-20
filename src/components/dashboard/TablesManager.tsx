@@ -42,12 +42,10 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
     startTransition(async () => {
       const result = await createTable({ name: name.trim() });
       if (result.error) { setError(result.error); return; }
-      setTables((prev) => [...prev, {
-        id: `temp-${Date.now()}`, restaurant_id: '', name: name.trim(), qr_code_value: '#', is_active: true, created_at: new Date().toISOString(),
-      }]);
       setName('');
       setShowForm(false);
       setError('');
+      window.location.reload();
     });
   };
 
@@ -268,9 +266,9 @@ function QRTableCard({ table, onDelete, onEdit, restaurantName }: { table: Table
     win.document.write(`
       <!DOCTYPE html>
       <html>
-        <head><title>QR - ${table.name}</title></head>
-        <body style="display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#fff;">
-          <img src="${dataUrl}" style="max-width:400px;width:100%;" />
+        <head><title>QR - ${table.name}</title><style>@page{size:auto;margin:10mm;}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}img{max-width:100%!important;width:100%!important;}}</style></head>
+        <body style="display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;padding:20px;background:#fff;">
+          <img src="${dataUrl}" style="width:100%;max-width:500px;" />
         </body>
       </html>
     `);
@@ -403,7 +401,7 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
   const [qrReady, setQrReady] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const appUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
   const menuUrl = `${appUrl}/r/${slug}`;
 
   useEffect(() => {
@@ -518,9 +516,9 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
     win.document.write(`
       <!DOCTYPE html>
       <html>
-        <head><title>QR — ${name}</title></head>
-        <body style="display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#fff;">
-          <img src="${dataUrl}" style="max-width:400px;width:100%;" />
+        <head><title>QR — ${name}</title><style>@page{size:auto;margin:10mm;}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}img{max-width:100%!important;width:100%!important;}}</style></head>
+        <body style="display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;padding:20px;background:#fff;">
+          <img src="${dataUrl}" style="width:100%;max-width:500px;" />
         </body>
       </html>
     `);

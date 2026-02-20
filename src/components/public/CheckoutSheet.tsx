@@ -241,12 +241,14 @@ export function CheckoutSheet({
                   {payLoading ? t.redirecting : t.payNow}
                 </button>
               )}
-              <a
-                href={`/r/${restaurant.slug}/orden/${orderNumber}`}
-                className="block w-full py-3 rounded-xl bg-gray-900 text-white font-semibold text-sm text-center hover:bg-gray-800 transition-colors"
-              >
-                {t.trackOrder}
-              </a>
+              {!restaurant.id.startsWith('demo') && (
+                <a
+                  href={`/r/${restaurant.slug}/orden/${orderNumber}`}
+                  className="block w-full py-3 rounded-xl bg-gray-900 text-white font-semibold text-sm text-center hover:bg-gray-800 transition-colors"
+                >
+                  {t.trackOrder}
+                </a>
+              )}
               <button
                 onClick={animateClose}
                 className="w-full py-2.5 rounded-xl text-gray-500 text-sm hover:bg-gray-50 transition-colors"

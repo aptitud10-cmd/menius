@@ -136,7 +136,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes }:
         </div>
         <button
           onClick={onCheckout}
-          className="w-full py-3.5 rounded-2xl bg-gray-900 text-white font-bold text-[15px] active:scale-[0.98] transition-all duration-150 shadow-sm"
+          className="w-full py-3.5 rounded-2xl bg-emerald-500 text-white font-bold text-[15px] hover:bg-emerald-600 active:scale-[0.98] transition-all duration-150 shadow-sm"
         >
           {t.checkout} →
         </button>
