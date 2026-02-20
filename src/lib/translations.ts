@@ -56,6 +56,7 @@ export interface Translations {
   send: string;
   cancel: string;
   thankYouReview: string;
+  addedToCart: string;
   // Bottom bar
   viewCart: string;
   items: string;
@@ -124,7 +125,7 @@ const es: Translations = {
   subtotal: 'Subtotal',
   discount: 'Descuento',
   sendOrder: 'Enviar pedido',
-  checkout: 'Enviar pedido',
+  checkout: 'Completar pedido',
   yourName: 'Tu nombre',
   yourNamePlaceholder: '¿Cómo te llamas?',
   orderNotes: 'Notas',
@@ -149,6 +150,7 @@ const es: Translations = {
   send: 'Enviar',
   cancel: 'Cancelar',
   thankYouReview: '¡Gracias por tu reseña!',
+  addedToCart: 'Agregado al carrito',
   viewCart: 'Ver carrito',
   items: 'items',
   schedule: 'Horario',
@@ -206,7 +208,7 @@ const en: Translations = {
   subtotal: 'Subtotal',
   discount: 'Discount',
   sendOrder: 'Place order',
-  checkout: 'Place order',
+  checkout: 'Complete order',
   yourName: 'Your name',
   yourNamePlaceholder: 'What\'s your name?',
   orderNotes: 'Notes',
@@ -231,6 +233,7 @@ const en: Translations = {
   send: 'Submit',
   cancel: 'Cancel',
   thankYouReview: 'Thank you for your review!',
+  addedToCart: 'Added to cart',
   viewCart: 'View cart',
   items: 'items',
   schedule: 'Hours',

@@ -124,13 +124,16 @@ export function CustomizationSheet({
         </div>
 
         {/* Header — always visible */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0 bg-white z-10">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 flex-shrink-0 bg-white z-10">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={animateClose}
-              className="p-2 -ml-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg active:bg-gray-100 transition-colors flex-shrink-0"
             >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
+              <ArrowLeft className="w-5 h-5 text-gray-700" />
+              <span className="text-sm font-medium text-gray-500 lg:hidden">
+                {locale === 'es' ? 'Menú' : 'Menu'}
+              </span>
             </button>
             <h2 className="text-base font-bold text-gray-900 truncate">
               {isEditing
@@ -140,9 +143,9 @@ export function CustomizationSheet({
           </div>
           <button
             onClick={animateClose}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-lg active:bg-gray-100 transition-colors flex-shrink-0"
           >
-            <X className="w-4 h-4 text-gray-400" />
+            <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
 
@@ -179,16 +182,16 @@ export function CustomizationSheet({
 
           {/* Variants — required single-select */}
           {variants.length > 0 && (
-            <div className="px-5 pt-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wide">
+            <div className="px-5 pt-5">
+              <div className="flex items-center gap-2 mb-3">
+                <h4 className="text-sm font-bold text-gray-900">
                   {t.variant}
                 </h4>
-                <span className="text-[11px] text-red-400 font-medium">
+                <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full uppercase tracking-wider">
                   {locale === 'es' ? 'Requerido' : 'Required'}
                 </span>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {variants.map((v) => {
                   const isSelected = selectedVariant?.id === v.id;
                   return (
@@ -196,23 +199,23 @@ export function CustomizationSheet({
                       key={v.id}
                       onClick={() => setSelectedVariant(isSelected ? null : v)}
                       className={cn(
-                        'w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-150 text-left',
+                        'w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-150 text-left border-2',
                         isSelected
-                          ? 'bg-gray-900 text-white'
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                          ? 'bg-gray-900 text-white border-gray-900'
+                          : 'bg-white border-gray-200 text-gray-700 active:border-gray-400'
                       )}
                     >
                       <div className="flex items-center gap-3">
                         <div className={cn(
-                          'w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors',
+                          'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors',
                           isSelected ? 'border-white bg-white' : 'border-gray-300'
                         )}>
-                          {isSelected && <div className="w-2 h-2 rounded-full bg-gray-900" />}
+                          {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-gray-900" />}
                         </div>
-                        <span className="text-sm font-medium">{v.name}</span>
+                        <span className="text-[15px] font-medium">{v.name}</span>
                       </div>
                       {v.price_delta !== 0 && (
-                        <span className={cn('text-xs font-semibold', isSelected ? 'text-gray-300' : 'text-gray-500')}>
+                        <span className={cn('text-sm font-semibold', isSelected ? 'text-gray-300' : 'text-gray-500')}>
                           {v.price_delta > 0 ? '+' : ''}{fmtPrice(Number(v.price_delta))}
                         </span>
                       )}
@@ -225,16 +228,16 @@ export function CustomizationSheet({
 
           {/* Extras — optional multi-select */}
           {extras.length > 0 && (
-            <div className="px-5 pt-5">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wide">
+            <div className="px-5 pt-6">
+              <div className="flex items-center gap-2 mb-3">
+                <h4 className="text-sm font-bold text-gray-900">
                   {t.extras}
                 </h4>
-                <span className="text-[11px] text-gray-400 font-medium">
-                  {locale === 'es' ? 'Opcionales' : 'Optional'}
+                <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  {locale === 'es' ? 'Opcional' : 'Optional'}
                 </span>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {extras.map((ex) => {
                   const isSelected = !!selectedExtras.find((e) => e.id === ex.id);
                   return (
@@ -242,22 +245,22 @@ export function CustomizationSheet({
                       key={ex.id}
                       onClick={() => toggleExtra(ex)}
                       className={cn(
-                        'w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-150 text-left',
+                        'w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-150 text-left border-2',
                         isSelected
-                          ? 'bg-gray-900 text-white'
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                          ? 'bg-gray-900 text-white border-gray-900'
+                          : 'bg-white border-gray-200 text-gray-700 active:border-gray-400'
                       )}
                     >
                       <div className="flex items-center gap-3">
                         <div className={cn(
-                          'w-4 h-4 rounded-md flex items-center justify-center transition-colors',
+                          'w-5 h-5 rounded-md flex items-center justify-center transition-colors',
                           isSelected ? 'bg-white' : 'border-2 border-gray-300'
                         )}>
-                          {isSelected && <Check className="w-3 h-3 text-gray-900" />}
+                          {isSelected && <Check className="w-3.5 h-3.5 text-gray-900" />}
                         </div>
-                        <span className="text-sm font-medium">{ex.name}</span>
+                        <span className="text-[15px] font-medium">{ex.name}</span>
                       </div>
-                      <span className={cn('text-xs font-semibold', isSelected ? 'text-gray-300' : 'text-gray-500')}>
+                      <span className={cn('text-sm font-semibold', isSelected ? 'text-gray-300' : 'text-gray-500')}>
                         +{fmtPrice(Number(ex.price))}
                       </span>
                     </button>
@@ -288,22 +291,22 @@ export function CustomizationSheet({
         </div>
 
         {/* Sticky footer */}
-        <div className="border-t border-gray-100 px-5 py-4 flex-shrink-0 bg-white">
+        <div className="border-t border-gray-100 px-5 py-4 flex-shrink-0 bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className="flex items-center gap-3">
             {/* Qty stepper */}
-            <div className="flex items-center bg-gray-100 rounded-lg">
+            <div className="flex items-center bg-gray-100 rounded-xl">
               <button
                 onClick={() => setQty(Math.max(1, qty - 1))}
-                className="w-9 h-9 flex items-center justify-center rounded-l-lg hover:bg-gray-200 transition-colors"
+                className="w-11 h-11 flex items-center justify-center rounded-l-xl active:bg-gray-200 transition-colors"
               >
-                <Minus className="w-3.5 h-3.5 text-gray-600" />
+                <Minus className="w-4 h-4 text-gray-600" />
               </button>
-              <span className="w-8 text-center font-bold text-sm tabular-nums">{qty}</span>
+              <span className="w-10 text-center font-bold text-base tabular-nums">{qty}</span>
               <button
                 onClick={() => setQty(qty + 1)}
-                className="w-9 h-9 flex items-center justify-center rounded-r-lg hover:bg-gray-200 transition-colors"
+                className="w-11 h-11 flex items-center justify-center rounded-r-xl active:bg-gray-200 transition-colors"
               >
-                <Plus className="w-3.5 h-3.5 text-gray-600" />
+                <Plus className="w-4 h-4 text-gray-600" />
               </button>
             </div>
 
@@ -312,16 +315,16 @@ export function CustomizationSheet({
               onClick={handleSubmit}
               disabled={needsVariant || added}
               className={cn(
-                'flex-1 h-11 rounded-xl font-semibold text-sm transition-all duration-150',
+                'flex-1 h-12 rounded-2xl font-bold text-[15px] transition-all duration-200',
                 added
                   ? 'bg-emerald-500 text-white'
                   : needsVariant
                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-gray-900 text-white hover:bg-gray-800 active:scale-[0.98]'
+                    : 'bg-gray-900 text-white active:scale-[0.98] shadow-sm'
               )}
             >
               {added
-                ? (locale === 'es' ? '✓ Listo' : '✓ Done')
+                ? (locale === 'es' ? '✓ Agregado' : '✓ Added')
                 : needsVariant
                   ? (locale === 'es' ? 'Selecciona una opción' : 'Select an option')
                   : isEditing

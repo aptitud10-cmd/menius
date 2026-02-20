@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ShoppingCart } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice, cn } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
@@ -64,6 +64,9 @@ export function MenuShell({
   const [showSearch, setShowSearch] = useState(false);
   const [customization, setCustomization] = useState<CustomizationTarget | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const catScrollRef = useRef<HTMLDivElement>(null);
 
   const handleCategorySelect = useCallback((catId: string | null) => {
     setActiveCategory(catId);
@@ -75,9 +78,16 @@ export function MenuShell({
     setCustomization({ product, editIndex: null });
   }, []);
 
+  const showToast = useCallback((msg: string) => {
+    clearTimeout(toastTimer.current);
+    setToast(msg);
+    toastTimer.current = setTimeout(() => setToast(null), 2000);
+  }, []);
+
   const handleQuickAdd = useCallback((product: Product) => {
     addItem(product, null, [], 1, '');
-  }, [addItem]);
+    showToast(`${product.name} — ${t.addedToCart}`);
+  }, [addItem, showToast, t.addedToCart]);
 
   const handleEditCartItem = useCallback((index: number) => {
     const items = useCartStore.getState().items;
@@ -126,34 +136,29 @@ export function MenuShell({
     );
   }, [searchQuery, products]);
 
-  // Mobile category pills
+  const scrollCats = (dir: 'left' | 'right') => {
+    catScrollRef.current?.scrollBy({ left: dir === 'left' ? -200 : 200, behavior: 'smooth' });
+  };
+
+  const categoryPill = (id: string | null, label: string, isActive: boolean) => (
+    <button
+      key={id ?? '__all'}
+      onClick={() => handleCategorySelect(id)}
+      className={cn(
+        'flex-shrink-0 px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap',
+        isActive
+          ? 'bg-gray-900 text-white shadow-sm'
+          : 'bg-gray-100 text-gray-600 active:bg-gray-200'
+      )}
+    >
+      {label}
+    </button>
+  );
+
   const mobileCategoryPills = (
-    <div className="lg:hidden py-2.5 px-4 flex gap-2 overflow-x-auto scrollbar-hide border-b border-gray-100 bg-white sticky z-30" style={{ top: HEADER_HEIGHT }}>
-      <button
-        onClick={() => handleCategorySelect(null)}
-        className={cn(
-          'flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap',
-          activeCategory === null
-            ? 'bg-emerald-500 text-white'
-            : 'bg-gray-100 text-gray-600'
-        )}
-      >
-        {t.allCategories}
-      </button>
-      {categories.map((cat) => (
-        <button
-          key={cat.id}
-          onClick={() => handleCategorySelect(cat.id)}
-          className={cn(
-            'flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap',
-            activeCategory === cat.id
-              ? 'bg-emerald-500 text-white'
-              : 'bg-gray-100 text-gray-600'
-          )}
-        >
-          {cat.name}
-        </button>
-      ))}
+    <div className="lg:hidden py-3 px-4 flex gap-2.5 overflow-x-auto scrollbar-hide border-b border-gray-100 bg-white sticky z-30" style={{ top: HEADER_HEIGHT }}>
+      {categoryPill(null, t.allCategories, activeCategory === null)}
+      {categories.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id))}
     </div>
   );
 
@@ -195,37 +200,22 @@ export function MenuShell({
         {/* Center: Products grid — scrolls independently */}
         <main className="flex-1 min-w-0 overflow-y-auto px-4 lg:px-6 py-5 pb-28 lg:pb-6">
           {/* Restaurant info + category tabs (desktop) */}
-          <div className="hidden lg:block mb-5">
+          <div className="hidden lg:block mb-6">
             <h2 className="text-xl font-bold text-gray-900">{restaurant.name}</h2>
             {restaurant.description && (
-              <p className="text-sm text-gray-400 mt-0.5">{restaurant.description}</p>
+              <p className="text-sm text-gray-500 mt-1">{restaurant.description}</p>
             )}
-            <div className="flex items-center gap-1 mt-4 border-b border-gray-100 overflow-x-auto scrollbar-hide">
-              <button
-                onClick={() => handleCategorySelect(null)}
-                className={cn(
-                  'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap',
-                  activeCategory === null
-                    ? 'border-emerald-500 text-emerald-600'
-                    : 'border-transparent text-gray-400 hover:text-gray-600'
-                )}
-              >
-                {t.allCategories}
+            <div className="relative mt-5">
+              <button onClick={() => scrollCats('left')} className="absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-white via-white to-transparent flex items-center justify-start" aria-label="Scroll left">
+                <ChevronLeft className="w-4 h-4 text-gray-400" />
               </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategorySelect(cat.id)}
-                  className={cn(
-                    'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap',
-                    activeCategory === cat.id
-                      ? 'border-emerald-500 text-emerald-600'
-                      : 'border-transparent text-gray-400 hover:text-gray-600'
-                  )}
-                >
-                  {cat.name}
-                </button>
-              ))}
+              <div ref={catScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5">
+                {categoryPill(null, t.allCategories, activeCategory === null)}
+                {categories.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id))}
+              </div>
+              <button onClick={() => scrollCats('right')} className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end" aria-label="Scroll right">
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              </button>
             </div>
           </div>
 
@@ -233,17 +223,17 @@ export function MenuShell({
           <div className="flex gap-2 mb-5 overflow-x-auto scrollbar-hide">
             {([
               ['all', t.filterAll],
-              ['popular', t.filterPopular],
+              ['popular', `🔥 ${t.filterPopular}`],
               ['options', t.filterWithOptions],
             ] as const).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setActiveFilter(key)}
                 className={cn(
-                  'flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap border',
+                  'flex-shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200 whitespace-nowrap border',
                   activeFilter === key
-                    ? 'bg-emerald-500 text-white border-emerald-500'
-                    : 'bg-white text-gray-500 border-gray-200 hover:border-emerald-300'
+                    ? 'bg-gray-900 text-white border-gray-900'
+                    : 'bg-white text-gray-500 border-gray-200 active:bg-gray-50'
                 )}
               >
                 {label}
@@ -285,10 +275,15 @@ export function MenuShell({
             <div className="space-y-10">
               {itemsByCategory.map(({ category, items }) => (
                 <section key={category.id}>
-                  <h2 className="text-lg font-bold text-gray-900 mb-4 bg-white py-2 z-10">
-                    {category.name}
-                    <span className="text-sm font-normal text-gray-400 ml-2">({items.length})</span>
-                  </h2>
+                  <div className="flex items-center gap-3 mb-4 py-2">
+                    <h2 className="text-lg font-bold text-gray-900">
+                      {category.name}
+                    </h2>
+                    <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full tabular-nums">
+                      {items.length}
+                    </span>
+                    <div className="flex-1 h-px bg-gray-100" />
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {items.map((product) => (
                       <ProductCard
@@ -328,18 +323,18 @@ export function MenuShell({
             <div className="max-w-lg mx-auto pointer-events-auto">
               <button
                 onClick={() => setOpen(true)}
-                className="w-full flex items-center justify-between px-5 py-3.5 rounded-xl bg-emerald-500 text-white shadow-[0_4px_20px_rgba(16,185,129,0.3)] active:scale-[0.98] transition-all duration-150"
+                className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-gray-900 text-white shadow-[0_8px_30px_rgba(0,0,0,0.2)] active:scale-[0.98] transition-all duration-150"
               >
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <ShoppingCart className="w-5 h-5" />
-                    <span className="absolute -top-1.5 -right-1.5 w-4 h-4 flex items-center justify-center rounded-full bg-white text-emerald-600 text-[10px] font-bold">
+                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-emerald-500 text-white text-[10px] font-bold px-1">
                       {cartCount}
                     </span>
                   </div>
-                  <span className="font-semibold text-sm">{t.viewCart}</span>
+                  <span className="font-semibold text-[15px]">{t.viewCart}</span>
                 </div>
-                <span className="font-bold text-sm tabular-nums">{fmtPrice(cartTotal)}</span>
+                <span className="font-bold text-[15px] tabular-nums">{fmtPrice(cartTotal)}</span>
               </button>
             </div>
           </div>
@@ -351,14 +346,12 @@ export function MenuShell({
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
           <div className="absolute inset-y-0 right-0 w-full sm:w-[440px] bg-white flex flex-col shadow-2xl animate-[slideInRight_0.25s_ease-out]">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 flex-shrink-0">
-              <h2 className="text-base font-bold text-gray-900">{t.yourCart}</h2>
-              <button onClick={() => setOpen(false)} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <span className="sr-only">Close</span>
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
+              <button onClick={() => setOpen(false)} className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors">
+                <ChevronLeft className="w-5 h-5" />
+                <span className="text-sm font-medium">{t.backToMenu}</span>
               </button>
+              <h2 className="text-base font-bold text-gray-900">{t.yourCart}</h2>
             </div>
             <div className="flex-1 overflow-hidden">
               <CartPanel
@@ -393,6 +386,16 @@ export function MenuShell({
           t={t}
           locale={locale}
         />
+      )}
+
+      {/* ── Toast notification ── */}
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] pointer-events-none animate-[toastIn_0.3s_ease-out]">
+          <div className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gray-900 text-white shadow-[0_8px_30px_rgba(0,0,0,0.2)]">
+            <CheckCircle className="w-4.5 h-4.5 text-emerald-400 flex-shrink-0" />
+            <span className="text-sm font-medium whitespace-nowrap">{toast}</span>
+          </div>
+        </div>
       )}
 
     </div>

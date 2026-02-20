@@ -260,7 +260,7 @@ export function CheckoutSheet({
     );
   }
 
-  const inputClass = 'w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors';
+  const inputClass = 'w-full px-4 py-3.5 rounded-2xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white';
 
   // ── Checkout form ──
   return (
@@ -280,12 +280,13 @@ export function CheckoutSheet({
       >
         {/* Header — always visible */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0 bg-white z-10">
-          <div className="flex items-center gap-3">
-            <button onClick={animateClose} className="p-2 -ml-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Back">
+          <div className="flex items-center gap-2">
+            <button onClick={animateClose} className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Back">
               <ArrowLeft className="w-5 h-5 text-gray-700" />
+              <span className="text-sm font-medium text-gray-500 lg:hidden">{t.backToMenu}</span>
             </button>
-            <h2 className="text-lg font-bold text-gray-900">{t.checkout}</h2>
           </div>
+          <h2 className="text-base font-bold text-gray-900 absolute left-1/2 -translate-x-1/2">{t.checkout}</h2>
           <button onClick={animateClose} className="p-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Close">
             <X className="w-5 h-5 text-gray-400" />
           </button>
