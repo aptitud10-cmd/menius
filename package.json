@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "@react-google-maps/api": "^2.20.8",
     "@sentry/nextjs": "^10.39.0",
     "@supabase/ssr": "^0.1.0",
     "@supabase/supabase-js": "^2.39.0",

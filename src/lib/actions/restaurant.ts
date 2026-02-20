@@ -345,6 +345,100 @@ export async function deleteExtra(id: string) {
   return { success: true };
 }
 
+// ---- Modifier Groups ----
+export async function createModifierGroup(productId: string, data: { name: string; selection_type: 'single' | 'multi'; min_select: number; max_select: number; is_required: boolean; sort_order: number }) {
+  const supabase = createClient();
+  const { data: group, error } = await supabase
+    .from('modifier_groups')
+    .insert({
+      product_id: productId,
+      name: sanitizeText(data.name, 100),
+      selection_type: data.selection_type,
+      min_select: data.min_select,
+      max_select: data.max_select,
+      is_required: data.is_required,
+      sort_order: data.sort_order,
+    })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+  revalidatePath('/app/menu/products');
+  return { success: true, group: { ...group, options: [] } };
+}
+
+export async function updateModifierGroup(id: string, data: { name: string; selection_type: 'single' | 'multi'; min_select: number; max_select: number; is_required: boolean; sort_order: number }) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('modifier_groups')
+    .update({
+      name: sanitizeText(data.name, 100),
+      selection_type: data.selection_type,
+      min_select: data.min_select,
+      max_select: data.max_select,
+      is_required: data.is_required,
+      sort_order: data.sort_order,
+    })
+    .eq('id', id);
+
+  if (error) return { error: error.message };
+  revalidatePath('/app/menu/products');
+  return { success: true };
+}
+
+export async function deleteModifierGroup(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from('modifier_groups').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidatePath('/app/menu/products');
+  return { success: true };
+}
+
+// ---- Modifier Options ----
+export async function createModifierOption(groupId: string, data: { name: string; price_delta: number; is_default: boolean; sort_order: number }) {
+  const supabase = createClient();
+  const { data: option, error } = await supabase
+    .from('modifier_options')
+    .insert({
+      group_id: groupId,
+      name: sanitizeText(data.name, 100),
+      price_delta: data.price_delta,
+      is_default: data.is_default,
+      sort_order: data.sort_order,
+    })
+    .select()
+    .single();
+
+  if (error) return { error: error.message };
+  revalidatePath('/app/menu/products');
+  return { success: true, option };
+}
+
+export async function updateModifierOption(id: string, data: { name: string; price_delta: number; is_default: boolean; sort_order: number }) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from('modifier_options')
+    .update({
+      name: sanitizeText(data.name, 100),
+      price_delta: data.price_delta,
+      is_default: data.is_default,
+      sort_order: data.sort_order,
+    })
+    .eq('id', id);
+
+  if (error) return { error: error.message };
+  revalidatePath('/app/menu/products');
+  return { success: true };
+}
+
+export async function deleteModifierOption(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from('modifier_options').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidatePath('/app/menu/products');
+  return { success: true };
+}
+
 // ---- Tables ----
 export async function createTable(data: TableInput) {
   const supabase = createClient();

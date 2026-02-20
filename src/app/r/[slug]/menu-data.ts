@@ -20,7 +20,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
 
   if (!restaurant) return null;
 
-  const [{ data: categories }, { data: products }, { data: { user } }] = await Promise.all([
+  const [{ data: categories }, { data: products }, { data: { user } }, { data: modifierGroups }] = await Promise.all([
     supabase
       .from('categories')
       .select('*')
@@ -34,12 +34,27 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
       .eq('is_active', true)
       .order('sort_order'),
     supabase.auth.getUser(),
+    supabase
+      .from('modifier_groups')
+      .select('*, modifier_options(*)')
+      .order('sort_order'),
   ]);
+
+  const groupsByProduct = new Map<string, any[]>();
+  for (const g of (modifierGroups ?? [])) {
+    const pid = g.product_id;
+    if (!groupsByProduct.has(pid)) groupsByProduct.set(pid, []);
+    groupsByProduct.get(pid)!.push({
+      ...g,
+      options: (g.modifier_options ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order),
+    });
+  }
 
   const mappedProducts = (products ?? []).map((p: any) => ({
     ...p,
     variants: p.product_variants ?? [],
     extras: p.product_extras ?? [],
+    modifier_groups: (groupsByProduct.get(p.id) ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order),
   }));
 
   return {

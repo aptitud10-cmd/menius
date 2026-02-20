@@ -58,6 +58,13 @@ export const publicOrderSchema = z.object({
       extra_id: z.string().uuid(),
       price: z.number(),
     })).default([]),
+    modifiers: z.array(z.object({
+      group_id: z.string(),
+      group_name: z.string(),
+      option_id: z.string(),
+      option_name: z.string(),
+      price_delta: z.number(),
+    })).default([]),
   })).min(1, 'Agrega al menos un producto'),
 });
 

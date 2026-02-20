@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
           id, qty, unit_price, line_total, notes,
           products ( name, image_url ),
           product_variants ( name ),
-          order_item_extras ( price, product_extras ( name ) )
+          order_item_extras ( price, product_extras ( name ) ),
+          order_item_modifiers ( group_name, option_name, price_delta )
         )
       `)
       .eq('restaurant_id', restaurantId)

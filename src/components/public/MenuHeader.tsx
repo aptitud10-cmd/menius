@@ -3,7 +3,7 @@
 import { memo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ShoppingCart, Search, X, ArrowLeft } from 'lucide-react';
+import { ShoppingCart, Search, X, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import type { Restaurant } from '@/types';
@@ -98,6 +98,14 @@ export const MenuHeader = memo(function MenuHeader({
 
         {/* Right side */}
         <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0 ml-auto">
+          <Link
+            href="/app"
+            className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            <LayoutDashboard className="w-3.5 h-3.5" />
+            Dashboard
+          </Link>
+
           <span className={cn(
             'hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold',
             open ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'

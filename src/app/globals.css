@@ -404,40 +404,66 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   background-clip: text;
 }
 
-/* Phone field overrides */
+/* Phone field overrides — Dark (dashboard) */
 .phone-field--dark .PhoneInputCountry {
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 0.75rem;
-  padding: 0.5rem;
+  padding: 0.625rem 0.5rem;
   margin-right: 0.5rem;
 }
 .phone-field--dark .PhoneInputCountrySelectArrow {
   border-color: #9ca3af;
 }
+.phone-field--dark .PhoneInput {
+  display: flex;
+  align-items: stretch;
+}
+.phone-field--dark .PhoneInputInput {
+  font-size: 16px !important;
+}
+
+/* Phone field overrides — Light (public checkout) */
+.phone-field--light .PhoneInput {
+  display: flex;
+  align-items: stretch;
+}
 .phone-field--light .PhoneInputCountry {
   background: #fff;
   border: 2px solid #e5e7eb;
-  border-radius: 0.75rem;
-  padding: 0.625rem 0.5rem;
+  border-radius: 1rem;
+  padding: 0 0.75rem;
   margin-right: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  transition: border-color 0.15s;
+  flex-shrink: 0;
+}
+.phone-field--light .PhoneInputCountry:focus-within {
+  border-color: #111827;
 }
 .phone-field--light .PhoneInputCountrySelectArrow {
   border-color: #6b7280;
-}
-.phone-field--light .PhoneInputInput {
-  font-size: 16px !important;
-}
-.phone-field--light .PhoneInput {
-  display: flex;
-  align-items: center;
+  width: 0.35em;
+  height: 0.35em;
 }
 .phone-field--light .PhoneInputCountryIcon {
   width: 24px;
   height: 18px;
 }
+.phone-field--light .PhoneInputCountryIcon--border {
+  box-shadow: none;
+  background: none;
+}
 .phone-field--light .PhoneInputCountrySelect {
   font-size: 16px;
+}
+.phone-field--light .PhoneInputInput {
+  font-size: 16px !important;
+}
+.phone-field--light .PhoneInputCountrySelect:focus + .PhoneInputCountryIcon--border {
+  box-shadow: none;
 }
 
 /* Animated shimmer on borders */

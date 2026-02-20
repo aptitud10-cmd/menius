@@ -128,6 +128,19 @@ export async function POST(request: NextRequest) {
           }))
         );
       }
+
+      if (orderItem && item.modifiers && item.modifiers.length > 0) {
+        await supabase.from('order_item_modifiers').insert(
+          item.modifiers.map((mod) => ({
+            order_item_id: orderItem.id,
+            group_id: mod.group_id.startsWith('__legacy') ? null : mod.group_id,
+            option_id: mod.option_id.startsWith('__legacy') ? null : mod.option_id,
+            group_name: mod.group_name,
+            option_name: mod.option_name,
+            price_delta: mod.price_delta,
+          }))
+        );
+      }
     }
 
     if (promo_code) {

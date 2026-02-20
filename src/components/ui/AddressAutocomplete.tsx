@@ -1,9 +1,8 @@
 'use client';
 
 import { useRef, useCallback, useState, useEffect } from 'react';
-import { Autocomplete, useJsApiLoader } from '@react-google-maps/api';
+import { MapPin } from 'lucide-react';
 
-const LIBRARIES: ('places')[] = ['places'];
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_PLACES_KEY ?? '';
 
 interface AddressAutocompleteProps {
@@ -12,31 +11,70 @@ interface AddressAutocompleteProps {
   label?: string;
   placeholder?: string;
   dark?: boolean;
-  rows?: number;
+  required?: boolean;
 }
 
-export function AddressAutocomplete({ value, onChange, label, placeholder = 'Buscar dirección...', dark = true, rows }: AddressAutocompleteProps) {
+export function AddressAutocomplete({
+  value,
+  onChange,
+  label,
+  placeholder = 'Buscar dirección...',
+  dark = true,
+  required,
+}: AddressAutocompleteProps) {
   const [localValue, setLocalValue] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => { setLocalValue(value); }, [value]);
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
 
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: API_KEY,
-    libraries: LIBRARIES,
-  });
+  useEffect(() => {
+    if (!API_KEY || loaded) return;
 
-  const onLoad = useCallback((ac: google.maps.places.Autocomplete) => {
-    autocompleteRef.current = ac;
-  }, []);
-
-  const onPlaceChanged = useCallback(() => {
-    const place = autocompleteRef.current?.getPlace();
-    if (place?.formatted_address) {
-      setLocalValue(place.formatted_address);
-      onChange(place.formatted_address);
+    // Check if already loaded
+    if (window.google?.maps?.places) {
+      setLoaded(true);
+      return;
     }
-  }, [onChange]);
+
+    const existing = document.querySelector(
+      'script[src*="maps.googleapis.com/maps/api/js"]'
+    );
+    if (existing) {
+      existing.addEventListener('load', () => setLoaded(true));
+      if (window.google?.maps?.places) setLoaded(true);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setLoaded(true);
+    document.head.appendChild(script);
+  }, [loaded]);
+
+  useEffect(() => {
+    if (!loaded || !inputRef.current || autocompleteRef.current) return;
+
+    const ac = new google.maps.places.Autocomplete(inputRef.current, {
+      types: ['address'],
+      fields: ['formatted_address', 'geometry'],
+    });
+
+    ac.addListener('place_changed', () => {
+      const place = ac.getPlace();
+      if (place?.formatted_address) {
+        setLocalValue(place.formatted_address);
+        onChange(place.formatted_address);
+      }
+    });
+
+    autocompleteRef.current = ac;
+  }, [loaded, onChange]);
 
   const handleManualChange = (v: string) => {
     setLocalValue(v);
@@ -44,42 +82,35 @@ export function AddressAutocomplete({ value, onChange, label, placeholder = 'Bus
   };
 
   const inputClass = dark
-    ? 'w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-sm bg-white/[0.04] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30'
-    : 'w-full px-4 py-3 rounded-2xl border-2 border-gray-200 text-sm focus:outline-none focus:border-brand-400 transition-colors text-gray-900';
+    ? 'w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-base bg-white/[0.04] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30'
+    : 'w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white';
 
-  if (!API_KEY || !isLoaded) {
-    return (
-      <div>
-        {label && (
-          <label className={`block text-xs font-medium mb-1 ${dark ? 'text-gray-400' : 'font-semibold text-gray-500 uppercase tracking-wider mb-2'}`}>
-            {label}
-          </label>
-        )}
-        {rows ? (
-          <textarea value={localValue} onChange={(e) => handleManualChange(e.target.value)} placeholder={placeholder} rows={rows} className={`${inputClass} resize-none`} />
-        ) : (
-          <input type="text" value={localValue} onChange={(e) => handleManualChange(e.target.value)} placeholder={placeholder} className={inputClass} />
-        )}
-      </div>
-    );
-  }
+  const labelClass = dark
+    ? 'block text-xs font-medium text-gray-400 mb-1'
+    : 'block text-sm font-semibold text-gray-900 mb-2';
 
   return (
     <div>
       {label && (
-        <label className={`block text-xs font-medium mb-1 ${dark ? 'text-gray-400' : 'font-semibold text-gray-500 uppercase tracking-wider mb-2'}`}>
+        <label className={labelClass}>
           {label}
+          {required && <span className="text-red-500 ml-0.5">*</span>}
         </label>
       )}
-      <Autocomplete onLoad={onLoad} onPlaceChanged={onPlaceChanged}>
+      <div className="relative">
+        {!dark && (
+          <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400 pointer-events-none" />
+        )}
         <input
+          ref={inputRef}
           type="text"
           value={localValue}
           onChange={(e) => handleManualChange(e.target.value)}
           placeholder={placeholder}
           className={inputClass}
+          autoComplete="off"
         />
-      </Autocomplete>
+      </div>
     </div>
   );
 }

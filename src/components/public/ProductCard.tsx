@@ -27,7 +27,8 @@ export const ProductCard = memo(function ProductCard({
 }: ProductCardProps) {
   const hasVariants = (product.variants?.length ?? 0) > 0;
   const hasExtras = (product.extras?.length ?? 0) > 0;
-  const hasModifiers = hasVariants || hasExtras;
+  const hasModifierGroups = (product.modifier_groups?.length ?? 0) > 0;
+  const hasModifiers = hasVariants || hasExtras || hasModifierGroups;
   const [imgError, setImgError] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Loader2, CheckCircle2, Send } from 'lucide-react';
+import { PhoneField } from '@/components/ui/PhoneField';
 
 interface PackageOption {
   id: string;
@@ -155,13 +156,11 @@ export function SetupForm({ packages }: { packages: PackageOption[] }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">Teléfono (opcional)</label>
-          <input
-            type="tel"
+          <PhoneField
+            label="Teléfono (opcional)"
             value={form.phone}
-            onChange={(e) => handleChange('phone', e.target.value)}
-            placeholder="+1 (555) 123-4567"
-            className={inputClasses}
+            onChange={(v) => handleChange('phone', v)}
+            dark={true}
           />
         </div>
       </div>

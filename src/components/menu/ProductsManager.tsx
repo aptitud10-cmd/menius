@@ -3,17 +3,16 @@
 import { useState, useEffect, useTransition, useRef, lazy, Suspense } from 'react';
 import {
   Plus, Pencil, Trash2, Eye, EyeOff, ImagePlus, X, Sparkles,
-  Loader2, Camera, Wand2, Package, Layers, ListPlus, ChevronRight,
+  Loader2, Camera, Wand2, Package, Layers, ChevronRight,
 } from 'lucide-react';
 import Image from 'next/image';
 import {
   createProduct, updateProduct, deleteProduct,
-  createVariant, updateVariant, deleteVariant,
-  createExtra, updateExtra, deleteExtra,
-  createCategory,
+  createModifierGroup, updateModifierGroup, deleteModifierGroup,
+  createModifierOption, updateModifierOption, deleteModifierOption,
 } from '@/lib/actions/restaurant';
 import { formatPrice, cn } from '@/lib/utils';
-import type { Product, Category, ProductVariant, ProductExtra } from '@/types';
+import type { Product, Category, ModifierGroup, ModifierOption } from '@/types';
 
 const MenuImportLazy = lazy(() => import('./MenuImport').then(m => ({ default: m.MenuImport })));
 
@@ -25,211 +24,303 @@ const AI_STYLES = [
 ];
 
 // ============================================================
-// VARIANT / EXTRA INLINE EDITORS
+// MODIFIER GROUPS EDITOR
 // ============================================================
 
-function VariantEditor({ variants, productId, onUpdate }: {
-  variants: ProductVariant[];
+function ModifierGroupsEditor({ groups, productId, onUpdate }: {
+  groups: ModifierGroup[];
   productId: string;
-  onUpdate: (variants: ProductVariant[]) => void;
+  onUpdate: (groups: ModifierGroup[]) => void;
 }) {
-  const [items, setItems] = useState(variants);
-  const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({ name: '', price_delta: '' });
-  const [editId, setEditId] = useState<string | null>(null);
+  const [items, setItems] = useState(groups);
+  const [addingGroup, setAddingGroup] = useState(false);
+  const [groupForm, setGroupForm] = useState({ name: '', selection_type: 'single' as 'single' | 'multi', min_select: '0', max_select: '1', is_required: false });
+  const [editGroupId, setEditGroupId] = useState<string | null>(null);
+  const [expandedGroup, setExpandedGroup] = useState<string | null>(groups[0]?.id ?? null);
+  const [addingOptionFor, setAddingOptionFor] = useState<string | null>(null);
+  const [optionForm, setOptionForm] = useState({ name: '', price_delta: '' });
+  const [editOptionId, setEditOptionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleAdd = async () => {
-    if (!form.name.trim()) return;
+  const handleAddGroup = async () => {
+    if (!groupForm.name.trim()) return;
     setLoading(true);
-    const result = await createVariant(productId, {
-      name: form.name,
-      price_delta: parseFloat(form.price_delta) || 0,
-      sort_order: items.length + 1,
+    const result = await createModifierGroup(productId, {
+      name: groupForm.name,
+      selection_type: groupForm.selection_type,
+      min_select: parseInt(groupForm.min_select) || 0,
+      max_select: parseInt(groupForm.max_select) || 1,
+      is_required: groupForm.is_required,
+      sort_order: items.length,
     });
-    if (result.variant) {
-      const newItems = [...items, result.variant as ProductVariant];
+    if (result.group) {
+      const newItems = [...items, result.group as ModifierGroup];
       setItems(newItems);
       onUpdate(newItems);
+      setExpandedGroup(result.group.id);
     }
-    setForm({ name: '', price_delta: '' });
-    setAdding(false);
+    setGroupForm({ name: '', selection_type: 'single', min_select: '0', max_select: '1', is_required: false });
+    setAddingGroup(false);
     setLoading(false);
   };
 
-  const handleUpdate = async (v: ProductVariant) => {
+  const handleUpdateGroup = async (g: ModifierGroup) => {
     setLoading(true);
-    await updateVariant(v.id, { name: form.name || v.name, price_delta: parseFloat(form.price_delta) || v.price_delta, sort_order: v.sort_order });
-    const newItems = items.map(i => i.id === v.id ? { ...i, name: form.name || i.name, price_delta: parseFloat(form.price_delta) || i.price_delta } : i);
+    await updateModifierGroup(g.id, {
+      name: groupForm.name || g.name,
+      selection_type: groupForm.selection_type,
+      min_select: parseInt(groupForm.min_select) || 0,
+      max_select: parseInt(groupForm.max_select) || 1,
+      is_required: groupForm.is_required,
+      sort_order: g.sort_order,
+    });
+    const newItems = items.map(i => i.id === g.id ? {
+      ...i,
+      name: groupForm.name || i.name,
+      selection_type: groupForm.selection_type,
+      min_select: parseInt(groupForm.min_select) || 0,
+      max_select: parseInt(groupForm.max_select) || 1,
+      is_required: groupForm.is_required,
+    } : i);
     setItems(newItems);
     onUpdate(newItems);
-    setEditId(null);
-    setForm({ name: '', price_delta: '' });
+    setEditGroupId(null);
     setLoading(false);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteGroup = async (id: string) => {
+    if (!confirm('Eliminar este grupo y todas sus opciones?')) return;
     setLoading(true);
-    await deleteVariant(id);
+    await deleteModifierGroup(id);
     const newItems = items.filter(i => i.id !== id);
     setItems(newItems);
     onUpdate(newItems);
     setLoading(false);
   };
 
+  const handleAddOption = async (groupId: string) => {
+    if (!optionForm.name.trim()) return;
+    setLoading(true);
+    const group = items.find(g => g.id === groupId);
+    const result = await createModifierOption(groupId, {
+      name: optionForm.name,
+      price_delta: parseFloat(optionForm.price_delta) || 0,
+      is_default: false,
+      sort_order: (group?.options.length ?? 0),
+    });
+    if (result.option) {
+      const newItems = items.map(g => g.id === groupId
+        ? { ...g, options: [...g.options, result.option as ModifierOption] }
+        : g);
+      setItems(newItems);
+      onUpdate(newItems);
+    }
+    setOptionForm({ name: '', price_delta: '' });
+    setAddingOptionFor(null);
+    setLoading(false);
+  };
+
+  const handleUpdateOption = async (opt: ModifierOption, groupId: string) => {
+    setLoading(true);
+    await updateModifierOption(opt.id, {
+      name: optionForm.name || opt.name,
+      price_delta: parseFloat(optionForm.price_delta) || 0,
+      is_default: opt.is_default,
+      sort_order: opt.sort_order,
+    });
+    const newItems = items.map(g => g.id === groupId
+      ? { ...g, options: g.options.map(o => o.id === opt.id ? { ...o, name: optionForm.name || o.name, price_delta: parseFloat(optionForm.price_delta) || 0 } : o) }
+      : g);
+    setItems(newItems);
+    onUpdate(newItems);
+    setEditOptionId(null);
+    setOptionForm({ name: '', price_delta: '' });
+    setLoading(false);
+  };
+
+  const handleDeleteOption = async (optionId: string, groupId: string) => {
+    setLoading(true);
+    await deleteModifierOption(optionId);
+    const newItems = items.map(g => g.id === groupId
+      ? { ...g, options: g.options.filter(o => o.id !== optionId) }
+      : g);
+    setItems(newItems);
+    onUpdate(newItems);
+    setLoading(false);
+  };
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Layers className="w-4 h-4 text-blue-500" />
-          <span className="text-sm font-semibold text-gray-700">Variantes</span>
-          <span className="text-xs text-gray-500">(ej: tamano, termino de coccion)</span>
+          <Layers className="w-4 h-4 text-emerald-500" />
+          <span className="text-sm font-semibold text-gray-700">Grupos de opciones</span>
         </div>
-        {!adding && (
-          <button onClick={() => setAdding(true)} className="flex items-center gap-1 text-xs font-medium text-blue-400 hover:text-blue-300">
-            <Plus className="w-3.5 h-3.5" /> Agregar
+        {!addingGroup && (
+          <button onClick={() => setAddingGroup(true)} className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700">
+            <Plus className="w-3.5 h-3.5" /> Nuevo grupo
           </button>
         )}
       </div>
 
-      {items.length === 0 && !adding && (
-        <p className="text-xs text-gray-500 py-2">Sin variantes. Los clientes veran solo el precio base.</p>
+      {items.length === 0 && !addingGroup && (
+        <div className="text-center py-6 text-gray-400">
+          <Layers className="w-8 h-8 mx-auto mb-2 opacity-40" />
+          <p className="text-xs text-gray-500">Sin grupos de opciones.</p>
+          <p className="text-xs text-gray-400 mt-1">Crea grupos como &quot;Tamano&quot;, &quot;Extras&quot;, &quot;Salsas&quot;, etc.</p>
+        </div>
       )}
 
-      <div className="space-y-1.5">
-        {items.map((v) => (
-          <div key={v.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-            {editId === v.id ? (
-              <>
-                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nombre" className="flex-1 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-400" />
-                <input value={form.price_delta} onChange={e => setForm({ ...form, price_delta: e.target.value })} placeholder="+0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-400" />
-                <button onClick={() => handleUpdate(v)} disabled={loading} className="text-xs font-medium text-blue-400 hover:text-blue-300 disabled:opacity-50">Guardar</button>
-                <button onClick={() => { setEditId(null); setForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-500">Cancelar</button>
-              </>
+      {/* Add group form */}
+      {addingGroup && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 space-y-3">
+          <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Nuevo grupo</p>
+          <input value={groupForm.name} onChange={e => setGroupForm({ ...groupForm, name: e.target.value })} placeholder='Ej: Tamano, Proteina, Salsas...' autoFocus className="w-full text-sm px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-medium text-gray-500 mb-1 block">Tipo de seleccion</label>
+              <select value={groupForm.selection_type} onChange={e => {
+                const st = e.target.value as 'single' | 'multi';
+                setGroupForm({ ...groupForm, selection_type: st, max_select: st === 'single' ? '1' : groupForm.max_select });
+              }} className="w-full text-sm px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
+                <option value="single">Unica (elige 1)</option>
+                <option value="multi">Multiple (elige varias)</option>
+              </select>
+            </div>
+            <div>
+              <label className="flex items-center gap-2 mt-6 cursor-pointer">
+                <input type="checkbox" checked={groupForm.is_required} onChange={e => setGroupForm({ ...groupForm, is_required: e.target.checked, min_select: e.target.checked ? '1' : '0' })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500/30" />
+                <span className="text-sm text-gray-700 font-medium">Requerido</span>
+              </label>
+            </div>
+          </div>
+          {groupForm.selection_type === 'multi' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-medium text-gray-500 mb-1 block">Minimo</label>
+                <input type="number" min="0" value={groupForm.min_select} onChange={e => setGroupForm({ ...groupForm, min_select: e.target.value })} className="w-full text-sm px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-gray-500 mb-1 block">Maximo</label>
+                <input type="number" min="1" value={groupForm.max_select} onChange={e => setGroupForm({ ...groupForm, max_select: e.target.value })} className="w-full text-sm px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
+              </div>
+            </div>
+          )}
+          <div className="flex gap-2 pt-1">
+            <button onClick={handleAddGroup} disabled={loading || !groupForm.name.trim()} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+              {loading ? 'Creando...' : 'Crear grupo'}
+            </button>
+            <button onClick={() => { setAddingGroup(false); setGroupForm({ name: '', selection_type: 'single', min_select: '0', max_select: '1', is_required: false }); }} className="px-4 py-2 rounded-lg text-xs text-gray-500 hover:bg-gray-100">Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {/* Groups list */}
+      {items.map((group) => {
+        const isExpanded = expandedGroup === group.id;
+        const isEditing = editGroupId === group.id;
+        const ruleLabel = group.selection_type === 'single'
+          ? (group.is_required ? 'Elige 1 (requerido)' : 'Elige 1 (opcional)')
+          : group.is_required
+            ? `Elige ${group.min_select}-${group.max_select} (requerido)`
+            : `Hasta ${group.max_select} (opcional)`;
+
+        return (
+          <div key={group.id} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+            {/* Group header */}
+            {isEditing ? (
+              <div className="p-4 space-y-3 bg-gray-50">
+                <input value={groupForm.name} onChange={e => setGroupForm({ ...groupForm, name: e.target.value })} className="w-full text-sm px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
+                <div className="grid grid-cols-2 gap-3">
+                  <select value={groupForm.selection_type} onChange={e => setGroupForm({ ...groupForm, selection_type: e.target.value as 'single' | 'multi' })} className="text-sm px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30">
+                    <option value="single">Unica</option>
+                    <option value="multi">Multiple</option>
+                  </select>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={groupForm.is_required} onChange={e => setGroupForm({ ...groupForm, is_required: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500/30" />
+                    <span className="text-sm text-gray-700">Requerido</span>
+                  </label>
+                </div>
+                {groupForm.selection_type === 'multi' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[11px] text-gray-500 mb-1 block">Min</label>
+                      <input type="number" min="0" value={groupForm.min_select} onChange={e => setGroupForm({ ...groupForm, min_select: e.target.value })} className="w-full text-sm px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-gray-500 mb-1 block">Max</label>
+                      <input type="number" min="1" value={groupForm.max_select} onChange={e => setGroupForm({ ...groupForm, max_select: e.target.value })} className="w-full text-sm px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <button onClick={() => handleUpdateGroup(group)} disabled={loading} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 disabled:opacity-50">Guardar</button>
+                  <button onClick={() => { setEditGroupId(null); }} className="text-xs text-gray-500">Cancelar</button>
+                </div>
+              </div>
             ) : (
-              <>
-                <span className="flex-1 text-sm text-gray-700 font-medium">{v.name}</span>
-                <span className="text-sm text-gray-500 font-mono">
-                  {v.price_delta > 0 ? `+$${v.price_delta.toFixed(2)}` : v.price_delta < 0 ? `-$${Math.abs(v.price_delta).toFixed(2)}` : 'Base'}
+              <button
+                onClick={() => setExpandedGroup(isExpanded ? null : group.id)}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+              >
+                <ChevronRight className={cn('w-4 h-4 text-gray-400 transition-transform', isExpanded && 'rotate-90')} />
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-semibold text-gray-900">{group.name}</span>
+                  <span className="ml-2 text-[11px] text-gray-400">{group.options.length} opciones</span>
+                </div>
+                <span className={cn(
+                  'text-[10px] font-medium px-2 py-0.5 rounded-full',
+                  group.is_required ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500'
+                )}>
+                  {ruleLabel}
                 </span>
-                <button onClick={() => { setEditId(v.id); setForm({ name: v.name, price_delta: String(v.price_delta) }); }} className="p-1 rounded hover:bg-gray-100 text-gray-500"><Pencil className="w-3.5 h-3.5" /></button>
-                <button onClick={() => handleDelete(v.id)} className="p-1 rounded hover:bg-red-500/[0.08] text-gray-500 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
-              </>
+                <button onClick={(e) => { e.stopPropagation(); setEditGroupId(group.id); setGroupForm({ name: group.name, selection_type: group.selection_type, min_select: String(group.min_select), max_select: String(group.max_select), is_required: group.is_required }); }} className="p-1 rounded hover:bg-gray-100 text-gray-400"><Pencil className="w-3.5 h-3.5" /></button>
+                <button onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+              </button>
+            )}
+
+            {/* Options list */}
+            {isExpanded && !isEditing && (
+              <div className="border-t border-gray-100 px-4 py-3 space-y-1.5">
+                {group.options.map((opt) => (
+                  <div key={opt.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+                    {editOptionId === opt.id ? (
+                      <>
+                        <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder="Nombre" className="flex-1 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                        <input value={optionForm.price_delta} onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })} placeholder="+0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                        <button onClick={() => handleUpdateOption(opt, group.id)} disabled={loading} className="text-xs font-medium text-emerald-600 disabled:opacity-50">Guardar</button>
+                        <button onClick={() => { setEditOptionId(null); setOptionForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-500">Cancelar</button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="flex-1 text-sm text-gray-700 font-medium">{opt.name}</span>
+                        <span className="text-sm text-gray-500 font-mono">
+                          {Number(opt.price_delta) > 0 ? `+$${Number(opt.price_delta).toFixed(2)}` : Number(opt.price_delta) < 0 ? `-$${Math.abs(Number(opt.price_delta)).toFixed(2)}` : 'Base'}
+                        </span>
+                        <button onClick={() => { setEditOptionId(opt.id); setOptionForm({ name: opt.name, price_delta: String(opt.price_delta) }); }} className="p-1 rounded hover:bg-gray-100 text-gray-400"><Pencil className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => handleDeleteOption(opt.id, group.id)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </>
+                    )}
+                  </div>
+                ))}
+
+                {addingOptionFor === group.id ? (
+                  <div className="flex items-center gap-2 bg-emerald-50 rounded-lg px-3 py-2 border border-emerald-200">
+                    <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder="Ej: Grande, Queso extra..." autoFocus className="flex-1 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                    <input value={optionForm.price_delta} onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })} placeholder="+0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                    <button onClick={() => handleAddOption(group.id)} disabled={loading || !optionForm.name.trim()} className="text-xs font-bold text-emerald-600 disabled:opacity-50">{loading ? '...' : 'Agregar'}</button>
+                    <button onClick={() => { setAddingOptionFor(null); setOptionForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-500">Cancelar</button>
+                  </div>
+                ) : (
+                  <button onClick={() => { setAddingOptionFor(group.id); setOptionForm({ name: '', price_delta: '' }); }} className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 mt-1">
+                    <Plus className="w-3.5 h-3.5" /> Agregar opcion
+                  </button>
+                )}
+              </div>
             )}
           </div>
-        ))}
-
-        {adding && (
-          <div className="flex items-center gap-2 bg-blue-500/[0.06] rounded-lg px-3 py-2 border border-blue-500/[0.15]">
-            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Grande, Medium Rare..." autoFocus className="flex-1 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-400" />
-            <input value={form.price_delta} onChange={e => setForm({ ...form, price_delta: e.target.value })} placeholder="+0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-400" />
-            <button onClick={handleAdd} disabled={loading || !form.name.trim()} className="text-xs font-bold text-blue-400 hover:text-blue-300 disabled:opacity-50">{loading ? '...' : 'Agregar'}</button>
-            <button onClick={() => { setAdding(false); setForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-500">Cancelar</button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ExtraEditor({ extras, productId, onUpdate }: {
-  extras: ProductExtra[];
-  productId: string;
-  onUpdate: (extras: ProductExtra[]) => void;
-}) {
-  const [items, setItems] = useState(extras);
-  const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({ name: '', price: '' });
-  const [editId, setEditId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const handleAdd = async () => {
-    if (!form.name.trim()) return;
-    setLoading(true);
-    const result = await createExtra(productId, {
-      name: form.name,
-      price: parseFloat(form.price) || 0,
-      sort_order: items.length + 1,
-    });
-    if (result.extra) {
-      const newItems = [...items, result.extra as ProductExtra];
-      setItems(newItems);
-      onUpdate(newItems);
-    }
-    setForm({ name: '', price: '' });
-    setAdding(false);
-    setLoading(false);
-  };
-
-  const handleUpdate = async (ex: ProductExtra) => {
-    setLoading(true);
-    await updateExtra(ex.id, { name: form.name || ex.name, price: parseFloat(form.price) || ex.price, sort_order: ex.sort_order });
-    const newItems = items.map(i => i.id === ex.id ? { ...i, name: form.name || i.name, price: parseFloat(form.price) || i.price } : i);
-    setItems(newItems);
-    onUpdate(newItems);
-    setEditId(null);
-    setForm({ name: '', price: '' });
-    setLoading(false);
-  };
-
-  const handleDelete = async (id: string) => {
-    setLoading(true);
-    await deleteExtra(id);
-    const newItems = items.filter(i => i.id !== id);
-    setItems(newItems);
-    onUpdate(newItems);
-    setLoading(false);
-  };
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <ListPlus className="w-4 h-4 text-emerald-500" />
-          <span className="text-sm font-semibold text-gray-700">Extras</span>
-          <span className="text-xs text-gray-500">(ej: queso extra, tocino)</span>
-        </div>
-        {!adding && (
-          <button onClick={() => setAdding(true)} className="flex items-center gap-1 text-xs font-medium text-emerald-400 hover:text-emerald-300">
-            <Plus className="w-3.5 h-3.5" /> Agregar
-          </button>
-        )}
-      </div>
-
-      {items.length === 0 && !adding && (
-        <p className="text-xs text-gray-500 py-2">Sin extras. Agrega opciones adicionales para este producto.</p>
-      )}
-
-      <div className="space-y-1.5">
-        {items.map((ex) => (
-          <div key={ex.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-            {editId === ex.id ? (
-              <>
-                <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nombre" className="flex-1 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                <input value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                <button onClick={() => handleUpdate(ex)} disabled={loading} className="text-xs font-medium text-emerald-400 hover:text-emerald-300 disabled:opacity-50">Guardar</button>
-                <button onClick={() => { setEditId(null); setForm({ name: '', price: '' }); }} className="text-xs text-gray-500">Cancelar</button>
-              </>
-            ) : (
-              <>
-                <span className="flex-1 text-sm text-gray-700 font-medium">{ex.name}</span>
-                <span className="text-sm text-emerald-400 font-mono">+${ex.price.toFixed(2)}</span>
-                <button onClick={() => { setEditId(ex.id); setForm({ name: ex.name, price: String(ex.price) }); }} className="p-1 rounded hover:bg-gray-100 text-gray-500"><Pencil className="w-3.5 h-3.5" /></button>
-                <button onClick={() => handleDelete(ex.id)} className="p-1 rounded hover:bg-red-500/[0.08] text-gray-500 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
-              </>
-            )}
-          </div>
-        ))}
-
-        {adding && (
-          <div className="flex items-center gap-2 bg-emerald-500/[0.06] rounded-lg px-3 py-2 border border-emerald-500/[0.15]">
-            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ej: Extra queso, Tocino..." autoFocus className="flex-1 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-            <input value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-            <button onClick={handleAdd} disabled={loading || !form.name.trim()} className="text-xs font-bold text-emerald-400 hover:text-emerald-300 disabled:opacity-50">{loading ? '...' : 'Agregar'}</button>
-            <button onClick={() => { setAdding(false); setForm({ name: '', price: '' }); }} className="text-xs text-gray-500">Cancelar</button>
-          </div>
-        )}
-      </div>
+        );
+      })}
     </div>
   );
 }
@@ -245,7 +336,7 @@ function ProductEditor({ product, categories, onClose, onSave }: {
   onSave: (product: Product) => void;
 }) {
   const isEditing = !!product;
-  const [tab, setTab] = useState<'info' | 'variants' | 'extras'>('info');
+  const [tab, setTab] = useState<'info' | 'modifiers'>('info');
   const [form, setForm] = useState({
     name: product?.name ?? '',
     description: product?.description ?? '',
@@ -260,8 +351,7 @@ function ProductEditor({ product, categories, onClose, onSave }: {
   const [showStylePicker, setShowStylePicker] = useState(false);
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
-  const [localVariants, setLocalVariants] = useState<ProductVariant[]>(product?.variants ?? []);
-  const [localExtras, setLocalExtras] = useState<ProductExtra[]>(product?.extras ?? []);
+  const [localModifierGroups, setLocalModifierGroups] = useState<ModifierGroup[]>(product?.modifier_groups ?? []);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -339,7 +429,7 @@ function ProductEditor({ product, categories, onClose, onSave }: {
         if (result.error) { setError(result.error); return; }
         onSave({
           ...product, name: form.name, description: form.description, price,
-          category_id: form.category_id, variants: localVariants, extras: localExtras,
+          category_id: form.category_id, modifier_groups: localModifierGroups,
           ...(imageUrl ? { image_url: imageUrl } : {}),
         });
       } else {
@@ -351,17 +441,17 @@ function ProductEditor({ product, categories, onClose, onSave }: {
           id: `temp-${Date.now()}`, restaurant_id: '', category_id: form.category_id,
           name: form.name, description: form.description, price, image_url: imageUrl ?? '',
           is_active: true, sort_order: 0, created_at: new Date().toISOString(),
-          variants: [], extras: [],
+          modifier_groups: [],
         });
       }
     });
   };
 
+  const totalOptions = localModifierGroups.reduce((sum, g) => sum + g.options.length, 0);
   const tabs = [
     { id: 'info' as const, label: 'Informacion', icon: Package },
     ...(isEditing ? [
-      { id: 'variants' as const, label: `Variantes (${localVariants.length})`, icon: Layers },
-      { id: 'extras' as const, label: `Extras (${localExtras.length})`, icon: ListPlus },
+      { id: 'modifiers' as const, label: `Opciones (${localModifierGroups.length}g / ${totalOptions}o)`, icon: Layers },
     ] : []),
   ];
 
@@ -496,32 +586,22 @@ function ProductEditor({ product, categories, onClose, onSave }: {
                 </div>
               </div>
 
-              {/* Hint for variants/extras on new products */}
               {!isEditing && (
-                <div className="bg-blue-500/[0.06] rounded-xl p-3 border border-blue-500/[0.15]">
-                  <p className="text-xs text-blue-600">
-                    <strong>Tip:</strong> Despues de crear el producto podras agregar variantes (tamanos, terminos de coccion) y extras (ingredientes adicionales) desde las pestanas de arriba.
+                <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-200">
+                  <p className="text-xs text-emerald-700">
+                    <strong>Tip:</strong> Despues de crear el producto podras agregar grupos de opciones (tamanos, extras, salsas, etc.) desde la pestana &quot;Opciones&quot;.
                   </p>
                 </div>
               )}
             </div>
           )}
 
-          {/* VARIANTS TAB */}
-          {tab === 'variants' && isEditing && product && (
-            <VariantEditor
-              variants={localVariants}
+          {/* MODIFIERS TAB */}
+          {tab === 'modifiers' && isEditing && product && (
+            <ModifierGroupsEditor
+              groups={localModifierGroups}
               productId={product.id}
-              onUpdate={setLocalVariants}
-            />
-          )}
-
-          {/* EXTRAS TAB */}
-          {tab === 'extras' && isEditing && product && (
-            <ExtraEditor
-              extras={localExtras}
-              productId={product.id}
-              onUpdate={setLocalExtras}
+              onUpdate={setLocalModifierGroups}
             />
           )}
         </div>
@@ -667,14 +747,9 @@ export function ProductsManager({ initialProducts, categories, restaurantId, cur
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-emerald-600">{formatPrice(Number(p.price))}</span>
                       <span className="text-xs bg-gray-50 text-gray-500 px-1.5 py-0.5 rounded flex-shrink-0">{getCategoryName(p.category_id)}</span>
-                      {(p.variants?.length ?? 0) > 0 && (
-                        <span className="text-[10px] bg-blue-500/[0.1] text-blue-400 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
-                          {p.variants!.length} var
-                        </span>
-                      )}
-                      {(p.extras?.length ?? 0) > 0 && (
-                        <span className="text-[10px] bg-emerald-500/[0.1] text-emerald-400 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
-                          {p.extras!.length} ext
+                      {(p.modifier_groups?.length ?? 0) > 0 && (
+                        <span className="text-[10px] bg-emerald-500/[0.1] text-emerald-600 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
+                          {p.modifier_groups!.length} grupo{p.modifier_groups!.length !== 1 ? 's' : ''}
                         </span>
                       )}
                     </div>

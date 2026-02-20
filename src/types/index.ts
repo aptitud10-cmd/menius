@@ -60,9 +60,32 @@ export interface Product {
   is_featured?: boolean;
   sort_order: number;
   created_at: string;
-  // joined
+  // joined (legacy)
   variants?: ProductVariant[];
   extras?: ProductExtra[];
+  // joined (new modifier groups system)
+  modifier_groups?: ModifierGroup[];
+}
+
+export interface ModifierGroup {
+  id: string;
+  product_id: string;
+  name: string;
+  selection_type: 'single' | 'multi';
+  min_select: number;
+  max_select: number;
+  is_required: boolean;
+  sort_order: number;
+  options: ModifierOption[];
+}
+
+export interface ModifierOption {
+  id: string;
+  group_id: string;
+  name: string;
+  price_delta: number;
+  is_default: boolean;
+  sort_order: number;
 }
 
 export interface ProductVariant {
@@ -157,10 +180,16 @@ export interface Subscription {
 }
 
 // ---- Cart (client-side) ----
+export interface ModifierSelection {
+  group: ModifierGroup;
+  selectedOptions: ModifierOption[];
+}
+
 export interface CartItem {
   product: Product;
   variant: ProductVariant | null;
   extras: ProductExtra[];
+  modifierSelections: ModifierSelection[];
   qty: number;
   notes: string;
   lineTotal: number;

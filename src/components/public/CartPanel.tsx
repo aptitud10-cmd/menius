@@ -69,13 +69,13 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes }:
               <div className="flex items-start justify-between gap-1">
                 <div className="min-w-0">
                   <h4 className="font-semibold text-xs text-gray-900 truncate">{item.product.name}</h4>
-                  {item.variant && (
+                  {item.variant && (item.modifierSelections ?? []).length === 0 && (
                     <span className="inline-flex items-center mt-0.5 px-1.5 py-0.5 rounded bg-emerald-50 text-[10px] font-medium text-emerald-600">
                       {item.variant.name}
                     </span>
                   )}
                 </div>
-                {(item.variant || item.extras.length > 0) && (
+                {(item.variant || item.extras.length > 0 || (item.modifierSelections ?? []).length > 0) && (
                   <button
                     onClick={() => onEdit(idx)}
                     className="flex items-center gap-1 text-[10px] text-emerald-600 hover:text-emerald-700 font-medium flex-shrink-0"
@@ -86,7 +86,15 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes }:
                 )}
               </div>
 
-              {item.extras.length > 0 && (
+              {/* Modifier selections */}
+              {(item.modifierSelections ?? []).length > 0 && (
+                <p className="text-[10px] text-gray-400 truncate mt-0.5">
+                  {(item.modifierSelections ?? []).flatMap(ms => ms.selectedOptions.map(o => o.name)).join(', ')}
+                </p>
+              )}
+
+              {/* Legacy extras fallback */}
+              {(item.modifierSelections ?? []).length === 0 && item.extras.length > 0 && (
                 <p className="text-[10px] text-gray-400 truncate mt-0.5">
                   +{item.extras.map((e) => e.name).join(', ')}
                 </p>

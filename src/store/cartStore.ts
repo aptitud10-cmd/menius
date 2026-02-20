@@ -1,14 +1,14 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Product, ProductVariant, ProductExtra, CartItem } from '@/types';
+import type { Product, ProductVariant, ProductExtra, CartItem, ModifierSelection, ModifierOption } from '@/types';
 
 interface CartState {
   items: CartItem[];
   isOpen: boolean;
   restaurantId: string | null;
   tableName: string | null;
-  addItem: (product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, notes: string) => void;
-  replaceItem: (index: number, product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, notes: string) => void;
+  addItem: (product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, notes: string, modifierSelections?: ModifierSelection[]) => void;
+  replaceItem: (index: number, product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, notes: string, modifierSelections?: ModifierSelection[]) => void;
   removeItem: (index: number) => void;
   updateQty: (index: number, qty: number) => void;
   clearCart: () => void;
@@ -20,10 +20,16 @@ interface CartState {
   totalPrice: () => number;
 }
 
-function calcLineTotal(product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number): number {
+function calcModifiersDelta(selections: ModifierSelection[]): number {
+  return selections.reduce((sum, sel) =>
+    sum + sel.selectedOptions.reduce((s, opt) => s + Number(opt.price_delta), 0), 0);
+}
+
+function calcLineTotal(product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, modifierSelections: ModifierSelection[] = []): number {
   const basePrice = Number(product.price) + Number(variant?.price_delta ?? 0);
   const extrasTotal = extras.reduce((sum, e) => sum + Number(e.price), 0);
-  return (basePrice + extrasTotal) * qty;
+  const modifiersTotal = calcModifiersDelta(modifierSelections);
+  return (basePrice + extrasTotal + modifiersTotal) * qty;
 }
 
 export const useCartStore = create<CartState>()(
@@ -45,14 +51,14 @@ export const useCartStore = create<CartState>()(
 
       setTableName: (name) => set({ tableName: name }),
 
-      addItem: (product, variant, extras, qty, notes) => {
-        const lineTotal = calcLineTotal(product, variant, extras, qty);
+      addItem: (product, variant, extras, qty, notes, modifierSelections = []) => {
+        const lineTotal = calcLineTotal(product, variant, extras, qty, modifierSelections);
         set((state) => ({
-          items: [...state.items, { product, variant, extras, qty, notes, lineTotal }],
+          items: [...state.items, { product, variant, extras, modifierSelections, qty, notes, lineTotal }],
         }));
       },
 
-      replaceItem: (index, product, variant, extras, qty, notes) => {
+      replaceItem: (index, product, variant, extras, qty, notes, modifierSelections = []) => {
         set((state) => {
           const items = [...state.items];
           if (index < 0 || index >= items.length) return state;
@@ -60,9 +66,10 @@ export const useCartStore = create<CartState>()(
             product,
             variant,
             extras,
+            modifierSelections,
             qty,
             notes,
-            lineTotal: calcLineTotal(product, variant, extras, qty),
+            lineTotal: calcLineTotal(product, variant, extras, qty, modifierSelections),
           };
           return { items };
         });
@@ -84,7 +91,7 @@ export const useCartStore = create<CartState>()(
             items[index] = {
               ...item,
               qty,
-              lineTotal: calcLineTotal(item.product, item.variant, item.extras, qty),
+              lineTotal: calcLineTotal(item.product, item.variant, item.extras, qty, item.modifierSelections ?? []),
             };
           }
           return { items };

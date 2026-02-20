@@ -166,10 +166,20 @@ export function CheckoutSheet({
             unit_price:
               Number(item.product.price) +
               (item.variant?.price_delta ?? 0) +
-              item.extras.reduce((s, e) => s + Number(e.price), 0),
+              item.extras.reduce((s, e) => s + Number(e.price), 0) +
+              (item.modifierSelections ?? []).reduce((s, ms) => s + ms.selectedOptions.reduce((ss, o) => ss + Number(o.price_delta), 0), 0),
             line_total: item.lineTotal,
             notes: item.notes,
             extras: item.extras.map((e) => ({ extra_id: e.id, price: Number(e.price) })),
+            modifiers: (item.modifierSelections ?? []).flatMap((ms) =>
+              ms.selectedOptions.map((opt) => ({
+                group_id: ms.group.id,
+                group_name: ms.group.name,
+                option_id: opt.id,
+                option_name: opt.name,
+                price_delta: Number(opt.price_delta),
+              }))
+            ),
           })),
         }),
       });

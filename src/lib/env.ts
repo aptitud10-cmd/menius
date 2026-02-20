@@ -29,6 +29,9 @@ const envSchema = z.object({
   // Optional — AI
   GEMINI_API_KEY: z.string().optional(),
 
+  // Optional — Google Places
+  NEXT_PUBLIC_GOOGLE_PLACES_KEY: z.string().optional(),
+
   // Optional — Email
   RESEND_API_KEY: z.string().optional(),
 });

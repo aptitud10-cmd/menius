@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { DashboardNav } from '@/components/dashboard/DashboardNav';
 import { DashboardLocaleProvider } from '@/hooks/use-dashboard-locale';
-import { LocaleSwitcher } from '@/components/dashboard/LocaleSwitcher';
 import { AIChatWidget } from '@/components/dashboard/AIChatWidget';
 import { redirect } from 'next/navigation';
 
@@ -61,7 +60,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
                   <p className="text-[10px] text-gray-400 truncate">{user?.email}</p>
                 </div>
               </div>
-              <LocaleSwitcher />
             </div>
           </div>
         </aside>
@@ -73,10 +71,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Link href="/app" className="text-lg font-bold tracking-tight font-heading text-gray-900">
               MENIUS
             </Link>
-            <div className="flex items-center gap-1">
-              <LocaleSwitcher />
-              <DashboardNav slug={restaurant?.slug ?? ''} mobile />
-            </div>
+            <DashboardNav slug={restaurant?.slug ?? ''} mobile />
           </header>
 
           <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-6xl w-full mx-auto">

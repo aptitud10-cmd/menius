@@ -52,9 +52,11 @@ export async function POST(request: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
       line_items: lineItems,
       mode: 'payment',
+      payment_method_options: {
+        oxxo: { expires_after_days: 3 },
+      },
       success_url: `${appUrl}/r/${slug}/orden/${order.order_number}?paid=true`,
       cancel_url: `${appUrl}/r/${slug}/orden/${order.order_number}?paid=false`,
       metadata: {

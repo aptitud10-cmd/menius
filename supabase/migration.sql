@@ -73,6 +73,39 @@ CREATE TABLE product_extras (
   sort_order INTEGER DEFAULT 0
 );
 
+-- Modifier Groups (advanced customization groups per product)
+CREATE TABLE modifier_groups (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  selection_type TEXT NOT NULL DEFAULT 'single' CHECK (selection_type IN ('single', 'multi')),
+  min_select INTEGER NOT NULL DEFAULT 0,
+  max_select INTEGER NOT NULL DEFAULT 1,
+  is_required BOOLEAN NOT NULL DEFAULT false,
+  sort_order INTEGER DEFAULT 0
+);
+
+-- Modifier Options (choices within a modifier group)
+CREATE TABLE modifier_options (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  group_id UUID NOT NULL REFERENCES modifier_groups(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  price_delta DECIMAL(10,2) DEFAULT 0,
+  is_default BOOLEAN DEFAULT false,
+  sort_order INTEGER DEFAULT 0
+);
+
+-- Order Item Modifiers (selected modifier options in an order)
+CREATE TABLE order_item_modifiers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_item_id UUID NOT NULL REFERENCES order_items(id) ON DELETE CASCADE,
+  group_id UUID REFERENCES modifier_groups(id) ON DELETE SET NULL,
+  option_id UUID REFERENCES modifier_options(id) ON DELETE SET NULL,
+  group_name TEXT NOT NULL,
+  option_name TEXT NOT NULL,
+  price_delta DECIMAL(10,2) NOT NULL DEFAULT 0
+);
+
 -- Tables (physical tables in a restaurant)
 CREATE TABLE tables (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -129,6 +162,9 @@ CREATE INDEX idx_products_restaurant ON products(restaurant_id);
 CREATE INDEX idx_products_category ON products(category_id);
 CREATE INDEX idx_variants_product ON product_variants(product_id);
 CREATE INDEX idx_extras_product ON product_extras(product_id);
+CREATE INDEX idx_modifier_groups_product ON modifier_groups(product_id);
+CREATE INDEX idx_modifier_options_group ON modifier_options(group_id);
+CREATE INDEX idx_order_item_modifiers_item ON order_item_modifiers(order_item_id);
 CREATE INDEX idx_tables_restaurant ON tables(restaurant_id);
 CREATE INDEX idx_orders_restaurant ON orders(restaurant_id);
 CREATE INDEX idx_orders_status ON orders(status);
@@ -270,6 +306,44 @@ CREATE POLICY "owners_manage_extras" ON product_extras
 
 CREATE POLICY "public_read_extras" ON product_extras
   FOR SELECT USING (true);
+
+-- ---- MODIFIER GROUPS ----
+ALTER TABLE modifier_groups ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "owners_manage_modifier_groups" ON modifier_groups
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM products p
+      WHERE p.id = product_id AND user_owns_restaurant(p.restaurant_id)
+    )
+  );
+
+CREATE POLICY "public_read_modifier_groups" ON modifier_groups
+  FOR SELECT USING (true);
+
+-- ---- MODIFIER OPTIONS ----
+ALTER TABLE modifier_options ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "owners_manage_modifier_options" ON modifier_options
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM modifier_groups mg
+      JOIN products p ON p.id = mg.product_id
+      WHERE mg.id = group_id AND user_owns_restaurant(p.restaurant_id)
+    )
+  );
+
+CREATE POLICY "public_read_modifier_options" ON modifier_options
+  FOR SELECT USING (true);
+
+-- ---- ORDER ITEM MODIFIERS ----
+ALTER TABLE order_item_modifiers ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "owners_read_order_item_modifiers" ON order_item_modifiers
+  FOR SELECT USING (true);
+
+CREATE POLICY "public_insert_order_item_modifiers" ON order_item_modifiers
+  FOR INSERT WITH CHECK (true);
 
 -- ---- TABLES ----
 ALTER TABLE tables ENABLE ROW LEVEL SECURITY;

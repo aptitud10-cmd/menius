@@ -69,6 +69,16 @@ export const demoProducts: Product[] = [
       { id: 'v-chil-pollo', product_id: P_CHILAQUILES, name: 'Con pollo deshebrado', price_delta: 25, sort_order: 2 },
     ],
     extras: [],
+    modifier_groups: [
+      {
+        id: 'mg-chil-proteina', product_id: P_CHILAQUILES, name: 'Proteina', selection_type: 'single' as const,
+        min_select: 1, max_select: 1, is_required: true, sort_order: 0,
+        options: [
+          { id: 'mo-chil-huevo', group_id: 'mg-chil-proteina', name: 'Con huevo estrellado', price_delta: 0, is_default: false, sort_order: 0 },
+          { id: 'mo-chil-pollo', group_id: 'mg-chil-proteina', name: 'Con pollo deshebrado', price_delta: 25, is_default: false, sort_order: 1 },
+        ],
+      },
+    ],
   },
   {
     id: 'demo-p-huevos', restaurant_id: RID, category_id: CAT_DESAYUNOS,
@@ -121,6 +131,25 @@ export const demoProducts: Product[] = [
       { id: 'e-burger-tocino', product_id: P_BURGER, name: 'Tocino', price: 25, sort_order: 1 },
       { id: 'e-burger-aguacate', product_id: P_BURGER, name: 'Aguacate', price: 20, sort_order: 2 },
       { id: 'e-burger-aros', product_id: P_BURGER, name: 'Aros de cebolla', price: 30, sort_order: 3 },
+    ],
+    modifier_groups: [
+      {
+        id: 'mg-burger-tamano', product_id: P_BURGER, name: 'Tamano', selection_type: 'single' as const,
+        min_select: 1, max_select: 1, is_required: true, sort_order: 0,
+        options: [
+          { id: 'mo-burger-s', group_id: 'mg-burger-tamano', name: 'Sencilla', price_delta: 0, is_default: false, sort_order: 0 },
+          { id: 'mo-burger-d', group_id: 'mg-burger-tamano', name: 'Doble carne', price_delta: 45, is_default: false, sort_order: 1 },
+        ],
+      },
+      {
+        id: 'mg-burger-extras', product_id: P_BURGER, name: 'Extras', selection_type: 'multi' as const,
+        min_select: 0, max_select: 5, is_required: false, sort_order: 1,
+        options: [
+          { id: 'mo-burger-tocino', group_id: 'mg-burger-extras', name: 'Tocino', price_delta: 25, is_default: false, sort_order: 0 },
+          { id: 'mo-burger-aguacate', group_id: 'mg-burger-extras', name: 'Aguacate', price_delta: 20, is_default: false, sort_order: 1 },
+          { id: 'mo-burger-aros', group_id: 'mg-burger-extras', name: 'Aros de cebolla', price_delta: 30, is_default: false, sort_order: 2 },
+        ],
+      },
     ],
   },
   {
