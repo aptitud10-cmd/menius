@@ -41,8 +41,8 @@ export function MenuShell({
 
   const setRestaurantId = useCartStore((s) => s.setRestaurantId);
   const setTableName = useCartStore((s) => s.setTableName);
-  const totalItems = useCartStore((s) => s.totalItems);
-  const totalPrice = useCartStore((s) => s.totalPrice);
+  const rawCartCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.qty, 0));
+  const rawCartTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
   const setOpen = useCartStore((s) => s.setOpen);
   const isOpen = useCartStore((s) => s.isOpen);
   const addItem = useCartStore((s) => s.addItem);
@@ -55,8 +55,8 @@ export function MenuShell({
     setTableName(tableName);
   }, [restaurant.id, tableName, setRestaurantId, setTableName]);
 
-  const cartCount = hasMounted ? totalItems() : 0;
-  const cartTotal = hasMounted ? totalPrice() : 0;
+  const cartCount = hasMounted ? rawCartCount : 0;
+  const cartTotal = hasMounted ? rawCartTotal : 0;
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'popular' | 'options'>('all');
