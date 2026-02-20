@@ -21,11 +21,11 @@ export default function LandingPage() {
           </span>
         </div>
 
-        <div className="relative z-10 md:-mt-[7rem] lg:-mt-[9rem] bg-black pt-10 md:pt-10 pb-28 md:pb-16">
+        <div className="relative z-10 md:-mt-[7rem] lg:-mt-[9rem] bg-black pt-10 md:pt-10 pb-10 md:pb-16">
           <div className="max-w-6xl mx-auto px-5 sm:px-6">
 
             {/* Mobile footer: simplified stacked layout */}
-            <div className="md:hidden space-y-8">
+            <div className="md:hidden space-y-6">
               <div>
                 <Link href="/" className="text-lg font-bold tracking-tight text-white">MENIUS</Link>
                 <p className="text-sm text-gray-400 mt-3 leading-relaxed">
