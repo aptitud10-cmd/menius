@@ -255,7 +255,7 @@ export function LandingSections() {
   return (
     <LazyMotion features={domAnimation}>
       {/* ── Features with Tabs ── */}
-      <section id="funciones" className="relative py-20 md:py-40 overflow-hidden">
+      <section id="funciones" className="relative py-24 md:py-40 overflow-hidden">
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">
@@ -279,7 +279,7 @@ export function LandingSections() {
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Comparison ── */}
-      <section className="relative py-20 md:py-40 overflow-hidden">
+      <section className="relative py-24 md:py-40 overflow-hidden">
         <div className="section-glow section-glow-teal" />
 
         <div className="relative z-10 max-w-4xl mx-auto px-5 sm:px-6">
@@ -294,36 +294,58 @@ export function LandingSections() {
           </FadeIn>
 
           <FadeIn delay={0.1}>
-            <div className="rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02] overflow-x-auto">
-              <div className="min-w-[480px]">
-                <div className="grid grid-cols-3">
-                  <div className="p-4 sm:p-5 border-b border-white/[0.06]" />
-                  <div className="p-4 sm:p-5 text-center border-b border-white/[0.06] bg-purple-500/[0.06]">
-                    <span className="text-sm font-semibold text-white">MENIUS</span>
-                  </div>
-                  <div className="p-4 sm:p-5 text-center border-b border-white/[0.06]">
-                    <span className="text-xs text-gray-400">UberEats, DoorDash, Grubhub</span>
+            {/* Mobile: stacked cards */}
+            <div className="md:hidden space-y-3">
+              {[
+                { feature: 'Comisión por pedido', menius: '0%', other: '15% – 30%' },
+                { feature: 'Control de clientes', menius: 'Tus datos', other: 'La app se los queda' },
+                { feature: 'Tu marca', menius: 'Dominio propio', other: 'Junto a la competencia' },
+                { feature: 'Costo mensual', menius: 'Desde $39/mes', other: '"Gratis" (pero 30% por pedido)' },
+              ].map((row) => (
+                <div key={row.feature} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-3">{row.feature}</p>
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs text-purple-400 font-medium mb-1">MENIUS</p>
+                      <p className="text-base font-semibold text-white">{row.menius}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-gray-500 font-medium mb-1">Apps</p>
+                      <p className="text-sm text-gray-500">{row.other}</p>
+                    </div>
                   </div>
                 </div>
-
-                {comparison.map(([feature, menius, other], i) => (
-                  <div key={feature} className={`grid grid-cols-3 ${i < comparison.length - 1 ? 'border-b border-white/[0.04]' : ''}`}>
-                    <div className="px-4 sm:px-6 py-3 sm:py-4">
-                      <p className="text-xs sm:text-sm text-gray-400">{feature}</p>
-                    </div>
-                    <div className="px-4 sm:px-6 py-3 sm:py-4 text-center bg-purple-500/[0.03]">
-                      <p className="text-xs sm:text-sm font-medium text-white">{menius}</p>
-                    </div>
-                    <div className="px-4 sm:px-6 py-3 sm:py-4 text-center">
-                      <p className="text-xs sm:text-sm text-gray-500">{other}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              ))}
             </div>
 
-            <div className="mt-8 p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
-              <p className="text-[15px] text-gray-400 leading-relaxed text-center">
+            {/* Desktop: full comparison table */}
+            <div className="hidden md:block rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02]">
+              <div className="grid grid-cols-3">
+                <div className="p-5 border-b border-white/[0.06]" />
+                <div className="p-5 text-center border-b border-white/[0.06] bg-purple-500/[0.06]">
+                  <span className="text-sm font-semibold text-white">MENIUS</span>
+                </div>
+                <div className="p-5 text-center border-b border-white/[0.06]">
+                  <span className="text-xs text-gray-400">UberEats, DoorDash, Grubhub</span>
+                </div>
+              </div>
+              {comparison.map(([feature, menius, other], i) => (
+                <div key={feature} className={`grid grid-cols-3 ${i < comparison.length - 1 ? 'border-b border-white/[0.04]' : ''}`}>
+                  <div className="px-6 py-4">
+                    <p className="text-sm text-gray-400">{feature}</p>
+                  </div>
+                  <div className="px-6 py-4 text-center bg-purple-500/[0.03]">
+                    <p className="text-sm font-medium text-white">{menius}</p>
+                  </div>
+                  <div className="px-6 py-4 text-center">
+                    <p className="text-sm text-gray-500">{other}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 p-5 md:p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
+              <p className="text-sm md:text-[15px] text-gray-400 leading-relaxed text-center">
                 <strong className="text-white">Ejemplo:</strong> Un restaurante con $10,000/mes pierde{' '}
                 <strong className="text-red-400">$3,000 en comisiones</strong> con apps. Con MENIUS Pro ($79/mes),
                 ahorra <strong className="text-white">$35,000 al año</strong>.
@@ -337,7 +359,7 @@ export function LandingSections() {
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Pricing ── */}
-      <section id="precios" className="relative py-20 md:py-40 overflow-hidden">
+      <section id="precios" className="relative py-24 md:py-40 overflow-hidden">
         <div className="section-glow section-glow-blue" />
         <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-purple-600/20 blur-[100px] pointer-events-none" />
 
@@ -409,7 +431,7 @@ export function LandingSections() {
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Testimonials ── */}
-      <section className="relative py-20 md:py-40 overflow-hidden">
+      <section className="relative py-24 md:py-40 overflow-hidden">
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">

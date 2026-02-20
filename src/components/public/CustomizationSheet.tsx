@@ -201,7 +201,7 @@ export function CustomizationSheet({
                       className={cn(
                         'w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-150 text-left border-2',
                         isSelected
-                          ? 'bg-gray-900 text-white border-gray-900'
+                          ? 'bg-emerald-500 text-white border-emerald-500'
                           : 'bg-white border-gray-200 text-gray-700 active:border-gray-400'
                       )}
                     >
@@ -210,7 +210,7 @@ export function CustomizationSheet({
                           'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors',
                           isSelected ? 'border-white bg-white' : 'border-gray-300'
                         )}>
-                          {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-gray-900" />}
+                          {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />}
                         </div>
                         <span className="text-[15px] font-medium">{v.name}</span>
                       </div>
@@ -247,7 +247,7 @@ export function CustomizationSheet({
                       className={cn(
                         'w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-150 text-left border-2',
                         isSelected
-                          ? 'bg-gray-900 text-white border-gray-900'
+                          ? 'bg-emerald-500 text-white border-emerald-500'
                           : 'bg-white border-gray-200 text-gray-700 active:border-gray-400'
                       )}
                     >
@@ -256,7 +256,7 @@ export function CustomizationSheet({
                           'w-5 h-5 rounded-md flex items-center justify-center transition-colors',
                           isSelected ? 'bg-white' : 'border-2 border-gray-300'
                         )}>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-gray-900" />}
+                          {isSelected && <Check className="w-3.5 h-3.5 text-emerald-500" />}
                         </div>
                         <span className="text-[15px] font-medium">{ex.name}</span>
                       </div>
@@ -284,7 +284,7 @@ export function CustomizationSheet({
               placeholder={t.specialNotesPlaceholder}
               rows={2}
               maxLength={120}
-              className="w-full px-4 py-2.5 rounded-xl bg-gray-50 text-base text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900/10 resize-none border border-gray-100"
+              className="w-full px-4 py-2.5 rounded-xl bg-gray-50 text-base text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none border border-gray-100"
             />
             <p className="text-[10px] text-gray-300 text-right mt-1">{notes.length}/120</p>
           </div>
@@ -320,7 +320,7 @@ export function CustomizationSheet({
                   ? 'bg-emerald-500 text-white'
                   : needsVariant
                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-gray-900 text-white active:scale-[0.98] shadow-sm'
+                    : 'bg-emerald-500 text-white active:scale-[0.98] shadow-sm hover:bg-emerald-600'
               )}
             >
               {added

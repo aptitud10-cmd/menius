@@ -13,10 +13,10 @@ export function LandingHero() {
         {/* Mesh gradient background */}
         <div className="hero-gradient" />
 
-        {/* Animated orbs */}
-        <div className="orb orb-purple w-[500px] h-[500px] top-[-10%] left-[10%]" />
-        <div className="orb orb-teal w-[400px] h-[400px] bottom-[10%] right-[5%]" />
-        <div className="orb orb-blue w-[350px] h-[350px] top-[40%] left-[50%]" />
+        {/* Animated orbs -- desktop only */}
+        <div className="orb orb-purple w-[500px] h-[500px] top-[-10%] left-[10%] hidden md:block" />
+        <div className="orb orb-teal w-[400px] h-[400px] bottom-[10%] right-[5%] hidden md:block" />
+        <div className="orb orb-blue w-[350px] h-[350px] top-[40%] left-[50%] hidden md:block" />
 
         {/* Noise texture */}
         <div className="absolute inset-0 noise-overlay" />
