@@ -1,11 +1,12 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingCart, Search, X, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
+import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import type { Restaurant } from '@/types';
 
 function isRestaurantOpen(hours?: Restaurant['operating_hours']): boolean {
@@ -53,6 +54,13 @@ export const MenuHeader = memo(function MenuHeader({
   const setOpen = useCartStore((s) => s.setOpen);
   const open = isRestaurantOpen(restaurant.operating_hours);
 
+  const [isOwner, setIsOwner] = useState(false);
+  useEffect(() => {
+    getSupabaseBrowser().auth.getSession().then(({ data }) => {
+      if (data.session) setIsOwner(true);
+    });
+  }, []);
+
   return (
     <header className="flex-shrink-0 z-40 bg-white border-b border-gray-200">
       <div className="h-14 max-w-[1280px] mx-auto px-4 lg:px-6 flex items-center gap-3">
@@ -98,13 +106,15 @@ export const MenuHeader = memo(function MenuHeader({
 
         {/* Right side */}
         <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0 ml-auto">
-          <Link
-            href="/app"
-            className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            Dashboard
-          </Link>
+          {isOwner && (
+            <Link
+              href="/app"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Dashboard</span>
+            </Link>
+          )}
 
           <span className={cn(
             'hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold',
