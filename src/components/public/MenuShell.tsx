@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X, MapPin, Clock } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X, MapPin, Clock, Heart } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
+import { useFavoritesStore } from '@/store/favoritesStore';
 import { formatPrice, cn } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, Category, Product, OrderType } from '@/types';
@@ -76,6 +77,8 @@ export function MenuShell({
   const cartTotal = hasMounted ? rawCartTotal : 0;
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [showFavs, setShowFavs] = useState(false);
+  const favIds = useFavoritesStore((s) => s.ids);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [customization, setCustomization] = useState<CustomizationTarget | null>(null);
@@ -91,6 +94,7 @@ export function MenuShell({
   const handleCategorySelect = useCallback((catId: string | null) => {
     setSearchQuery('');
     setShowSearch(false);
+    setShowFavs(false);
     setActiveCategory(catId);
 
     if (catId === null) {
@@ -215,9 +219,27 @@ export function MenuShell({
 
   const visibleCats = itemsByCategory.map((g) => g.category);
 
+  const favPill = hasMounted && favIds.length > 0 && (
+    <button
+      key="__favs__"
+      data-pill-id="__favs__"
+      onClick={() => { setShowFavs(!showFavs); if (!showFavs) setActiveCategory(null); }}
+      className={cn(
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap',
+        showFavs
+          ? 'bg-red-500 text-white shadow-sm'
+          : 'bg-gray-100 text-gray-600 active:bg-gray-200'
+      )}
+    >
+      <Heart className={cn('w-3.5 h-3.5', showFavs ? 'fill-white' : '')} />
+      {favIds.length}
+    </button>
+  );
+
   const mobileCategoryPills = (
     <div ref={mobilePillsRef} className="lg:hidden py-3 px-4 flex gap-2.5 overflow-x-auto scrollbar-hide border-b border-gray-100 bg-white sticky z-30" style={{ top: HEADER_HEIGHT }}>
-      {visibleCats.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id))}
+      {favPill}
+      {visibleCats.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id && !showFavs))}
     </div>
   );
 
@@ -305,7 +327,8 @@ export function MenuShell({
                 <ChevronLeft className="w-4 h-4 text-gray-400" />
               </button>
               <div ref={catScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5">
-                {visibleCats.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id))}
+                {favPill}
+                {visibleCats.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id && !showFavs))}
               </div>
               <button onClick={() => scrollCats('right')} className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end" aria-label="Scroll right">
                 <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -325,6 +348,41 @@ export function MenuShell({
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {searchResults.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      onSelect={handleProductSelect}
+                      onQuickAdd={handleQuickAdd}
+                      fmtPrice={fmtPrice}
+                      addLabel={t.addToCart}
+                      customizeLabel={t.customize}
+                      popularLabel={t.popular}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : showFavs ? (
+            <div>
+              <div className="flex items-center gap-3 mb-4 py-2">
+                <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                <h2 className="text-lg font-bold text-gray-900">
+                  {locale === 'es' ? 'Favoritos' : 'Favorites'}
+                </h2>
+                <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full tabular-nums">
+                  {favIds.length}
+                </span>
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
+              {favIds.length === 0 ? (
+                <div className="text-center py-20 text-gray-400">
+                  <Heart className="w-10 h-10 mx-auto mb-3 text-gray-200" />
+                  <p className="font-medium">{locale === 'es' ? 'Aún no tienes favoritos' : 'No favorites yet'}</p>
+                  <p className="text-sm mt-1">{locale === 'es' ? 'Toca el ♥ en un producto para guardarlo' : 'Tap ♥ on a product to save it'}</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {products.filter((p) => favIds.includes(p.id)).map((product) => (
                     <ProductCard
                       key={product.id}
                       product={product}

@@ -2,10 +2,11 @@
 
 import { memo, useState, useCallback } from 'react';
 import Image from 'next/image';
-import { Plus, Check, Flame, UtensilsCrossed, ChevronRight } from 'lucide-react';
+import { Plus, Check, UtensilsCrossed, ChevronRight, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
+import { useFavoritesStore } from '@/store/favoritesStore';
 
 interface ProductCardProps {
   product: Product;
@@ -32,6 +33,8 @@ export const ProductCard = memo(function ProductCard({
   const hasModifiers = hasVariants || hasExtras || hasModifierGroups;
   const [imgError, setImgError] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
+  const isFav = useFavoritesStore((s) => s.ids.includes(product.id));
+  const toggleFav = useFavoritesStore((s) => s.toggle);
 
   const isNew = (() => {
     if (!product.created_at) return false;
@@ -128,10 +131,24 @@ export const ProductCard = memo(function ProductCard({
               className="object-cover"
               onError={() => setImgError(true)}
             />
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleFav(product.id); }}
+              className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center"
+              aria-label="Favorite"
+            >
+              <Heart className={cn('w-3.5 h-3.5 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+            </button>
           </div>
         ) : (
-          <div className="w-[92px] h-[92px] rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
+          <div className="relative w-[92px] h-[92px] rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
             <UtensilsCrossed className="w-6 h-6 text-gray-200" />
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleFav(product.id); }}
+              className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center"
+              aria-label="Favorite"
+            >
+              <Heart className={cn('w-3.5 h-3.5 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+            </button>
           </div>
         )}
       </div>
@@ -161,6 +178,13 @@ export const ProductCard = memo(function ProductCard({
                 NEW
               </span>
             )}
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleFav(product.id); }}
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors"
+              aria-label="Favorite"
+            >
+              <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+            </button>
           </div>
         ) : (
           <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
@@ -175,6 +199,13 @@ export const ProductCard = memo(function ProductCard({
                 NEW
               </span>
             )}
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleFav(product.id); }}
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors"
+              aria-label="Favorite"
+            >
+              <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+            </button>
           </div>
         )}
 
