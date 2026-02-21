@@ -71,9 +71,15 @@ export function CheckoutSheet({
   const [orderId, setOrderId] = useState('');
   const [payLoading, setPayLoading] = useState(false);
 
+  const [tipPercent, setTipPercent] = useState<number | null>(null);
+  const [customTip, setCustomTip] = useState('');
+  const tipAmount = tipPercent !== null
+    ? Math.round(cartTotal * tipPercent) / 100
+    : (parseFloat(customTip) || 0);
+
   const discount = promoResult?.valid ? promoResult.discount : 0;
   const deliveryFee = (orderType === 'delivery' && restaurant.delivery_fee) ? restaurant.delivery_fee : 0;
-  const finalTotal = Math.max(0, cartTotal - discount + deliveryFee);
+  const finalTotal = Math.max(0, cartTotal - discount + deliveryFee + tipAmount);
 
   const [vvH, setVvH] = useState<string>('100dvh');
 
@@ -161,6 +167,7 @@ export function CheckoutSheet({
           delivery_address: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
           promo_code: promoResult?.valid ? promoCode.trim() : undefined,
           discount_amount: discount,
+          tip_amount: tipAmount > 0 ? tipAmount : undefined,
           items: items.map((item) => ({
             product_id: item.product.id,
             variant_id: item.variant?.id ?? null,
@@ -355,6 +362,12 @@ export function CheckoutSheet({
                 <span className="font-semibold">{locale === 'es' ? 'Gratis' : 'Free'}</span>
               </div>
             )}
+            {tipAmount > 0 && (
+              <div className="flex justify-between text-[15px] text-gray-500">
+                <span>{locale === 'es' ? 'Propina' : 'Tip'}</span>
+                <span className="font-semibold tabular-nums">+{fmtPrice(tipAmount)}</span>
+              </div>
+            )}
             <div className="border-t border-gray-200 pt-3 flex justify-between font-bold text-lg">
               <span>{t.total}</span>
               <span className="tabular-nums">{fmtPrice(finalTotal)}</span>
@@ -505,6 +518,51 @@ export function CheckoutSheet({
                 {promoResult.description && ` — ${promoResult.description}`}
               </p>
             )}
+          </div>
+
+          {/* Tip selector */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">
+              {locale === 'es' ? '¿Deseas dejar propina?' : 'Add a tip?'}
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {[10, 15, 20].map((pct) => {
+                const isActive = tipPercent === pct && !customTip;
+                const amt = Math.round(cartTotal * pct) / 100;
+                return (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => { setTipPercent(isActive ? null : pct); setCustomTip(''); }}
+                    className={cn(
+                      'flex flex-col items-center py-3 rounded-xl border-2 transition-all duration-150',
+                      isActive
+                        ? 'border-emerald-500 bg-emerald-50'
+                        : 'border-gray-200 active:border-gray-400'
+                    )}
+                  >
+                    <span className={cn('text-sm font-bold', isActive ? 'text-emerald-700' : 'text-gray-700')}>{pct}%</span>
+                    <span className={cn('text-[11px] tabular-nums', isActive ? 'text-emerald-500' : 'text-gray-400')}>{fmtPrice(amt)}</span>
+                  </button>
+                );
+              })}
+              <div className="relative">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  value={customTip}
+                  onChange={(e) => { setCustomTip(e.target.value); setTipPercent(null); }}
+                  placeholder={locale === 'es' ? 'Otro' : 'Other'}
+                  className={cn(
+                    'w-full h-full text-center rounded-xl border-2 text-sm font-bold transition-all duration-150 focus:outline-none placeholder-gray-400',
+                    customTip
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                      : 'border-gray-200 text-gray-700 focus:border-gray-400'
+                  )}
+                />
+              </div>
+            </div>
           </div>
         </div>
 

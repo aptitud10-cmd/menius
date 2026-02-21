@@ -33,6 +33,13 @@ export const ProductCard = memo(function ProductCard({
   const [imgError, setImgError] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
 
+  const isNew = (() => {
+    if (!product.created_at) return false;
+    const created = new Date(product.created_at).getTime();
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return created > sevenDaysAgo;
+  })();
+
   const handleClick = () => {
     if (hasModifiers) {
       onSelect(product);
@@ -62,6 +69,9 @@ export const ProductCard = memo(function ProductCard({
             <div className="flex items-center gap-1.5">
               {product.is_featured && (
                 <span className="text-xs">🔥</span>
+              )}
+              {isNew && !product.is_featured && (
+                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full leading-none">NEW</span>
               )}
               <h3 className="font-semibold text-[15px] text-gray-900 line-clamp-1 leading-tight">
                 {product.name}
@@ -146,6 +156,11 @@ export const ProductCard = memo(function ProductCard({
                 🔥 {popularLabel}
               </span>
             )}
+            {isNew && !product.is_featured && (
+              <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold shadow-sm">
+                NEW
+              </span>
+            )}
           </div>
         ) : (
           <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
@@ -153,6 +168,11 @@ export const ProductCard = memo(function ProductCard({
             {product.is_featured && (
               <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-bold">
                 🔥 {popularLabel}
+              </span>
+            )}
+            {isNew && !product.is_featured && (
+              <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500 text-white text-[10px] font-bold">
+                NEW
               </span>
             )}
           </div>
