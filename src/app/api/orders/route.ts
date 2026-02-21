@@ -45,6 +45,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
 
+    if (String(restaurant_id).startsWith('demo')) {
+      const demoNum = `DEMO-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      return NextResponse.json({ order_id: `demo-order-${Date.now()}`, order_number: demoNum });
+    }
+
     const supabase = createClient();
 
     const { data: restaurant } = await supabase
