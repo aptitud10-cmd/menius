@@ -2,6 +2,9 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('admin-stats');
 
 async function verifyAdmin() {
   const supabase = createClient();
@@ -99,7 +102,7 @@ export async function GET() {
       restaurants: restaurantList,
     });
   } catch (err) {
-    console.error('[admin/stats]', err);
+    logger.error('GET failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

@@ -213,9 +213,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, ord
                   {item.product_variants?.name && (
                     <span className="text-gray-400 text-xs ml-1">({item.product_variants.name})</span>
                   )}
-                  {item.order_item_extras?.length > 0 && (
+                  {(item.order_item_extras ?? []).length > 0 && (
                     <p className="text-xs text-gray-400">
-                      +{item.order_item_extras.map((ex: any) => ex.product_extras?.name).filter(Boolean).join(', ')}
+                      +{(item.order_item_extras ?? []).map((ex: any) => ex.product_extras?.name).filter(Boolean).join(', ')}
                     </p>
                   )}
                 </div>

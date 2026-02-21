@@ -34,6 +34,21 @@ const envSchema = z.object({
 
   // Optional — Email
   RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().optional(),
+
+  // Optional — Admin
+  ADMIN_EMAIL: z.string().email().optional(),
+  SETUP_NOTIFY_EMAIL: z.string().email().optional(),
+
+  // Optional — App domain (custom domain detection)
+  NEXT_PUBLIC_APP_DOMAIN: z.string().optional(),
+
+  // Optional — Crisp chat
+  NEXT_PUBLIC_CRISP_WEBSITE_ID: z.string().optional(),
+
+  // Optional — Redis (rate limiting)
+  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

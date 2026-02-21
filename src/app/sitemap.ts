@@ -18,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${APP_URL}/terms`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${APP_URL}/cookies`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${APP_URL}/r/demo`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${APP_URL}/r/buccaneer-diner`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${APP_URL}/r/the-grill-house`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
   ];
 
   const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({

@@ -3,6 +3,9 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('ai-import-menu');
 
 export async function POST(request: NextRequest) {
   try {
@@ -117,10 +120,10 @@ Example format:
       items: sanitized,
       count: sanitized.length,
     });
-  } catch (err: any) {
-    console.error('Menu OCR error:', err);
+  } catch (err: unknown) {
+    logger.error('Menu OCR error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json(
-      { error: err.message ?? 'Error procesando la imagen del menú' },
+      { error: err instanceof Error ? err.message : 'Error procesando la imagen del menú' },
       { status: 500 }
     );
   }

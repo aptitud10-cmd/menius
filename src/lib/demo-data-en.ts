@@ -1,6 +1,6 @@
 import type { Restaurant, Category, Product } from '@/types';
 
-const RID = 'demo-buccaneer-id';
+const RID = 'demo-grillhouse-id';
 const now = new Date().toISOString();
 
 const CAT_BREAKFAST = 'buc-cat-breakfast';
@@ -11,20 +11,20 @@ const CAT_BEVERAGE = 'buc-cat-beverage';
 const CAT_DRINKS = 'buc-cat-drinks';
 const CAT_DESSERTS = 'buc-cat-desserts';
 
-export const buccaneerRestaurant: Restaurant = {
+export const grillHouseRestaurant: Restaurant = {
   id: RID,
-  name: 'Buccaneer Diner',
-  slug: 'buccaneer-diner',
+  name: 'The Grill House',
+  slug: 'the-grill-house',
   owner_user_id: 'demo-owner-en',
   timezone: 'America/New_York',
   currency: 'USD',
   locale: 'en',
   logo_url: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=200&h=200&fit=crop&q=80',
   cover_image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1400&h=600&fit=crop&q=80',
-  description: 'Where Greek tradition meets American comfort. Fresh ingredients, bold flavors since 1987.',
+  description: 'Premium grilled meats and fresh ingredients. A modern dining experience since 2020.',
   address: '742 Harbor Blvd, Oceanside, CA 92054',
   phone: '+1 (760) 555-0147',
-  email: 'hello@buccaneerdiner.com',
+  email: 'hello@thegrillhouse.com',
   website: 'https://menius.app',
   is_active: true,
   order_types_enabled: ['dine_in', 'pickup'],
@@ -41,7 +41,7 @@ export const buccaneerRestaurant: Restaurant = {
   created_at: now,
 };
 
-export const buccaneerCategories: Category[] = [
+export const grillHouseCategories: Category[] = [
   { id: CAT_BREAKFAST, restaurant_id: RID, name: 'Breakfast', sort_order: 1, is_active: true, created_at: now },
   { id: CAT_LUNCH, restaurant_id: RID, name: 'Lunch', sort_order: 2, is_active: true, created_at: now },
   { id: CAT_DINNER, restaurant_id: RID, name: 'Dinner', sort_order: 3, is_active: true, created_at: now },
@@ -59,7 +59,7 @@ const P_LEMONADE = 'buc-p-lemonade';
 const P_MARGARITA = 'buc-p-margarita';
 const P_BROWNIE = 'buc-p-brownie';
 
-export const buccaneerProducts: Product[] = [
+export const grillHouseProducts: Product[] = [
   // ── Breakfast ──
   {
     id: P_PANCAKES, restaurant_id: RID, category_id: CAT_BREAKFAST,

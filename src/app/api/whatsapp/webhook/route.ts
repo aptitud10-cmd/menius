@@ -2,7 +2,9 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse, type NextRequest } from 'next/server';
 import { handleIncomingMessage } from '@/lib/whatsapp/agent';
+import { createLogger } from '@/lib/logger';
 
+const logger = createLogger('whatsapp-webhook');
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || '';
 
 export async function GET(request: NextRequest) {
@@ -44,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ status: 'processed' });
   } catch (err) {
-    console.error('WhatsApp webhook error:', err);
+    logger.error('WhatsApp webhook error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ status: 'error' }, { status: 200 });
   }
 }

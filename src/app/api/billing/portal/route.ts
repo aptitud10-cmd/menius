@@ -3,6 +3,9 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('billing-portal');
 
 export async function POST() {
   try {
@@ -36,8 +39,8 @@ export async function POST() {
     });
 
     return NextResponse.json({ url: portalSession.url });
-  } catch (err: any) {
-    console.error('Billing portal error:', err);
-    return NextResponse.json({ error: err.message ?? 'Error' }, { status: 500 });
+  } catch (err: unknown) {
+    logger.error('Billing portal error', { error: err instanceof Error ? err.message : String(err) });
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error' }, { status: 500 });
   }
 }

@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('ai-generate-image');
 
 export async function POST(request: NextRequest) {
   try {
@@ -113,10 +116,10 @@ Requirements:
       url: urlData.publicUrl,
       generated: true,
     });
-  } catch (err: any) {
-    console.error('AI image generation error:', err);
+  } catch (err: unknown) {
+    logger.error('AI image generation error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json(
-      { error: err.message ?? 'Error generando imagen con IA' },
+      { error: err instanceof Error ? err.message : 'Error generando imagen con IA' },
       { status: 500 }
     );
   }

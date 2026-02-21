@@ -6,6 +6,9 @@ import { getTenant } from '@/lib/auth/get-tenant';
 import { sendEmail } from '@/lib/notifications/email';
 import { formatPrice } from '@/lib/utils';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('tenant-campaigns');
 
 interface CampaignCustomer {
   id: string;
@@ -150,7 +153,7 @@ export async function POST(request: NextRequest) {
       total: recipients.length,
     });
   } catch (err) {
-    console.error('[campaigns POST]', err);
+    logger.error('POST failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

@@ -2,6 +2,9 @@ export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('domain-verify');
 
 export async function POST(request: Request) {
   try {
@@ -65,7 +68,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ verified: false, error: 'No se pudo verificar el DNS. Intenta de nuevo.' });
     }
   } catch (err) {
-    console.error('[domain/verify POST]', err);
+    logger.error('POST failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

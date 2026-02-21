@@ -105,6 +105,20 @@ export interface Translations {
   // Email
   yourEmail: string;
   yourEmailPlaceholder: string;
+  // Cart panel
+  myOrder: string;
+  edit: string;
+  clearCart: string;
+  clearCartConfirm: string;
+  // Order tracker
+  backToMenuShort: string;
+  optional: string;
+  // Welcome screen
+  welcomeTo: string;
+  howToReceive: string;
+  dineInDesc: string;
+  pickupDesc: string;
+  deliveryDesc: string;
 }
 
 const es: Translations = {
@@ -186,8 +200,19 @@ const es: Translations = {
   payOnline: 'Pagar en línea',
   yourPhone: 'Tu teléfono',
   yourPhonePlaceholder: 'Para confirmar por WhatsApp',
-  yourEmail: 'Tu email (opcional)',
+  yourEmail: 'Tu email',
   yourEmailPlaceholder: 'Para recibir confirmación',
+  myOrder: 'Mi Pedido',
+  edit: 'Editar',
+  clearCart: 'Vaciar carrito',
+  clearCartConfirm: '¿Vaciar todo?',
+  backToMenuShort: 'Volver al menú',
+  optional: 'opcional',
+  welcomeTo: 'Bienvenido a',
+  howToReceive: '¿Cómo deseas recibir tu pedido?',
+  dineInDesc: 'Pide desde tu mesa',
+  pickupDesc: 'Ordena y recoge en persona',
+  deliveryDesc: 'Recibe en tu dirección',
 };
 
 const en: Translations = {
@@ -269,8 +294,19 @@ const en: Translations = {
   payOnline: 'Pay online',
   yourPhone: 'Your phone',
   yourPhonePlaceholder: 'To confirm via WhatsApp',
-  yourEmail: 'Your email (optional)',
+  yourEmail: 'Your email',
   yourEmailPlaceholder: 'To receive confirmation',
+  myOrder: 'My Order',
+  edit: 'Edit',
+  clearCart: 'Clear cart',
+  clearCartConfirm: 'Clear all items?',
+  backToMenuShort: 'Back to menu',
+  optional: 'optional',
+  welcomeTo: 'Welcome to',
+  howToReceive: 'How would you like your order?',
+  dineInDesc: 'Order from your table',
+  pickupDesc: 'Order ahead and pick up',
+  deliveryDesc: 'Get it delivered to you',
 };
 
 const translations: Record<Locale, Translations> = { es, en };

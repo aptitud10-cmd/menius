@@ -22,7 +22,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes }:
   const cartTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
 
   const handleClear = () => {
-    if (window.confirm(t.yourCart + ' — ¿Vaciar todo?')) {
+    if (window.confirm(t.clearCartConfirm)) {
       clearCart();
     }
   };
@@ -44,7 +44,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes }:
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="px-5 pt-5 pb-3 flex items-center justify-between flex-shrink-0">
-        <h2 className="text-base font-bold text-gray-900">Mi Pedido</h2>
+        <h2 className="text-base font-bold text-gray-900">{t.myOrder}</h2>
         <span className="text-[11px] text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full tabular-nums font-medium">
           {items.reduce((s, i) => s + i.qty, 0)} {t.items}
         </span>
@@ -81,7 +81,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes }:
                     className="flex items-center gap-1 text-[10px] text-emerald-600 hover:text-emerald-700 font-medium flex-shrink-0"
                   >
                     <Pencil className="w-2.5 h-2.5" />
-                    Editar
+                    {t.edit}
                   </button>
                 )}
               </div>
@@ -153,7 +153,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes }:
           onClick={handleClear}
           className="w-full text-center text-xs text-gray-400 hover:text-red-500 transition-colors py-0.5"
         >
-          Vaciar carrito
+          {t.clearCart}
         </button>
       </div>
     </div>

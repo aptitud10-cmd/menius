@@ -5,6 +5,9 @@ import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { getPlan } from '@/lib/plans';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('ai-chat');
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -376,7 +379,7 @@ export async function POST(request: NextRequest) {
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error('[AI Chat] Gemini error:', errText);
+      logger.error('Gemini error', { error: errText });
       return NextResponse.json({ error: 'Error al procesar tu pregunta.' }, { status: 502 });
     }
 
@@ -395,7 +398,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ reply });
   } catch (err) {
-    console.error('[AI Chat] Error:', err);
+    logger.error('Error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno del asistente.' }, { status: 500 });
   }
 }

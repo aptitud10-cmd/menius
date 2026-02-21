@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { createClient } from '@/lib/supabase/server';
 import { demoRestaurant } from '@/lib/demo-data';
-import { buccaneerRestaurant } from '@/lib/demo-data-en';
+import { grillHouseRestaurant } from '@/lib/demo-data-en';
 
 export const runtime = 'edge';
 export const alt = 'Menú digital';
@@ -10,7 +10,7 @@ export const contentType = 'image/png';
 
 const DEMO_MAP: Record<string, { name: string; description?: string | null }> = {
   demo: demoRestaurant,
-  'buccaneer-diner': buccaneerRestaurant,
+  'the-grill-house': grillHouseRestaurant,
 };
 
 export default async function Image({ params }: { params: { slug: string } }) {

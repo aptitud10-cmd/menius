@@ -6,6 +6,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { notifyNewOrder } from '@/lib/notifications/order-notifications';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 import { sanitizeText, sanitizeEmail, sanitizeMultiline } from '@/lib/sanitize';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('orders');
 
 export async function POST(request: NextRequest) {
   try {
@@ -147,7 +150,7 @@ export async function POST(request: NextRequest) {
       try {
         await supabase.rpc('increment_promo_usage', { p_code: promo_code.toUpperCase().trim(), p_restaurant_id: restaurant_id });
       } catch (err) {
-        console.error('[orders] increment_promo_usage failed:', err);
+        logger.error('increment_promo_usage failed', { error: err instanceof Error ? err.message : String(err) });
       }
     }
 
@@ -160,7 +163,7 @@ export async function POST(request: NextRequest) {
       p_address: delivery_address || '',
       p_order_total: total,
     }).then(({ error: custErr }) => {
-      if (custErr) console.error('[orders] upsert_customer failed:', custErr);
+      if (custErr) logger.error('upsert_customer failed', { error: custErr.message });
     });
 
     // Fetch product names for notification (non-blocking)
@@ -191,7 +194,7 @@ export async function POST(request: NextRequest) {
           items: notifItems,
         });
       } catch (err) {
-        console.error('[orders] notifyNewOrder failed:', err);
+        logger.error('notifyNewOrder failed', { error: err instanceof Error ? err.message : String(err) });
       }
     })();
 

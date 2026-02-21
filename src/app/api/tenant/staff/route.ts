@@ -3,6 +3,9 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('tenant-staff');
 
 export async function GET() {
   try {
@@ -19,7 +22,7 @@ export async function GET() {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ staff: data ?? [] });
   } catch (err) {
-    console.error('[tenant/staff GET]', err);
+    logger.error('GET failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
@@ -37,6 +40,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email y nombre requeridos' }, { status: 400 });
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: 'Formato de email inválido' }, { status: 400 });
+    }
+
     const validRoles = ['admin', 'manager', 'staff', 'kitchen'];
     if (!validRoles.includes(role)) {
       return NextResponse.json({ error: 'Rol inválido' }, { status: 400 });
@@ -47,7 +55,7 @@ export async function POST(request: NextRequest) {
       .insert({
         restaurant_id: tenant.restaurantId,
         email: email.toLowerCase().trim(),
-        full_name,
+        full_name: String(full_name).slice(0, 100),
         role,
         status: 'pending',
       })
@@ -63,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ member: data });
   } catch (err) {
-    console.error('[tenant/staff POST]', err);
+    logger.error('POST failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
@@ -76,6 +84,16 @@ export async function PATCH(request: NextRequest) {
 
     const { id, role, status } = await request.json();
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+
+    const validRoles = ['admin', 'manager', 'staff', 'kitchen'];
+    const validStatuses = ['pending', 'active', 'inactive'];
+
+    if (role && !validRoles.includes(role)) {
+      return NextResponse.json({ error: 'Rol inválido' }, { status: 400 });
+    }
+    if (status && !validStatuses.includes(status)) {
+      return NextResponse.json({ error: 'Estado inválido' }, { status: 400 });
+    }
 
     const updates: Record<string, string> = {};
     if (role) updates.role = role;
@@ -90,7 +108,7 @@ export async function PATCH(request: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('[tenant/staff PATCH]', err);
+    logger.error('PATCH failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
@@ -111,7 +129,7 @@ export async function DELETE(request: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('[tenant/staff DELETE]', err);
+    logger.error('DELETE failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

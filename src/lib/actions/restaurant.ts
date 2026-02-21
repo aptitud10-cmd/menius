@@ -188,12 +188,31 @@ export async function createCategory(data: CategoryInput) {
   return { success: true, id: created?.id, name: created?.name };
 }
 
-export async function updateCategory(id: string, data: CategoryInput) {
+async function getAuthenticatedRestaurant() {
   const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'No autenticado' as const, supabase, restaurantId: '' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('default_restaurant_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' as const, supabase, restaurantId: '' };
+
+  return { supabase, restaurantId: profile.default_restaurant_id, error: null };
+}
+
+export async function updateCategory(id: string, data: CategoryInput) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
   const { error } = await supabase
     .from('categories')
     .update({ name: sanitizeText(data.name, 100), sort_order: data.sort_order, is_active: data.is_active })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('restaurant_id', restaurantId);
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/categories');
@@ -201,8 +220,10 @@ export async function updateCategory(id: string, data: CategoryInput) {
 }
 
 export async function deleteCategory(id: string) {
-  const supabase = createClient();
-  const { error } = await supabase.from('categories').delete().eq('id', id);
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { error } = await supabase.from('categories').delete().eq('id', id).eq('restaurant_id', restaurantId);
   if (error) return { error: error.message };
   revalidatePath('/app/menu/categories');
   return { success: true };
@@ -237,14 +258,17 @@ export async function createProduct(data: ProductInput) {
 }
 
 export async function updateProduct(id: string, data: Partial<ProductInput> & { image_url?: string }) {
-  const supabase = createClient();
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
   const sanitized = { ...data };
   if (sanitized.name) sanitized.name = sanitizeText(sanitized.name, 150);
   if (sanitized.description) sanitized.description = sanitizeMultiline(sanitized.description, 500);
   const { error } = await supabase
     .from('products')
     .update(sanitized)
-    .eq('id', id);
+    .eq('id', id)
+    .eq('restaurant_id', restaurantId);
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
@@ -252,8 +276,10 @@ export async function updateProduct(id: string, data: Partial<ProductInput> & { 
 }
 
 export async function deleteProduct(id: string) {
-  const supabase = createClient();
-  const { error } = await supabase.from('products').delete().eq('id', id);
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { error } = await supabase.from('products').delete().eq('id', id).eq('restaurant_id', restaurantId);
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
   return { success: true };
@@ -295,7 +321,9 @@ export async function updateVariant(id: string, data: { name: string; price_delt
 }
 
 export async function deleteVariant(id: string) {
-  const supabase = createClient();
+  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
   const { error } = await supabase.from('product_variants').delete().eq('id', id);
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
@@ -338,7 +366,9 @@ export async function updateExtra(id: string, data: { name: string; price: numbe
 }
 
 export async function deleteExtra(id: string) {
-  const supabase = createClient();
+  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
   const { error } = await supabase.from('product_extras').delete().eq('id', id);
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
@@ -387,7 +417,9 @@ export async function updateModifierGroup(id: string, data: { name: string; sele
 }
 
 export async function deleteModifierGroup(id: string) {
-  const supabase = createClient();
+  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
   const { error } = await supabase.from('modifier_groups').delete().eq('id', id);
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
@@ -432,7 +464,9 @@ export async function updateModifierOption(id: string, data: { name: string; pri
 }
 
 export async function deleteModifierOption(id: string) {
-  const supabase = createClient();
+  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
   const { error } = await supabase.from('modifier_options').delete().eq('id', id);
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
@@ -523,8 +557,10 @@ export async function updateTable(id: string, newName: string) {
 }
 
 export async function deleteTable(id: string) {
-  const supabase = createClient();
-  const { error } = await supabase.from('tables').delete().eq('id', id);
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { error } = await supabase.from('tables').delete().eq('id', id).eq('restaurant_id', restaurantId);
   if (error) return { error: error.message };
   revalidatePath('/app/tables');
   return { success: true };
@@ -532,22 +568,30 @@ export async function deleteTable(id: string) {
 
 // ---- Orders ----
 export async function updateOrderStatus(orderId: string, status: string) {
-  const supabase = createClient();
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const validStatuses = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'];
+  if (!validStatuses.includes(status)) return { error: 'Estado inválido' };
 
   const { data: order } = await supabase
     .from('orders')
     .select('id, order_number, restaurant_id, customer_name, customer_email, customer_phone')
     .eq('id', orderId)
+    .eq('restaurant_id', restaurantId)
     .maybeSingle();
+
+  if (!order) return { error: 'Orden no encontrada' };
 
   const { error } = await supabase
     .from('orders')
     .update({ status })
-    .eq('id', orderId);
+    .eq('id', orderId)
+    .eq('restaurant_id', restaurantId);
 
   if (error) return { error: error.message };
 
-  if (order && ['confirmed', 'preparing', 'ready', 'delivered', 'cancelled'].includes(status)) {
+  if (['confirmed', 'preparing', 'ready', 'delivered', 'cancelled'].includes(status)) {
     import('@/lib/notifications/order-notifications').then(({ notifyStatusChange }) => {
       notifyStatusChange({
         orderNumber: order.order_number,

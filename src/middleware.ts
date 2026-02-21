@@ -91,11 +91,11 @@ export async function middleware(request: NextRequest) {
   const isBillingPage = path === '/app/billing';
   const isSubscriptionWall = path === '/app/subscription-expired';
 
-  if (isDashboard && hasRestaurant && !isBillingPage && !isSubscriptionWall) {
+  if (isDashboard && hasRestaurant && profile?.default_restaurant_id && !isBillingPage && !isSubscriptionWall) {
     const { data: subscription } = await supabase
       .from('subscriptions')
       .select('status, current_period_end, trial_end')
-      .eq('restaurant_id', profile!.default_restaurant_id)
+      .eq('restaurant_id', profile.default_restaurant_id)
       .maybeSingle();
 
     if (subscription) {

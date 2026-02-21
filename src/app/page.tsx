@@ -92,7 +92,7 @@ export default function LandingPage() {
                     <li><a href="#funciones" className="text-[13px] text-gray-500 hover:text-white transition-colors">Funciones</a></li>
                     <li><a href="#precios" className="text-[13px] text-gray-500 hover:text-white transition-colors">Precios</a></li>
                     <li><Link href="/r/demo" className="text-[13px] text-gray-500 hover:text-white transition-colors">Demo en vivo</Link></li>
-                    <li><Link href="/r/buccaneer-diner" className="text-[13px] text-gray-500 hover:text-white transition-colors">Demo (English)</Link></li>
+                    <li><Link href="/r/the-grill-house" className="text-[13px] text-gray-500 hover:text-white transition-colors">Demo (English)</Link></li>
                   </ul>
                 </div>
                 <div>

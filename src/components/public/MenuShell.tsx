@@ -5,7 +5,7 @@ import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X } from 'lucide-
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice, cn } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
-import type { Restaurant, Category, Product } from '@/types';
+import type { Restaurant, Category, Product, OrderType } from '@/types';
 
 import { MenuHeader, HEADER_HEIGHT } from './MenuHeader';
 import { CategorySidebar } from './CategorySidebar';
@@ -13,6 +13,7 @@ import { ProductCard } from './ProductCard';
 import { CartPanel } from './CartPanel';
 import { CustomizationSheet } from './CustomizationSheet';
 import { CheckoutSheet } from './CheckoutSheet';
+import { WelcomeScreen } from './WelcomeScreen';
 
 interface MenuShellProps {
   restaurant: Restaurant;
@@ -50,6 +51,20 @@ export function MenuShell({
   const addItem = useCartStore((s) => s.addItem);
 
   const [hasMounted, setHasMounted] = useState(false);
+
+  const enabledOrderTypes: OrderType[] = restaurant.order_types_enabled?.length
+    ? restaurant.order_types_enabled
+    : ['dine_in', 'pickup', 'delivery'];
+
+  const shouldShowWelcome = !tableName && enabledOrderTypes.length >= 2;
+  const [showWelcome, setShowWelcome] = useState(shouldShowWelcome);
+
+  const setSelectedOrderType = useCartStore((s) => s.setSelectedOrderType);
+
+  const handleWelcomeSelect = useCallback((type: OrderType) => {
+    setSelectedOrderType(type);
+    setShowWelcome(false);
+  }, [setSelectedOrderType]);
 
   useEffect(() => {
     setHasMounted(true);
@@ -163,6 +178,17 @@ export function MenuShell({
       {categories.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id))}
     </div>
   );
+
+  if (showWelcome) {
+    return (
+      <WelcomeScreen
+        restaurant={restaurant}
+        enabledTypes={enabledOrderTypes}
+        onSelect={handleWelcomeSelect}
+        t={t}
+      />
+    );
+  }
 
   return (
     <div className="h-[100dvh] flex flex-col bg-white overflow-hidden overscroll-none touch-pan-y">

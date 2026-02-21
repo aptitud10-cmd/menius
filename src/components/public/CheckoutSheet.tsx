@@ -38,6 +38,7 @@ export function CheckoutSheet({
   const cartTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
   const clearCart = useCartStore((s) => s.clearCart);
   const tableName = useCartStore((s) => s.tableName);
+  const welcomeOrderType = useCartStore((s) => s.selectedOrderType);
 
   const enabledOrderTypes = restaurant.order_types_enabled?.length
     ? restaurant.order_types_enabled
@@ -50,7 +51,7 @@ export function CheckoutSheet({
   const [closing, setClosing] = useState(false);
 
   const [orderType, setOrderType] = useState<OrderType>(
-    tableName ? 'dine_in' : enabledOrderTypes[0]
+    tableName ? 'dine_in' : welcomeOrderType ?? enabledOrderTypes[0]
   );
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -133,7 +134,7 @@ export function CheckoutSheet({
 
   const handleSubmitOrder = async () => {
     if (!customerName.trim() || !customerPhone.trim()) {
-      setOrderError(locale === 'es' ? 'Nombre y teléfono son requeridos' : 'Name and phone are required');
+      setOrderError(locale === 'es' ? 'Nombre y teléfono son requeridos' : 'Name and phone required');
       return;
     }
     if (orderType === 'delivery' && !deliveryAddress.trim()) {
@@ -310,7 +311,7 @@ export function CheckoutSheet({
           {/* Order summary — at top for context */}
           <div className="bg-gray-50 rounded-2xl p-5 space-y-3 border border-gray-100">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-              {locale === 'es' ? 'Tu pedido' : 'Your order'}
+              {t.myOrder}
             </p>
             {items.map((item, idx) => (
               <div key={idx} className="flex justify-between text-[15px]">
@@ -392,7 +393,7 @@ export function CheckoutSheet({
             />
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
-                {t.yourEmail} <span className="text-gray-400 font-normal text-xs">({locale === 'es' ? 'opcional' : 'optional'})</span>
+                {t.yourEmail} <span className="text-gray-400 font-normal text-xs">({t.optional})</span>
               </label>
               <input
                 type="email"
@@ -404,7 +405,7 @@ export function CheckoutSheet({
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">
-                {t.orderNotes} <span className="text-gray-400 font-normal text-xs">({locale === 'es' ? 'opcional' : 'optional'})</span>
+                {t.orderNotes} <span className="text-gray-400 font-normal text-xs">({t.optional})</span>
               </label>
               <textarea
                 value={orderNotes}

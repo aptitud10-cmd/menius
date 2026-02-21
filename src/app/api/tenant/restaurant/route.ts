@@ -3,6 +3,9 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('tenant-restaurant');
 
 export async function GET() {
   try {
@@ -19,7 +22,7 @@ export async function GET() {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ restaurant });
   } catch (err) {
-    console.error('[tenant/restaurant GET]', err);
+    logger.error('GET failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
@@ -63,7 +66,7 @@ export async function PATCH(request: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ restaurant });
   } catch (err) {
-    console.error('[tenant/restaurant PATCH]', err);
+    logger.error('PATCH failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

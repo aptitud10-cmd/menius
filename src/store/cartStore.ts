@@ -1,21 +1,23 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Product, ProductVariant, ProductExtra, CartItem, ModifierSelection, ModifierOption } from '@/types';
+import type { Product, ProductVariant, ProductExtra, CartItem, ModifierSelection, ModifierOption, OrderType } from '@/types';
 
 interface CartState {
   items: CartItem[];
   isOpen: boolean;
   restaurantId: string | null;
   tableName: string | null;
+  selectedOrderType: OrderType | null;
   addItem: (product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, notes: string, modifierSelections?: ModifierSelection[]) => void;
   replaceItem: (index: number, product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, notes: string, modifierSelections?: ModifierSelection[]) => void;
   removeItem: (index: number) => void;
   updateQty: (index: number, qty: number) => void;
-  clearCart: () => void;
+      clearCart: () => void;
   toggleCart: () => void;
   setOpen: (open: boolean) => void;
   setRestaurantId: (id: string) => void;
   setTableName: (name: string | null) => void;
+  setSelectedOrderType: (type: OrderType | null) => void;
   totalItems: () => number;
   totalPrice: () => number;
 }
@@ -39,6 +41,7 @@ export const useCartStore = create<CartState>()(
       isOpen: false,
       restaurantId: null,
       tableName: null,
+      selectedOrderType: null,
 
       setRestaurantId: (id) => {
         const current = get().restaurantId;
@@ -50,6 +53,7 @@ export const useCartStore = create<CartState>()(
       },
 
       setTableName: (name) => set({ tableName: name }),
+      setSelectedOrderType: (type) => set({ selectedOrderType: type }),
 
       addItem: (product, variant, extras, qty, notes, modifierSelections = []) => {
         const lineTotal = calcLineTotal(product, variant, extras, qty, modifierSelections);
@@ -116,6 +120,7 @@ export const useCartStore = create<CartState>()(
         items: state.items,
         restaurantId: state.restaurantId,
         tableName: state.tableName,
+        selectedOrderType: state.selectedOrderType,
       }),
     }
   )

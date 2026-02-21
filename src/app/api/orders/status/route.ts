@@ -2,6 +2,9 @@ export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('orders-status');
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,7 +40,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ order });
   } catch (err) {
-    console.error('[orders/status GET]', err);
+    logger.error('GET failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

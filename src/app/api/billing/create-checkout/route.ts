@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { PLANS, type PlanId, type BillingInterval } from '@/lib/plans';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('billing-checkout');
 
 export async function POST(request: NextRequest) {
   try {
@@ -95,8 +98,8 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (err: any) {
-    console.error('Billing checkout error:', err);
-    return NextResponse.json({ error: err.message ?? 'Error creando sesión' }, { status: 500 });
+  } catch (err: unknown) {
+    logger.error('Billing checkout error', { error: err instanceof Error ? err.message : String(err) });
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error creando sesión' }, { status: 500 });
   }
 }

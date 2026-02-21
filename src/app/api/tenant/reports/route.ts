@@ -4,6 +4,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { formatPrice } from '@/lib/utils';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('tenant-reports');
 
 export async function GET(request: NextRequest) {
   try {
@@ -155,7 +158,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (err) {
-    console.error('[reports GET]', err);
+    logger.error('GET failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

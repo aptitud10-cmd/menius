@@ -3,6 +3,9 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getPlanByStripePrice, getIntervalByStripePrice } from '@/lib/plans';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('billing-webhook');
 
 export async function POST(request: NextRequest) {
   try {
@@ -145,7 +148,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (err) {
-    console.error('Billing webhook error:', err);
+    logger.error('Billing webhook error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Webhook error' }, { status: 500 });
   }
 }

@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { MenuShell } from '@/components/public/MenuShell';
 import { fetchMenuData } from './menu-data';
 import { demoRestaurant, demoCategories, demoProducts } from '@/lib/demo-data';
-import { buccaneerRestaurant, buccaneerCategories, buccaneerProducts } from '@/lib/demo-data-en';
+import { grillHouseRestaurant, grillHouseCategories, grillHouseProducts } from '@/lib/demo-data-en';
 
 export const revalidate = 60;
 
@@ -24,10 +24,10 @@ const DEMO_SLUGS: Record<string, {
     products: demoProducts,
     locale: 'es',
   },
-  'buccaneer-diner': {
-    restaurant: buccaneerRestaurant,
-    categories: buccaneerCategories,
-    products: buccaneerProducts,
+  'the-grill-house': {
+    restaurant: grillHouseRestaurant,
+    categories: grillHouseCategories,
+    products: grillHouseProducts,
     locale: 'en',
   },
 };
