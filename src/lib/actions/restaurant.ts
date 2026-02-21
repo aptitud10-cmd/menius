@@ -577,7 +577,7 @@ export async function updateOrderStatus(orderId: string, status: string) {
 
   const { data: order } = await supabase
     .from('orders')
-    .select('id, order_number, restaurant_id, customer_name, customer_email, customer_phone')
+    .select('id, order_number, restaurant_id, customer_name, customer_email, customer_phone, restaurants ( slug )')
     .eq('id', orderId)
     .eq('restaurant_id', restaurantId)
     .maybeSingle();
@@ -603,6 +603,25 @@ export async function updateOrderStatus(orderId: string, status: string) {
         customerPhone: order.customer_phone || undefined,
       });
     }).catch(() => {});
+
+    const pushMessages: Record<string, { title: string; body: string }> = {
+      confirmed: { title: 'Pedido confirmado', body: `Tu pedido #${order.order_number} fue confirmado` },
+      preparing: { title: 'Preparando tu pedido', body: `Tu pedido #${order.order_number} se esta preparando` },
+      ready: { title: '¡Tu pedido esta listo!', body: `Pedido #${order.order_number} listo para recoger` },
+      delivered: { title: '¡Buen provecho!', body: `Pedido #${order.order_number} entregado` },
+      cancelled: { title: 'Pedido cancelado', body: `Tu pedido #${order.order_number} fue cancelado` },
+    };
+
+    const msg = pushMessages[status];
+    if (msg) {
+      const slug = (order as any).restaurants?.slug;
+      import('@/lib/notifications/push').then(({ sendPushToOrder }) => {
+        sendPushToOrder(orderId, {
+          ...msg,
+          url: slug ? `/r/${slug}/orden/${order.order_number}` : '/',
+        });
+      }).catch(() => {});
+    }
   }
 
   revalidatePath('/app/orders');

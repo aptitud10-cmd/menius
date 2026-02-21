@@ -47,6 +47,10 @@ const envSchema = z.object({
   // Optional — Crisp chat
   NEXT_PUBLIC_CRISP_WEBSITE_ID: z.string().optional(),
 
+  // Optional — Web Push (VAPID)
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+
   // Optional — Redis (rate limiting)
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),

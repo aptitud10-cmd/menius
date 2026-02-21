@@ -5,6 +5,7 @@ import { CheckCircle2, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, 
 import Link from 'next/link';
 import { formatPrice, cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { PushOptIn } from './PushOptIn';
 
 interface OrderTrackerProps {
   restaurantId: string;
@@ -188,6 +189,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, ord
             </div>
           )}
         </div>
+
+        {/* Push notification opt-in */}
+        {!isCancelled && !isComplete && order?.id && (
+          <PushOptIn orderId={order.id} />
+        )}
 
         {/* Order details */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">

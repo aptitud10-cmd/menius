@@ -1,4 +1,4 @@
-const SW_VERSION = '5';
+const SW_VERSION = '6';
 const CACHE_NAME = 'menius-v' + SW_VERSION;
 const STATIC_CACHE = 'menius-static-v' + SW_VERSION;
 const IMAGE_CACHE = 'menius-images-v' + SW_VERSION;
@@ -97,6 +97,52 @@ async function networkFirstWithCache(request, cacheName, timeoutMs = 4000) {
     return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
   }
 }
+
+// ── Push notifications ──
+
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    payload = { title: 'MENIUS', body: event.data.text() };
+  }
+
+  const { title = 'MENIUS', body = '', icon, badge, data, tag } = payload;
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: icon || '/icons/icon-192.svg',
+      badge: badge || '/icons/icon-96.svg',
+      tag: tag || 'menius-order',
+      renotify: true,
+      vibrate: [100, 50, 100],
+      data: data || {},
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const url = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.includes(url) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(url);
+    })
+  );
+});
+
+// ── Caching strategies ──
 
 async function cacheFirstWithNetwork(request, cacheName) {
   const cached = await caches.match(request);

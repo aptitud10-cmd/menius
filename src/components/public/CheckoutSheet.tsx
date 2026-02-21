@@ -7,6 +7,7 @@ import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import type { Restaurant, OrderType, PaymentMethod } from '@/types';
 import { WalletButton } from './WalletButton';
+import { PushOptIn } from './PushOptIn';
 import type { Translations, Locale } from '@/lib/translations';
 
 const AddressAutocomplete = dynamic(
@@ -282,6 +283,9 @@ export function CheckoutSheet({
                 >
                   {t.trackOrder}
                 </a>
+              )}
+              {orderId && !restaurant.id.startsWith('demo') && (
+                <PushOptIn orderId={orderId} />
               )}
               <button
                 onClick={animateClose}
