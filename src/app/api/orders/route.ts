@@ -40,14 +40,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'restaurant_id requerido' }, { status: 400 });
     }
 
+    if (String(restaurant_id).startsWith('demo')) {
+      if (!customer_name || !customer_phone) {
+        return NextResponse.json({ error: 'Nombre y teléfono requeridos' }, { status: 400 });
+      }
+      const demoNum = `DEMO-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      return NextResponse.json({ order_id: `demo-order-${Date.now()}`, order_number: demoNum });
+    }
+
     const parsed = publicOrderSchema.safeParse({ customer_name, customer_phone, notes, items });
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
-    }
-
-    if (String(restaurant_id).startsWith('demo')) {
-      const demoNum = `DEMO-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-      return NextResponse.json({ order_id: `demo-order-${Date.now()}`, order_number: demoNum });
     }
 
     const supabase = createClient();
