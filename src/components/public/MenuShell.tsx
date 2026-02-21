@@ -227,6 +227,8 @@ export function MenuShell({
         restaurant={restaurant}
         enabledTypes={enabledOrderTypes}
         onSelect={handleWelcomeSelect}
+        onReorder={() => setShowWelcome(false)}
+        products={products}
         t={t}
       />
     );

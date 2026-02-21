@@ -2,22 +2,39 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Product, ProductVariant, ProductExtra, CartItem, ModifierSelection, ModifierOption, OrderType } from '@/types';
 
+interface SavedOrderItem {
+  productId: string;
+  productName: string;
+  variantId: string | null;
+  variantName: string | null;
+  qty: number;
+}
+
+interface LastOrder {
+  restaurantId: string;
+  items: SavedOrderItem[];
+  date: string;
+}
+
 interface CartState {
   items: CartItem[];
   isOpen: boolean;
   restaurantId: string | null;
   tableName: string | null;
   selectedOrderType: OrderType | null;
+  lastOrder: LastOrder | null;
   addItem: (product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, notes: string, modifierSelections?: ModifierSelection[]) => void;
   replaceItem: (index: number, product: Product, variant: ProductVariant | null, extras: ProductExtra[], qty: number, notes: string, modifierSelections?: ModifierSelection[]) => void;
   removeItem: (index: number) => void;
   updateQty: (index: number, qty: number) => void;
-      clearCart: () => void;
+  clearCart: () => void;
   toggleCart: () => void;
   setOpen: (open: boolean) => void;
   setRestaurantId: (id: string) => void;
   setTableName: (name: string | null) => void;
   setSelectedOrderType: (type: OrderType | null) => void;
+  saveLastOrder: () => void;
+  reorder: (products: Product[]) => number;
   totalItems: () => number;
   totalPrice: () => number;
 }
@@ -42,6 +59,7 @@ export const useCartStore = create<CartState>()(
       restaurantId: null,
       tableName: null,
       selectedOrderType: null,
+      lastOrder: null,
 
       setRestaurantId: (id) => {
         const current = get().restaurantId;
@@ -102,6 +120,44 @@ export const useCartStore = create<CartState>()(
         });
       },
 
+      saveLastOrder: () => {
+        const { items, restaurantId } = get();
+        if (!restaurantId || items.length === 0) return;
+        set({
+          lastOrder: {
+            restaurantId,
+            items: items.map((i) => ({
+              productId: i.product.id,
+              productName: i.product.name,
+              variantId: i.variant?.id ?? null,
+              variantName: i.variant?.name ?? null,
+              qty: i.qty,
+            })),
+            date: new Date().toISOString(),
+          },
+        });
+      },
+
+      reorder: (products: Product[]) => {
+        const { lastOrder } = get();
+        if (!lastOrder) return 0;
+        const productMap = new Map(products.map((p) => [p.id, p]));
+        let added = 0;
+        for (const saved of lastOrder.items) {
+          const product = productMap.get(saved.productId);
+          if (!product || !product.is_available) continue;
+          const variant = saved.variantId
+            ? product.variants?.find((v) => v.id === saved.variantId) ?? null
+            : null;
+          const lineTotal = calcLineTotal(product, variant, [], saved.qty);
+          set((state) => ({
+            items: [...state.items, { product, variant, extras: [], modifierSelections: [], qty: saved.qty, notes: '', lineTotal }],
+          }));
+          added++;
+        }
+        return added;
+      },
+
       clearCart: () => set({ items: [] }),
       toggleCart: () => set((s) => ({ isOpen: !s.isOpen })),
       setOpen: (open) => set({ isOpen: open }),
@@ -121,6 +177,7 @@ export const useCartStore = create<CartState>()(
         restaurantId: state.restaurantId,
         tableName: state.tableName,
         selectedOrderType: state.selectedOrderType,
+        lastOrder: state.lastOrder,
       }),
     }
   )

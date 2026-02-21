@@ -37,6 +37,7 @@ export function CheckoutSheet({
   const items = useCartStore((s) => s.items);
   const cartTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
   const clearCart = useCartStore((s) => s.clearCart);
+  const saveLastOrder = useCartStore((s) => s.saveLastOrder);
   const tableName = useCartStore((s) => s.tableName);
   const welcomeOrderType = useCartStore((s) => s.selectedOrderType);
 
@@ -202,6 +203,7 @@ export function CheckoutSheet({
 
       setOrderNumber(data.order_number);
       setOrderId(data.order_id);
+      saveLastOrder();
       clearCart();
       setStep('confirmation');
     } catch {
