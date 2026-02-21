@@ -31,6 +31,8 @@ export interface Restaurant {
   delivery_fee?: number | null;
   latitude?: number | null;
   longitude?: number | null;
+  stripe_account_id?: string | null;
+  stripe_onboarding_complete?: boolean;
   is_active?: boolean;
   created_at: string;
 }

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type { Restaurant } from '@/types';
@@ -60,6 +60,44 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+
+  const [stripeStatus, setStripeStatus] = useState<{
+    connected: boolean;
+    onboarding_complete: boolean;
+    loading: boolean;
+    connecting: boolean;
+  }>({ connected: !!initialData.stripe_account_id, onboarding_complete: !!initialData.stripe_onboarding_complete, loading: true, connecting: false });
+
+  useEffect(() => {
+    fetch('/api/connect/status')
+      .then((r) => r.json())
+      .then((data) => {
+        setStripeStatus((prev) => ({
+          ...prev,
+          connected: data.connected ?? false,
+          onboarding_complete: data.onboarding_complete ?? false,
+          loading: false,
+        }));
+      })
+      .catch(() => setStripeStatus((prev) => ({ ...prev, loading: false })));
+  }, []);
+
+  const handleConnectStripe = async () => {
+    setStripeStatus((prev) => ({ ...prev, connecting: true }));
+    try {
+      const res = await fetch('/api/connect/onboard', { method: 'POST' });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setError(data.error ?? 'Error connecting Stripe');
+        setStripeStatus((prev) => ({ ...prev, connecting: false }));
+      }
+    } catch {
+      setError('Connection error');
+      setStripeStatus((prev) => ({ ...prev, connecting: false }));
+    }
+  };
 
   const appUrl = typeof window !== 'undefined' ? window.location.origin : '';
   const publicUrl = `${appUrl}/r/${initialData.slug}`;
@@ -405,6 +443,53 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               </label>
             );
           })}
+        </div>
+
+        {/* Stripe Connect */}
+        <div className="mt-4 p-4 rounded-xl border border-gray-200 bg-gray-50">
+          <div className="flex items-center gap-2 mb-2">
+            <Link2 className="w-4 h-4 text-violet-600" />
+            <h3 className="text-sm font-semibold text-gray-900">Stripe Connect</h3>
+          </div>
+          <p className="text-xs text-gray-500 mb-3">
+            Conecta tu cuenta de Stripe para recibir pagos directamente.
+          </p>
+          {stripeStatus.loading ? (
+            <div className="flex items-center gap-2 text-xs text-gray-400">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Verificando...
+            </div>
+          ) : stripeStatus.onboarding_complete ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span className="text-sm font-medium text-emerald-700">Conectado — Listo para recibir pagos</span>
+            </div>
+          ) : stripeStatus.connected ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+                <Clock className="w-4 h-4 text-amber-600" />
+                <span className="text-sm text-amber-700">Cuenta creada — Completa la verificación</span>
+              </div>
+              <button
+                onClick={handleConnectStripe}
+                disabled={stripeStatus.connecting}
+                className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors"
+              >
+                {stripeStatus.connecting ? 'Redirigiendo...' : 'Completar verificación'}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleConnectStripe}
+              disabled={stripeStatus.connecting}
+              className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+            >
+              {stripeStatus.connecting ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Conectando...</>
+              ) : (
+                <><CreditCard className="w-4 h-4" /> Conectar Stripe</>
+              )}
+            </button>
+          )}
         </div>
       </div>
 

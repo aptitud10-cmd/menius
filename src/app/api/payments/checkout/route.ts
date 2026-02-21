@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       .from('orders')
       .select(`
         id, order_number, total, customer_name, restaurant_id,
-        restaurants ( currency ),
+        restaurants ( currency, stripe_account_id, stripe_onboarding_complete ),
         order_items ( qty, unit_price, line_total, products ( name ) )
       `)
       .eq('id', order_id)
@@ -35,9 +35,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
     }
 
-    const currency = ((order as any).restaurants?.currency || 'usd').toLowerCase();
+    const rest = (order as any).restaurants;
+    const currency = (rest?.currency || 'usd').toLowerCase();
+    const connectedAccount = rest?.stripe_onboarding_complete ? rest?.stripe_account_id : null;
 
-    // Build line items for Stripe
     const lineItems = (order.order_items ?? []).map((item: any) => ({
       price_data: {
         currency,
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: any = {
       line_items: lineItems,
       mode: 'payment',
       payment_method_options: {
@@ -63,7 +64,18 @@ export async function POST(request: NextRequest) {
         order_id: order.id,
         order_number: order.order_number,
       },
-    });
+    };
+
+    if (connectedAccount) {
+      const totalCents = Math.round(Number(order.total) * 100);
+      const platformFee = Math.round(totalCents * 0.025);
+      sessionParams.payment_intent_data = {
+        application_fee_amount: platformFee,
+        transfer_data: { destination: connectedAccount },
+      };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
