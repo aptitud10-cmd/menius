@@ -28,7 +28,7 @@ export const grillHouseRestaurant: Restaurant = {
   website: 'https://menius.app',
   is_active: true,
   order_types_enabled: ['dine_in', 'pickup', 'delivery'],
-  payment_methods_enabled: ['cash'],
+  payment_methods_enabled: ['cash', 'online'],
   operating_hours: {
     monday: { open: '07:00', close: '22:00' },
     tuesday: { open: '07:00', close: '22:00' },

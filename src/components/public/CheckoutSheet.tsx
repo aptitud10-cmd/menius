@@ -244,13 +244,20 @@ export function CheckoutSheet({
 
             <div className="w-full space-y-3 max-w-xs">
               {paymentMethod === 'online' && orderId && (
-                <button
-                  onClick={handlePayOnline}
-                  disabled={payLoading}
-                  className="w-full py-3 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-                >
-                  {payLoading ? t.redirecting : t.payNow}
-                </button>
+                restaurant.id.startsWith('demo') ? (
+                  <div className="w-full py-3 rounded-xl bg-gray-100 text-center">
+                    <p className="text-sm font-semibold text-gray-500">{locale === 'es' ? '💳 Pago con tarjeta vía Stripe' : '💳 Card payment via Stripe'}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{locale === 'es' ? 'Disponible en producción' : 'Available in production'}</p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handlePayOnline}
+                    disabled={payLoading}
+                    className="w-full py-3 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                  >
+                    {payLoading ? t.redirecting : t.payNow}
+                  </button>
+                )
               )}
               {!restaurant.id.startsWith('demo') && (
                 <a
