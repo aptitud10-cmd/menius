@@ -208,6 +208,7 @@ export function CustomizationSheet({
     } else {
       addItem(product, legacyVariant, legacyExtras, qty, notes, modifierSelections);
     }
+    try { navigator?.vibrate?.(10); } catch {}
     setAdded(true);
     setTimeout(animateClose, 400);
   };

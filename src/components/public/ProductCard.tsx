@@ -43,10 +43,13 @@ export const ProductCard = memo(function ProductCard({
     return created > sevenDaysAgo;
   })();
 
+  const haptic = () => { try { navigator?.vibrate?.(10); } catch {} };
+
   const handleClick = () => {
     if (hasModifiers) {
       onSelect(product);
     } else {
+      haptic();
       onQuickAdd(product);
       setJustAdded(true);
       setTimeout(() => setJustAdded(false), 1200);
@@ -132,7 +135,7 @@ export const ProductCard = memo(function ProductCard({
               onError={() => setImgError(true)}
             />
             <button
-              onClick={(e) => { e.stopPropagation(); toggleFav(product.id); }}
+              onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
               className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center"
               aria-label="Favorite"
             >
@@ -143,7 +146,7 @@ export const ProductCard = memo(function ProductCard({
           <div className="relative w-[92px] h-[92px] rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
             <UtensilsCrossed className="w-6 h-6 text-gray-200" />
             <button
-              onClick={(e) => { e.stopPropagation(); toggleFav(product.id); }}
+              onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
               className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center"
               aria-label="Favorite"
             >
@@ -179,7 +182,7 @@ export const ProductCard = memo(function ProductCard({
               </span>
             )}
             <button
-              onClick={(e) => { e.stopPropagation(); toggleFav(product.id); }}
+              onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
               className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors"
               aria-label="Favorite"
             >
@@ -200,7 +203,7 @@ export const ProductCard = memo(function ProductCard({
               </span>
             )}
             <button
-              onClick={(e) => { e.stopPropagation(); toggleFav(product.id); }}
+              onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
               className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors"
               aria-label="Favorite"
             >
