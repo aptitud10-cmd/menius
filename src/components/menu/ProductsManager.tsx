@@ -12,7 +12,8 @@ import {
   createModifierOption, updateModifierOption, deleteModifierOption,
 } from '@/lib/actions/restaurant';
 import { formatPrice, cn } from '@/lib/utils';
-import type { Product, Category, ModifierGroup, ModifierOption } from '@/types';
+import type { Product, Category, ModifierGroup, ModifierOption, DietaryTag } from '@/types';
+import { DIETARY_TAGS } from '@/lib/dietary-tags';
 
 const MenuImportLazy = lazy(() => import('./MenuImport').then(m => ({ default: m.MenuImport })));
 
@@ -342,6 +343,7 @@ function ProductEditor({ product, categories, onClose, onSave }: {
     description: product?.description ?? '',
     price: product ? String(product.price) : '',
     category_id: product?.category_id ?? categories[0]?.id ?? '',
+    dietary_tags: (product?.dietary_tags ?? []) as DietaryTag[],
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(product?.image_url || null);
@@ -423,25 +425,28 @@ function ProductEditor({ product, categories, onClose, onSave }: {
       if (isEditing && product) {
         const updateData: any = {
           name: form.name, description: form.description, price, category_id: form.category_id,
+          dietary_tags: form.dietary_tags,
         };
         if (imageUrl) updateData.image_url = imageUrl;
         const result = await updateProduct(product.id, updateData);
         if (result.error) { setError(result.error); return; }
         onSave({
           ...product, name: form.name, description: form.description, price,
-          category_id: form.category_id, modifier_groups: localModifierGroups,
+          category_id: form.category_id, dietary_tags: form.dietary_tags,
+          modifier_groups: localModifierGroups,
           ...(imageUrl ? { image_url: imageUrl } : {}),
         });
       } else {
         const result = await createProduct({
-          name: form.name, description: form.description, price, category_id: form.category_id, is_active: true,
+          name: form.name, description: form.description, price, category_id: form.category_id,
+          is_active: true, dietary_tags: form.dietary_tags,
         });
         if (result.error) { setError(result.error); return; }
         onSave({
           id: `temp-${Date.now()}`, restaurant_id: '', category_id: form.category_id,
           name: form.name, description: form.description, price, image_url: imageUrl ?? '',
-          is_active: true, sort_order: 0, created_at: new Date().toISOString(),
-          modifier_groups: [],
+          is_active: true, dietary_tags: form.dietary_tags, sort_order: 0,
+          created_at: new Date().toISOString(), modifier_groups: [],
         });
       }
     });
@@ -570,6 +575,37 @@ function ProductEditor({ product, categories, onClose, onSave }: {
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 block">Descripcion</label>
                 <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Describe el producto..." rows={3} className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-900 text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 resize-none" />
+              </div>
+
+              {/* Dietary Tags */}
+              <div>
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Etiquetas dietéticas</label>
+                <div className="flex flex-wrap gap-2">
+                  {DIETARY_TAGS.map((tag) => {
+                    const isSelected = form.dietary_tags.includes(tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => setForm((prev) => ({
+                          ...prev,
+                          dietary_tags: isSelected
+                            ? prev.dietary_tags.filter((t) => t !== tag.id)
+                            : [...prev.dietary_tags, tag.id],
+                        }))}
+                        className={cn(
+                          'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border',
+                          isSelected
+                            ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                            : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                        )}
+                      >
+                        <span>{tag.emoji}</span>
+                        <span>{tag.labelEs}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Price & Category */}
@@ -744,12 +780,17 @@ export function ProductsManager({ initialProducts, categories, restaurantId, cur
                       <span className={cn('text-sm font-semibold truncate', p.is_active ? 'text-gray-900' : 'line-through text-gray-500')}>{p.name}</span>
                       {!p.is_active && <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-50 text-gray-500 font-medium flex-shrink-0">Oculto</span>}
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-bold text-emerald-600">{formatPrice(Number(p.price))}</span>
                       <span className="text-xs bg-gray-50 text-gray-500 px-1.5 py-0.5 rounded flex-shrink-0">{getCategoryName(p.category_id)}</span>
                       {(p.modifier_groups?.length ?? 0) > 0 && (
                         <span className="text-[10px] bg-emerald-500/[0.1] text-emerald-600 px-1.5 py-0.5 rounded font-medium flex-shrink-0">
                           {p.modifier_groups!.length} grupo{p.modifier_groups!.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {(p.dietary_tags?.length ?? 0) > 0 && (
+                        <span className="text-[11px] flex-shrink-0">
+                          {p.dietary_tags!.map((t) => DIETARY_TAGS.find((dt) => dt.id === t)?.emoji).filter(Boolean).join(' ')}
                         </span>
                       )}
                     </div>

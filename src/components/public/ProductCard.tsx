@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Plus, Check, Flame, UtensilsCrossed, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types';
+import { DIETARY_TAGS } from '@/lib/dietary-tags';
 
 interface ProductCardProps {
   product: Product;
@@ -68,6 +69,19 @@ export const ProductCard = memo(function ProductCard({
             </div>
             {product.description && (
               <p className="text-[13px] text-gray-500 line-clamp-2 mt-1 leading-snug">{product.description}</p>
+            )}
+            {(product.dietary_tags?.length ?? 0) > 0 && (
+              <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                {product.dietary_tags!.slice(0, 3).map((tagId) => {
+                  const tag = DIETARY_TAGS.find((t) => t.id === tagId);
+                  if (!tag) return null;
+                  return (
+                    <span key={tagId} className="inline-flex items-center gap-0.5 text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded-full">
+                      {tag.emoji}
+                    </span>
+                  );
+                })}
+              </div>
             )}
             {hasModifiers && (
               <span className="inline-flex items-center gap-0.5 text-[11px] text-gray-400 font-medium mt-1.5">
@@ -156,6 +170,20 @@ export const ProductCard = memo(function ProductCard({
 
           {product.description && (
             <p className="text-sm text-gray-500 line-clamp-1 mt-1 leading-relaxed">{product.description}</p>
+          )}
+          {(product.dietary_tags?.length ?? 0) > 0 && (
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+              {product.dietary_tags!.slice(0, 4).map((tagId) => {
+                const tag = DIETARY_TAGS.find((t) => t.id === tagId);
+                if (!tag) return null;
+                return (
+                  <span key={tagId} className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">
+                    <span>{tag.emoji}</span>
+                    <span>{tag.labelEs}</span>
+                  </span>
+                );
+              })}
+            </div>
           )}
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">

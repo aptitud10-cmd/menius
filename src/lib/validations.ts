@@ -32,6 +32,7 @@ export const productSchema = z.object({
   price: z.number().min(0, 'Precio debe ser positivo'),
   category_id: z.string().uuid('Categoría requerida'),
   is_active: z.boolean().default(true),
+  dietary_tags: z.array(z.string()).optional(),
 });
 
 export const tableSchema = z.object({

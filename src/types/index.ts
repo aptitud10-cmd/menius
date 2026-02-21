@@ -48,6 +48,10 @@ export interface Category {
   created_at: string;
 }
 
+export type DietaryTag =
+  | 'vegetarian' | 'vegan' | 'gluten_free' | 'dairy_free'
+  | 'spicy' | 'contains_nuts' | 'keto' | 'organic' | 'halal' | 'kosher';
+
 export interface Product {
   id: string;
   restaurant_id: string;
@@ -58,6 +62,7 @@ export interface Product {
   image_url: string;
   is_active: boolean;
   is_featured?: boolean;
+  dietary_tags?: DietaryTag[];
   sort_order: number;
   created_at: string;
   // joined (legacy)

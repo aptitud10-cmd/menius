@@ -250,6 +250,7 @@ export async function createProduct(data: ProductInput) {
     description: sanitizeMultiline(data.description, 500),
     price: data.price,
     is_active: data.is_active,
+    ...(data.dietary_tags && { dietary_tags: data.dietary_tags }),
   });
 
   if (error) return { error: error.message };

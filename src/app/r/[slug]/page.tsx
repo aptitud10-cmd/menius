@@ -4,6 +4,7 @@ import { MenuShell } from '@/components/public/MenuShell';
 import { fetchMenuData } from './menu-data';
 import { demoRestaurant, demoCategories, demoProducts } from '@/lib/demo-data';
 import { grillHouseRestaurant, grillHouseCategories, grillHouseProducts } from '@/lib/demo-data-en';
+import { DIETARY_TAGS } from '@/lib/dietary-tags';
 
 export const revalidate = 60;
 
@@ -205,18 +206,24 @@ function JsonLdScript({
     const sections = Array.from(grouped.entries()).map(([name, items]) => ({
       '@type': 'MenuSection',
       name,
-      hasMenuItem: items.slice(0, 30).map((p: any) => ({
-        '@type': 'MenuItem',
-        name: p.name,
-        ...(p.description && { description: p.description }),
-        ...(p.image_url && { image: p.image_url }),
-        offers: {
-          '@type': 'Offer',
-          price: p.price,
-          priceCurrency: currency,
-          availability: 'https://schema.org/InStock',
-        },
-      })),
+      hasMenuItem: items.slice(0, 30).map((p: any) => {
+        const diets = (p.dietary_tags as string[] | undefined)
+          ?.map((t: string) => DIETARY_TAGS.find((dt) => dt.id === t)?.schemaDiet)
+          .filter(Boolean);
+        return {
+          '@type': 'MenuItem',
+          name: p.name,
+          ...(p.description && { description: p.description }),
+          ...(p.image_url && { image: p.image_url }),
+          ...(diets && diets.length > 0 && { suitableForDiet: diets }),
+          offers: {
+            '@type': 'Offer',
+            price: p.price,
+            priceCurrency: currency,
+            availability: 'https://schema.org/InStock',
+          },
+        };
+      }),
     }));
 
     restaurantLd.hasMenu = {
