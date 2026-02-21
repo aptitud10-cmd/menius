@@ -63,7 +63,7 @@ export const MenuHeader = memo(function MenuHeader({
 
   return (
     <header className="flex-shrink-0 z-40 bg-white border-b border-gray-200">
-      <div className="h-14 max-w-[1280px] mx-auto px-4 lg:px-6 flex items-center gap-3">
+      <div className="h-14 max-w-[1440px] mx-auto px-4 lg:px-6 flex items-center gap-3">
         {/* Back button (demo/external) */}
         {backUrl && (
           <Link href={backUrl} className="flex-shrink-0 p-1.5 -ml-1.5 rounded-lg active:bg-gray-100 transition-colors" aria-label="Back">
@@ -74,15 +74,15 @@ export const MenuHeader = memo(function MenuHeader({
         {/* Logo + Name */}
         <div className="flex items-center gap-2.5 flex-shrink-0 min-w-0">
           {restaurant.logo_url ? (
-            <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-              <Image src={restaurant.logo_url} alt={restaurant.name} fill sizes="32px" className="object-cover" />
+            <div className="relative w-8 h-8 lg:w-10 lg:h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+              <Image src={restaurant.logo_url} alt={restaurant.name} fill sizes="40px" className="object-cover" />
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-xs font-bold text-white">{restaurant.name.charAt(0).toUpperCase()}</span>
+            <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
+              <span className="text-xs lg:text-sm font-bold text-white">{restaurant.name.charAt(0).toUpperCase()}</span>
             </div>
           )}
-          <span className="text-sm font-bold text-gray-900 truncate max-w-[140px]">{restaurant.name}</span>
+          <span className="text-sm lg:text-base font-bold text-gray-900 truncate max-w-[140px] lg:max-w-[220px]">{restaurant.name}</span>
         </div>
 
         {/* Center: Search bar (desktop) */}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X, MapPin, Clock } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice, cn } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
@@ -213,7 +213,7 @@ export function MenuShell({
       </div>
 
       {/* ── 3-Column Layout — fills remaining viewport ── */}
-      <div className="flex-1 flex overflow-hidden max-w-[1280px] w-full mx-auto">
+      <div className="flex-1 flex overflow-hidden max-w-[1440px] w-full mx-auto">
 
         {/* Left: Categories — fixed column with own scroll */}
         <aside className="hidden lg:flex flex-col w-[260px] flex-shrink-0 border-r border-gray-100 overflow-y-auto">
@@ -227,14 +227,36 @@ export function MenuShell({
         </aside>
 
         {/* Center: Products grid — scrolls independently */}
-        <main className="flex-1 min-w-0 overflow-y-auto px-4 lg:px-6 py-5 pb-28 lg:pb-6">
+        <main className="flex-1 min-w-0 overflow-y-auto px-4 lg:px-8 py-5 pb-28 lg:py-6 lg:pb-8">
           {/* Restaurant info + category tabs (desktop) */}
-          <div className="hidden lg:block mb-6">
-            <h2 className="text-xl font-bold text-gray-900">{restaurant.name}</h2>
+          <div className="hidden lg:block mb-8">
+            <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">{restaurant.name}</h2>
             {restaurant.description && (
-              <p className="text-sm text-gray-500 mt-1">{restaurant.description}</p>
+              <p className="text-base text-gray-500 mt-1.5 max-w-xl">{restaurant.description}</p>
             )}
-            <div className="relative mt-5">
+            {(restaurant.address || restaurant.operating_hours) && (
+              <div className="flex items-center gap-4 mt-3 text-sm text-gray-400">
+                {restaurant.address && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate max-w-[280px]">{restaurant.address}</span>
+                  </span>
+                )}
+                {restaurant.operating_hours && (() => {
+                  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                  const dayKey = days[new Date().getDay()];
+                  const dh = restaurant.operating_hours?.[dayKey];
+                  if (!dh || dh.closed) return null;
+                  return (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                      {dh.open} – {dh.close}
+                    </span>
+                  );
+                })()}
+              </div>
+            )}
+            <div className="relative mt-6">
               <button onClick={() => scrollCats('left')} className="absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-white via-white to-transparent flex items-center justify-start" aria-label="Scroll left">
                 <ChevronLeft className="w-4 h-4 text-gray-400" />
               </button>
@@ -258,7 +280,7 @@ export function MenuShell({
                   <p className="font-medium">{t.noResults}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {searchResults.map((product) => (
                     <ProductCard
                       key={product.id}
@@ -291,7 +313,7 @@ export function MenuShell({
                     </span>
                     <div className="flex-1 h-px bg-gray-100" />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                     {items.map((product) => (
                       <ProductCard
                         key={product.id}
