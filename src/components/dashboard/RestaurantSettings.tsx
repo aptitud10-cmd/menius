@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera } from 'lucide-react';
+import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type { Restaurant } from '@/types';
@@ -35,6 +35,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     notifications_enabled: initialData.notifications_enabled !== false,
     order_types_enabled: initialData.order_types_enabled ?? ['dine_in', 'pickup'],
     payment_methods_enabled: initialData.payment_methods_enabled ?? ['cash'],
+    estimated_delivery_minutes: initialData.estimated_delivery_minutes ?? '',
   });
 
   const [hours, setHours] = useState<Record<string, { open: string; close: string; closed: boolean }>>(
@@ -110,6 +111,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           ...form,
           operating_hours: hours,
           logo_url: logoUrl || null,
+          estimated_delivery_minutes: form.estimated_delivery_minutes ? Number(form.estimated_delivery_minutes) : null,
         }),
       });
 
@@ -310,6 +312,27 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             );
           })}
         </div>
+
+        {form.order_types_enabled.includes('delivery') && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4 text-gray-500" />
+              <label className="text-xs font-medium text-gray-500">Tiempo estimado de entrega (minutos)</label>
+            </div>
+            <input
+              type="number"
+              min="1"
+              max="180"
+              value={form.estimated_delivery_minutes}
+              onChange={(e) => { setForm((prev) => ({ ...prev, estimated_delivery_minutes: e.target.value })); setSaved(false); }}
+              placeholder="Ej: 30"
+              className="w-40 px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
+            />
+            <p className="text-[11px] text-gray-400 mt-1.5">
+              Se muestra a tus clientes como "~30 min" en el menú y checkout.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Payment Methods */}

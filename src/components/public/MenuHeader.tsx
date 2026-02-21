@@ -3,7 +3,7 @@
 import { memo, useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ShoppingCart, Search, X, ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { ShoppingCart, Search, X, ArrowLeft, LayoutDashboard, Clock } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
@@ -114,6 +114,13 @@ export const MenuHeader = memo(function MenuHeader({
               <LayoutDashboard className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Dashboard</span>
             </Link>
+          )}
+
+          {restaurant.estimated_delivery_minutes && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-50 text-[11px] font-semibold text-gray-500">
+              <Clock className="w-3 h-3" />
+              ~{restaurant.estimated_delivery_minutes} min
+            </span>
           )}
 
           <span className={cn(

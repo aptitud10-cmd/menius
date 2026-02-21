@@ -28,6 +28,7 @@ export const demoRestaurant: Restaurant = {
   is_active: true,
   order_types_enabled: ['dine_in', 'pickup', 'delivery'],
   payment_methods_enabled: ['cash', 'online'],
+  estimated_delivery_minutes: 30,
   operating_hours: {
     monday: { open: '08:00', close: '22:00' },
     tuesday: { open: '08:00', close: '22:00' },

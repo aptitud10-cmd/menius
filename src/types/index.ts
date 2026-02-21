@@ -27,6 +27,7 @@ export interface Restaurant {
   notifications_enabled?: boolean;
   order_types_enabled?: OrderType[];
   payment_methods_enabled?: PaymentMethod[];
+  estimated_delivery_minutes?: number | null;
   is_active?: boolean;
   created_at: string;
 }

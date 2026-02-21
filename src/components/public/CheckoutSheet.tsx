@@ -240,7 +240,12 @@ export function CheckoutSheet({
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-1">{t.orderSent}</h2>
             <p className="text-sm text-gray-500 mb-2">{t.orderSentDesc}</p>
-            <p className="text-3xl font-bold text-gray-900 mb-8 tabular-nums">#{orderNumber}</p>
+            <p className="text-3xl font-bold text-gray-900 mb-3 tabular-nums">#{orderNumber}</p>
+            {restaurant.estimated_delivery_minutes && orderType === 'delivery' && (
+              <p className="text-sm text-gray-400 mb-6">
+                ⏱ {locale === 'es' ? 'Tiempo estimado' : 'Estimated time'}: ~{restaurant.estimated_delivery_minutes} min
+              </p>
+            )}
 
             <div className="w-full space-y-3 max-w-xs">
               {paymentMethod === 'online' && orderId && (

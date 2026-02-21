@@ -388,7 +388,7 @@ export function MenuShell({
             t={t}
             onEdit={handleEditCartItem}
             onCheckout={handleOpenCheckout}
-            estimatedMinutes={25}
+            estimatedMinutes={restaurant.estimated_delivery_minutes ?? undefined}
           />
         </aside>
       </div>

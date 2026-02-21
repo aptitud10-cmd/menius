@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Minus, Plus, Pencil, Trash2, ShoppingCart } from 'lucide-react';
+import { Minus, Plus, Pencil, Trash2, ShoppingCart, Clock } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import type { Translations } from '@/lib/translations';
@@ -139,6 +139,12 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes }:
 
       {/* Footer */}
       <div className="border-t border-gray-100 px-5 py-4 flex-shrink-0 space-y-3">
+        {estimatedMinutes && (
+          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+            <Clock className="w-3.5 h-3.5" />
+            <span>~{estimatedMinutes} min</span>
+          </div>
+        )}
         <div className="flex justify-between items-baseline">
           <span className="text-sm text-gray-500">{t.subtotal}</span>
           <span className="text-lg font-bold text-gray-900 tabular-nums">{fmtPrice(cartTotal)}</span>
