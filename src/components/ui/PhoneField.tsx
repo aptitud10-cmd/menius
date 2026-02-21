@@ -1,6 +1,7 @@
 'use client';
 
 import PhoneInput from 'react-phone-number-input';
+import flags from 'react-phone-number-input/flags';
 import 'react-phone-number-input/style.css';
 
 interface PhoneFieldProps {
@@ -16,7 +17,7 @@ export function PhoneField({
   value,
   onChange,
   label,
-  placeholder = '+52 55 1234 5678',
+  placeholder = '+1 555 123 4567',
   required,
   dark = true,
 }: PhoneFieldProps) {
@@ -40,8 +41,8 @@ export function PhoneField({
       )}
       <PhoneInput
         international
-        defaultCountry="MX"
-        countryCallingCodeEditable={false}
+        defaultCountry="US"
+        flags={flags}
         value={value}
         onChange={(v) => onChange(v ?? '')}
         placeholder={placeholder}
