@@ -76,7 +76,6 @@ export function MenuShell({
   const cartTotal = hasMounted ? rawCartTotal : 0;
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'all' | 'popular' | 'options'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [customization, setCustomization] = useState<CustomizationTarget | null>(null);
@@ -84,11 +83,28 @@ export function MenuShell({
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const catScrollRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const mobilePillsRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const isScrollingRef = useRef(false);
 
   const handleCategorySelect = useCallback((catId: string | null) => {
-    setActiveCategory(catId);
     setSearchQuery('');
     setShowSearch(false);
+    setActiveCategory(catId);
+
+    if (catId === null) {
+      mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const section = sectionRefs.current.get(catId);
+    if (section && mainRef.current) {
+      isScrollingRef.current = true;
+      const offset = section.offsetTop - 8;
+      mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
+      setTimeout(() => { isScrollingRef.current = false; }, 800);
+    }
   }, []);
 
   const handleProductSelect = useCallback((product: Product) => {
@@ -126,23 +142,14 @@ export function MenuShell({
     setShowCheckout(false);
   }, []);
 
-  const applyFilter = useCallback((list: Product[]) => {
-    if (activeFilter === 'popular') return list.filter((p) => p.is_featured);
-    if (activeFilter === 'options') return list.filter((p) => (p.variants?.length ?? 0) > 0 || (p.extras?.length ?? 0) > 0);
-    return list;
-  }, [activeFilter]);
-
   const itemsByCategory = useMemo(() => {
-    const cats = activeCategory
-      ? categories.filter((c) => c.id === activeCategory)
-      : categories;
-    return cats
+    return categories
       .map((cat) => ({
         category: cat,
-        items: applyFilter(products.filter((p) => p.category_id === cat.id)),
+        items: products.filter((p) => p.category_id === cat.id),
       }))
       .filter((g) => g.items.length > 0);
-  }, [categories, products, activeCategory, applyFilter]);
+  }, [categories, products]);
 
   // Search results
   const searchResults = useMemo(() => {
@@ -153,13 +160,47 @@ export function MenuShell({
     );
   }, [searchQuery, products]);
 
+  // Scroll-spy: highlight pill based on visible section
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main || itemsByCategory.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (isScrollingRef.current) return;
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const id = entry.target.getAttribute('data-cat-id');
+            if (id) setActiveCategory(id);
+          }
+        }
+      },
+      { root: main, rootMargin: '-10% 0px -80% 0px', threshold: 0 }
+    );
+
+    sectionRefs.current.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [itemsByCategory]);
+
+  // Auto-scroll pill bar to show active pill
+  useEffect(() => {
+    if (!activeCategory) return;
+    const container = mobilePillsRef.current ?? catScrollRef.current;
+    if (!container) return;
+    const pill = container.querySelector(`[data-pill-id="${activeCategory}"]`) as HTMLElement;
+    if (pill) {
+      pill.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
+    }
+  }, [activeCategory]);
+
   const scrollCats = (dir: 'left' | 'right') => {
     catScrollRef.current?.scrollBy({ left: dir === 'left' ? -200 : 200, behavior: 'smooth' });
   };
 
-  const categoryPill = (id: string | null, label: string, isActive: boolean) => (
+  const categoryPill = (id: string, label: string, isActive: boolean) => (
     <button
-      key={id ?? '__all'}
+      key={id}
+      data-pill-id={id}
       onClick={() => handleCategorySelect(id)}
       className={cn(
         'flex-shrink-0 px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap',
@@ -172,10 +213,11 @@ export function MenuShell({
     </button>
   );
 
+  const visibleCats = itemsByCategory.map((g) => g.category);
+
   const mobileCategoryPills = (
-    <div className="lg:hidden py-3 px-4 flex gap-2.5 overflow-x-auto scrollbar-hide border-b border-gray-100 bg-white sticky z-30" style={{ top: HEADER_HEIGHT }}>
-      {categoryPill(null, t.allCategories, activeCategory === null)}
-      {categories.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id))}
+    <div ref={mobilePillsRef} className="lg:hidden py-3 px-4 flex gap-2.5 overflow-x-auto scrollbar-hide border-b border-gray-100 bg-white sticky z-30" style={{ top: HEADER_HEIGHT }}>
+      {visibleCats.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id))}
     </div>
   );
 
@@ -227,7 +269,7 @@ export function MenuShell({
         </aside>
 
         {/* Center: Products grid — scrolls independently */}
-        <main className="flex-1 min-w-0 overflow-y-auto px-4 lg:px-8 py-5 pb-28 lg:py-6 lg:pb-8">
+        <main ref={mainRef} className="flex-1 min-w-0 overflow-y-auto px-4 lg:px-8 py-5 pb-28 lg:py-6 lg:pb-8">
           {/* Restaurant info + category tabs (desktop) */}
           <div className="hidden lg:block mb-8">
             <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">{restaurant.name}</h2>
@@ -261,8 +303,7 @@ export function MenuShell({
                 <ChevronLeft className="w-4 h-4 text-gray-400" />
               </button>
               <div ref={catScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5">
-                {categoryPill(null, t.allCategories, activeCategory === null)}
-                {categories.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id))}
+                {visibleCats.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id))}
               </div>
               <button onClick={() => scrollCats('right')} className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end" aria-label="Scroll right">
                 <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -303,7 +344,14 @@ export function MenuShell({
           ) : (
             <div className="space-y-10">
               {itemsByCategory.map(({ category, items }) => (
-                <section key={category.id}>
+                <section
+                  key={category.id}
+                  data-cat-id={category.id}
+                  ref={(el) => {
+                    if (el) sectionRefs.current.set(category.id, el);
+                    else sectionRefs.current.delete(category.id);
+                  }}
+                >
                   <div className="flex items-center gap-3 mb-4 py-2">
                     <h2 className="text-lg font-bold text-gray-900">
                       {category.name}

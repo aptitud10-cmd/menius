@@ -9,7 +9,7 @@ interface CategorySidebarProps {
   products: Product[];
   activeCategory: string | null;
   onSelect: (catId: string | null) => void;
-  allLabel: string;
+  allLabel?: string;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -71,24 +71,8 @@ export const CategorySidebar = memo(function CategorySidebar({
         })}
       </div>
 
-      <div className="mt-6 px-3">
-        <div className="h-px bg-gray-100 mb-4" />
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Filtros</p>
-        <button
-          onClick={() => onSelect(null)}
-          className={cn(
-            'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all duration-150',
-            activeCategory === null
-              ? 'bg-emerald-50 text-emerald-700 font-semibold'
-              : 'text-gray-600 hover:bg-gray-50'
-          )}
-        >
-          <span className="text-base">📋</span>
-          <span className="flex-1 text-left">{allLabel}</span>
-          <span className={cn('text-xs tabular-nums', activeCategory === null ? 'text-emerald-500' : 'text-gray-300')}>
-            {products.length}
-          </span>
-        </button>
+      <div className="mt-4 px-3">
+        <div className="h-px bg-gray-100" />
       </div>
     </nav>
   );
