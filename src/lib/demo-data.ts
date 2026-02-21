@@ -13,7 +13,7 @@ const CAT_TORTAS = 'demo-cat-tortas';
 
 export const demoRestaurant: Restaurant = {
   id: RID,
-  name: 'La Cocina de MENIUS',
+  name: 'Demo Menius',
   slug: 'demo',
   owner_user_id: 'demo-owner',
   timezone: 'America/Mexico_City',

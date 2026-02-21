@@ -82,7 +82,7 @@ export const MenuHeader = memo(function MenuHeader({
               <span className="text-xs lg:text-sm font-bold text-white">{restaurant.name.charAt(0).toUpperCase()}</span>
             </div>
           )}
-          <span className="text-sm lg:text-base font-bold text-gray-900 truncate max-w-[140px] lg:max-w-[220px]">{restaurant.name}</span>
+          <span className="text-[15px] lg:text-base font-bold text-gray-900 truncate max-w-[180px] lg:max-w-[260px]">{restaurant.name}</span>
         </div>
 
         {/* Center: Search bar (desktop) */}
