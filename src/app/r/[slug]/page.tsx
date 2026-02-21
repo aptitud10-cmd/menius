@@ -87,7 +87,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
   if (demoConfig) {
     return (
       <>
-        <JsonLdScript restaurant={demoConfig.restaurant} slug={params.slug} />
+        <JsonLdScript restaurant={demoConfig.restaurant} slug={params.slug} categories={demoConfig.categories} products={demoConfig.products} />
         <MenuShell
           restaurant={demoConfig.restaurant}
           categories={demoConfig.categories}
@@ -108,7 +108,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
 
   return (
     <>
-      <JsonLdScript restaurant={data.restaurant} slug={params.slug} products={data.products} />
+      <JsonLdScript restaurant={data.restaurant} slug={params.slug} categories={data.categories} products={data.products} reviewStats={data.reviewStats} />
       <MenuShell
         restaurant={data.restaurant}
         categories={data.categories}
@@ -120,8 +120,34 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
   );
 }
 
-function JsonLdScript({ restaurant, slug, products }: { restaurant: any; slug: string; products?: any[] }) {
+function JsonLdScript({
+  restaurant, slug, categories, products, reviewStats,
+}: {
+  restaurant: any;
+  slug: string;
+  categories?: any[];
+  products?: any[];
+  reviewStats?: { average: number; total: number } | null;
+}) {
   const url = `${APP_URL}/r/${slug}`;
+  const currency = restaurant.currency ?? 'MXN';
+
+  const paymentMap: Record<string, string> = { cash: 'Cash', online: 'Credit Card' };
+  const paymentAccepted = (restaurant.payment_methods_enabled as string[] | undefined)
+    ?.map((m: string) => paymentMap[m])
+    .filter(Boolean);
+
+  let priceRange: string | undefined;
+  if (products && products.length > 0) {
+    const prices = products.map((p: any) => p.price).filter((p: number) => p > 0);
+    if (prices.length > 0) {
+      const avg = prices.reduce((a: number, b: number) => a + b, 0) / prices.length;
+      if (avg <= 80) priceRange = '$';
+      else if (avg <= 200) priceRange = '$$';
+      else if (avg <= 500) priceRange = '$$$';
+      else priceRange = '$$$$';
+    }
+  }
 
   const restaurantLd: any = {
     '@context': 'https://schema.org',
@@ -129,52 +155,74 @@ function JsonLdScript({ restaurant, slug, products }: { restaurant: any; slug: s
     name: restaurant.name,
     description: restaurant.description || undefined,
     url,
-    ...(restaurant.address && { address: { '@type': 'PostalAddress', streetAddress: restaurant.address } }),
+    ...(restaurant.address && {
+      address: { '@type': 'PostalAddress', streetAddress: restaurant.address },
+    }),
     ...(restaurant.phone && { telephone: restaurant.phone }),
     ...(restaurant.cover_image_url && { image: restaurant.cover_image_url }),
     ...(restaurant.logo_url && { logo: restaurant.logo_url }),
-    servesCuisine: 'Various',
+    ...(paymentAccepted && paymentAccepted.length > 0 && { paymentAccepted }),
+    ...(priceRange && { priceRange }),
     acceptsReservations: false,
   };
 
-  if (restaurant.operating_hours) {
-    const daysMap: Record<string, string> = {
-      monday: 'Mo', tuesday: 'Tu', wednesday: 'We', thursday: 'Th',
-      friday: 'Fr', saturday: 'Sa', sunday: 'Su',
+  if (reviewStats && reviewStats.total >= 1) {
+    restaurantLd.aggregateRating = {
+      '@type': 'AggregateRating',
+      ratingValue: reviewStats.average,
+      bestRating: 5,
+      worstRating: 1,
+      ratingCount: reviewStats.total,
     };
-    const specs = Object.entries(restaurant.operating_hours)
-      .filter(([, v]: any) => !v.closed)
-      .map(([day, v]: any) => `${daysMap[day] ?? day} ${v.open}-${v.close}`);
-
-    if (specs.length > 0) {
-      restaurantLd.openingHoursSpecification = specs.map((s) => ({
-        '@type': 'OpeningHoursSpecification',
-        dayOfWeek: s.split(' ')[0],
-        opens: s.split(' ')[1]?.split('-')[0],
-        closes: s.split(' ')[1]?.split('-')[1],
-      }));
-    }
   }
 
-  if (products && products.length > 0) {
+  if (restaurant.operating_hours) {
+    const fullDayNames: Record<string, string> = {
+      monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday',
+      thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday',
+    };
+    const specs = Object.entries(restaurant.operating_hours)
+      .filter(([, v]: any) => v && !v.closed)
+      .map(([day, v]: any) => ({
+        '@type': 'OpeningHoursSpecification',
+        dayOfWeek: `https://schema.org/${fullDayNames[day] ?? day}`,
+        opens: v.open,
+        closes: v.close,
+      }));
+    if (specs.length > 0) restaurantLd.openingHoursSpecification = specs;
+  }
+
+  if (products && products.length > 0 && categories && categories.length > 0) {
+    const catMap = new Map(categories.map((c: any) => [c.id, c.name]));
+    const grouped = new Map<string, any[]>();
+
+    for (const p of products) {
+      const catName = catMap.get(p.category_id) ?? 'General';
+      if (!grouped.has(catName)) grouped.set(catName, []);
+      grouped.get(catName)!.push(p);
+    }
+
+    const sections = Array.from(grouped.entries()).map(([name, items]) => ({
+      '@type': 'MenuSection',
+      name,
+      hasMenuItem: items.slice(0, 30).map((p: any) => ({
+        '@type': 'MenuItem',
+        name: p.name,
+        ...(p.description && { description: p.description }),
+        ...(p.image_url && { image: p.image_url }),
+        offers: {
+          '@type': 'Offer',
+          price: p.price,
+          priceCurrency: currency,
+          availability: 'https://schema.org/InStock',
+        },
+      })),
+    }));
+
     restaurantLd.hasMenu = {
       '@type': 'Menu',
-      name: `Menú de ${restaurant.name}`,
-      hasMenuSection: [{
-        '@type': 'MenuSection',
-        name: 'Menú completo',
-        hasMenuItem: products.slice(0, 50).map((p: any) => ({
-          '@type': 'MenuItem',
-          name: p.name,
-          description: p.description || undefined,
-          ...(p.image_url && { image: p.image_url }),
-          offers: {
-            '@type': 'Offer',
-            price: p.price,
-            priceCurrency: restaurant.currency ?? 'MXN',
-          },
-        })),
-      }],
+      name: `${restaurant.name} Menu`,
+      hasMenuSection: sections,
     };
   }
 
