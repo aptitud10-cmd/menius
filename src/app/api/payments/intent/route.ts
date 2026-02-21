@@ -38,8 +38,6 @@ export async function POST(request: NextRequest) {
 
       const rest = (order as any)?.restaurants;
       if (rest?.stripe_onboarding_complete && rest?.stripe_account_id) {
-        const platformFee = Math.round(intentParams.amount * 0.025);
-        intentParams.application_fee_amount = platformFee;
         intentParams.transfer_data = { destination: rest.stripe_account_id };
       }
     }

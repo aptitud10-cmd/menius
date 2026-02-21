@@ -67,10 +67,7 @@ export async function POST(request: NextRequest) {
     };
 
     if (connectedAccount) {
-      const totalCents = Math.round(Number(order.total) * 100);
-      const platformFee = Math.round(totalCents * 0.025);
       sessionParams.payment_intent_data = {
-        application_fee_amount: platformFee,
         transfer_data: { destination: connectedAccount },
       };
     }
