@@ -27,7 +27,7 @@ export const grillHouseRestaurant: Restaurant = {
   email: 'hello@thegrillhouse.com',
   website: 'https://menius.app',
   is_active: true,
-  order_types_enabled: ['dine_in', 'pickup'],
+  order_types_enabled: ['dine_in', 'pickup', 'delivery'],
   payment_methods_enabled: ['cash'],
   operating_hours: {
     monday: { open: '07:00', close: '22:00' },
