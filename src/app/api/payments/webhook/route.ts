@@ -82,6 +82,22 @@ export async function POST(request: NextRequest) {
         break;
       }
 
+      case 'payment_intent.succeeded': {
+        if (orderId) {
+          await updateOrderPayment(orderId, 'paid', session.id ?? '');
+          logger.info('PaymentIntent succeeded (Apple Pay / Google Pay)', { orderId });
+        }
+        break;
+      }
+
+      case 'payment_intent.payment_failed': {
+        if (orderId) {
+          await updateOrderPayment(orderId, 'failed', session.id ?? '');
+          logger.warn('PaymentIntent failed', { orderId });
+        }
+        break;
+      }
+
       default:
         logger.info('Unhandled event type', { type: event.type });
     }

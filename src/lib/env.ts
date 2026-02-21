@@ -14,6 +14,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
 
   // Optional — Stripe
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
 

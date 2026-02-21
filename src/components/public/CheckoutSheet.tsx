@@ -6,6 +6,7 @@ import { X, ArrowLeft, CheckCircle } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import type { Restaurant, OrderType, PaymentMethod } from '@/types';
+import { WalletButton } from './WalletButton';
 import type { Translations, Locale } from '@/lib/translations';
 
 const AddressAutocomplete = dynamic(
@@ -569,11 +570,26 @@ export function CheckoutSheet({
         </div>
 
         {/* Sticky footer */}
-        <div className="border-t-2 border-gray-100 px-5 py-4 flex-shrink-0 bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="border-t-2 border-gray-100 px-5 py-4 flex-shrink-0 bg-white pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3">
           {orderError && (
-            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200 mb-3">
+            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200">
               <span className="text-red-700 text-sm font-medium">{orderError}</span>
             </div>
+          )}
+          {paymentMethod === 'online' && (
+            <WalletButton
+              amount={finalTotal}
+              currency={restaurant.currency ?? 'MXN'}
+              label={restaurant.name}
+              disabled={submitting || items.length === 0 || !customerName.trim() || !customerPhone.trim()}
+              onSuccess={() => {
+                saveLastOrder();
+                clearCart();
+                setOrderNumber('WALLET');
+                setStep('confirmation');
+              }}
+              onError={(msg) => setOrderError(msg)}
+            />
           )}
           <button
             onClick={handleSubmitOrder}
