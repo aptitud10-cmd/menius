@@ -72,7 +72,8 @@ export function CheckoutSheet({
   const [payLoading, setPayLoading] = useState(false);
 
   const discount = promoResult?.valid ? promoResult.discount : 0;
-  const finalTotal = Math.max(0, cartTotal - discount);
+  const deliveryFee = (orderType === 'delivery' && restaurant.delivery_fee) ? restaurant.delivery_fee : 0;
+  const finalTotal = Math.max(0, cartTotal - discount + deliveryFee);
 
   const [vvH, setVvH] = useState<string>('100dvh');
 
@@ -340,6 +341,18 @@ export function CheckoutSheet({
               <div className="flex justify-between text-[15px] text-emerald-600">
                 <span>{t.discount}</span>
                 <span className="font-semibold">-{fmtPrice(discount)}</span>
+              </div>
+            )}
+            {deliveryFee > 0 && (
+              <div className="flex justify-between text-[15px] text-gray-500">
+                <span>{locale === 'es' ? 'Envío' : 'Delivery'}</span>
+                <span className="font-semibold tabular-nums">+{fmtPrice(deliveryFee)}</span>
+              </div>
+            )}
+            {orderType === 'delivery' && deliveryFee === 0 && restaurant.order_types_enabled?.includes('delivery') && (
+              <div className="flex justify-between text-[15px] text-emerald-600">
+                <span>{locale === 'es' ? 'Envío' : 'Delivery'}</span>
+                <span className="font-semibold">{locale === 'es' ? 'Gratis' : 'Free'}</span>
               </div>
             )}
             <div className="border-t border-gray-200 pt-3 flex justify-between font-bold text-lg">

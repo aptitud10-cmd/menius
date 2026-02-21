@@ -12,9 +12,11 @@ interface CartPanelProps {
   onEdit: (index: number) => void;
   onCheckout: () => void;
   estimatedMinutes?: number;
+  deliveryFee?: number;
+  locale?: 'es' | 'en';
 }
 
-export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes }: CartPanelProps) {
+export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, deliveryFee, locale = 'es' }: CartPanelProps) {
   const items = useCartStore((s) => s.items);
   const updateQty = useCartStore((s) => s.updateQty);
   const removeItem = useCartStore((s) => s.removeItem);
@@ -149,6 +151,18 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes }:
           <span className="text-sm text-gray-500">{t.subtotal}</span>
           <span className="text-lg font-bold text-gray-900 tabular-nums">{fmtPrice(cartTotal)}</span>
         </div>
+        {deliveryFee != null && deliveryFee > 0 && (
+          <div className="flex justify-between items-baseline text-sm">
+            <span className="text-gray-400">{locale === 'es' ? 'Envío' : 'Delivery'}</span>
+            <span className="text-gray-500 tabular-nums">+{fmtPrice(deliveryFee)}</span>
+          </div>
+        )}
+        {deliveryFee != null && deliveryFee === 0 && (
+          <div className="flex justify-between items-baseline text-sm">
+            <span className="text-gray-400">{locale === 'es' ? 'Envío' : 'Delivery'}</span>
+            <span className="text-emerald-500 font-medium">{locale === 'es' ? 'Gratis' : 'Free'}</span>
+          </div>
+        )}
         <button
           onClick={onCheckout}
           className="w-full py-3.5 rounded-2xl bg-emerald-500 text-white font-bold text-[15px] hover:bg-emerald-600 active:scale-[0.98] transition-all duration-150 shadow-sm"

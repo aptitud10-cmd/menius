@@ -389,6 +389,8 @@ export function MenuShell({
             onEdit={handleEditCartItem}
             onCheckout={handleOpenCheckout}
             estimatedMinutes={restaurant.estimated_delivery_minutes ?? undefined}
+            deliveryFee={restaurant.delivery_fee ?? undefined}
+            locale={locale}
           />
         </aside>
       </div>

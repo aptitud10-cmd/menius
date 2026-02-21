@@ -36,6 +36,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     order_types_enabled: initialData.order_types_enabled ?? ['dine_in', 'pickup'],
     payment_methods_enabled: initialData.payment_methods_enabled ?? ['cash'],
     estimated_delivery_minutes: initialData.estimated_delivery_minutes ?? '',
+    delivery_fee: initialData.delivery_fee ?? '',
   });
 
   const [hours, setHours] = useState<Record<string, { open: string; close: string; closed: boolean }>>(
@@ -112,6 +113,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           operating_hours: hours,
           logo_url: logoUrl || null,
           estimated_delivery_minutes: form.estimated_delivery_minutes ? Number(form.estimated_delivery_minutes) : null,
+          delivery_fee: form.delivery_fee ? Number(form.delivery_fee) : null,
         }),
       });
 
@@ -315,21 +317,40 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
         {form.order_types_enabled.includes('delivery') && (
           <div className="mt-4 pt-4 border-t border-gray-100">
-            <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-4 h-4 text-gray-500" />
-              <label className="text-xs font-medium text-gray-500">Tiempo estimado de entrega (minutos)</label>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-gray-500" />
+                  <label className="text-xs font-medium text-gray-500">Tiempo estimado (min)</label>
+                </div>
+                <input
+                  type="number"
+                  min="1"
+                  max="180"
+                  value={form.estimated_delivery_minutes}
+                  onChange={(e) => { setForm((prev) => ({ ...prev, estimated_delivery_minutes: e.target.value })); setSaved(false); }}
+                  placeholder="Ej: 30"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
+                />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <CreditCard className="w-4 h-4 text-gray-500" />
+                  <label className="text-xs font-medium text-gray-500">Costo de envío</label>
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.delivery_fee}
+                  onChange={(e) => { setForm((prev) => ({ ...prev, delivery_fee: e.target.value })); setSaved(false); }}
+                  placeholder="0.00"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
+                />
+              </div>
             </div>
-            <input
-              type="number"
-              min="1"
-              max="180"
-              value={form.estimated_delivery_minutes}
-              onChange={(e) => { setForm((prev) => ({ ...prev, estimated_delivery_minutes: e.target.value })); setSaved(false); }}
-              placeholder="Ej: 30"
-              className="w-40 px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
-            />
-            <p className="text-[11px] text-gray-400 mt-1.5">
-              Se muestra a tus clientes como "~30 min" en el menú y checkout.
+            <p className="text-[11px] text-gray-400 mt-2">
+              Se muestra a tus clientes antes de confirmar el pedido. Deja en 0 para envío gratis.
             </p>
           </div>
         )}

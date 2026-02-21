@@ -30,6 +30,7 @@ export const grillHouseRestaurant: Restaurant = {
   order_types_enabled: ['dine_in', 'pickup', 'delivery'],
   payment_methods_enabled: ['cash', 'online'],
   estimated_delivery_minutes: 25,
+  delivery_fee: 3.99,
   operating_hours: {
     monday: { open: '07:00', close: '22:00' },
     tuesday: { open: '07:00', close: '22:00' },
