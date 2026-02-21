@@ -40,6 +40,7 @@
     "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@types/google.maps": "^3.58.1",
     "@types/node": "^20.10.0",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^18.2.41",
