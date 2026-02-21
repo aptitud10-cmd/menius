@@ -427,40 +427,50 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
 .phone-field--light .PhoneInput {
   display: flex;
   align-items: stretch;
+  gap: 0.5rem;
 }
 .phone-field--light .PhoneInputCountry {
   background: #fff;
   border: 2px solid #e5e7eb;
   border-radius: 1rem;
-  padding: 0 0.75rem;
-  margin-right: 0.5rem;
+  padding: 0 1rem;
+  margin-right: 0;
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  transition: border-color 0.15s;
+  gap: 0.5rem;
+  transition: border-color 0.2s;
   flex-shrink: 0;
+  min-height: 3.25rem;
+  cursor: pointer;
+}
+.phone-field--light .PhoneInputCountry:hover {
+  border-color: #d1d5db;
 }
 .phone-field--light .PhoneInputCountry:focus-within {
   border-color: #111827;
 }
 .phone-field--light .PhoneInputCountrySelectArrow {
-  border-color: #6b7280;
+  border-color: #9ca3af;
   width: 0.35em;
   height: 0.35em;
+  margin-left: 0.125rem;
 }
 .phone-field--light .PhoneInputCountryIcon {
-  width: 24px;
-  height: 18px;
+  width: 26px;
+  height: 19px;
 }
 .phone-field--light .PhoneInputCountryIcon--border {
   box-shadow: none;
   background: none;
+  border-radius: 2px;
+  overflow: hidden;
 }
 .phone-field--light .PhoneInputCountrySelect {
   font-size: 16px;
 }
 .phone-field--light .PhoneInputInput {
   font-size: 16px !important;
+  min-height: 3.25rem;
 }
 .phone-field--light .PhoneInputCountrySelect:focus + .PhoneInputCountryIcon--border {
   box-shadow: none;

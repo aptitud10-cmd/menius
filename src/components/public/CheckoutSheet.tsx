@@ -366,6 +366,7 @@ export function CheckoutSheet({
               onChange={setDeliveryAddress}
               placeholder={t.deliveryAddressPlaceholder}
               dark={false}
+              required
             />
           )}
 
