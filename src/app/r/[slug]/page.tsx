@@ -88,7 +88,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
   if (demoConfig) {
     return (
       <>
-        <JsonLdScript restaurant={demoConfig.restaurant} slug={params.slug} categories={demoConfig.categories} products={demoConfig.products} />
+        <JsonLdScript restaurant={demoConfig.restaurant} slug={params.slug} categories={demoConfig.categories} products={demoConfig.products} reviewStats={{ average: 4.7, total: 128 }} />
         <MenuShell
           restaurant={demoConfig.restaurant}
           categories={demoConfig.categories}
@@ -133,7 +133,9 @@ function JsonLdScript({
   const url = `${APP_URL}/r/${slug}`;
   const currency = restaurant.currency ?? 'MXN';
 
-  const paymentMap: Record<string, string> = { cash: 'Cash', online: 'Credit Card' };
+  const paymentMap: Record<string, string> = {
+    cash: 'Cash', online: 'Credit Card', oxxo: 'OXXO', spei: 'Bank Transfer',
+  };
   const paymentAccepted = (restaurant.payment_methods_enabled as string[] | undefined)
     ?.map((m: string) => paymentMap[m])
     .filter(Boolean);
@@ -158,6 +160,13 @@ function JsonLdScript({
     url,
     ...(restaurant.address && {
       address: { '@type': 'PostalAddress', streetAddress: restaurant.address },
+    }),
+    ...(restaurant.latitude && restaurant.longitude && {
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: restaurant.latitude,
+        longitude: restaurant.longitude,
+      },
     }),
     ...(restaurant.phone && { telephone: restaurant.phone }),
     ...(restaurant.cover_image_url && { image: restaurant.cover_image_url }),

@@ -37,6 +37,8 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     payment_methods_enabled: initialData.payment_methods_enabled ?? ['cash'],
     estimated_delivery_minutes: initialData.estimated_delivery_minutes ?? '',
     delivery_fee: initialData.delivery_fee ?? '',
+    latitude: initialData.latitude ?? '',
+    longitude: initialData.longitude ?? '',
   });
 
   const [hours, setHours] = useState<Record<string, { open: string; close: string; closed: boolean }>>(
@@ -114,6 +116,8 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           logo_url: logoUrl || null,
           estimated_delivery_minutes: form.estimated_delivery_minutes ? Number(form.estimated_delivery_minutes) : null,
           delivery_fee: form.delivery_fee ? Number(form.delivery_fee) : null,
+          latitude: form.latitude ? Number(form.latitude) : null,
+          longitude: form.longitude ? Number(form.longitude) : null,
         }),
       });
 
@@ -207,6 +211,10 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             <Field label="Descripción" value={form.description} onChange={(v) => handleChange('description', v)} placeholder="Describe tu restaurante..." textarea />
           </div>
           <AddressAutocomplete label="Dirección" value={form.address} onChange={(v) => handleChange('address', v)} placeholder="Buscar dirección..." dark={false} />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Latitud" value={String(form.latitude ?? '')} onChange={(v) => handleChange('latitude', v)} placeholder="19.4284" />
+            <Field label="Longitud" value={String(form.longitude ?? '')} onChange={(v) => handleChange('longitude', v)} placeholder="-99.1676" />
+          </div>
           <Field label="Email" value={form.email} onChange={(v) => handleChange('email', v)} placeholder="contacto@mirestaurante.com" />
           <Field label="Sitio web" value={form.website} onChange={(v) => handleChange('website', v)} placeholder="https://..." />
         </div>

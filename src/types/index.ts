@@ -29,6 +29,8 @@ export interface Restaurant {
   payment_methods_enabled?: PaymentMethod[];
   estimated_delivery_minutes?: number | null;
   delivery_fee?: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
   is_active?: boolean;
   created_at: string;
 }

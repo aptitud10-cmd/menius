@@ -6,7 +6,8 @@ import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { formatPrice, cn } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
-import type { Restaurant, Category, Product, OrderType } from '@/types';
+import type { Restaurant, Category, Product, OrderType, DietaryTag } from '@/types';
+import { DIETARY_TAGS } from '@/lib/dietary-tags';
 
 import { MenuHeader, HEADER_HEIGHT } from './MenuHeader';
 import { CategorySidebar } from './CategorySidebar';
@@ -79,6 +80,7 @@ export function MenuShell({
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [showFavs, setShowFavs] = useState(false);
   const favIds = useFavoritesStore((s) => s.ids);
+  const [activeDiet, setActiveDiet] = useState<DietaryTag | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [customization, setCustomization] = useState<CustomizationTarget | null>(null);
@@ -95,6 +97,7 @@ export function MenuShell({
     setSearchQuery('');
     setShowSearch(false);
     setShowFavs(false);
+    setActiveDiet(null);
     setActiveCategory(catId);
 
     if (catId === null) {
@@ -146,14 +149,27 @@ export function MenuShell({
     setShowCheckout(false);
   }, []);
 
+  const availableDiets = useMemo(() => {
+    const tagSet = new Set<string>();
+    for (const p of products) {
+      for (const t of p.dietary_tags ?? []) tagSet.add(t);
+    }
+    return DIETARY_TAGS.filter((dt) => tagSet.has(dt.id));
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    if (!activeDiet) return products;
+    return products.filter((p) => p.dietary_tags?.includes(activeDiet));
+  }, [products, activeDiet]);
+
   const itemsByCategory = useMemo(() => {
     return categories
       .map((cat) => ({
         category: cat,
-        items: products.filter((p) => p.category_id === cat.id),
+        items: filteredProducts.filter((p) => p.category_id === cat.id),
       }))
       .filter((g) => g.items.length > 0);
-  }, [categories, products]);
+  }, [categories, filteredProducts]);
 
   // Search results
   const searchResults = useMemo(() => {
@@ -236,10 +252,33 @@ export function MenuShell({
     </button>
   );
 
+  const dietPills = availableDiets.length > 0 && availableDiets.map((dt) => (
+    <button
+      key={dt.id}
+      data-pill-id={`diet-${dt.id}`}
+      onClick={() => {
+        const next = activeDiet === dt.id ? null : dt.id;
+        setActiveDiet(next);
+        setShowFavs(false);
+        if (next) setActiveCategory(null);
+      }}
+      className={cn(
+        'flex-shrink-0 inline-flex items-center gap-1 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap',
+        activeDiet === dt.id
+          ? 'bg-emerald-500 text-white shadow-sm'
+          : 'bg-gray-100 text-gray-600 active:bg-gray-200'
+      )}
+    >
+      <span className="text-xs">{dt.emoji}</span>
+      {locale === 'en' ? dt.labelEn : dt.labelEs}
+    </button>
+  ));
+
   const mobileCategoryPills = (
     <div ref={mobilePillsRef} className="lg:hidden py-3 px-4 flex gap-2.5 overflow-x-auto scrollbar-hide border-b border-gray-100 bg-white sticky z-30" style={{ top: HEADER_HEIGHT }}>
       {favPill}
-      {visibleCats.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id && !showFavs))}
+      {dietPills}
+      {visibleCats.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id && !showFavs && !activeDiet))}
     </div>
   );
 
@@ -328,7 +367,8 @@ export function MenuShell({
               </button>
               <div ref={catScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5">
                 {favPill}
-                {visibleCats.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id && !showFavs))}
+                {dietPills}
+                {visibleCats.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id && !showFavs && !activeDiet))}
               </div>
               <button onClick={() => scrollCats('right')} className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end" aria-label="Scroll right">
                 <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -400,6 +440,12 @@ export function MenuShell({
           ) : products.length === 0 ? (
             <div className="text-center py-20">
               <p className="font-semibold text-gray-600 mb-1">{t.noProductsYet}</p>
+            </div>
+          ) : activeDiet && filteredProducts.length === 0 ? (
+            <div className="text-center py-20 text-gray-400">
+              <p className="text-3xl mb-3">{DIETARY_TAGS.find((d) => d.id === activeDiet)?.emoji}</p>
+              <p className="font-medium">{locale === 'es' ? 'No hay productos con esta dieta' : 'No products match this diet'}</p>
+              <button onClick={() => setActiveDiet(null)} className="mt-3 text-sm text-emerald-600 font-semibold">{locale === 'es' ? 'Ver todo el menú' : 'View full menu'}</button>
             </div>
           ) : (
             <div className="space-y-10">

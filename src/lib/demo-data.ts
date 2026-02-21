@@ -23,6 +23,8 @@ export const demoRestaurant: Restaurant = {
   cover_image_url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1400&h=600&fit=crop&q=80',
   description: 'Sabores auténticos mexicanos con un toque contemporáneo. Ingredientes frescos, recetas de la abuela.',
   address: 'Av. Paseo de la Reforma 456, Col. Juárez, CDMX',
+  latitude: 19.4284,
+  longitude: -99.1676,
   phone: '+52 55 1234 5678',
   email: 'hola@lacocinamenius.com',
   website: 'https://menius.app',
@@ -97,7 +99,7 @@ export const demoProducts: Product[] = [
     name: 'Hot Cakes con Fruta',
     description: 'Tres hot cakes esponjosos con miel de maple, mantequilla y fruta fresca de temporada.',
     price: 78, image_url: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 3, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 3, created_at: now, dietary_tags: ['vegetarian'], variants: [], extras: [],
   },
   {
     id: 'demo-p-molletes', restaurant_id: RID, category_id: CAT_DESAYUNOS,
@@ -111,14 +113,14 @@ export const demoProducts: Product[] = [
     name: 'Omelette de Verduras',
     description: 'Omelette relleno de champiñones, espinaca, pimiento y queso manchego.',
     price: 89, image_url: 'https://images.unsplash.com/photo-1510693206972-df098062cb71?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
+    is_active: true, sort_order: 5, created_at: older, dietary_tags: ['vegetarian', 'gluten_free'], variants: [], extras: [],
   },
   {
     id: 'demo-p-avena', restaurant_id: RID, category_id: CAT_DESAYUNOS,
     name: 'Avena con Frutas',
     description: 'Avena caliente con leche, miel, granola, fresas y arándanos.',
     price: 65, image_url: 'https://images.unsplash.com/photo-1517673400267-0251440c45dc?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
+    is_active: true, sort_order: 6, created_at: older, dietary_tags: ['vegetarian', 'dairy_free'], variants: [], extras: [],
   },
 
   // ── Almuerzos ──
@@ -169,14 +171,14 @@ export const demoProducts: Product[] = [
     name: 'Ensalada César',
     description: 'Lechuga romana, crutones, parmesano y aderezo césar casero.',
     price: 110, image_url: 'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 3, created_at: older, variants: [], extras: [],
+    is_active: true, sort_order: 3, created_at: older, dietary_tags: ['vegetarian'], variants: [], extras: [],
   },
   {
     id: 'demo-p-tacos', restaurant_id: RID, category_id: CAT_ALMUERZOS,
     name: 'Tacos al Pastor',
     description: 'Tres tacos de cerdo adobado con piña, cilantro y cebolla. Tortillas hechas a mano.',
     price: 95, image_url: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=600&h=340&fit=crop&q=80',
-    is_active: true, is_featured: true, sort_order: 4, created_at: older, variants: [], extras: [],
+    is_active: true, is_featured: true, sort_order: 4, created_at: older, dietary_tags: ['spicy'], variants: [], extras: [],
   },
   {
     id: 'demo-p-pasta', restaurant_id: RID, category_id: CAT_ALMUERZOS,
@@ -199,7 +201,7 @@ export const demoProducts: Product[] = [
     name: 'Salmón a la Parrilla',
     description: 'Filete de salmón con costra de hierbas, puré de camote y verduras salteadas.',
     price: 245, image_url: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=600&h=340&fit=crop&q=80',
-    is_active: true, is_featured: true, sort_order: 1, created_at: older, variants: [], extras: [],
+    is_active: true, is_featured: true, sort_order: 1, created_at: older, dietary_tags: ['gluten_free'], variants: [], extras: [],
   },
   {
     id: P_PIZZA, restaurant_id: RID, category_id: CAT_CENAS,
@@ -236,14 +238,14 @@ export const demoProducts: Product[] = [
     name: 'Sopa de Tortilla',
     description: 'Caldo de jitomate con tiras de tortilla, aguacate, crema, queso y chile pasilla.',
     price: 85, image_url: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
+    is_active: true, sort_order: 5, created_at: older, dietary_tags: ['vegetarian', 'gluten_free'], variants: [], extras: [],
   },
   {
     id: 'demo-p-quesadillas', restaurant_id: RID, category_id: CAT_CENAS,
     name: 'Quesadillas de Flor de Calabaza',
     description: 'Tortillas de maíz rellenas de flor de calabaza, queso Oaxaca y epazote.',
     price: 95, image_url: 'https://images.unsplash.com/photo-1618040996337-56904b7850b9?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 6, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 6, created_at: now, dietary_tags: ['vegetarian'], variants: [], extras: [],
   },
 
   // ── Aperitivos ──
@@ -252,7 +254,7 @@ export const demoProducts: Product[] = [
     name: 'Guacamole Fresco',
     description: 'Aguacate machacado con cebolla, cilantro, chile serrano y limón. Servido con totopos.',
     price: 89, image_url: 'https://images.unsplash.com/photo-1615870216519-2f9fa575fa5c?w=600&h=340&fit=crop&q=80',
-    is_active: true, is_featured: true, sort_order: 1, created_at: older, variants: [], extras: [],
+    is_active: true, is_featured: true, sort_order: 1, created_at: older, dietary_tags: ['vegan', 'gluten_free'], variants: [], extras: [],
   },
   {
     id: 'demo-p-ceviche', restaurant_id: RID, category_id: CAT_APERITIVOS,
