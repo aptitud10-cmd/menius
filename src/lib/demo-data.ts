@@ -2,6 +2,7 @@ import type { Restaurant, Category, Product } from '@/types';
 
 const RID = 'demo-restaurant-id';
 const now = new Date().toISOString();
+const older = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
 const CAT_DESAYUNOS = 'demo-cat-desayunos';
 const CAT_ALMUERZOS = 'demo-cat-almuerzos';
@@ -39,7 +40,7 @@ export const demoRestaurant: Restaurant = {
     saturday: { open: '09:00', close: '23:30' },
     sunday: { open: '09:00', close: '21:00' },
   },
-  created_at: now,
+  created_at: older,
 };
 
 export const demoCategories: Category[] = [
@@ -67,7 +68,7 @@ export const demoProducts: Product[] = [
     name: 'Chilaquiles Verdes',
     description: 'Totopos bañados en salsa verde con crema, queso fresco, cebolla y huevo estrellado.',
     price: 95, image_url: 'https://images.unsplash.com/photo-1534352956036-cd81e27dd615?w=600&h=400&fit=crop&q=80',
-    is_active: true, is_featured: true, sort_order: 1, created_at: now,
+    is_active: true, is_featured: true, sort_order: 1, created_at: older,
     variants: [
       { id: 'v-chil-huevo', product_id: P_CHILAQUILES, name: 'Con huevo estrellado', price_delta: 0, sort_order: 1 },
       { id: 'v-chil-pollo', product_id: P_CHILAQUILES, name: 'Con pollo deshebrado', price_delta: 25, sort_order: 2 },
@@ -89,7 +90,7 @@ export const demoProducts: Product[] = [
     name: 'Huevos Rancheros',
     description: 'Huevos estrellados sobre tortilla con salsa roja, frijoles refritos y aguacate.',
     price: 85, image_url: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 2, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 2, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-hotcakes', restaurant_id: RID, category_id: CAT_DESAYUNOS,
@@ -103,21 +104,21 @@ export const demoProducts: Product[] = [
     name: 'Molletes Especiales',
     description: 'Bolillo abierto con frijoles refritos, queso gratinado, pico de gallo y aguacate.',
     price: 72, image_url: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 4, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 4, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-omelette', restaurant_id: RID, category_id: CAT_DESAYUNOS,
     name: 'Omelette de Verduras',
     description: 'Omelette relleno de champiñones, espinaca, pimiento y queso manchego.',
     price: 89, image_url: 'https://images.unsplash.com/photo-1510693206972-df098062cb71?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 5, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-avena', restaurant_id: RID, category_id: CAT_DESAYUNOS,
     name: 'Avena con Frutas',
     description: 'Avena caliente con leche, miel, granola, fresas y arándanos.',
     price: 65, image_url: 'https://images.unsplash.com/photo-1517673400267-0251440c45dc?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 6, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
   // ── Almuerzos ──
@@ -126,7 +127,7 @@ export const demoProducts: Product[] = [
     name: 'Hamburguesa MENIUS',
     description: 'Carne Angus 200g, queso cheddar, lechuga, tomate, cebolla caramelizada y salsa secreta.',
     price: 165, image_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&h=340&fit=crop&q=80',
-    is_active: true, is_featured: true, sort_order: 1, created_at: now,
+    is_active: true, is_featured: true, sort_order: 1, created_at: older,
     variants: [
       { id: 'v-burger-s', product_id: P_BURGER, name: 'Sencilla', price_delta: 0, sort_order: 1 },
       { id: 'v-burger-d', product_id: P_BURGER, name: 'Doble carne', price_delta: 45, sort_order: 2 },
@@ -161,21 +162,21 @@ export const demoProducts: Product[] = [
     name: 'Pollo a la Plancha',
     description: 'Pechuga marinada a la plancha con arroz, ensalada y vegetales de temporada.',
     price: 135, image_url: 'https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 2, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 2, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-cesar', restaurant_id: RID, category_id: CAT_ALMUERZOS,
     name: 'Ensalada César',
     description: 'Lechuga romana, crutones, parmesano y aderezo césar casero.',
     price: 110, image_url: 'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 3, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 3, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-tacos', restaurant_id: RID, category_id: CAT_ALMUERZOS,
     name: 'Tacos al Pastor',
     description: 'Tres tacos de cerdo adobado con piña, cilantro y cebolla. Tortillas hechas a mano.',
     price: 95, image_url: 'https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=600&h=340&fit=crop&q=80',
-    is_active: true, is_featured: true, sort_order: 4, created_at: now, variants: [], extras: [],
+    is_active: true, is_featured: true, sort_order: 4, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-pasta', restaurant_id: RID, category_id: CAT_ALMUERZOS,
@@ -189,7 +190,7 @@ export const demoProducts: Product[] = [
     name: 'Club Sándwich',
     description: 'Triple piso con pollo, tocino, lechuga, tomate, aguacate y papas a la francesa.',
     price: 125, image_url: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 6, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
   // ── Cenas ──
@@ -198,14 +199,14 @@ export const demoProducts: Product[] = [
     name: 'Salmón a la Parrilla',
     description: 'Filete de salmón con costra de hierbas, puré de camote y verduras salteadas.',
     price: 245, image_url: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=600&h=340&fit=crop&q=80',
-    is_active: true, is_featured: true, sort_order: 1, created_at: now, variants: [], extras: [],
+    is_active: true, is_featured: true, sort_order: 1, created_at: older, variants: [], extras: [],
   },
   {
     id: P_PIZZA, restaurant_id: RID, category_id: CAT_CENAS,
     name: 'Pizza Margherita',
     description: 'Masa artesanal, salsa de tomate San Marzano, mozzarella fresca y albahaca.',
     price: 180, image_url: 'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 2, created_at: now,
+    is_active: true, sort_order: 2, created_at: older,
     variants: [
       { id: 'v-pizza-ind', product_id: P_PIZZA, name: 'Individual (20 cm)', price_delta: 0, sort_order: 1 },
       { id: 'v-pizza-med', product_id: P_PIZZA, name: 'Mediana (30 cm)', price_delta: 60, sort_order: 2 },
@@ -221,21 +222,21 @@ export const demoProducts: Product[] = [
     name: 'Filete de Res',
     description: 'Corte grueso de res a la parrilla con puré de papa, espárragos y salsa de vino tinto.',
     price: 285, image_url: 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 3, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 3, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-enchiladas', restaurant_id: RID, category_id: CAT_CENAS,
     name: 'Enchiladas Suizas',
     description: 'Tortillas rellenas de pollo bañadas en salsa verde con crema y queso gratinado.',
     price: 145, image_url: 'https://images.unsplash.com/photo-1534352956036-cd81e27dd615?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 4, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 4, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-sopa', restaurant_id: RID, category_id: CAT_CENAS,
     name: 'Sopa de Tortilla',
     description: 'Caldo de jitomate con tiras de tortilla, aguacate, crema, queso y chile pasilla.',
     price: 85, image_url: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 5, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-quesadillas', restaurant_id: RID, category_id: CAT_CENAS,
@@ -251,7 +252,7 @@ export const demoProducts: Product[] = [
     name: 'Guacamole Fresco',
     description: 'Aguacate machacado con cebolla, cilantro, chile serrano y limón. Servido con totopos.',
     price: 89, image_url: 'https://images.unsplash.com/photo-1615870216519-2f9fa575fa5c?w=600&h=340&fit=crop&q=80',
-    is_active: true, is_featured: true, sort_order: 1, created_at: now, variants: [], extras: [],
+    is_active: true, is_featured: true, sort_order: 1, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-ceviche', restaurant_id: RID, category_id: CAT_APERITIVOS,
@@ -265,28 +266,28 @@ export const demoProducts: Product[] = [
     name: 'Nachos Supremos',
     description: 'Totopos con queso fundido, jalapeños, crema, guacamole y pico de gallo.',
     price: 110, image_url: 'https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 3, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 3, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-empanadas', restaurant_id: RID, category_id: CAT_APERITIVOS,
     name: 'Empanadas de Queso',
     description: 'Tres empanadas crujientes rellenas de queso con salsa ranchera.',
     price: 75, image_url: 'https://images.unsplash.com/photo-1601924582970-9238bcb495d9?w=600&h=400&fit=crop&q=80',
-    is_active: true, sort_order: 4, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 4, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-aros', restaurant_id: RID, category_id: CAT_APERITIVOS,
     name: 'Aros de Cebolla',
     description: 'Aros de cebolla empanizados y crujientes con dip de chipotle.',
     price: 69, image_url: 'https://images.unsplash.com/photo-1639024471283-03518883512d?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 5, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
   {
     id: P_ALITAS, restaurant_id: RID, category_id: CAT_APERITIVOS,
     name: 'Alitas BBQ',
     description: 'Alitas de pollo bañadas en salsa barbecue, servidas con apio y aderezo ranch.',
     price: 125, image_url: 'https://images.unsplash.com/photo-1527477396000-e27163b481c2?w=600&h=400&fit=crop&q=80',
-    is_active: true, sort_order: 6, created_at: now,
+    is_active: true, sort_order: 6, created_at: older,
     variants: [
       { id: 'v-alitas-6', product_id: P_ALITAS, name: '6 piezas', price_delta: 0, sort_order: 1 },
       { id: 'v-alitas-12', product_id: P_ALITAS, name: '12 piezas', price_delta: 60, sort_order: 2 },
@@ -300,7 +301,7 @@ export const demoProducts: Product[] = [
     name: 'Limonada Natural',
     description: 'Limonada recién exprimida con hierbabuena y hielo.',
     price: 45, image_url: 'https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 1, created_at: now,
+    is_active: true, sort_order: 1, created_at: older,
     variants: [
       { id: 'v-lim-ch', product_id: P_LIMONADA, name: 'Chica (350 ml)', price_delta: 0, sort_order: 1 },
       { id: 'v-lim-gr', product_id: P_LIMONADA, name: 'Grande (500 ml)', price_delta: 15, sort_order: 2 },
@@ -312,35 +313,35 @@ export const demoProducts: Product[] = [
     name: 'Café de Olla',
     description: 'Café de grano con piloncillo y canela, estilo tradicional mexicano.',
     price: 40, image_url: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 2, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 2, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-horchata', restaurant_id: RID, category_id: CAT_BEBIDAS,
     name: 'Agua de Horchata',
     description: 'Agua fresca de arroz con canela y un toque de vainilla.',
     price: 38, image_url: 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 3, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 3, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-jugo', restaurant_id: RID, category_id: CAT_BEBIDAS,
     name: 'Jugo Natural',
     description: 'Jugo recién exprimido de naranja, zanahoria o verde.',
     price: 48, image_url: 'https://images.unsplash.com/photo-1622597467836-f3285f2131b8?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 4, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 4, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-refresco', restaurant_id: RID, category_id: CAT_BEBIDAS,
     name: 'Refresco',
     description: 'Coca-Cola, Sprite, Fanta o agua mineral con gas.',
     price: 35, image_url: 'https://images.unsplash.com/photo-1581636625402-29b2a704ef13?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 5, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-agua', restaurant_id: RID, category_id: CAT_BEBIDAS,
     name: 'Agua Mineral',
     description: 'Botella de agua purificada o mineral de 500ml.',
     price: 28, image_url: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 6, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
   // ── Licores ──
@@ -349,7 +350,7 @@ export const demoProducts: Product[] = [
     name: 'Margarita Clásica',
     description: 'Tequila, triple sec, jugo de limón y sal en el borde. Refrescante y vibrante.',
     price: 120, image_url: 'https://images.unsplash.com/photo-1556855810-ac404aa91e85?w=600&h=340&fit=crop&q=80',
-    is_active: true, is_featured: true, sort_order: 1, created_at: now,
+    is_active: true, is_featured: true, sort_order: 1, created_at: older,
     variants: [
       { id: 'v-marg-nat', product_id: P_MARGARITA, name: 'Natural', price_delta: 0, sort_order: 1 },
       { id: 'v-marg-mango', product_id: P_MARGARITA, name: 'De mango', price_delta: 15, sort_order: 2 },
@@ -362,14 +363,14 @@ export const demoProducts: Product[] = [
     name: 'Cerveza Artesanal',
     description: 'Selección de cervezas artesanales locales. Pregunta por la carta del día.',
     price: 75, image_url: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 2, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 2, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-mezcal', restaurant_id: RID, category_id: CAT_LICORES,
     name: 'Mezcal Oaxaqueño',
     description: 'Mezcal joven artesanal servido con naranja y sal de gusano.',
     price: 95, image_url: 'https://images.unsplash.com/photo-1569529465841-dfecdab7503b?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 3, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 3, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-mojito', restaurant_id: RID, category_id: CAT_LICORES,
@@ -383,14 +384,14 @@ export const demoProducts: Product[] = [
     name: 'Copa de Vino Tinto',
     description: 'Selección de vino tinto de casa del Valle de Guadalupe.',
     price: 85, image_url: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 5, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-michelada', restaurant_id: RID, category_id: CAT_LICORES,
     name: 'Michelada Clásica',
     description: 'Cerveza con jugo de limón, sal, salsa picante y chamoy.',
     price: 75, image_url: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 6, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
   // ── Tortas (Postres) ──
@@ -399,7 +400,7 @@ export const demoProducts: Product[] = [
     name: 'Flan Napolitano',
     description: 'Flan cremoso de vainilla con caramelo casero.',
     price: 55, image_url: 'https://images.unsplash.com/photo-1528975604071-b4dc52a2d18c?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 1, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 1, created_at: older, variants: [], extras: [],
   },
   {
     id: P_CHURROS, restaurant_id: RID, category_id: CAT_TORTAS,
@@ -418,27 +419,27 @@ export const demoProducts: Product[] = [
     name: 'Pastel de Tres Leches',
     description: 'Bizcocho empapado en leche condensada, evaporada y crema, decorado con fresas.',
     price: 75, image_url: 'https://images.unsplash.com/photo-1464305795204-6f5bbfc7fb81?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 3, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 3, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-brownie', restaurant_id: RID, category_id: CAT_TORTAS,
     name: 'Brownie con Helado',
     description: 'Brownie de chocolate caliente con helado de vainilla y salsa de chocolate.',
     price: 85, image_url: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 4, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 4, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-helado', restaurant_id: RID, category_id: CAT_TORTAS,
     name: 'Helado Artesanal',
     description: 'Dos bolas de helado artesanal. Sabores: vainilla, chocolate, fresa o mango.',
     price: 55, image_url: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 5, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-pay', restaurant_id: RID, category_id: CAT_TORTAS,
     name: 'Pay de Queso',
     description: 'Pay de queso estilo New York con base de galleta y mermelada de frutos rojos.',
     price: 70, image_url: 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=600&h=340&fit=crop&q=80',
-    is_active: true, sort_order: 6, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 ];

@@ -145,7 +145,7 @@ export const useCartStore = create<CartState>()(
         let added = 0;
         for (const saved of lastOrder.items) {
           const product = productMap.get(saved.productId);
-          if (!product || !product.is_available) continue;
+          if (!product || !product.is_active) continue;
           const variant = saved.variantId
             ? product.variants?.find((v) => v.id === saved.variantId) ?? null
             : null;
