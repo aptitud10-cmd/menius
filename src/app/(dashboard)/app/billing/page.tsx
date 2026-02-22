@@ -134,7 +134,7 @@ export default function BillingPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 font-heading">Facturación</h1>
+          <h1 className="dash-heading">Facturación</h1>
           <p className="text-sm text-gray-500 mt-1">Gestiona tu suscripción y método de pago</p>
         </div>
       </div>

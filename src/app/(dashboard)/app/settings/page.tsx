@@ -15,7 +15,7 @@ export default async function SettingsPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-5 text-gray-900">Configuración</h1>
+      <h1 className="dash-heading mb-5">Configuración</h1>
       <RestaurantSettings initialData={restaurant} />
     </div>
   );

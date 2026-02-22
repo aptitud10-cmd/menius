@@ -92,7 +92,7 @@ export default function PromotionsPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Ticket className="w-7 h-7 text-amber-500" />
-          <h1 className="text-2xl font-bold text-gray-900">Promociones y Cupones</h1>
+          <h1 className="dash-heading">Promociones y Cupones</h1>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}

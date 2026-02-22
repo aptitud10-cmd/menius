@@ -30,7 +30,7 @@ export default async function ProductsPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-6 text-gray-900">Productos</h1>
+      <h1 className="dash-heading mb-6">Productos</h1>
       <ProductsManager
         initialProducts={mappedProducts}
         categories={categories ?? []}

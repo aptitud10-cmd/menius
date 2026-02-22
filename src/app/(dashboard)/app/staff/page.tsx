@@ -99,7 +99,7 @@ export default function StaffPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Users className="w-7 h-7 text-blue-500" />
-          <h1 className="text-2xl font-bold text-gray-900">Equipo</h1>
+          <h1 className="dash-heading">Equipo</h1>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}

@@ -54,8 +54,8 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
       {/* Welcome */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Bienvenido a {restaurant.name}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Aquí tienes un resumen de tu restaurante</p>
+          <h1 className="dash-heading">{restaurant.name}</h1>
+          <p className="text-sm text-gray-500 mt-1">Resumen de hoy</p>
         </div>
         <div className="flex items-center gap-2">
           <ShareMenuButton slug={restaurant.slug} name={restaurant.name} />
@@ -124,16 +124,16 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((kpi) => (
-          <div key={kpi.label} className="bg-white rounded-2xl border border-gray-200 p-4 hover:border-gray-300 transition-colors">
-            <div className="flex items-center gap-2 mb-3">
-              <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center ring-2', kpi.bg, kpi.ring)}>
+          <div key={kpi.label} className="dash-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[13px] font-medium text-gray-500">{kpi.label}</p>
+              <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', kpi.bg)}>
                 <kpi.icon className={cn('w-4 h-4', kpi.color)} />
               </div>
             </div>
-            <p className="text-2xl font-bold tracking-tight text-gray-900">{kpi.value}</p>
-            <p className="text-xs text-gray-500 mt-1">{kpi.label}</p>
+            <p className="text-[1.75rem] font-bold tracking-tight text-gray-900 leading-none">{kpi.value}</p>
           </div>
         ))}
       </div>
@@ -145,40 +145,40 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
           className="flex items-center justify-between p-4 rounded-2xl bg-amber-500/[0.06] border border-amber-500/[0.15] hover:bg-amber-500/[0.1] transition-colors group"
         >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/[0.15] flex items-center justify-center">
-              <Clock className="w-5 h-5 text-amber-400" />
+            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-amber-600" />
             </div>
             <div>
-              <p className="font-semibold text-sm text-amber-300">
+              <p className="font-semibold text-sm text-amber-700">
                 {stats.pendingOrders} {stats.pendingOrders === 1 ? 'orden pendiente' : 'órdenes pendientes'}
               </p>
-              <p className="text-xs text-amber-400/70">Haz clic para gestionarlas</p>
+              <p className="text-xs text-amber-600/70">Haz clic para gestionarlas</p>
             </div>
           </div>
-          <ArrowRight className="w-5 h-5 text-amber-500/50 group-hover:translate-x-0.5 transition-transform" />
+          <ArrowRight className="w-5 h-5 text-amber-600/50 group-hover:translate-x-0.5 transition-transform" />
         </Link>
       )}
 
       {/* Recent orders */}
-      <div className="bg-white rounded-2xl border border-gray-200">
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="font-semibold text-sm text-gray-900">Últimas órdenes</h2>
+      <div className="dash-card">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="font-semibold text-[15px] text-gray-900">Últimas órdenes</h2>
           <Link href="/app/orders" className="text-xs text-emerald-600 font-medium hover:text-emerald-700 flex items-center gap-1 transition-colors">
             Ver todas <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
         {recentOrders.length === 0 ? (
-          <div className="p-10 text-center">
-            <ClipboardList className="w-8 h-8 mx-auto mb-3 text-gray-500" />
+          <div className="p-12 text-center">
+            <ClipboardList className="w-8 h-8 mx-auto mb-3 text-gray-300" />
             <p className="text-gray-500 text-sm font-medium">No hay órdenes aún</p>
-            <p className="text-gray-500 text-xs mt-1">Comparte tu menú para empezar a recibir pedidos</p>
+            <p className="text-gray-400 text-xs mt-1">Comparte tu menú para empezar a recibir pedidos</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-100">
             {recentOrders.map((order) => {
               const statusCfg = ORDER_STATUS_CONFIG[order.status];
               return (
-                <div key={order.id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+                <div key={order.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50/60 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
                     <div>
                       <p className="text-sm font-medium text-gray-700 truncate">{order.customer_name || 'Sin nombre'}</p>
@@ -306,12 +306,12 @@ function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
 
 function QuickLink({ href, label, icon: Icon }: { href: string; label: string; icon: any }) {
   return (
-    <Link href={href} className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-gray-200 hover:border-gray-300 transition-all group">
-      <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
-        <Icon className="w-5 h-5 text-gray-500 group-hover:text-emerald-600 transition-colors" />
+    <Link href={href} className="dash-card flex items-center gap-3 p-4 transition-all group">
+      <div className="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
+        <Icon className="w-5 h-5 text-gray-400 group-hover:text-emerald-600 transition-colors" />
       </div>
-      <span className="font-medium text-sm text-gray-500 group-hover:text-gray-700 transition-colors">{label}</span>
-      <ArrowRight className="w-4 h-4 text-gray-500 ml-auto group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
+      <span className="font-medium text-[13px] text-gray-600 group-hover:text-gray-900 transition-colors">{label}</span>
+      <ArrowRight className="w-4 h-4 text-gray-300 ml-auto group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
     </Link>
   );
 }

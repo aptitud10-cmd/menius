@@ -228,6 +228,52 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   background: #9ca3af;
 }
 
+/* ─── DASHBOARD DESIGN SYSTEM ─── */
+
+/* Active nav indicator — vertical left bar like Stripe */
+.nav-item-active {
+  position: relative;
+}
+.nav-item-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: #059669;
+}
+
+/* Dashboard page heading */
+.dash-heading {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: #111827;
+}
+
+/* Dashboard card — consistent container */
+.dash-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  transition: border-color 0.15s ease;
+}
+.dash-card:hover {
+  border-color: #d1d5db;
+}
+
+/* Dashboard section label */
+.dash-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9ca3af;
+}
+
 /* ─── LEGACY UTILITIES (auth pages) ─── */
 
 .grid-pattern {

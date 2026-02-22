@@ -12,7 +12,7 @@ export default async function CategoriesPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-bold mb-6 text-gray-900">Categorías</h1>
+      <h1 className="dash-heading mb-6">Categorías</h1>
       <CategoriesManager initialCategories={categories ?? []} />
     </div>
   );
