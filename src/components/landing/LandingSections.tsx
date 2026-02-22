@@ -11,7 +11,7 @@ const features = [
     tab: 'Menú Digital',
     title: 'Menú con QR y pedidos directos',
     desc: 'Tus clientes escanean el QR, ven el menú con fotos y precios, y ordenan desde su celular. Sin descargar apps.',
-    details: ['QR elegantes por mesa, listos para imprimir', 'Fotos generadas con IA', 'Pedidos dine-in, pickup y delivery', 'Variantes, extras y teléfono con código de área'],
+    details: ['QR elegantes por mesa, listos para imprimir', 'Sube tus fotos reales fácilmente', 'Pedidos dine-in, pickup y delivery', 'Variantes, extras y teléfono con código de área'],
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
@@ -68,8 +68,8 @@ const features = [
   {
     tab: 'IA',
     title: 'Tu asistente inteligente con IA',
-    desc: 'MENIUS AI es tu consultor de negocio 24/7. Pregúntale sobre ventas, clientes, estrategias, y te guía paso a paso en todo el dashboard. Además, genera fotos e importa menús con OCR.',
-    details: ['Asistente IA en el dashboard (MENIUS AI)', 'Fotos de platillos generadas con IA', 'Importar menú desde foto (OCR)', 'Análisis y sugerencias de negocio'],
+    desc: 'MENIUS AI es tu consultor de negocio 24/7. Pregúntale sobre ventas, clientes, estrategias, y te guía paso a paso en todo el dashboard. Importa tu menú desde una foto con OCR.',
+    details: ['Asistente IA en el dashboard (MENIUS AI)', 'Importar menú completo desde foto (OCR)', 'Análisis de ventas y sugerencias', 'Recetas, promociones y estrategias'],
     icon: (
       <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
@@ -81,7 +81,7 @@ const features = [
       { label: 'MENIUS AI', value: 'Online 24/7' },
       { label: '¿Cuánto vendí hoy?', value: '$1,240' },
       { label: 'Producto estrella', value: 'Tacos' },
-      { label: 'Menú importado con OCR', value: '38 items' },
+      { label: 'Menú importado (OCR)', value: '38 items' },
     ],
   },
 ];
@@ -99,7 +99,7 @@ const plans = [
     price: 39,
     desc: 'Para restaurantes que inician.',
     popular: false,
-    features: ['Menú digital con fotos', 'QR elegantes hasta 10 mesas', 'Pedidos (dine-in + pickup)', 'MENIUS AI (asistente IA)', 'Imágenes IA (5/mes)', 'Google Maps integrado', 'Login con Google', 'Soporte por email'],
+    features: ['Menú digital con fotos', 'QR elegantes hasta 10 mesas', 'Pedidos (dine-in + pickup)', 'MENIUS AI (asistente IA)', 'Importar menú desde foto (OCR)', 'Google Maps integrado', 'Login con Google', 'Soporte por email'],
     cta: 'Empezar gratis',
   },
   {
@@ -107,7 +107,7 @@ const plans = [
     price: 79,
     desc: 'Para restaurantes que quieren crecer.',
     popular: true,
-    features: ['Todo de Starter', '200 productos, 50 mesas', 'Delivery + WhatsApp + email', 'Cocina KDS en tiempo real', 'Analytics avanzado', 'Promociones y cupones', 'Imágenes IA (50/mes)', 'Sin marca MENIUS'],
+    features: ['Todo de Starter', '200 productos, 50 mesas', 'Delivery + WhatsApp + email', 'Cocina KDS en tiempo real', 'Analytics avanzado', 'Promociones y cupones', 'Gestión de equipo (3 usuarios)', 'Sin marca MENIUS'],
     cta: 'Empezar con Pro',
   },
   {
@@ -115,14 +115,14 @@ const plans = [
     price: 149,
     desc: 'Para cadenas y franquicias.',
     popular: false,
-    features: ['Todo de Pro', 'Productos y mesas ilimitados', 'IA ilimitada', 'Dominio personalizado', 'Onboarding dedicado', 'Soporte dedicado por WhatsApp'],
+    features: ['Todo de Pro', 'Productos, mesas y usuarios ilimitados', 'MENIUS AI sin límites', 'Dominio personalizado', 'Onboarding dedicado', 'Soporte dedicado por WhatsApp'],
     cta: 'Empezar con Business',
   },
 ];
 
 const howItWorks = [
   { step: '1', title: 'Crea tu cuenta', desc: 'Regístrate gratis en 2 minutos. Sin tarjeta de crédito.' },
-  { step: '2', title: 'Sube tu menú', desc: 'Agrega tus productos o importa tu menú desde una foto con IA.' },
+  { step: '2', title: 'Sube tu menú', desc: 'Agrega tus productos manualmente o importa tu menú desde una foto (OCR).' },
   { step: '3', title: 'Imprime tus QRs', desc: 'Genera QR únicos para cada mesa y ponlos en tu restaurante.' },
   { step: '4', title: 'Recibe pedidos', desc: 'Tus clientes escanean, piden y pagan desde su celular.' },
 ];
@@ -132,7 +132,7 @@ const comparison = [
   ['Control de clientes', 'Tus datos', 'La app se los queda'],
   ['Tu marca', 'Dominio propio', 'Junto a la competencia'],
   ['Asistente IA', 'Incluido (MENIUS AI)', 'No disponible'],
-  ['Fotos del menú', 'IA genera fotos', 'Tú las subes'],
+  ['Asistente de negocio', 'IA consultor 24/7', 'No disponible'],
   ['WhatsApp + email', 'Integrado', 'No disponible'],
   ['Google Maps', 'Integrado', 'No disponible'],
   ['Costo mensual', 'Desde $39/mes', 'Gratis (pero 30% por pedido)'],
@@ -239,7 +239,7 @@ export function LandingSections() {
   return (
     <LazyMotion features={domAnimation}>
       {/* ── Features with Tabs ── */}
-      <section id="funciones" className="relative py-24 md:py-40 overflow-hidden">
+      <section id="funciones" className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">
@@ -263,7 +263,7 @@ export function LandingSections() {
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Comparison ── */}
-      <section className="relative py-24 md:py-40 overflow-hidden">
+      <section className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-teal" />
 
         <div className="relative z-10 max-w-4xl mx-auto px-5 sm:px-6">
@@ -343,7 +343,7 @@ export function LandingSections() {
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Pricing ── */}
-      <section id="precios" className="relative py-24 md:py-40 overflow-hidden">
+      <section id="precios" className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-blue" />
         <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-purple-600/20 blur-[100px] pointer-events-none" />
 
@@ -415,7 +415,7 @@ export function LandingSections() {
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── How it works ── */}
-      <section className="relative py-24 md:py-40 overflow-hidden">
+      <section className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-4xl mx-auto px-5 sm:px-6">
@@ -448,7 +448,7 @@ export function LandingSections() {
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Final CTA ── */}
-      <section className="relative py-24 md:py-52 overflow-hidden">
+      <section className="relative py-24 md:py-52 overflow-clip">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-gradient-to-br from-purple-600/25 to-blue-600/20 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl mx-auto px-5 sm:px-6 text-center">

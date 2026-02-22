@@ -9,7 +9,7 @@ const ease = [0.22, 1, 0.36, 1] as const;
 export function LandingHero() {
   return (
     <LazyMotion features={domAnimation}>
-      <section className="relative min-h-[100vh] min-h-[100dvh] flex items-center overflow-hidden">
+      <section className="relative min-h-[100vh] min-h-[100dvh] flex items-center overflow-clip">
         {/* Mesh gradient background */}
         <div className="hero-gradient" />
 
@@ -51,7 +51,7 @@ export function LandingHero() {
               transition={{ duration: 0.6, delay: 0.16, ease }}
               className="mt-6 md:mt-8 text-[17px] sm:text-xl text-gray-200 md:text-gray-300 max-w-[560px] mx-auto leading-relaxed font-light"
             >
-              Tu restaurante con QR por mesa, fotos generadas con IA, y pedidos online. Sin comisiones, sin intermediarios.
+              Tu restaurante con QR por mesa, pedidos online y un asistente IA que te ayuda a vender más. Sin comisiones.
             </m.p>
 
             {/* CTAs */}

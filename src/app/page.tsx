@@ -5,14 +5,14 @@ import { LandingNav } from '@/components/landing/LandingNav';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen-safe landing-bg overflow-x-hidden overflow-y-auto relative w-full max-w-[100vw]">
+    <div className="min-h-screen-safe landing-bg relative w-full max-w-[100vw]">
       <LandingNav />
 
       <LandingHero />
       <LandingSections />
 
       {/* ── Footer ── */}
-      <footer className="relative bg-black overflow-hidden">
+      <footer className="relative bg-black overflow-clip">
 
         {/* Giant MENIUS watermark -- hidden on mobile, visible on md+ */}
         <div className="relative hidden md:flex justify-center pt-12 pb-0 select-none pointer-events-none" aria-hidden="true">

@@ -167,9 +167,20 @@ export function AIChatWidget() {
               <h3 className="text-sm font-semibold text-white">MENIUS AI</h3>
               <p className="text-[11px] text-gray-500">Tu asistente inteligente</p>
             </div>
-            <div className="ml-auto flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] text-emerald-400/80">Online</span>
+            <div className="ml-auto flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[10px] text-emerald-400/80">Online</span>
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                className="w-7 h-7 rounded-lg hover:bg-white/[0.08] flex items-center justify-center transition-colors"
+                aria-label="Cerrar chat"
+              >
+                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
           </div>
 

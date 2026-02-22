@@ -16,7 +16,6 @@ export interface PlanConfig {
     maxTables: number;
     maxUsers: number;
     maxCategories: number;
-    maxAiImages: number;
   };
   features: string[];
   excluded: string[];
@@ -40,14 +39,14 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       maxTables: 10,
       maxUsers: 1,
       maxCategories: 5,
-      maxAiImages: 5,
     },
     features: [
       'Menú digital con fotos',
       'QR para hasta 10 mesas',
       'Pedidos online (dine-in + pickup)',
+      'MENIUS AI (asistente de negocio)',
+      'Importar menú desde foto (OCR)',
       'Notificaciones sonoras',
-      'Generación de imágenes con IA (5/mes)',
       '1 usuario administrador',
       'Soporte por email',
     ],
@@ -74,7 +73,6 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       maxTables: 50,
       maxUsers: 3,
       maxCategories: 20,
-      maxAiImages: 50,
     },
     features: [
       'Todo lo de Starter',
@@ -85,7 +83,6 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Promociones y cupones de descuento',
       'Reseñas de clientes',
       'Gestión de equipo (3 usuarios)',
-      'Imágenes IA (50/mes)',
       'Sin marca MENIUS en el menú',
       'Soporte prioritario (24h)',
     ],
@@ -106,12 +103,11 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       maxTables: -1,
       maxUsers: -1,
       maxCategories: -1,
-      maxAiImages: -1,
     },
     features: [
       'Todo lo de Pro',
       'Productos, mesas y usuarios ilimitados',
-      'Imágenes IA ilimitadas',
+      'MENIUS AI sin límites',
       'Analytics avanzado + exportar datos',
       'Dominio personalizado',
       'Onboarding personalizado',
