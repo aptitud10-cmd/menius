@@ -5,7 +5,7 @@ import { LandingNav } from '@/components/landing/LandingNav';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen-safe landing-bg overflow-x-hidden overflow-y-auto relative noise-overlay w-full max-w-[100vw]">
+    <div className="min-h-screen-safe landing-bg overflow-x-hidden overflow-y-auto relative w-full max-w-[100vw]">
       <LandingNav />
 
       <LandingHero />
@@ -115,14 +115,8 @@ export default function LandingPage() {
               </div>
 
               <div className="separator-gradient mt-12" />
-              <div className="pt-6 flex items-center justify-between gap-3">
+              <div className="pt-6 flex items-center justify-center">
                 <p className="text-[11px] text-gray-500" suppressHydrationWarning>&copy; {new Date().getFullYear()} MENIUS Inc.</p>
-                <p className="text-[11px] text-gray-500">
-                  Hecho en{' '}
-                  <a href="https://www.scuart.com/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-200 transition-colors">
-                    Scuart Digital
-                  </a>
-                </p>
               </div>
             </div>
           </div>

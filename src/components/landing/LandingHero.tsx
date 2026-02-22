@@ -18,8 +18,6 @@ export function LandingHero() {
         <div className="orb orb-teal w-[400px] h-[400px] bottom-[10%] right-[5%] hidden md:block" />
         <div className="orb orb-blue w-[350px] h-[350px] top-[40%] left-[50%] hidden md:block" />
 
-        {/* Noise texture */}
-        <div className="absolute inset-0 noise-overlay" />
 
         <div className="relative z-10 max-w-5xl mx-auto px-5 sm:px-6 w-full py-24 md:py-0">
           <div className="text-center">
@@ -41,9 +39,9 @@ export function LandingHero() {
               transition={{ duration: 0.7, delay: 0.08, ease }}
               className="text-[2.75rem] sm:text-[4.5rem] md:text-[5.5rem] lg:text-[6.5rem] font-semibold leading-[0.92] tracking-[-0.04em] text-white"
             >
-              El menú digital
+              Menú digital y
               <br />
-              <span className="text-gradient-premium">que convierte</span>
+              <span className="text-gradient-premium">pedidos directos</span>
             </m.h1>
 
             {/* Subtitle */}
@@ -53,7 +51,7 @@ export function LandingHero() {
               transition={{ duration: 0.6, delay: 0.16, ease }}
               className="mt-6 md:mt-8 text-[17px] sm:text-xl text-gray-200 md:text-gray-300 max-w-[560px] mx-auto leading-relaxed font-light"
             >
-              Crea tu menú con fotos IA, genera QRs para cada mesa, y recibe pedidos directos. Sin comisiones.
+              Tu restaurante con QR por mesa, fotos generadas con IA, y pedidos online. Sin comisiones, sin intermediarios.
             </m.p>
 
             {/* CTAs */}
@@ -86,25 +84,15 @@ export function LandingHero() {
               className="mt-14 md:mt-20 flex items-center justify-center gap-10 sm:gap-16 flex-wrap"
             >
               {[
-                { target: 500, suffix: '+', label: 'Restaurantes', stars: false },
-                { target: 0, suffix: '%', label: 'Comisiones', stars: false },
-                { target: 4.9, suffix: '', label: 'Rating', stars: true },
+                { target: 0, suffix: '%', label: 'Comisiones' },
+                { target: 14, suffix: ' días', label: 'Prueba gratis' },
+                { target: 2, suffix: ' min', label: 'Para empezar' },
               ].map((s) => (
                 <div key={s.label} className="text-center">
                   <p className="text-3xl sm:text-4xl font-semibold text-white tracking-tight">
                     <Counter target={s.target} suffix={s.suffix} duration={2} />
                   </p>
-                  {s.stars ? (
-                    <div className="flex items-center gap-0.5 mt-2 justify-center">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <svg key={i} className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm md:text-[13px] text-gray-300 md:text-gray-400 mt-2 font-medium">{s.label}</p>
-                  )}
+                  <p className="text-sm md:text-[13px] text-gray-300 md:text-gray-400 mt-2 font-medium">{s.label}</p>
                 </div>
               ))}
             </m.div>

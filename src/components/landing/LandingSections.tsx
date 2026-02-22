@@ -120,27 +120,11 @@ const plans = [
   },
 ];
 
-const testimonials = [
-  {
-    quote: 'Desde que usamos MENIUS, nuestros pedidos aumentaron un 40%. Los clientes aman pedir desde su celular.',
-    name: 'María González',
-    role: 'Dueña de La Cocina de María',
-  },
-  {
-    quote: 'Dejamos UberEats y ahorramos $2,800 al mes en comisiones. MENIUS se pagó solo en la primera semana.',
-    name: 'Carlos Rivera',
-    role: 'Fundador de Taquería El Patrón',
-  },
-  {
-    quote: 'MENIUS AI es como tener un consultor 24/7. Le pregunto cuánto vendí y me da sugerencias para vender más. Increíble.',
-    name: 'Ana Martínez',
-    role: 'Gerente de Sabor Urbano',
-  },
-  {
-    quote: 'La cocina recibe las órdenes al instante en la pantalla KDS. Ya no se pierden pedidos. El asistente IA nos ayudó a optimizar el menú.',
-    name: 'Roberto Díaz',
-    role: 'Chef & Propietario de Fuego Lento',
-  },
+const howItWorks = [
+  { step: '1', title: 'Crea tu cuenta', desc: 'Regístrate gratis en 2 minutos. Sin tarjeta de crédito.' },
+  { step: '2', title: 'Sube tu menú', desc: 'Agrega tus productos o importa tu menú desde una foto con IA.' },
+  { step: '3', title: 'Imprime tus QRs', desc: 'Genera QR únicos para cada mesa y ponlos en tu restaurante.' },
+  { step: '4', title: 'Recibe pedidos', desc: 'Tus clientes escanean, piden y pagan desde su celular.' },
 ];
 
 const comparison = [
@@ -430,33 +414,28 @@ export function LandingSections() {
       {/* Separator */}
       <div className="separator-gradient max-w-5xl mx-auto" />
 
-      {/* ── Testimonials ── */}
+      {/* ── How it works ── */}
       <section className="relative py-24 md:py-40 overflow-hidden">
         <div className="section-glow section-glow-purple" />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">
+        <div className="relative z-10 max-w-4xl mx-auto px-5 sm:px-6">
           <FadeIn className="text-center mb-10 md:mb-14">
-            <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Testimonios</p>
+            <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Cómo funciona</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
-              Lo que dicen nuestros clientes
+              Listo en minutos
             </h2>
           </FadeIn>
 
           <FadeIn delay={0.1}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-              {testimonials.map((t) => (
-                <div key={t.name} className="card-premium rounded-2xl p-6 md:p-8">
-                  <p className="text-sm md:text-[15px] text-gray-300 md:text-gray-400 leading-relaxed mb-5 md:mb-7">
-                    &ldquo;{t.quote}&rdquo;
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500/30 to-blue-500/30 flex items-center justify-center">
-                      <span className="text-sm font-semibold text-white">{t.name[0]}</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-white">{t.name}</p>
-                      <p className="text-xs text-gray-400 md:text-gray-500 mt-0.5">{t.role}</p>
-                    </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
+              {howItWorks.map((item) => (
+                <div key={item.step} className="card-premium rounded-2xl p-6 md:p-8 flex gap-5">
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-bold text-purple-400">{item.step}</span>
+                  </div>
+                  <div>
+                    <p className="text-[15px] font-semibold text-white">{item.title}</p>
+                    <p className="text-sm text-gray-400 mt-1.5 leading-relaxed">{item.desc}</p>
                   </div>
                 </div>
               ))}
@@ -480,7 +459,7 @@ export function LandingSections() {
               <span className="text-gradient-premium">Disponible hoy.</span>
             </h2>
             <p className="mt-5 md:mt-6 text-base md:text-lg text-gray-200 md:text-gray-300 font-light max-w-md mx-auto">
-              Únete a cientos de restaurantes que ya usan MENIUS para recibir más pedidos.
+              14 días gratis. Sin tarjeta. Configura tu menú en minutos.
             </p>
             <div className="mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 px-2 sm:px-0">
               <Link
