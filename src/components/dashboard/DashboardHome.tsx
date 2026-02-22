@@ -168,10 +168,10 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
           </Link>
         </div>
         {recentOrders.length === 0 ? (
-          <div className="p-12 text-center">
-            <ClipboardList className="w-8 h-8 mx-auto mb-3 text-gray-300" />
-            <p className="text-gray-500 text-sm font-medium">No hay órdenes aún</p>
-            <p className="text-gray-400 text-xs mt-1">Comparte tu menú para empezar a recibir pedidos</p>
+          <div className="dash-empty py-10">
+            <ClipboardList className="dash-empty-icon w-8 h-8" />
+            <p className="dash-empty-title text-sm">No hay órdenes aún</p>
+            <p className="dash-empty-desc text-xs">Comparte tu menú QR para empezar a recibir pedidos</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">

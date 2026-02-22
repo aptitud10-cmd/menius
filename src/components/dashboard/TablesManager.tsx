@@ -68,29 +68,26 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
   return (
     <div>
       {!showForm && (
-        <button
-          onClick={handleShowForm}
-          className="mb-6 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors shadow-sm"
-        >
+        <button onClick={handleShowForm} className="mb-6 dash-btn-primary">
           <Plus className="w-4 h-4" /> Nueva mesa
         </button>
       )}
 
       {showForm && (
-        <div className="mb-6 bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+        <div className="mb-6 dash-card p-5 space-y-4">
           <h3 className="font-semibold text-sm text-gray-900">Crear nueva mesa</h3>
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-red-500">{error}</p>}
           <input
             type="text" value={name} onChange={(e) => setName(e.target.value)}
             placeholder="Ej: Mesa 1, Barra 1, Terraza A" autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all"
+            className="dash-input"
           />
           <div className="flex gap-2">
-            <button onClick={handleSubmit} disabled={isPending} className="px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 disabled:opacity-50 transition-colors">
+            <button onClick={handleSubmit} disabled={isPending} className="dash-btn-primary">
               Crear mesa
             </button>
-            <button onClick={() => { setShowForm(false); setError(''); }} className="px-5 py-2.5 rounded-xl bg-gray-50 text-gray-500 text-sm font-medium hover:bg-gray-100 transition-colors">
+            <button onClick={() => { setShowForm(false); setError(''); }} className="dash-btn-secondary">
               Cancelar
             </button>
           </div>
@@ -109,10 +106,15 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
       </div>
 
       {tables.length === 0 ? (
-        <div className="text-center py-20 text-gray-500">
-          <QrCode className="w-12 h-12 mx-auto mb-4 opacity-40" />
-          <p className="font-semibold text-gray-500">Sin mesas</p>
-          <p className="text-sm mt-1.5">Crea mesas para generar códigos QR personalizados</p>
+        <div className="dash-empty py-16">
+          <QrCode className="dash-empty-icon" />
+          <p className="dash-empty-title">Sin mesas configuradas</p>
+          <p className="dash-empty-desc">Crea mesas para generar códigos QR personalizados que tus clientes escanean para pedir.</p>
+          {!showForm && (
+            <button onClick={handleShowForm} className="dash-btn-primary">
+              <Plus className="w-4 h-4" /> Crear primera mesa
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

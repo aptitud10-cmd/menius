@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Plus, Pencil, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, Tag } from 'lucide-react';
 import { createCategory, updateCategory, deleteCategory } from '@/lib/actions/restaurant';
+import { cn } from '@/lib/utils';
 import type { Category } from '@/types';
 
 export function CategoriesManager({ initialCategories }: { initialCategories: Category[] }) {
@@ -64,71 +65,71 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
 
   return (
     <div>
-      {/* Add button */}
       {!showForm && (
         <button
           onClick={() => setShowForm(true)}
-          className="mb-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors"
+          className="mb-5 dash-btn-primary"
         >
           <Plus className="w-4 h-4" /> Nueva categoría
         </button>
       )}
 
-      {/* Form */}
       {showForm && (
-        <div className="mb-4 bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+        <div className="mb-5 dash-card p-4 space-y-3">
           {error && <p className="text-sm text-red-500">{error}</p>}
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nombre de la categoría"
-            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+            className="dash-input"
             autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
           />
           <div className="flex gap-2">
-            <button
-              onClick={handleSubmit}
-              disabled={isPending}
-              className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 disabled:opacity-50"
-            >
+            <button onClick={handleSubmit} disabled={isPending} className="dash-btn-primary">
               {editingId ? 'Guardar' : 'Crear'}
             </button>
-            <button onClick={resetForm} className="px-4 py-2 rounded-xl bg-gray-50 text-gray-500 text-sm font-medium hover:bg-gray-100">
+            <button onClick={resetForm} className="dash-btn-secondary">
               Cancelar
             </button>
           </div>
         </div>
       )}
 
-      {/* List */}
       {categories.length === 0 ? (
-        <div className="text-center py-16 text-gray-500">
-          <p className="font-medium">Sin categorías</p>
-          <p className="text-sm mt-1">Crea tu primera categoría para organizar tu menú</p>
+        <div className="dash-empty py-20">
+          <Tag className="dash-empty-icon" />
+          <p className="dash-empty-title">Organiza tu menú con categorías</p>
+          <p className="dash-empty-desc">Crea categorías como "Entradas", "Platos fuertes", "Bebidas" para organizar tus productos.</p>
+          {!showForm && (
+            <button onClick={() => setShowForm(true)} className="dash-btn-primary">
+              <Plus className="w-4 h-4" /> Crear primera categoría
+            </button>
+          )}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="dash-card overflow-hidden divide-y divide-gray-100">
           {categories.map((cat) => (
-            <div key={cat.id} className="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-4 py-3">
+            <div key={cat.id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50/50 transition-colors group">
               <div className="flex items-center gap-3">
-                <span className={`text-sm font-medium ${cat.is_active ? 'text-gray-900' : 'text-gray-500 line-through'}`}>
+                <Tag className={cn('w-4 h-4', cat.is_active ? 'text-gray-400' : 'text-gray-300')} />
+                <span className={cn('text-sm font-medium', cat.is_active ? 'text-gray-900' : 'text-gray-500 line-through')}>
                   {cat.name}
                 </span>
                 {!cat.is_active && (
-                  <span className="text-xs bg-gray-50 text-gray-500 px-2 py-0.5 rounded">Inactiva</span>
+                  <span className="dash-badge dash-badge-inactive text-[10px]">Inactiva</span>
                 )}
               </div>
-              <div className="flex items-center gap-1">
-                <button onClick={() => handleToggle(cat)} className="p-1.5 rounded-lg hover:bg-gray-50 text-gray-500">
-                  {cat.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={() => handleToggle(cat)} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" title={cat.is_active ? 'Ocultar' : 'Mostrar'}>
+                  {cat.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
-                <button onClick={() => handleEdit(cat)} className="p-1.5 rounded-lg hover:bg-gray-50 text-gray-500">
-                  <Pencil className="w-4 h-4" />
+                <button onClick={() => handleEdit(cat)} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" title="Editar">
+                  <Pencil className="w-3.5 h-3.5" />
                 </button>
-                <button onClick={() => handleDelete(cat.id)} className="p-1.5 rounded-lg hover:bg-red-500/[0.08] text-gray-500 hover:text-red-500">
-                  <Trash2 className="w-4 h-4" />
+                <button onClick={() => handleDelete(cat.id)} className="p-1.5 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500" title="Eliminar">
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>

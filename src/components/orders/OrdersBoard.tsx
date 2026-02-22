@@ -131,10 +131,10 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
       </div>
 
       {orders.length === 0 ? (
-        <div className="text-center py-20 text-gray-500">
-          <Package className="w-10 h-10 mx-auto mb-3 opacity-40" />
-          <p className="font-medium">No hay órdenes aún</p>
-          <p className="text-sm mt-1">Las órdenes aparecerán aquí en tiempo real cuando tus clientes empiecen a pedir</p>
+        <div className="dash-empty py-20">
+          <Package className="dash-empty-icon" />
+          <p className="dash-empty-title">No hay órdenes aún</p>
+          <p className="dash-empty-desc">Comparte tu menú QR con tus clientes para empezar a recibir pedidos en tiempo real.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

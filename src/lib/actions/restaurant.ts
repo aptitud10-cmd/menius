@@ -243,7 +243,7 @@ export async function createProduct(data: ProductInput) {
 
   if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' };
 
-  const { error } = await supabase.from('products').insert({
+  const { data: created, error } = await supabase.from('products').insert({
     restaurant_id: profile.default_restaurant_id,
     category_id: data.category_id,
     name: sanitizeText(data.name, 150),
@@ -251,11 +251,11 @@ export async function createProduct(data: ProductInput) {
     price: data.price,
     is_active: data.is_active,
     ...(data.dietary_tags && { dietary_tags: data.dietary_tags }),
-  });
+  }).select('id').single();
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
-  return { success: true };
+  return { success: true, id: created?.id };
 }
 
 export async function updateProduct(id: string, data: Partial<ProductInput> & { image_url?: string }) {
