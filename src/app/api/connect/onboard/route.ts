@@ -1,10 +1,20 @@
 export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIP(request);
+    const { allowed } = checkRateLimit(`connect-onboard:${ip}`, { limit: 5, windowSec: 60 });
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': '60' } }
+      );
+    }
+
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey) {
       return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
@@ -46,7 +56,7 @@ export async function POST() {
         .eq('id', restaurant.id);
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
     const accountLink = await stripe.accountLinks.create({
       account: accountId,

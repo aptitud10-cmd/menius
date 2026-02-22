@@ -37,7 +37,7 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
 
     const currency = restaurant.currency ?? 'MXN';
     const totalFormatted = formatPrice(total, currency);
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
     const trackingUrl = `${appUrl}/r/${restaurant.slug}/orden/${orderNumber}`;
 
     const notificationsOn = restaurant.notifications_enabled !== false;

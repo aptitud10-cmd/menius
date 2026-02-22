@@ -78,7 +78,7 @@ export async function requestPasswordReset(email: string) {
 
   const supabase = createClient();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${appUrl}/auth/callback?next=/reset-password`,

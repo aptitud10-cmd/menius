@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
         .eq('restaurant_id', tenant.restaurantId);
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
     if (subscription?.stripe_subscription_id) {
       const portalSession = await stripe.billingPortal.sessions.create({

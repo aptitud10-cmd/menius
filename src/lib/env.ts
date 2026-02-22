@@ -11,7 +11,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required'),
 
   // Required — App
-  NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
+  NEXT_PUBLIC_APP_URL: z.string().url().default('https://menius.app'),
 
   // Optional — Stripe
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),

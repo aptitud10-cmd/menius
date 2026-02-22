@@ -2,9 +2,19 @@ export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIP(request);
+    const { allowed } = checkRateLimit(`push-sub:${ip}`, { limit: 10, windowSec: 60 });
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests' },
+        { status: 429, headers: { 'Retry-After': '60' } }
+      );
+    }
+
     const { subscription, order_id } = await request.json();
 
     if (!subscription?.endpoint || !order_id) {

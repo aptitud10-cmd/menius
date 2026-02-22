@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { loadStripe, type Stripe, type PaymentRequest } from '@stripe/stripe-js';
+import { cn } from '@/lib/utils';
 
 interface WalletButtonProps {
   amount: number;
@@ -171,9 +172,6 @@ export function WalletButton({
   );
 }
 
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
-}
 
 function ApplePayIcon() {
   return (
