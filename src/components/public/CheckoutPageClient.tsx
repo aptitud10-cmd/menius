@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { ArrowLeft, CheckCircle, ShoppingCart, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
-import { cn, formatPrice } from '@/lib/utils';
+import { cn, formatPrice, transitionNavigate } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, OrderType, PaymentMethod } from '@/types';
 import { WalletButton } from './WalletButton';
@@ -84,7 +84,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const deliveryFee = (orderType === 'delivery' && restaurant.delivery_fee) ? restaurant.delivery_fee : 0;
   const finalTotal = Math.max(0, cartTotal - discount + deliveryFee + tipAmount);
 
-  const goBack = useCallback(() => router.push(`/r/${slug}`), [router, slug]);
+  const goBack = useCallback(() => transitionNavigate(() => router.push(`/r/${slug}`)), [router, slug]);
 
   const validatePromo = async () => {
     if (!promoCode.trim()) return;
@@ -273,7 +273,12 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   }
 
   return (
-    <div className="min-h-[100dvh] bg-gray-50 flex flex-col">
+    <motion.div
+      className="min-h-[100dvh] bg-gray-50 flex flex-col"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+    >
       {/* Sticky header */}
       <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between">
         <button onClick={goBack} className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors">
@@ -493,6 +498,6 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

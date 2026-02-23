@@ -33,6 +33,19 @@ export function timeAgo(dateStr: string): string {
   return `${Math.floor(diffHours / 24)}d`;
 }
 
+/**
+ * Wraps a navigation callback with the View Transitions API when available,
+ * providing a smooth cross-fade between pages. Falls back to instant navigation.
+ */
+export function transitionNavigate(navigate: () => void): void {
+  const doc = typeof document !== 'undefined' ? document : null;
+  if (doc && 'startViewTransition' in doc) {
+    (doc as any).startViewTransition(navigate);
+  } else {
+    navigate();
+  }
+}
+
 export const ORDER_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   pending: { label: 'Pendiente', color: 'text-amber-300', bg: 'bg-amber-500/[0.12]' },
   confirmed: { label: 'Confirmada', color: 'text-blue-300', bg: 'bg-blue-500/[0.12]' },

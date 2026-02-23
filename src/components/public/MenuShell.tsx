@@ -7,7 +7,7 @@ import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X, MapPin, Clock,
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
-import { formatPrice, cn } from '@/lib/utils';
+import { formatPrice, cn, transitionNavigate } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, Category, Product, OrderType, DietaryTag } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
@@ -82,7 +82,8 @@ export function MenuShell({
     setHasMounted(true);
     setRestaurantId(restaurant.id);
     setTableName(tableName);
-  }, [restaurant.id, tableName, setRestaurantId, setTableName]);
+    router.prefetch(`/r/${restaurant.slug}/checkout`);
+  }, [restaurant.id, restaurant.slug, tableName, setRestaurantId, setTableName, router]);
 
   const cartCount = hasMounted ? rawCartCount : 0;
   const cartTotal = hasMounted ? rawCartTotal : 0;
@@ -153,7 +154,7 @@ export function MenuShell({
   }, []);
 
   const handleOpenCheckout = useCallback(() => {
-    router.push(`/r/${restaurant.slug}/checkout`);
+    transitionNavigate(() => router.push(`/r/${restaurant.slug}/checkout`));
   }, [router, restaurant.slug]);
 
   const availableDiets = useMemo(() => {
