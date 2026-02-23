@@ -105,7 +105,7 @@ export default async function DashboardPage() {
   };
 
   // Build 7-day chart data
-  const weekOrders = weekOrdersRes.data ?? [];
+  const weekOrdersAll = weekOrdersRes.data ?? [];
   const dailyMap = new Map<string, { orders: number; revenue: number }>();
   for (let i = 0; i < 7; i++) {
     const d = new Date(weekAgo);
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
     const key = d.toISOString().slice(0, 10);
     dailyMap.set(key, { orders: 0, revenue: 0 });
   }
-  for (const o of weekOrders) {
+  for (const o of weekOrdersAll) {
     if (o.status === 'cancelled') continue;
     const key = new Date(o.created_at).toISOString().slice(0, 10);
     const entry = dailyMap.get(key);

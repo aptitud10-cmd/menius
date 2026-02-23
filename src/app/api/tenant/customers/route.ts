@@ -19,8 +19,24 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')));
     const offset = (page - 1) * limit;
+    const filterTag = searchParams.get('tag') || '';
+    const allTagsOnly = searchParams.get('alltags') === '1';
 
     const supabase = createClient();
+
+    // Return only the distinct tags list for the tag-filter chips
+    if (allTagsOnly) {
+      const { data: rows } = await supabase
+        .from('customers')
+        .select('tags')
+        .eq('restaurant_id', tenant.restaurantId)
+        .limit(500);
+      const tagSet = new Set<string>();
+      for (const row of rows ?? []) {
+        for (const t of row.tags ?? []) tagSet.add(t);
+      }
+      return NextResponse.json({ tags: Array.from(tagSet).sort() });
+    }
 
     let query = supabase
       .from('customers')
@@ -29,6 +45,10 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
+    }
+
+    if (filterTag) {
+      query = query.contains('tags', [filterTag]);
     }
 
     const validSorts = ['last_order_at', 'total_spent', 'total_orders', 'name', 'created_at'];

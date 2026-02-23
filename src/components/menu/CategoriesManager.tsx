@@ -23,8 +23,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { createCategory, updateCategory, deleteCategory, reorderCategories } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
 import { SUPPORTED_LOCALES, getLocaleFlag } from '@/lib/i18n';
-import type { Category } from '@/types';
-import type { ContentTranslation } from '@/lib/i18n';
+import type { Category, ContentTranslation } from '@/types';
 
 interface CategoriesManagerProps {
   initialCategories: Category[];
@@ -355,7 +354,7 @@ function TranslationModal({
                 <div key={locale}>
                   <label className="text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <span>{flag}</span>
-                    {localeInfo?.name ?? locale}
+                    {localeInfo?.label ?? locale}
                   </label>
                   <input
                     type="text"

@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect, useCallback, useRef } from 'react';
 import {
   Clock, ChefHat, CheckCircle, Package, ArrowRight, XCircle,
-  Maximize, Minimize, Volume2, VolumeX, Wifi,
+  Maximize, Minimize, Volume2, VolumeX, Wifi, Search,
 } from 'lucide-react';
 import { updateOrderStatus } from '@/lib/actions/restaurant';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
@@ -61,10 +61,14 @@ function ElapsedTimer({ since }: { since: string }) {
   );
 }
 
+type KDSFilter = 'all' | 'dine_in' | 'pickup' | 'delivery';
+
 export function KitchenDisplay({ initialOrders, restaurantId, restaurantName, currency }: KitchenDisplayProps) {
   const [isPending, startTransition] = useTransition();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set());
+  const [kdsFilter, setKdsFilter] = useState<KDSFilter>('all');
+  const [tableSearch, setTableSearch] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -113,9 +117,18 @@ export function KitchenDisplay({ initialOrders, restaurantId, restaurantName, cu
     });
   };
 
-  const activeOrders = orders.filter((o) =>
-    ['pending', 'confirmed', 'preparing', 'ready'].includes(o.status)
-  );
+  const activeOrders = orders.filter((o) => {
+    if (!['pending', 'confirmed', 'preparing', 'ready'].includes(o.status)) return false;
+    if (kdsFilter !== 'all' && o.order_type !== kdsFilter) return false;
+    if (tableSearch.trim()) {
+      const q = tableSearch.toLowerCase();
+      const tableMatch = o.table?.name?.toLowerCase().includes(q);
+      const numMatch = o.order_number?.toLowerCase().includes(q);
+      const nameMatch = o.customer_name?.toLowerCase().includes(q);
+      if (!tableMatch && !numMatch && !nameMatch) return false;
+    }
+    return true;
+  });
 
   return (
     <div ref={containerRef} className={cn('flex flex-col', isFullscreen && 'bg-white h-screen')}>
@@ -154,6 +167,34 @@ export function KitchenDisplay({ initialOrders, restaurantId, restaurantName, cu
             {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
             {isFullscreen ? 'Salir' : 'Pantalla completa'}
           </button>
+        </div>
+      </div>
+
+      {/* KDS Filters */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        {(['all', 'dine_in', 'pickup', 'delivery'] as KDSFilter[]).map(f => (
+          <button
+            key={f}
+            onClick={() => setKdsFilter(f)}
+            className={cn(
+              'px-3 py-1 text-xs rounded-full border font-medium transition-colors',
+              kdsFilter === f
+                ? 'bg-emerald-500 border-emerald-500 text-white'
+                : 'bg-white border-gray-200 text-gray-600 hover:border-emerald-400'
+            )}
+          >
+            {f === 'all' ? 'Todas' : f === 'dine_in' ? 'Mesa' : f === 'pickup' ? 'Pickup' : 'Delivery'}
+          </button>
+        ))}
+        <div className="relative ml-auto">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <input
+            type="text"
+            value={tableSearch}
+            onChange={e => setTableSearch(e.target.value)}
+            placeholder="Mesa, orden o cliente..."
+            className="pl-8 pr-3 py-1 text-xs bg-white border border-gray-200 rounded-full focus:outline-none focus:ring-1 focus:ring-emerald-500/30 text-gray-700 placeholder-gray-400 w-44"
+          />
         </div>
       </div>
 

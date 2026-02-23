@@ -25,6 +25,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import {
   createProduct, updateProduct, deleteProduct, createCategory, reorderProducts, toggleProductStock,
+  createVariant, createExtra, createModifierGroup, createModifierOption,
 } from '@/lib/actions/restaurant';
 import { formatPrice, cn } from '@/lib/utils';
 import type { Product, Category, DietaryTag, ContentTranslation } from '@/types';
@@ -646,9 +647,10 @@ export function ProductsManager({
   };
 
   const handleDuplicate = (p: Product) => {
+    const tempId = `temp-dup-${Date.now()}`;
     const newProduct: Product = {
       ...p,
-      id: `temp-dup-${Date.now()}`,
+      id: tempId,
       name: `${p.name} (copia)`,
       sort_order: products.length,
     };
@@ -660,12 +662,47 @@ export function ProductsManager({
         price: Number(p.price),
         category_id: p.category_id,
         is_active: true,
+        dietary_tags: p.dietary_tags,
       });
-      if (res?.error) {
-        setProducts(prev => prev.filter(x => x.id !== newProduct.id));
-      } else {
-        window.location.reload();
+      if (res?.error || !res?.id) {
+        setProducts(prev => prev.filter(x => x.id !== tempId));
+        return;
       }
+      const newId = res.id;
+      // Copy variants
+      const variants = (p as any).variants ?? [];
+      for (const v of variants) {
+        await createVariant(newId, { name: v.name, price_delta: v.price_delta, sort_order: v.sort_order });
+      }
+      // Copy extras
+      const extras = (p as any).extras ?? [];
+      for (const e of extras) {
+        await createExtra(newId, { name: e.name, price: e.price, sort_order: e.sort_order });
+      }
+      // Copy modifier groups and their options
+      const groups = (p.modifier_groups ?? []) as any[];
+      for (const g of groups) {
+        const gRes = await createModifierGroup(newId, {
+          name: g.name,
+          selection_type: g.selection_type,
+          min_select: g.min_select,
+          max_select: g.max_select,
+          is_required: g.is_required,
+          sort_order: g.sort_order,
+        });
+        const newGroupId = (gRes as any)?.group?.id;
+        if (newGroupId) {
+          for (const opt of g.options ?? []) {
+            await createModifierOption(newGroupId, {
+              name: opt.name,
+              price_delta: opt.price_delta,
+              is_default: opt.is_default,
+              sort_order: opt.sort_order,
+            });
+          }
+        }
+      }
+      window.location.reload();
     });
   };
 

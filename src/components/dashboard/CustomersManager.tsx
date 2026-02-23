@@ -43,8 +43,18 @@ export function CustomersManager({ currency }: Props) {
   const [editNotes, setEditNotes] = useState('');
   const [editTags, setEditTags] = useState('');
   const [saving, setSaving] = useState(false);
+  const [filterTag, setFilterTag] = useState<string | null>(null);
+  const [allTags, setAllTags] = useState<string[]>([]);
 
   const limit = 30;
+
+  // Fetch distinct tags once on mount
+  useEffect(() => {
+    fetch('/api/tenant/customers?alltags=1')
+      .then(r => r.json())
+      .then(d => setAllTags(d.tags ?? []))
+      .catch(() => {});
+  }, []);
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
@@ -56,6 +66,7 @@ export function CustomersManager({ currency }: Props) {
         page: String(page),
         limit: String(limit),
       });
+      if (filterTag) params.set('tag', filterTag);
       const res = await fetch(`/api/tenant/customers?${params}`);
       const data = await res.json();
       setCustomers(data.customers ?? []);
@@ -65,7 +76,7 @@ export function CustomersManager({ currency }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [search, sortBy, page]);
+  }, [search, sortBy, page, filterTag]);
 
   useEffect(() => {
     const timeout = setTimeout(fetchCustomers, search ? 300 : 0);
@@ -193,6 +204,27 @@ export function CustomersManager({ currency }: Props) {
           CSV
         </button>
       </div>
+
+      {/* Tag filter chips */}
+      {allTags.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => { setFilterTag(null); setPage(1); }}
+            className={`px-3 py-1 text-xs rounded-full border font-medium transition-colors ${filterTag === null ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-emerald-400 hover:text-emerald-600'}`}
+          >
+            Todos
+          </button>
+          {allTags.map(tag => (
+            <button
+              key={tag}
+              onClick={() => { setFilterTag(filterTag === tag ? null : tag); setPage(1); }}
+              className={`px-3 py-1 text-xs rounded-full border font-medium transition-colors ${filterTag === tag ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-emerald-400 hover:text-emerald-600'}`}
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
