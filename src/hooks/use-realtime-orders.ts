@@ -30,8 +30,14 @@ export function useRealtimeOrders({
     const { data } = await supabase
       .from('orders')
       .select(`
-        id, restaurant_id, table_id, order_number, status, customer_name, customer_phone, notes, total, created_at,
-        order_items ( id, qty, unit_price, line_total, notes, products ( name ) )
+        *,
+        order_items (
+          id, qty, unit_price, line_total, notes,
+          product:products ( name, image_url ),
+          variant:product_variants ( name ),
+          order_item_extras ( price, product_extras ( name ) ),
+          order_item_modifiers ( group_name, option_name, price_delta )
+        )
       `)
       .eq('id', orderId)
       .maybeSingle();

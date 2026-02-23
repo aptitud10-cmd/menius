@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
     const { data: order, error } = await supabase
       .from('orders')
       .select(`
-        id, order_number, status, customer_name, notes, total, created_at,
+        id, order_number, status, customer_name, customer_phone, notes, total, created_at,
+        order_type, payment_method, delivery_address,
         order_items (
           id, qty, unit_price, line_total, notes,
           products ( name, image_url ),

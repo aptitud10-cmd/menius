@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { Plus, Pencil, Trash2, Eye, EyeOff, Tag, GripVertical } from 'lucide-react';
+import { useState, useTransition, useRef } from 'react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, Tag, GripVertical, Languages, X, Camera, ImageIcon } from 'lucide-react';
+import Image from 'next/image';
 import {
   DndContext,
   closestCenter,
@@ -21,19 +22,34 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { createCategory, updateCategory, deleteCategory, reorderCategories } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
+import { SUPPORTED_LOCALES, getLocaleFlag } from '@/lib/i18n';
 import type { Category } from '@/types';
+import type { ContentTranslation } from '@/lib/i18n';
+
+interface CategoriesManagerProps {
+  initialCategories: Category[];
+  defaultLocale: string;
+  availableLocales: string[];
+}
 
 function SortableCategoryRow({
   cat,
+  hasMultiLang,
   onToggle,
   onEdit,
   onDelete,
+  onTranslate,
+  onImageUpload,
 }: {
   cat: Category;
+  hasMultiLang: boolean;
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onTranslate: () => void;
+  onImageUpload: (file: File) => void;
 }) {
+  const imgRef = useRef<HTMLInputElement>(null);
   const {
     attributes,
     listeners,
@@ -67,7 +83,19 @@ function SortableCategoryRow({
         >
           <GripVertical className="w-4 h-4" />
         </button>
-        <Tag className={cn('w-4 h-4', cat.is_active ? 'text-gray-400' : 'text-gray-300')} />
+        <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onImageUpload(f); }} />
+        {cat.image_url ? (
+          <button onClick={() => imgRef.current?.click()} className="relative w-7 h-7 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 group/img" title="Cambiar imagen">
+            <Image src={cat.image_url} alt="" fill sizes="28px" className="object-cover" />
+            <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/30 flex items-center justify-center transition-colors">
+              <Camera className="w-3 h-3 text-white opacity-0 group-hover/img:opacity-100 transition-opacity" />
+            </div>
+          </button>
+        ) : (
+          <button onClick={() => imgRef.current?.click()} className="w-7 h-7 rounded-md bg-gray-50 flex items-center justify-center text-gray-300 hover:text-gray-400 hover:bg-gray-100 transition-colors flex-shrink-0" title="Agregar imagen">
+            <ImageIcon className="w-3.5 h-3.5" />
+          </button>
+        )}
         <span className={cn('text-sm font-medium', cat.is_active ? 'text-gray-900' : 'text-gray-500 line-through')}>
           {cat.name}
         </span>
@@ -76,6 +104,11 @@ function SortableCategoryRow({
         )}
       </div>
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        {hasMultiLang && (
+          <button onClick={onTranslate} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" title="Traducir">
+            <Languages className="w-3.5 h-3.5" />
+          </button>
+        )}
         <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" title={cat.is_active ? 'Ocultar' : 'Mostrar'}>
           {cat.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
         </button>
@@ -90,13 +123,17 @@ function SortableCategoryRow({
   );
 }
 
-export function CategoriesManager({ initialCategories }: { initialCategories: Category[] }) {
+export function CategoriesManager({ initialCategories, defaultLocale, availableLocales }: CategoriesManagerProps) {
   const [categories, setCategories] = useState(initialCategories);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [translatingCat, setTranslatingCat] = useState<Category | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const extraLocales = availableLocales.filter((l) => l !== defaultLocale);
+  const hasMultiLang = extraLocales.length > 0;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -149,6 +186,21 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
       await updateCategory(cat.id, { name: cat.name, sort_order: cat.sort_order, is_active: !cat.is_active });
       setCategories((prev) => prev.map((c) => c.id === cat.id ? { ...c, is_active: !c.is_active } : c));
     });
+  };
+
+  const handleImageUpload = async (catId: string, file: File) => {
+    if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await fetch('/api/tenant/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) return;
+      const cat = categories.find((c) => c.id === catId);
+      if (!cat) return;
+      await updateCategory(catId, { name: cat.name, sort_order: cat.sort_order, is_active: cat.is_active, image_url: data.url });
+      setCategories((prev) => prev.map((c) => c.id === catId ? { ...c, image_url: data.url } : c));
+    } catch { /* ignore */ }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -219,15 +271,115 @@ export function CategoriesManager({ initialCategories }: { initialCategories: Ca
                 <SortableCategoryRow
                   key={cat.id}
                   cat={cat}
+                  hasMultiLang={hasMultiLang}
                   onToggle={() => handleToggle(cat)}
                   onEdit={() => handleEdit(cat)}
                   onDelete={() => handleDelete(cat.id)}
+                  onTranslate={() => setTranslatingCat(cat)}
+                  onImageUpload={(file) => handleImageUpload(cat.id, file)}
                 />
               ))}
             </div>
           </SortableContext>
         </DndContext>
       )}
+
+      {/* Translation modal */}
+      {translatingCat && (
+        <TranslationModal
+          category={translatingCat}
+          defaultLocale={defaultLocale}
+          extraLocales={extraLocales}
+          onClose={() => setTranslatingCat(null)}
+          onSave={(id, translations) => {
+            setCategories((prev) => prev.map((c) => c.id === id ? { ...c, translations } : c));
+            setTranslatingCat(null);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function TranslationModal({
+  category, defaultLocale, extraLocales, onClose, onSave,
+}: {
+  category: Category;
+  defaultLocale: string;
+  extraLocales: string[];
+  onClose: () => void;
+  onSave: (id: string, translations: Record<string, ContentTranslation>) => void;
+}) {
+  const existing = category.translations ?? {};
+  const [translations, setTranslations] = useState<Record<string, ContentTranslation>>(() => {
+    const init: Record<string, ContentTranslation> = {};
+    for (const locale of extraLocales) {
+      init[locale] = { name: existing[locale]?.name ?? '' };
+    }
+    return init;
+  });
+  const [isPending, startTransition] = useTransition();
+
+  const handleSave = () => {
+    startTransition(async () => {
+      await updateCategory(category.id, {
+        name: category.name,
+        sort_order: category.sort_order,
+        is_active: category.is_active,
+        translations,
+      });
+      onSave(category.id, translations);
+    });
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/30 z-50" onClick={onClose} />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+            <div>
+              <h2 className="font-bold text-gray-900">Traducir categoría</h2>
+              <p className="text-xs text-gray-500 mt-0.5">{category.name}</p>
+            </div>
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
+            {extraLocales.map((locale) => {
+              const localeInfo = SUPPORTED_LOCALES.find((l) => l.code === locale);
+              const flag = getLocaleFlag(locale);
+              return (
+                <div key={locale}>
+                  <label className="text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
+                    <span>{flag}</span>
+                    {localeInfo?.name ?? locale}
+                  </label>
+                  <input
+                    type="text"
+                    value={translations[locale]?.name ?? ''}
+                    onChange={(e) => setTranslations((prev) => ({
+                      ...prev,
+                      [locale]: { ...prev[locale], name: e.target.value },
+                    }))}
+                    placeholder={category.name}
+                    className="dash-input"
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-200">
+            <button onClick={onClose} className="dash-btn-secondary">Cancelar</button>
+            <button onClick={handleSave} disabled={isPending} className="dash-btn-primary">
+              {isPending ? 'Guardando...' : 'Guardar traducciones'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

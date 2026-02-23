@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   Plus, Trash2, Eye, EyeOff, Search, Package, Sparkles,
   ChevronRight, X, Save, Camera, Loader2, Check, Layers, GripVertical,
-  PackageX, PackageCheck, ImagePlus, Languages,
+  PackageX, PackageCheck, ImagePlus, Languages, Copy,
 } from 'lucide-react';
 import {
   DndContext,
@@ -645,6 +645,30 @@ export function ProductsManager({
     });
   };
 
+  const handleDuplicate = (p: Product) => {
+    const newProduct: Product = {
+      ...p,
+      id: `temp-dup-${Date.now()}`,
+      name: `${p.name} (copia)`,
+      sort_order: products.length,
+    };
+    setProducts(prev => [...prev, newProduct]);
+    startTransition(async () => {
+      const res = await createProduct({
+        name: newProduct.name,
+        description: p.description ?? '',
+        price: Number(p.price),
+        category_id: p.category_id,
+        is_active: true,
+      });
+      if (res?.error) {
+        setProducts(prev => prev.filter(x => x.id !== newProduct.id));
+      } else {
+        window.location.reload();
+      }
+    });
+  };
+
   const handleToggle = (p: Product) => {
     setProducts(prev =>
       prev.map(x => (x.id === p.id ? { ...x, is_active: !x.is_active } : x)),
@@ -877,6 +901,7 @@ export function ProductsManager({
                     handleToggle={handleToggle}
                     handleStockToggle={handleStockToggle}
                     handleDelete={handleDelete}
+                    handleDuplicate={handleDuplicate}
                     curr={curr}
                     products={products}
                     setProducts={setProducts}
@@ -950,6 +975,7 @@ function SortableProductList({
   handleToggle,
   handleStockToggle,
   handleDelete,
+  handleDuplicate,
   curr,
   products,
   setProducts,
@@ -965,6 +991,7 @@ function SortableProductList({
   handleToggle: (p: Product) => void;
   handleStockToggle: (p: Product) => void;
   handleDelete: (id: string) => void;
+  handleDuplicate: (p: Product) => void;
   curr: string;
   products: Product[];
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
@@ -1007,6 +1034,7 @@ function SortableProductList({
             handleToggle={handleToggle}
             handleStockToggle={handleStockToggle}
             handleDelete={handleDelete}
+            handleDuplicate={handleDuplicate}
             curr={curr}
           />
         ))}
@@ -1025,6 +1053,7 @@ function SortableProductRow({
   handleToggle,
   handleStockToggle,
   handleDelete,
+  handleDuplicate,
   curr,
 }: {
   p: Product;
@@ -1036,6 +1065,7 @@ function SortableProductRow({
   handleToggle: (p: Product) => void;
   handleStockToggle: (p: Product) => void;
   handleDelete: (id: string) => void;
+  handleDuplicate: (p: Product) => void;
   curr: string;
 }) {
   const modCount = p.modifier_groups?.length ?? 0;
@@ -1131,6 +1161,9 @@ function SortableProductRow({
           )}
         </div>
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={() => handleDuplicate(p)} className="p-1 rounded hover:bg-indigo-50 text-gray-400 hover:text-indigo-500" title="Duplicar">
+            <Copy className="w-3.5 h-3.5" />
+          </button>
           <button onClick={() => handleToggle(p)} className="p-1 rounded hover:bg-gray-100 text-gray-400" title={p.is_active ? 'Ocultar' : 'Mostrar'}>
             {p.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
           </button>

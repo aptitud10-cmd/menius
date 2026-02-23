@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Phone, Mail, MapPin, Tag, ChevronDown, MessageCircle, Users, TrendingUp, Clock } from 'lucide-react';
+import { Search, Phone, Mail, MapPin, Tag, ChevronDown, MessageCircle, Users, TrendingUp, Clock, FileDown } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 
 interface Customer {
@@ -170,6 +170,28 @@ export function CustomersManager({ currency }: Props) {
           </select>
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
         </div>
+        <button
+          onClick={() => {
+            import('@/lib/export-csv').then(({ downloadCSV }) => {
+              const rows = customers.map(c => ({
+                nombre: c.name || '',
+                email: c.email || '',
+                telefono: c.phone || '',
+                direccion: c.address || '',
+                ordenes: c.total_orders,
+                total_gastado: c.total_spent,
+                ultima_orden: c.last_order_at ? new Date(c.last_order_at).toLocaleDateString('es-MX') : '',
+                tags: (c.tags || []).join('; '),
+                notas: c.notes || '',
+              }));
+              downloadCSV(rows, `clientes-${new Date().toISOString().slice(0, 10)}`);
+            });
+          }}
+          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white border border-gray-200 text-sm text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+        >
+          <FileDown className="w-4 h-4" />
+          CSV
+        </button>
       </div>
 
       {/* Table */}

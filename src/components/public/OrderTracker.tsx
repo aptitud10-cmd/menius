@@ -1,9 +1,19 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { CheckCircle2, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, Wifi } from 'lucide-react';
+import { CheckCircle2, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, Wifi, Utensils, ShoppingBag, Truck, CreditCard, Banknote, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { formatPrice, cn } from '@/lib/utils';
+
+const ORDER_TYPE_LABELS: Record<string, { icon: typeof Utensils; label: string }> = {
+  dine_in: { icon: Utensils, label: 'En restaurante' },
+  pickup: { icon: ShoppingBag, label: 'Para recoger' },
+  delivery: { icon: Truck, label: 'Delivery' },
+};
+const PAYMENT_LABELS: Record<string, { icon: typeof Banknote; label: string }> = {
+  cash: { icon: Banknote, label: 'Efectivo' },
+  online: { icon: CreditCard, label: 'Pagado online' },
+};
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { PushOptIn } from './PushOptIn';
 
@@ -203,6 +213,30 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, ord
               <span className="text-gray-500">Cliente</span>
               <span className="font-medium">{order.customer_name}</span>
             </div>
+            {ORDER_TYPE_LABELS[order.order_type ?? ''] && (() => {
+              const t = ORDER_TYPE_LABELS[order.order_type!];
+              return (
+                <div className="flex justify-between text-sm items-center">
+                  <span className="text-gray-500">Tipo</span>
+                  <span className="flex items-center gap-1 font-medium"><t.icon className="w-3.5 h-3.5 text-gray-400" /> {t.label}</span>
+                </div>
+              );
+            })()}
+            {PAYMENT_LABELS[order.payment_method ?? ''] && (() => {
+              const p = PAYMENT_LABELS[order.payment_method!];
+              return (
+                <div className="flex justify-between text-sm items-center">
+                  <span className="text-gray-500">Pago</span>
+                  <span className="flex items-center gap-1 font-medium"><p.icon className="w-3.5 h-3.5 text-gray-400" /> {p.label}</span>
+                </div>
+              );
+            })()}
+            {order.delivery_address && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Dirección</span>
+                <span className="text-gray-700 text-right max-w-[60%] flex items-start gap-1"><MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />{order.delivery_address}</span>
+              </div>
+            )}
             {order.notes && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Notas</span>
@@ -214,7 +248,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, ord
           <div className="mt-4 pt-4 border-t border-gray-100 space-y-2.5">
             {order.order_items?.map((item: any) => (
               <div key={item.id} className="flex justify-between text-sm">
-                <div>
+                <div className="flex-1 min-w-0">
                   <span className="font-medium">{item.qty}x {item.products?.name ?? 'Producto'}</span>
                   {item.product_variants?.name && (
                     <span className="text-gray-400 text-xs ml-1">({item.product_variants.name})</span>
@@ -224,8 +258,12 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, ord
                       +{(item.order_item_extras ?? []).map((ex: any) => ex.product_extras?.name).filter(Boolean).join(', ')}
                     </p>
                   )}
+                  {(item.order_item_modifiers ?? []).map((mod: any, i: number) => (
+                    <p key={i} className="text-xs text-gray-400">{mod.group_name}: {mod.option_name}</p>
+                  ))}
+                  {item.notes && <p className="text-xs text-amber-600 italic">&quot;{item.notes}&quot;</p>}
                 </div>
-                <span className="font-medium">{formatPrice(Number(item.line_total), currency)}</span>
+                <span className="font-medium ml-2 flex-shrink-0">{formatPrice(Number(item.line_total), currency)}</span>
               </div>
             ))}
           </div>

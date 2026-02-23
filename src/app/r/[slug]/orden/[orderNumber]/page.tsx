@@ -30,7 +30,7 @@ export default async function OrderTrackingPage({ params }: PageProps) {
 
   const { data: restaurant } = await supabase
     .from('restaurants')
-    .select('id, name, slug')
+    .select('id, name, slug, currency')
     .eq('slug', params.slug)
     .single();
 
@@ -42,6 +42,7 @@ export default async function OrderTrackingPage({ params }: PageProps) {
       restaurantName={restaurant.name}
       restaurantSlug={restaurant.slug}
       orderNumber={params.orderNumber}
+      currency={restaurant.currency ?? 'MXN'}
     />
   );
 }

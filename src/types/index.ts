@@ -55,6 +55,7 @@ export interface Category {
   id: string;
   restaurant_id: string;
   name: string;
+  image_url?: string | null;
   sort_order: number;
   is_active: boolean;
   translations?: Record<string, ContentTranslation>;
@@ -124,12 +125,16 @@ export interface ProductExtra {
   sort_order: number;
 }
 
+export type TableStatus = 'available' | 'occupied' | 'reserved';
+
 export interface Table {
   id: string;
   restaurant_id: string;
   name: string;
   qr_code_value: string;
   is_active: boolean;
+  status?: TableStatus;
+  capacity?: number;
   created_at: string;
 }
 

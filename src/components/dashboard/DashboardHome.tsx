@@ -6,6 +6,7 @@ import {
   ClipboardList, ShoppingBag, QrCode, TrendingUp, ExternalLink,
   ArrowRight, Sparkles, AlertTriangle, CreditCard, Clock,
   Copy, Check, Share2, MessageCircle, BarChart3, PieChart, Flame,
+  ArrowUpRight, ArrowDownRight, XCircle, DollarSign,
 } from 'lucide-react';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { OnboardingChecklist } from './OnboardingChecklist';
@@ -26,6 +27,11 @@ interface DashboardHomeProps {
     activeProducts: number;
     activeTables: number;
     pendingOrders: number;
+    cancelledToday: number;
+    avgOrderToday: number;
+    salesYesterday: number;
+    ordersYesterday: number;
+    revenueByType: { dine_in: number; pickup: number; delivery: number };
   };
   recentOrders: Order[];
   subscription?: {
@@ -45,12 +51,13 @@ interface DashboardHomeProps {
 }
 
 export function DashboardHome({ restaurant, stats, recentOrders, subscription, onboarding, analytics }: DashboardHomeProps) {
-  const kpis = [
-    { label: 'Órdenes hoy', value: stats.ordersToday.toString(), icon: ClipboardList, color: 'text-blue-400', bg: 'bg-blue-500/[0.1]', ring: 'ring-blue-500/20' },
-    { label: 'Ventas hoy', value: formatPrice(stats.salesToday, restaurant.currency), icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/[0.1]', ring: 'ring-emerald-500/20' },
-    { label: 'Productos activos', value: stats.activeProducts.toString(), icon: ShoppingBag, color: 'text-indigo-500', bg: 'bg-indigo-500/[0.1]', ring: 'ring-indigo-500/20' },
-    { label: 'Mesas activas', value: stats.activeTables.toString(), icon: QrCode, color: 'text-amber-400', bg: 'bg-amber-500/[0.1]', ring: 'ring-amber-500/20' },
-  ];
+  const salesDelta = stats.salesYesterday > 0
+    ? ((stats.salesToday - stats.salesYesterday) / stats.salesYesterday) * 100
+    : stats.salesToday > 0 ? 100 : 0;
+  const ordersDelta = stats.ordersYesterday > 0
+    ? ((stats.ordersToday - stats.ordersYesterday) / stats.ordersYesterday) * 100
+    : stats.ordersToday > 0 ? 100 : 0;
+  const cancelRate = stats.ordersToday > 0 ? (stats.cancelledToday / stats.ordersToday) * 100 : 0;
 
   const isTrialing = subscription?.status === 'trialing';
   const trialDaysLeft = subscription?.trial_end
@@ -133,17 +140,39 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((kpi) => (
-          <div key={kpi.label} className="dash-card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-[13px] font-medium text-gray-500">{kpi.label}</p>
-              <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', kpi.bg)}>
-                <kpi.icon className={cn('w-4 h-4', kpi.color)} />
-              </div>
-            </div>
-            <p className="text-[1.75rem] font-bold tracking-tight text-gray-900 leading-none">{kpi.value}</p>
-          </div>
-        ))}
+        <KPICard
+          label="Ventas hoy"
+          value={formatPrice(stats.salesToday, restaurant.currency)}
+          icon={TrendingUp}
+          color="text-emerald-500"
+          bg="bg-emerald-500/[0.1]"
+          delta={salesDelta}
+          deltaLabel="vs ayer"
+        />
+        <KPICard
+          label="Órdenes hoy"
+          value={stats.ordersToday.toString()}
+          icon={ClipboardList}
+          color="text-blue-500"
+          bg="bg-blue-500/[0.1]"
+          delta={ordersDelta}
+          deltaLabel="vs ayer"
+        />
+        <KPICard
+          label="Ticket promedio"
+          value={formatPrice(stats.avgOrderToday, restaurant.currency)}
+          icon={DollarSign}
+          color="text-indigo-500"
+          bg="bg-indigo-500/[0.1]"
+        />
+        <KPICard
+          label="Cancelaciones"
+          value={`${stats.cancelledToday}`}
+          icon={XCircle}
+          color="text-red-400"
+          bg="bg-red-500/[0.1]"
+          extra={cancelRate > 0 ? `${cancelRate.toFixed(0)}% tasa` : undefined}
+        />
       </div>
 
       {/* Analytics */}
@@ -220,6 +249,36 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
       {stats.activeProducts === 0 && (
         <EmptyRestaurantCTA restaurantSlug={restaurant.slug} />
       )}
+    </div>
+  );
+}
+
+function KPICard({
+  label, value, icon: Icon, color, bg, delta, deltaLabel, extra,
+}: {
+  label: string; value: string; icon: any; color: string; bg: string;
+  delta?: number; deltaLabel?: string; extra?: string;
+}) {
+  const isUp = delta !== undefined && delta >= 0;
+  return (
+    <div className="dash-card p-5">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[13px] font-medium text-gray-500">{label}</p>
+        <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', bg)}>
+          <Icon className={cn('w-4 h-4', color)} />
+        </div>
+      </div>
+      <p className="text-[1.75rem] font-bold tracking-tight text-gray-900 leading-none">{value}</p>
+      {delta !== undefined && deltaLabel && (
+        <div className="flex items-center gap-1 mt-2">
+          {isUp ? <ArrowUpRight className="w-3 h-3 text-emerald-500" /> : <ArrowDownRight className="w-3 h-3 text-red-400" />}
+          <span className={cn('text-xs font-semibold', isUp ? 'text-emerald-600' : 'text-red-500')}>
+            {isUp ? '+' : ''}{delta.toFixed(0)}%
+          </span>
+          <span className="text-xs text-gray-400">{deltaLabel}</span>
+        </div>
+      )}
+      {extra && <p className="text-xs text-gray-400 mt-1.5">{extra}</p>}
     </div>
   );
 }

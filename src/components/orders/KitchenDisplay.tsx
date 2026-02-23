@@ -253,17 +253,37 @@ export function KitchenDisplay({ initialOrders, restaurantId, restaurantName, cu
 
                         {/* Items */}
                         {order.items && order.items.length > 0 && (
-                          <div className="space-y-1 mb-2">
-                            {order.items.map((item, idx) => {
-                              const prod = item.product as { name: string } | undefined;
+                          <div className="space-y-1.5 mb-2">
+                            {order.items.map((item: any, idx: number) => {
+                              const prodName = item.product?.name ?? 'Producto';
+                              const variantName = item.variant?.name;
+                              const extras: any[] = item.order_item_extras ?? [];
+                              const modifiers: any[] = item.order_item_modifiers ?? [];
+                              const hasDetails = variantName || extras.length > 0 || modifiers.length > 0 || item.notes;
                               return (
-                                <div key={idx} className="flex items-center gap-2">
-                                  <span className="w-5 h-5 rounded bg-gray-50 text-[10px] font-bold text-gray-900 flex items-center justify-center flex-shrink-0">
-                                    {item.qty}
-                                  </span>
-                                  <span className="text-xs text-gray-700 truncate">
-                                    {prod?.name ?? 'Producto'}
-                                  </span>
+                                <div key={idx} className="rounded-lg bg-white/60 px-2 py-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-5 h-5 rounded bg-gray-100 text-[10px] font-bold text-gray-900 flex items-center justify-center flex-shrink-0">
+                                      {item.qty}
+                                    </span>
+                                    <span className="text-xs font-medium text-gray-800">
+                                      {prodName}
+                                      {variantName && <span className="text-gray-400 font-normal"> · {variantName}</span>}
+                                    </span>
+                                  </div>
+                                  {hasDetails && (
+                                    <div className="ml-7 mt-0.5 space-y-0.5">
+                                      {extras.map((ex: any, i: number) => (
+                                        <p key={i} className="text-[10px] text-indigo-500 font-medium">+ {ex.product_extras?.name ?? 'Extra'}</p>
+                                      ))}
+                                      {modifiers.map((mod: any, i: number) => (
+                                        <p key={i} className="text-[10px] text-gray-500">{mod.group_name}: <span className="font-medium">{mod.option_name}</span></p>
+                                      ))}
+                                      {item.notes && (
+                                        <p className="text-[10px] text-amber-600 italic">&quot;{item.notes}&quot;</p>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}

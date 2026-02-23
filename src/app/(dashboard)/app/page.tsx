@@ -20,7 +20,7 @@ export default async function DashboardPage() {
       .maybeSingle(),
     supabase
       .from('orders')
-      .select('id, total, status, created_at')
+      .select('id, total, status, created_at, order_type')
       .eq('restaurant_id', restaurantId)
       .gte('created_at', todayStart.toISOString()),
     supabase
@@ -65,13 +65,31 @@ export default async function DashboardPage() {
   if (!restaurant) redirect('/onboarding/create-restaurant');
 
   const todaysOrders = ordersRes.data ?? [];
-  const salesToday = todaysOrders
-    .filter((o) => o.status !== 'cancelled')
-    .reduce((sum, o) => sum + Number(o.total), 0);
+  const validToday = todaysOrders.filter((o) => o.status !== 'cancelled');
+  const salesToday = validToday.reduce((sum, o) => sum + Number(o.total), 0);
   const pendingOrders = todaysOrders.filter((o) => o.status === 'pending').length;
+  const cancelledToday = todaysOrders.filter((o) => o.status === 'cancelled').length;
+  const avgOrderToday = validToday.length > 0 ? salesToday / validToday.length : 0;
 
   const activeProducts = productsRes.data?.length ?? 0;
   const activeTables = tablesRes.data?.length ?? 0;
+
+  // Yesterday comparison
+  const yesterdayStart = new Date(todayStart);
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+  const weekOrders = weekOrdersRes.data ?? [];
+  const yesterdayOrders = weekOrders.filter((o) => {
+    const d = new Date(o.created_at);
+    return d >= yesterdayStart && d < todayStart && o.status !== 'cancelled';
+  });
+  const salesYesterday = yesterdayOrders.reduce((s, o) => s + Number(o.total), 0);
+
+  // Revenue by order type (today)
+  const revenueByType = { dine_in: 0, pickup: 0, delivery: 0 };
+  for (const o of validToday) {
+    const t = (o.order_type || 'dine_in') as keyof typeof revenueByType;
+    if (t in revenueByType) revenueByType[t] += Number(o.total);
+  }
 
   const stats = {
     ordersToday: todaysOrders.length,
@@ -79,6 +97,11 @@ export default async function DashboardPage() {
     activeProducts,
     activeTables,
     pendingOrders,
+    cancelledToday,
+    avgOrderToday,
+    salesYesterday,
+    ordersYesterday: yesterdayOrders.length,
+    revenueByType,
   };
 
   // Build 7-day chart data

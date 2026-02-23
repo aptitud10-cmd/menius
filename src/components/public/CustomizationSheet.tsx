@@ -2,12 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { X, Minus, Plus, Check, ArrowLeft } from 'lucide-react';
+import { X, Minus, Plus, Check, ArrowLeft, Leaf } from 'lucide-react';
 import { motion, useMotionValue, useTransform, useDragControls, type PanInfo } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import type { Product, ModifierGroup, ModifierOption, ModifierSelection } from '@/types';
 import type { Translations, Locale } from '@/lib/translations';
+import { DIETARY_TAGS } from '@/lib/dietary-tags';
+
+const DIETARY_TAGS_MAP = Object.fromEntries(DIETARY_TAGS.map((t) => [t.id, t]));
 import { tName, tDesc } from '@/lib/i18n';
 import { supabaseLoader, getBlurUrl } from '@/lib/image-loader';
 
@@ -274,6 +277,20 @@ export function CustomizationSheet({
             <h3 className="text-lg font-bold text-gray-900">{displayName}</h3>
             {displayDesc && (
               <p className="text-sm text-gray-500 mt-1">{displayDesc}</p>
+            )}
+            {(product.dietary_tags?.length ?? 0) > 0 && (
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                {product.dietary_tags!.map((tagId) => {
+                  const tag = DIETARY_TAGS_MAP[tagId];
+                  if (!tag) return null;
+                  return (
+                    <span key={tagId} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-[11px] font-medium text-gray-600">
+                      <span>{tag.emoji}</span>
+                      {locale?.startsWith('en') ? tag.labelEn : tag.labelEs}
+                    </span>
+                  );
+                })}
+              </div>
             )}
           </div>
           <span className="text-lg font-bold text-gray-900 flex-shrink-0">

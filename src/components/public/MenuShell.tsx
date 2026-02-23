@@ -212,21 +212,37 @@ export function MenuShell({
     const main = mainRef.current;
     if (!main || itemsByCategory.length === 0) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (isScrollingRef.current) return;
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            const id = entry.target.getAttribute('data-cat-id');
-            if (id) setActiveCategory(id);
-          }
-        }
-      },
-      { root: main, rootMargin: '-10% 0px -80% 0px', threshold: 0 }
-    );
+    // Set initial active category
+    if (!activeCategory && itemsByCategory.length > 0) {
+      setActiveCategory(itemsByCategory[0].category.id);
+    }
 
-    sectionRefs.current.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+    const handleScroll = () => {
+      if (isScrollingRef.current) return;
+
+      const scrollTop = main.scrollTop;
+      const offset = 80;
+      let current: string | null = null;
+
+      // Walk sections top-to-bottom; pick the last one whose top is above the offset line
+      sectionRefs.current.forEach((el, id) => {
+        if (el.offsetTop - offset <= scrollTop) {
+          current = id;
+        }
+      });
+
+      // If nothing matched (scrolled to very top), pick the first category
+      if (!current && itemsByCategory.length > 0) {
+        current = itemsByCategory[0].category.id;
+      }
+
+      if (current) setActiveCategory(current);
+    };
+
+    main.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => main.removeEventListener('scroll', handleScroll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsByCategory]);
 
   // Track scroll for collapsing header

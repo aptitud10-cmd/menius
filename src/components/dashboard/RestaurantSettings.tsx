@@ -62,6 +62,19 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [initialFormSnapshot] = useState(() => JSON.stringify(form));
+  const isDirty = JSON.stringify(form) !== initialFormSnapshot;
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
 
   const [stripeStatus, setStripeStatus] = useState<{
     connected: boolean;
@@ -699,14 +712,27 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         <div className="px-4 py-2.5 rounded-xl bg-red-500/[0.06] text-red-400 border border-red-500/[0.1] text-sm">{error}</div>
       )}
 
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 hover:-translate-y-0.5 transition-all disabled:opacity-50"
-      >
-        {saved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-        {saving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar cambios'}
-      </button>
+      <div className="flex items-center gap-3">
+        {isDirty && !saved && (
+          <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            Cambios sin guardar
+          </span>
+        )}
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className={cn(
+            'flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm transition-all disabled:opacity-50',
+            isDirty && !saved
+              ? 'bg-amber-500 text-white hover:bg-amber-600 hover:-translate-y-0.5'
+              : 'bg-emerald-500 text-white hover:bg-emerald-600 hover:-translate-y-0.5'
+          )}
+        >
+          {saved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+          {saving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar cambios'}
+        </button>
+      </div>
     </div>
   );
 }

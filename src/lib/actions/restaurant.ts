@@ -208,9 +208,17 @@ export async function updateCategory(id: string, data: CategoryInput) {
   const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
+  const payload: Record<string, unknown> = {
+    name: sanitizeText(data.name, 100),
+    sort_order: data.sort_order,
+    is_active: data.is_active,
+  };
+  if (data.translations !== undefined) payload.translations = data.translations;
+  if (data.image_url !== undefined) payload.image_url = data.image_url;
+
   const { error } = await supabase
     .from('categories')
-    .update({ name: sanitizeText(data.name, 100), sort_order: data.sort_order, is_active: data.is_active })
+    .update(payload)
     .eq('id', id)
     .eq('restaurant_id', restaurantId);
 
@@ -590,6 +598,25 @@ export async function updateTable(id: string, newName: string) {
     .update({ name, qr_code_value: qrValue })
     .eq('id', id)
     .eq('restaurant_id', profile.default_restaurant_id);
+
+  if (error) return { error: error.message };
+  revalidatePath('/app/tables');
+  return { success: true };
+}
+
+export async function updateTableMeta(id: string, data: { status?: string; capacity?: number }) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const payload: Record<string, unknown> = {};
+  if (data.status) payload.status = data.status;
+  if (data.capacity !== undefined) payload.capacity = data.capacity;
+
+  const { error } = await supabase
+    .from('tables')
+    .update(payload)
+    .eq('id', id)
+    .eq('restaurant_id', restaurantId);
 
   if (error) return { error: error.message };
   revalidatePath('/app/tables');

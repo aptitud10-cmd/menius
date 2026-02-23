@@ -12,10 +12,19 @@ export default async function OrdersPage() {
       .maybeSingle(),
     supabase
       .from('orders')
-      .select('*, order_items(*, product:products(name))')
+      .select(`
+        *,
+        order_items (
+          id, qty, unit_price, line_total, notes,
+          product:products ( name, image_url ),
+          variant:product_variants ( name ),
+          order_item_extras ( price, product_extras ( name ) ),
+          order_item_modifiers ( group_name, option_name, price_delta )
+        )
+      `)
       .eq('restaurant_id', restaurantId)
       .order('created_at', { ascending: false })
-      .limit(50),
+      .limit(200),
   ]);
 
   const mappedOrders = (orders ?? []).map((o: any) => ({

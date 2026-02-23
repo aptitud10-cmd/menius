@@ -12,7 +12,16 @@ export default async function KDSPage() {
       .maybeSingle(),
     supabase
       .from('orders')
-      .select('*, order_items(*, product:products(name))')
+      .select(`
+        *,
+        order_items (
+          *,
+          product:products ( name ),
+          variant:product_variants ( name ),
+          order_item_extras ( price, product_extras ( name ) ),
+          order_item_modifiers ( group_name, option_name, price_delta )
+        )
+      `)
       .eq('restaurant_id', restaurantId)
       .in('status', ['pending', 'confirmed', 'preparing', 'ready'])
       .order('created_at', { ascending: true })
