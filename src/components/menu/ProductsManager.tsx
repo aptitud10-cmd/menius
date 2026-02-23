@@ -101,6 +101,8 @@ function ProductSidePanel({
   onCategoryCreated: (c: Category) => void;
 }) {
   const isEditing = !!product;
+  const modCount = product?.modifier_groups?.length ?? 0;
+  const [tab, setTab] = useState<'info' | 'options'>('info');
 
   const [form, setForm] = useState({
     name: product?.name ?? '',
@@ -131,6 +133,7 @@ function ProductSidePanel({
     setImageFile(null);
     setError('');
     setSaved(false);
+    setTab('info');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id]);
 
@@ -249,14 +252,42 @@ function ProductSidePanel({
 
       {/* Panel */}
       <div className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-white z-50 shadow-2xl flex flex-col animate-slide-in-right">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 flex-shrink-0">
-          <h2 className="font-semibold text-[15px] text-gray-900 truncate">
-            {isEditing ? product.name : 'Nuevo producto'}
-          </h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+        {/* Header + Tabs */}
+        <div className="flex-shrink-0 border-b border-gray-200">
+          <div className="flex items-center justify-between px-5 pt-3.5 pb-0">
+            <h2 className="font-semibold text-[15px] text-gray-900 truncate">
+              {isEditing ? product.name : 'Nuevo producto'}
+            </h2>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          {isEditing && (
+            <div className="flex gap-0 px-5 mt-2">
+              <button
+                onClick={() => setTab('info')}
+                className={cn(
+                  'px-3 py-2 text-sm font-medium border-b-2 transition-colors',
+                  tab === 'info'
+                    ? 'border-emerald-600 text-emerald-700'
+                    : 'border-transparent text-gray-400 hover:text-gray-600',
+                )}
+              >
+                Información
+              </button>
+              <button
+                onClick={() => setTab('options')}
+                className={cn(
+                  'px-3 py-2 text-sm font-medium border-b-2 transition-colors',
+                  tab === 'options'
+                    ? 'border-emerald-600 text-emerald-700'
+                    : 'border-transparent text-gray-400 hover:text-gray-600',
+                )}
+              >
+                Opciones {modCount > 0 && <span className="ml-1 text-[11px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-full">{modCount}</span>}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -268,157 +299,157 @@ function ProductSidePanel({
             </div>
           )}
 
-          {/* Name */}
-          <div>
-            <label className="dash-label mb-1.5 block">Nombre *</label>
-            <input
-              type="text"
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
-              placeholder="Ej: Huevos rancheros"
-              autoFocus={!isEditing}
-              className="dash-input"
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="dash-label mb-1.5 block">Descripción</label>
-            <textarea
-              value={form.description}
-              onChange={e => setForm({ ...form, description: e.target.value })}
-              placeholder="Describe el producto..."
-              rows={2}
-              className="dash-input resize-none"
-            />
-          </div>
-
-          {/* Price + Category */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="dash-label mb-1.5 block">Precio *</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.price}
-                onChange={e => setForm({ ...form, price: e.target.value })}
-                placeholder="0.00"
-                className="dash-input"
-              />
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="dash-label">Categoría *</label>
-                <button onClick={() => setShowNewCat(true)} className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
-                  + Nueva
-                </button>
+          {/* ── Tab: Info ── */}
+          {(tab === 'info' || !isEditing) && (
+            <>
+              <div>
+                <label className="dash-label mb-1.5 block">Nombre *</label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  placeholder="Ej: Huevos rancheros"
+                  autoFocus={!isEditing}
+                  className="dash-input"
+                />
               </div>
-              {showNewCat ? (
-                <div className="flex gap-1.5">
+
+              <div>
+                <label className="dash-label mb-1.5 block">Descripción</label>
+                <textarea
+                  value={form.description}
+                  onChange={e => setForm({ ...form, description: e.target.value })}
+                  placeholder="Describe el producto..."
+                  rows={2}
+                  className="dash-input resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="dash-label mb-1.5 block">Precio *</label>
                   <input
-                    type="text"
-                    value={newCatName}
-                    onChange={e => setNewCatName(e.target.value)}
-                    placeholder="Categoría"
-                    autoFocus
-                    className="dash-input flex-1 text-sm"
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') handleCreateCat();
-                      if (e.key === 'Escape') setShowNewCat(false);
-                    }}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.price}
+                    onChange={e => setForm({ ...form, price: e.target.value })}
+                    placeholder="0.00"
+                    className="dash-input"
                   />
-                  <button onClick={handleCreateCat} className="dash-btn-primary px-2 py-1">
-                    <Check className="w-4 h-4" />
-                  </button>
                 </div>
-              ) : (
-                <select
-                  value={form.category_id}
-                  onChange={e => setForm({ ...form, category_id: e.target.value })}
-                  className="dash-select"
-                >
-                  {categories.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              )}
-            </div>
-          </div>
-
-          {/* Image */}
-          <div>
-            <label className="dash-label mb-1.5 block">Imagen</label>
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
-            {imagePreview ? (
-              <div className="relative w-full h-36 rounded-lg overflow-hidden bg-gray-100 group">
-                <Image src={imagePreview} alt="" fill className="object-cover" sizes="400px" />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2">
-                  <button onClick={() => fileRef.current?.click()} className="opacity-0 group-hover:opacity-100 p-2 rounded-lg bg-white text-gray-700 hover:bg-gray-50 shadow-sm transition-opacity">
-                    <Camera className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => { setImageFile(null); setImagePreview(null); }} className="opacity-0 group-hover:opacity-100 p-2 rounded-lg bg-white text-red-600 hover:bg-red-50 shadow-sm transition-opacity">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="dash-label">Categoría *</label>
+                    <button onClick={() => setShowNewCat(true)} className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
+                      + Nueva
+                    </button>
+                  </div>
+                  {showNewCat ? (
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        value={newCatName}
+                        onChange={e => setNewCatName(e.target.value)}
+                        placeholder="Categoría"
+                        autoFocus
+                        className="dash-input flex-1 text-sm"
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') handleCreateCat();
+                          if (e.key === 'Escape') setShowNewCat(false);
+                        }}
+                      />
+                      <button onClick={handleCreateCat} className="dash-btn-primary px-2 py-1">
+                        <Check className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={form.category_id}
+                      onChange={e => setForm({ ...form, category_id: e.target.value })}
+                      className="dash-select"
+                    >
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
-            ) : (
-              <button
-                onClick={() => fileRef.current?.click()}
-                className="w-full h-20 rounded-lg border-2 border-dashed border-gray-200 hover:border-emerald-400 flex items-center justify-center gap-2 text-gray-400 hover:text-emerald-600 transition-all"
-              >
-                <Camera className="w-4 h-4" />
-                <span className="text-xs font-medium">Subir foto</span>
-              </button>
-            )}
-          </div>
 
-          {/* Dietary tags */}
-          <div>
-            <label className="dash-label mb-1.5 block">Etiquetas</label>
-            <div className="flex flex-wrap gap-1.5">
-              {DIETARY_TAGS.map(tag => {
-                const sel = form.dietary_tags.includes(tag.id);
-                return (
+              <div>
+                <label className="dash-label mb-1.5 block">Imagen</label>
+                <input ref={fileRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+                {imagePreview ? (
+                  <div className="relative w-full h-36 rounded-lg overflow-hidden bg-gray-100 group">
+                    <Image src={imagePreview} alt="" fill className="object-cover" sizes="400px" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2">
+                      <button onClick={() => fileRef.current?.click()} className="opacity-0 group-hover:opacity-100 p-2 rounded-lg bg-white text-gray-700 hover:bg-gray-50 shadow-sm transition-opacity">
+                        <Camera className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => { setImageFile(null); setImagePreview(null); }} className="opacity-0 group-hover:opacity-100 p-2 rounded-lg bg-white text-red-600 hover:bg-red-50 shadow-sm transition-opacity">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
                   <button
-                    key={tag.id}
-                    onClick={() => setForm(f => ({
-                      ...f,
-                      dietary_tags: sel
-                        ? f.dietary_tags.filter(t => t !== tag.id)
-                        : [...f.dietary_tags, tag.id],
-                    }))}
-                    className={cn(
-                      'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
-                      sel
-                        ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                        : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
-                    )}
+                    onClick={() => fileRef.current?.click()}
+                    className="w-full h-20 rounded-lg border-2 border-dashed border-gray-200 hover:border-emerald-400 flex items-center justify-center gap-2 text-gray-400 hover:text-emerald-600 transition-all"
                   >
-                    {tag.emoji} {tag.labelEs}
+                    <Camera className="w-4 h-4" />
+                    <span className="text-xs font-medium">Subir foto</span>
                   </button>
-                );
-              })}
-            </div>
-          </div>
+                )}
+              </div>
 
-          {/* Modifier groups */}
-          {isEditing && product ? (
-            <div className="border-t border-gray-200 pt-5">
-              <ModifierGroupsEditor
-                groups={product.modifier_groups ?? []}
-                productId={product.id}
-                onUpdate={groups => onSave({ ...product, modifier_groups: groups })}
-              />
-            </div>
-          ) : (
-            <div className="border-t border-gray-200 pt-5 text-center py-6">
-              <Layers className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-              <p className="text-sm font-medium text-gray-500">Primero guarda el producto</p>
-              <p className="text-xs text-gray-400 mt-1">
-                Después podrás agregar opciones (Tamaño, Extras, Salsas...)
-              </p>
-            </div>
+              <div>
+                <label className="dash-label mb-1.5 block">Etiquetas</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {DIETARY_TAGS.map(tag => {
+                    const sel = form.dietary_tags.includes(tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        onClick={() => setForm(f => ({
+                          ...f,
+                          dietary_tags: sel
+                            ? f.dietary_tags.filter(t => t !== tag.id)
+                            : [...f.dietary_tags, tag.id],
+                        }))}
+                        className={cn(
+                          'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
+                          sel
+                            ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                            : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                        )}
+                      >
+                        {tag.emoji} {tag.labelEs}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {!isEditing && (
+                <div className="text-center py-6 text-gray-400">
+                  <Layers className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm font-medium text-gray-500">Primero guarda el producto</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Después podrás agregar opciones (Tamaño, Extras, Salsas...)
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── Tab: Options (Modifiers) ── */}
+          {tab === 'options' && isEditing && product && (
+            <ModifierGroupsEditor
+              groups={product.modifier_groups ?? []}
+              productId={product.id}
+              onUpdate={groups => onSave({ ...product, modifier_groups: groups })}
+            />
           )}
         </div>
 
