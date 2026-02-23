@@ -68,7 +68,7 @@ export const ProductCard = memo(function ProductCard({
       {/* ── Mobile: horizontal compact card ── */}
       <div
         onClick={handleClick}
-        className="lg:hidden flex gap-3 p-3 bg-white rounded-2xl border border-gray-100 cursor-pointer active:bg-gray-50/80 transition-all duration-150"
+        className="lg:hidden flex gap-3 p-3 bg-white rounded-2xl border border-gray-100 cursor-pointer active:bg-gray-50/80 active:scale-[0.98] transition-all duration-150"
       >
         <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
           <div>
@@ -161,7 +161,7 @@ export const ProductCard = memo(function ProductCard({
       {/* ── Desktop: landscape card (wider than tall) ── */}
       <div
         onClick={handleClick}
-        className="hidden lg:block group relative bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg hover:border-gray-200 transition-all duration-200"
+        className="hidden lg:block group relative bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg hover:border-gray-200 active:scale-[0.98] transition-all duration-200"
       >
         {showImage ? (
           <div className="relative w-full aspect-[16/9] bg-gray-100 overflow-hidden">

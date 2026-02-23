@@ -34,6 +34,8 @@ interface MenuHeaderProps {
   openLabel: string;
   closedLabel: string;
   backUrl?: string;
+  isScrolled?: boolean;
+  hasCover?: boolean;
 }
 
 export const MenuHeader = memo(function MenuHeader({
@@ -48,6 +50,8 @@ export const MenuHeader = memo(function MenuHeader({
   openLabel,
   closedLabel,
   backUrl,
+  isScrolled = false,
+  hasCover = false,
 }: MenuHeaderProps) {
   const itemCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.qty, 0));
   const itemTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
@@ -61,9 +65,21 @@ export const MenuHeader = memo(function MenuHeader({
     });
   }, []);
 
+  const showNameInHeader = !hasCover || isScrolled;
+
   return (
-    <header className="flex-shrink-0 z-40 bg-white border-b border-gray-200">
-      <div className="h-14 max-w-[1440px] mx-auto px-4 lg:px-6 flex items-center gap-3">
+    <header
+      className={cn(
+        'flex-shrink-0 z-40 transition-all duration-300',
+        isScrolled
+          ? 'bg-white border-b border-gray-200 shadow-sm'
+          : 'bg-white border-b border-gray-100'
+      )}
+    >
+      <div className={cn(
+        'max-w-[1440px] mx-auto px-4 lg:px-6 flex items-center gap-3 transition-all duration-300',
+        isScrolled ? 'h-12 lg:h-14' : 'h-14'
+      )}>
         {/* Back button (demo/external) */}
         {backUrl && (
           <Link href={backUrl} className="flex-shrink-0 p-1.5 -ml-1.5 rounded-lg active:bg-gray-100 transition-colors" aria-label="Back">
@@ -72,24 +88,39 @@ export const MenuHeader = memo(function MenuHeader({
         )}
 
         {/* Logo + Name */}
-        <div className="flex items-center gap-2.5 flex-shrink-0 min-w-0">
-          {restaurant.logo_url ? (
-            <div className="relative w-8 h-8 lg:w-10 lg:h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-              <Image
-                src={restaurant.logo_url}
-                alt={restaurant.name}
-                fill
-                sizes="40px"
-                className="object-cover opacity-0 transition-opacity duration-300"
-                onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
-              />
-            </div>
-          ) : (
-            <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-xs lg:text-sm font-bold text-white">{restaurant.name.charAt(0).toUpperCase()}</span>
-            </div>
-          )}
-          <span className="text-[15px] lg:text-base font-bold text-gray-900 truncate max-w-[180px] lg:max-w-[260px]">{restaurant.name}</span>
+        <div className={cn(
+          'flex items-center gap-2.5 flex-shrink-0 min-w-0 transition-all duration-300',
+          !showNameInHeader && 'lg:flex'
+        )}>
+          <div className={cn(
+            'transition-all duration-300 flex-shrink-0',
+            isScrolled ? 'w-7 h-7 lg:w-9 lg:h-9' : 'w-8 h-8 lg:w-10 lg:h-10'
+          )}>
+            {restaurant.logo_url ? (
+              <div className="relative w-full h-full rounded-lg overflow-hidden bg-gray-100">
+                <Image
+                  src={restaurant.logo_url}
+                  alt={restaurant.name}
+                  fill
+                  sizes="40px"
+                  className="object-cover opacity-0 transition-opacity duration-300"
+                  onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
+                />
+              </div>
+            ) : (
+              <div className="w-full h-full rounded-lg bg-emerald-500 flex items-center justify-center">
+                <span className="text-xs lg:text-sm font-bold text-white">{restaurant.name.charAt(0).toUpperCase()}</span>
+              </div>
+            )}
+          </div>
+          <span className={cn(
+            'font-bold text-gray-900 truncate transition-all duration-300',
+            showNameInHeader
+              ? 'max-w-[180px] lg:max-w-[260px] opacity-100 text-[15px] lg:text-base'
+              : 'max-w-0 lg:max-w-[260px] opacity-0 lg:opacity-100 overflow-hidden text-[15px] lg:text-base'
+          )}>
+            {restaurant.name}
+          </span>
         </div>
 
         {/* Center: Search bar (desktop) */}
@@ -124,7 +155,12 @@ export const MenuHeader = memo(function MenuHeader({
           )}
 
           {restaurant.estimated_delivery_minutes && (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-50 text-[11px] font-semibold text-gray-500">
+            <span className={cn(
+              'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all duration-300',
+              isScrolled
+                ? 'bg-gray-50 text-gray-500'
+                : 'bg-gray-50 text-gray-500'
+            )}>
               <Clock className="w-3 h-3" />
               ~{restaurant.estimated_delivery_minutes} min
             </span>

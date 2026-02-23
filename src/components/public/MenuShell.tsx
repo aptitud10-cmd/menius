@@ -101,6 +101,8 @@ export function MenuShell({
   const mobilePillsRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const isScrollingRef = useRef(false);
+  const [headerScrolled, setHeaderScrolled] = useState(false);
+  const hasCover = !!restaurant.cover_image_url;
 
   const handleCategorySelect = useCallback((catId: string | null) => {
     setSearchQuery('');
@@ -206,6 +208,16 @@ export function MenuShell({
     sectionRefs.current.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, [itemsByCategory]);
+
+  // Track scroll for collapsing header
+  useEffect(() => {
+    const main = mainRef.current;
+    if (!main) return;
+    const threshold = hasCover ? 100 : 40;
+    const onScroll = () => setHeaderScrolled(main.scrollTop > threshold);
+    main.addEventListener('scroll', onScroll, { passive: true });
+    return () => main.removeEventListener('scroll', onScroll);
+  }, [hasCover]);
 
   // Auto-scroll pill bar to show active pill
   useEffect(() => {
@@ -315,6 +327,8 @@ export function MenuShell({
         openLabel={t.open}
         closedLabel={t.closed}
         backUrl={backUrl}
+        isScrolled={headerScrolled}
+        hasCover={hasCover}
       />
 
       {/* Mobile category pills — scrolls with content on mobile */}
