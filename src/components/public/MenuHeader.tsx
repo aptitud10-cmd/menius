@@ -212,27 +212,6 @@ export const MenuHeader = memo(function MenuHeader({
         </div>
       </div>
 
-      {/* Mobile search — expandable */}
-      {showSearch && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-4 py-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder={searchPlaceholder}
-              className="w-full pl-9 pr-9 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 placeholder-gray-400"
-              autoFocus
-            />
-            {searchQuery && (
-              <button onClick={() => { onSearchChange(''); onToggleSearch(); }} className="absolute right-3 top-1/2 -translate-y-1/2">
-                <X className="w-3.5 h-3.5 text-gray-400" />
-              </button>
-            )}
-          </div>
-        </div>
-      )}
     </header>
   );
 });

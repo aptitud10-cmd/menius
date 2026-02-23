@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X, MapPin, Clock, Heart, Star } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X, MapPin, Clock, Heart, Star, ArrowLeft, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
@@ -691,6 +691,102 @@ export function MenuShell({
         )}
       </AnimatePresence>
 
+
+      {/* ── Mobile Full-screen Search Overlay ── */}
+      <AnimatePresence>
+        {showSearch && (
+          <motion.div
+            className="fixed inset-0 z-[70] bg-white flex flex-col lg:hidden"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+              <button
+                onClick={() => { setShowSearch(false); setSearchQuery(''); }}
+                className="p-1.5 -ml-1 rounded-lg active:bg-gray-100 transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5 text-gray-600" />
+              </button>
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t.searchPlaceholder}
+                  className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-[15px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 placeholder-gray-400"
+                  autoFocus
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <X className="w-4 h-4 text-gray-400" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-3">
+              {!searchQuery.trim() ? (
+                <div className="flex flex-col items-center justify-center h-full text-center px-8">
+                  <Search className="w-10 h-10 text-gray-200 mb-3" />
+                  <p className="text-sm text-gray-400">{t.searchPlaceholder}</p>
+                </div>
+              ) : searchResults && searchResults.length > 0 ? (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                    {searchResults.length} {searchResults.length === 1 ? 'resultado' : 'resultados'}
+                  </p>
+                  {searchResults.map((product) => (
+                    <button
+                      key={product.id}
+                      onClick={() => {
+                        setShowSearch(false);
+                        setSearchQuery('');
+                        handleProductSelect(product);
+                      }}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
+                    >
+                      {product.image_url ? (
+                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                          <Image
+                            src={product.image_url}
+                            alt={product.name}
+                            fill
+                            sizes="48px"
+                            className="object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                          <Search className="w-4 h-4 text-gray-300" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[15px] font-semibold text-gray-900 truncate">{product.name}</p>
+                        {product.description && (
+                          <p className="text-xs text-gray-400 truncate mt-0.5">{product.description}</p>
+                        )}
+                      </div>
+                      <span className="text-sm font-bold text-gray-900 tabular-nums flex-shrink-0">
+                        {fmtPrice(Number(product.price))}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center px-8">
+                  <p className="text-base font-semibold text-gray-900 mb-1">{t.noResults}</p>
+                  <p className="text-sm text-gray-400">
+                    {locale === 'es' ? 'Intenta con otro termino' : 'Try a different search term'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Toast notification ── */}
       <AnimatePresence>
