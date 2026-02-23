@@ -95,7 +95,7 @@ export function MenuShell({
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [customization, setCustomization] = useState<CustomizationTarget | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ name: string; image?: string | null } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const catScrollRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement>(null);
@@ -130,16 +130,16 @@ export function MenuShell({
     setCustomization({ product, editIndex: null });
   }, []);
 
-  const showToast = useCallback((msg: string) => {
+  const showToast = useCallback((product: Product) => {
     clearTimeout(toastTimer.current);
-    setToast(msg);
-    toastTimer.current = setTimeout(() => setToast(null), 2000);
+    setToast({ name: product.name, image: product.image_url });
+    toastTimer.current = setTimeout(() => setToast(null), 3000);
   }, []);
 
   const handleQuickAdd = useCallback((product: Product) => {
     addItem(product, null, [], 1, '');
-    showToast(`${product.name} — ${t.addedToCart}`);
-  }, [addItem, showToast, t.addedToCart]);
+    showToast(product);
+  }, [addItem, showToast]);
 
   const handleEditCartItem = useCallback((index: number) => {
     const items = useCartStore.getState().items;
@@ -792,15 +792,38 @@ export function MenuShell({
       <AnimatePresence>
         {toast && (
           <motion.div
-            className="fixed bottom-28 left-4 right-4 z-[60] pointer-events-none flex justify-center lg:left-auto lg:right-6 lg:bottom-6 lg:w-auto"
+            className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:left-auto lg:right-6 lg:bottom-6 lg:w-auto"
             initial={{ y: 20, opacity: 0, scale: 0.9 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 10, opacity: 0, scale: 0.95 }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
           >
-            <div className="inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-emerald-500 text-white shadow-lg">
-              <CheckCircle className="w-4 h-4 flex-shrink-0" />
-              <span className="text-sm font-semibold">{toast}</span>
+            <div className="flex items-center gap-3 pl-3 pr-2 py-2 rounded-2xl bg-gray-900 text-white shadow-xl max-w-sm w-full lg:w-auto">
+              {toast.image ? (
+                <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-700 flex-shrink-0">
+                  <Image
+                    src={toast.image}
+                    alt={toast.name}
+                    fill
+                    sizes="40px"
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-5 h-5 text-emerald-400" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate">{toast.name}</p>
+                <p className="text-xs text-gray-400">{t.addedToCart}</p>
+              </div>
+              <button
+                onClick={() => { setToast(null); setOpen(true); }}
+                className="flex-shrink-0 px-3.5 py-2 rounded-xl bg-white text-gray-900 text-xs font-bold active:scale-95 transition-transform"
+              >
+                {t.viewCart}
+              </button>
             </div>
           </motion.div>
         )}
