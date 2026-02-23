@@ -304,10 +304,10 @@ export function CustomizationSheet({
                     className={cn(
                       'w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-150 text-left border-2',
                       isSelected
-                        ? 'bg-emerald-500 text-white border-emerald-500'
+                        ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
                         : isDisabled
                           ? 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
-                          : 'bg-white border-gray-200 text-gray-700 active:border-gray-400'
+                          : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400'
                     )}
                   >
                     <div className="flex items-center gap-3">
@@ -409,27 +409,34 @@ export function CustomizationSheet({
         onClick={onClose}
       />
 
-      {/* Desktop: slide from right */}
+      {/* Desktop: slide from right — polished side panel */}
       <motion.div
-        className="hidden lg:flex fixed top-0 bottom-0 right-0 w-[600px] bg-white flex-col shadow-2xl"
+        className="hidden lg:flex fixed top-0 bottom-0 right-0 w-[520px] bg-white flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)] border-l border-gray-100"
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={springTransition}
       >
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 flex-shrink-0 bg-white z-10">
-          <div className="flex items-center gap-2 min-w-0">
-            <button onClick={onClose} className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg active:bg-gray-100 transition-colors flex-shrink-0">
-              <ArrowLeft className="w-5 h-5 text-gray-700" />
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0 bg-white z-10">
+          <div className="flex items-center gap-3 min-w-0">
+            <button onClick={onClose} className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0">
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
             </button>
-            <h2 className="text-base font-bold text-gray-900 truncate">
-              {isEditing
-                ? (locale === 'es' ? 'Editar producto' : 'Edit item')
-                : product.name}
-            </h2>
+            <div className="min-w-0">
+              <h2 className="text-base font-bold text-gray-900 truncate">
+                {isEditing
+                  ? (locale === 'es' ? 'Editar producto' : 'Edit item')
+                  : product.name}
+              </h2>
+              <p className="text-xs text-gray-400 font-medium tabular-nums">
+                {fmtPrice(Number(product.price))}
+                {product.description && <span className="ml-2 text-gray-300">·</span>}
+                {product.description && <span className="ml-2 truncate">{product.description.slice(0, 40)}{(product.description.length > 40) ? '...' : ''}</span>}
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg active:bg-gray-100 transition-colors flex-shrink-0">
-            <X className="w-5 h-5 text-gray-400" />
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0 group">
+            <X className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
           </button>
         </div>
 

@@ -161,7 +161,7 @@ export const ProductCard = memo(function ProductCard({
       {/* ── Desktop: landscape card (wider than tall) ── */}
       <div
         onClick={handleClick}
-        className="hidden lg:block group relative bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-lg hover:border-gray-200 active:scale-[0.98] transition-all duration-200"
+        className="hidden lg:block group relative bg-white rounded-2xl border border-gray-100 overflow-hidden cursor-pointer hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:border-gray-200 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 transition-all duration-300 ease-out"
       >
         {showImage ? (
           <div className="relative w-full aspect-[16/9] bg-gray-100 overflow-hidden">
@@ -187,10 +187,10 @@ export const ProductCard = memo(function ProductCard({
             )}
             <button
               onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
-              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors"
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200"
               aria-label="Favorite"
             >
-              <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+              <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover:text-gray-500')} />
             </button>
           </div>
         ) : (
@@ -208,10 +208,10 @@ export const ProductCard = memo(function ProductCard({
             )}
             <button
               onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
-              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors"
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200"
               aria-label="Favorite"
             >
-              <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+              <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover:text-gray-500')} />
             </button>
           </div>
         )}
@@ -259,7 +259,7 @@ export const ProductCard = memo(function ProductCard({
                 'flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95',
                 justAdded
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                  : 'bg-emerald-500 text-white hover:bg-emerald-600 hover:shadow-md'
               )}
             >
               {justAdded ? (

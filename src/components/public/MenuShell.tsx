@@ -220,6 +220,30 @@ export function MenuShell({
     return () => main.removeEventListener('scroll', onScroll);
   }, [hasCover]);
 
+  // Keyboard shortcuts: / or Ctrl+K for search, Esc to close overlays
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      if (e.key === 'Escape') {
+        if (showSearch) { setShowSearch(false); setSearchQuery(''); }
+        else if (customization) setCustomization(null);
+        else if (isOpen) setOpen(false);
+        return;
+      }
+
+      if (isInput) return;
+
+      if (e.key === '/' || (e.key === 'k' && (e.metaKey || e.ctrlKey))) {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [showSearch, customization, isOpen, setOpen]);
+
   // Auto-scroll pill bar to show active pill
   useEffect(() => {
     if (!activeCategory) return;
