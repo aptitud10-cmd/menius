@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X, MapPin, Clock, Heart } from 'lucide-react';
+import Image from 'next/image';
+import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X, MapPin, Clock, Heart, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
@@ -18,6 +19,11 @@ import { CartPanel } from './CartPanel';
 import { CustomizationSheet } from './CustomizationSheet';
 import { WelcomeScreen } from './WelcomeScreen';
 
+interface ReviewStats {
+  average: number;
+  total: number;
+}
+
 interface MenuShellProps {
   restaurant: Restaurant;
   categories: Category[];
@@ -25,6 +31,7 @@ interface MenuShellProps {
   tableName: string | null;
   locale?: Locale;
   backUrl?: string;
+  reviewStats?: ReviewStats | null;
 }
 
 interface CustomizationTarget {
@@ -39,6 +46,7 @@ export function MenuShell({
   tableName,
   locale: initialLocale = 'es',
   backUrl,
+  reviewStats,
 }: MenuShellProps) {
   const router = useRouter();
   const [locale] = useState<Locale>(initialLocale);
@@ -329,13 +337,74 @@ export function MenuShell({
         </aside>
 
         {/* Center: Products grid — scrolls independently */}
-        <main ref={mainRef} className="flex-1 min-w-0 overflow-y-auto px-4 lg:px-8 py-5 pb-28 lg:py-6 lg:pb-8">
+        <main ref={mainRef} className="flex-1 min-w-0 overflow-y-auto pb-28 lg:pb-8">
+
+          {/* Cover image banner */}
+          {restaurant.cover_image_url && (
+            <div className="relative w-full h-40 sm:h-48 lg:h-56 bg-gray-100 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse" />
+              <Image
+                src={restaurant.cover_image_url}
+                alt={restaurant.name}
+                fill
+                sizes="100vw"
+                className="object-cover opacity-0 transition-opacity duration-500"
+                onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 px-5 pb-4 lg:px-8 lg:pb-5">
+                <h2 className="text-white font-extrabold text-xl lg:text-2xl tracking-tight drop-shadow-sm lg:hidden">
+                  {restaurant.name}
+                </h2>
+                {reviewStats && reviewStats.total > 0 && (
+                  <div className="flex items-center gap-1.5 mt-1 lg:hidden">
+                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                    <span className="text-sm font-bold text-white tabular-nums">{reviewStats.average}</span>
+                    <span className="text-sm text-white/70">({reviewStats.total}+)</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Mobile info bar (when no cover, show name/rating/description) */}
+          {!restaurant.cover_image_url && (
+            <div className="lg:hidden px-4 pt-4 pb-2">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-lg font-extrabold text-gray-900 tracking-tight truncate">{restaurant.name}</h2>
+                {reviewStats && reviewStats.total > 0 && (
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                    <span className="text-sm font-bold text-gray-900 tabular-nums">{reviewStats.average}</span>
+                    <span className="text-xs text-gray-400">({reviewStats.total}+)</span>
+                  </div>
+                )}
+              </div>
+              {restaurant.description && (
+                <p className="text-sm text-gray-500 mt-1 line-clamp-2">{restaurant.description}</p>
+              )}
+            </div>
+          )}
+
+          <div className="px-4 lg:px-8 pt-3 lg:pt-6">
           {/* Restaurant info + category tabs (desktop) */}
           <div className="hidden lg:block mb-8">
-            <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">{restaurant.name}</h2>
-            {restaurant.description && (
-              <p className="text-base text-gray-500 mt-1.5 max-w-xl">{restaurant.description}</p>
-            )}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">{restaurant.name}</h2>
+                {restaurant.description && (
+                  <p className="text-base text-gray-500 mt-1.5 max-w-xl">{restaurant.description}</p>
+                )}
+              </div>
+              {reviewStats && reviewStats.total > 0 && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 flex-shrink-0">
+                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                  <span className="text-sm font-bold text-gray-900 tabular-nums">{reviewStats.average}</span>
+                  <span className="text-sm text-gray-500">({reviewStats.total}+)</span>
+                </div>
+              )}
+            </div>
             {(restaurant.address || restaurant.operating_hours) && (
               <div className="flex items-center gap-4 mt-3 text-sm text-gray-400">
                 {restaurant.address && (
@@ -482,6 +551,7 @@ export function MenuShell({
               ))}
             </div>
           )}
+          </div>{/* end px wrapper */}
         </main>
 
         {/* Right: Cart — fixed column with own scroll, desktop only */}

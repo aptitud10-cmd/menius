@@ -96,6 +96,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
           tableName={searchParams.table ?? null}
           locale={demoConfig.locale}
           backUrl="/"
+          reviewStats={{ average: 4.7, total: 128 }}
         />
       </>
     );
@@ -116,6 +117,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         products={data.products}
         tableName={tableName}
         locale={data.locale}
+        reviewStats={data.reviewStats}
       />
     </>
   );
