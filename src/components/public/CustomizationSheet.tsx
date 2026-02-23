@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { X, Minus, Plus, Check, ArrowLeft } from 'lucide-react';
-import { motion, useDragControls, type PanInfo } from 'framer-motion';
+import { motion, useMotionValue, useTransform, useDragControls, type PanInfo } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import type { Product, ModifierGroup, ModifierOption, ModifierSelection } from '@/types';
@@ -130,6 +130,11 @@ export function CustomizationSheet({
   const [added, setAdded] = useState(false);
   const dragControls = useDragControls();
 
+  const scrollY = useMotionValue(0);
+  const imageY = useTransform(scrollY, [0, 300], [0, 120]);
+  const imageScale = useTransform(scrollY, [0, 300], [1, 1.15]);
+  const imageOpacity = useTransform(scrollY, [0, 250], [1, 0.3]);
+
   // Validation
   const validationErrors: string[] = [];
   for (const g of activeGroups) {
@@ -231,10 +236,18 @@ export function CustomizationSheet({
   const springTransition = { type: 'spring' as const, damping: 30, stiffness: 350 };
 
   const sheetBody = (
-    <div className="flex-1 overflow-y-auto overscroll-contain">
+    <div
+      className="flex-1 overflow-y-auto overscroll-contain"
+      onScroll={(e) => scrollY.set(e.currentTarget.scrollTop)}
+    >
       {product.image_url && (
-        <div className="relative w-full aspect-video bg-gray-100 overflow-hidden">
-          <Image src={product.image_url} alt={product.name} fill sizes="600px" className="object-cover" priority />
+        <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
+          <motion.div
+            className="absolute inset-0"
+            style={{ y: imageY, scale: imageScale, opacity: imageOpacity }}
+          >
+            <Image src={product.image_url} alt={product.name} fill sizes="600px" className="object-cover" priority />
+          </motion.div>
         </div>
       )}
       <div className="px-5 pt-4 pb-2">
