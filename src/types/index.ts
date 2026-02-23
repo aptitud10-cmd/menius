@@ -13,6 +13,7 @@ export interface Restaurant {
   timezone: string;
   currency: string;
   locale?: 'es' | 'en';
+  available_locales?: string[];
   logo_url: string | null;
   cover_image_url?: string | null;
   description?: string;
@@ -45,12 +46,18 @@ export interface Profile {
   created_at: string;
 }
 
+export interface ContentTranslation {
+  name?: string;
+  description?: string;
+}
+
 export interface Category {
   id: string;
   restaurant_id: string;
   name: string;
   sort_order: number;
   is_active: boolean;
+  translations?: Record<string, ContentTranslation>;
   created_at: string;
 }
 
@@ -67,7 +74,9 @@ export interface Product {
   price: number;
   image_url: string;
   is_active: boolean;
+  in_stock?: boolean;
   is_featured?: boolean;
+  translations?: Record<string, ContentTranslation>;
   dietary_tags?: DietaryTag[];
   sort_order: number;
   created_at: string;

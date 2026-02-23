@@ -12,6 +12,7 @@ export interface MenuData {
   products: Product[];
   isOwner: boolean;
   locale: 'es' | 'en';
+  availableLocales: string[];
   reviewStats: ReviewStats | null;
 }
 
@@ -80,6 +81,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
     products: mappedProducts,
     isOwner: !!user && user.id === restaurant.owner_user_id,
     locale: restaurant.locale ?? 'es',
+    availableLocales: restaurant.available_locales ?? [restaurant.locale ?? 'es'],
     reviewStats,
   };
 }

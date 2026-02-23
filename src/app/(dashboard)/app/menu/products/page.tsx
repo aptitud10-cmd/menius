@@ -7,7 +7,7 @@ export default async function ProductsPage() {
   const [{ data: products }, { data: categories }, { data: restaurant }, { data: modifierGroups }] = await Promise.all([
     supabase.from('products').select('*, product_variants(*), product_extras(*)').eq('restaurant_id', rid).order('sort_order'),
     supabase.from('categories').select('*').eq('restaurant_id', rid).eq('is_active', true).order('sort_order'),
-    supabase.from('restaurants').select('id, currency').eq('id', rid).maybeSingle(),
+    supabase.from('restaurants').select('id, currency, locale, available_locales').eq('id', rid).maybeSingle(),
     supabase.from('modifier_groups').select('*, modifier_options(*)').order('sort_order'),
   ]);
 
@@ -36,6 +36,8 @@ export default async function ProductsPage() {
         categories={categories ?? []}
         restaurantId={rid}
         currency={restaurant?.currency || 'USD'}
+        defaultLocale={restaurant?.locale || 'es'}
+        availableLocales={restaurant?.available_locales || [restaurant?.locale || 'es']}
       />
     </div>
   );

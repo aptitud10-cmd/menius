@@ -300,6 +300,21 @@ export async function updateProduct(id: string, data: Partial<ProductInput> & { 
   return { success: true };
 }
 
+export async function toggleProductStock(id: string, inStock: boolean) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { error } = await supabase
+    .from('products')
+    .update({ in_stock: inStock })
+    .eq('id', id)
+    .eq('restaurant_id', restaurantId);
+
+  if (error) return { error: error.message };
+  revalidatePath('/app/menu/products');
+  return { success: true };
+}
+
 export async function deleteProduct(id: string) {
   const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };

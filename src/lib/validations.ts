@@ -20,10 +20,16 @@ export const createRestaurantSchema = z.object({
   currency: z.string().default('MXN'),
 });
 
+const contentTranslationSchema = z.object({
+  name: z.string().optional(),
+  description: z.string().optional(),
+});
+
 export const categorySchema = z.object({
   name: z.string().min(1, 'Nombre requerido'),
   sort_order: z.number().default(0),
   is_active: z.boolean().default(true),
+  translations: z.record(z.string(), contentTranslationSchema).nullable().optional(),
 });
 
 export const productSchema = z.object({
@@ -32,7 +38,9 @@ export const productSchema = z.object({
   price: z.number().min(0, 'Precio debe ser positivo'),
   category_id: z.string().uuid('Categoría requerida'),
   is_active: z.boolean().default(true),
+  in_stock: z.boolean().optional(),
   dietary_tags: z.array(z.string()).optional(),
+  translations: z.record(z.string(), contentTranslationSchema).nullable().optional(),
 });
 
 export const tableSchema = z.object({

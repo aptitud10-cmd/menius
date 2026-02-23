@@ -10,6 +10,7 @@ import { useCartStore } from '@/store/cartStore';
 import { cn, formatPrice, transitionNavigate } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, OrderType, PaymentMethod } from '@/types';
+import { trackEvent } from '@/lib/analytics';
 import { WalletButton } from './WalletButton';
 import { PushOptIn } from './PushOptIn';
 
@@ -162,6 +163,16 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
       setOrderNumber(data.order_number);
       setOrderId(data.order_id);
       saveLastOrder();
+      trackEvent('order_placed', {
+        restaurant_id: restaurant.id,
+        restaurant_slug: restaurant.slug,
+        order_number: data.order_number,
+        order_type: orderType,
+        payment_method: paymentMethod,
+        item_count: items.length,
+        total: cartTotal,
+        currency: restaurant.currency,
+      });
       clearCart();
       setStep('confirmation');
     } catch {

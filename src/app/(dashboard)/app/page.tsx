@@ -8,7 +8,11 @@ export default async function DashboardPage() {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const [restaurantRes, ordersRes, productsRes, tablesRes, recentOrdersRes, subRes, totalOrdersRes] = await Promise.all([
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 6);
+  weekAgo.setHours(0, 0, 0, 0);
+
+  const [restaurantRes, ordersRes, productsRes, tablesRes, recentOrdersRes, subRes, totalOrdersRes, weekOrdersRes, topProductsRes] = await Promise.all([
     supabase
       .from('restaurants')
       .select('*')
@@ -16,7 +20,7 @@ export default async function DashboardPage() {
       .maybeSingle(),
     supabase
       .from('orders')
-      .select('id, total, status')
+      .select('id, total, status, created_at')
       .eq('restaurant_id', restaurantId)
       .gte('created_at', todayStart.toISOString()),
     supabase
@@ -44,6 +48,17 @@ export default async function DashboardPage() {
       .from('orders')
       .select('id', { count: 'exact', head: true })
       .eq('restaurant_id', restaurantId),
+    supabase
+      .from('orders')
+      .select('id, total, status, created_at, order_type')
+      .eq('restaurant_id', restaurantId)
+      .gte('created_at', weekAgo.toISOString())
+      .order('created_at'),
+    supabase
+      .from('order_items')
+      .select('qty, products!inner(name, restaurant_id)')
+      .eq('products.restaurant_id', restaurantId)
+      .limit(500),
   ]);
 
   const restaurant = restaurantRes.data;
@@ -65,6 +80,63 @@ export default async function DashboardPage() {
     activeTables,
     pendingOrders,
   };
+
+  // Build 7-day chart data
+  const weekOrders = weekOrdersRes.data ?? [];
+  const dailyMap = new Map<string, { orders: number; revenue: number }>();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekAgo);
+    d.setDate(d.getDate() + i);
+    const key = d.toISOString().slice(0, 10);
+    dailyMap.set(key, { orders: 0, revenue: 0 });
+  }
+  for (const o of weekOrders) {
+    if (o.status === 'cancelled') continue;
+    const key = new Date(o.created_at).toISOString().slice(0, 10);
+    const entry = dailyMap.get(key);
+    if (entry) {
+      entry.orders += 1;
+      entry.revenue += Number(o.total);
+    }
+  }
+  const chartData = Array.from(dailyMap.entries()).map(([date, data]) => ({
+    date,
+    label: new Date(date + 'T12:00:00').toLocaleDateString('es', { weekday: 'short', day: 'numeric' }),
+    ...data,
+  }));
+
+  // Hourly distribution (today)
+  const hourlyMap = new Map<number, number>();
+  for (let h = 0; h < 24; h++) hourlyMap.set(h, 0);
+  for (const o of todaysOrders) {
+    if (o.status === 'cancelled') continue;
+    const h = new Date(o.created_at).getHours();
+    hourlyMap.set(h, (hourlyMap.get(h) ?? 0) + 1);
+  }
+  const hourlyData = Array.from(hourlyMap.entries())
+    .filter(([, count]) => count > 0 || true)
+    .map(([hour, count]) => ({ hour: `${hour}:00`, count }));
+
+  // Top products
+  const productCounts = new Map<string, number>();
+  for (const item of (topProductsRes.data ?? []) as any[]) {
+    const name = item.products?.name;
+    if (name) productCounts.set(name, (productCounts.get(name) ?? 0) + item.qty);
+  }
+  const topProducts = Array.from(productCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([name, qty]) => ({ name, qty }));
+
+  // Order type breakdown
+  const orderTypeCounts = { dine_in: 0, pickup: 0, delivery: 0 };
+  for (const o of weekOrders) {
+    if (o.status === 'cancelled') continue;
+    const t = (o.order_type || 'dine_in') as keyof typeof orderTypeCounts;
+    if (t in orderTypeCounts) orderTypeCounts[t]++;
+  }
+
+  const analytics = { chartData, hourlyData, topProducts, orderTypeCounts };
 
   const hasOpenDay = (() => {
     const hours = restaurant.operating_hours;
@@ -88,6 +160,7 @@ export default async function DashboardPage() {
       recentOrders={recentOrdersRes.data ?? []}
       subscription={subRes.data ?? null}
       onboarding={onboarding}
+      analytics={analytics}
     />
   );
 }

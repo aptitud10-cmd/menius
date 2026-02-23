@@ -6,6 +6,7 @@ import { AIChatWidget } from '@/components/dashboard/AIChatWidget';
 import { Breadcrumbs } from '@/components/dashboard/Breadcrumbs';
 import { CommandPalette } from '@/components/dashboard/CommandPalette';
 import { OrderNotifier } from '@/components/dashboard/OrderNotifier';
+import { IdentifyUser } from '@/components/dashboard/IdentifyUser';
 import { redirect } from 'next/navigation';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -95,6 +96,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <CommandPalette slug={restaurant?.slug ?? ''} />
         <AIChatWidget />
         <OrderNotifier restaurantId={restaurantId} currency={restaurant?.currency || 'USD'} />
+        <IdentifyUser
+          userId={userId}
+          email={user?.email ?? undefined}
+          name={profile?.full_name ?? undefined}
+          restaurantId={restaurantId}
+          restaurantName={restaurant?.name ?? undefined}
+        />
       </div>
     </DashboardLocaleProvider>
   );

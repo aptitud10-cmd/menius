@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2 } from 'lucide-react';
+import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2, Languages, Plus, X } from 'lucide-react';
+import { SUPPORTED_LOCALES, getLocaleFlag } from '@/lib/i18n';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import type { Restaurant } from '@/types';
@@ -29,6 +30,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     timezone: initialData.timezone ?? 'America/New_York',
     currency: initialData.currency ?? 'USD',
     locale: initialData.locale ?? 'es',
+    available_locales: initialData.available_locales ?? [initialData.locale ?? 'es'],
     custom_domain: initialData.custom_domain ?? '',
     notification_whatsapp: initialData.notification_whatsapp ?? '',
     notification_email: initialData.notification_email ?? '',
@@ -150,6 +152,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
+          available_locales: form.available_locales,
           operating_hours: hours,
           logo_url: logoUrl || null,
           estimated_delivery_minutes: form.estimated_delivery_minutes ? Number(form.estimated_delivery_minutes) : null,
@@ -300,21 +303,116 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           <div>
             <label className="flex items-center gap-1 text-xs font-medium text-gray-500 mb-1">
               <Globe className="w-3.5 h-3.5" />
-              Idioma del menú
+              Idioma principal
             </label>
             <select
               value={form.locale}
-              onChange={(e) => handleChange('locale', e.target.value)}
+              onChange={(e) => {
+                const newLocale = e.target.value;
+                handleChange('locale', newLocale);
+                setForm((prev) => ({
+                  ...prev,
+                  available_locales: prev.available_locales.includes(newLocale)
+                    ? prev.available_locales
+                    : [newLocale, ...prev.available_locales],
+                }));
+              }}
               className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
             >
-              <option value="es">Español</option>
-              <option value="en">English</option>
+              {SUPPORTED_LOCALES.map((l) => (
+                <option key={l.code} value={l.code}>{l.flag} {l.label}</option>
+              ))}
             </select>
             <p className="text-[11px] text-gray-500 mt-1">
-              El idioma que verán tus clientes en el menú público.
+              El idioma base de tus productos y categorías.
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Multi-language */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <Languages className="w-4 h-4 text-emerald-600" />
+          <h2 className="font-semibold text-sm text-gray-900">Idiomas adicionales</h2>
+        </div>
+        <p className="text-xs text-gray-500 mb-4">
+          Agrega idiomas para que tus clientes puedan ver el menú en su idioma. Podrás traducir nombres y descripciones de productos en la sección de menú.
+        </p>
+
+        <div className="flex flex-wrap gap-2 mb-3">
+          {form.available_locales.map((code) => {
+            const loc = SUPPORTED_LOCALES.find((l) => l.code === code);
+            const isPrimary = code === form.locale;
+            return (
+              <span
+                key={code}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border',
+                  isPrimary
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                    : 'bg-gray-50 border-gray-200 text-gray-700'
+                )}
+              >
+                <span>{loc?.flag ?? '🌐'}</span>
+                <span>{loc?.label ?? code}</span>
+                {isPrimary && <span className="text-[10px] text-emerald-500 ml-0.5">principal</span>}
+                {!isPrimary && (
+                  <button
+                    onClick={() => {
+                      setForm((prev) => ({
+                        ...prev,
+                        available_locales: prev.available_locales.filter((l) => l !== code),
+                      }));
+                      setSaved(false);
+                    }}
+                    className="ml-0.5 p-0.5 rounded hover:bg-gray-200 transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </span>
+            );
+          })}
+        </div>
+
+        {form.available_locales.length < SUPPORTED_LOCALES.length && (
+          <div className="flex items-center gap-2">
+            <select
+              id="add-locale-select"
+              defaultValue=""
+              className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            >
+              <option value="" disabled>Agregar idioma...</option>
+              {SUPPORTED_LOCALES.filter((l) => !form.available_locales.includes(l.code)).map((l) => (
+                <option key={l.code} value={l.code}>{l.flag} {l.label}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => {
+                const sel = document.getElementById('add-locale-select') as HTMLSelectElement;
+                if (sel.value) {
+                  setForm((prev) => ({
+                    ...prev,
+                    available_locales: [...prev.available_locales, sel.value],
+                  }));
+                  setSaved(false);
+                  sel.value = '';
+                }
+              }}
+              className="px-3 py-2 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors flex items-center gap-1"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Agregar
+            </button>
+          </div>
+        )}
+
+        {form.available_locales.length > 1 && (
+          <p className="text-[11px] text-emerald-600 mt-3 font-medium">
+            Tus clientes verán un selector de idioma en el menú. Ve a Menú → Productos para agregar traducciones.
+          </p>
+        )}
       </div>
 
       {/* Order Types */}

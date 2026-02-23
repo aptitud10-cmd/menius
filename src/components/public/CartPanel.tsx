@@ -13,7 +13,7 @@ interface CartPanelProps {
   onCheckout: () => void;
   estimatedMinutes?: number;
   deliveryFee?: number;
-  locale?: 'es' | 'en';
+  locale?: string;
 }
 
 export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, deliveryFee, locale = 'es' }: CartPanelProps) {

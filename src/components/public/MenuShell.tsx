@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X, MapPin, Clock, Heart, Star, ArrowLeft, Search } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
@@ -11,6 +11,8 @@ import { formatPrice, cn, transitionNavigate } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, Category, Product, OrderType, DietaryTag } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
+import { getLocaleFlag, SUPPORTED_LOCALES, tName, tDesc } from '@/lib/i18n';
+import { trackEvent } from '@/lib/analytics';
 
 import { MenuHeader, HEADER_HEIGHT } from './MenuHeader';
 import { CategorySidebar } from './CategorySidebar';
@@ -30,6 +32,7 @@ interface MenuShellProps {
   products: Product[];
   tableName: string | null;
   locale?: Locale;
+  availableLocales?: string[];
   backUrl?: string;
   reviewStats?: ReviewStats | null;
 }
@@ -45,11 +48,16 @@ export function MenuShell({
   products,
   tableName,
   locale: initialLocale = 'es',
+  availableLocales: availableLocalesRaw,
   backUrl,
   reviewStats,
 }: MenuShellProps) {
   const router = useRouter();
-  const [locale] = useState<Locale>(initialLocale);
+  const defaultLocale = initialLocale;
+  const availableLocales = availableLocalesRaw ?? [initialLocale];
+  const hasMultiLang = availableLocales.length > 1;
+  const [locale, setLocale] = useState<Locale>(initialLocale);
+  const [showLangPicker, setShowLangPicker] = useState(false);
   const t = getTranslations(locale);
   const currency = restaurant.currency;
   const fmtPrice = useCallback((price: number) => formatPrice(price, currency), [currency]);
@@ -139,7 +147,13 @@ export function MenuShell({
   const handleQuickAdd = useCallback((product: Product) => {
     addItem(product, null, [], 1, '');
     showToast(product);
-  }, [addItem, showToast]);
+    trackEvent('product_added_to_cart', {
+      product_id: product.id,
+      product_name: product.name,
+      price: product.price,
+      restaurant_id: restaurant.id,
+    });
+  }, [addItem, showToast, restaurant.id]);
 
   const handleEditCartItem = useCallback((index: number) => {
     const items = useCartStore.getState().items;
@@ -154,8 +168,13 @@ export function MenuShell({
   }, []);
 
   const handleOpenCheckout = useCallback(() => {
+    trackEvent('checkout_started', {
+      restaurant_id: restaurant.id,
+      item_count: rawCartCount,
+      total: rawCartTotal,
+    });
     transitionNavigate(() => router.push(`/r/${restaurant.slug}/checkout`));
-  }, [router, restaurant.slug]);
+  }, [router, restaurant.slug, restaurant.id, rawCartCount, rawCartTotal]);
 
   const availableDiets = useMemo(() => {
     const tagSet = new Set<string>();
@@ -320,7 +339,7 @@ export function MenuShell({
     <div ref={mobilePillsRef} className="lg:hidden py-3 px-4 flex gap-2.5 overflow-x-auto scrollbar-hide border-b border-gray-100 bg-white sticky z-30" style={{ top: HEADER_HEIGHT }}>
       {favPill}
       {dietPills}
-      {visibleCats.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id && !showFavs && !activeDiet))}
+      {visibleCats.map((cat) => categoryPill(cat.id, tName(cat, locale, defaultLocale), activeCategory === cat.id && !showFavs && !activeDiet))}
     </div>
   );
 
@@ -372,6 +391,8 @@ export function MenuShell({
             activeCategory={activeCategory}
             onSelect={handleCategorySelect}
             allLabel={t.allCategories}
+            locale={locale}
+            defaultLocale={defaultLocale}
           />
         </aside>
 
@@ -473,7 +494,7 @@ export function MenuShell({
               <div ref={catScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5">
                 {favPill}
                 {dietPills}
-                {visibleCats.map((cat) => categoryPill(cat.id, cat.name, activeCategory === cat.id && !showFavs && !activeDiet))}
+                {visibleCats.map((cat) => categoryPill(cat.id, tName(cat, locale, defaultLocale), activeCategory === cat.id && !showFavs && !activeDiet))}
               </div>
               <button onClick={() => scrollCats('right')} className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end" aria-label="Scroll right">
                 <ChevronRight className="w-4 h-4 text-gray-400" />
@@ -502,6 +523,8 @@ export function MenuShell({
                       addLabel={t.addToCart}
                       customizeLabel={t.customize}
                       popularLabel={t.popular}
+                      locale={locale}
+                      defaultLocale={defaultLocale}
                     />
                   ))}
                 </div>
@@ -537,6 +560,8 @@ export function MenuShell({
                       addLabel={t.addToCart}
                       customizeLabel={t.customize}
                       popularLabel={t.popular}
+                      locale={locale}
+                      defaultLocale={defaultLocale}
                     />
                   ))}
                 </div>
@@ -565,7 +590,7 @@ export function MenuShell({
                 >
                   <div className="flex items-center gap-3 mb-4 py-2">
                     <h2 className="text-lg font-bold text-gray-900">
-                      {category.name}
+                      {tName(category, locale, defaultLocale)}
                     </h2>
                     <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full tabular-nums">
                       {items.length}
@@ -583,6 +608,8 @@ export function MenuShell({
                         addLabel={t.addToCart}
                         customizeLabel={t.customize}
                         popularLabel={t.popular}
+                        locale={locale}
+                        defaultLocale={defaultLocale}
                       />
                     ))}
                   </div>
@@ -711,6 +738,7 @@ export function MenuShell({
             fmtPrice={fmtPrice}
             t={t}
             locale={locale}
+            defaultLocale={defaultLocale}
           />
         )}
       </AnimatePresence>
@@ -852,6 +880,61 @@ export function MenuShell({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Language Switcher (floating pill) ── */}
+      {hasMultiLang && (
+        <>
+          <AnimatePresence>
+            {showLangPicker && (
+              <motion.div
+                className="fixed inset-0 bg-black/20 z-[70]"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowLangPicker(false)}
+              />
+            )}
+          </AnimatePresence>
+          <AnimatePresence>
+            {showLangPicker && (
+              <motion.div
+                className="fixed bottom-20 left-4 z-[71] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
+                initial={{ y: 20, opacity: 0, scale: 0.9 }}
+                animate={{ y: 0, opacity: 1, scale: 1 }}
+                exit={{ y: 10, opacity: 0, scale: 0.95 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              >
+                {availableLocales.map((code) => {
+                  const loc = SUPPORTED_LOCALES.find((l) => l.code === code);
+                  const active = locale === code;
+                  return (
+                    <button
+                      key={code}
+                      onClick={() => { setLocale(code); setShowLangPicker(false); }}
+                      className={cn(
+                        'flex items-center gap-2.5 w-full px-4 py-2.5 text-sm transition-colors',
+                        active
+                          ? 'bg-emerald-50 text-emerald-700 font-semibold'
+                          : 'text-gray-700 hover:bg-gray-50',
+                      )}
+                    >
+                      <span className="text-base">{loc?.flag ?? '🌐'}</span>
+                      <span>{loc?.label ?? code}</span>
+                    </button>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <button
+            onClick={() => setShowLangPicker((s) => !s)}
+            className="fixed bottom-20 lg:bottom-6 left-4 z-[60] flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-gray-200 shadow-lg text-sm font-medium text-gray-700 hover:shadow-xl transition-shadow active:scale-95"
+          >
+            <Globe className="w-4 h-4 text-gray-500" />
+            <span>{getLocaleFlag(locale)}</span>
+          </button>
+        </>
+      )}
 
     </div>
   );

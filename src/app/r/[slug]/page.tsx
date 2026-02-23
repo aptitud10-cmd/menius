@@ -117,6 +117,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         products={data.products}
         tableName={tableName}
         locale={data.locale}
+        availableLocales={data.availableLocales}
         reviewStats={data.reviewStats}
       />
     </>

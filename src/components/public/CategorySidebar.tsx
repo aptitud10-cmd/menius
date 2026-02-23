@@ -3,6 +3,7 @@
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import type { Category, Product } from '@/types';
+import { tName } from '@/lib/i18n';
 
 interface CategorySidebarProps {
   categories: Category[];
@@ -10,6 +11,8 @@ interface CategorySidebarProps {
   activeCategory: string | null;
   onSelect: (catId: string | null) => void;
   allLabel?: string;
+  locale?: string;
+  defaultLocale?: string;
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -34,6 +37,8 @@ export const CategorySidebar = memo(function CategorySidebar({
   activeCategory,
   onSelect,
   allLabel,
+  locale = 'es',
+  defaultLocale = 'es',
 }: CategorySidebarProps) {
   return (
     <nav className="py-5 pr-3">
@@ -59,7 +64,7 @@ export const CategorySidebar = memo(function CategorySidebar({
                 <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald-500" />
               )}
               <span className="text-base">{getCategoryIcon(cat.name)}</span>
-              <span className="truncate flex-1 text-left">{cat.name}</span>
+              <span className="truncate flex-1 text-left">{tName(cat, locale, defaultLocale)}</span>
               <span className={cn(
                 'text-xs tabular-nums flex-shrink-0',
                 isActive ? 'text-emerald-500' : 'text-gray-300'

@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useTransition, useEffect, useCallback } from 'react';
-import { Clock, ChefHat, CheckCircle, Package, XCircle, User, ArrowRight, Bell, Volume2, VolumeX, BellRing, Wifi, WifiOff } from 'lucide-react';
+import { Clock, ChefHat, CheckCircle, Package, XCircle, User, ArrowRight, Bell, Volume2, VolumeX, BellRing, Wifi, WifiOff, Printer } from 'lucide-react';
 import { updateOrderStatus } from '@/lib/actions/restaurant';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useNotifications } from '@/hooks/use-notifications';
+import { OrderReceipt } from './OrderReceipt';
 import type { Order, OrderStatus } from '@/types';
 
 const COLUMNS: { status: OrderStatus; icon: typeof Clock }[] = [
@@ -26,12 +27,20 @@ interface OrdersBoardProps {
   initialOrders: Order[];
   restaurantId: string;
   currency: string;
+  restaurantName: string;
+  restaurantPhone?: string;
+  restaurantAddress?: string;
 }
 
-export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoardProps) {
+export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantName, restaurantPhone, restaurantAddress }: OrdersBoardProps) {
   const [isPending, startTransition] = useTransition();
   const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set());
   const [realtimeConnected, setRealtimeConnected] = useState(true);
+  const [printOrder, setPrintOrder] = useState<Order | null>(null);
+  const [autoPrint, setAutoPrint] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('menius-auto-print') === 'true';
+  });
 
   const {
     soundEnabled,
@@ -41,6 +50,11 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
     notifyNewOrder,
     updateTabTitle,
   } = useNotifications({ defaultTitle: 'Órdenes — MENIUS' });
+
+  const toggleAutoPrint = useCallback((on: boolean) => {
+    setAutoPrint(on);
+    localStorage.setItem('menius-auto-print', String(on));
+  }, []);
 
   const { orders, updateOrderLocally } = useRealtimeOrders({
     restaurantId,
@@ -57,7 +71,13 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
           return next;
         });
       }, 12000);
-    }, [currency, notifyNewOrder]),
+
+      if (localStorage.getItem('menius-auto-print') === 'true') {
+        import('./OrderReceipt').then(({ quickPrintOrder }) => {
+          quickPrintOrder(order, restaurantName, restaurantPhone, restaurantAddress, currency);
+        });
+      }
+    }, [currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress]),
   });
 
   const pendingCount = orders.filter((o) => o.status === 'pending').length;
@@ -117,6 +137,17 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
               Activar notificaciones
             </button>
           )}
+          <button
+            onClick={() => toggleAutoPrint(!autoPrint)}
+            className={cn(
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors',
+              autoPrint ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'bg-gray-50 text-gray-500 border border-gray-200'
+            )}
+            title={autoPrint ? 'Impresión automática activada' : 'Activar impresión automática'}
+          >
+            <Printer className="w-3.5 h-3.5" />
+            {autoPrint ? 'Auto-print ON' : 'Auto-print'}
+          </button>
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
             className={cn(
@@ -197,6 +228,13 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
                       <div className="flex items-center justify-between mt-2">
                         <span className="font-bold text-sm">{formatPrice(Number(order.total), currency)}</span>
                         <div className="flex gap-1.5">
+                          <button
+                            onClick={() => setPrintOrder(order)}
+                            className="p-1 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                            title="Imprimir ticket"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
                           {NEXT_STATUS[status] && (
                             <button
                               onClick={() => handleStatusChange(order.id, NEXT_STATUS[status])}
@@ -222,6 +260,18 @@ export function OrdersBoard({ initialOrders, restaurantId, currency }: OrdersBoa
             );
           })}
         </div>
+      )}
+
+      {/* Print receipt modal */}
+      {printOrder && (
+        <OrderReceipt
+          order={printOrder}
+          restaurantName={restaurantName}
+          restaurantPhone={restaurantPhone}
+          restaurantAddress={restaurantAddress}
+          currency={currency}
+          onClose={() => setPrintOrder(null)}
+        />
       )}
     </div>
   );

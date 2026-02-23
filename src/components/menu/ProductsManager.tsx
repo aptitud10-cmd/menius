@@ -6,6 +6,7 @@ import Link from 'next/link';
 import {
   Plus, Trash2, Eye, EyeOff, Search, Package, Sparkles,
   ChevronRight, X, Save, Camera, Loader2, Check, Layers, GripVertical,
+  PackageX, PackageCheck, ImagePlus, Languages,
 } from 'lucide-react';
 import {
   DndContext,
@@ -23,14 +24,16 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  createProduct, updateProduct, deleteProduct, createCategory, reorderProducts,
+  createProduct, updateProduct, deleteProduct, createCategory, reorderProducts, toggleProductStock,
 } from '@/lib/actions/restaurant';
 import { formatPrice, cn } from '@/lib/utils';
-import type { Product, Category, DietaryTag } from '@/types';
+import type { Product, Category, DietaryTag, ContentTranslation } from '@/types';
+import { getLocaleFlag, getLocaleLabel } from '@/lib/i18n';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { ModifierGroupsEditor } from './ModifierGroupsEditor';
 
 const MenuImportLazy = lazy(() => import('./MenuImport').then(m => ({ default: m.MenuImport })));
+const BulkImageUploadLazy = lazy(() => import('./BulkImageUpload').then(m => ({ default: m.BulkImageUpload })));
 
 // ─── Inline price cell ──────────────────────────────────────────
 
@@ -107,6 +110,8 @@ function ProductSidePanel({
   onSave,
   onClose,
   onCategoryCreated,
+  defaultLocale = 'es',
+  availableLocales = ['es'],
 }: {
   product: Product | null;
   categories: Category[];
@@ -114,10 +119,16 @@ function ProductSidePanel({
   onSave: (p: Product) => void;
   onClose: () => void;
   onCategoryCreated: (c: Category) => void;
+  defaultLocale?: string;
+  availableLocales?: string[];
 }) {
   const isEditing = !!product;
   const modCount = product?.modifier_groups?.length ?? 0;
-  const [tab, setTab] = useState<'info' | 'options'>('info');
+  const hasMultiLang = availableLocales.length > 1;
+  const [tab, setTab] = useState<'info' | 'options' | 'translations'>('info');
+  const [translations, setTranslations] = useState<Record<string, ContentTranslation>>(
+    product?.translations ?? {},
+  );
 
   const [form, setForm] = useState({
     name: product?.name ?? '',
@@ -146,6 +157,7 @@ function ProductSidePanel({
     });
     setImagePreview(product?.image_url || null);
     setImageFile(null);
+    setTranslations(product?.translations ?? {});
     setError('');
     setSaved(false);
     setTab('info');
@@ -198,6 +210,7 @@ function ProductSidePanel({
         const data: Record<string, unknown> = {
           name: form.name, description: form.description, price,
           category_id: form.category_id, dietary_tags: form.dietary_tags,
+          translations: Object.keys(translations).length > 0 ? translations : null,
         };
         if (imageUrl) data.image_url = imageUrl;
         const res = await updateProduct(product.id, data);
@@ -301,6 +314,20 @@ function ProductSidePanel({
               >
                 Opciones {modCount > 0 && <span className="ml-1 text-[11px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-full">{modCount}</span>}
               </button>
+              {hasMultiLang && (
+                <button
+                  onClick={() => setTab('translations')}
+                  className={cn(
+                    'px-3 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1',
+                    tab === 'translations'
+                      ? 'border-emerald-600 text-emerald-700'
+                      : 'border-transparent text-gray-400 hover:text-gray-600',
+                  )}
+                >
+                  <Languages className="w-3.5 h-3.5" />
+                  Idiomas
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -466,6 +493,62 @@ function ProductSidePanel({
               onUpdate={groups => onSave({ ...product, modifier_groups: groups })}
             />
           )}
+
+          {tab === 'translations' && hasMultiLang && (
+            <div className="space-y-5">
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                <p className="text-xs text-emerald-700">
+                  <span className="font-semibold">Idioma base ({getLocaleFlag(defaultLocale)} {getLocaleLabel(defaultLocale)}):</span>{' '}
+                  {form.name || 'Sin nombre'}
+                </p>
+                {form.description && (
+                  <p className="text-xs text-emerald-600 mt-0.5 truncate">{form.description}</p>
+                )}
+              </div>
+
+              {availableLocales.filter((l) => l !== defaultLocale).map((locale) => {
+                const tr = translations[locale] ?? {};
+                return (
+                  <div key={locale} className="space-y-3">
+                    <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                      <span className="text-base">{getLocaleFlag(locale)}</span>
+                      {getLocaleLabel(locale)}
+                    </h3>
+                    <div>
+                      <label className="dash-label mb-1 block">Nombre</label>
+                      <input
+                        type="text"
+                        value={tr.name ?? ''}
+                        onChange={(e) =>
+                          setTranslations((prev) => ({
+                            ...prev,
+                            [locale]: { ...prev[locale], name: e.target.value },
+                          }))
+                        }
+                        placeholder={form.name}
+                        className="dash-input"
+                      />
+                    </div>
+                    <div>
+                      <label className="dash-label mb-1 block">Descripción</label>
+                      <textarea
+                        value={tr.description ?? ''}
+                        onChange={(e) =>
+                          setTranslations((prev) => ({
+                            ...prev,
+                            [locale]: { ...prev[locale], description: e.target.value },
+                          }))
+                        }
+                        placeholder={form.description || 'Traducción...'}
+                        rows={2}
+                        className="dash-input resize-none"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -503,11 +586,15 @@ export function ProductsManager({
   categories: initialCategories,
   restaurantId,
   currency,
+  defaultLocale = 'es',
+  availableLocales = ['es'],
 }: {
   initialProducts: Product[];
   categories: Category[];
   restaurantId?: string;
   currency?: string;
+  defaultLocale?: string;
+  availableLocales?: string[];
 }) {
   const curr = currency || 'USD';
   const [products, setProducts] = useState(initialProducts);
@@ -520,6 +607,7 @@ export function ProductsManager({
   const [search, setSearch] = useState('');
   const [isPending, startTransition] = useTransition();
   const [showImport, setShowImport] = useState(false);
+  const [showBulkImages, setShowBulkImages] = useState(false);
 
   const toggleCat = (id: string) => {
     setExpanded(prev => {
@@ -566,6 +654,21 @@ export function ProductsManager({
       if (res?.error) {
         setProducts(prev =>
           prev.map(x => (x.id === p.id ? { ...x, is_active: p.is_active } : x)),
+        );
+      }
+    });
+  };
+
+  const handleStockToggle = (p: Product) => {
+    const newStock = !(p.in_stock !== false);
+    setProducts(prev =>
+      prev.map(x => (x.id === p.id ? { ...x, in_stock: newStock } : x)),
+    );
+    startTransition(async () => {
+      const res = await toggleProductStock(p.id, newStock);
+      if (res?.error) {
+        setProducts(prev =>
+          prev.map(x => (x.id === p.id ? { ...x, in_stock: p.in_stock } : x)),
         );
       }
     });
@@ -631,6 +734,7 @@ export function ProductsManager({
   }));
   const totalFiltered = grouped.reduce((s, g) => s + g.items.length, 0);
   const activeCount = products.filter(p => p.is_active).length;
+  const outOfStockCount = products.filter(p => p.in_stock === false).length;
 
   if (categories.length === 0) {
     return (
@@ -653,6 +757,9 @@ export function ProductsManager({
           <button onClick={() => setPanel('new')} className="dash-btn-primary">
             <Plus className="w-4 h-4" /> Nuevo producto
           </button>
+          <button onClick={() => setShowBulkImages(true)} className="dash-btn-secondary">
+            <ImagePlus className="w-4 h-4" /> Fotos
+          </button>
           <button onClick={() => setShowImport(true)} className="dash-btn-secondary">
             <Sparkles className="w-4 h-4" /> Importar
           </button>
@@ -660,6 +767,7 @@ export function ProductsManager({
         <div className="flex items-center gap-3">
           <span className="text-xs text-gray-400">
             {activeCount} activos · {products.length} total
+            {outOfStockCount > 0 && <span className="text-red-400"> · {outOfStockCount} agotados</span>}
           </span>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -723,11 +831,12 @@ export function ProductsManager({
       ) : (
         <div className="dash-card overflow-hidden">
           {/* Column headers (desktop) */}
-          <div className="hidden md:grid grid-cols-[2rem_1fr_6rem_5rem_4.5rem_3.5rem] items-center gap-2 px-4 py-2 bg-gray-50/80 border-b border-gray-200 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="hidden md:grid grid-cols-[2rem_1fr_6rem_4.5rem_4rem_4.5rem_3.5rem] items-center gap-2 px-4 py-2 bg-gray-50/80 border-b border-gray-200 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
             <div />
             <div>Producto</div>
             <div>Precio</div>
             <div>Estado</div>
+            <div>Stock</div>
             <div>Opciones</div>
             <div />
           </div>
@@ -766,6 +875,7 @@ export function ProductsManager({
                     setPanel={setPanel}
                     handlePriceSave={handlePriceSave}
                     handleToggle={handleToggle}
+                    handleStockToggle={handleStockToggle}
                     handleDelete={handleDelete}
                     curr={curr}
                     products={products}
@@ -788,6 +898,8 @@ export function ProductsManager({
           onSave={handleSave}
           onClose={() => setPanel(null)}
           onCategoryCreated={onCatCreated}
+          defaultLocale={defaultLocale}
+          availableLocales={availableLocales}
         />
       )}
 
@@ -800,6 +912,24 @@ export function ProductsManager({
             currency={curr}
             onComplete={() => window.location.reload()}
             onClose={() => setShowImport(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* Bulk Image Upload */}
+      {showBulkImages && (
+        <Suspense fallback={null}>
+          <BulkImageUploadLazy
+            products={products}
+            onComplete={(updated) => {
+              setProducts(prev =>
+                prev.map(p => {
+                  const newUrl = updated.get(p.id);
+                  return newUrl ? { ...p, image_url: newUrl } : p;
+                }),
+              );
+            }}
+            onClose={() => setShowBulkImages(false)}
           />
         </Suspense>
       )}
@@ -818,6 +948,7 @@ function SortableProductList({
   setPanel,
   handlePriceSave,
   handleToggle,
+  handleStockToggle,
   handleDelete,
   curr,
   products,
@@ -832,6 +963,7 @@ function SortableProductList({
   setPanel: (p: Product | 'new' | null) => void;
   handlePriceSave: (id: string, v: number) => void;
   handleToggle: (p: Product) => void;
+  handleStockToggle: (p: Product) => void;
   handleDelete: (id: string) => void;
   curr: string;
   products: Product[];
@@ -873,6 +1005,7 @@ function SortableProductList({
             setPanel={setPanel}
             handlePriceSave={handlePriceSave}
             handleToggle={handleToggle}
+            handleStockToggle={handleStockToggle}
             handleDelete={handleDelete}
             curr={curr}
           />
@@ -890,6 +1023,7 @@ function SortableProductRow({
   setPanel,
   handlePriceSave,
   handleToggle,
+  handleStockToggle,
   handleDelete,
   curr,
 }: {
@@ -900,6 +1034,7 @@ function SortableProductRow({
   setPanel: (p: Product | 'new' | null) => void;
   handlePriceSave: (id: string, v: number) => void;
   handleToggle: (p: Product) => void;
+  handleStockToggle: (p: Product) => void;
   handleDelete: (id: string) => void;
   curr: string;
 }) {
@@ -933,10 +1068,11 @@ function SortableProductRow({
             ? 'bg-blue-50/30'
             : 'hover:bg-gray-50/50',
         !p.is_active && 'opacity-60',
+        p.in_stock === false && p.is_active && 'opacity-75',
       )}
     >
       {/* Desktop row */}
-      <div className="hidden md:grid grid-cols-[1.5rem_2rem_1fr_6rem_5rem_4.5rem_3.5rem] items-center gap-2 px-4 py-2.5">
+      <div className="hidden md:grid grid-cols-[1.5rem_2rem_1fr_6rem_4.5rem_4rem_4.5rem_3.5rem] items-center gap-2 px-4 py-2.5">
         <button
           className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors touch-none"
           {...attributes}
@@ -971,6 +1107,22 @@ function SortableProductRow({
         <span className={cn('dash-badge text-[11px]', p.is_active ? 'dash-badge-active' : 'dash-badge-inactive')}>
           {p.is_active ? 'Activo' : 'Oculto'}
         </span>
+        <button
+          onClick={() => handleStockToggle(p)}
+          className={cn(
+            'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition-all',
+            p.in_stock === false
+              ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+              : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
+          )}
+          title={p.in_stock === false ? 'Marcar disponible' : 'Marcar agotado'}
+        >
+          {p.in_stock === false ? (
+            <><PackageX className="w-3 h-3" /> Agotado</>
+          ) : (
+            <><PackageCheck className="w-3 h-3" /> En stock</>
+          )}
+        </button>
         <div>
           {modCount > 0 ? (
             <span className="text-[11px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">{modCount}g</span>
@@ -989,25 +1141,47 @@ function SortableProductRow({
       </div>
 
       {/* Mobile row */}
-      <button onClick={() => setPanel(p)} className="flex md:hidden items-center gap-3 px-4 py-3 w-full text-left">
-        {p.image_url ? (
-          <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-            <Image src={p.image_url} alt={p.name} fill sizes="44px" className="object-cover" />
+      <div className="flex md:hidden items-center gap-3 px-4 py-3 w-full">
+        <button onClick={() => setPanel(p)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+          {p.image_url ? (
+            <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+              <Image src={p.image_url} alt={p.name} fill sizes="44px" className="object-cover" />
+              {p.in_stock === false && (
+                <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                  <PackageX className="w-4 h-4 text-red-400" />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="w-11 h-11 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+              <Package className="w-4 h-4 text-gray-400" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <p className={cn('text-sm font-medium truncate', p.is_active ? 'text-gray-900' : 'text-gray-500')}>{p.name}</p>
+              {p.in_stock === false && (
+                <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full flex-shrink-0">Agotado</span>
+              )}
+            </div>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {formatPrice(Number(p.price), curr)}
+              {modCount > 0 && ` · ${modCount} grupos`}
+            </p>
           </div>
-        ) : (
-          <div className="w-11 h-11 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-            <Package className="w-4 h-4 text-gray-400" />
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <p className={cn('text-sm font-medium truncate', p.is_active ? 'text-gray-900' : 'text-gray-500')}>{p.name}</p>
-          <p className="text-xs text-gray-400 mt-0.5">
-            {formatPrice(Number(p.price), curr)}
-            {modCount > 0 && ` · ${modCount} grupos`}
-          </p>
-        </div>
+        </button>
+        <button
+          onClick={() => handleStockToggle(p)}
+          className={cn(
+            'p-1.5 rounded-lg transition-colors flex-shrink-0',
+            p.in_stock === false ? 'text-red-400 hover:bg-red-50' : 'text-emerald-400 hover:bg-emerald-50'
+          )}
+          title={p.in_stock === false ? 'Marcar disponible' : 'Marcar agotado'}
+        >
+          {p.in_stock === false ? <PackageX className="w-4 h-4" /> : <PackageCheck className="w-4 h-4" />}
+        </button>
         <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
-      </button>
+      </div>
     </div>
   );
 }

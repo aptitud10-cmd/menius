@@ -8,6 +8,8 @@ import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import type { Product, ModifierGroup, ModifierOption, ModifierSelection } from '@/types';
 import type { Translations, Locale } from '@/lib/translations';
+import { tName, tDesc } from '@/lib/i18n';
+import { supabaseLoader, getBlurUrl } from '@/lib/image-loader';
 
 interface CustomizationSheetProps {
   product: Product;
@@ -16,6 +18,7 @@ interface CustomizationSheetProps {
   fmtPrice: (n: number) => string;
   t: Translations;
   locale: Locale;
+  defaultLocale?: string;
 }
 
 export function CustomizationSheet({
@@ -25,7 +28,10 @@ export function CustomizationSheet({
   fmtPrice,
   t,
   locale,
+  defaultLocale = 'es',
 }: CustomizationSheetProps) {
+  const displayName = tName(product, locale, defaultLocale);
+  const displayDesc = tDesc(product, locale, defaultLocale);
   const addItem = useCartStore((s) => s.addItem);
   const replaceItem = useCartStore((s) => s.replaceItem);
   const items = useCartStore((s) => s.items);
@@ -252,6 +258,9 @@ export function CustomizationSheet({
               alt={product.name}
               fill
               sizes="600px"
+              loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
+              placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
+              blurDataURL={getBlurUrl(product.image_url)}
               className="object-cover opacity-0 transition-opacity duration-500"
               onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
               priority
@@ -262,9 +271,9 @@ export function CustomizationSheet({
       <div className="px-5 pt-4 pb-2">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-gray-900">{product.name}</h3>
-            {product.description && (
-              <p className="text-sm text-gray-500 mt-1">{product.description}</p>
+            <h3 className="text-lg font-bold text-gray-900">{displayName}</h3>
+            {displayDesc && (
+              <p className="text-sm text-gray-500 mt-1">{displayDesc}</p>
             )}
           </div>
           <span className="text-lg font-bold text-gray-900 flex-shrink-0">
@@ -426,12 +435,12 @@ export function CustomizationSheet({
               <h2 className="text-base font-bold text-gray-900 truncate">
                 {isEditing
                   ? (locale === 'es' ? 'Editar producto' : 'Edit item')
-                  : product.name}
+                  : displayName}
               </h2>
               <p className="text-xs text-gray-400 font-medium tabular-nums">
                 {fmtPrice(Number(product.price))}
-                {product.description && <span className="ml-2 text-gray-300">·</span>}
-                {product.description && <span className="ml-2 truncate">{product.description.slice(0, 40)}{(product.description.length > 40) ? '...' : ''}</span>}
+                {displayDesc && <span className="ml-2 text-gray-300">·</span>}
+                {displayDesc && <span className="ml-2 truncate">{displayDesc.slice(0, 40)}{(displayDesc.length > 40) ? '...' : ''}</span>}
               </p>
             </div>
           </div>
@@ -480,7 +489,7 @@ export function CustomizationSheet({
             <h2 className="text-base font-bold text-gray-900 truncate">
               {isEditing
                 ? (locale === 'es' ? 'Editar producto' : 'Edit item')
-                : product.name}
+                : displayName}
             </h2>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg active:bg-gray-100 transition-colors flex-shrink-0">

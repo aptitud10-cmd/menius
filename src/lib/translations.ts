@@ -3,7 +3,7 @@
 // Used by MenuShell to render in the restaurant's language
 // ============================================================
 
-export type Locale = 'es' | 'en';
+export type Locale = string;
 
 export interface Translations {
   // Header & status
@@ -309,7 +309,7 @@ const en: Translations = {
   deliveryDesc: 'Get it delivered to you',
 };
 
-const translations: Record<Locale, Translations> = { es, en };
+const translations: Record<string, Translations> = { es, en };
 
 export function getTranslations(locale: Locale): Translations {
   return translations[locale] ?? translations.es;

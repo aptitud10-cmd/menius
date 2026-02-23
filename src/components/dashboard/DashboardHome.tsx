@@ -5,11 +5,18 @@ import Link from 'next/link';
 import {
   ClipboardList, ShoppingBag, QrCode, TrendingUp, ExternalLink,
   ArrowRight, Sparkles, AlertTriangle, CreditCard, Clock,
-  Copy, Check, Share2, MessageCircle,
+  Copy, Check, Share2, MessageCircle, BarChart3, PieChart, Flame,
 } from 'lucide-react';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { OnboardingChecklist } from './OnboardingChecklist';
 import type { Order, Restaurant } from '@/types';
+
+interface AnalyticsData {
+  chartData: { date: string; label: string; orders: number; revenue: number }[];
+  hourlyData: { hour: string; count: number }[];
+  topProducts: { name: string; qty: number }[];
+  orderTypeCounts: { dine_in: number; pickup: number; delivery: number };
+}
 
 interface DashboardHomeProps {
   restaurant: Restaurant;
@@ -34,9 +41,10 @@ interface DashboardHomeProps {
     hasTables: boolean;
     hasOrders: boolean;
   };
+  analytics?: AnalyticsData;
 }
 
-export function DashboardHome({ restaurant, stats, recentOrders, subscription, onboarding }: DashboardHomeProps) {
+export function DashboardHome({ restaurant, stats, recentOrders, subscription, onboarding, analytics }: DashboardHomeProps) {
   const kpis = [
     { label: 'Órdenes hoy', value: stats.ordersToday.toString(), icon: ClipboardList, color: 'text-blue-400', bg: 'bg-blue-500/[0.1]', ring: 'ring-blue-500/20' },
     { label: 'Ventas hoy', value: formatPrice(stats.salesToday, restaurant.currency), icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/[0.1]', ring: 'ring-emerald-500/20' },
@@ -137,6 +145,9 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
           </div>
         ))}
       </div>
+
+      {/* Analytics */}
+      {analytics && <AnalyticsSection analytics={analytics} currency={restaurant.currency} />}
 
       {/* Pending alert */}
       {stats.pendingOrders > 0 && (
@@ -313,6 +324,249 @@ function QuickLink({ href, label, icon: Icon }: { href: string; label: string; i
       <span className="font-medium text-[13px] text-gray-600 group-hover:text-gray-900 transition-colors">{label}</span>
       <ArrowRight className="w-4 h-4 text-gray-300 ml-auto group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
     </Link>
+  );
+}
+
+/* ─── Analytics Section ─── */
+
+function AnalyticsSection({ analytics, currency }: { analytics: AnalyticsData; currency: string }) {
+  const [chartMode, setChartMode] = useState<'revenue' | 'orders'>('revenue');
+  const { chartData, hourlyData, topProducts, orderTypeCounts } = analytics;
+
+  const totalWeekRevenue = chartData.reduce((s, d) => s + d.revenue, 0);
+  const totalWeekOrders = chartData.reduce((s, d) => s + d.orders, 0);
+  const maxVal = Math.max(...chartData.map((d) => (chartMode === 'revenue' ? d.revenue : d.orders)), 1);
+
+  const totalOrders = orderTypeCounts.dine_in + orderTypeCounts.pickup + orderTypeCounts.delivery;
+  const orderTypeSlices = [
+    { label: 'En local', value: orderTypeCounts.dine_in, color: '#10b981' },
+    { label: 'Para llevar', value: orderTypeCounts.pickup, color: '#6366f1' },
+    { label: 'Delivery', value: orderTypeCounts.delivery, color: '#f59e0b' },
+  ].filter((s) => s.value > 0);
+
+  const maxHourly = Math.max(...hourlyData.map((h) => h.count), 1);
+  const peakHour = hourlyData.reduce((best, h) => (h.count > best.count ? h : best), hourlyData[0]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <BarChart3 className="w-4 h-4 text-gray-400" />
+        <h2 className="font-semibold text-[15px] text-gray-900">Analytics</h2>
+        <span className="text-xs text-gray-400 ml-1">Últimos 7 días</span>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Revenue / Orders chart */}
+        <div className="lg:col-span-2 dash-card p-5">
+          <div className="flex items-center justify-between mb-1">
+            <div>
+              <p className="text-2xl font-bold text-gray-900 tracking-tight">
+                {chartMode === 'revenue' ? formatPrice(totalWeekRevenue, currency) : totalWeekOrders}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {chartMode === 'revenue' ? 'Ingresos en 7 días' : 'Órdenes en 7 días'}
+              </p>
+            </div>
+            <div className="flex rounded-lg bg-gray-100 p-0.5">
+              <button
+                onClick={() => setChartMode('revenue')}
+                className={cn(
+                  'px-3 py-1 rounded-md text-xs font-medium transition-all',
+                  chartMode === 'revenue' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                )}
+              >
+                Ingresos
+              </button>
+              <button
+                onClick={() => setChartMode('orders')}
+                className={cn(
+                  'px-3 py-1 rounded-md text-xs font-medium transition-all',
+                  chartMode === 'orders' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                )}
+              >
+                Órdenes
+              </button>
+            </div>
+          </div>
+
+          {/* Bar chart */}
+          <div className="mt-4 flex items-end gap-2 h-40">
+            {chartData.map((d) => {
+              const val = chartMode === 'revenue' ? d.revenue : d.orders;
+              const pct = maxVal > 0 ? (val / maxVal) * 100 : 0;
+              const isToday = d.date === new Date().toISOString().slice(0, 10);
+              return (
+                <div key={d.date} className="flex-1 flex flex-col items-center gap-1.5 group">
+                  <span className="text-[11px] font-medium text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {chartMode === 'revenue' ? formatPrice(val, currency) : val}
+                  </span>
+                  <div className="w-full relative">
+                    <div
+                      className={cn(
+                        'w-full rounded-t-md transition-all duration-300 min-h-[4px]',
+                        isToday ? 'bg-emerald-500' : 'bg-emerald-200 group-hover:bg-emerald-400'
+                      )}
+                      style={{ height: `${Math.max(pct, 3)}%`, maxHeight: '128px', minHeight: `${Math.max(pct * 1.28, 4)}px` }}
+                    />
+                  </div>
+                  <span className={cn('text-[11px] font-medium', isToday ? 'text-emerald-600' : 'text-gray-400')}>
+                    {d.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Order types donut */}
+        <div className="dash-card p-5 flex flex-col">
+          <div className="flex items-center gap-2 mb-3">
+            <PieChart className="w-3.5 h-3.5 text-gray-400" />
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo de orden</p>
+          </div>
+          {totalOrders === 0 ? (
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-xs text-gray-400">Sin datos aún</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 flex items-center justify-center">
+                <DonutChart slices={orderTypeSlices} total={totalOrders} />
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-3">
+                {orderTypeSlices.map((s) => (
+                  <div key={s.label} className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: s.color }} />
+                    <span className="text-xs text-gray-600">{s.label}</span>
+                    <span className="text-xs font-semibold text-gray-900">{Math.round((s.value / totalOrders) * 100)}%</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Top products */}
+        <div className="dash-card p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Flame className="w-3.5 h-3.5 text-orange-400" />
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Productos populares</p>
+          </div>
+          {topProducts.length === 0 ? (
+            <p className="text-xs text-gray-400 py-4 text-center">Sin datos aún</p>
+          ) : (
+            <div className="space-y-2.5">
+              {topProducts.map((p, i) => {
+                const pct = (p.qty / topProducts[0].qty) * 100;
+                return (
+                  <div key={p.name} className="flex items-center gap-3">
+                    <span className="text-xs font-bold text-gray-300 w-4 text-right">{i + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-gray-700 truncate">{p.name}</span>
+                        <span className="text-xs font-semibold text-gray-500 tabular-nums ml-2">{p.qty} uds</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={cn(
+                            'h-full rounded-full transition-all duration-500',
+                            i === 0 ? 'bg-emerald-500' : i === 1 ? 'bg-emerald-400' : 'bg-emerald-300'
+                          )}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Hourly distribution */}
+        <div className="dash-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5 text-gray-400" />
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Horarios pico</p>
+            </div>
+            {peakHour && peakHour.count > 0 && (
+              <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full">
+                Pico: {peakHour.hour}
+              </span>
+            )}
+          </div>
+          <div className="flex items-end gap-px h-28">
+            {hourlyData.map((h) => {
+              const pct = maxHourly > 0 ? (h.count / maxHourly) * 100 : 0;
+              const hour = parseInt(h.hour);
+              const isActive = hour >= 8 && hour <= 22;
+              if (!isActive && h.count === 0) return null;
+              return (
+                <div key={h.hour} className="flex-1 flex flex-col items-center gap-1 group min-w-0">
+                  <span className="text-[9px] font-medium text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {h.count}
+                  </span>
+                  <div
+                    className={cn(
+                      'w-full rounded-t transition-all duration-200 min-h-[2px]',
+                      h.count === peakHour?.count && h.count > 0
+                        ? 'bg-emerald-500'
+                        : h.count > 0
+                          ? 'bg-emerald-200 group-hover:bg-emerald-400'
+                          : 'bg-gray-100'
+                    )}
+                    style={{ height: `${Math.max(pct * 1.12, 2)}px` }}
+                  />
+                  {hour % 3 === 0 && (
+                    <span className="text-[9px] text-gray-400">{hour}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── SVG Donut ─── */
+
+function DonutChart({ slices, total }: { slices: { label: string; value: number; color: string }[]; total: number }) {
+  const size = 100;
+  const strokeWidth = 14;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="transform -rotate-90">
+      {slices.map((slice) => {
+        const pct = slice.value / total;
+        const dashLength = pct * circumference;
+        const dashGap = circumference - dashLength;
+        const currentOffset = offset;
+        offset += dashLength;
+        return (
+          <circle
+            key={slice.label}
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={slice.color}
+            strokeWidth={strokeWidth}
+            strokeDasharray={`${dashLength} ${dashGap}`}
+            strokeDashoffset={-currentOffset}
+            strokeLinecap="round"
+            className="transition-all duration-500"
+          />
+        );
+      })}
+    </svg>
   );
 }
 
