@@ -254,15 +254,17 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   color: #111827;
 }
 
-/* Dashboard card — consistent container */
+/* Dashboard card — consistent container (Stripe-style) */
 .dash-card {
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 1rem;
-  transition: border-color 0.15s ease;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .dash-card:hover {
   border-color: #d1d5db;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.08);
 }
 
 /* Dashboard section label */
