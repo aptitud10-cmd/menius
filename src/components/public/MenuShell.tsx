@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X, MapPin, Clock, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
@@ -15,7 +16,6 @@ import { CategorySidebar } from './CategorySidebar';
 import { ProductCard } from './ProductCard';
 import { CartPanel } from './CartPanel';
 import { CustomizationSheet } from './CustomizationSheet';
-import { CheckoutSheet } from './CheckoutSheet';
 import { WelcomeScreen } from './WelcomeScreen';
 
 interface MenuShellProps {
@@ -40,6 +40,7 @@ export function MenuShell({
   locale: initialLocale = 'es',
   backUrl,
 }: MenuShellProps) {
+  const router = useRouter();
   const [locale] = useState<Locale>(initialLocale);
   const t = getTranslations(locale);
   const currency = restaurant.currency;
@@ -85,7 +86,6 @@ export function MenuShell({
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [customization, setCustomization] = useState<CustomizationTarget | null>(null);
-  const [showCheckout, setShowCheckout] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const catScrollRef = useRef<HTMLDivElement>(null);
@@ -143,12 +143,8 @@ export function MenuShell({
   }, []);
 
   const handleOpenCheckout = useCallback(() => {
-    setShowCheckout(true);
-  }, []);
-
-  const handleCloseCheckout = useCallback(() => {
-    setShowCheckout(false);
-  }, []);
+    router.push(`/r/${restaurant.slug}/checkout`);
+  }, [router, restaurant.slug]);
 
   const availableDiets = useMemo(() => {
     const tagSet = new Set<string>();
@@ -585,18 +581,6 @@ export function MenuShell({
         )}
       </AnimatePresence>
 
-      {/* ── Checkout Sheet ── */}
-      <AnimatePresence>
-        {showCheckout && (
-          <CheckoutSheet
-            restaurant={restaurant}
-            onClose={handleCloseCheckout}
-            fmtPrice={fmtPrice}
-            t={t}
-            locale={locale}
-          />
-        )}
-      </AnimatePresence>
 
       {/* ── Toast notification ── */}
       {toast && (
