@@ -1,0 +1,177 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { Bell, BellOff, X, ShoppingBag } from 'lucide-react';
+import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { useNotifications } from '@/hooks/use-notifications';
+import { formatPrice } from '@/lib/utils';
+
+interface OrderNotifierProps {
+  restaurantId: string;
+  currency: string;
+}
+
+interface OrderToast {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  total: string;
+  timestamp: number;
+}
+
+export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
+  const {
+    soundEnabled,
+    setSoundEnabled,
+    hasPermission,
+    requestPermission,
+    notifyNewOrder,
+  } = useNotifications({ defaultTitle: 'MENIUS Dashboard' });
+
+  const [toasts, setToasts] = useState<OrderToast[]>([]);
+  const [showPermBanner, setShowPermBanner] = useState(false);
+  const knownIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      const timer = setTimeout(() => setShowPermBanner(true), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowser();
+
+    const channel = supabase
+      .channel(`global-orders:${restaurantId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders',
+          filter: `restaurant_id=eq.${restaurantId}`,
+        },
+        (payload) => {
+          const order = payload.new as any;
+          if (knownIdsRef.current.has(order.id)) return;
+          knownIdsRef.current.add(order.id);
+
+          const total = formatPrice(Number(order.total || 0), currency);
+          notifyNewOrder(order.order_number || '?', total);
+
+          setToasts((prev) => [
+            {
+              id: order.id,
+              orderNumber: order.order_number || '?',
+              customerName: order.customer_name || '',
+              total,
+              timestamp: Date.now(),
+            },
+            ...prev,
+          ].slice(0, 5));
+
+          setTimeout(() => {
+            setToasts((prev) => prev.filter((t) => t.id !== order.id));
+          }, 15000);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [restaurantId, currency, notifyNewOrder]);
+
+  return (
+    <>
+      {/* Notification permission banner */}
+      {showPermBanner && !hasPermission && (
+        <div className="fixed top-4 right-4 z-[80] max-w-sm animate-in slide-in-from-right">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-lg p-4 flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+              <Bell className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900">Activar notificaciones</p>
+              <p className="text-xs text-gray-500 mt-0.5">Recibe alertas cuando llegue un nuevo pedido.</p>
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={async () => {
+                    await requestPermission();
+                    setShowPermBanner(false);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition-colors"
+                >
+                  Activar
+                </button>
+                <button
+                  onClick={() => setShowPermBanner(false)}
+                  className="px-3 py-1.5 rounded-lg text-gray-500 text-xs font-medium hover:bg-gray-100 transition-colors"
+                >
+                  Ahora no
+                </button>
+              </div>
+            </div>
+            <button onClick={() => setShowPermBanner(false)} className="p-1 text-gray-400 hover:text-gray-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Sound toggle (fixed bottom-right) */}
+      <button
+        onClick={() => setSoundEnabled(!soundEnabled)}
+        className="fixed bottom-4 right-4 z-[70] w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors group"
+        title={soundEnabled ? 'Silenciar notificaciones' : 'Activar sonido'}
+      >
+        {soundEnabled ? (
+          <Bell className="w-4 h-4 text-gray-500 group-hover:text-emerald-600 transition-colors" />
+        ) : (
+          <BellOff className="w-4 h-4 text-gray-400" />
+        )}
+      </button>
+
+      {/* Order toasts */}
+      <div className="fixed top-4 right-4 z-[80] flex flex-col gap-2 max-w-sm pointer-events-none">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className="pointer-events-auto bg-white rounded-xl border border-gray-200 shadow-xl p-4 flex items-start gap-3 animate-in slide-in-from-right duration-300"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center flex-shrink-0">
+              <ShoppingBag className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-gray-900">
+                Nueva orden #{toast.orderNumber}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {toast.customerName && <span>{toast.customerName} · </span>}
+                {toast.total}
+              </p>
+              <Link
+                href="/app/orders"
+                className="inline-flex items-center text-xs font-semibold text-emerald-600 hover:text-emerald-700 mt-2 transition-colors"
+              >
+                Ver pedidos →
+              </Link>
+            </div>
+            <button
+              onClick={() => dismissToast(toast.id)}
+              className="p-1 text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
