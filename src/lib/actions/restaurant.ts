@@ -229,6 +229,30 @@ export async function deleteCategory(id: string) {
   return { success: true };
 }
 
+export async function reorderCategories(orderedIds: string[]) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const updates = orderedIds.map((id, i) =>
+    supabase.from('categories').update({ sort_order: i }).eq('id', id).eq('restaurant_id', restaurantId)
+  );
+  await Promise.all(updates);
+  revalidatePath('/app/menu/categories');
+  return { success: true };
+}
+
+export async function reorderProducts(orderedIds: string[]) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const updates = orderedIds.map((id, i) =>
+    supabase.from('products').update({ sort_order: i }).eq('id', id).eq('restaurant_id', restaurantId)
+  );
+  await Promise.all(updates);
+  revalidatePath('/app/menu/products');
+  return { success: true };
+}
+
 // ---- Products ----
 export async function createProduct(data: ProductInput) {
   const supabase = createClient();

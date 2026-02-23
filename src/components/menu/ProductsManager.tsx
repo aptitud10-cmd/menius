@@ -5,10 +5,25 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   Plus, Trash2, Eye, EyeOff, Search, Package, Sparkles,
-  ChevronRight, X, Save, Camera, Loader2, Check, Layers,
+  ChevronRight, X, Save, Camera, Loader2, Check, Layers, GripVertical,
 } from 'lucide-react';
 import {
-  createProduct, updateProduct, deleteProduct, createCategory,
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
+  createProduct, updateProduct, deleteProduct, createCategory, reorderProducts,
 } from '@/lib/actions/restaurant';
 import { formatPrice, cn } from '@/lib/utils';
 import type { Product, Category, DietaryTag } from '@/types';
@@ -741,149 +756,23 @@ export function ProductsManager({
                 </button>
 
                 {/* Product rows */}
-                {isExp &&
-                  catProducts.map(p => {
-                    const isSel = selected.has(p.id);
-                    const modCount = p.modifier_groups?.length ?? 0;
-                    const isPanelActive =
-                      panel && typeof panel !== 'string' && panel.id === p.id;
-
-                    return (
-                      <div
-                        key={p.id}
-                        className={cn(
-                          'group border-b border-gray-50 transition-colors',
-                          isPanelActive
-                            ? 'bg-emerald-50/40'
-                            : isSel
-                              ? 'bg-blue-50/30'
-                              : 'hover:bg-gray-50/50',
-                          !p.is_active && 'opacity-60',
-                        )}
-                      >
-                        {/* Desktop row */}
-                        <div className="hidden md:grid grid-cols-[2rem_1fr_6rem_5rem_4.5rem_3.5rem] items-center gap-2 px-4 py-2.5">
-                          <input
-                            type="checkbox"
-                            checked={isSel}
-                            onChange={() => toggleSel(p.id)}
-                            className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500/30"
-                          />
-                          <button
-                            onClick={() => setPanel(p)}
-                            className="flex items-center gap-3 min-w-0 text-left"
-                          >
-                            {p.image_url ? (
-                              <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                                <Image
-                                  src={p.image_url}
-                                  alt={p.name}
-                                  fill
-                                  sizes="36px"
-                                  className="object-cover"
-                                />
-                              </div>
-                            ) : (
-                              <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                <Package className="w-3.5 h-3.5 text-gray-400" />
-                              </div>
-                            )}
-                            <span
-                              className={cn(
-                                'text-sm font-medium truncate hover:text-emerald-600 transition-colors',
-                                p.is_active
-                                  ? 'text-gray-900'
-                                  : 'text-gray-500 line-through',
-                              )}
-                            >
-                              {p.name}
-                            </span>
-                          </button>
-                          <InlinePriceCell
-                            price={Number(p.price)}
-                            currency={curr}
-                            onSave={v => handlePriceSave(p.id, v)}
-                          />
-                          <span
-                            className={cn(
-                              'dash-badge text-[11px]',
-                              p.is_active
-                                ? 'dash-badge-active'
-                                : 'dash-badge-inactive',
-                            )}
-                          >
-                            {p.is_active ? 'Activo' : 'Oculto'}
-                          </span>
-                          <div>
-                            {modCount > 0 ? (
-                              <span className="text-[11px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">
-                                {modCount}g
-                              </span>
-                            ) : (
-                              <span className="text-[11px] text-gray-300">&mdash;</span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => handleToggle(p)}
-                              className="p-1 rounded hover:bg-gray-100 text-gray-400"
-                              title={p.is_active ? 'Ocultar' : 'Mostrar'}
-                            >
-                              {p.is_active ? (
-                                <EyeOff className="w-3.5 h-3.5" />
-                              ) : (
-                                <Eye className="w-3.5 h-3.5" />
-                              )}
-                            </button>
-                            <button
-                              onClick={() => handleDelete(p.id)}
-                              className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"
-                              title="Eliminar"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Mobile row */}
-                        <button
-                          onClick={() => setPanel(p)}
-                          className="flex md:hidden items-center gap-3 px-4 py-3 w-full text-left"
-                        >
-                          {p.image_url ? (
-                            <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                              <Image
-                                src={p.image_url}
-                                alt={p.name}
-                                fill
-                                sizes="44px"
-                                className="object-cover"
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-11 h-11 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                              <Package className="w-4 h-4 text-gray-400" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p
-                              className={cn(
-                                'text-sm font-medium truncate',
-                                p.is_active ? 'text-gray-900' : 'text-gray-500',
-                              )}
-                            >
-                              {p.name}
-                            </p>
-                            <p className="text-xs text-gray-400 mt-0.5">
-                              {formatPrice(Number(p.price), curr)}
-                              {modCount > 0 && ` · ${modCount} grupos`}
-                            </p>
-                          </div>
-                          <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
-                        </button>
-                      </div>
-                    );
-                  })}
+                {isExp && (
+                  <SortableProductList
+                    catId={cat.id}
+                    catProducts={catProducts}
+                    selected={selected}
+                    toggleSel={toggleSel}
+                    panel={panel}
+                    setPanel={setPanel}
+                    handlePriceSave={handlePriceSave}
+                    handleToggle={handleToggle}
+                    handleDelete={handleDelete}
+                    curr={curr}
+                    products={products}
+                    setProducts={setProducts}
+                    startTransition={startTransition}
+                  />
+                )}
               </div>
             );
           })}
@@ -914,6 +803,211 @@ export function ProductsManager({
           />
         </Suspense>
       )}
+    </div>
+  );
+}
+
+// ─── Sortable product list per category ────────────────────────
+
+function SortableProductList({
+  catId,
+  catProducts,
+  selected,
+  toggleSel,
+  panel,
+  setPanel,
+  handlePriceSave,
+  handleToggle,
+  handleDelete,
+  curr,
+  products,
+  setProducts,
+  startTransition,
+}: {
+  catId: string;
+  catProducts: Product[];
+  selected: Set<string>;
+  toggleSel: (id: string) => void;
+  panel: Product | 'new' | null;
+  setPanel: (p: Product | 'new' | null) => void;
+  handlePriceSave: (id: string, v: number) => void;
+  handleToggle: (p: Product) => void;
+  handleDelete: (id: string) => void;
+  curr: string;
+  products: Product[];
+  setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
+  startTransition: (cb: () => void) => void;
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = catProducts.findIndex((p) => p.id === active.id);
+    const newIndex = catProducts.findIndex((p) => p.id === over.id);
+    const reordered = arrayMove(catProducts, oldIndex, newIndex);
+
+    setProducts((prev) => {
+      const others = prev.filter((p) => p.category_id !== catId);
+      return [...others, ...reordered.map((p, i) => ({ ...p, sort_order: i }))].sort((a, b) => a.sort_order - b.sort_order);
+    });
+
+    startTransition(async () => {
+      await reorderProducts(reordered.map((p) => p.id));
+    });
+  };
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={catProducts.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+        {catProducts.map((p) => (
+          <SortableProductRow
+            key={p.id}
+            p={p}
+            isSel={selected.has(p.id)}
+            toggleSel={toggleSel}
+            isPanelActive={!!(panel && typeof panel !== 'string' && panel.id === p.id)}
+            setPanel={setPanel}
+            handlePriceSave={handlePriceSave}
+            handleToggle={handleToggle}
+            handleDelete={handleDelete}
+            curr={curr}
+          />
+        ))}
+      </SortableContext>
+    </DndContext>
+  );
+}
+
+function SortableProductRow({
+  p,
+  isSel,
+  toggleSel,
+  isPanelActive,
+  setPanel,
+  handlePriceSave,
+  handleToggle,
+  handleDelete,
+  curr,
+}: {
+  p: Product;
+  isSel: boolean;
+  toggleSel: (id: string) => void;
+  isPanelActive: boolean;
+  setPanel: (p: Product | 'new' | null) => void;
+  handlePriceSave: (id: string, v: number) => void;
+  handleToggle: (p: Product) => void;
+  handleDelete: (id: string) => void;
+  curr: string;
+}) {
+  const modCount = p.modifier_groups?.length ?? 0;
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: p.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    position: 'relative' as const,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'group border-b border-gray-50 transition-colors',
+        isDragging && 'bg-white shadow-lg rounded-lg border border-gray-200',
+        isPanelActive
+          ? 'bg-emerald-50/40'
+          : isSel
+            ? 'bg-blue-50/30'
+            : 'hover:bg-gray-50/50',
+        !p.is_active && 'opacity-60',
+      )}
+    >
+      {/* Desktop row */}
+      <div className="hidden md:grid grid-cols-[1.5rem_2rem_1fr_6rem_5rem_4.5rem_3.5rem] items-center gap-2 px-4 py-2.5">
+        <button
+          className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors touch-none"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </button>
+        <input
+          type="checkbox"
+          checked={isSel}
+          onChange={() => toggleSel(p.id)}
+          className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500/30"
+        />
+        <button
+          onClick={() => setPanel(p)}
+          className="flex items-center gap-3 min-w-0 text-left"
+        >
+          {p.image_url ? (
+            <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+              <Image src={p.image_url} alt={p.name} fill sizes="36px" className="object-cover" />
+            </div>
+          ) : (
+            <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+              <Package className="w-3.5 h-3.5 text-gray-400" />
+            </div>
+          )}
+          <span className={cn('text-sm font-medium truncate hover:text-emerald-600 transition-colors', p.is_active ? 'text-gray-900' : 'text-gray-500 line-through')}>
+            {p.name}
+          </span>
+        </button>
+        <InlinePriceCell price={Number(p.price)} currency={curr} onSave={v => handlePriceSave(p.id, v)} />
+        <span className={cn('dash-badge text-[11px]', p.is_active ? 'dash-badge-active' : 'dash-badge-inactive')}>
+          {p.is_active ? 'Activo' : 'Oculto'}
+        </span>
+        <div>
+          {modCount > 0 ? (
+            <span className="text-[11px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded font-medium">{modCount}g</span>
+          ) : (
+            <span className="text-[11px] text-gray-300">&mdash;</span>
+          )}
+        </div>
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={() => handleToggle(p)} className="p-1 rounded hover:bg-gray-100 text-gray-400" title={p.is_active ? 'Ocultar' : 'Mostrar'}>
+            {p.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+          </button>
+          <button onClick={() => handleDelete(p.id)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500" title="Eliminar">
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile row */}
+      <button onClick={() => setPanel(p)} className="flex md:hidden items-center gap-3 px-4 py-3 w-full text-left">
+        {p.image_url ? (
+          <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+            <Image src={p.image_url} alt={p.name} fill sizes="44px" className="object-cover" />
+          </div>
+        ) : (
+          <div className="w-11 h-11 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <Package className="w-4 h-4 text-gray-400" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className={cn('text-sm font-medium truncate', p.is_active ? 'text-gray-900' : 'text-gray-500')}>{p.name}</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {formatPrice(Number(p.price), curr)}
+            {modCount > 0 && ` · ${modCount} grupos`}
+          </p>
+        </div>
+        <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+      </button>
     </div>
   );
 }
