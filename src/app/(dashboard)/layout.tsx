@@ -3,6 +3,8 @@ import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { DashboardNav } from '@/components/dashboard/DashboardNav';
 import { DashboardLocaleProvider } from '@/hooks/use-dashboard-locale';
 import { AIChatWidget } from '@/components/dashboard/AIChatWidget';
+import { Breadcrumbs } from '@/components/dashboard/Breadcrumbs';
+import { CommandPalette } from '@/components/dashboard/CommandPalette';
 import { redirect } from 'next/navigation';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -84,10 +86,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </header>
 
           <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-6xl w-full mx-auto">
+            <Breadcrumbs />
             {children}
           </main>
         </div>
 
+        <CommandPalette slug={restaurant?.slug ?? ''} />
         <AIChatWidget />
       </div>
     </DashboardLocaleProvider>

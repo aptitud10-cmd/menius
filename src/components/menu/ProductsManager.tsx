@@ -502,47 +502,64 @@ export function ProductsManager({
 
   const handleDelete = (id: string) => {
     if (!confirm('¿Eliminar este producto?')) return;
+    const prev = products;
+    setProducts(p => p.filter(x => x.id !== id));
+    if (panel && typeof panel !== 'string' && panel.id === id) setPanel(null);
     startTransition(async () => {
-      await deleteProduct(id);
-      setProducts(prev => prev.filter(p => p.id !== id));
-      if (panel && typeof panel !== 'string' && panel.id === id) setPanel(null);
+      const res = await deleteProduct(id);
+      if (res?.error) setProducts(prev);
     });
   };
 
   const handleToggle = (p: Product) => {
+    setProducts(prev =>
+      prev.map(x => (x.id === p.id ? { ...x, is_active: !x.is_active } : x)),
+    );
     startTransition(async () => {
-      await updateProduct(p.id, { is_active: !p.is_active });
-      setProducts(prev =>
-        prev.map(x => (x.id === p.id ? { ...x, is_active: !x.is_active } : x)),
-      );
+      const res = await updateProduct(p.id, { is_active: !p.is_active });
+      if (res?.error) {
+        setProducts(prev =>
+          prev.map(x => (x.id === p.id ? { ...x, is_active: p.is_active } : x)),
+        );
+      }
     });
   };
 
   const handlePriceSave = (id: string, price: number) => {
+    const oldPrice = products.find(p => p.id === id)?.price;
+    setProducts(prev => prev.map(p => (p.id === id ? { ...p, price } : p)));
     startTransition(async () => {
-      await updateProduct(id, { price });
-      setProducts(prev => prev.map(p => (p.id === id ? { ...p, price } : p)));
+      const res = await updateProduct(id, { price });
+      if (res?.error && oldPrice !== undefined) {
+        setProducts(prev => prev.map(p => (p.id === id ? { ...p, price: oldPrice } : p)));
+      }
     });
   };
 
   const handleBulkToggle = (active: boolean) => {
+    const prev = products;
+    const ids = new Set(selected);
+    setProducts(p => p.map(x => (ids.has(x.id) ? { ...x, is_active: active } : x)));
+    setSelected(new Set());
     startTransition(async () => {
-      await Promise.all(
-        Array.from(selected).map(id => updateProduct(id, { is_active: active })),
+      const results = await Promise.all(
+        Array.from(ids).map(id => updateProduct(id, { is_active: active })),
       );
-      setProducts(prev =>
-        prev.map(p => (selected.has(p.id) ? { ...p, is_active: active } : p)),
-      );
-      setSelected(new Set());
+      if (results.some(r => r?.error)) setProducts(prev);
     });
   };
 
   const handleBulkDelete = () => {
     if (!confirm(`¿Eliminar ${selected.size} productos?`)) return;
+    const prev = products;
+    const ids = new Set(selected);
+    setProducts(p => p.filter(x => !ids.has(x.id)));
+    setSelected(new Set());
     startTransition(async () => {
-      await Promise.all(Array.from(selected).map(id => deleteProduct(id)));
-      setProducts(prev => prev.filter(p => !selected.has(p.id)));
-      setSelected(new Set());
+      const results = await Promise.all(
+        Array.from(ids).map(id => deleteProduct(id)),
+      );
+      if (results.some(r => r?.error)) setProducts(prev);
     });
   };
 
