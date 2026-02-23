@@ -126,12 +126,14 @@ export const ProductCard = memo(function ProductCard({
 
         {showImage ? (
           <div className="relative w-[92px] h-[92px] rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
             <Image
               src={product.image_url}
               alt={product.name}
               fill
               sizes="92px"
-              className="object-cover"
+              className="object-cover opacity-0 transition-opacity duration-300"
+              onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
               onError={() => setImgError(true)}
             />
             <button
@@ -163,12 +165,14 @@ export const ProductCard = memo(function ProductCard({
       >
         {showImage ? (
           <div className="relative w-full aspect-[16/9] bg-gray-100 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
             <Image
               src={product.image_url}
               alt={product.name}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-              className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
+              className="object-cover group-hover:scale-[1.03] transition-[transform,opacity] duration-500 opacity-0"
+              onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
               onError={() => setImgError(true)}
             />
             {product.is_featured && (

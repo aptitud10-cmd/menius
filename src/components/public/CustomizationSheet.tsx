@@ -242,11 +242,20 @@ export function CustomizationSheet({
     >
       {product.image_url && (
         <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
           <motion.div
             className="absolute inset-0"
             style={{ y: imageY, scale: imageScale, opacity: imageOpacity }}
           >
-            <Image src={product.image_url} alt={product.name} fill sizes="600px" className="object-cover" priority />
+            <Image
+              src={product.image_url}
+              alt={product.name}
+              fill
+              sizes="600px"
+              className="object-cover opacity-0 transition-opacity duration-500"
+              onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
+              priority
+            />
           </motion.div>
         </div>
       )}

@@ -298,7 +298,14 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
               <div key={idx} className="flex gap-3 items-start">
                 {item.product.image_url && (
                   <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                    <Image src={item.product.image_url} alt={item.product.name} fill sizes="48px" className="object-cover" />
+                    <Image
+                      src={item.product.image_url}
+                      alt={item.product.name}
+                      fill
+                      sizes="48px"
+                      className="object-cover opacity-0 transition-opacity duration-300"
+                      onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
+                    />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">

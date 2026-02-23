@@ -59,7 +59,14 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
             {/* Thumbnail */}
             {item.product.image_url ? (
               <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
-                <Image src={item.product.image_url} alt={item.product.name} fill sizes="56px" className="object-cover" />
+                <Image
+                  src={item.product.image_url}
+                  alt={item.product.name}
+                  fill
+                  sizes="56px"
+                  className="object-cover opacity-0 transition-opacity duration-300"
+                  onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
+                />
               </div>
             ) : (
               <div className="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">

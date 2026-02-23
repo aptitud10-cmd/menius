@@ -75,7 +75,14 @@ export const MenuHeader = memo(function MenuHeader({
         <div className="flex items-center gap-2.5 flex-shrink-0 min-w-0">
           {restaurant.logo_url ? (
             <div className="relative w-8 h-8 lg:w-10 lg:h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-              <Image src={restaurant.logo_url} alt={restaurant.name} fill sizes="40px" className="object-cover" />
+              <Image
+                src={restaurant.logo_url}
+                alt={restaurant.name}
+                fill
+                sizes="40px"
+                className="object-cover opacity-0 transition-opacity duration-300"
+                onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
+              />
             </div>
           ) : (
             <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
