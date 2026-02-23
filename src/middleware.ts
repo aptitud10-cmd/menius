@@ -90,16 +90,37 @@ export async function middleware(request: NextRequest) {
 
   const isBillingPage = path === '/app/billing';
   const isSubscriptionWall = path === '/app/subscription-expired';
+  const isVerifyEmailWall = path === '/app/verify-email';
 
-  if (isDashboard && hasRestaurant && profile?.default_restaurant_id && !isBillingPage && !isSubscriptionWall) {
+  // Enforce email verification before dashboard access
+  if (isDashboard && !isBillingPage && !isSubscriptionWall && !isVerifyEmailWall) {
+    if (user && !user.email_confirmed_at) {
+      return NextResponse.redirect(new URL('/app/verify-email', request.url));
+    }
+  }
+
+  if (isDashboard && hasRestaurant && profile?.default_restaurant_id && !isBillingPage && !isSubscriptionWall && !isVerifyEmailWall) {
     const { data: subscription } = await supabase
       .from('subscriptions')
-      .select('status, current_period_end, trial_end')
+      .select('status, current_period_end, trial_end, created_at')
       .eq('restaurant_id', profile.default_restaurant_id)
       .maybeSingle();
 
-    if (subscription) {
-      const now = new Date();
+    const now = new Date();
+
+    if (!subscription) {
+      // No subscription record: give a 1-hour grace period after restaurant creation, then block
+      const { data: restaurant } = await supabase
+        .from('restaurants')
+        .select('created_at')
+        .eq('id', profile.default_restaurant_id)
+        .maybeSingle();
+      const createdAt = restaurant?.created_at ? new Date(restaurant.created_at) : new Date(0);
+      const graceEnds = new Date(createdAt.getTime() + 60 * 60 * 1000);
+      if (now > graceEnds) {
+        return NextResponse.redirect(new URL('/app/subscription-expired', request.url));
+      }
+    } else {
       const isTrialing = subscription.status === 'trialing';
       const isActive = subscription.status === 'active';
       const isPastDue = subscription.status === 'past_due';
@@ -121,7 +142,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/app/:path*', '/onboarding/:path*', '/login', '/signup', '/auth/callback',
+    '/app/:path*', '/onboarding/:path*', '/login', '/signup', '/auth/callback', '/admin',
     '/((?!_next/static|_next/image|favicon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
   ],
 };
