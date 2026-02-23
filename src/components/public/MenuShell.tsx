@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X, MapPin, Clock, Heart } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { formatPrice, cn } from '@/lib/utils';
@@ -527,56 +528,75 @@ export function MenuShell({
       )}
 
       {/* ── Mobile: Cart Drawer ── */}
-      {isOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
-          <div className="absolute inset-y-0 right-0 w-full sm:w-[440px] bg-white flex flex-col shadow-2xl animate-[slideInRight_0.25s_ease-out]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
-              <button onClick={() => setOpen(false)} className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors">
-                <ChevronLeft className="w-5 h-5" />
-                <span className="text-sm font-medium">{t.backToMenu}</span>
-              </button>
-              <div className="flex items-center gap-3">
-                <h2 className="text-base font-bold text-gray-900">{t.yourCart}</h2>
-                <button onClick={() => setOpen(false)} className="p-2 -mr-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Close">
-                  <X className="w-5 h-5 text-gray-500" />
+      <AnimatePresence>
+        {isOpen && (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <motion.div
+              className="absolute inset-0 bg-black/40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={() => setOpen(false)}
+            />
+            <motion.div
+              className="absolute inset-y-0 right-0 w-full sm:w-[440px] bg-white flex flex-col shadow-2xl"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+            >
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
+                <button onClick={() => setOpen(false)} className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors">
+                  <ChevronLeft className="w-5 h-5" />
+                  <span className="text-sm font-medium">{t.backToMenu}</span>
                 </button>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-base font-bold text-gray-900">{t.yourCart}</h2>
+                  <button onClick={() => setOpen(false)} className="p-2 -mr-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Close">
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <CartPanel
-                fmtPrice={fmtPrice}
-                t={t}
-                onEdit={(idx) => { setOpen(false); handleEditCartItem(idx); }}
-                onCheckout={() => { setOpen(false); handleOpenCheckout(); }}
-              />
-            </div>
+              <div className="flex-1 overflow-hidden">
+                <CartPanel
+                  fmtPrice={fmtPrice}
+                  t={t}
+                  onEdit={(idx) => { setOpen(false); handleEditCartItem(idx); }}
+                  onCheckout={() => { setOpen(false); handleOpenCheckout(); }}
+                />
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* ── Customization Sheet ── */}
-      {customization && (
-        <CustomizationSheet
-          product={customization.product}
-          editIndex={customization.editIndex}
-          onClose={handleCloseCustomization}
-          fmtPrice={fmtPrice}
-          t={t}
-          locale={locale}
-        />
-      )}
+      <AnimatePresence>
+        {customization && (
+          <CustomizationSheet
+            product={customization.product}
+            editIndex={customization.editIndex}
+            onClose={handleCloseCustomization}
+            fmtPrice={fmtPrice}
+            t={t}
+            locale={locale}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ── Checkout Sheet ── */}
-      {showCheckout && (
-        <CheckoutSheet
-          restaurant={restaurant}
-          onClose={handleCloseCheckout}
-          fmtPrice={fmtPrice}
-          t={t}
-          locale={locale}
-        />
-      )}
+      <AnimatePresence>
+        {showCheckout && (
+          <CheckoutSheet
+            restaurant={restaurant}
+            onClose={handleCloseCheckout}
+            fmtPrice={fmtPrice}
+            t={t}
+            locale={locale}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ── Toast notification ── */}
       {toast && (

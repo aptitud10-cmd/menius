@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { X, ArrowLeft, CheckCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import type { Restaurant, OrderType, PaymentMethod } from '@/types';
@@ -51,7 +52,6 @@ export function CheckoutSheet({
     : (['cash'] as PaymentMethod[]);
 
   const [step, setStep] = useState<CheckoutStep>('form');
-  const [closing, setClosing] = useState(false);
 
   const [orderType, setOrderType] = useState<OrderType>(
     tableName ? 'dine_in' : welcomeOrderType ?? enabledOrderTypes[0]
@@ -109,10 +109,6 @@ export function CheckoutSheet({
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  const animateClose = useCallback(() => {
-    setClosing(true);
-    setTimeout(onClose, 250);
-  }, [onClose]);
 
   const validatePromo = async () => {
     if (!promoCode.trim()) return;
@@ -234,15 +230,29 @@ export function CheckoutSheet({
     }
   };
 
-  // ── Confirmation step ──
+  const springTransition = { type: 'spring' as const, damping: 30, stiffness: 350 };
+
   if (step === 'confirmation') {
     return (
       <div className="fixed inset-0 z-50">
-        <div className={cn('absolute inset-0 bg-black/40 transition-opacity duration-200', closing ? 'opacity-0' : 'opacity-100')} onClick={animateClose} />
-        <div className={cn('absolute inset-y-0 right-0 w-full sm:w-[500px] lg:w-[600px] bg-white flex flex-col shadow-2xl transition-transform duration-250 ease-out', closing ? 'translate-x-full' : 'translate-x-0')}>
+        <motion.div
+          className="absolute inset-0 bg-black/40"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          onClick={onClose}
+        />
+        <motion.div
+          className="absolute inset-y-0 right-0 w-full sm:w-[500px] lg:w-[600px] bg-white flex flex-col shadow-2xl"
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={springTransition}
+        >
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 flex-shrink-0">
             <span />
-            <button onClick={animateClose} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
               <X className="w-4 h-4 text-gray-400" />
             </button>
           </div>
@@ -288,329 +298,245 @@ export function CheckoutSheet({
                 <PushOptIn orderId={orderId} />
               )}
               <button
-                onClick={animateClose}
+                onClick={onClose}
                 className="w-full py-2.5 rounded-xl text-gray-500 text-sm hover:bg-gray-50 transition-colors"
               >
                 {t.backToMenu}
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   const inputClass = 'w-full px-4 py-3.5 rounded-2xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white';
 
-  // ── Checkout form ──
+  const formBody = (
+    <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-6 space-y-6">
+      <div className="bg-gray-50 rounded-2xl p-5 space-y-3 border border-gray-100">
+        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{t.myOrder}</p>
+        {items.map((item, idx) => (
+          <div key={idx} className="flex justify-between text-[15px]">
+            <span className="text-gray-700 truncate mr-3">
+              {item.qty}x {item.product.name}
+              {item.variant ? ` (${item.variant.name})` : ''}
+            </span>
+            <span className="font-semibold text-gray-900 flex-shrink-0 tabular-nums">{fmtPrice(item.lineTotal)}</span>
+          </div>
+        ))}
+        {discount > 0 && (
+          <div className="flex justify-between text-[15px] text-emerald-600">
+            <span>{t.discount}</span>
+            <span className="font-semibold">-{fmtPrice(discount)}</span>
+          </div>
+        )}
+        {deliveryFee > 0 && (
+          <div className="flex justify-between text-[15px] text-gray-500">
+            <span>{locale === 'es' ? 'Envío' : 'Delivery'}</span>
+            <span className="font-semibold tabular-nums">+{fmtPrice(deliveryFee)}</span>
+          </div>
+        )}
+        {orderType === 'delivery' && deliveryFee === 0 && restaurant.order_types_enabled?.includes('delivery') && (
+          <div className="flex justify-between text-[15px] text-emerald-600">
+            <span>{locale === 'es' ? 'Envío' : 'Delivery'}</span>
+            <span className="font-semibold">{locale === 'es' ? 'Gratis' : 'Free'}</span>
+          </div>
+        )}
+        {tipAmount > 0 && (
+          <div className="flex justify-between text-[15px] text-gray-500">
+            <span>{locale === 'es' ? 'Propina' : 'Tip'}</span>
+            <span className="font-semibold tabular-nums">+{fmtPrice(tipAmount)}</span>
+          </div>
+        )}
+        <div className="border-t border-gray-200 pt-3 flex justify-between font-bold text-lg">
+          <span>{t.total}</span>
+          <span className="tabular-nums">{fmtPrice(finalTotal)}</span>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-gray-900 mb-3">{t.orderType}</label>
+        <div className={cn('grid gap-2', enabledOrderTypes.length === 3 ? 'grid-cols-3' : enabledOrderTypes.length === 2 ? 'grid-cols-2' : 'grid-cols-1')}>
+          {enabledOrderTypes.map((type) => (
+            <button
+              key={type}
+              onClick={() => setOrderType(type)}
+              className={cn(
+                'py-3.5 px-3 rounded-xl text-[15px] font-semibold text-center transition-all duration-150 border-2',
+                orderType === type
+                  ? 'bg-gray-900 text-white border-gray-900'
+                  : 'bg-white text-gray-600 border-gray-200 active:border-gray-400'
+              )}
+            >
+              {type === 'dine_in' ? t.dineIn : type === 'pickup' ? t.pickup : t.delivery}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {orderType === 'delivery' && (
+        <AddressAutocomplete label={t.deliveryAddress} value={deliveryAddress} onChange={setDeliveryAddress} placeholder={t.deliveryAddressPlaceholder} dark={false} required />
+      )}
+
+      <div className="space-y-5">
+        <div>
+          <label className="block text-sm font-semibold text-gray-900 mb-2">{t.yourName} <span className="text-red-500">*</span></label>
+          <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder={t.yourNamePlaceholder} className={inputClass} />
+        </div>
+        <PhoneField label={t.yourPhone} value={customerPhone} onChange={setCustomerPhone} placeholder={t.yourPhonePlaceholder} required dark={false} />
+        <div>
+          <label className="block text-sm font-semibold text-gray-900 mb-2">{t.yourEmail} <span className="text-gray-400 font-normal text-xs">({t.optional})</span></label>
+          <input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder={t.yourEmailPlaceholder} className={inputClass} />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-900 mb-2">{t.orderNotes} <span className="text-gray-400 font-normal text-xs">({t.optional})</span></label>
+          <textarea value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)} placeholder={t.orderNotesPlaceholder} rows={2} className={cn(inputClass, 'resize-none')} />
+        </div>
+      </div>
+
+      {enabledPaymentMethods.length > 1 && (
+        <div>
+          <label className="block text-sm font-semibold text-gray-900 mb-3">{t.paymentMethod}</label>
+          <div className="space-y-2">
+            {enabledPaymentMethods.map((method) => (
+              <label key={method} className={cn('flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-150', paymentMethod === method ? 'border-gray-900 bg-gray-50' : 'border-gray-200')}>
+                <input type="radio" name="paymentMethod" value={method} checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} className="w-5 h-5 text-gray-900 focus:ring-gray-900/20" />
+                <span className="text-[15px] font-medium text-gray-800">{method === 'cash' ? t.payCash : t.payOnline}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <label className="block text-sm font-semibold text-gray-900 mb-2">{t.promoCode}</label>
+        <div className="flex gap-2">
+          <input type="text" value={promoCode} onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); setPromoResult(null); }} placeholder={t.promoCodePlaceholder} className={cn(inputClass, 'flex-1 uppercase')} />
+          <button onClick={validatePromo} disabled={promoLoading || !promoCode.trim()} className="px-5 py-3.5 rounded-xl bg-gray-900 text-white text-[15px] font-semibold disabled:opacity-30 transition-colors">
+            {promoLoading ? '...' : t.apply}
+          </button>
+        </div>
+        {promoError && <p className="text-sm text-red-500 mt-2">{promoError}</p>}
+        {promoResult?.valid && (
+          <p className="text-sm text-emerald-600 mt-2 font-medium">{t.discount}: -{fmtPrice(promoResult.discount)}{promoResult.description && ` — ${promoResult.description}`}</p>
+        )}
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-gray-900 mb-3">{locale === 'es' ? '¿Deseas dejar propina?' : 'Add a tip?'}</label>
+        <div className="grid grid-cols-4 gap-2">
+          {[10, 15, 20].map((pct) => {
+            const isActive = tipPercent === pct && !customTip;
+            const amt = Math.round(cartTotal * pct) / 100;
+            return (
+              <button key={pct} type="button" onClick={() => { setTipPercent(isActive ? null : pct); setCustomTip(''); }} className={cn('flex flex-col items-center py-3 rounded-xl border-2 transition-all duration-150', isActive ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 active:border-gray-400')}>
+                <span className={cn('text-sm font-bold', isActive ? 'text-emerald-700' : 'text-gray-700')}>{pct}%</span>
+                <span className={cn('text-[11px] tabular-nums', isActive ? 'text-emerald-500' : 'text-gray-400')}>{fmtPrice(amt)}</span>
+              </button>
+            );
+          })}
+          <div className="relative">
+            <input type="number" min="0" step="0.5" value={customTip} onChange={(e) => { setCustomTip(e.target.value); setTipPercent(null); }} placeholder={locale === 'es' ? 'Otro' : 'Other'} className={cn('w-full h-full text-center rounded-xl border-2 text-sm font-bold transition-all duration-150 focus:outline-none placeholder-gray-400', customTip ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-700 focus:border-gray-400')} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const formFooter = (
+    <div className="border-t-2 border-gray-100 px-5 py-4 flex-shrink-0 bg-white pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3">
+      {orderError && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200">
+          <span className="text-red-700 text-sm font-medium">{orderError}</span>
+        </div>
+      )}
+      {paymentMethod === 'online' && (
+        <WalletButton
+          amount={finalTotal}
+          currency={restaurant.currency ?? 'MXN'}
+          label={restaurant.name}
+          disabled={submitting || items.length === 0 || !customerName.trim() || !customerPhone.trim()}
+          onSuccess={() => { saveLastOrder(); clearCart(); setOrderNumber('WALLET'); setStep('confirmation'); }}
+          onError={(msg) => setOrderError(msg)}
+        />
+      )}
+      <button
+        onClick={handleSubmitOrder}
+        disabled={submitting || items.length === 0}
+        className="w-full py-4 rounded-xl bg-emerald-500 text-white font-bold text-base active:scale-[0.98] transition-all duration-150 disabled:opacity-50 shadow-[0_4px_20px_rgba(16,185,129,0.3)]"
+      >
+        {submitting ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+            {t.sending}
+          </span>
+        ) : (
+          `${t.confirmOrder} · ${fmtPrice(finalTotal)}`
+        )}
+      </button>
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 z-50">
-      <div
-        className={cn('absolute inset-0 bg-black/50 transition-opacity duration-200', closing ? 'opacity-0' : 'opacity-100')}
-        onClick={animateClose}
+      <motion.div
+        className="absolute inset-0 bg-black/50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15 }}
+        onClick={onClose}
       />
-      <div
-        className={cn(
-          'fixed top-0 left-0 right-0 lg:left-auto lg:w-[600px]',
-          'bg-white flex flex-col shadow-2xl',
-          'transition-transform duration-250 ease-out',
-          closing ? 'translate-y-full lg:translate-y-0 lg:translate-x-full' : 'translate-y-0 lg:translate-x-0'
-        )}
-        style={{ height: vvH, top: 'var(--vv-top, 0px)' }}
+
+      {/* Desktop: slide from right */}
+      <motion.div
+        className="hidden lg:flex fixed top-0 bottom-0 right-0 w-[600px] bg-white flex-col shadow-2xl"
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={springTransition}
       >
-        {/* Header — always visible */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0 bg-white z-10">
           <div className="flex items-center gap-2">
-            <button onClick={animateClose} className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Back">
+            <button onClick={onClose} className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Back">
               <ArrowLeft className="w-5 h-5 text-gray-700" />
-              <span className="text-sm font-medium text-gray-500 lg:hidden">{t.backToMenu}</span>
             </button>
           </div>
           <h2 className="text-base font-bold text-gray-900 absolute left-1/2 -translate-x-1/2">{t.checkout}</h2>
-          <button onClick={animateClose} className="p-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Close">
+          <button onClick={onClose} className="p-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Close">
             <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
 
-        {/* Scrollable form */}
-        <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-6 space-y-6">
+        {formBody}
+        {formFooter}
+      </motion.div>
 
-          {/* Order summary — at top for context */}
-          <div className="bg-gray-50 rounded-2xl p-5 space-y-3 border border-gray-100">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-              {t.myOrder}
-            </p>
-            {items.map((item, idx) => (
-              <div key={idx} className="flex justify-between text-[15px]">
-                <span className="text-gray-700 truncate mr-3">
-                  {item.qty}x {item.product.name}
-                  {item.variant ? ` (${item.variant.name})` : ''}
-                </span>
-                <span className="font-semibold text-gray-900 flex-shrink-0 tabular-nums">
-                  {fmtPrice(item.lineTotal)}
-                </span>
-              </div>
-            ))}
-            {discount > 0 && (
-              <div className="flex justify-between text-[15px] text-emerald-600">
-                <span>{t.discount}</span>
-                <span className="font-semibold">-{fmtPrice(discount)}</span>
-              </div>
-            )}
-            {deliveryFee > 0 && (
-              <div className="flex justify-between text-[15px] text-gray-500">
-                <span>{locale === 'es' ? 'Envío' : 'Delivery'}</span>
-                <span className="font-semibold tabular-nums">+{fmtPrice(deliveryFee)}</span>
-              </div>
-            )}
-            {orderType === 'delivery' && deliveryFee === 0 && restaurant.order_types_enabled?.includes('delivery') && (
-              <div className="flex justify-between text-[15px] text-emerald-600">
-                <span>{locale === 'es' ? 'Envío' : 'Delivery'}</span>
-                <span className="font-semibold">{locale === 'es' ? 'Gratis' : 'Free'}</span>
-              </div>
-            )}
-            {tipAmount > 0 && (
-              <div className="flex justify-between text-[15px] text-gray-500">
-                <span>{locale === 'es' ? 'Propina' : 'Tip'}</span>
-                <span className="font-semibold tabular-nums">+{fmtPrice(tipAmount)}</span>
-              </div>
-            )}
-            <div className="border-t border-gray-200 pt-3 flex justify-between font-bold text-lg">
-              <span>{t.total}</span>
-              <span className="tabular-nums">{fmtPrice(finalTotal)}</span>
-            </div>
+      {/* Mobile: slide up from bottom */}
+      <motion.div
+        className="lg:hidden fixed top-0 left-0 right-0 bg-white flex flex-col shadow-2xl"
+        style={{ height: vvH, top: 'var(--vv-top, 0px)' }}
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={springTransition}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 flex-shrink-0 bg-white z-10">
+          <div className="flex items-center gap-2">
+            <button onClick={onClose} className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Back">
+              <ArrowLeft className="w-5 h-5 text-gray-700" />
+              <span className="text-sm font-medium text-gray-500">{t.backToMenu}</span>
+            </button>
           </div>
-
-          {/* Order type */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
-              {t.orderType}
-            </label>
-            <div className={cn('grid gap-2', enabledOrderTypes.length === 3 ? 'grid-cols-3' : enabledOrderTypes.length === 2 ? 'grid-cols-2' : 'grid-cols-1')}>
-              {enabledOrderTypes.map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setOrderType(type)}
-                  className={cn(
-                    'py-3.5 px-3 rounded-xl text-[15px] font-semibold text-center transition-all duration-150 border-2',
-                    orderType === type
-                      ? 'bg-gray-900 text-white border-gray-900'
-                      : 'bg-white text-gray-600 border-gray-200 active:border-gray-400'
-                  )}
-                >
-                  {type === 'dine_in' ? t.dineIn : type === 'pickup' ? t.pickup : t.delivery}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {orderType === 'delivery' && (
-            <AddressAutocomplete
-              label={t.deliveryAddress}
-              value={deliveryAddress}
-              onChange={setDeliveryAddress}
-              placeholder={t.deliveryAddressPlaceholder}
-              dark={false}
-              required
-            />
-          )}
-
-          {/* Customer details */}
-          <div className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                {t.yourName} <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder={t.yourNamePlaceholder}
-                className={inputClass}
-              />
-            </div>
-            <PhoneField
-              label={t.yourPhone}
-              value={customerPhone}
-              onChange={setCustomerPhone}
-              placeholder={t.yourPhonePlaceholder}
-              required
-              dark={false}
-            />
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                {t.yourEmail} <span className="text-gray-400 font-normal text-xs">({t.optional})</span>
-              </label>
-              <input
-                type="email"
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
-                placeholder={t.yourEmailPlaceholder}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
-                {t.orderNotes} <span className="text-gray-400 font-normal text-xs">({t.optional})</span>
-              </label>
-              <textarea
-                value={orderNotes}
-                onChange={(e) => setOrderNotes(e.target.value)}
-                placeholder={t.orderNotesPlaceholder}
-                rows={2}
-                className={cn(inputClass, 'resize-none')}
-              />
-            </div>
-          </div>
-
-          {/* Payment method */}
-          {enabledPaymentMethods.length > 1 && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-3">
-                {t.paymentMethod}
-              </label>
-              <div className="space-y-2">
-                {enabledPaymentMethods.map((method) => (
-                  <label
-                    key={method}
-                    className={cn(
-                      'flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-150',
-                      paymentMethod === method
-                        ? 'border-gray-900 bg-gray-50'
-                        : 'border-gray-200'
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value={method}
-                      checked={paymentMethod === method}
-                      onChange={() => setPaymentMethod(method)}
-                      className="w-5 h-5 text-gray-900 focus:ring-gray-900/20"
-                    />
-                    <span className="text-[15px] font-medium text-gray-800">
-                      {method === 'cash' ? t.payCash : t.payOnline}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Promo code */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
-              {t.promoCode}
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={promoCode}
-                onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); setPromoResult(null); }}
-                placeholder={t.promoCodePlaceholder}
-                className={cn(inputClass, 'flex-1 uppercase')}
-              />
-              <button
-                onClick={validatePromo}
-                disabled={promoLoading || !promoCode.trim()}
-                className="px-5 py-3.5 rounded-xl bg-gray-900 text-white text-[15px] font-semibold disabled:opacity-30 transition-colors"
-              >
-                {promoLoading ? '...' : t.apply}
-              </button>
-            </div>
-            {promoError && <p className="text-sm text-red-500 mt-2">{promoError}</p>}
-            {promoResult?.valid && (
-              <p className="text-sm text-emerald-600 mt-2 font-medium">
-                {t.discount}: -{fmtPrice(promoResult.discount)}
-                {promoResult.description && ` — ${promoResult.description}`}
-              </p>
-            )}
-          </div>
-
-          {/* Tip selector */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
-              {locale === 'es' ? '¿Deseas dejar propina?' : 'Add a tip?'}
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {[10, 15, 20].map((pct) => {
-                const isActive = tipPercent === pct && !customTip;
-                const amt = Math.round(cartTotal * pct) / 100;
-                return (
-                  <button
-                    key={pct}
-                    type="button"
-                    onClick={() => { setTipPercent(isActive ? null : pct); setCustomTip(''); }}
-                    className={cn(
-                      'flex flex-col items-center py-3 rounded-xl border-2 transition-all duration-150',
-                      isActive
-                        ? 'border-emerald-500 bg-emerald-50'
-                        : 'border-gray-200 active:border-gray-400'
-                    )}
-                  >
-                    <span className={cn('text-sm font-bold', isActive ? 'text-emerald-700' : 'text-gray-700')}>{pct}%</span>
-                    <span className={cn('text-[11px] tabular-nums', isActive ? 'text-emerald-500' : 'text-gray-400')}>{fmtPrice(amt)}</span>
-                  </button>
-                );
-              })}
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={customTip}
-                  onChange={(e) => { setCustomTip(e.target.value); setTipPercent(null); }}
-                  placeholder={locale === 'es' ? 'Otro' : 'Other'}
-                  className={cn(
-                    'w-full h-full text-center rounded-xl border-2 text-sm font-bold transition-all duration-150 focus:outline-none placeholder-gray-400',
-                    customTip
-                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                      : 'border-gray-200 text-gray-700 focus:border-gray-400'
-                  )}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Sticky footer */}
-        <div className="border-t-2 border-gray-100 px-5 py-4 flex-shrink-0 bg-white pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3">
-          {orderError && (
-            <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200">
-              <span className="text-red-700 text-sm font-medium">{orderError}</span>
-            </div>
-          )}
-          {paymentMethod === 'online' && (
-            <WalletButton
-              amount={finalTotal}
-              currency={restaurant.currency ?? 'MXN'}
-              label={restaurant.name}
-              disabled={submitting || items.length === 0 || !customerName.trim() || !customerPhone.trim()}
-              onSuccess={() => {
-                saveLastOrder();
-                clearCart();
-                setOrderNumber('WALLET');
-                setStep('confirmation');
-              }}
-              onError={(msg) => setOrderError(msg)}
-            />
-          )}
-          <button
-            onClick={handleSubmitOrder}
-            disabled={submitting || items.length === 0}
-            className="w-full py-4 rounded-xl bg-emerald-500 text-white font-bold text-base active:scale-[0.98] transition-all duration-150 disabled:opacity-50 shadow-[0_4px_20px_rgba(16,185,129,0.3)]"
-          >
-            {submitting ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                {t.sending}
-              </span>
-            ) : (
-              `${t.confirmOrder} · ${fmtPrice(finalTotal)}`
-            )}
+          <h2 className="text-base font-bold text-gray-900 absolute left-1/2 -translate-x-1/2">{t.checkout}</h2>
+          <button onClick={onClose} className="p-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Close">
+            <X className="w-5 h-5 text-gray-400" />
           </button>
         </div>
-      </div>
+        {formBody}
+        {formFooter}
+      </motion.div>
     </div>
   );
 }
