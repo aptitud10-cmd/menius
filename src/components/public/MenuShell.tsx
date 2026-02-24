@@ -215,11 +215,6 @@ export function MenuShell({
     const main = mainRef.current;
     if (!main || itemsByCategory.length === 0) return;
 
-    // Set initial active category
-    if (!activeCategory && itemsByCategory.length > 0) {
-      setActiveCategory(itemsByCategory[0].category.id);
-    }
-
     const handleScroll = () => {
       if (isScrollingRef.current) return;
 
@@ -244,8 +239,15 @@ export function MenuShell({
     };
 
     main.addEventListener('scroll', handleScroll, { passive: true });
-    handleScroll();
-    return () => main.removeEventListener('scroll', handleScroll);
+    // Double rAF ensures the browser has completed layout (including image heights)
+    // before measuring section positions for the first time.
+    const rafId = requestAnimationFrame(() => {
+      requestAnimationFrame(() => handleScroll());
+    });
+    return () => {
+      cancelAnimationFrame(rafId);
+      main.removeEventListener('scroll', handleScroll);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsByCategory]);
 
