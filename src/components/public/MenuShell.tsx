@@ -849,45 +849,34 @@ export function MenuShell({
       </AnimatePresence>
 
       {/* ── Toast notification ── */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:left-auto lg:right-6 lg:bottom-6 lg:w-auto"
-            initial={{ y: 20, opacity: 0, scale: 0.9 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: 10, opacity: 0, scale: 0.95 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-          >
-            <div className="flex items-center gap-3 pl-3 pr-2 py-2 rounded-2xl bg-gray-900 text-white shadow-xl max-w-sm w-full lg:w-auto">
-              {toast.image ? (
-                <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-700 flex-shrink-0">
-                  <Image
-                    src={toast.image}
-                    alt={toast.name}
-                    fill
-                    sizes="40px"
-                    className="object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="w-5 h-5 text-emerald-400" />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{toast.name}</p>
-                <p className="text-xs text-gray-400">{t.addedToCart}</p>
+      {toast && (
+        <div
+          className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:left-auto lg:right-6 lg:bottom-6 lg:w-auto"
+          onClick={() => { setToast(null); setOpen(true); }}
+        >
+          <div className="flex items-center gap-3 px-3 py-2 rounded-2xl bg-gray-900 text-white shadow-xl max-w-sm w-full lg:w-auto cursor-pointer active:scale-[0.98]">
+            {toast.image ? (
+              <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-700 flex-shrink-0">
+                <Image
+                  src={toast.image}
+                  alt={toast.name}
+                  fill
+                  sizes="40px"
+                  className="object-cover"
+                />
               </div>
-              <button
-                onClick={() => { setToast(null); setOpen(true); }}
-                className="flex-shrink-0 px-3.5 py-2 rounded-xl bg-white text-gray-900 text-xs font-bold active:scale-95 transition-transform"
-              >
-                {t.viewCart}
-              </button>
+            ) : (
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="w-5 h-5 text-emerald-400" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold truncate">{toast.name}</p>
+              <p className="text-xs text-gray-400">{t.addedToCart}</p>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      )}
 
       {/* ── Language Switcher (floating pill) ── */}
       {hasMultiLang && (
