@@ -210,52 +210,45 @@ export function MenuShell({
     );
   }, [searchQuery, products]);
 
-  // Scroll-spy: highlight pill based on visible section using IntersectionObserver.
-  // This is reliable from the first frame with no timing/scroll-event issues.
+  // Scroll-spy: Uber Eats / react-use-scrollspy pattern.
+  // Listen to scroll events on the container and use getBoundingClientRect()
+  // to find the LAST section whose top edge has passed the trigger line.
   useEffect(() => {
     const main = mainRef.current;
     if (!main || itemsByCategory.length === 0) return;
 
-    // Start with the first category active immediately
     setActiveCategory(itemsByCategory[0].category.id);
 
-    const visibleIds = new Set<string>();
+    let ticking = false;
 
-    const pickActive = () => {
-      if (isScrollingRef.current) return;
-      // Walk categories in order and pick the first one currently intersecting
-      for (const { category } of itemsByCategory) {
-        if (visibleIds.has(category.id)) {
-          setActiveCategory(category.id);
-          return;
-        }
-      }
-    };
+    const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        if (isScrollingRef.current) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          const id = entry.target.getAttribute('data-cat-id');
-          if (!id) continue;
-          if (entry.isIntersecting) {
-            visibleIds.add(id);
+        const triggerY = main.getBoundingClientRect().top + 130;
+        let current = itemsByCategory[0].category.id;
+
+        for (const { category } of itemsByCategory) {
+          const el = sectionRefs.current.get(category.id);
+          if (!el) continue;
+          if (el.getBoundingClientRect().top <= triggerY) {
+            current = category.id;
           } else {
-            visibleIds.delete(id);
+            break;
           }
         }
-        pickActive();
-      },
-      {
-        root: main,
-        // A section becomes "active" when its top edge enters the top 55% of the scroll container
-        rootMargin: '0px 0px -45% 0px',
-        threshold: 0,
-      }
-    );
 
-    sectionRefs.current.forEach((el) => observer.observe(el));
+        setActiveCategory(current);
+      });
+    };
 
-    return () => observer.disconnect();
+    main.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => main.removeEventListener('scroll', handleScroll);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsByCategory]);
 
