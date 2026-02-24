@@ -40,6 +40,8 @@ export const productSchema = z.object({
   category_id: z.string().uuid('Categoría requerida'),
   is_active: z.boolean().default(true),
   in_stock: z.boolean().optional(),
+  is_featured: z.boolean().optional(),
+  is_new: z.boolean().optional(),
   dietary_tags: z.array(z.string()).optional(),
   translations: z.record(z.string(), contentTranslationSchema).nullable().optional(),
 });

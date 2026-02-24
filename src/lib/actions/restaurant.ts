@@ -308,6 +308,8 @@ export async function createProduct(data: ProductInput & { image_url?: string })
     description: sanitizeMultiline(data.description, 500),
     price: data.price,
     is_active: data.is_active,
+    ...(data.is_featured != null && { is_featured: data.is_featured }),
+    ...(data.is_new != null && { is_new: data.is_new }),
     ...(data.dietary_tags && { dietary_tags: data.dietary_tags }),
     ...(data.image_url && { image_url: data.image_url }),
   }).select('id').single();
