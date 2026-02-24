@@ -128,6 +128,8 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
     return parts.join(' · ');
   };
 
+  const [importResult, setImportResult] = useState({ success: 0, failed: 0, errors: [] as string[] });
+
   const handleImport = async () => {
     const selectedItems = items.filter((item) => item.selected);
     if (selectedItems.length === 0) return;
@@ -149,20 +151,34 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
             sort_order: Object.keys(categoryMap).length,
             is_active: true,
           });
-          if (result && 'id' in result && result.id) {
+          if (result && 'error' in result) {
+            console.error(`Category "${catName}":`, result.error);
+          } else if (result && 'id' in result && result.id) {
             categoryMap[catName.toLowerCase()] = result.id;
           }
-        } catch { /* skip */ }
+        } catch (err) {
+          console.error(`Category "${catName}" exception:`, err);
+        }
       }
     }
 
-    let imported = 0;
-    for (const item of selectedItems) {
-      try {
-        setProgress({ current: imported, total: selectedItems.length, label: item.name });
-        const catId = categoryMap[item.category.toLowerCase()];
-        if (!catId) { imported++; continue; }
+    let success = 0;
+    let failed = 0;
+    const errors: string[] = [];
+    let processed = 0;
 
+    for (const item of selectedItems) {
+      processed++;
+      setProgress({ current: processed, total: selectedItems.length, label: item.name });
+
+      const catId = categoryMap[item.category.toLowerCase()];
+      if (!catId) {
+        failed++;
+        errors.push(`${item.name}: categoría "${item.category}" no se pudo crear`);
+        continue;
+      }
+
+      try {
         const productResult = await createProduct({
           name: item.name,
           description: item.description,
@@ -172,54 +188,64 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
           ...(item.dietary.length > 0 && { dietary_tags: item.dietary }),
         });
 
+        if (productResult && 'error' in productResult) {
+          failed++;
+          errors.push(`${item.name}: ${productResult.error}`);
+          continue;
+        }
+
         const productId = productResult && 'id' in productResult
           ? (productResult.id as string)
           : null;
 
-        if (productId) {
-          for (const v of item.variants) {
-            await createVariant(productId, { name: v.name, price_delta: v.price_delta, sort_order: v.sort_order });
-          }
+        if (!productId) {
+          failed++;
+          errors.push(`${item.name}: no se obtuvo ID del producto`);
+          continue;
+        }
 
-          for (const e of item.extras) {
-            await createExtra(productId, { name: e.name, price: e.price, sort_order: e.sort_order });
-          }
+        for (const v of item.variants) {
+          await createVariant(productId, { name: v.name, price_delta: v.price_delta, sort_order: v.sort_order });
+        }
 
-          for (const mg of item.modifier_groups) {
-            const groupResult = await createModifierGroup(productId, {
-              name: mg.name,
-              selection_type: mg.selection_type,
-              min_select: mg.is_required ? 1 : 0,
-              max_select: mg.selection_type === 'multi' ? mg.options.length : 1,
-              is_required: mg.is_required,
-              sort_order: mg.sort_order,
-            });
+        for (const e of item.extras) {
+          await createExtra(productId, { name: e.name, price: e.price, sort_order: e.sort_order });
+        }
 
-            const groupId = groupResult && 'group' in groupResult
-              ? (groupResult.group as { id: string })?.id
-              : null;
+        for (const mg of item.modifier_groups) {
+          const groupResult = await createModifierGroup(productId, {
+            name: mg.name,
+            selection_type: mg.selection_type,
+            min_select: mg.is_required ? 1 : 0,
+            max_select: mg.selection_type === 'multi' ? mg.options.length : 1,
+            is_required: mg.is_required,
+            sort_order: mg.sort_order,
+          });
 
-            if (groupId) {
-              for (const opt of mg.options) {
-                await createModifierOption(groupId, {
-                  name: opt.name,
-                  price_delta: opt.price_delta,
-                  is_default: opt.sort_order === 0,
-                  sort_order: opt.sort_order,
-                });
-              }
+          const groupId = groupResult && 'group' in groupResult
+            ? (groupResult.group as { id: string })?.id
+            : null;
+
+          if (groupId) {
+            for (const opt of mg.options) {
+              await createModifierOption(groupId, {
+                name: opt.name,
+                price_delta: opt.price_delta,
+                is_default: opt.sort_order === 0,
+                sort_order: opt.sort_order,
+              });
             }
           }
         }
 
-        imported++;
-        setProgress({ current: imported, total: selectedItems.length, label: item.name });
-      } catch {
-        imported++;
+        success++;
+      } catch (err) {
+        failed++;
+        errors.push(`${item.name}: ${err instanceof Error ? err.message : 'error desconocido'}`);
       }
     }
 
-    setProgress({ current: imported, total: selectedItems.length, label: '' });
+    setImportResult({ success, failed, errors });
     setStep('done');
   };
 
@@ -468,18 +494,39 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
           )}
 
           {step === 'done' && (
-            <div className="flex flex-col items-center justify-center py-12 gap-4">
-              <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center">
-                <Check className="w-8 h-8 text-emerald-600" />
+            <div className="flex flex-col items-center justify-center py-8 gap-4">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                importResult.success > 0 ? 'bg-emerald-50' : 'bg-red-50'
+              }`}>
+                {importResult.success > 0
+                  ? <Check className="w-8 h-8 text-emerald-600" />
+                  : <AlertTriangle className="w-8 h-8 text-red-500" />
+                }
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold text-gray-900">
-                  ¡{progress.current} productos importados!
-                </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Incluyendo variantes, extras y modificadores detectados.
-                </p>
+                {importResult.success > 0 ? (
+                  <p className="text-lg font-bold text-gray-900">
+                    ¡{importResult.success} producto{importResult.success !== 1 ? 's' : ''} importado{importResult.success !== 1 ? 's' : ''}!
+                  </p>
+                ) : (
+                  <p className="text-lg font-bold text-red-600">
+                    No se pudo importar ningún producto
+                  </p>
+                )}
+                {importResult.failed > 0 && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {importResult.failed} producto{importResult.failed !== 1 ? 's' : ''} fallaron
+                  </p>
+                )}
               </div>
+              {importResult.errors.length > 0 && (
+                <div className="w-full max-h-32 overflow-y-auto bg-red-50 rounded-xl p-3 space-y-1">
+                  <p className="text-xs font-semibold text-red-600 mb-1">Errores:</p>
+                  {importResult.errors.map((err, i) => (
+                    <p key={i} className="text-xs text-red-500">• {err}</p>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
