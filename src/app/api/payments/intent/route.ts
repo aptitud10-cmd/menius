@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { getStripe } from '@/lib/stripe';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,13 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeKey) {
-      return NextResponse.json({ error: 'Payments not configured' }, { status: 503 });
-    }
-
-    const Stripe = (await import('stripe')).default;
-    const stripe = new Stripe(stripeKey);
+    const stripe = getStripe();
 
     const { amount, currency, order_id, order_number } = await request.json();
 

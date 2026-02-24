@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { getStripe } from '@/lib/stripe';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,11 +14,6 @@ export async function POST(request: NextRequest) {
         { error: 'Too many requests' },
         { status: 429, headers: { 'Retry-After': '60' } }
       );
-    }
-
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeKey) {
-      return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
     }
 
     const supabase = createClient();
@@ -36,8 +32,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
     }
 
-    const Stripe = (await import('stripe')).default;
-    const stripe = new Stripe(stripeKey);
+    const stripe = getStripe();
 
     let accountId = restaurant.stripe_account_id;
 

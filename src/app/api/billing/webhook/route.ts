@@ -4,20 +4,14 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getPlanByStripePrice, getIntervalByStripePrice } from '@/lib/plans';
 import { createLogger } from '@/lib/logger';
+import { getStripe, getWebhookSecret } from '@/lib/stripe';
 
 const logger = createLogger('billing-webhook');
 
 export async function POST(request: NextRequest) {
   try {
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-    if (!stripeKey || !webhookSecret) {
-      return NextResponse.json({ error: 'Not configured' }, { status: 503 });
-    }
-
-    const Stripe = (await import('stripe')).default;
-    const stripe = new Stripe(stripeKey);
+    const stripe = getStripe();
+    const webhookSecret = getWebhookSecret();
 
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');

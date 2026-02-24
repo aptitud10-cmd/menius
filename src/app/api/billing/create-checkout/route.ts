@@ -1,19 +1,13 @@
 export const dynamic = 'force-dynamic';
 
-import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { PLANS, type PlanId, type BillingInterval } from '@/lib/plans';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
+import { getStripe } from '@/lib/stripe';
 
 const logger = createLogger('billing-checkout');
-
-function getStripe(): Stripe {
-  const key = (process.env.STRIPE_SECRET_KEY ?? '').trim();
-  if (!key) throw new Error('STRIPE_SECRET_KEY is not set');
-  return new Stripe(key, { maxNetworkRetries: 3, timeout: 30_000 });
-}
 
 export async function POST(request: NextRequest) {
   try {

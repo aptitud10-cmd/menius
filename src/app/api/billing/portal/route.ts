@@ -4,18 +4,13 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
+import { getStripe } from '@/lib/stripe';
 
 const logger = createLogger('billing-portal');
 
 export async function POST() {
   try {
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeKey) {
-      return NextResponse.json({ error: 'Stripe no configurado' }, { status: 503 });
-    }
-
-    const Stripe = (await import('stripe')).default;
-    const stripe = new Stripe(stripeKey);
+    const stripe = getStripe();
 
     const supabase = createClient();
     const tenant = await getTenant();

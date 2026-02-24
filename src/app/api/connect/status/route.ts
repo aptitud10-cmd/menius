@@ -2,14 +2,10 @@ export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { getStripe } from '@/lib/stripe';
 
 export async function GET() {
   try {
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeKey) {
-      return NextResponse.json({ configured: false, reason: 'no_stripe' });
-    }
-
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -30,8 +26,7 @@ export async function GET() {
       return NextResponse.json({ connected: false, onboarding_complete: false });
     }
 
-    const Stripe = (await import('stripe')).default;
-    const stripe = new Stripe(stripeKey);
+    const stripe = getStripe();
 
     const account = await stripe.accounts.retrieve(restaurant.stripe_account_id);
     const isComplete = account.charges_enabled && account.payouts_enabled;

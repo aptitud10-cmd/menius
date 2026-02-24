@@ -31,8 +31,8 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     description: 'Para restaurantes que inician su digitalización.',
     price: { monthly: 39, annual: 390 },
     stripePriceId: {
-      monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY ?? '',
-      annual: process.env.STRIPE_PRICE_STARTER_ANNUAL ?? '',
+      monthly: (process.env.STRIPE_PRICE_STARTER_MONTHLY ?? '').trim(),
+      annual: (process.env.STRIPE_PRICE_STARTER_ANNUAL ?? '').trim(),
     },
     limits: {
       maxProducts: 30,
@@ -65,8 +65,8 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     description: 'Para restaurantes que quieren crecer y vender más.',
     price: { monthly: 79, annual: 790 },
     stripePriceId: {
-      monthly: process.env.STRIPE_PRICE_PRO_MONTHLY ?? '',
-      annual: process.env.STRIPE_PRICE_PRO_ANNUAL ?? '',
+      monthly: (process.env.STRIPE_PRICE_PRO_MONTHLY ?? '').trim(),
+      annual: (process.env.STRIPE_PRICE_PRO_ANNUAL ?? '').trim(),
     },
     limits: {
       maxProducts: 200,
@@ -95,8 +95,8 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     description: 'Para restaurantes grandes y cadenas con múltiples ubicaciones.',
     price: { monthly: 149, annual: 1490 },
     stripePriceId: {
-      monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY ?? '',
-      annual: process.env.STRIPE_PRICE_BUSINESS_ANNUAL ?? '',
+      monthly: (process.env.STRIPE_PRICE_BUSINESS_MONTHLY ?? '').trim(),
+      annual: (process.env.STRIPE_PRICE_BUSINESS_ANNUAL ?? '').trim(),
     },
     limits: {
       maxProducts: -1,
