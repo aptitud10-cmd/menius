@@ -106,7 +106,12 @@ export function MenuShell({
   const [toast, setToast] = useState<{ name: string; image?: string | null } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const catScrollRef = useRef<HTMLDivElement>(null);
-  const mainRef = useRef<HTMLElement>(null);
+  const mainRef = useRef<HTMLElement | null>(null);
+  const [mainEl, setMainEl] = useState<HTMLElement | null>(null);
+  const mainRefCb = useCallback((node: HTMLElement | null) => {
+    mainRef.current = node;
+    setMainEl(node);
+  }, []);
   const mobilePillsRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const isScrollingRef = useRef(false);
@@ -250,7 +255,7 @@ export function MenuShell({
 
     return () => main.removeEventListener('scroll', handleScroll);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itemsByCategory]);
+  }, [itemsByCategory, mainEl]);
 
   // Track scroll for collapsing header
   useEffect(() => {
@@ -260,7 +265,7 @@ export function MenuShell({
     const onScroll = () => setHeaderScrolled(main.scrollTop > threshold);
     main.addEventListener('scroll', onScroll, { passive: true });
     return () => main.removeEventListener('scroll', onScroll);
-  }, [hasCover]);
+  }, [hasCover, mainEl]);
 
   // Keyboard shortcuts: / or Ctrl+K for search, Esc to close overlays
   useEffect(() => {
@@ -425,7 +430,7 @@ export function MenuShell({
         </aside>
 
         {/* Center: Products grid — scrolls independently */}
-        <main ref={mainRef} className="flex-1 min-w-0 overflow-y-auto pb-28 lg:pb-8">
+        <main ref={mainRefCb} className="flex-1 min-w-0 overflow-y-auto pb-28 lg:pb-8">
 
           {/* Cover image banner */}
           {restaurant.cover_image_url && (
