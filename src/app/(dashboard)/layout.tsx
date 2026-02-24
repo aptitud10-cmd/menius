@@ -7,6 +7,7 @@ import { Breadcrumbs } from '@/components/dashboard/Breadcrumbs';
 import { CommandPalette } from '@/components/dashboard/CommandPalette';
 import { OrderNotifier } from '@/components/dashboard/OrderNotifier';
 import { IdentifyUser } from '@/components/dashboard/IdentifyUser';
+import { TrialBanner } from '@/components/dashboard/TrialBanner';
 import { redirect } from 'next/navigation';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -60,6 +61,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <DashboardNav slug={restaurant?.slug ?? ''} />
           </div>
 
+          <TrialBanner />
+
           {/* User profile */}
           <div className="px-4 py-4 border-t border-gray-100">
             <div className="flex items-center gap-3">
@@ -86,6 +89,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </Link>
             <DashboardNav slug={restaurant?.slug ?? ''} mobile />
           </header>
+
+          <div className="md:hidden">
+            <TrialBanner />
+          </div>
 
           <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-6xl w-full mx-auto">
             <Breadcrumbs />

@@ -49,14 +49,17 @@ export async function createRestaurant(data: CreateRestaurantInput) {
     return { error: 'Restaurante creado pero hubo un error al vincular tu cuenta. Intenta cerrar sesión y volver a entrar.' };
   }
 
-  // Create trial subscription (14 days) — must complete before redirect
+  // Create trial subscription — must complete before redirect
   const trialEnd = new Date();
   trialEnd.setDate(trialEnd.getDate() + 14);
+  const trialIso = trialEnd.toISOString();
   await supabase.from('subscriptions').upsert({
     restaurant_id: restaurant.id,
-    plan_id: 'basic',
+    plan_id: 'starter',
     status: 'trialing',
-    trial_end: trialEnd.toISOString(),
+    trial_start: new Date().toISOString(),
+    trial_end: trialIso,
+    current_period_end: trialIso,
   }, { onConflict: 'restaurant_id' });
 
   // Seed example data — runs before redirect (batch inserts, ~1-2s)

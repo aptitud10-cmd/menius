@@ -29,7 +29,7 @@ export async function GET() {
       supabase.from('products').select('*').eq('restaurant_id', rid),
       supabase.from('orders').select('*').eq('restaurant_id', rid),
       supabase.from('customers').select('*').eq('restaurant_id', rid),
-      supabase.from('subscriptions').select('plan_id, status, trial_end, current_period_end, billing_interval, created_at').eq('restaurant_id', rid).maybeSingle(),
+      supabase.from('subscriptions').select('plan_id, status, trial_end, current_period_end, stripe_price_id, created_at').eq('restaurant_id', rid).maybeSingle(),
       supabase.from('tables').select('*').eq('restaurant_id', rid),
     ]);
 

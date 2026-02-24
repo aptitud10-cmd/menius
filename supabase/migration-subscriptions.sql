@@ -1,6 +1,7 @@
 -- ============================================================
 -- MIGRATION: Subscriptions / Billing
 -- Run in Supabase SQL Editor AFTER the main migration
+-- NOTE: Also run migration-fix-subscriptions.sql after this
 -- ============================================================
 
 -- Subscriptions table (one per restaurant)
@@ -9,14 +10,14 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE UNIQUE,
   stripe_customer_id TEXT NOT NULL DEFAULT '',
   stripe_subscription_id TEXT DEFAULT NULL,
-  plan_id TEXT NOT NULL DEFAULT 'basic' CHECK (plan_id IN ('basic', 'pro', 'enterprise')),
+  plan_id TEXT NOT NULL DEFAULT 'starter' CHECK (plan_id IN ('starter', 'pro', 'business')),
   status TEXT NOT NULL DEFAULT 'trialing'
     CHECK (status IN ('trialing', 'active', 'past_due', 'canceled', 'unpaid', 'incomplete')),
   billing_interval TEXT NOT NULL DEFAULT 'monthly' CHECK (billing_interval IN ('monthly', 'annual')),
   current_period_start TIMESTAMPTZ DEFAULT NOW(),
-  current_period_end TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '13 days'),
+  current_period_end TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '14 days'),
   trial_start TIMESTAMPTZ DEFAULT NOW(),
-  trial_end TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '13 days'),
+  trial_end TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '14 days'),
   cancel_at_period_end BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -40,28 +41,3 @@ CREATE POLICY "owners_update_own_subscription" ON subscriptions
 -- System can insert/update (via service role in API routes)
 CREATE POLICY "system_manage_subscriptions" ON subscriptions
   FOR ALL USING (true);
-
--- Auto-create subscription when a restaurant is created (13-day trial on basic plan)
-CREATE OR REPLACE FUNCTION handle_new_restaurant_subscription()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO subscriptions (restaurant_id, plan_id, status, trial_start, trial_end, current_period_end)
-  VALUES (
-    NEW.id,
-    'basic',
-    'trialing',
-    NOW(),
-    NOW() + INTERVAL '13 days',
-    NOW() + INTERVAL '13 days'
-  )
-  ON CONFLICT (restaurant_id) DO NOTHING;
-  RETURN NEW;
-EXCEPTION WHEN OTHERS THEN
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS on_restaurant_created_subscription ON restaurants;
-CREATE TRIGGER on_restaurant_created_subscription
-  AFTER INSERT ON restaurants
-  FOR EACH ROW EXECUTE FUNCTION handle_new_restaurant_subscription();

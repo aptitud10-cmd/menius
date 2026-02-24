@@ -69,13 +69,25 @@ export async function POST(request: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
-    if (subscription?.stripe_subscription_id) {
+    // Only redirect to Stripe billing portal if subscription is currently active/trialing
+    const isLiveSubscription =
+      subscription?.stripe_subscription_id &&
+      (subscription.status === 'active' || subscription.status === 'trialing' || subscription.status === 'past_due');
+
+    if (isLiveSubscription) {
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: customerId,
         return_url: `${appUrl}/app/billing`,
       });
       return NextResponse.json({ url: portalSession.url });
     }
+
+    // Transfer remaining trial days only if user is still within their original trial window
+    const hasValidTrial =
+      !subscription?.stripe_subscription_id &&
+      subscription?.status === 'trialing' &&
+      subscription?.trial_end &&
+      new Date(subscription.trial_end) > new Date();
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -85,12 +97,8 @@ export async function POST(request: NextRequest) {
       success_url: `${appUrl}/app/billing?checkout=success`,
       cancel_url: `${appUrl}/app/billing?checkout=cancel`,
       subscription_data: {
-        // Only give trial days if the user is still within their original trial window
-        // and has never had a Stripe subscription before — prevents double-trial abuse
-        ...((!subscription?.stripe_subscription_id && subscription?.status === 'trialing' && subscription?.trial_end && new Date(subscription.trial_end) > new Date())
-          ? {
-              trial_end: Math.floor(new Date(subscription.trial_end).getTime() / 1000),
-            }
+        ...(hasValidTrial
+          ? { trial_end: Math.floor(new Date(subscription!.trial_end!).getTime() / 1000) }
           : {}),
         metadata: {
           restaurant_id: tenant.restaurantId,

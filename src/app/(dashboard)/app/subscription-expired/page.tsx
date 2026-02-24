@@ -1,141 +1,72 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { AlertTriangle, CreditCard, ArrowRight, LogOut } from 'lucide-react';
+import { Shield, LogOut } from 'lucide-react';
 import { logout } from '@/lib/actions/auth';
-
-const plans = [
-  {
-    id: 'starter',
-    name: 'Starter',
-    price: 39,
-    desc: 'Menu digital, QR, pedidos online.',
-    features: ['30 productos', '10 mesas', '1 usuario', 'Dine-in + Pickup'],
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    price: 79,
-    desc: 'Todo lo que necesitas para crecer.',
-    popular: true,
-    features: ['200 productos', '50 mesas', '3 usuarios', 'Delivery + WhatsApp + Analytics'],
-  },
-  {
-    id: 'business',
-    name: 'Business',
-    price: 149,
-    desc: 'Para restaurantes grandes y cadenas.',
-    features: ['Todo ilimitado', 'Dominio propio', 'Soporte dedicado'],
-  },
-];
+import { PricingTable } from '@/components/shared/PricingTable';
+import type { PlanId, BillingInterval } from '@/lib/plans';
 
 export default function SubscriptionExpiredPage() {
   const [loading, setLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubscribe = async (planId: string) => {
+  const handleSelect = async (planId: PlanId, interval: BillingInterval) => {
     setLoading(planId);
+    setError(null);
     try {
       const res = await fetch('/api/billing/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan_id: planId, interval: 'monthly' }),
+        body: JSON.stringify({ plan_id: planId, interval }),
       });
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
       } else {
+        setError(data.error || 'No se pudo crear la sesión de pago. Intenta de nuevo.');
         setLoading(null);
       }
     } catch {
+      setError('Error de conexión. Verifica tu internet e intenta de nuevo.');
       setLoading(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="max-w-3xl w-full">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
+      <div className="max-w-4xl w-full">
         {/* Header */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/[0.1] mb-5">
-            <AlertTriangle className="w-8 h-8 text-amber-400" />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-50 mb-5">
+            <Shield className="w-7 h-7 text-emerald-600" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2 font-heading">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-3 tracking-tight">
             Tu periodo de prueba ha terminado
           </h1>
-          <p className="text-gray-500 max-w-md mx-auto">
-            Para seguir usando MENIUS y recibir pedidos, elige un plan. Tu menú y tus datos están seguros y listos.
+          <p className="text-gray-500 max-w-lg mx-auto text-[15px] leading-relaxed">
+            Tu menú, productos y configuración están seguros. Elige un plan para seguir
+            recibiendo pedidos y usando el dashboard.
           </p>
         </div>
 
-        {/* Plans */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`relative rounded-2xl p-5 flex flex-col ${
-                plan.popular
-                  ? 'bg-emerald-800 text-white ring-2 ring-emerald-400 shadow-xl'
-                  : 'bg-white border border-gray-200'
-              }`}
-            >
-              {plan.popular && (
-                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-emerald-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider">
-                  Recomendado
-                </span>
-              )}
-              <h3 className={`text-base font-bold ${plan.popular ? 'text-white' : 'text-gray-900'}`}>{plan.name}</h3>
-              <p className={`text-xs mt-0.5 mb-3 ${plan.popular ? 'text-emerald-100' : 'text-gray-500'}`}>{plan.desc}</p>
-              <div className="mb-4">
-                <span className={`text-3xl font-extrabold ${plan.popular ? 'text-white' : 'text-gray-900'}`}>${plan.price}</span>
-                <span className={`text-xs ${plan.popular ? 'text-emerald-200' : 'text-gray-500'}`}> /mes</span>
-              </div>
-              <ul className="space-y-1.5 flex-1 mb-4">
-                {plan.features.map((f) => (
-                  <li key={f} className={`text-xs flex items-center gap-1.5 ${plan.popular ? 'text-emerald-100' : 'text-gray-500'}`}>
-                    <span className={`w-1 h-1 rounded-full ${plan.popular ? 'bg-emerald-400' : 'bg-emerald-600'}`} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={() => handleSubscribe(plan.id)}
-                disabled={loading !== null}
-                className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${
-                  plan.popular
-                    ? 'bg-emerald-400 text-white hover:bg-emerald-300'
-                    : 'bg-emerald-50 text-emerald-600 hover:bg-gray-50'
-                }`}
-              >
-                {loading === plan.id ? (
-                  'Redirigiendo...'
-                ) : (
-                  <>
-                    <CreditCard className="w-4 h-4" />
-                    Suscribirse
-                  </>
-                )}
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* Footer links */}
-        <div className="text-center space-y-3">
-          <Link
-            href="/app/billing"
-            className="inline-flex items-center gap-1.5 text-sm text-emerald-600 font-medium hover:underline"
-          >
-            Ver detalles de facturación <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-          <div>
-            <button
-              onClick={() => logout()}
-              className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-600 transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" /> Cerrar sesión
-            </button>
+        {/* Error */}
+        {error && (
+          <div className="mb-6 mx-auto max-w-md p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700 text-center">
+            {error}
           </div>
+        )}
+
+        {/* Plans */}
+        <PricingTable onSelect={handleSelect} loading={loading} />
+
+        {/* Footer */}
+        <div className="text-center mt-10">
+          <button
+            onClick={() => logout()}
+            className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" /> Cerrar sesión
+          </button>
         </div>
       </div>
     </div>

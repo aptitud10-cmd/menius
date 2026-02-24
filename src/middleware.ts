@@ -109,29 +109,31 @@ export async function middleware(request: NextRequest) {
     const now = new Date();
 
     if (!subscription) {
-      // No subscription record: give a 1-hour grace period after restaurant creation, then block
+      // No subscription record: 24-hour grace period after restaurant creation
       const { data: restaurant } = await supabase
         .from('restaurants')
         .select('created_at')
         .eq('id', profile.default_restaurant_id)
         .maybeSingle();
       const createdAt = restaurant?.created_at ? new Date(restaurant.created_at) : new Date(0);
-      const graceEnds = new Date(createdAt.getTime() + 60 * 60 * 1000);
+      const graceEnds = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
       if (now > graceEnds) {
         return NextResponse.redirect(new URL('/app/subscription-expired', request.url));
       }
     } else {
-      const isTrialing = subscription.status === 'trialing';
-      const isActive = subscription.status === 'active';
-      const isPastDue = subscription.status === 'past_due';
+      const { status } = subscription;
       const trialEnded = subscription.trial_end && new Date(subscription.trial_end) < now;
       const periodEnded = subscription.current_period_end && new Date(subscription.current_period_end) < now;
 
-      if (isTrialing && trialEnded) {
+      // Active or past_due (Stripe is retrying payment) — always allow access
+      if (status === 'active' || status === 'past_due') {
+        // allow
+      } else if (status === 'trialing' && trialEnded) {
         return NextResponse.redirect(new URL('/app/subscription-expired', request.url));
-      }
-
-      if (!isTrialing && !isActive && !isPastDue && periodEnded) {
+      } else if (status === 'trialing') {
+        // still in valid trial — allow
+      } else if (periodEnded) {
+        // canceled, unpaid, incomplete with expired period
         return NextResponse.redirect(new URL('/app/subscription-expired', request.url));
       }
     }

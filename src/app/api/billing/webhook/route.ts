@@ -68,15 +68,18 @@ export async function POST(request: NextRequest) {
         const updateData: Record<string, any> = {
           stripe_subscription_id: sub.id,
           status,
-          cancel_at_period_end: sub.cancel_at_period_end ?? false,
+          stripe_price_id: priceId ?? null,
           current_period_start: new Date(sub.current_period_start * 1000).toISOString(),
           current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
           updated_at: new Date().toISOString(),
         };
 
+        if (sub.cancel_at_period_end) {
+          updateData.canceled_at = new Date().toISOString();
+        }
+
         if (plan) {
           updateData.plan_id = plan.id;
-          updateData.billing_interval = interval;
         }
 
         if (sub.trial_start) {
@@ -108,7 +111,8 @@ export async function POST(request: NextRequest) {
 
         const updateData = {
           status: 'canceled',
-          cancel_at_period_end: false,
+          stripe_subscription_id: null,
+          canceled_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
 

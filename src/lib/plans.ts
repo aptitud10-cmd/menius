@@ -117,14 +117,18 @@ export const PLANS: Record<PlanId, PlanConfig> = {
   },
 };
 
+// Legacy aliases for data created before the plan ID migration
 const PLAN_ALIASES: Record<string, PlanId> = {
   basic: 'starter',
   enterprise: 'business',
 };
 
+export function resolvePlanId(planId: string): PlanId {
+  return (PLAN_ALIASES[planId] ?? planId) as PlanId;
+}
+
 export function getPlan(planId: PlanId | string): PlanConfig | null {
-  const resolved = PLAN_ALIASES[planId] ?? planId;
-  return PLANS[resolved as PlanId] ?? null;
+  return PLANS[resolvePlanId(planId)] ?? null;
 }
 
 export function getPlanByStripePrice(priceId: string): PlanConfig | null {

@@ -192,14 +192,16 @@ export interface Subscription {
   restaurant_id: string;
   stripe_customer_id: string;
   stripe_subscription_id: string | null;
+  stripe_price_id: string | null;
   plan_id: string; // 'starter' | 'pro' | 'business'
   status: SubscriptionStatus;
-  billing_interval: 'monthly' | 'annual';
   current_period_start: string;
   current_period_end: string;
   trial_start: string | null;
   trial_end: string | null;
-  cancel_at_period_end: boolean;
+  canceled_at: string | null;
+  max_orders_per_month: number | null;
+  max_locations: number | null;
   created_at: string;
   updated_at: string;
 }
