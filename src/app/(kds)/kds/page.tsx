@@ -1,7 +1,7 @@
 import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { KDSView } from '@/components/orders/KDSView';
 
-export default async function KDSPage() {
+export default async function KDSFullscreenPage() {
   const { supabase, restaurantId } = await getDashboardContext();
 
   const [{ data: restaurant }, { data: orders }] = await Promise.all([
@@ -14,9 +14,10 @@ export default async function KDSPage() {
       .from('orders')
       .select(`
         *,
+        table:tables ( name ),
         order_items (
           id, qty, unit_price, line_total, notes,
-          product:products ( id, name, image_url ),
+          product:products ( id, name, image_url, dietary_tags ),
           variant:product_variants ( name ),
           order_item_extras ( price, product_extras ( name ) ),
           order_item_modifiers ( group_name, option_name, price_delta )

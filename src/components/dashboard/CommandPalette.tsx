@@ -22,7 +22,7 @@ interface PaletteItem {
 const NAV_ITEMS: PaletteItem[] = [
   { id: 'home', label: 'Inicio', section: 'Navegación', icon: LayoutDashboard, href: '/app' },
   { id: 'orders', label: 'Órdenes', section: 'Navegación', icon: ClipboardList, href: '/app/orders', keywords: 'pedidos' },
-  { id: 'kds', label: 'Cocina (KDS)', section: 'Navegación', icon: Monitor, href: '/app/orders/kds', keywords: 'kitchen display tablet' },
+  { id: 'kds', label: 'Cocina (KDS)', section: 'Navegación', icon: Monitor, href: '/kds', keywords: 'kitchen display tablet' },
   { id: 'categories', label: 'Categorías', section: 'Navegación', icon: Tag, href: '/app/menu/categories' },
   { id: 'products', label: 'Productos', section: 'Navegación', icon: ShoppingBag, href: '/app/menu/products', keywords: 'menu platos' },
   { id: 'tables', label: 'Mesas & QRs', section: 'Navegación', icon: QrCode, href: '/app/tables' },
