@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ShoppingCart, ChevronLeft, ChevronRight, CheckCircle, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
@@ -103,8 +103,6 @@ export function MenuShell({
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [customization, setCustomization] = useState<CustomizationTarget | null>(null);
-  const [toast, setToast] = useState<{ name: string; image?: string | null } | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const catScrollRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement | null>(null);
   const [mainEl, setMainEl] = useState<HTMLElement | null>(null);
@@ -146,22 +144,16 @@ export function MenuShell({
     setCustomization({ product, editIndex: null });
   }, []);
 
-  const showToast = useCallback((product: Product) => {
-    clearTimeout(toastTimer.current);
-    setToast({ name: product.name, image: product.image_url });
-    toastTimer.current = setTimeout(() => setToast(null), 3000);
-  }, []);
 
   const handleQuickAdd = useCallback((product: Product) => {
     addItem(product, null, [], 1, '');
-    showToast(product);
     trackEvent('product_added_to_cart', {
       product_id: product.id,
       product_name: product.name,
       price: product.price,
       restaurant_id: restaurant.id,
     });
-  }, [addItem, showToast, restaurant.id]);
+  }, [addItem, restaurant.id]);
 
   const handleEditCartItem = useCallback((index: number) => {
     const items = useCartStore.getState().items;
@@ -848,35 +840,6 @@ export function MenuShell({
         )}
       </AnimatePresence>
 
-      {/* ── Toast notification ── */}
-      {toast && (
-        <div
-          className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:left-auto lg:right-6 lg:bottom-6 lg:w-auto"
-          onClick={() => { setToast(null); setOpen(true); }}
-        >
-          <div className="flex items-center gap-3 px-3 py-2 rounded-2xl bg-gray-900 text-white shadow-xl max-w-sm w-full lg:w-auto cursor-pointer active:scale-[0.98]">
-            {toast.image ? (
-              <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-700 flex-shrink-0">
-                <Image
-                  src={toast.image}
-                  alt={toast.name}
-                  fill
-                  sizes="40px"
-                  className="object-cover"
-                />
-              </div>
-            ) : (
-              <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                <CheckCircle className="w-5 h-5 text-emerald-400" />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate">{toast.name}</p>
-              <p className="text-xs text-gray-400">{t.addedToCart}</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Language Switcher (floating pill) ── */}
       {hasMultiLang && (
