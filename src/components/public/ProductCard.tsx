@@ -42,6 +42,7 @@ export const ProductCard = memo(function ProductCard({
 
   const displayName = tName(product, locale, defaultLocale);
   const displayDesc = tDesc(product, locale, defaultLocale);
+  const imgAlt = displayDesc ? `${displayName} - ${displayDesc.slice(0, 80)}` : displayName;
   const [justAdded, setJustAdded] = useState(false);
   const isFav = useFavoritesStore((s) => s.ids.includes(product.id));
   const toggleFav = useFavoritesStore((s) => s.toggle);
@@ -144,7 +145,7 @@ export const ProductCard = memo(function ProductCard({
           <div className="relative w-[92px] h-[92px] rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
             <Image
               src={product.image_url}
-              alt={product.name}
+              alt={imgAlt}
               fill
               sizes="92px"
               loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
@@ -192,7 +193,7 @@ export const ProductCard = memo(function ProductCard({
           <div className="relative w-full aspect-[16/9] bg-gray-100 overflow-hidden">
             <Image
               src={product.image_url}
-              alt={product.name}
+              alt={imgAlt}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
               loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}

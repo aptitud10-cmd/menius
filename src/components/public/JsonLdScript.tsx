@@ -54,6 +54,7 @@ export function JsonLdScript({
     ...(restaurant.logo_url && { logo: restaurant.logo_url }),
     ...(paymentAccepted && paymentAccepted.length > 0 && { paymentAccepted }),
     ...(priceRange && { priceRange }),
+    ...(restaurant.cuisine_type && { servesCuisine: restaurant.cuisine_type }),
     acceptsReservations: false,
   };
 
@@ -110,7 +111,9 @@ export function JsonLdScript({
             '@type': 'Offer',
             price: p.price,
             priceCurrency: currency,
-            availability: 'https://schema.org/InStock',
+            availability: p.in_stock === false
+              ? 'https://schema.org/OutOfStock'
+              : 'https://schema.org/InStock',
           },
         };
       }),

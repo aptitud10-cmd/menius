@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Save, Loader2, Check, Camera, Trash2, X,
-  ImagePlus, Eye, EyeOff, PackageCheck, PackageX, Languages,
+  ImagePlus, Eye, EyeOff, PackageCheck, PackageX, Languages, Sparkles, Link2,
 } from 'lucide-react';
 import { createProduct, updateProduct, deleteProduct } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
@@ -61,8 +61,56 @@ export function ProductEditor({
   const fileRef = useRef<HTMLInputElement>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryUrl, setGalleryUrl] = useState<string | null>(null);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [urlValue, setUrlValue] = useState('');
 
-  const busy = uploading || isPending;
+  const selectedCategory = categories.find(c => c.id === form.category_id);
+  const busy = uploading || isPending || aiGenerating;
+
+  const handleAIGenerate = useCallback(async () => {
+    if (!form.name.trim()) { setError('Ingresa el nombre del producto primero'); return; }
+    setAiGenerating(true);
+    setError('');
+    try {
+      const res = await fetch('/api/ai/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: form.name,
+          description: form.description,
+          category: selectedCategory?.name,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error generando imagen');
+      setGalleryUrl(data.url);
+      setImagePreview(data.url);
+      setImageFile(null);
+      if (fileRef.current) fileRef.current.value = '';
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error generando imagen con IA');
+    } finally {
+      setAiGenerating(false);
+    }
+  }, [form.name, form.description, selectedCategory?.name]);
+
+  const handleUrlSubmit = useCallback(() => {
+    const url = urlValue.trim();
+    if (!url) return;
+    try {
+      new URL(url);
+    } catch {
+      setError('URL inválida');
+      return;
+    }
+    setGalleryUrl(url);
+    setImagePreview(url);
+    setImageFile(null);
+    setUrlValue('');
+    setShowUrlInput(false);
+    if (fileRef.current) fileRef.current.value = '';
+  }, [urlValue]);
 
   const handleGallerySelect = useCallback((url: string) => {
     setGalleryUrl(url);
@@ -183,8 +231,6 @@ export function ProductEditor({
     setGalleryUrl(null);
     if (fileRef.current) fileRef.current.value = '';
   };
-
-  const selectedCategory = categories.find(c => c.id === form.category_id);
 
   return (
     <div className="min-h-[calc(100vh-64px)]">
@@ -316,7 +362,7 @@ export function ProductEditor({
                       unoptimized={imagePreview.startsWith('blob:')}
                     />
                   </div>
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2 flex-wrap p-2">
                     <button
                       onClick={() => fileRef.current?.click()}
                       className="px-3 py-2 bg-white rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
@@ -330,6 +376,13 @@ export function ProductEditor({
                       <ImagePlus className="w-4 h-4 inline mr-1" /> Galería
                     </button>
                     <button
+                      onClick={handleAIGenerate}
+                      disabled={aiGenerating}
+                      className="px-3 py-2 bg-white rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 transition-colors disabled:opacity-50"
+                    >
+                      {aiGenerating ? <Loader2 className="w-4 h-4 inline mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 inline mr-1" />} IA
+                    </button>
+                    <button
                       onClick={removeImage}
                       className="px-3 py-2 bg-white rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                     >
@@ -340,7 +393,7 @@ export function ProductEditor({
               ) : (
                 <div className="w-full aspect-[16/9] border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-3">
                   <ImagePlus className="w-8 h-8 text-gray-400" />
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap justify-center">
                     <button
                       onClick={() => fileRef.current?.click()}
                       className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -353,7 +406,39 @@ export function ProductEditor({
                     >
                       Elegir de galería
                     </button>
+                    <button
+                      onClick={handleAIGenerate}
+                      disabled={aiGenerating}
+                      className="px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
+                    >
+                      {aiGenerating ? <><Loader2 className="w-3.5 h-3.5 inline mr-1 animate-spin" /> Generando...</> : <><Sparkles className="w-3.5 h-3.5 inline mr-1" /> Generar con IA</>}
+                    </button>
+                    <button
+                      onClick={() => setShowUrlInput(true)}
+                      className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <Link2 className="w-3.5 h-3.5 inline mr-1" /> Desde URL
+                    </button>
                   </div>
+                  {showUrlInput && (
+                    <div className="flex items-center gap-2 w-full max-w-md px-4">
+                      <input
+                        type="url"
+                        value={urlValue}
+                        onChange={e => setUrlValue(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleUrlSubmit(); if (e.key === 'Escape') setShowUrlInput(false); }}
+                        placeholder="https://ejemplo.com/imagen.jpg"
+                        className="dash-input flex-1 text-sm"
+                        autoFocus
+                      />
+                      <button onClick={handleUrlSubmit} className="px-3 py-1.5 text-sm font-medium bg-emerald-500 text-white rounded-lg hover:bg-emerald-600">
+                        OK
+                      </button>
+                      <button onClick={() => { setShowUrlInput(false); setUrlValue(''); }} className="p-1.5 text-gray-400 hover:text-gray-600">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                   <span className="text-xs text-gray-400">PNG, JPG hasta 5MB</span>
                 </div>
               )}

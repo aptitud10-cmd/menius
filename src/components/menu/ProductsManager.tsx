@@ -5,8 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   Plus, Trash2, Eye, EyeOff, Search, Package, Sparkles,
-  ChevronRight, X, Save, Camera, Loader2, Check, Layers, GripVertical,
-  PackageX, PackageCheck, ImagePlus, Languages, Copy, Maximize2, SlidersHorizontal,
+  ChevronRight, X, GripVertical,
+  PackageX, PackageCheck, ImagePlus, Copy, SlidersHorizontal,
 } from 'lucide-react';
 import {
   DndContext,
@@ -24,15 +24,11 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  createProduct, updateProduct, deleteProduct, createCategory, reorderProducts, toggleProductStock,
+  createProduct, updateProduct, deleteProduct, reorderProducts, toggleProductStock,
   createVariant, createExtra, createModifierGroup, createModifierOption,
 } from '@/lib/actions/restaurant';
 import { formatPrice, cn } from '@/lib/utils';
-import { useToast } from '@/components/dashboard/DashToast';
-import type { Product, Category, DietaryTag, ContentTranslation } from '@/types';
-import { getLocaleFlag, getLocaleLabel } from '@/lib/i18n';
-import { DIETARY_TAGS } from '@/lib/dietary-tags';
-import { ModifierGroupsEditor } from './ModifierGroupsEditor';
+import type { Product, Category } from '@/types';
 
 const MenuImportLazy = lazy(() => import('./MenuImport').then(m => ({ default: m.MenuImport })));
 const BulkImageUploadLazy = lazy(() => import('./BulkImageUpload').then(m => ({ default: m.BulkImageUpload })));
@@ -103,502 +99,6 @@ function InlinePriceCell({
   );
 }
 
-// ─── Side panel (Toast-style) ───────────────────────────────────
-
-function ProductSidePanel({
-  product,
-  categories,
-  currency,
-  onSave,
-  onClose,
-  onCategoryCreated,
-  defaultLocale = 'es',
-  availableLocales = ['es'],
-}: {
-  product: Product | null;
-  categories: Category[];
-  currency: string;
-  onSave: (p: Product) => void;
-  onClose: () => void;
-  onCategoryCreated: (c: Category) => void;
-  defaultLocale?: string;
-  availableLocales?: string[];
-}) {
-  const { success: toastSuccess, error: toastError } = useToast();
-  const isEditing = !!product;
-  const modCount = product?.modifier_groups?.length ?? 0;
-  const hasMultiLang = availableLocales.length > 1;
-  const [tab, setTab] = useState<'info' | 'options' | 'translations'>('info');
-  const [translations, setTranslations] = useState<Record<string, ContentTranslation>>(
-    product?.translations ?? {},
-  );
-
-  const [form, setForm] = useState({
-    name: product?.name ?? '',
-    description: product?.description ?? '',
-    price: product ? String(product.price) : '',
-    category_id: product?.category_id ?? categories[0]?.id ?? '',
-    dietary_tags: (product?.dietary_tags ?? []) as DietaryTag[],
-  });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(product?.image_url || null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState('');
-  const [saved, setSaved] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const [showNewCat, setShowNewCat] = useState(false);
-  const [newCatName, setNewCatName] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setForm({
-      name: product?.name ?? '',
-      description: product?.description ?? '',
-      price: product ? String(product.price) : '',
-      category_id: product?.category_id ?? categories[0]?.id ?? '',
-      dietary_tags: (product?.dietary_tags ?? []) as DietaryTag[],
-    });
-    setImagePreview(product?.image_url || null);
-    setImageFile(null);
-    setTranslations(product?.translations ?? {});
-    setError('');
-    setSaved(false);
-    setTab('info');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product?.id]);
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { setError('Solo imágenes'); return; }
-    if (file.size > 5 * 1024 * 1024) { setError('Máximo 5MB'); return; }
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
-    setError('');
-  };
-
-  const uploadImage = async (): Promise<string | null> => {
-    if (!imageFile) return null;
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', imageFile);
-      const res = await fetch('/api/tenant/upload', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      return data.url;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Error subiendo imagen';
-      setError(message);
-      return null;
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!form.name.trim()) { setError('Nombre requerido'); return; }
-    if (!form.category_id) { setError('Selecciona categoría'); return; }
-    const price = parseFloat(form.price);
-    if (isNaN(price) || price < 0) { setError('Precio inválido'); return; }
-
-    let imageUrl: string | null = null;
-    if (imageFile) {
-      imageUrl = await uploadImage();
-      if (imageUrl === null && imageFile) return;
-    }
-
-    startTransition(async () => {
-      try {
-        if (isEditing && product) {
-          const data: Record<string, unknown> = {
-            name: form.name, description: form.description, price,
-            category_id: form.category_id, dietary_tags: form.dietary_tags,
-            translations: Object.keys(translations).length > 0 ? translations : null,
-          };
-          if (imageUrl) data.image_url = imageUrl;
-          const res = await updateProduct(product.id, data);
-          if (res.error) { setError(res.error); toastError(res.error); return; }
-          setSaved(true);
-          toastSuccess('Producto actualizado');
-          setTimeout(() => setSaved(false), 2000);
-          onSave({
-            ...product,
-            name: form.name,
-            description: form.description,
-            price,
-            category_id: form.category_id,
-            dietary_tags: form.dietary_tags,
-            ...(imageUrl ? { image_url: imageUrl } : {}),
-          });
-        } else {
-          const res = await createProduct({
-            name: form.name, description: form.description, price,
-            category_id: form.category_id, is_active: true, dietary_tags: form.dietary_tags,
-            ...(imageUrl ? { image_url: imageUrl } : {}),
-          });
-          if (res.error) { setError(res.error); toastError(res.error); return; }
-          setSaved(true);
-          toastSuccess('Producto creado');
-          setTimeout(() => setSaved(false), 2000);
-          onSave({
-            id: res.id || `temp-${Date.now()}`,
-            restaurant_id: '',
-            category_id: form.category_id,
-            name: form.name,
-            description: form.description,
-            price,
-            image_url: imageUrl ?? '',
-            is_active: true,
-            dietary_tags: form.dietary_tags,
-            sort_order: 0,
-            created_at: new Date().toISOString(),
-            modifier_groups: [],
-          });
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Error inesperado al guardar';
-        setError(msg);
-        toastError(msg);
-      }
-    });
-  };
-
-  const handleCreateCat = async () => {
-    if (!newCatName.trim()) return;
-    const res = await createCategory({
-      name: newCatName, sort_order: categories.length, is_active: true,
-    });
-    if (res.error) {
-      setError(res.error);
-      setNewCatName('');
-      setShowNewCat(false);
-      return;
-    }
-    if (res.success && res.id) {
-      const cat: Category = {
-        id: res.id, name: res.name!, restaurant_id: '',
-        sort_order: categories.length, is_active: true, created_at: '',
-      };
-      onCategoryCreated(cat);
-      setForm(f => ({ ...f, category_id: res.id! }));
-    }
-    setNewCatName('');
-    setShowNewCat(false);
-  };
-
-  const busy = isPending || uploading;
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/15 z-40"
-        style={{ animation: 'fadeIn 0.15s ease-out both' }}
-        onClick={onClose}
-      />
-
-      {/* Panel */}
-      <div className="fixed top-0 right-0 bottom-0 w-full sm:w-[480px] bg-white z-50 shadow-2xl flex flex-col animate-slide-in-right">
-        {/* Header + Tabs */}
-        <div className="flex-shrink-0 border-b border-gray-200">
-          <div className="flex items-center justify-between px-5 pt-3.5 pb-0">
-            <h2 className="font-semibold text-[15px] text-gray-900 truncate">
-              {isEditing ? product.name : 'Nuevo producto'}
-            </h2>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-          {isEditing && (
-            <div className="flex gap-0 px-5 mt-2">
-              <button
-                onClick={() => setTab('info')}
-                className={cn(
-                  'px-3 py-2 text-sm font-medium border-b-2 transition-colors',
-                  tab === 'info'
-                    ? 'border-emerald-600 text-emerald-700'
-                    : 'border-transparent text-gray-400 hover:text-gray-600',
-                )}
-              >
-                Información
-              </button>
-              <button
-                onClick={() => setTab('options')}
-                className={cn(
-                  'px-3 py-2 text-sm font-medium border-b-2 transition-colors',
-                  tab === 'options'
-                    ? 'border-emerald-600 text-emerald-700'
-                    : 'border-transparent text-gray-400 hover:text-gray-600',
-                )}
-              >
-                Opciones {modCount > 0 && <span className="ml-1 text-[11px] bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded-full">{modCount}</span>}
-              </button>
-              {hasMultiLang && (
-                <button
-                  onClick={() => setTab('translations')}
-                  className={cn(
-                    'px-3 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1',
-                    tab === 'translations'
-                      ? 'border-emerald-600 text-emerald-700'
-                      : 'border-transparent text-gray-400 hover:text-gray-600',
-                  )}
-                >
-                  <Languages className="w-3.5 h-3.5" />
-                  Idiomas
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
-          {error && (
-            <div className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm flex items-center justify-between">
-              <span>{error}</span>
-              <button onClick={() => setError('')}><X className="w-3.5 h-3.5" /></button>
-            </div>
-          )}
-
-          {/* ── Tab: Info ── */}
-          {(tab === 'info' || !isEditing) && (
-            <>
-              <div>
-                <label className="dash-label mb-1.5 block">Nombre *</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={e => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ej: Huevos rancheros"
-                  autoFocus={!isEditing}
-                  className="dash-input"
-                />
-              </div>
-
-              <div>
-                <label className="dash-label mb-1.5 block">Descripción</label>
-                <textarea
-                  value={form.description}
-                  onChange={e => setForm({ ...form, description: e.target.value })}
-                  placeholder="Describe el producto..."
-                  rows={2}
-                  className="dash-input resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="dash-label mb-1.5 block">Precio *</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={form.price}
-                    onChange={e => setForm({ ...form, price: e.target.value })}
-                    placeholder="0.00"
-                    className="dash-input"
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="dash-label">Categoría *</label>
-                    <button onClick={() => setShowNewCat(true)} className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
-                      + Nueva
-                    </button>
-                  </div>
-                  {showNewCat ? (
-                    <div className="flex gap-1.5">
-                      <input
-                        type="text"
-                        value={newCatName}
-                        onChange={e => setNewCatName(e.target.value)}
-                        placeholder="Categoría"
-                        autoFocus
-                        className="dash-input flex-1 text-sm"
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') handleCreateCat();
-                          if (e.key === 'Escape') setShowNewCat(false);
-                        }}
-                      />
-                      <button onClick={handleCreateCat} className="dash-btn-primary px-2 py-1">
-                        <Check className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <select
-                      value={form.category_id}
-                      onChange={e => setForm({ ...form, category_id: e.target.value })}
-                      className="dash-select"
-                    >
-                      {categories.map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="dash-label mb-1.5 block">Imagen</label>
-                <input ref={fileRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
-                {imagePreview ? (
-                  <div className="relative w-full h-36 rounded-lg overflow-hidden bg-gray-100 group">
-                    <Image src={imagePreview} alt="" fill className="object-cover" sizes="400px" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-2">
-                      <button onClick={() => fileRef.current?.click()} className="opacity-0 group-hover:opacity-100 p-2 rounded-lg bg-white text-gray-700 hover:bg-gray-50 shadow-sm transition-opacity">
-                        <Camera className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => { setImageFile(null); setImagePreview(null); }} className="opacity-0 group-hover:opacity-100 p-2 rounded-lg bg-white text-red-600 hover:bg-red-50 shadow-sm transition-opacity">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => fileRef.current?.click()}
-                    className="w-full h-20 rounded-lg border-2 border-dashed border-gray-200 hover:border-emerald-400 flex items-center justify-center gap-2 text-gray-400 hover:text-emerald-600 transition-all"
-                  >
-                    <Camera className="w-4 h-4" />
-                    <span className="text-xs font-medium">Subir foto</span>
-                  </button>
-                )}
-              </div>
-
-              <div>
-                <label className="dash-label mb-1.5 block">Etiquetas</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {DIETARY_TAGS.map(tag => {
-                    const sel = form.dietary_tags.includes(tag.id);
-                    return (
-                      <button
-                        key={tag.id}
-                        onClick={() => setForm(f => ({
-                          ...f,
-                          dietary_tags: sel
-                            ? f.dietary_tags.filter(t => t !== tag.id)
-                            : [...f.dietary_tags, tag.id],
-                        }))}
-                        className={cn(
-                          'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all',
-                          sel
-                            ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
-                            : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
-                        )}
-                      >
-                        {tag.emoji} {tag.labelEs}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {!isEditing && (
-                <div className="text-center py-6 text-gray-400">
-                  <Layers className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                  <p className="text-sm font-medium text-gray-500">Primero guarda el producto</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Después podrás agregar opciones (Tamaño, Extras, Salsas...)
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* ── Tab: Options (Modifiers) ── */}
-          {tab === 'options' && isEditing && product && (
-            <ModifierGroupsEditor
-              groups={product.modifier_groups ?? []}
-              productId={product.id}
-              onUpdate={groups => onSave({ ...product, modifier_groups: groups })}
-            />
-          )}
-
-          {tab === 'translations' && hasMultiLang && (
-            <div className="space-y-5">
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
-                <p className="text-xs text-emerald-700">
-                  <span className="font-semibold">Idioma base ({getLocaleFlag(defaultLocale)} {getLocaleLabel(defaultLocale)}):</span>{' '}
-                  {form.name || 'Sin nombre'}
-                </p>
-                {form.description && (
-                  <p className="text-xs text-emerald-600 mt-0.5 truncate">{form.description}</p>
-                )}
-              </div>
-
-              {availableLocales.filter((l) => l !== defaultLocale).map((locale) => {
-                const tr = translations[locale] ?? {};
-                return (
-                  <div key={locale} className="space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                      <span className="text-base">{getLocaleFlag(locale)}</span>
-                      {getLocaleLabel(locale)}
-                    </h3>
-                    <div>
-                      <label className="dash-label mb-1 block">Nombre</label>
-                      <input
-                        type="text"
-                        value={tr.name ?? ''}
-                        onChange={(e) =>
-                          setTranslations((prev) => ({
-                            ...prev,
-                            [locale]: { ...prev[locale], name: e.target.value },
-                          }))
-                        }
-                        placeholder={form.name}
-                        className="dash-input"
-                      />
-                    </div>
-                    <div>
-                      <label className="dash-label mb-1 block">Descripción</label>
-                      <textarea
-                        value={tr.description ?? ''}
-                        onChange={(e) =>
-                          setTranslations((prev) => ({
-                            ...prev,
-                            [locale]: { ...prev[locale], description: e.target.value },
-                          }))
-                        }
-                        placeholder={form.description || 'Traducción...'}
-                        rows={2}
-                        className="dash-input resize-none"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="border-t border-gray-200 px-5 py-3 flex items-center justify-end gap-2 flex-shrink-0">
-          <button onClick={onClose} className="dash-btn-secondary">
-            Cancelar
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={busy}
-            className={cn('dash-btn-primary', saved && 'bg-emerald-600')}
-          >
-            {uploading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Subiendo...</>
-            ) : isPending ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
-            ) : saved ? (
-              <><Check className="w-4 h-4" /> Guardado</>
-            ) : isEditing ? (
-              <><Save className="w-4 h-4" /> Guardar</>
-            ) : (
-              <><Plus className="w-4 h-4" /> Crear</>
-            )}
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
 // ─── Main products manager ──────────────────────────────────────
 
 export function ProductsManager({
@@ -619,7 +119,6 @@ export function ProductsManager({
   const curr = currency || 'USD';
   const [products, setProducts] = useState(initialProducts);
   const [categories, setCategories] = useState(initialCategories);
-  const [panel, setPanel] = useState<Product | 'new' | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(
     () => new Set(initialCategories.map(c => c.id)),
   );
@@ -641,28 +140,10 @@ export function ProductsManager({
     });
   };
 
-  const handleSave = (saved: Product) => {
-    const exists = products.find(p => p.id === saved.id);
-    if (exists) {
-      setProducts(prev =>
-        prev.map(p =>
-          p.id === saved.id
-            ? { ...saved, modifier_groups: saved.modifier_groups ?? p.modifier_groups }
-            : p,
-        ),
-      );
-    } else {
-      setProducts(prev => [...prev, saved]);
-      setExpanded(prev => { const s = new Set(Array.from(prev)); s.add(saved.category_id); return s; });
-    }
-    if (panel === 'new') setPanel(saved);
-  };
-
   const handleDelete = (id: string) => {
     if (!confirm('¿Eliminar este producto?')) return;
     const prev = products;
     setProducts(p => p.filter(x => x.id !== id));
-    if (panel && typeof panel !== 'string' && panel.id === id) setPanel(null);
     startTransition(async () => {
       try {
         const res = await deleteProduct(id);
@@ -812,11 +293,6 @@ export function ProductsManager({
     });
   };
 
-  const onCatCreated = (c: Category) => {
-    setCategories(prev => [...prev, c]);
-    setExpanded(prev => { const s = new Set(Array.from(prev)); s.add(c.id); return s; });
-  };
-
   const q = search.toLowerCase();
   const activeFilterCount = (filterCategory !== 'all' ? 1 : 0) + (filterStatus !== 'all' ? 1 : 0) + (filterStock !== 'all' ? 1 : 0);
   const clearFilters = () => { setFilterCategory('all'); setFilterStatus('all'); setFilterStock('all'); };
@@ -853,9 +329,9 @@ export function ProductsManager({
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-2">
-          <button onClick={() => setPanel('new')} className="dash-btn-primary">
+          <Link href="/app/menu/products/new" className="dash-btn-primary">
             <Plus className="w-4 h-4" /> Nuevo producto
-          </button>
+          </Link>
           <button onClick={() => setShowBulkImages(true)} className="dash-btn-secondary">
             <ImagePlus className="w-4 h-4" /> Fotos
           </button>
@@ -989,9 +465,9 @@ export function ProductsManager({
           <Package className="dash-empty-icon" />
           <p className="dash-empty-title">Sin productos</p>
           <p className="dash-empty-desc">Crea tu primer producto para empezar.</p>
-          <button onClick={() => setPanel('new')} className="dash-btn-primary">
+          <Link href="/app/menu/products/new" className="dash-btn-primary">
             <Plus className="w-4 h-4" /> Crear producto
-          </button>
+          </Link>
         </div>
       ) : (
         <div className="dash-card overflow-hidden">
@@ -1036,8 +512,6 @@ export function ProductsManager({
                     catProducts={catProducts}
                     selected={selected}
                     toggleSel={toggleSel}
-                    panel={panel}
-                    setPanel={setPanel}
                     handlePriceSave={handlePriceSave}
                     handleToggle={handleToggle}
                     handleStockToggle={handleStockToggle}
@@ -1053,20 +527,6 @@ export function ProductsManager({
             );
           })}
         </div>
-      )}
-
-      {/* Side panel */}
-      {panel !== null && (
-        <ProductSidePanel
-          product={panel === 'new' ? null : panel}
-          categories={categories}
-          currency={curr}
-          onSave={handleSave}
-          onClose={() => setPanel(null)}
-          onCategoryCreated={onCatCreated}
-          defaultLocale={defaultLocale}
-          availableLocales={availableLocales}
-        />
       )}
 
       {/* AI Import */}
@@ -1110,8 +570,6 @@ function SortableProductList({
   catProducts,
   selected,
   toggleSel,
-  panel,
-  setPanel,
   handlePriceSave,
   handleToggle,
   handleStockToggle,
@@ -1126,8 +584,6 @@ function SortableProductList({
   catProducts: Product[];
   selected: Set<string>;
   toggleSel: (id: string) => void;
-  panel: Product | 'new' | null;
-  setPanel: (p: Product | 'new' | null) => void;
   handlePriceSave: (id: string, v: number) => void;
   handleToggle: (p: Product) => void;
   handleStockToggle: (p: Product) => void;
@@ -1169,8 +625,6 @@ function SortableProductList({
             p={p}
             isSel={selected.has(p.id)}
             toggleSel={toggleSel}
-            isPanelActive={!!(panel && typeof panel !== 'string' && panel.id === p.id)}
-            setPanel={setPanel}
             handlePriceSave={handlePriceSave}
             handleToggle={handleToggle}
             handleStockToggle={handleStockToggle}
@@ -1188,8 +642,6 @@ function SortableProductRow({
   p,
   isSel,
   toggleSel,
-  isPanelActive,
-  setPanel,
   handlePriceSave,
   handleToggle,
   handleStockToggle,
@@ -1200,8 +652,6 @@ function SortableProductRow({
   p: Product;
   isSel: boolean;
   toggleSel: (id: string) => void;
-  isPanelActive: boolean;
-  setPanel: (p: Product | 'new' | null) => void;
   handlePriceSave: (id: string, v: number) => void;
   handleToggle: (p: Product) => void;
   handleStockToggle: (p: Product) => void;
@@ -1233,11 +683,9 @@ function SortableProductRow({
       className={cn(
         'group border-b border-gray-50 transition-colors',
         isDragging && 'bg-white shadow-lg rounded-lg border border-gray-200',
-        isPanelActive
-          ? 'bg-emerald-50/40'
-          : isSel
-            ? 'bg-blue-50/30'
-            : 'hover:bg-gray-50/50',
+        isSel
+          ? 'bg-blue-50/30'
+          : 'hover:bg-gray-50/50',
         !p.is_active && 'opacity-60',
         p.in_stock === false && p.is_active && 'opacity-75',
       )}
@@ -1257,8 +705,8 @@ function SortableProductRow({
           onChange={() => toggleSel(p.id)}
           className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500/30"
         />
-        <button
-          onClick={() => setPanel(p)}
+        <Link
+          href={`/app/menu/products/${p.id}`}
           className="flex items-center gap-3 min-w-0 text-left"
         >
           {p.image_url ? (
@@ -1273,7 +721,7 @@ function SortableProductRow({
           <span className={cn('text-sm font-medium truncate hover:text-emerald-600 transition-colors', p.is_active ? 'text-gray-900' : 'text-gray-500 line-through')}>
             {p.name}
           </span>
-        </button>
+        </Link>
         <InlinePriceCell price={Number(p.price)} currency={curr} onSave={v => handlePriceSave(p.id, v)} />
         <span className={cn('dash-badge text-[11px]', p.is_active ? 'dash-badge-active' : 'dash-badge-inactive')}>
           {p.is_active ? 'Activo' : 'Oculto'}
@@ -1302,9 +750,6 @@ function SortableProductRow({
           )}
         </div>
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Link href={`/app/menu/products/${p.id}`} className="p-1 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-500" title="Edición completa">
-            <Maximize2 className="w-3.5 h-3.5" />
-          </Link>
           <button onClick={() => handleDuplicate(p)} className="p-1 rounded hover:bg-indigo-50 text-gray-400 hover:text-indigo-500" title="Duplicar">
             <Copy className="w-3.5 h-3.5" />
           </button>
@@ -1319,7 +764,7 @@ function SortableProductRow({
 
       {/* Mobile row */}
       <div className="flex md:hidden items-center gap-3 px-4 py-3 w-full">
-        <button onClick={() => setPanel(p)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+        <Link href={`/app/menu/products/${p.id}`} className="flex items-center gap-3 flex-1 min-w-0 text-left">
           {p.image_url ? (
             <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
               <Image src={p.image_url} alt={p.name} fill sizes="44px" className="object-cover" />
@@ -1346,7 +791,7 @@ function SortableProductRow({
               {modCount > 0 && ` · ${modCount} grupos`}
             </p>
           </div>
-        </button>
+        </Link>
         <button
           onClick={() => handleStockToggle(p)}
           className={cn(

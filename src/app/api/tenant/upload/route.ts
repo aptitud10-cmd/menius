@@ -45,7 +45,14 @@ export async function POST(request: NextRequest) {
       contentType = file.type;
     }
 
-    const fileName = `${tenant.userId}/${Date.now()}.${ext}`;
+    const slug = file.name
+      .replace(/\.[^.]+$/, '')
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60);
+    const fileName = `${tenant.userId}/${slug || 'img'}-${Date.now()}.${ext}`;
 
     const { error: uploadError } = await supabase.storage
       .from('product-images')
