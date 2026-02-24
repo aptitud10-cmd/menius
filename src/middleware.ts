@@ -31,10 +31,11 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   const isDashboard = path.startsWith('/app');
+  const isAdmin = path.startsWith('/admin');
   const isOnboarding = path.startsWith('/onboarding');
   const isAuthPage = path === '/login' || path === '/signup';
   const isAuthCallback = path.startsWith('/auth/callback');
-  const needsAuth = isDashboard || isOnboarding || isAuthPage;
+  const needsAuth = isDashboard || isAdmin || isOnboarding || isAuthPage;
 
   if (isAuthCallback) return response;
 
@@ -61,9 +62,14 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    if (isDashboard || isOnboarding) {
+    if (isDashboard || isAdmin || isOnboarding) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
+    return response;
+  }
+
+  // Admin routes: only require auth + admin email check (no restaurant needed)
+  if (isAdmin) {
     return response;
   }
 
@@ -75,9 +81,17 @@ export async function middleware(request: NextRequest) {
     .maybeSingle();
 
   const hasRestaurant = !profileError && !!profile?.default_restaurant_id;
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const isAdminUser = adminEmail && user.email === adminEmail;
 
   if (isAuthPage) {
-    return NextResponse.redirect(new URL(hasRestaurant ? '/app' : '/onboarding/create-restaurant', request.url));
+    if (hasRestaurant) {
+      return NextResponse.redirect(new URL('/app', request.url));
+    }
+    if (isAdminUser) {
+      return NextResponse.redirect(new URL('/admin', request.url));
+    }
+    return NextResponse.redirect(new URL('/onboarding/create-restaurant', request.url));
   }
 
   if (isDashboard && !hasRestaurant) {
@@ -144,7 +158,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/app/:path*', '/onboarding/:path*', '/login', '/signup', '/auth/callback', '/admin',
+    '/app/:path*', '/onboarding/:path*', '/login', '/signup', '/auth/callback', '/admin', '/admin/:path*',
     '/((?!_next/static|_next/image|favicon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
   ],
 };
