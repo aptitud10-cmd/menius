@@ -128,9 +128,12 @@ export function MenuShell({
     const section = sectionRefs.current.get(catId);
     if (section && mainRef.current) {
       isScrollingRef.current = true;
-      const offset = section.offsetTop - 8;
-      mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
-      setTimeout(() => { isScrollingRef.current = false; }, 800);
+      // offsetTop here is relative to the scroll container's inner content,
+      // so subtract the same trigger line we use in scroll-spy so the
+      // selected pill stays highlighted after the scroll settles.
+      const offset = section.offsetTop - 120;
+      mainRef.current.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
+      setTimeout(() => { isScrollingRef.current = false; }, 900);
     }
   }, []);
 
@@ -220,18 +223,19 @@ export function MenuShell({
     const handleScroll = () => {
       if (isScrollingRef.current) return;
 
-      const scrollTop = main.scrollTop;
-      const offset = 80;
+      // Use getBoundingClientRect so positions are always relative to the
+      // actual viewport, regardless of nested wrappers inside the scroll container.
+      const containerTop = main.getBoundingClientRect().top;
+      // Trigger line = header (56) + pills bar (~48) + small buffer
+      const triggerLine = 120;
       let current: string | null = null;
 
-      // Walk sections top-to-bottom; pick the last one whose top is above the offset line
       sectionRefs.current.forEach((el, id) => {
-        if (el.offsetTop - offset <= scrollTop) {
-          current = id;
-        }
+        const elTop = el.getBoundingClientRect().top - containerTop;
+        if (elTop <= triggerLine) current = id;
       });
 
-      // If nothing matched (scrolled to very top), pick the first category
+      // If nothing matched (at very top), pick the first category
       if (!current && itemsByCategory.length > 0) {
         current = itemsByCategory[0].category.id;
       }
@@ -351,11 +355,16 @@ export function MenuShell({
     </button>
   ));
 
+  const filterDivider = (availableDiets.length > 0 || (hasMounted && favIds.length > 0)) && (
+    <div className="flex-shrink-0 self-center w-px h-5 bg-gray-200 mx-1" aria-hidden />
+  );
+
   const mobileCategoryPills = (
     <div ref={mobilePillsRef} className="lg:hidden py-3 px-4 flex gap-2.5 overflow-x-auto scrollbar-hide border-b border-gray-100 bg-white sticky z-30" style={{ top: HEADER_HEIGHT }}>
-      {favPill}
-      {dietPills}
       {visibleCats.map((cat) => categoryPill(cat.id, tName(cat, locale, defaultLocale), activeCategory === cat.id && !showFavs && !activeDiet))}
+      {filterDivider}
+      {dietPills}
+      {favPill}
     </div>
   );
 
@@ -508,9 +517,10 @@ export function MenuShell({
                 <ChevronLeft className="w-4 h-4 text-gray-400" />
               </button>
               <div ref={catScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5">
-                {favPill}
-                {dietPills}
                 {visibleCats.map((cat) => categoryPill(cat.id, tName(cat, locale, defaultLocale), activeCategory === cat.id && !showFavs && !activeDiet))}
+                {filterDivider}
+                {dietPills}
+                {favPill}
               </div>
               <button onClick={() => scrollCats('right')} className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end" aria-label="Scroll right">
                 <ChevronRight className="w-4 h-4 text-gray-400" />
