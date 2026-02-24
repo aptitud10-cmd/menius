@@ -216,6 +216,60 @@ export function buildStatusUpdateEmail(params: {
 </html>`;
 }
 
+export function buildTrialEndingEmail(params: {
+  ownerName: string;
+  restaurantName: string;
+  daysLeft: number;
+  billingUrl: string;
+}): string {
+  const { ownerName, restaurantName, daysLeft, billingUrl } = params;
+  const urgency = daysLeft <= 1
+    ? { emoji: '🚨', color: '#dc2626', msg: 'Tu prueba gratuita termina mañana.' }
+    : { emoji: '⏰', color: '#d97706', msg: `Tu prueba gratuita termina en ${daysLeft} días.` };
+
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:520px;margin:0 auto;padding:40px 20px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <h1 style="font-size:24px;font-weight:800;color:#7c3aed;margin:0;">MENIUS</h1>
+    </div>
+    <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+      <div style="background:linear-gradient(135deg,${urgency.color},#b91c1c);padding:36px 24px;text-align:center;">
+        <div style="font-size:40px;margin-bottom:12px;">${urgency.emoji}</div>
+        <h2 style="color:#fff;font-size:20px;font-weight:700;margin:0 0 4px;">${urgency.msg}</h2>
+        <p style="color:rgba(255,255,255,0.85);font-size:14px;margin:0;">${restaurantName}</p>
+      </div>
+      <div style="padding:28px 24px;">
+        <p style="font-size:15px;color:#374151;margin:0 0 20px;line-height:1.6;">
+          Hola <strong>${ownerName}</strong>, no pierdas el acceso a tu menú digital, pedidos en tiempo real y todo lo que has configurado.
+        </p>
+        <div style="background:#fef3c7;border-radius:12px;padding:16px;margin-bottom:24px;border-left:4px solid #d97706;">
+          <p style="font-size:13px;color:#92400e;margin:0;line-height:1.6;">
+            Si no activas un plan, tu panel quedará bloqueado pero <strong>tus datos no se eliminarán</strong>. Puedes reactivar en cualquier momento.
+          </p>
+        </div>
+        <div style="text-align:center;">
+          <a href="${billingUrl}" style="display:inline-block;padding:14px 40px;background:#7c3aed;color:#fff;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
+            Elegir mi plan — desde $39/mes
+          </a>
+        </div>
+        <div style="margin-top:24px;padding:16px;background:#f3f0ff;border-radius:12px;text-align:center;">
+          <p style="font-size:12px;color:#7c3aed;margin:0;font-weight:600;">Plan Pro recomendado · $79/mes</p>
+          <p style="font-size:12px;color:#6b7280;margin:4px 0 0;">Delivery · WhatsApp · Analytics · 3 usuarios</p>
+        </div>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:12px;color:#9ca3af;margin-top:24px;">
+      MENIUS · <a href="${billingUrl}" style="color:#7c3aed;text-decoration:none;">Gestionar suscripción</a>
+    </p>
+  </div>
+</body>
+</html>`;
+}
+
 export function buildOwnerNewOrderEmail(params: {
   orderNumber: string;
   customerName: string;

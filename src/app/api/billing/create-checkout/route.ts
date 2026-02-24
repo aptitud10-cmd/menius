@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 
     const { data: subscription } = await supabase
       .from('subscriptions')
-      .select('stripe_customer_id, stripe_subscription_id')
+      .select('stripe_customer_id, stripe_subscription_id, trial_end, status')
       .eq('restaurant_id', tenant.restaurantId)
       .maybeSingle();
 
@@ -85,7 +85,13 @@ export async function POST(request: NextRequest) {
       success_url: `${appUrl}/app/billing?checkout=success`,
       cancel_url: `${appUrl}/app/billing?checkout=cancel`,
       subscription_data: {
-        trial_period_days: subscription?.stripe_subscription_id ? undefined : 13,
+        // Only give trial days if the user is still within their original trial window
+        // and has never had a Stripe subscription before — prevents double-trial abuse
+        ...((!subscription?.stripe_subscription_id && subscription?.status === 'trialing' && subscription?.trial_end && new Date(subscription.trial_end) > new Date())
+          ? {
+              trial_end: Math.floor(new Date(subscription.trial_end).getTime() / 1000),
+            }
+          : {}),
         metadata: {
           restaurant_id: tenant.restaurantId,
           plan_id: planId,

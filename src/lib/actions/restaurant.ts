@@ -175,9 +175,21 @@ export async function createCategory(data: CategoryInput) {
     .maybeSingle();
 
   if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' };
+  const restaurantId = profile.default_restaurant_id;
+
+  // Enforce plan category limit
+  const [{ count: catCount }, { data: subRow }] = await Promise.all([
+    supabase.from('categories').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
+    supabase.from('subscriptions').select('plan_id').eq('restaurant_id', restaurantId).maybeSingle(),
+  ]);
+  const { getPlan, isWithinLimit } = await import('@/lib/plans');
+  const plan = getPlan(subRow?.plan_id ?? 'starter');
+  if (plan && !isWithinLimit((catCount ?? 0) + 1, plan.limits.maxCategories)) {
+    return { error: `Tu plan ${plan.name} permite hasta ${plan.limits.maxCategories} categorías. Actualiza tu plan para agregar más.`, limitReached: true };
+  }
 
   const { data: created, error } = await supabase.from('categories').insert({
-    restaurant_id: profile.default_restaurant_id,
+    restaurant_id: restaurantId,
     name: sanitizeText(data.name, 100),
     sort_order: data.sort_order,
     is_active: data.is_active,
@@ -274,9 +286,21 @@ export async function createProduct(data: ProductInput) {
     .maybeSingle();
 
   if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' };
+  const restaurantId = profile.default_restaurant_id;
+
+  // Enforce plan product limit
+  const [{ count: productCount }, { data: subRow }] = await Promise.all([
+    supabase.from('products').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
+    supabase.from('subscriptions').select('plan_id').eq('restaurant_id', restaurantId).maybeSingle(),
+  ]);
+  const { getPlan, isWithinLimit } = await import('@/lib/plans');
+  const plan = getPlan(subRow?.plan_id ?? 'starter');
+  if (plan && !isWithinLimit((productCount ?? 0) + 1, plan.limits.maxProducts)) {
+    return { error: `Tu plan ${plan.name} permite hasta ${plan.limits.maxProducts} productos. Actualiza tu plan para agregar más.`, limitReached: true };
+  }
 
   const { data: created, error } = await supabase.from('products').insert({
-    restaurant_id: profile.default_restaurant_id,
+    restaurant_id: restaurantId,
     category_id: data.category_id,
     name: sanitizeText(data.name, 150),
     description: sanitizeMultiline(data.description, 500),

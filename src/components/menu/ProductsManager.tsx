@@ -256,6 +256,12 @@ function ProductSidePanel({
     const res = await createCategory({
       name: newCatName, sort_order: categories.length, is_active: true,
     });
+    if (res.error) {
+      setError(res.error);
+      setNewCatName('');
+      setShowNewCat(false);
+      return;
+    }
     if (res.success && res.id) {
       const cat: Category = {
         id: res.id, name: res.name!, restaurant_id: '',
