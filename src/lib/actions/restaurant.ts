@@ -6,6 +6,11 @@ import { createClient } from '@/lib/supabase/server';
 import { sanitizeText, sanitizeMultiline } from '@/lib/sanitize';
 import type { CreateRestaurantInput, CategoryInput, ProductInput, TableInput } from '@/lib/validations';
 
+const EN_CURRENCIES = new Set(['USD', 'GBP', 'CAD', 'AUD', 'NZD']);
+function inferLocale(currency: string): string {
+  return EN_CURRENCIES.has(currency) ? 'en' : 'es';
+}
+
 // ---- Restaurant ----
 export async function createRestaurant(data: CreateRestaurantInput) {
   const supabase = createClient();
@@ -64,9 +69,10 @@ export async function createRestaurant(data: CreateRestaurantInput) {
 
   // Seed example data — runs before redirect (batch inserts, ~1-2s)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+  const locale = inferLocale(data.currency);
   try {
     const { seedRestaurant } = await import('@/lib/seed-restaurant');
-    await seedRestaurant(supabase, restaurant.id, restaurant.slug, appUrl);
+    await seedRestaurant(supabase, restaurant.id, restaurant.slug, appUrl, locale);
   } catch {
     // Seed failure should not block onboarding
   }
@@ -141,7 +147,7 @@ export async function reseedMyRestaurant() {
 
   const { data: restaurant } = await supabase
     .from('restaurants')
-    .select('slug, owner_user_id')
+    .select('slug, owner_user_id, currency')
     .eq('id', restaurantId)
     .maybeSingle();
 
@@ -158,7 +164,8 @@ export async function reseedMyRestaurant() {
 
   const { seedRestaurant } = await import('@/lib/seed-restaurant');
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-  await seedRestaurant(supabase, restaurantId, restaurant.slug, appUrl);
+  const locale = inferLocale(restaurant.currency ?? 'MXN');
+  await seedRestaurant(supabase, restaurantId, restaurant.slug, appUrl, locale);
 
   revalidatePath('/app');
   revalidatePath(`/r/${restaurant.slug}`);

@@ -5,7 +5,7 @@ import { LandingNav } from '@/components/landing/LandingNav';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen-safe landing-bg relative w-full max-w-[100vw]">
+    <div className="min-h-screen-safe landing-bg relative w-full max-w-[100vw] overflow-hidden">
       <LandingNav />
 
       <LandingHero />

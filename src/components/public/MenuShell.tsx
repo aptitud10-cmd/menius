@@ -454,7 +454,7 @@ export function MenuShell({
         </aside>
 
         {/* Center: Products grid — scrolls independently */}
-        <main ref={mainRefCb} className="flex-1 min-w-0 overflow-y-auto pb-28 lg:pb-8">
+        <main ref={mainRefCb} className={`flex-1 min-w-0 overflow-y-auto lg:pb-8 ${cartCount > 0 ? 'pb-28' : 'pb-4'}`}>
 
           {/* Cover image banner */}
           {restaurant.cover_image_url && (
