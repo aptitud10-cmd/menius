@@ -207,14 +207,16 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    const batchOps: Promise<any>[] = [];
-    if (extrasToInsert.length > 0) {
-      batchOps.push(supabase.from('order_item_extras').insert(extrasToInsert).then());
+    if (extrasToInsert.length > 0 && modifiersToInsert.length > 0) {
+      await Promise.all([
+        supabase.from('order_item_extras').insert(extrasToInsert).select(),
+        supabase.from('order_item_modifiers').insert(modifiersToInsert).select(),
+      ]);
+    } else if (extrasToInsert.length > 0) {
+      await supabase.from('order_item_extras').insert(extrasToInsert);
+    } else if (modifiersToInsert.length > 0) {
+      await supabase.from('order_item_modifiers').insert(modifiersToInsert);
     }
-    if (modifiersToInsert.length > 0) {
-      batchOps.push(supabase.from('order_item_modifiers').insert(modifiersToInsert).then());
-    }
-    if (batchOps.length > 0) await Promise.all(batchOps);
 
     if (promo_code) {
       try {
