@@ -679,7 +679,7 @@ export async function updateOrderStatus(orderId: string, status: string) {
 
   const { data: order } = await supabase
     .from('orders')
-    .select('id, order_number, restaurant_id, customer_name, customer_email, customer_phone, restaurants ( slug )')
+    .select('id, order_number, restaurant_id, customer_name, customer_email, customer_phone, restaurants ( slug, name )')
     .eq('id', orderId)
     .eq('restaurant_id', restaurantId)
     .maybeSingle();
@@ -721,6 +721,18 @@ export async function updateOrderStatus(orderId: string, status: string) {
         sendPushToOrder(orderId, {
           ...msg,
           url: slug ? `/r/${slug}/orden/${order.order_number}` : '/',
+        });
+      }).catch(() => {});
+    }
+
+    if (order.customer_phone) {
+      const restaurantNameForSms = (order as any).restaurants?.name || '';
+      import('@/lib/twilio').then(({ sendOrderSMS }) => {
+        sendOrderSMS({
+          to: order.customer_phone!,
+          orderNumber: order.order_number,
+          status,
+          restaurantName: restaurantNameForSms,
         });
       }).catch(() => {});
     }
