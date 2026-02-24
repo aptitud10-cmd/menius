@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import Stripe from 'stripe';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { PLANS, type PlanId, type BillingInterval } from '@/lib/plans';
@@ -8,15 +9,15 @@ import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('billing-checkout');
 
+function getStripe(): Stripe {
+  const key = (process.env.STRIPE_SECRET_KEY ?? '').trim();
+  if (!key) throw new Error('STRIPE_SECRET_KEY is not set');
+  return new Stripe(key, { maxNetworkRetries: 3, timeout: 30_000 });
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeKey) {
-      return NextResponse.json({ error: 'Stripe no configurado' }, { status: 503 });
-    }
-
-    const Stripe = (await import('stripe')).default;
-    const stripe = new Stripe(stripeKey);
+    const stripe = getStripe();
 
     const supabase = createClient();
     const tenant = await getTenant();
@@ -33,8 +34,11 @@ export async function POST(request: NextRequest) {
 
     const priceId = plan.stripePriceId[interval];
     if (!priceId) {
+      logger.error('Price ID is empty', { planId, interval });
       return NextResponse.json({ error: 'Precio no configurado para este plan' }, { status: 400 });
     }
+
+    logger.info('Creating checkout', { planId, interval, priceId: priceId.substring(0, 12) + '...' });
 
     const { data: subscription } = await supabase
       .from('subscriptions')
@@ -51,6 +55,7 @@ export async function POST(request: NextRequest) {
         .eq('id', tenant.restaurantId)
         .maybeSingle();
 
+      logger.info('Creating Stripe customer');
       const customer = await stripe.customers.create({
         email: (await supabase.auth.getUser()).data.user?.email,
         name: restaurant?.name ?? '',
@@ -69,12 +74,12 @@ export async function POST(request: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
-    // Only redirect to Stripe billing portal if subscription is currently active/trialing
     const isLiveSubscription =
       subscription?.stripe_subscription_id &&
       (subscription.status === 'active' || subscription.status === 'trialing' || subscription.status === 'past_due');
 
     if (isLiveSubscription) {
+      logger.info('Redirecting to billing portal');
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: customerId,
         return_url: `${appUrl}/app/billing`,
@@ -82,13 +87,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ url: portalSession.url });
     }
 
-    // Transfer remaining trial days only if user is still within their original trial window
     const hasValidTrial =
       !subscription?.stripe_subscription_id &&
       subscription?.status === 'trialing' &&
       subscription?.trial_end &&
       new Date(subscription.trial_end) > new Date();
 
+    logger.info('Creating checkout session', { customerId, hasValidTrial });
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
@@ -115,7 +120,16 @@ export async function POST(request: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     const name = err instanceof Error ? err.constructor.name : 'Unknown';
-    logger.error('Billing checkout error', { error: message, type: name, stack: err instanceof Error ? err.stack : undefined });
-    return NextResponse.json({ error: message }, { status: 500 });
+    const stripeCode = (err as any)?.code ?? (err as any)?.type ?? '';
+    logger.error('Billing checkout error', {
+      error: message,
+      type: name,
+      stripeCode,
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+    return NextResponse.json(
+      { error: message, code: stripeCode || name },
+      { status: 500 },
+    );
   }
 }
