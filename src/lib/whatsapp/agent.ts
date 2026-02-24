@@ -89,7 +89,7 @@ async function generateAIResponse(
       : `Eres un asistente amigable de WhatsApp para "${restaurantName}". Responde preguntas sobre el menú, horarios y pedidos. Mantén respuestas cortas (máx 300 caracteres). Usa emojis con moderación. Siempre sé útil y amable. Aquí está el menú:\n${menuSummary}`;
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
