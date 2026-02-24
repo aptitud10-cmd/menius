@@ -8,6 +8,7 @@ import { CommandPalette } from '@/components/dashboard/CommandPalette';
 import { OrderNotifier } from '@/components/dashboard/OrderNotifier';
 import { IdentifyUser } from '@/components/dashboard/IdentifyUser';
 import { TrialBanner } from '@/components/dashboard/TrialBanner';
+import { DashToastProvider } from '@/components/dashboard/DashToast';
 import { redirect } from 'next/navigation';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -40,6 +41,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <DashboardLocaleProvider defaultLocale={defaultLocale}>
+      <DashToastProvider>
       <div className="min-h-screen bg-gray-50 text-gray-900 flex">
         {/* Sidebar */}
         <aside className="hidden md:flex flex-col w-[260px] bg-white border-r border-gray-200 sticky top-0 h-screen">
@@ -111,6 +113,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           restaurantName={restaurant?.name ?? undefined}
         />
       </div>
+      </DashToastProvider>
     </DashboardLocaleProvider>
   );
 }

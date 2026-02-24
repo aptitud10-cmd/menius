@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = (process.env.GEMINI_API_KEY ?? '').trim();
     if (!apiKey) {
       return NextResponse.json(
         { error: 'Gemini AI no está configurado. Agrega GEMINI_API_KEY en las variables de entorno.' },

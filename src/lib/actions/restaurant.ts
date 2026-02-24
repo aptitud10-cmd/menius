@@ -277,7 +277,7 @@ export async function reorderProducts(orderedIds: string[]) {
 }
 
 // ---- Products ----
-export async function createProduct(data: ProductInput) {
+export async function createProduct(data: ProductInput & { image_url?: string }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'No autenticado' };
@@ -291,7 +291,6 @@ export async function createProduct(data: ProductInput) {
   if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' };
   const restaurantId = profile.default_restaurant_id;
 
-  // Enforce plan product limit
   const [{ count: productCount }, { data: subRow }] = await Promise.all([
     supabase.from('products').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
     supabase.from('subscriptions').select('plan_id').eq('restaurant_id', restaurantId).maybeSingle(),
@@ -310,6 +309,7 @@ export async function createProduct(data: ProductInput) {
     price: data.price,
     is_active: data.is_active,
     ...(data.dietary_tags && { dietary_tags: data.dietary_tags }),
+    ...(data.image_url && { image_url: data.image_url }),
   }).select('id').single();
 
   if (error) return { error: error.message };

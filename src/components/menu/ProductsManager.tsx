@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   Plus, Trash2, Eye, EyeOff, Search, Package, Sparkles,
   ChevronRight, X, Save, Camera, Loader2, Check, Layers, GripVertical,
-  PackageX, PackageCheck, ImagePlus, Languages, Copy,
+  PackageX, PackageCheck, ImagePlus, Languages, Copy, Maximize2, SlidersHorizontal,
 } from 'lucide-react';
 import {
   DndContext,
@@ -28,6 +28,7 @@ import {
   createVariant, createExtra, createModifierGroup, createModifierOption,
 } from '@/lib/actions/restaurant';
 import { formatPrice, cn } from '@/lib/utils';
+import { useToast } from '@/components/dashboard/DashToast';
 import type { Product, Category, DietaryTag, ContentTranslation } from '@/types';
 import { getLocaleFlag, getLocaleLabel } from '@/lib/i18n';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
@@ -123,6 +124,7 @@ function ProductSidePanel({
   defaultLocale?: string;
   availableLocales?: string[];
 }) {
+  const { success: toastSuccess, error: toastError } = useToast();
   const isEditing = !!product;
   const modCount = product?.modifier_groups?.length ?? 0;
   const hasMultiLang = availableLocales.length > 1;
@@ -207,46 +209,57 @@ function ProductSidePanel({
     }
 
     startTransition(async () => {
-      if (isEditing && product) {
-        const data: Record<string, unknown> = {
-          name: form.name, description: form.description, price,
-          category_id: form.category_id, dietary_tags: form.dietary_tags,
-          translations: Object.keys(translations).length > 0 ? translations : null,
-        };
-        if (imageUrl) data.image_url = imageUrl;
-        const res = await updateProduct(product.id, data);
-        if (res.error) { setError(res.error); return; }
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
-        onSave({
-          ...product,
-          name: form.name,
-          description: form.description,
-          price,
-          category_id: form.category_id,
-          dietary_tags: form.dietary_tags,
-          ...(imageUrl ? { image_url: imageUrl } : {}),
-        });
-      } else {
-        const res = await createProduct({
-          name: form.name, description: form.description, price,
-          category_id: form.category_id, is_active: true, dietary_tags: form.dietary_tags,
-        });
-        if (res.error) { setError(res.error); return; }
-        onSave({
-          id: res.id || `temp-${Date.now()}`,
-          restaurant_id: '',
-          category_id: form.category_id,
-          name: form.name,
-          description: form.description,
-          price,
-          image_url: imageUrl ?? '',
-          is_active: true,
-          dietary_tags: form.dietary_tags,
-          sort_order: 0,
-          created_at: new Date().toISOString(),
-          modifier_groups: [],
-        });
+      try {
+        if (isEditing && product) {
+          const data: Record<string, unknown> = {
+            name: form.name, description: form.description, price,
+            category_id: form.category_id, dietary_tags: form.dietary_tags,
+            translations: Object.keys(translations).length > 0 ? translations : null,
+          };
+          if (imageUrl) data.image_url = imageUrl;
+          const res = await updateProduct(product.id, data);
+          if (res.error) { setError(res.error); toastError(res.error); return; }
+          setSaved(true);
+          toastSuccess('Producto actualizado');
+          setTimeout(() => setSaved(false), 2000);
+          onSave({
+            ...product,
+            name: form.name,
+            description: form.description,
+            price,
+            category_id: form.category_id,
+            dietary_tags: form.dietary_tags,
+            ...(imageUrl ? { image_url: imageUrl } : {}),
+          });
+        } else {
+          const res = await createProduct({
+            name: form.name, description: form.description, price,
+            category_id: form.category_id, is_active: true, dietary_tags: form.dietary_tags,
+            ...(imageUrl ? { image_url: imageUrl } : {}),
+          });
+          if (res.error) { setError(res.error); toastError(res.error); return; }
+          setSaved(true);
+          toastSuccess('Producto creado');
+          setTimeout(() => setSaved(false), 2000);
+          onSave({
+            id: res.id || `temp-${Date.now()}`,
+            restaurant_id: '',
+            category_id: form.category_id,
+            name: form.name,
+            description: form.description,
+            price,
+            image_url: imageUrl ?? '',
+            is_active: true,
+            dietary_tags: form.dietary_tags,
+            sort_order: 0,
+            created_at: new Date().toISOString(),
+            modifier_groups: [],
+          });
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Error inesperado al guardar';
+        setError(msg);
+        toastError(msg);
       }
     });
   };
@@ -612,6 +625,10 @@ export function ProductsManager({
   );
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
+  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'hidden'>('all');
+  const [filterStock, setFilterStock] = useState<'all' | 'in_stock' | 'out_of_stock'>('all');
+  const [showFilters, setShowFilters] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [showImport, setShowImport] = useState(false);
   const [showBulkImages, setShowBulkImages] = useState(false);
@@ -647,8 +664,10 @@ export function ProductsManager({
     setProducts(p => p.filter(x => x.id !== id));
     if (panel && typeof panel !== 'string' && panel.id === id) setPanel(null);
     startTransition(async () => {
-      const res = await deleteProduct(id);
-      if (res?.error) setProducts(prev);
+      try {
+        const res = await deleteProduct(id);
+        if (res?.error) { setProducts(prev); alert(`Error: ${res.error}`); }
+      } catch { setProducts(prev); }
     });
   };
 
@@ -717,8 +736,14 @@ export function ProductsManager({
       prev.map(x => (x.id === p.id ? { ...x, is_active: !x.is_active } : x)),
     );
     startTransition(async () => {
-      const res = await updateProduct(p.id, { is_active: !p.is_active });
-      if (res?.error) {
+      try {
+        const res = await updateProduct(p.id, { is_active: !p.is_active });
+        if (res?.error) {
+          setProducts(prev =>
+            prev.map(x => (x.id === p.id ? { ...x, is_active: p.is_active } : x)),
+          );
+        }
+      } catch {
         setProducts(prev =>
           prev.map(x => (x.id === p.id ? { ...x, is_active: p.is_active } : x)),
         );
@@ -793,12 +818,19 @@ export function ProductsManager({
   };
 
   const q = search.toLowerCase();
-  const grouped = categories.map(cat => ({
-    cat,
-    items: products
-      .filter(p => p.category_id === cat.id)
-      .filter(p => !q || p.name.toLowerCase().includes(q)),
-  }));
+  const activeFilterCount = (filterCategory !== 'all' ? 1 : 0) + (filterStatus !== 'all' ? 1 : 0) + (filterStock !== 'all' ? 1 : 0);
+  const clearFilters = () => { setFilterCategory('all'); setFilterStatus('all'); setFilterStock('all'); };
+
+  const grouped = categories
+    .filter(cat => filterCategory === 'all' || cat.id === filterCategory)
+    .map(cat => ({
+      cat,
+      items: products
+        .filter(p => p.category_id === cat.id)
+        .filter(p => !q || p.name.toLowerCase().includes(q))
+        .filter(p => filterStatus === 'all' || (filterStatus === 'active' ? p.is_active : !p.is_active))
+        .filter(p => filterStock === 'all' || (filterStock === 'in_stock' ? p.in_stock !== false : p.in_stock === false)),
+    }));
   const totalFiltered = grouped.reduce((s, g) => s + g.items.length, 0);
   const activeCount = products.filter(p => p.is_active).length;
   const outOfStockCount = products.filter(p => p.in_stock === false).length;
@@ -831,11 +863,26 @@ export function ProductsManager({
             <Sparkles className="w-4 h-4" /> Importar
           </button>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-400">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400 hidden sm:inline">
             {activeCount} activos · {products.length} total
             {outOfStockCount > 0 && <span className="text-red-400"> · {outOfStockCount} agotados</span>}
           </span>
+          <button
+            onClick={() => setShowFilters(f => !f)}
+            className={cn(
+              'dash-btn-secondary relative',
+              showFilters && 'bg-gray-100 border-gray-300',
+            )}
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            <span className="hidden sm:inline">Filtros</span>
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -856,6 +903,57 @@ export function ProductsManager({
           </div>
         </div>
       </div>
+
+      {/* Filter bar */}
+      {showFilters && (
+        <div className="flex flex-wrap items-center gap-3 mb-4 px-4 py-3 bg-white border border-gray-200 rounded-xl">
+          <div>
+            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Categoría</label>
+            <select
+              value={filterCategory}
+              onChange={e => setFilterCategory(e.target.value)}
+              className="dash-input py-1.5 text-sm min-w-[140px]"
+            >
+              <option value="all">Todas</option>
+              {categories.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Estado</label>
+            <select
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value as 'all' | 'active' | 'hidden')}
+              className="dash-input py-1.5 text-sm min-w-[120px]"
+            >
+              <option value="all">Todos</option>
+              <option value="active">Activos</option>
+              <option value="hidden">Ocultos</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Stock</label>
+            <select
+              value={filterStock}
+              onChange={e => setFilterStock(e.target.value as 'all' | 'in_stock' | 'out_of_stock')}
+              className="dash-input py-1.5 text-sm min-w-[120px]"
+            >
+              <option value="all">Todos</option>
+              <option value="in_stock">En stock</option>
+              <option value="out_of_stock">Agotados</option>
+            </select>
+          </div>
+          {activeFilterCount > 0 && (
+            <button
+              onClick={clearFilters}
+              className="text-xs text-gray-500 hover:text-gray-800 underline underline-offset-2 mt-4"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Bulk action bar */}
       {selected.size > 0 && (
@@ -898,7 +996,7 @@ export function ProductsManager({
       ) : (
         <div className="dash-card overflow-hidden">
           {/* Column headers (desktop) */}
-          <div className="hidden md:grid grid-cols-[2rem_1fr_6rem_4.5rem_4rem_4.5rem_3.5rem] items-center gap-2 px-4 py-2 bg-gray-50/80 border-b border-gray-200 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="hidden md:grid grid-cols-[2rem_1fr_6rem_4.5rem_4rem_4.5rem_5rem] items-center gap-2 px-4 py-2 bg-gray-50/80 border-b border-gray-200 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
             <div />
             <div>Producto</div>
             <div>Precio</div>
@@ -1145,7 +1243,7 @@ function SortableProductRow({
       )}
     >
       {/* Desktop row */}
-      <div className="hidden md:grid grid-cols-[1.5rem_2rem_1fr_6rem_4.5rem_4rem_4.5rem_3.5rem] items-center gap-2 px-4 py-2.5">
+      <div className="hidden md:grid grid-cols-[1.5rem_2rem_1fr_6rem_4.5rem_4rem_4.5rem_5rem] items-center gap-2 px-4 py-2.5">
         <button
           className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 transition-colors touch-none"
           {...attributes}
@@ -1204,6 +1302,9 @@ function SortableProductRow({
           )}
         </div>
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Link href={`/app/menu/products/${p.id}`} className="p-1 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-500" title="Edición completa">
+            <Maximize2 className="w-3.5 h-3.5" />
+          </Link>
           <button onClick={() => handleDuplicate(p)} className="p-1 rounded hover:bg-indigo-50 text-gray-400 hover:text-indigo-500" title="Duplicar">
             <Copy className="w-3.5 h-3.5" />
           </button>

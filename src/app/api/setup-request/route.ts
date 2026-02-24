@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email inválido' }, { status: 400 });
     }
 
-    const resendKey = process.env.RESEND_API_KEY;
+    const resendKey = (process.env.RESEND_API_KEY ?? '').trim();
     const notifyEmail = process.env.SETUP_NOTIFY_EMAIL || process.env.RESEND_FROM_EMAIL;
 
     if (resendKey && notifyEmail) {

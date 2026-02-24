@@ -76,7 +76,7 @@ async function generateAIResponse(
   menuSummary: string,
   locale: string,
 ): Promise<string> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = (process.env.GEMINI_API_KEY ?? '').trim();
   if (!apiKey) {
     return locale === 'en'
       ? `Thanks for your message! You can see our full menu at the link above. 😊`
