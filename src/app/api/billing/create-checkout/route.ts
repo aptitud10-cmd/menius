@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const Stripe = (await import('stripe')).default;
-    const stripe = new Stripe(stripeKey, { apiVersion: '2024-12-18.acacia' as any });
+    const stripe = new Stripe(stripeKey);
 
     const supabase = createClient();
     const tenant = await getTenant();
@@ -113,7 +113,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: session.url });
   } catch (err: unknown) {
-    logger.error('Billing checkout error', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error creando sesión' }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    const name = err instanceof Error ? err.constructor.name : 'Unknown';
+    logger.error('Billing checkout error', { error: message, type: name, stack: err instanceof Error ? err.stack : undefined });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

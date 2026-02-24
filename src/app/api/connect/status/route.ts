@@ -31,7 +31,7 @@ export async function GET() {
     }
 
     const Stripe = (await import('stripe')).default;
-    const stripe = new Stripe(stripeKey, { apiVersion: '2024-12-18.acacia' as any });
+    const stripe = new Stripe(stripeKey);
 
     const account = await stripe.accounts.retrieve(restaurant.stripe_account_id);
     const isComplete = account.charges_enabled && account.payouts_enabled;

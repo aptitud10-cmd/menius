@@ -15,7 +15,7 @@ export async function POST() {
     }
 
     const Stripe = (await import('stripe')).default;
-    const stripe = new Stripe(stripeKey, { apiVersion: '2024-12-18.acacia' as any });
+    const stripe = new Stripe(stripeKey);
 
     const supabase = createClient();
     const tenant = await getTenant();

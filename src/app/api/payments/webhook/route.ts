@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     const Stripe = (await import('stripe')).default;
-    const stripe = new Stripe(stripeKey, { apiVersion: '2024-12-18.acacia' as any });
+    const stripe = new Stripe(stripeKey);
 
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');
