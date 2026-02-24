@@ -18,6 +18,7 @@ interface CustomizationSheetProps {
   product: Product;
   editIndex: number | null;
   onClose: () => void;
+  onAddToCart?: (productName: string) => void;
   fmtPrice: (n: number) => string;
   t: Translations;
   locale: Locale;
@@ -28,6 +29,7 @@ export function CustomizationSheet({
   product,
   editIndex,
   onClose,
+  onAddToCart,
   fmtPrice,
   t,
   locale,
@@ -223,8 +225,8 @@ export function CustomizationSheet({
       replaceItem(editIndex, product, legacyVariant, legacyExtras, qty, notes, modifierSelections);
     } else {
       addItem(product, legacyVariant, legacyExtras, qty, notes, modifierSelections);
+      onAddToCart?.(displayName);
     }
-    try { navigator?.vibrate?.(10); } catch {}
     setAdded(true);
     setTimeout(onClose, 400);
   };

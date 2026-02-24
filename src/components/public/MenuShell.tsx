@@ -103,6 +103,8 @@ export function MenuShell({
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [customization, setCustomization] = useState<CustomizationTarget | null>(null);
+  const [toastName, setToastName] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const catScrollRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement | null>(null);
   const [mainEl, setMainEl] = useState<HTMLElement | null>(null);
@@ -145,15 +147,35 @@ export function MenuShell({
   }, []);
 
 
+  const showToast = useCallback((name: string) => {
+    clearTimeout(toastTimer.current);
+    setToastName(name);
+    toastTimer.current = setTimeout(() => setToastName(null), 2000);
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 1200;
+      gain.gain.value = 0.08;
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.12);
+    } catch {}
+    try { navigator.vibrate?.(40); } catch {}
+  }, []);
+
   const handleQuickAdd = useCallback((product: Product) => {
     addItem(product, null, [], 1, '');
+    showToast(product.name);
     trackEvent('product_added_to_cart', {
       product_id: product.id,
       product_name: product.name,
       price: product.price,
       restaurant_id: restaurant.id,
     });
-  }, [addItem, restaurant.id]);
+  }, [addItem, showToast, restaurant.id]);
 
   const handleEditCartItem = useCallback((index: number) => {
     const items = useCartStore.getState().items;
@@ -735,6 +757,7 @@ export function MenuShell({
             product={customization.product}
             editIndex={customization.editIndex}
             onClose={handleCloseCustomization}
+            onAddToCart={showToast}
             fmtPrice={fmtPrice}
             t={t}
             locale={locale}
@@ -840,6 +863,15 @@ export function MenuShell({
         )}
       </AnimatePresence>
 
+
+      {/* ── Toast: "X se ha agregado al carrito" ── */}
+      {toastName && (
+        <div className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:bottom-6 lg:left-auto lg:right-6 pointer-events-none">
+          <div className="px-4 py-2.5 rounded-full bg-gray-900 text-white text-sm font-medium shadow-lg">
+            {toastName} {locale === 'es' ? 'se ha agregado al carrito' : 'added to cart'}
+          </div>
+        </div>
+      )}
 
       {/* ── Language Switcher (floating pill) ── */}
       {hasMultiLang && (
