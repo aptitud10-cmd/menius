@@ -311,7 +311,7 @@ export async function GET(request: NextRequest) {
 
         if (sent) {
           results[step.key]++;
-          await supabase.rpc('append_restaurant_tag', { p_restaurant_id: restaurant.id, p_tag: step.tag }).catch(() => {});
+          try { await supabase.rpc('append_restaurant_tag', { p_restaurant_id: restaurant.id, p_tag: step.tag }); } catch {};
         } else {
           results.errors++;
         }
