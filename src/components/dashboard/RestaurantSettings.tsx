@@ -59,6 +59,10 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const logoRef = useRef<HTMLInputElement>(null);
 
+  const [coverUrl, setCoverUrl] = useState(initialData.cover_image_url ?? '');
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const coverRef = useRef<HTMLInputElement>(null);
+
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -154,6 +158,17 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     if (logoRef.current) logoRef.current.value = '';
   };
 
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCover(true);
+    setError('');
+    const url = await uploadImage(file);
+    if (url) { setCoverUrl(url); setSaved(false); }
+    setUploadingCover(false);
+    if (coverRef.current) coverRef.current.value = '';
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setError('');
@@ -168,6 +183,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           available_locales: form.available_locales,
           operating_hours: hours,
           logo_url: logoUrl || null,
+          cover_image_url: coverUrl || null,
           estimated_delivery_minutes: form.estimated_delivery_minutes ? Number(form.estimated_delivery_minutes) : null,
           delivery_fee: form.delivery_fee ? Number(form.delivery_fee) : null,
           latitude: form.latitude ? Number(form.latitude) : null,
@@ -235,6 +251,52 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             )}
           </div>
         </div>
+      </div>
+
+      {/* Cover / Banner */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <h2 className="font-semibold text-sm text-gray-900 mb-1">Banner del menú</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Imagen de portada que aparece en la parte superior de tu menú público. Medida ideal: <strong>1200 x 400px</strong> (3:1). JPG, PNG o WebP, máximo 10MB.
+        </p>
+        <input ref={coverRef} type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
+        {coverUrl ? (
+          <div className="relative w-full aspect-[3/1] rounded-xl overflow-hidden bg-gray-100 group">
+            <Image src={coverUrl} alt="Banner" fill className="object-cover" sizes="(max-width: 640px) 100vw, 640px" />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-3">
+              <button
+                onClick={() => coverRef.current?.click()}
+                disabled={uploadingCover}
+                className="opacity-0 group-hover:opacity-100 px-3 py-2 bg-white rounded-lg text-sm font-medium hover:bg-gray-100 transition-all"
+              >
+                {uploadingCover ? <Loader2 className="w-4 h-4 animate-spin inline mr-1" /> : <Camera className="w-4 h-4 inline mr-1" />}
+                Cambiar
+              </button>
+              <button
+                onClick={() => { setCoverUrl(''); setSaved(false); }}
+                className="opacity-0 group-hover:opacity-100 px-3 py-2 bg-white rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-all"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => coverRef.current?.click()}
+            disabled={uploadingCover}
+            className="w-full aspect-[3/1] border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors disabled:opacity-50"
+          >
+            {uploadingCover ? (
+              <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+            ) : (
+              <>
+                <Camera className="w-6 h-6 text-gray-400" />
+                <span className="text-sm font-medium text-gray-500">Subir banner</span>
+                <span className="text-[11px] text-gray-400">1200 x 400px recomendado</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Public URL */}

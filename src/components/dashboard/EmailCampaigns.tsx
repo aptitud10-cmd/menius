@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, Send, Users, Filter, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Mail, Send, Users, Filter, Sparkles, AlertCircle, CheckCircle2, Loader2, Wand2 } from 'lucide-react';
 
 interface Props {
   restaurantName: string;
@@ -51,8 +51,37 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
   const [ctaText, setCtaText] = useState('Ver menú');
   const [filter, setFilter] = useState('all');
   const [sending, setSending] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiType, setAiType] = useState('promo');
+  const [aiCustomPrompt, setAiCustomPrompt] = useState('');
   const [result, setResult] = useState<{ sent: number; failed: number; total: number } | null>(null);
   const [error, setError] = useState('');
+
+  const handleAIGenerate = async () => {
+    setAiGenerating(true);
+    setError('');
+    try {
+      const res = await fetch('/api/ai/campaign-copy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignType: aiType,
+          audience: filter,
+          restaurantName,
+          customPrompt: aiCustomPrompt.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error generando contenido');
+      setSubject(data.subject || '');
+      setMessage(data.body || '');
+      setCtaText(data.cta || 'Ver menú');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error generando con IA');
+    } finally {
+      setAiGenerating(false);
+    }
+  };
 
   const applyTemplate = (t: typeof TEMPLATES[0]) => {
     setSubject(t.subject);
@@ -138,6 +167,51 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
             </button>
           ))}
         </div>
+      </div>
+
+      {/* AI Generate */}
+      <div className="bg-purple-50 border border-purple-200 rounded-xl p-5 space-y-3">
+        <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <Wand2 className="w-4 h-4 text-purple-600" /> Generar con IA
+        </h3>
+        <p className="text-xs text-gray-500">La IA creará asunto, mensaje y CTA optimizados basados en tu restaurante y audiencia.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-500 mb-1.5 block">Tipo de campaña</label>
+            <select
+              value={aiType}
+              onChange={(e) => setAiType(e.target.value)}
+              className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
+            >
+              <option value="promo">Promoción / Descuento</option>
+              <option value="reactivation">Reactivar inactivos</option>
+              <option value="new_product">Nuevo producto</option>
+              <option value="vip_thanks">Agradecimiento VIP</option>
+              <option value="seasonal">Temporada / Festivo</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1.5 block">Instrucciones extra (opcional)</label>
+            <input
+              type="text"
+              value={aiCustomPrompt}
+              onChange={(e) => setAiCustomPrompt(e.target.value)}
+              placeholder="Ej: Menciona el 2x1 en pizzas..."
+              className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
+            />
+          </div>
+        </div>
+        <button
+          onClick={handleAIGenerate}
+          disabled={aiGenerating}
+          className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+        >
+          {aiGenerating ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Generando...</>
+          ) : (
+            <><Sparkles className="w-4 h-4" /> Generar contenido con IA</>
+          )}
+        </button>
       </div>
 
       {/* Compose */}

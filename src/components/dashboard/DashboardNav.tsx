@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   ClipboardList, Tag, ShoppingBag, QrCode, Settings, LogOut, Menu, X,
-  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image,
+  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,7 @@ const NAV_SECTIONS = [
     items: [
       { href: '/app/tables', label: 'Mesas & QRs', icon: QrCode },
       { href: '/app/customers', label: 'Clientes', icon: Contact2 },
+      { href: '/app/reviews', label: 'Reseñas', icon: Star },
       { href: '/app/promotions', label: 'Promociones', icon: Ticket },
       { href: '/app/staff', label: 'Equipo', icon: Users },
     ],

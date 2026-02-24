@@ -119,6 +119,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         locale={data.locale}
         availableLocales={data.availableLocales}
         reviewStats={data.reviewStats}
+        recentReviews={data.recentReviews}
       />
     </>
   );

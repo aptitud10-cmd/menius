@@ -6,6 +6,14 @@ export interface ReviewStats {
   total: number;
 }
 
+export interface ReviewItem {
+  id: string;
+  customer_name: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+}
+
 export interface MenuData {
   restaurant: Restaurant;
   categories: Category[];
@@ -14,6 +22,7 @@ export interface MenuData {
   locale: 'es' | 'en';
   availableLocales: string[];
   reviewStats: ReviewStats | null;
+  recentReviews: ReviewItem[];
 }
 
 export async function fetchMenuData(slug: string): Promise<MenuData | null> {
@@ -47,9 +56,11 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
       .order('sort_order'),
     supabase
       .from('reviews')
-      .select('rating')
+      .select('id, customer_name, rating, comment, created_at')
       .eq('restaurant_id', restaurant.id)
-      .eq('is_visible', true),
+      .eq('is_visible', true)
+      .order('created_at', { ascending: false })
+      .limit(50),
   ]);
 
   const groupsByProduct = new Map<string, any[]>();
@@ -75,6 +86,17 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
     reviewStats = { average: Math.round(avg * 10) / 10, total: reviewRows.length };
   }
 
+  const recentReviews: ReviewItem[] = (reviewRows ?? [])
+    .filter((r) => r.comment && r.comment.trim().length > 0)
+    .slice(0, 10)
+    .map((r) => ({
+      id: r.id,
+      customer_name: r.customer_name,
+      rating: r.rating,
+      comment: r.comment,
+      created_at: r.created_at,
+    }));
+
   return {
     restaurant,
     categories: categories ?? [],
@@ -83,5 +105,6 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
     locale: restaurant.locale ?? 'es',
     availableLocales: restaurant.available_locales ?? [restaurant.locale ?? 'es'],
     reviewStats,
+    recentReviews,
   };
 }

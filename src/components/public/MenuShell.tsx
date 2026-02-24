@@ -26,6 +26,14 @@ interface ReviewStats {
   total: number;
 }
 
+interface ReviewItem {
+  id: string;
+  customer_name: string;
+  rating: number;
+  comment: string;
+  created_at: string;
+}
+
 interface MenuShellProps {
   restaurant: Restaurant;
   categories: Category[];
@@ -35,6 +43,7 @@ interface MenuShellProps {
   availableLocales?: string[];
   backUrl?: string;
   reviewStats?: ReviewStats | null;
+  recentReviews?: ReviewItem[];
 }
 
 interface CustomizationTarget {
@@ -51,6 +60,7 @@ export function MenuShell({
   availableLocales: availableLocalesRaw,
   backUrl,
   reviewStats,
+  recentReviews,
 }: MenuShellProps) {
   const router = useRouter();
   const defaultLocale = initialLocale;
@@ -663,6 +673,47 @@ export function MenuShell({
               ))}
             </div>
           )}
+          {/* Recent reviews */}
+          {recentReviews && recentReviews.length > 0 && (
+            <section className="mt-8 mb-6">
+              <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                {locale === 'en' ? 'What our customers say' : 'Lo que dicen nuestros clientes'}
+                {reviewStats && reviewStats.total > 0 && (
+                  <span className="text-sm font-normal text-gray-400 ml-1">
+                    ({reviewStats.average} / 5 · {reviewStats.total} {locale === 'en' ? 'reviews' : 'reseñas'})
+                  </span>
+                )}
+              </h3>
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
+                {recentReviews.map((review) => (
+                  <div
+                    key={review.id}
+                    className="flex-shrink-0 w-[260px] snap-start bg-white rounded-xl border border-gray-100 p-4"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600">
+                        {review.customer_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{review.customer_name}</p>
+                        <div className="flex items-center gap-0.5">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={cn('w-3 h-3', s <= review.rating ? 'text-amber-500 fill-amber-500' : 'text-gray-200')}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">{review.comment}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           </div>{/* end px wrapper */}
         </main>
 
