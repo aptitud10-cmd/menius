@@ -70,16 +70,11 @@ export const MenuHeader = memo(function MenuHeader({
   return (
     <header
       className={cn(
-        'flex-shrink-0 z-40 transition-all duration-300',
-        isScrolled
-          ? 'bg-white border-b border-gray-200 shadow-sm'
-          : 'bg-white border-b border-gray-100'
+        'flex-shrink-0 z-40 bg-white border-b',
+        isScrolled ? 'border-gray-200 shadow-sm' : 'border-gray-100'
       )}
     >
-      <div className={cn(
-        'max-w-[1440px] mx-auto px-4 lg:px-6 flex items-center gap-3 transition-all duration-300',
-        isScrolled ? 'h-12 lg:h-14' : 'h-14'
-      )}>
+      <div className="max-w-[1440px] mx-auto px-4 lg:px-6 flex items-center gap-3 h-14">
         {/* Back button (demo/external) */}
         {backUrl && (
           <Link href={backUrl} className="flex-shrink-0 p-1.5 -ml-1.5 rounded-lg active:bg-gray-100 transition-colors" aria-label="Back">
@@ -89,13 +84,10 @@ export const MenuHeader = memo(function MenuHeader({
 
         {/* Logo + Name */}
         <div className={cn(
-          'flex items-center gap-2.5 flex-shrink-0 min-w-0 transition-all duration-300',
+          'flex items-center gap-2.5 flex-shrink-0 min-w-0',
           !showNameInHeader && 'lg:flex'
         )}>
-          <div className={cn(
-            'transition-all duration-300 flex-shrink-0',
-            isScrolled ? 'w-7 h-7 lg:w-9 lg:h-9' : 'w-8 h-8 lg:w-10 lg:h-10'
-          )}>
+          <div className="w-8 h-8 lg:w-10 lg:h-10 flex-shrink-0">
             {restaurant.logo_url ? (
               <div className="relative w-full h-full rounded-lg overflow-hidden bg-gray-100">
                 <Image
@@ -103,8 +95,7 @@ export const MenuHeader = memo(function MenuHeader({
                   alt={restaurant.name}
                   fill
                   sizes="40px"
-                  className="object-cover opacity-0 transition-opacity duration-300"
-                  onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
+                  className="object-cover"
                 />
               </div>
             ) : (
@@ -113,12 +104,7 @@ export const MenuHeader = memo(function MenuHeader({
               </div>
             )}
           </div>
-          <span className={cn(
-            'font-bold text-gray-900 truncate transition-all duration-300',
-            showNameInHeader
-              ? 'max-w-[180px] lg:max-w-[260px] opacity-100 text-[15px] lg:text-base'
-              : 'max-w-0 lg:max-w-[260px] opacity-0 lg:opacity-100 overflow-hidden text-[15px] lg:text-base'
-          )}>
+          <span className="font-bold text-gray-900 truncate max-w-[180px] lg:max-w-[260px] text-[15px] lg:text-base">
             {restaurant.name}
           </span>
         </div>

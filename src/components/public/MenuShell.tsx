@@ -435,14 +435,12 @@ export function MenuShell({
           {/* Cover image banner */}
           {restaurant.cover_image_url && (
             <div className="relative w-full h-40 sm:h-48 lg:h-56 bg-gray-100 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse" />
               <Image
                 src={restaurant.cover_image_url}
                 alt={restaurant.name}
                 fill
                 sizes="100vw"
-                className="object-cover opacity-0 transition-opacity duration-500"
-                onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
+                className="object-cover"
                 priority
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
@@ -680,38 +678,23 @@ export function MenuShell({
           >
             <div className="p-4 pt-8 bg-gradient-to-t from-white via-white/95 to-transparent">
               <div className="max-w-lg mx-auto pointer-events-auto">
-                <motion.button
-                  key={`cart-btn-${cartCount}`}
+                <button
                   onClick={() => setOpen(true)}
                   className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-emerald-500 text-white shadow-[0_8px_30px_rgba(16,185,129,0.3)] active:scale-[0.98]"
-                  animate={{ scale: [1, 1.04, 1] }}
-                  transition={{ duration: 0.25 }}
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <ShoppingCart className="w-5 h-5" />
-                      <motion.span
-                        key={`cart-count-${cartCount}`}
-                        className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-white text-emerald-600 text-[10px] font-bold px-1"
-                        initial={{ scale: 0.5, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={{ type: 'spring', damping: 15, stiffness: 400 }}
-                      >
+                      <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-white text-emerald-600 text-[10px] font-bold px-1">
                         {cartCount}
-                      </motion.span>
+                      </span>
                     </div>
                     <span className="font-semibold text-[15px]">{t.viewCart}</span>
                   </div>
-                  <motion.span
-                    key={`cart-total-${cartTotal}`}
-                    className="font-bold text-[15px] tabular-nums"
-                    initial={{ y: -8, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                  >
+                  <span className="font-bold text-[15px] tabular-nums">
                     {fmtPrice(cartTotal)}
-                  </motion.span>
-                </motion.button>
+                  </span>
+                </button>
               </div>
             </div>
           </motion.div>

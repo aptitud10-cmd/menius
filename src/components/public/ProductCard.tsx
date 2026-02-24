@@ -149,7 +149,6 @@ export const ProductCard = memo(function ProductCard({
 
         {showImage ? (
           <div className="relative w-[92px] h-[92px] rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
             <Image
               src={product.image_url}
               alt={product.name}
@@ -158,8 +157,7 @@ export const ProductCard = memo(function ProductCard({
               loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
-              className={cn('object-cover opacity-0 transition-opacity duration-300', outOfStock && 'grayscale')}
-              onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
+              className={cn('object-cover', outOfStock && 'grayscale')}
               onError={() => setImgError(true)}
             />
             {outOfStock && (
@@ -199,7 +197,6 @@ export const ProductCard = memo(function ProductCard({
       >
         {showImage ? (
           <div className="relative w-full aspect-[16/9] bg-gray-100 overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
             <Image
               src={product.image_url}
               alt={product.name}
@@ -208,8 +205,7 @@ export const ProductCard = memo(function ProductCard({
               loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
-              className={cn('object-cover group-hover:scale-[1.03] transition-[transform,opacity] duration-500 opacity-0', outOfStock && 'grayscale')}
-              onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
+              className={cn('object-cover group-hover:scale-[1.03] transition-transform duration-500', outOfStock && 'grayscale')}
               onError={() => setImgError(true)}
             />
             {outOfStock && (
