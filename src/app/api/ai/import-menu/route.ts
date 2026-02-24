@@ -53,53 +53,68 @@ export async function POST(request: NextRequest) {
       ? 'The menu is in English. Keep all names and descriptions in English.'
       : 'El menú puede estar en español u otro idioma. Mantén los nombres y descripciones en el idioma original.';
 
-    const prompt = `You are a world-class restaurant menu analyst. Analyze this menu image and extract a COMPLETE structured representation of every item, including variants, extras/add-ons, and dietary information.
+    const prompt = `You are a world-class restaurant menu analyst and food copywriter. Analyze this menu image and extract a COMPLETE structured representation of every item.
 
 ${langInstruction}
 
-Return a valid JSON array. Each item MUST have these fields:
-- "category": Section name (e.g. "Desayunos", "Entradas", "Platos fuertes", "Bebidas", "Postres")
-- "name": Dish name exactly as written
-- "description": Brief description if visible, otherwise generate ONE appetizing sentence
-- "price": Base numeric price (number only, no currency). Use 0 if not visible
-- "variants": Array of size/style options IF the menu shows choices like "Chico/Grande", "4pcs/8pcs", or cooking styles. Each: {"name": "Grande", "price_delta": 3.00}. Empty array [] if none
-- "extras": Array of add-ons/extras IF the menu lists them (e.g. "+guacamole $2"). Each: {"name": "Guacamole extra", "price": 2.50}. Empty array [] if none
-- "modifier_groups": Array of required choices IF the menu shows "Elige tu..." or "Incluye..." options. Each group: {"name": "Elige proteína", "selection_type": "single", "is_required": true, "options": [{"name": "Pollo", "price_delta": 0}, {"name": "Camarón", "price_delta": 3.00}]}. Empty array [] if none
-- "dietary": Array of dietary tags from ONLY these values: ["vegetarian", "vegan", "gluten-free", "spicy", "popular"]. Look for symbols like V, VG, GF, 🌶, ⭐, or text hints. Empty array [] if none
+First, identify the CUISINE TYPE of this restaurant (e.g. Mexican, Italian, American Diner, Japanese, Indian, Mediterranean, etc.). Use this knowledge to write better descriptions and categorize items correctly.
 
-CRITICAL RULES:
-- Extract EVERY item, even partially visible ones
-- "price_delta" = additional cost over the base price (0 if same price)
-- Only create "variants" for size/portion differences with DIFFERENT prices
-- Only create "extras" for OPTIONAL add-ons clearly marked with a "+" or extra price
-- Only create "modifier_groups" for REQUIRED choices (e.g. "choose your side", "select cooking")
-- If a section header exists, use it as category. Otherwise use "General"
-- Return ONLY the JSON array, no markdown, no explanation
+Return a valid JSON object with this structure:
+{
+  "cuisine": "the detected cuisine type",
+  "items": [ ...array of items... ]
+}
+
+Each item in the "items" array MUST have these fields:
+- "category": Broad category name (see CATEGORY GROUPING rules below)
+- "name": Dish name exactly as written on the menu
+- "description": If the menu shows a description, use it. If NOT visible, write a short, appetizing, professional description (1 sentence, max 15 words) that mentions the key ingredients and cooking method. Write like a food critic — make it sound delicious. Examples: "Crispy golden pancakes stacked high with warm maple syrup" or "Tender grilled chicken breast glazed with honey-chipotle sauce"
+- "price": Base numeric price (number only, no currency symbol). Use 0 if not visible
+- "variants": Array of size/portion options ONLY if the menu shows different sizes with different prices (e.g. "Small/Large", "4pcs/8pcs"). Each: {"name": "Large", "price_delta": 3.00}. Empty [] if none
+- "extras": Array of optional add-ons ONLY if clearly marked with "+" or extra price on the menu. Each: {"name": "Extra cheese", "price": 2.50}. Empty [] if none
+- "modifier_groups": Array of required choices ONLY if the menu shows "Choose your...", "Pick one:", "Comes with..." options. Each group: {"name": "Choose protein", "selection_type": "single", "is_required": true, "options": [{"name": "Chicken", "price_delta": 0}, {"name": "Shrimp", "price_delta": 3.00}]}. selection_type is "multi" only if customer can pick multiple. Empty [] if none
+- "dietary": Array from ONLY these values: ["vegetarian", "vegan", "gluten-free", "spicy", "popular"]. Detect from symbols (V, VG, GF, 🌶, ⭐, ♦), highlighted/boxed items, "Chef's pick", "Best seller", "Most popular", or text hints. Items marked as bestsellers or featured = "popular". Empty [] if none
+
+CATEGORY GROUPING (critical):
+- Use BROAD categories. Maximum 8-10 total for the entire menu.
+- Merge related subsections into ONE parent category.
+- Examples: "Buttermilk Pancakes" + "French Toast" + "Waffles" = "Breakfast". "Caesar Salad" + "Greek Salad" = "Salads". "Burgers" + "Sandwiches" + "Wraps" = "Sandwiches & Wraps". "Margaritas" + "Beer" + "Wine" = "Drinks".
+- Standard categories: Breakfast, Appetizers, Salads, Soups, Entrees, Pasta, Seafood, Sandwiches & Wraps, Tacos & Burritos, Pizza, Burgers, Sides, Desserts, Beverages, Kids Menu, Combos.
+- If a section doesn't fit, use a simple name (e.g. "House Specials").
+
+OTHER RULES:
+- Extract EVERY item, even partially visible
+- "price_delta" = additional cost over base (0 if same price)
+- Do NOT invent variants/extras/modifiers that aren't on the menu
+- Return ONLY the JSON object, no markdown, no explanation
 - All prices must be numbers (12.99 not "$12.99")
 
-Example:
-[
-  {
-    "category": "Desayunos",
-    "name": "Huevos Rancheros",
-    "description": "Huevos fritos sobre tortilla con salsa roja y frijoles",
-    "price": 9.99,
-    "variants": [],
-    "extras": [{"name": "Guacamole", "price": 2.50}, {"name": "Tocino", "price": 3.00}],
-    "modifier_groups": [{"name": "Estilo de huevo", "selection_type": "single", "is_required": true, "options": [{"name": "Estrellados", "price_delta": 0}, {"name": "Revueltos", "price_delta": 0}]}],
-    "dietary": ["gluten-free"]
-  },
-  {
-    "category": "Bebidas",
-    "name": "Limonada",
-    "description": "Limonada natural con hierbabuena",
-    "price": 4.99,
-    "variants": [{"name": "Chica", "price_delta": 0}, {"name": "Grande", "price_delta": 2.00}],
-    "extras": [],
-    "modifier_groups": [],
-    "dietary": ["vegan"]
-  }
-]`;
+Example output:
+{
+  "cuisine": "Mexican",
+  "items": [
+    {
+      "category": "Breakfast",
+      "name": "Huevos Rancheros",
+      "description": "Farm-fresh eggs on crispy tortilla with smoky ranchero sauce and refried beans",
+      "price": 9.99,
+      "variants": [],
+      "extras": [{"name": "Guacamole", "price": 2.50}],
+      "modifier_groups": [{"name": "Egg style", "selection_type": "single", "is_required": true, "options": [{"name": "Sunny side up", "price_delta": 0}, {"name": "Scrambled", "price_delta": 0}]}],
+      "dietary": ["gluten-free", "popular"]
+    },
+    {
+      "category": "Beverages",
+      "name": "Fresh Lemonade",
+      "description": "Hand-squeezed lemonade with fresh mint and a touch of agave",
+      "price": 4.99,
+      "variants": [{"name": "Regular", "price_delta": 0}, {"name": "Large", "price_delta": 2.00}],
+      "extras": [],
+      "modifier_groups": [],
+      "dietary": ["vegan"]
+    }
+  ]
+}`;
 
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
@@ -131,13 +146,23 @@ Example:
     }
 
     let items: RawItem[];
+    let cuisine = 'General';
 
     try {
       const cleaned = responseText
         .replace(/```json\s*/g, '')
         .replace(/```\s*/g, '')
         .trim();
-      items = JSON.parse(cleaned);
+      const parsed = JSON.parse(cleaned);
+
+      if (Array.isArray(parsed)) {
+        items = parsed;
+      } else if (parsed && Array.isArray(parsed.items)) {
+        items = parsed.items;
+        cuisine = parsed.cuisine || 'General';
+      } else {
+        items = [];
+      }
     } catch {
       return NextResponse.json(
         { error: 'No se pudo procesar el menú. Intenta con una foto más clara.' },
@@ -198,6 +223,7 @@ Example:
     return NextResponse.json({
       items: sanitized,
       count: sanitized.length,
+      cuisine,
     });
   } catch (err: unknown) {
     logger.error('Menu OCR error', { error: err instanceof Error ? err.message : String(err) });

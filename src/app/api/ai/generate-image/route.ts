@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { productName, description, style } = body;
+    const { productName, description, style, cuisine, category } = body;
 
     if (!productName?.trim()) {
       return NextResponse.json({ error: 'Nombre del producto requerido' }, { status: 400 });
@@ -42,24 +42,48 @@ export async function POST(request: NextRequest) {
     const genAI = new GoogleGenerativeAI(apiKey);
 
     const styleInstructions: Record<string, string> = {
-      professional: 'Professional food photography style. Clean white or neutral background. Soft natural lighting. Shallow depth of field. Shot from a 45-degree angle.',
-      rustic: 'Rustic artisanal food photography. Wooden table surface. Warm moody lighting. Vintage props like burlap napkins. Overhead flat-lay composition.',
-      modern: 'Modern minimalist food photography. Clean geometric plating. Bright even lighting. Solid color background. Top-down flat lay view.',
-      vibrant: 'Vibrant colorful food photography. Rich saturated colors. Dynamic angle. Fresh ingredients scattered around. Bright natural daylight.',
+      professional: 'Professional food photography for a high-end restaurant menu. Clean white marble or light gray surface. Soft diffused natural window light from the left. Shallow depth of field (f/2.8). Subtle garnish visible.',
+      rustic: 'Rustic artisanal food photography for a cozy restaurant. Reclaimed wooden table surface. Warm golden-hour side lighting. Linen napkin and vintage utensils as subtle props. Overhead 60-degree angle.',
+      modern: 'Modern minimalist food photography for a trendy restaurant. Matte ceramic plate on solid muted background. Bright, even, shadowless studio lighting. Geometric plating. Clean overhead flat-lay.',
+      vibrant: 'Vibrant editorial food photography. Rich saturated colors. Dynamic 30-degree hero angle. Fresh herb garnishes and ingredient splashes around the plate. Bright natural daylight with hard shadows.',
     };
 
     const stylePrompt = styleInstructions[style] || styleInstructions.professional;
 
-    const prompt = `Generate a beautiful, appetizing food photography image of: "${productName}"${description ? `. Description: ${description}` : ''}.
+    const cuisineContext = cuisine && cuisine !== 'General'
+      ? `This is a ${cuisine} cuisine dish. Use authentic ${cuisine} plating style, traditional garnishes, and appropriate dishware (e.g. ceramic for Mexican, lacquerware for Japanese, cast iron for American).`
+      : '';
 
+    const categoryHint = category
+      ? `Category: ${category}.`
+      : '';
+
+    const angleMap: Record<string, string> = {
+      'Beverages': 'Shot from a slight 20-degree angle to show the glass/cup and liquid level clearly.',
+      'Drinks': 'Shot from a slight 20-degree angle to show the glass/cup and liquid level clearly.',
+      'Desserts': 'Shot from a 45-degree angle to capture layers, textures, and toppings.',
+      'Breakfast': 'Shot from overhead flat-lay to show the full plate composition.',
+      'Salads': 'Shot from overhead to show all ingredients and colors.',
+      'Pizza': 'Shot from directly overhead to show toppings, with one slice slightly pulled away.',
+      'Soups': 'Shot from overhead to show the bowl and garnish floating on top.',
+    };
+    const angleHint = (category && angleMap[category]) ? angleMap[category] : '';
+
+    const prompt = `Generate a single, stunning, photorealistic food photograph of: "${productName}"${description ? `. ${description}` : ''}.
+
+${cuisineContext}
+${categoryHint}
 ${stylePrompt}
+${angleHint}
 
-Requirements:
-- High quality, photorealistic food image
-- No text, watermarks, or logos on the image
-- Focus entirely on the dish/food item
-- Make the food look fresh, delicious, and professionally presented
-- Square aspect ratio (1:1)`;
+Technical requirements:
+- Ultra-realistic food photography, indistinguishable from a real photo
+- Absolutely NO text, watermarks, logos, or labels anywhere in the image
+- Single dish, perfectly plated, as it would be served in a real restaurant
+- Food must look fresh, steaming if hot, glistening if sauced, crispy if fried
+- Professional color grading with appetizing warm tones
+- Square aspect ratio (1:1), tight crop on the dish
+- No human hands, no faces, no distracting background elements`;
 
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash-image',

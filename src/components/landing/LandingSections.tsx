@@ -107,7 +107,7 @@ const plans = [
     price: 79,
     desc: 'Para restaurantes que quieren crecer.',
     popular: true,
-    features: ['Todo de Starter', '200 productos, 50 mesas', 'Delivery + WhatsApp + email', 'Cocina KDS en tiempo real', 'Analytics avanzado', 'Promociones y cupones', 'Gestión de equipo (3 usuarios)', 'Sin marca MENIUS'],
+    features: ['Todo de Starter', 'Hasta 50 mesas', 'Delivery + WhatsApp + email', 'Cocina KDS en tiempo real', 'Analytics avanzado', 'Promociones y cupones', 'Gestión de equipo (3 usuarios)', 'Sin marca MENIUS'],
     cta: 'Empezar con Pro',
   },
   {

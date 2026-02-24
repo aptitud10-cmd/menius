@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Camera, Loader2, Check, X, Sparkles, AlertTriangle, Plus, ChevronDown, ChevronRight } from 'lucide-react';
-import { createCategory, createProduct, createVariant, createExtra, createModifierGroup, createModifierOption } from '@/lib/actions/restaurant';
+import { Camera, Loader2, Check, X, Sparkles, AlertTriangle, Plus, ChevronDown, ChevronRight, ImageIcon } from 'lucide-react';
+import { createCategory, createProduct, updateProduct, createVariant, createExtra, createModifierGroup, createModifierOption } from '@/lib/actions/restaurant';
 
 interface ImportedVariant {
   name: string;
@@ -58,14 +58,32 @@ const DIETARY_LABELS: Record<string, { label: string; color: string }> = {
   popular: { label: 'Popular', color: 'bg-purple-100 text-purple-700' },
 };
 
+interface ImportedProduct {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+}
+
+const IMAGE_STYLES = [
+  { id: 'professional', label: 'Profesional', desc: 'Fondo limpio, luz suave, ángulo clásico' },
+  { id: 'rustic', label: 'Rústico', desc: 'Mesa de madera, luz cálida, estilo artesanal' },
+  { id: 'modern', label: 'Moderno', desc: 'Minimalista, fondo sólido, vista cenital' },
+  { id: 'vibrant', label: 'Vibrante', desc: 'Colores intensos, ángulo dinámico, editorial' },
+] as const;
+
 export function MenuImport({ existingCategories, currency, onComplete, onClose }: MenuImportProps) {
-  const [step, setStep] = useState<'upload' | 'review' | 'importing' | 'done'>('upload');
+  const [step, setStep] = useState<'upload' | 'review' | 'importing' | 'generating-images' | 'done'>('upload');
   const [items, setItems] = useState<ImportedItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [progress, setProgress] = useState({ current: 0, total: 0, label: '' });
   const [preview, setPreview] = useState<string | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+  const [importedProducts, setImportedProducts] = useState<ImportedProduct[]>([]);
+  const [detectedCuisine, setDetectedCuisine] = useState('General');
+  const [selectedStyle, setSelectedStyle] = useState<string>('professional');
+  const [imageProgress, setImageProgress] = useState({ current: 0, total: 0, label: '', generated: 0, failed: 0 });
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (file: File) => {
@@ -86,6 +104,7 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
       if (!res.ok) throw new Error(data.error || 'Error procesando imagen');
 
       setItems(data.items.map((item: Omit<ImportedItem, 'selected'>) => ({ ...item, selected: true })));
+      if (data.cuisine) setDetectedCuisine(data.cuisine);
       setStep('review');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error procesando la imagen');
@@ -165,6 +184,7 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
     let success = 0;
     let failed = 0;
     const errors: string[] = [];
+    const createdProducts: ImportedProduct[] = [];
     let processed = 0;
 
     for (const item of selectedItems) {
@@ -203,6 +223,8 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
           errors.push(`${item.name}: no se obtuvo ID del producto`);
           continue;
         }
+
+        createdProducts.push({ id: productId, name: item.name, description: item.description, category: item.category });
 
         for (const v of item.variants) {
           await createVariant(productId, { name: v.name, price_delta: v.price_delta, sort_order: v.sort_order });
@@ -246,6 +268,60 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
     }
 
     setImportResult({ success, failed, errors });
+    setImportedProducts(createdProducts);
+    setStep('done');
+  };
+
+  const PARALLEL_BATCH = 3;
+
+  const handleGenerateImages = async () => {
+    if (importedProducts.length === 0) return;
+
+    setStep('generating-images');
+    const total = importedProducts.length;
+    setImageProgress({ current: 0, total, label: '', generated: 0, failed: 0 });
+
+    let generated = 0;
+    let imgFailed = 0;
+    let processed = 0;
+
+    for (let i = 0; i < total; i += PARALLEL_BATCH) {
+      const batch = importedProducts.slice(i, i + PARALLEL_BATCH);
+      const names = batch.map(p => p.name).join(', ');
+      setImageProgress({ current: processed, total, label: names, generated, failed: imgFailed });
+
+      const results = await Promise.allSettled(
+        batch.map(async (p) => {
+          const res = await fetch('/api/ai/generate-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              productName: p.name,
+              description: p.description,
+              style: selectedStyle,
+              cuisine: detectedCuisine,
+              category: p.category,
+            }),
+          });
+          const data = await res.json();
+          if (res.ok && data.url) {
+            await updateProduct(p.id, { image_url: data.url });
+            return true;
+          }
+          return false;
+        })
+      );
+
+      for (const r of results) {
+        processed++;
+        if (r.status === 'fulfilled' && r.value) generated++;
+        else imgFailed++;
+      }
+
+      setImageProgress({ current: processed, total, label: '', generated, failed: imgFailed });
+    }
+
+    setImageProgress({ current: total, total, label: '', generated, failed: imgFailed });
     setStep('done');
   };
 
@@ -271,6 +347,7 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
                 {step === 'upload' && 'Sube una foto de tu menú'}
                 {step === 'review' && `${items.length} productos · ${totalVariants} variantes · ${totalExtras} extras · ${totalGroups} grupos`}
                 {step === 'importing' && `Importando ${progress.current}/${progress.total}...`}
+                {step === 'generating-images' && `Generando imágenes ${imageProgress.current}/${imageProgress.total}...`}
                 {step === 'done' && 'Importación completada'}
               </p>
             </div>
@@ -493,6 +570,34 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
             </div>
           )}
 
+          {step === 'generating-images' && (
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <div className="relative">
+                <ImageIcon className="w-12 h-12 text-violet-400" />
+                <Loader2 className="w-6 h-6 text-violet-600 animate-spin absolute -bottom-1 -right-1" />
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-bold text-gray-900">Generando imágenes con IA...</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {imageProgress.current} de {imageProgress.total} productos
+                </p>
+                {imageProgress.label && (
+                  <p className="text-xs text-violet-600 mt-2 font-medium">{imageProgress.label}</p>
+                )}
+                {imageProgress.generated > 0 && (
+                  <p className="text-xs text-emerald-600 mt-1">{imageProgress.generated} generadas</p>
+                )}
+              </div>
+              <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-violet-500 rounded-full transition-all duration-300"
+                  style={{ width: `${imageProgress.total > 0 ? (imageProgress.current / imageProgress.total) * 100 : 0}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-gray-400">Cada imagen toma ~5-10 segundos</p>
+            </div>
+          )}
+
           {step === 'done' && (
             <div className="flex flex-col items-center justify-center py-8 gap-4">
               <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
@@ -516,6 +621,11 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
                 {importResult.failed > 0 && (
                   <p className="text-sm text-red-500 mt-1">
                     {importResult.failed} producto{importResult.failed !== 1 ? 's' : ''} fallaron
+                  </p>
+                )}
+                {imageProgress.generated > 0 && (
+                  <p className="text-sm text-violet-600 mt-1">
+                    {imageProgress.generated} imagen{imageProgress.generated !== 1 ? 'es' : ''} generada{imageProgress.generated !== 1 ? 's' : ''} con IA
                   </p>
                 )}
               </div>
@@ -548,12 +658,55 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
             </>
           )}
           {step === 'done' && (
-            <button
-              onClick={() => { onComplete(); onClose(); }}
-              className="ml-auto px-6 py-2.5 rounded-xl bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 transition-colors"
-            >
-              Ver productos
-            </button>
+            <div className="flex flex-col gap-3 w-full">
+              {importedProducts.length > 0 && imageProgress.generated === 0 && (
+                <>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Estilo de foto</span>
+                    {detectedCuisine !== 'General' && (
+                      <span className="text-xs text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">
+                        {detectedCuisine}
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {IMAGE_STYLES.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => setSelectedStyle(s.id)}
+                        className={`text-left p-2.5 rounded-lg border-2 transition-all ${
+                          selectedStyle === s.id
+                            ? 'border-violet-500 bg-violet-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <span className={`text-sm font-medium ${selectedStyle === s.id ? 'text-violet-700' : 'text-gray-700'}`}>
+                          {s.label}
+                        </span>
+                        <span className="block text-xs text-gray-400 mt-0.5">{s.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              <div className="flex items-center gap-3 justify-end pt-1">
+                {importedProducts.length > 0 && imageProgress.generated === 0 && (
+                  <button
+                    onClick={handleGenerateImages}
+                    className="px-5 py-2.5 rounded-xl bg-violet-500 text-white font-semibold text-sm hover:bg-violet-600 transition-colors flex items-center gap-2"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    Generar imágenes con IA ({importedProducts.length})
+                  </button>
+                )}
+                <button
+                  onClick={() => { onComplete(); onClose(); }}
+                  className="px-6 py-2.5 rounded-xl bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 transition-colors"
+                >
+                  Ver productos
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>
