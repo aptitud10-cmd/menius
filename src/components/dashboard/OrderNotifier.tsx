@@ -125,10 +125,10 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
         </div>
       )}
 
-      {/* Sound toggle (fixed bottom-right) */}
+      {/* Sound toggle (above AI chat button) */}
       <button
         onClick={() => setSoundEnabled(!soundEnabled)}
-        className="fixed bottom-4 right-4 z-[70] w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors group"
+        className="fixed bottom-[5.5rem] right-6 z-[70] w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors group"
         title={soundEnabled ? 'Silenciar notificaciones' : 'Activar sonido'}
       >
         {soundEnabled ? (

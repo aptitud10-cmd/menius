@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   ClipboardList, Tag, ShoppingBag, QrCode, Settings, LogOut, Menu, X,
-  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield,
+  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Images,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,7 @@ const NAV_SECTIONS = [
     items: [
       { href: '/app/menu/categories', label: 'Categorías', icon: Tag },
       { href: '/app/menu/products', label: 'Productos', icon: ShoppingBag },
+      { href: '/app/media', label: 'Galería', icon: Images },
     ],
   },
   {

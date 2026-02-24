@@ -86,6 +86,9 @@ export const ProductCard = memo(function ProductCard({
               {!outOfStock && product.is_featured && (
                 <span className="text-xs">🔥</span>
               )}
+              {!outOfStock && product.is_new && (
+                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full leading-none">NEW</span>
+              )}
               <h3 className={cn('font-semibold text-[15px] line-clamp-1 leading-tight', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
                 {displayName}
               </h3>
@@ -208,6 +211,11 @@ export const ProductCard = memo(function ProductCard({
                 🔥 {popularLabel}
               </span>
             )}
+            {!outOfStock && !product.is_featured && product.is_new && (
+              <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold shadow-sm">
+                NEW
+              </span>
+            )}
             <button
               onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
               className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200"
@@ -227,6 +235,11 @@ export const ProductCard = memo(function ProductCard({
             {!outOfStock && product.is_featured && (
               <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-bold">
                 🔥 {popularLabel}
+              </span>
+            )}
+            {!outOfStock && !product.is_featured && product.is_new && (
+              <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold">
+                NEW
               </span>
             )}
             <button

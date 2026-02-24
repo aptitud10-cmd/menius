@@ -77,6 +77,7 @@ export interface Product {
   is_active: boolean;
   in_stock?: boolean;
   is_featured?: boolean;
+  is_new?: boolean;
   translations?: Record<string, ContentTranslation>;
   dietary_tags?: DietaryTag[];
   sort_order: number;

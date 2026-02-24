@@ -14,6 +14,7 @@ import type { Product, Category, DietaryTag, ContentTranslation } from '@/types'
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { getLocaleFlag, getLocaleLabel } from '@/lib/i18n';
 import { ModifierGroupsEditor } from './ModifierGroupsEditor';
+import { MediaPicker } from './MediaPicker';
 
 interface Props {
   product: Product | null;
@@ -43,6 +44,7 @@ export function ProductEditor({
     is_active: product?.is_active ?? true,
     in_stock: product?.in_stock ?? true,
     is_featured: product?.is_featured ?? false,
+    is_new: product?.is_new ?? false,
     dietary_tags: (product?.dietary_tags ?? []) as DietaryTag[],
   });
 
@@ -57,8 +59,17 @@ export function ProductEditor({
   const [saved, setSaved] = useState(false);
   const [isPending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryUrl, setGalleryUrl] = useState<string | null>(null);
 
   const busy = uploading || isPending;
+
+  const handleGallerySelect = useCallback((url: string) => {
+    setGalleryUrl(url);
+    setImagePreview(url);
+    setImageFile(null);
+    if (fileRef.current) fileRef.current.value = '';
+  }, []);
 
   const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -67,6 +78,7 @@ export function ProductEditor({
     if (file.size > 5 * 1024 * 1024) { setError('Máximo 5MB'); return; }
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
+    setGalleryUrl(null);
     setError('');
   }, []);
 
@@ -94,8 +106,8 @@ export function ProductEditor({
     const price = parseFloat(form.price);
     if (isNaN(price) || price < 0) { setError('Precio inválido'); return; }
 
-    let imageUrl: string | null = null;
-    if (imageFile) {
+    let imageUrl: string | null = galleryUrl;
+    if (!imageUrl && imageFile) {
       imageUrl = await uploadImage();
       if (imageUrl === null && imageFile) return;
     }
@@ -111,6 +123,7 @@ export function ProductEditor({
             is_active: form.is_active,
             in_stock: form.in_stock,
             is_featured: form.is_featured,
+            is_new: form.is_new,
             dietary_tags: form.dietary_tags,
             translations: Object.keys(translations).length > 0 ? translations : null,
           };
@@ -127,6 +140,7 @@ export function ProductEditor({
             price,
             category_id: form.category_id,
             is_active: form.is_active,
+            is_new: form.is_new,
             dietary_tags: form.dietary_tags,
             ...(imageUrl ? { image_url: imageUrl } : {}),
           });
@@ -166,6 +180,7 @@ export function ProductEditor({
   const removeImage = () => {
     setImageFile(null);
     setImagePreview(null);
+    setGalleryUrl(null);
     if (fileRef.current) fileRef.current.value = '';
   };
 
@@ -301,12 +316,18 @@ export function ProductEditor({
                       unoptimized={imagePreview.startsWith('blob:')}
                     />
                   </div>
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-3">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
                     <button
                       onClick={() => fileRef.current?.click()}
                       className="px-3 py-2 bg-white rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
                     >
                       <Camera className="w-4 h-4 inline mr-1" /> Cambiar
+                    </button>
+                    <button
+                      onClick={() => setGalleryOpen(true)}
+                      className="px-3 py-2 bg-white rounded-lg text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
+                    >
+                      <ImagePlus className="w-4 h-4 inline mr-1" /> Galería
                     </button>
                     <button
                       onClick={removeImage}
@@ -317,14 +338,24 @@ export function ProductEditor({
                   </div>
                 </div>
               ) : (
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  className="w-full aspect-[16/9] border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors"
-                >
+                <div className="w-full aspect-[16/9] border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-3">
                   <ImagePlus className="w-8 h-8 text-gray-400" />
-                  <span className="text-sm text-gray-500">Click para subir imagen</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => fileRef.current?.click()}
+                      className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      Subir imagen
+                    </button>
+                    <button
+                      onClick={() => setGalleryOpen(true)}
+                      className="px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
+                    >
+                      Elegir de galería
+                    </button>
+                  </div>
                   <span className="text-xs text-gray-400">PNG, JPG hasta 5MB</span>
-                </button>
+                </div>
               )}
             </div>
 
@@ -459,6 +490,28 @@ export function ProductEditor({
                     )} />
                   </button>
                 </label>
+
+                <label className="flex items-center justify-between cursor-pointer group">
+                  <span className="flex items-center gap-2 text-sm text-gray-700">
+                    <span className="text-base">🆕</span>
+                    Nuevo
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={form.is_new}
+                    onClick={() => setForm(prev => ({ ...prev, is_new: !prev.is_new }))}
+                    className={cn(
+                      'relative w-11 h-6 rounded-full transition-colors',
+                      form.is_new ? 'bg-blue-500' : 'bg-gray-300',
+                    )}
+                  >
+                    <span className={cn(
+                      'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm',
+                      form.is_new && 'translate-x-5',
+                    )} />
+                  </button>
+                </label>
               </div>
             </div>
 
@@ -529,6 +582,12 @@ export function ProductEditor({
           </div>
         </div>
       </div>
+
+      <MediaPicker
+        open={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+        onSelect={handleGallerySelect}
+      />
     </div>
   );
 }

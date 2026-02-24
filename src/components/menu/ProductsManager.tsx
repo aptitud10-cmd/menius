@@ -860,7 +860,7 @@ export function ProductsManager({
             <ImagePlus className="w-4 h-4" /> Fotos
           </button>
           <button onClick={() => setShowImport(true)} className="dash-btn-secondary">
-            <Sparkles className="w-4 h-4" /> Importar
+            <Sparkles className="w-4 h-4" /> Importar menu con IA
           </button>
         </div>
         <div className="flex items-center gap-2">
