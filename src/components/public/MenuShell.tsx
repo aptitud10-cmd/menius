@@ -667,39 +667,30 @@ export function MenuShell({
       </div>
 
       {/* ── Mobile: Bottom cart bar ── */}
-      <AnimatePresence>
-        {cartCount > 0 && (
-          <motion.div
-            className="fixed bottom-0 left-0 right-0 z-30 lg:hidden pointer-events-none pb-[env(safe-area-inset-bottom)]"
-            initial={{ y: 80, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 80, opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-          >
-            <div className="p-4 pt-8 bg-gradient-to-t from-white via-white/95 to-transparent">
-              <div className="max-w-lg mx-auto pointer-events-auto">
-                <button
-                  onClick={() => setOpen(true)}
-                  className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-emerald-500 text-white shadow-[0_8px_30px_rgba(16,185,129,0.3)] active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <ShoppingCart className="w-5 h-5" />
-                      <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-white text-emerald-600 text-[10px] font-bold px-1">
-                        {cartCount}
-                      </span>
-                    </div>
-                    <span className="font-semibold text-[15px]">{t.viewCart}</span>
+      {cartCount > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden pointer-events-none pb-[env(safe-area-inset-bottom)]">
+          <div className="p-4 pt-8 bg-gradient-to-t from-white via-white/95 to-transparent">
+            <div className="max-w-lg mx-auto pointer-events-auto">
+              <button
+                onClick={() => setOpen(true)}
+                className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-emerald-500 text-white shadow-[0_8px_30px_rgba(16,185,129,0.3)] active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <ShoppingCart className="w-5 h-5" />
+                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-white text-emerald-600 text-[10px] font-bold px-1">
+                      {cartCount}
+                    </span>
                   </div>
-                  <span className="font-bold text-[15px] tabular-nums">
-                    {fmtPrice(cartTotal)}
-                  </span>
-                </button>
-              </div>
+                </div>
+                <span className="font-bold text-[15px] tabular-nums">
+                  {fmtPrice(cartTotal)}
+                </span>
+              </button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      )}
 
       {/* ── Mobile: Cart Drawer ── */}
       <AnimatePresence>
