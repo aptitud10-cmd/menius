@@ -72,7 +72,12 @@ export async function POST(request: NextRequest) {
         .eq('restaurant_id', tenant.restaurantId);
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app').trim();
+    logger.info('App URL', { appUrl });
+
+    if (!appUrl.startsWith('http')) {
+      return NextResponse.json({ error: `APP_URL inválida: ${appUrl}` }, { status: 500 });
+    }
 
     const isLiveSubscription =
       subscription?.stripe_subscription_id &&

@@ -11,6 +11,9 @@ export async function GET() {
   checks.key_prefix = key.substring(0, 8) + '...';
   checks.key_length = String(key.length);
 
+  checks.app_url = process.env.NEXT_PUBLIC_APP_URL ?? 'NOT SET';
+  checks.webhook_secret = process.env.STRIPE_WEBHOOK_SECRET ? process.env.STRIPE_WEBHOOK_SECRET.substring(0, 8) + '...' : 'MISSING';
+
   const priceVars = [
     'STRIPE_PRICE_STARTER_MONTHLY',
     'STRIPE_PRICE_STARTER_ANNUAL',
