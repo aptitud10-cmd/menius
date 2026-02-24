@@ -210,44 +210,52 @@ export function MenuShell({
     );
   }, [searchQuery, products]);
 
-  // Scroll-spy: highlight pill based on visible section
+  // Scroll-spy: highlight pill based on visible section using IntersectionObserver.
+  // This is reliable from the first frame with no timing/scroll-event issues.
   useEffect(() => {
     const main = mainRef.current;
     if (!main || itemsByCategory.length === 0) return;
 
-    const handleScroll = () => {
+    // Start with the first category active immediately
+    setActiveCategory(itemsByCategory[0].category.id);
+
+    const visibleIds = new Set<string>();
+
+    const pickActive = () => {
       if (isScrollingRef.current) return;
-
-      // Use getBoundingClientRect so positions are always relative to the
-      // actual viewport, regardless of nested wrappers inside the scroll container.
-      const containerTop = main.getBoundingClientRect().top;
-      // Trigger line = header (56) + pills bar (~48) + small buffer
-      const triggerLine = 120;
-      let current: string | null = null;
-
-      sectionRefs.current.forEach((el, id) => {
-        const elTop = el.getBoundingClientRect().top - containerTop;
-        if (elTop <= triggerLine) current = id;
-      });
-
-      // If nothing matched (at very top), pick the first category
-      if (!current && itemsByCategory.length > 0) {
-        current = itemsByCategory[0].category.id;
+      // Walk categories in order and pick the first one currently intersecting
+      for (const { category } of itemsByCategory) {
+        if (visibleIds.has(category.id)) {
+          setActiveCategory(category.id);
+          return;
+        }
       }
-
-      if (current) setActiveCategory(current);
     };
 
-    main.addEventListener('scroll', handleScroll, { passive: true });
-    // Double rAF ensures the browser has completed layout (including image heights)
-    // before measuring section positions for the first time.
-    const rafId = requestAnimationFrame(() => {
-      requestAnimationFrame(() => handleScroll());
-    });
-    return () => {
-      cancelAnimationFrame(rafId);
-      main.removeEventListener('scroll', handleScroll);
-    };
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const id = entry.target.getAttribute('data-cat-id');
+          if (!id) continue;
+          if (entry.isIntersecting) {
+            visibleIds.add(id);
+          } else {
+            visibleIds.delete(id);
+          }
+        }
+        pickActive();
+      },
+      {
+        root: main,
+        // A section becomes "active" when its top edge enters the top 55% of the scroll container
+        rootMargin: '0px 0px -45% 0px',
+        threshold: 0,
+      }
+    );
+
+    sectionRefs.current.forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsByCategory]);
 
