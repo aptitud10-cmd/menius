@@ -209,10 +209,10 @@ export async function POST(request: NextRequest) {
 
     const batchOps: Promise<any>[] = [];
     if (extrasToInsert.length > 0) {
-      batchOps.push(supabase.from('order_item_extras').insert(extrasToInsert));
+      batchOps.push(supabase.from('order_item_extras').insert(extrasToInsert).then());
     }
     if (modifiersToInsert.length > 0) {
-      batchOps.push(supabase.from('order_item_modifiers').insert(modifiersToInsert));
+      batchOps.push(supabase.from('order_item_modifiers').insert(modifiersToInsert).then());
     }
     if (batchOps.length > 0) await Promise.all(batchOps);
 
