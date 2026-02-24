@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Store, ShoppingBag, Users, TrendingUp, Clock, AlertTriangle,
-  ExternalLink, Loader2, Shield,
+  ExternalLink, Loader2, Shield, Megaphone,
 } from 'lucide-react';
 
 interface AdminStats {
@@ -113,9 +113,14 @@ export default function AdminPage() {
             </h1>
             <p className="text-sm text-gray-500 mt-1">Panel de administración del SaaS</p>
           </div>
-          <Link href="/app" className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-gray-400 hover:text-white transition-colors">
-            Dashboard →
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/admin/marketing" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-sm text-white font-medium transition-colors">
+              <Megaphone className="w-4 h-4" /> Marketing
+            </Link>
+            <Link href="/app" className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-gray-400 hover:text-white transition-colors">
+              Dashboard →
+            </Link>
+          </div>
         </div>
 
         {/* KPIs */}

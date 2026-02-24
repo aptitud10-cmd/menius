@@ -715,18 +715,23 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             <Bell className="w-4 h-4 text-gray-500" />
             <h2 className="font-semibold text-sm text-gray-900">Notificaciones</h2>
           </div>
-          <button
-            onClick={() => { setForm((prev) => ({ ...prev, notifications_enabled: !prev.notifications_enabled })); setSaved(false); }}
-            className={cn(
-              'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-              form.notifications_enabled ? 'bg-emerald-500' : 'bg-gray-200'
-            )}
-          >
-            <span className={cn(
-              'inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow-sm',
-              form.notifications_enabled ? 'translate-x-6' : 'translate-x-1'
-            )} />
-          </button>
+          <div className="flex items-center gap-2">
+            <span className={cn('text-xs font-medium', form.notifications_enabled ? 'text-green-600' : 'text-gray-400')}>
+              {form.notifications_enabled ? 'Activado' : 'Desactivado'}
+            </span>
+            <button
+              onClick={() => { setForm((prev) => ({ ...prev, notifications_enabled: !prev.notifications_enabled })); setSaved(false); }}
+              className={cn(
+                'relative inline-flex h-8 w-16 items-center rounded-full transition-colors shadow-inner',
+                form.notifications_enabled ? 'bg-green-500' : 'bg-gray-300'
+              )}
+            >
+              <span className={cn(
+                'inline-block h-6 w-6 transform rounded-full bg-white transition-transform shadow-md',
+                form.notifications_enabled ? 'translate-x-9' : 'translate-x-1'
+              )} />
+            </button>
+          </div>
         </div>
 
         {form.notifications_enabled && (
