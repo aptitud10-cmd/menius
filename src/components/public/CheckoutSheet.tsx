@@ -167,6 +167,7 @@ export function CheckoutSheet({
           promo_code: promoResult?.valid ? promoCode.trim() : undefined,
           discount_amount: discount,
           tip_amount: tipAmount > 0 ? tipAmount : undefined,
+          delivery_fee: deliveryFee > 0 ? deliveryFee : undefined,
           items: items.map((item) => ({
             product_id: item.product.id,
             variant_id: item.variant?.id ?? null,

@@ -53,6 +53,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
     supabase
       .from('modifier_groups')
       .select('*, modifier_options(*)')
+      .eq('restaurant_id', restaurant.id)
       .order('sort_order'),
     supabase
       .from('reviews')

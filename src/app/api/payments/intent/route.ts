@@ -18,33 +18,42 @@ export async function POST(request: NextRequest) {
 
     const stripe = getStripe();
 
-    const { amount, currency, order_id, order_number } = await request.json();
+    const { order_id } = await request.json();
 
-    if (!amount || !currency) {
-      return NextResponse.json({ error: 'amount and currency required' }, { status: 400 });
+    if (!order_id) {
+      return NextResponse.json({ error: 'order_id requerido' }, { status: 400 });
+    }
+
+    const supabase = createClient();
+    const { data: order } = await supabase
+      .from('orders')
+      .select('id, total, order_number, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete )')
+      .eq('id', order_id)
+      .maybeSingle();
+
+    if (!order) {
+      return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
+    }
+
+    const rest = (order as any)?.restaurants;
+    const currency = (rest?.currency || 'mxn').toLowerCase();
+    const amount = Math.round(Number(order.total) * 100);
+
+    if (amount <= 0) {
+      return NextResponse.json({ error: 'Monto inválido' }, { status: 400 });
     }
 
     const intentParams: any = {
-      amount: Math.round(amount * 100),
-      currency: currency.toLowerCase(),
+      amount,
+      currency,
       metadata: {
-        order_id: order_id ?? '',
-        order_number: order_number ?? '',
+        order_id: order.id,
+        order_number: order.order_number ?? '',
       },
     };
 
-    if (order_id) {
-      const supabase = createClient();
-      const { data: order } = await supabase
-        .from('orders')
-        .select('restaurant_id, restaurants ( stripe_account_id, stripe_onboarding_complete )')
-        .eq('id', order_id)
-        .maybeSingle();
-
-      const rest = (order as any)?.restaurants;
-      if (rest?.stripe_onboarding_complete && rest?.stripe_account_id) {
-        intentParams.transfer_data = { destination: rest.stripe_account_id };
-      }
+    if (rest?.stripe_onboarding_complete && rest?.stripe_account_id) {
+      intentParams.transfer_data = { destination: rest.stripe_account_id };
     }
 
     const paymentIntent = await stripe.paymentIntents.create(intentParams);

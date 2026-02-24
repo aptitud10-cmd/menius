@@ -16,7 +16,7 @@ const NAV_SECTIONS = [
     items: [
       { href: '/app', label: 'Inicio', icon: LayoutDashboard, exact: true },
       { href: '/app/orders', label: 'Órdenes', icon: ClipboardList },
-      { href: '/app/kds', label: 'Cocina (KDS)', icon: Monitor },
+      { href: '/app/orders/kds', label: 'Cocina (KDS)', icon: Monitor },
     ],
   },
   {

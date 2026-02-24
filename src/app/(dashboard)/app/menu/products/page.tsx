@@ -8,7 +8,7 @@ export default async function ProductsPage() {
     supabase.from('products').select('*, product_variants(*), product_extras(*)').eq('restaurant_id', rid).order('sort_order'),
     supabase.from('categories').select('*').eq('restaurant_id', rid).eq('is_active', true).order('sort_order'),
     supabase.from('restaurants').select('id, currency, locale, available_locales').eq('id', rid).maybeSingle(),
-    supabase.from('modifier_groups').select('*, modifier_options(*)').order('sort_order'),
+    supabase.from('modifier_groups').select('*, modifier_options(*)').eq('restaurant_id', rid).order('sort_order'),
   ]);
 
   const groupsByProduct = new Map<string, any[]>();
