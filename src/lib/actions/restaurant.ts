@@ -371,7 +371,8 @@ export async function deleteProduct(id: string) {
 
 // ---- Variants ----
 export async function createVariant(productId: string, data: { name: string; price_delta: number; sort_order: number }) {
-  const supabase = createClient();
+  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
   const { data: variant, error } = await supabase
     .from('product_variants')
     .insert({
@@ -389,7 +390,8 @@ export async function createVariant(productId: string, data: { name: string; pri
 }
 
 export async function updateVariant(id: string, data: { name: string; price_delta: number; sort_order: number }) {
-  const supabase = createClient();
+  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
   const { error } = await supabase
     .from('product_variants')
     .update({
@@ -416,7 +418,8 @@ export async function deleteVariant(id: string) {
 
 // ---- Extras ----
 export async function createExtra(productId: string, data: { name: string; price: number; sort_order: number }) {
-  const supabase = createClient();
+  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
   const { data: extra, error } = await supabase
     .from('product_extras')
     .insert({
@@ -434,7 +437,8 @@ export async function createExtra(productId: string, data: { name: string; price
 }
 
 export async function updateExtra(id: string, data: { name: string; price: number; sort_order: number }) {
-  const supabase = createClient();
+  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
   const { error } = await supabase
     .from('product_extras')
     .update({
@@ -461,7 +465,8 @@ export async function deleteExtra(id: string) {
 
 // ---- Modifier Groups ----
 export async function createModifierGroup(productId: string, data: { name: string; selection_type: 'single' | 'multi'; min_select: number; max_select: number; is_required: boolean; sort_order: number }) {
-  const supabase = createClient();
+  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
   const { data: group, error } = await supabase
     .from('modifier_groups')
     .insert({
@@ -482,7 +487,8 @@ export async function createModifierGroup(productId: string, data: { name: strin
 }
 
 export async function updateModifierGroup(id: string, data: { name: string; selection_type: 'single' | 'multi'; min_select: number; max_select: number; is_required: boolean; sort_order: number }) {
-  const supabase = createClient();
+  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
   const { error } = await supabase
     .from('modifier_groups')
     .update({
@@ -512,7 +518,8 @@ export async function deleteModifierGroup(id: string) {
 
 // ---- Modifier Options ----
 export async function createModifierOption(groupId: string, data: { name: string; price_delta: number; is_default: boolean; sort_order: number }) {
-  const supabase = createClient();
+  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
   const { data: option, error } = await supabase
     .from('modifier_options')
     .insert({
@@ -531,7 +538,8 @@ export async function createModifierOption(groupId: string, data: { name: string
 }
 
 export async function updateModifierOption(id: string, data: { name: string; price_delta: number; is_default: boolean; sort_order: number }) {
-  const supabase = createClient();
+  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
   const { error } = await supabase
     .from('modifier_options')
     .update({

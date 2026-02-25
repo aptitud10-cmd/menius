@@ -31,8 +31,11 @@ const NAV_ITEMS: PaletteItem[] = [
   { id: 'staff', label: 'Equipo', section: 'Navegación', icon: Users, href: '/app/staff', keywords: 'empleados personal' },
   { id: 'analytics', label: 'Analytics', section: 'Navegación', icon: BarChart3, href: '/app/analytics', keywords: 'estadisticas reportes' },
   { id: 'marketing', label: 'Marketing', section: 'Navegación', icon: Megaphone, href: '/app/marketing' },
+  { id: 'reviews', label: 'Reseñas', section: 'Navegación', icon: ClipboardList, href: '/app/reviews', keywords: 'opiniones calificaciones' },
+  { id: 'media', label: 'Galería', section: 'Navegación', icon: ShoppingBag, href: '/app/media', keywords: 'imagenes fotos archivos' },
   { id: 'billing', label: 'Facturación', section: 'Navegación', icon: CreditCard, href: '/app/billing', keywords: 'plan suscripcion pago' },
   { id: 'settings', label: 'Configuración', section: 'Navegación', icon: Settings, href: '/app/settings', keywords: 'ajustes config' },
+  { id: 'data-export', label: 'Exportar datos', section: 'Navegación', icon: ExternalLink, href: '/app/settings/data', keywords: 'csv backup descargar' },
 ];
 
 const ACTION_ITEMS: PaletteItem[] = [
