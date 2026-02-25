@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Suspense } from 'react';
+import { cookies } from 'next/headers';
 import { LandingNav } from '@/components/landing/LandingNav';
+import { LandingFooter } from '@/components/landing/LandingFooter';
+import type { LandingLocale } from '@/lib/landing-translations';
 import { SetupForm } from './SetupForm';
 
 export const metadata: Metadata = {
@@ -110,9 +113,12 @@ const processSteps = [
 ];
 
 export default function SetupProfesionalPage() {
+  const cookieStore = cookies();
+  const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as LandingLocale;
+
   return (
     <div className="min-h-screen landing-bg overflow-x-hidden relative noise-overlay">
-      <LandingNav />
+      <LandingNav locale={locale} />
 
       {/* Hero */}
       <section className="relative pt-32 pb-16 md:pt-40 md:pb-24 overflow-hidden">
@@ -265,52 +271,7 @@ export default function SetupProfesionalPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="relative bg-black overflow-hidden">
-        <div className="separator-gradient max-w-5xl mx-auto" />
-        <div className="relative z-10 bg-black pt-10 pb-16">
-          <div className="max-w-6xl mx-auto px-6">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-x-8 gap-y-10">
-              <div className="col-span-2 md:col-span-1">
-                <Link href="/" className="text-lg font-bold tracking-tight text-white">MENIUS</Link>
-                <p className="text-[13px] text-gray-600 mt-4 leading-relaxed max-w-[200px]">Menús digitales y pedidos en línea para restaurantes.</p>
-              </div>
-              <div>
-                <h4 className="text-[11px] font-medium text-gray-500 uppercase tracking-[0.15em] mb-4">Producto</h4>
-                <ul className="space-y-2.5">
-                  <li><Link href="/#funciones" className="text-[13px] text-gray-600 hover:text-white transition-colors">Funciones</Link></li>
-                  <li><Link href="/#precios" className="text-[13px] text-gray-600 hover:text-white transition-colors">Precios</Link></li>
-                  <li><Link href="/r/demo" className="text-[13px] text-gray-600 hover:text-white transition-colors">Demo en vivo</Link></li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-[11px] font-medium text-gray-500 uppercase tracking-[0.15em] mb-4">Recursos</h4>
-                <ul className="space-y-2.5">
-                  <li><Link href="/blog" className="text-[13px] text-gray-600 hover:text-white transition-colors">Blog</Link></li>
-                  <li><Link href="/faq" className="text-[13px] text-gray-600 hover:text-white transition-colors">FAQ</Link></li>
-                  <li><a href="mailto:soporte@menius.app" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-[11px] font-medium text-gray-500 uppercase tracking-[0.15em] mb-4">Legal</h4>
-                <ul className="space-y-2.5">
-                  <li><Link href="/privacy" className="text-[13px] text-gray-600 hover:text-white transition-colors">Privacidad</Link></li>
-                  <li><Link href="/terms" className="text-[13px] text-gray-600 hover:text-white transition-colors">Términos</Link></li>
-                  <li><Link href="/cookies" className="text-[13px] text-gray-600 hover:text-white transition-colors">Cookies</Link></li>
-                </ul>
-              </div>
-            </div>
-            <div className="separator-gradient mt-12" />
-            <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <p className="text-[11px] text-gray-700" suppressHydrationWarning>&copy; {new Date().getFullYear()} MENIUS Inc.</p>
-              <p className="text-[11px] text-gray-700">
-                Hecho en{' '}
-                <a href="https://www.scuart.com/" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-300 transition-colors">Scuart Digital</a>
-              </p>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <LandingFooter locale={locale} />
     </div>
   );
 }

@@ -2,88 +2,27 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { getLandingT, type LandingLocale, type LandingT } from '@/lib/landing-translations';
 
-/* ─── DATA ─── */
+/* ─── STATIC DATA ─── */
 
-const features = [
-  {
-    tab: 'Menú Digital',
-    title: 'Menú con QR y pedidos directos',
-    desc: 'Tus clientes escanean el QR, ven el menú con fotos y precios, y ordenan desde su celular. Sin descargar apps.',
-    details: ['QR elegantes por mesa, listos para imprimir', 'Sube tus fotos reales fácilmente', 'Pedidos dine-in, pickup y delivery', 'Variantes, extras y teléfono con código de área'],
-    icon: (
-      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5z" />
-      </svg>
-    ),
-    gradient: 'from-emerald-500/20 to-blue-500/20',
-    accent: 'indigo',
-    visualItems: [
-      { label: 'Escanea QR', value: 'Mesa 5' },
-      { label: 'Tacos al Pastor', value: '$12.99' },
-      { label: 'Limonada Natural', value: '$3.99' },
-      { label: 'Total del pedido', value: '$16.98' },
-    ],
-  },
-  {
-    tab: 'Dashboard',
-    title: 'Gestiona todo desde un solo lugar',
-    desc: 'Pedidos en tiempo real, cocina KDS en pantalla dedicada, analytics de ventas, notificaciones WhatsApp, editor de menú y gestión de equipo.',
-    details: ['Pedidos en tiempo real + Cocina KDS', 'Analytics y reportes avanzados', 'Notificaciones WhatsApp y email', 'Google Maps integrado en tu tienda'],
-    icon: (
-      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-      </svg>
-    ),
-    gradient: 'from-blue-500/20 to-cyan-500/20',
-    accent: 'blue',
-    visualItems: [
-      { label: 'Órdenes hoy', value: '47' },
-      { label: 'Ventas hoy', value: '$1,240' },
-      { label: 'Productos activos', value: '38' },
-      { label: 'Mesas activas', value: '12' },
-    ],
-  },
-  {
-    tab: 'Pagos',
-    title: 'Cobra online sin complicaciones',
-    desc: 'Acepta pagos con tarjeta vía Stripe. También efectivo y otros métodos. El dinero va directo a tu cuenta.',
-    details: ['Stripe integrado', 'Pagos en efectivo', 'Propinas opcionales', 'Historial de transacciones'],
-    icon: (
-      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
-      </svg>
-    ),
-    gradient: 'from-emerald-500/20 to-green-500/20',
-    accent: 'emerald',
-    visualItems: [
-      { label: 'Pago recibido', value: '$45.80' },
-      { label: 'Propina (18%)', value: '$8.24' },
-      { label: 'Método', value: 'Visa •4242' },
-      { label: 'Estado', value: '✓ Exitoso' },
-    ],
-  },
-  {
-    tab: 'IA',
-    title: 'Tu asistente inteligente con IA',
-    desc: 'MENIUS AI es tu consultor de negocio 24/7. Pregúntale sobre ventas, clientes, estrategias, y te guía paso a paso en todo el dashboard. Importa tu menú desde una foto con OCR.',
-    details: ['Asistente IA en el dashboard (MENIUS AI)', 'Importar menú completo desde foto (OCR)', 'Análisis de ventas y sugerencias', 'Recetas, promociones y estrategias'],
-    icon: (
-      <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
-      </svg>
-    ),
-    gradient: 'from-amber-500/20 to-orange-500/20',
-    accent: 'amber',
-    visualItems: [
-      { label: 'MENIUS AI', value: 'Online 24/7' },
-      { label: '¿Cuánto vendí hoy?', value: '$1,240' },
-      { label: 'Producto estrella', value: 'Tacos' },
-      { label: 'Menú importado (OCR)', value: '38 items' },
-    ],
-  },
+const featureIcons = [
+  <svg key="qr" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5z" />
+  </svg>,
+  <svg key="dash" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+  </svg>,
+  <svg key="pay" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+  </svg>,
+  <svg key="ai" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+  </svg>,
 ];
+
+const featureAccents = ['indigo', 'blue', 'emerald', 'amber'];
 
 const accentColors: Record<string, { bg: string; text: string; border: string; glow: string }> = {
   indigo: { bg: 'bg-indigo-500/[0.08]', text: 'text-indigo-400', border: 'border-indigo-500/20', glow: 'bg-indigo-500/20' },
@@ -92,92 +31,27 @@ const accentColors: Record<string, { bg: string; text: string; border: string; g
   amber: { bg: 'bg-amber-500/[0.08]', text: 'text-amber-400', border: 'border-amber-500/20', glow: 'bg-amber-500/20' },
 };
 
-const plans = [
-  {
-    name: 'Starter',
-    price: 39,
-    desc: 'Para restaurantes que inician.',
-    popular: false,
-    features: ['Menú digital con fotos', 'QR elegantes hasta 10 mesas', 'Pedidos (dine-in + pickup)', 'MENIUS AI (asistente IA)', 'Importar menú desde foto (OCR)', 'Google Maps integrado', 'Login con Google', 'Soporte por email'],
-    cta: 'Empezar gratis',
-  },
-  {
-    name: 'Pro',
-    price: 79,
-    desc: 'Para restaurantes que quieren crecer.',
-    popular: true,
-    features: ['Todo de Starter', 'Hasta 50 mesas', 'Delivery + WhatsApp + email', 'Cocina KDS en tiempo real', 'Analytics avanzado', 'Promociones y cupones', 'Gestión de equipo (3 usuarios)', 'Sin marca MENIUS'],
-    cta: 'Empezar con Pro',
-  },
-  {
-    name: 'Business',
-    price: 149,
-    desc: 'Para cadenas y franquicias.',
-    popular: false,
-    features: ['Todo de Pro', 'Productos, mesas y usuarios ilimitados', 'MENIUS AI sin límites', 'Dominio personalizado', 'Onboarding dedicado', 'Soporte dedicado por WhatsApp'],
-    cta: 'Empezar con Business',
-  },
-];
-
-const howItWorks = [
-  { step: '1', title: 'Crea tu cuenta', desc: 'Regístrate gratis en 2 minutos. Sin tarjeta de crédito.' },
-  { step: '2', title: 'Sube tu menú', desc: 'Agrega tus productos manualmente o importa tu menú desde una foto (OCR).' },
-  { step: '3', title: 'Imprime tus QRs', desc: 'Genera QR únicos para cada mesa y ponlos en tu restaurante.' },
-  { step: '4', title: 'Recibe pedidos', desc: 'Tus clientes escanean, piden y pagan desde su celular.' },
-];
-
-const comparison = [
-  ['Comisión por pedido', '0%', '15% – 30%'],
-  ['Control de clientes', 'Tus datos', 'La app se los queda'],
-  ['Tu marca', 'Dominio propio', 'Junto a la competencia'],
-  ['Asistente IA', 'Incluido (MENIUS AI)', 'No disponible'],
-  ['Asistente de negocio', 'IA consultor 24/7', 'No disponible'],
-  ['WhatsApp + email', 'Integrado', 'No disponible'],
-  ['Google Maps', 'Integrado', 'No disponible'],
-  ['Costo mensual', 'Desde $39/mes', 'Gratis (pero 30% por pedido)'],
-];
-
-const testimonials = [
-  {
-    name: 'María García',
-    role: 'La Cocina de María · CDMX',
-    quote: 'Dejé de pagar 30% en comisiones. Con MENIUS recuperé el control de mis clientes y mis ventas subieron 40%.',
-    initials: 'MG',
-  },
-  {
-    name: 'Carlos Rodríguez',
-    role: 'Taquería El Patrón · Monterrey',
-    quote: 'El KDS nos cambió la cocina. Ya no perdemos pedidos y los tiempos de preparación bajaron un 35%.',
-    initials: 'CR',
-  },
-  {
-    name: 'Ana Martínez',
-    role: 'Café Aroma · Guadalajara',
-    quote: 'En 2 minutos tenía mi menú con QR. El asistente IA me ayudó a crear promociones que aumentaron ventas un 25%.',
-    initials: 'AM',
-  },
-];
-
-const integrationsList = [
-  { name: 'Stripe', desc: 'Pagos con tarjeta', bg: 'bg-emerald-500/10', icon: '💳' },
-  { name: 'WhatsApp', desc: 'Notificaciones', bg: 'bg-emerald-500/10', icon: '💬' },
-  { name: 'Google Maps', desc: 'Ubicación', bg: 'bg-blue-500/10', icon: '📍' },
-  { name: 'Twilio', desc: 'SMS automáticos', bg: 'bg-red-500/10', icon: '📱' },
-  { name: 'Resend', desc: 'Email marketing', bg: 'bg-sky-500/10', icon: '✉️' },
-  { name: 'Gemini AI', desc: 'Asistente IA', bg: 'bg-amber-500/10', icon: '✨' },
+const integrationStatic = [
+  { name: 'Stripe', bg: 'bg-emerald-500/10', icon: '💳' },
+  { name: 'WhatsApp', bg: 'bg-emerald-500/10', icon: '💬' },
+  { name: 'Google Maps', bg: 'bg-blue-500/10', icon: '📍' },
+  { name: 'Twilio', bg: 'bg-red-500/10', icon: '📱' },
+  { name: 'Resend', bg: 'bg-sky-500/10', icon: '✉️' },
+  { name: 'Gemini AI', bg: 'bg-amber-500/10', icon: '✨' },
 ];
 
 /* ─── COMPONENTS ─── */
 
-function FeatureTabs() {
+function FeatureTabs({ t }: { t: LandingT }) {
   const [active, setActive] = useState(0);
-  const f = features[active];
-  const colors = accentColors[f.accent];
+  const ft = t.features;
+  const item = ft.items[active];
+  const colors = accentColors[featureAccents[active]];
 
   return (
     <div>
       <div className="flex flex-wrap gap-1 p-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.06] w-fit mx-auto mb-10 md:mb-14">
-        {features.map((feat, i) => (
+        {ft.items.map((feat, i) => (
           <button
             key={feat.tab}
             onClick={() => setActive(i)}
@@ -195,13 +69,13 @@ function FeatureTabs() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
         <div>
           <h3 className="text-3xl md:text-4xl font-semibold text-white leading-tight tracking-tight">
-            {f.title}
+            {item.title}
           </h3>
           <p className="mt-4 md:mt-6 text-lg md:text-xl text-gray-200 md:text-gray-300 leading-relaxed font-light">
-            {f.desc}
+            {item.desc}
           </p>
           <div className="mt-7 md:mt-10 space-y-3.5 md:space-y-4">
-            {f.details.map((d) => (
+            {item.details.map((d) => (
               <div key={d} className="flex items-center gap-3">
                 <div className={`w-6 h-6 rounded-lg ${colors.bg} border ${colors.border} flex items-center justify-center flex-shrink-0`}>
                   <svg className={`w-3.5 h-3.5 ${colors.text}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
@@ -219,32 +93,32 @@ function FeatureTabs() {
             <div className={`rounded-2xl border ${colors.border} bg-white/[0.02] backdrop-blur-sm overflow-hidden`}>
               <div className={`px-6 py-5 border-b ${colors.border} flex items-center gap-4`}>
                 <div className={`w-12 h-12 rounded-xl ${colors.bg} border ${colors.border} flex items-center justify-center ${colors.text}`}>
-                  {f.icon}
+                  {featureIcons[active]}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">{f.tab}</p>
+                  <p className="text-sm font-semibold text-white">{item.tab}</p>
                   <p className="text-xs text-gray-500">MENIUS</p>
                 </div>
                 <div className="ml-auto flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-[10px] text-gray-500">Activo</span>
+                  <span className="text-[10px] text-gray-500">{ft.cardActive}</span>
                 </div>
               </div>
 
               <div className="divide-y divide-white/[0.04]">
-                {f.visualItems.map((item, i) => (
+                {item.visualItems.map((vi, i) => (
                   <div key={i} className="px-6 py-4 flex items-center justify-between">
-                    <span className="text-sm text-gray-500">{item.label}</span>
-                    <span className="text-sm font-medium text-white">{item.value}</span>
+                    <span className="text-sm text-gray-500">{vi.label}</span>
+                    <span className="text-sm font-medium text-white">{vi.value}</span>
                   </div>
                 ))}
               </div>
 
               <div className={`px-6 py-4 border-t ${colors.border} bg-white/[0.01]`}>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-600">Actualizado en tiempo real</span>
+                  <span className="text-xs text-gray-600">{ft.cardUpdated}</span>
                   <div className={`px-3 py-1 rounded-full text-[10px] font-semibold ${colors.bg} ${colors.text} border ${colors.border}`}>
-                    En vivo
+                    {ft.cardLive}
                   </div>
                 </div>
               </div>
@@ -256,33 +130,22 @@ function FeatureTabs() {
   );
 }
 
-function SocialProof() {
-  const logos = ['La Taquería', 'Café Aroma', 'El Patrón', 'Sushi Zen', 'Pizzería Roma', 'Casa Oaxaca'];
-
+function SocialProof({ t }: { t: LandingT['socialProof'] }) {
   return (
     <section className="relative py-20 md:py-24 overflow-clip">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center d-fade-in">
-          <p className="text-sm text-gray-500 font-medium mb-8 tracking-wide">
-            Confiado por restaurantes en toda Latinoamérica
-          </p>
+          <p className="text-sm text-gray-500 font-medium mb-8 tracking-wide">{t.headline}</p>
           <div className="flex items-center justify-center gap-8 md:gap-14 flex-wrap">
-            {logos.map((name) => (
-              <span
-                key={name}
-                className="text-lg md:text-xl font-bold text-white/25 tracking-tight whitespace-nowrap hover:text-white/40 transition-colors"
-              >
+            {t.logos.map((name) => (
+              <span key={name} className="text-lg md:text-xl font-bold text-white/25 tracking-tight whitespace-nowrap hover:text-white/40 transition-colors">
                 {name}
               </span>
             ))}
           </div>
 
           <div className="mt-12 flex items-center justify-center gap-12 md:gap-20">
-            {[
-              { value: '500+', label: 'Restaurantes' },
-              { value: '50K+', label: 'Pedidos procesados' },
-              { value: '15+', label: 'Ciudades' },
-            ].map((stat) => (
+            {t.stats.map((stat) => (
               <div key={stat.label} className="text-center">
                 <p className="text-2xl md:text-3xl font-bold text-white tracking-tight">{stat.value}</p>
                 <p className="text-xs text-gray-500 mt-1.5 font-medium">{stat.label}</p>
@@ -295,17 +158,17 @@ function SocialProof() {
   );
 }
 
-function IntegrationsGrid() {
+function IntegrationsGrid({ t }: { t: LandingT['integrations'] }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 max-w-3xl mx-auto">
-      {integrationsList.map((item) => (
+      {integrationStatic.map((item, i) => (
         <div key={item.name}>
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 md:p-6 text-center hover:bg-white/[0.04] hover:border-white/[0.1] transition-all">
             <div className={`w-12 h-12 rounded-xl ${item.bg} mx-auto mb-3 flex items-center justify-center text-xl`}>
               {item.icon}
             </div>
             <p className="text-sm font-semibold text-white">{item.name}</p>
-            <p className="text-xs text-gray-500 mt-1">{item.desc}</p>
+            <p className="text-xs text-gray-500 mt-1">{t.items[i].desc}</p>
           </div>
         </div>
       ))}
@@ -313,7 +176,7 @@ function IntegrationsGrid() {
   );
 }
 
-function SavingsCalculator() {
+function SavingsCalculator({ t }: { t: LandingT['savings'] }) {
   const [revenue, setRevenue] = useState(15000);
   const commissionLoss = Math.round(revenue * 0.25);
   const meniusCost = 79;
@@ -322,12 +185,10 @@ function SavingsCalculator() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-10 text-center">
-        <label className="text-sm text-gray-400 mb-4 block font-medium">
-          Ventas mensuales de tu restaurante
-        </label>
+        <label className="text-sm text-gray-400 mb-4 block font-medium">{t.sliderLabel}</label>
         <p className="text-4xl md:text-5xl font-bold text-white mb-8 tracking-tight">
           ${revenue.toLocaleString()}
-          <span className="text-lg text-gray-500 font-normal ml-1">/mes</span>
+          <span className="text-lg text-gray-500 font-normal ml-1">{t.perMonth}</span>
         </p>
         <input
           type="range"
@@ -346,33 +207,33 @@ function SavingsCalculator() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.04] p-6 text-center">
-          <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">Con apps de delivery</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">{t.withApps}</p>
           <p className="text-3xl md:text-4xl font-bold text-red-400">${commissionLoss.toLocaleString()}</p>
-          <p className="text-sm text-gray-500 mt-1.5">en comisiones / mes (25%)</p>
+          <p className="text-sm text-gray-500 mt-1.5">{t.commissionsLabel}</p>
         </div>
         <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-6 text-center">
-          <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">Con MENIUS Pro</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">{t.withMenius}</p>
           <p className="text-3xl md:text-4xl font-bold text-emerald-400">${meniusCost}</p>
-          <p className="text-sm text-gray-500 mt-1.5">tarifa fija / mes</p>
+          <p className="text-sm text-gray-500 mt-1.5">{t.flatFeeLabel}</p>
         </div>
       </div>
 
       <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.06] to-blue-500/[0.04] p-6 md:p-8 text-center">
-        <p className="text-sm text-gray-400 mb-2 font-medium">Con MENIUS ahorras</p>
+        <p className="text-sm text-gray-400 mb-2 font-medium">{t.savingsLabel}</p>
         <p className="text-4xl md:text-6xl font-bold text-white tracking-tight">
           ${annualSavings.toLocaleString()}
         </p>
-        <p className="text-lg text-emerald-400 font-semibold mt-1">al año</p>
+        <p className="text-lg text-emerald-400 font-semibold mt-1">{t.perYear}</p>
       </div>
     </div>
   );
 }
 
-function TestimonialsSection() {
+function TestimonialsSection({ t }: { t: LandingT['testimonials'] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 max-w-5xl mx-auto">
-      {testimonials.map((t) => (
-        <div key={t.name}>
+      {t.items.map((tm) => (
+        <div key={tm.name}>
           <div className="card-premium rounded-2xl p-6 md:p-7 h-full flex flex-col">
             <div className="flex gap-0.5 mb-4">
               {[1, 2, 3, 4, 5].map((s) => (
@@ -381,14 +242,14 @@ function TestimonialsSection() {
                 </svg>
               ))}
             </div>
-            <p className="text-sm text-gray-300 leading-relaxed mb-5 flex-1">&ldquo;{t.quote}&rdquo;</p>
+            <p className="text-sm text-gray-300 leading-relaxed mb-5 flex-1">&ldquo;{tm.quote}&rdquo;</p>
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-xs font-bold">{t.initials}</span>
+                <span className="text-white text-xs font-bold">{tm.initials}</span>
               </div>
               <div>
-                <p className="text-sm font-medium text-white">{t.name}</p>
-                <p className="text-xs text-gray-500">{t.role}</p>
+                <p className="text-sm font-medium text-white">{tm.name}</p>
+                <p className="text-xs text-gray-500">{tm.role}</p>
               </div>
             </div>
           </div>
@@ -400,11 +261,13 @@ function TestimonialsSection() {
 
 /* ─── MAIN ─── */
 
-export function LandingSections() {
+export function LandingSections({ locale }: { locale: LandingLocale }) {
+  const t = getLandingT(locale);
+
   return (
     <>
       {/* ── Social Proof ── */}
-      <SocialProof />
+      <SocialProof t={t.socialProof} />
 
       <div className="separator-gradient max-w-5xl mx-auto" />
 
@@ -414,17 +277,17 @@ export function LandingSections() {
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
           <div className="text-center mb-8 d-fade-up">
-            <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Funciones</p>
+            <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.features.sectionLabel}</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
-              Todo bajo control
+              {t.features.sectionTitle}
             </h2>
             <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
-              Las herramientas que necesitas para digitalizar tu restaurante.
+              {t.features.sectionDesc}
             </p>
           </div>
 
           <div className="d-fade-up d-delay-2">
-            <FeatureTabs />
+            <FeatureTabs t={t} />
           </div>
         </div>
       </section>
@@ -437,17 +300,17 @@ export function LandingSections() {
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Integraciones</p>
+            <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.integrations.sectionLabel}</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
-              Todo conectado
+              {t.integrations.sectionTitle}
             </h2>
             <p className="text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
-              Las herramientas que ya usas, integradas en un solo lugar.
+              {t.integrations.sectionDesc}
             </p>
           </div>
 
           <div className="d-scale-in d-delay-2">
-            <IntegrationsGrid />
+            <IntegrationsGrid t={t.integrations} />
           </div>
         </div>
       </section>
@@ -460,32 +323,27 @@ export function LandingSections() {
 
         <div className="relative z-10 max-w-4xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Sin intermediarios</p>
+            <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.comparison.sectionLabel}</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
-              MENIUS vs Apps de Delivery
+              {t.comparison.sectionTitle}
             </h2>
             <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
-              Las apps cobran hasta 30% por pedido. Con MENIUS, tarifa fija y tus ventas son tuyas.
+              {t.comparison.sectionDesc}
             </p>
           </div>
 
           <div>
             <div className="md:hidden space-y-3">
-              {[
-                { feature: 'Comisión por pedido', menius: '0%', other: '15% – 30%' },
-                { feature: 'Control de clientes', menius: 'Tus datos', other: 'La app se los queda' },
-                { feature: 'Tu marca', menius: 'Dominio propio', other: 'Junto a la competencia' },
-                { feature: 'Costo mensual', menius: 'Desde $39/mes', other: '"Gratis" (pero 30% por pedido)' },
-              ].map((row) => (
+              {t.comparison.mobileRows.map((row) => (
                 <div key={row.feature} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
                   <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-3">{row.feature}</p>
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-xs text-emerald-400 font-medium mb-1">MENIUS</p>
+                      <p className="text-xs text-emerald-400 font-medium mb-1">{t.comparison.meniusHeader}</p>
                       <p className="text-base font-semibold text-white">{row.menius}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-gray-500 font-medium mb-1">Apps</p>
+                      <p className="text-xs text-gray-500 font-medium mb-1">{t.comparison.mobileOtherHeader}</p>
                       <p className="text-sm text-gray-500">{row.other}</p>
                     </div>
                   </div>
@@ -497,22 +355,22 @@ export function LandingSections() {
               <div className="grid grid-cols-3">
                 <div className="p-5 border-b border-white/[0.06]" />
                 <div className="p-5 text-center border-b border-white/[0.06] bg-emerald-500/[0.06]">
-                  <span className="text-sm font-semibold text-white">MENIUS</span>
+                  <span className="text-sm font-semibold text-white">{t.comparison.meniusHeader}</span>
                 </div>
                 <div className="p-5 text-center border-b border-white/[0.06]">
-                  <span className="text-xs text-gray-400">UberEats, DoorDash, Grubhub</span>
+                  <span className="text-xs text-gray-400">{t.comparison.otherHeader}</span>
                 </div>
               </div>
-              {comparison.map(([feature, menius, other], i) => (
-                <div key={feature} className={`grid grid-cols-3 ${i < comparison.length - 1 ? 'border-b border-white/[0.04]' : ''}`}>
+              {t.comparison.rows.map((row, i) => (
+                <div key={row.feature} className={`grid grid-cols-3 ${i < t.comparison.rows.length - 1 ? 'border-b border-white/[0.04]' : ''}`}>
                   <div className="px-6 py-4">
-                    <p className="text-sm text-gray-400">{feature}</p>
+                    <p className="text-sm text-gray-400">{row.feature}</p>
                   </div>
                   <div className="px-6 py-4 text-center bg-emerald-500/[0.03]">
-                    <p className="text-sm font-medium text-white">{menius}</p>
+                    <p className="text-sm font-medium text-white">{row.menius}</p>
                   </div>
                   <div className="px-6 py-4 text-center">
-                    <p className="text-sm text-gray-500">{other}</p>
+                    <p className="text-sm text-gray-500">{row.other}</p>
                   </div>
                 </div>
               ))}
@@ -529,17 +387,17 @@ export function LandingSections() {
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Calculadora de ahorro</p>
+            <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.savings.sectionLabel}</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
-              ¿Cuánto ahorras con MENIUS?
+              {t.savings.sectionTitle}
             </h2>
             <p className="text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
-              Mueve el slider y calcula cuánto pierdes en comisiones con apps de delivery.
+              {t.savings.sectionDesc}
             </p>
           </div>
 
           <div className="d-fade-up d-delay-2">
-            <SavingsCalculator />
+            <SavingsCalculator t={t.savings} />
           </div>
         </div>
       </section>
@@ -553,62 +411,65 @@ export function LandingSections() {
 
         <div className="relative z-10 max-w-5xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-blue-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Precios</p>
+            <p className="text-sm text-blue-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.pricing.sectionLabel}</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
-              Sin comisiones. Sin sorpresas.
+              {t.pricing.sectionTitle}
             </h2>
-            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl font-light">14 días gratis. Sin tarjeta. Cancela cuando quieras.</p>
+            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl font-light">{t.pricing.sectionDesc}</p>
           </div>
 
           <div className="d-scale-in d-delay-2">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {plans.map((plan) => (
-                <div
-                  key={plan.name}
-                  className={`relative rounded-2xl p-8 flex flex-col transition-all duration-300 ${
-                    plan.popular
-                      ? 'card-popular-glow bg-white/[0.04] border border-emerald-500/20 shimmer-border'
-                      : 'card-gradient-border bg-white/[0.02] rounded-2xl hover:bg-white/[0.04]'
-                  }`}
-                >
-                  {plan.popular && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-5 py-1.5 bg-gradient-to-r from-emerald-500 to-blue-500 text-white text-[11px] font-semibold rounded-full uppercase tracking-wider shadow-lg shadow-emerald-500/25">
-                      Popular
-                    </span>
-                  )}
-                  <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
-                  <p className="text-sm text-gray-400 mt-1.5">{plan.desc}</p>
-                  <div className="mt-7 mb-8">
-                    <span className="text-5xl font-bold text-white tracking-tight">${plan.price}</span>
-                    <span className="text-sm text-gray-400 ml-1.5">/mes</span>
-                  </div>
-                  <ul className="space-y-3.5 flex-1">
-                    {plan.features.map((feat) => (
-                      <li key={feat} className="flex items-start gap-3">
-                        <svg className="w-4 h-4 text-emerald-400/60 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                        <span className="text-sm text-gray-400 leading-snug">{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link
-                    href={`/signup?plan=${plan.name.toLowerCase()}`}
-                    className={`mt-8 block text-center py-3.5 rounded-xl font-medium text-[15px] transition-all duration-300 ${
-                      plan.popular
-                        ? 'bg-white text-black hover:bg-gray-100 btn-glow shadow-lg shadow-white/5'
-                        : 'bg-white/[0.06] text-gray-300 border border-white/[0.08] hover:text-white hover:bg-white/[0.1] hover:border-white/[0.15]'
+              {t.pricing.plans.map((plan, idx) => {
+                const isPopular = idx === 1;
+                return (
+                  <div
+                    key={plan.name}
+                    className={`relative rounded-2xl p-8 flex flex-col transition-all duration-300 ${
+                      isPopular
+                        ? 'card-popular-glow bg-white/[0.04] border border-emerald-500/20 shimmer-border'
+                        : 'card-gradient-border bg-white/[0.02] rounded-2xl hover:bg-white/[0.04]'
                     }`}
                   >
-                    {plan.cta}
-                  </Link>
-                </div>
-              ))}
+                    {isPopular && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-5 py-1.5 bg-gradient-to-r from-emerald-500 to-blue-500 text-white text-[11px] font-semibold rounded-full uppercase tracking-wider shadow-lg shadow-emerald-500/25">
+                        {t.pricing.popularBadge}
+                      </span>
+                    )}
+                    <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
+                    <p className="text-sm text-gray-400 mt-1.5">{plan.desc}</p>
+                    <div className="mt-7 mb-8">
+                      <span className="text-5xl font-bold text-white tracking-tight">${plan.price}</span>
+                      <span className="text-sm text-gray-400 ml-1.5">{t.pricing.perMonth}</span>
+                    </div>
+                    <ul className="space-y-3.5 flex-1">
+                      {plan.features.map((feat) => (
+                        <li key={feat} className="flex items-start gap-3">
+                          <svg className="w-4 h-4 text-emerald-400/60 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                          <span className="text-sm text-gray-400 leading-snug">{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <Link
+                      href={`/signup?plan=${plan.name.toLowerCase()}`}
+                      className={`mt-8 block text-center py-3.5 rounded-xl font-medium text-[15px] transition-all duration-300 ${
+                        isPopular
+                          ? 'bg-white text-black hover:bg-gray-100 btn-glow shadow-lg shadow-white/5'
+                          : 'bg-white/[0.06] text-gray-300 border border-white/[0.08] hover:text-white hover:bg-white/[0.1] hover:border-white/[0.15]'
+                      }`}
+                    >
+                      {plan.cta}
+                    </Link>
+                  </div>
+                );
+              })}
             </div>
 
             <Link
               href="/setup-profesional"
               className="mt-6 flex items-center justify-between p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all group"
             >
-              <span className="text-sm text-gray-400">¿No tienes tiempo? <strong className="text-gray-200">Te lo configuramos</strong> — desde $149</span>
+              <span className="text-sm text-gray-400">{t.pricing.setupCtaPrefix} <strong className="text-gray-200">{t.pricing.setupCtaBold}</strong> {t.pricing.setupCtaSuffix}</span>
               <svg className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
             </Link>
           </div>
@@ -623,15 +484,15 @@ export function LandingSections() {
 
         <div className="relative z-10 max-w-4xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Cómo funciona</p>
+            <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.howItWorks.sectionLabel}</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
-              Listo en minutos
+              {t.howItWorks.sectionTitle}
             </h2>
           </div>
 
           <div className="d-fade-up d-delay-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
-              {howItWorks.map((item) => (
+              {t.howItWorks.steps.map((item) => (
                 <div key={item.step} className="card-premium rounded-2xl p-6 md:p-8 flex gap-5">
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
                     <span className="text-sm font-bold text-emerald-400">{item.step}</span>
@@ -655,14 +516,14 @@ export function LandingSections() {
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-amber-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Testimonios</p>
+            <p className="text-sm text-amber-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.testimonials.sectionLabel}</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
-              Lo que dicen nuestros clientes
+              {t.testimonials.sectionTitle}
             </h2>
           </div>
 
           <div className="d-fade-up d-delay-2">
-            <TestimonialsSection />
+            <TestimonialsSection t={t.testimonials} />
           </div>
         </div>
       </section>
@@ -676,25 +537,25 @@ export function LandingSections() {
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
           <div className="d-fade-up">
             <h2 className="text-3xl md:text-5xl lg:text-7xl font-semibold text-white tracking-tight leading-[1.05]">
-              Tu menú digital.
+              {t.finalCta.line1}
               <br />
-              <span className="text-gradient-premium">Disponible hoy.</span>
+              <span className="text-gradient-premium">{t.finalCta.line2}</span>
             </h2>
             <p className="mt-5 md:mt-6 text-lg md:text-xl text-gray-200 md:text-gray-300 font-light max-w-md mx-auto">
-              14 días gratis. Sin tarjeta. Configura tu menú en minutos.
+              {t.finalCta.subtitle}
             </p>
             <div className="mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 px-2 sm:px-0 d-fade-up d-delay-2">
               <Link
                 href="/signup"
                 className="w-full sm:w-auto px-10 py-4 rounded-2xl bg-white text-black font-semibold text-base sm:text-[15px] hover:bg-gray-100 transition-all btn-glow"
               >
-                Empezar gratis &rarr;
+                {t.finalCta.ctaPrimary} &rarr;
               </Link>
               <Link
                 href="/r/demo"
                 className="w-full sm:w-auto px-10 py-4 rounded-2xl border border-white/10 text-gray-200 font-semibold text-base sm:text-[15px] hover:text-white hover:border-white/20 transition-all"
               >
-                Ver demo en vivo
+                {t.finalCta.ctaSecondary}
               </Link>
             </div>
           </div>

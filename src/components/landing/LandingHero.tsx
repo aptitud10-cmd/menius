@@ -1,13 +1,9 @@
 import Link from 'next/link';
+import { getLandingT, type LandingLocale } from '@/lib/landing-translations';
 
-const mockMenu = [
-  { name: 'Tacos al Pastor', desc: 'Piña, cilantro, cebolla', price: '$12.99', popular: true },
-  { name: 'Guacamole Fresco', desc: 'Aguacate, tomate, limón', price: '$8.50', popular: false },
-  { name: 'Enchiladas Suizas', desc: 'Pollo, salsa verde, queso', price: '$14.99', popular: false },
-  { name: 'Horchata', desc: 'Arroz, canela, vainilla', price: '$4.00', popular: false },
-];
+export function LandingHero({ locale }: { locale: LandingLocale }) {
+  const h = getLandingT(locale).hero;
 
-export function LandingHero() {
   return (
     <section className="relative min-h-[100vh] min-h-[100dvh] flex items-center overflow-clip">
       <div className="hero-gradient" />
@@ -21,19 +17,16 @@ export function LandingHero() {
           <div className="text-center lg:text-left">
             <div className="d-fade-up inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.04] mb-6 md:mb-8">
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="text-sm text-gray-300 tracking-wide">
-                Plataforma #1 para restaurantes
-              </span>
+              <span className="text-sm text-gray-300 tracking-wide">{h.badge}</span>
             </div>
 
             <h1 className="d-fade-up d-delay-1 text-[2.75rem] sm:text-[3.5rem] lg:text-[4.5rem] font-semibold leading-[0.92] tracking-[-0.04em] text-white">
-              Menú digital y{' '}
-              <span className="text-gradient-premium">pedidos directos</span>
+              {h.titleLine1}
+              <span className="text-gradient-premium">{h.titleHighlight}</span>
             </h1>
 
             <p className="d-fade-up d-delay-2 mt-6 md:mt-7 text-lg sm:text-xl text-gray-300 max-w-[480px] mx-auto lg:mx-0 leading-relaxed font-light">
-              QR por mesa, pedidos online, cocina KDS y asistente IA.
-              Sin comisiones. Configura en 2 minutos.
+              {h.subtitle}
             </p>
 
             <div className="d-fade-up d-delay-3 mt-8 md:mt-9 flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3.5">
@@ -41,23 +34,19 @@ export function LandingHero() {
                 href="/signup"
                 className="group w-full sm:w-auto px-8 py-4 rounded-2xl bg-white text-black font-semibold text-base hover:bg-gray-100 transition-all text-center"
               >
-                Crea tu menú en 2 min
+                {h.ctaPrimary}
                 <span className="inline-block ml-1.5 group-hover:translate-x-0.5 transition-transform">&rarr;</span>
               </Link>
               <Link
                 href="/r/demo"
                 className="w-full sm:w-auto px-8 py-4 rounded-2xl border border-white/10 text-gray-200 font-semibold text-base hover:text-white hover:border-white/20 hover:bg-white/[0.03] transition-all text-center"
               >
-                Ver demo en vivo
+                {h.ctaSecondary}
               </Link>
             </div>
 
             <div className="d-fade-up d-delay-4 mt-12 md:mt-14 flex items-center justify-center lg:justify-start gap-10 sm:gap-12">
-              {[
-                { value: '0%', label: 'Comisiones' },
-                { value: '14 días', label: 'Prueba gratis' },
-                { value: '2 min', label: 'Configuración' },
-              ].map((s) => (
+              {h.stats.map((s) => (
                 <div key={s.label} className="text-center lg:text-left">
                   <p className="text-3xl sm:text-3xl font-semibold text-white tracking-tight">{s.value}</p>
                   <p className="text-sm text-gray-400 mt-1.5 font-medium">{s.label}</p>
@@ -88,12 +77,12 @@ export function LandingHero() {
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/80 to-blue-500/80 mx-auto mb-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/20">
                       <span className="text-white text-sm font-bold">M</span>
                     </div>
-                    <p className="text-white text-[11px] font-semibold">La Taquería</p>
-                    <p className="text-gray-500 text-[9px]">Mesa 5 · Menú digital</p>
+                    <p className="text-white text-[11px] font-semibold">{h.phone.restaurantName}</p>
+                    <p className="text-gray-500 text-[9px]">{h.phone.tableInfo}</p>
                   </div>
 
                   <div className="flex gap-1.5 mb-3 overflow-hidden">
-                    {['Popular', 'Tacos', 'Bebidas', 'Postres'].map((cat, i) => (
+                    {h.phone.categories.map((cat, i) => (
                       <span key={cat} className={`px-2.5 py-1 rounded-full text-[9px] font-medium flex-shrink-0 ${i === 0 ? 'bg-white text-black' : 'bg-white/[0.06] text-gray-400'}`}>
                         {cat}
                       </span>
@@ -101,7 +90,7 @@ export function LandingHero() {
                   </div>
 
                   <div className="space-y-2">
-                    {mockMenu.map((item) => (
+                    {h.phone.items.map((item) => (
                       <div key={item.name} className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.03] border border-white/[0.05]">
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-white/[0.06] to-white/[0.02] flex-shrink-0" />
                         <div className="flex-1 min-w-0">
@@ -120,14 +109,14 @@ export function LandingHero() {
                   </div>
 
                   <div className="mt-3 py-2.5 rounded-xl bg-white text-center">
-                    <span className="text-black text-[10px] font-semibold">🛒 Ver carrito · $40.48</span>
+                    <span className="text-black text-[10px] font-semibold">{h.phone.cartButton}</span>
                   </div>
 
                   <div className="mt-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2">
                     <svg className="w-3 h-3 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
-                    <p className="text-emerald-400 text-[9px] font-medium">¡Pedido enviado a cocina!</p>
+                    <p className="text-emerald-400 text-[9px] font-medium">{h.phone.orderSent}</p>
                   </div>
                 </div>
 

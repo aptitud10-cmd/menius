@@ -6,6 +6,17 @@ const MAIN_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || '';
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
 
+  if (!request.cookies.get('menius_locale')?.value) {
+    const acceptLang = request.headers.get('accept-language') || '';
+    const primaryLang = acceptLang.split(',')[0]?.split(';')[0]?.split('-')[0]?.trim().toLowerCase();
+    const detected = primaryLang === 'en' ? 'en' : 'es';
+    response.cookies.set('menius_locale', detected, {
+      path: '/',
+      maxAge: 365 * 24 * 60 * 60,
+      sameSite: 'lax',
+    });
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
