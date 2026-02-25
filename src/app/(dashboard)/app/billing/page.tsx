@@ -19,6 +19,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import {
   PLANS,
   resolvePlanId,
@@ -58,22 +59,26 @@ interface UsageData {
 
 /* ─── Status config ─── */
 
-const STATUS_MAP: Record<string, { label: string; color: string; bg: string; dot: string }> = {
-  trialing: { label: 'Prueba gratuita', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', dot: 'bg-blue-500' },
-  active: { label: 'Activa', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500' },
-  past_due: { label: 'Pago pendiente', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', dot: 'bg-amber-500' },
-  canceled: { label: 'Cancelada', color: 'text-red-700', bg: 'bg-red-50 border-red-200', dot: 'bg-red-500' },
-  unpaid: { label: 'Sin pagar', color: 'text-red-700', bg: 'bg-red-50 border-red-200', dot: 'bg-red-500' },
-  incomplete: { label: 'Incompleta', color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', dot: 'bg-gray-400' },
-};
+function getStatusMap(t: ReturnType<typeof useDashboardLocale>['t']) {
+  return {
+    trialing: { label: t.billing_statusTrialing, color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', dot: 'bg-blue-500' },
+    active: { label: t.billing_statusActive, color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200', dot: 'bg-emerald-500' },
+    past_due: { label: t.billing_statusPastDue, color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', dot: 'bg-amber-500' },
+    canceled: { label: t.billing_statusCanceled, color: 'text-red-700', bg: 'bg-red-50 border-red-200', dot: 'bg-red-500' },
+    unpaid: { label: t.billing_statusUnpaid, color: 'text-red-700', bg: 'bg-red-50 border-red-200', dot: 'bg-red-500' },
+    incomplete: { label: t.billing_statusIncomplete, color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', dot: 'bg-gray-400' },
+  } as Record<string, { label: string; color: string; bg: string; dot: string }>;
+}
 
-const INV_STATUS: Record<string, { label: string; cls: string }> = {
-  paid: { label: 'Pagada', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  open: { label: 'Pendiente', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  uncollectible: { label: 'Fallida', cls: 'bg-red-50 text-red-700 border-red-200' },
-  void: { label: 'Anulada', cls: 'bg-gray-50 text-gray-500 border-gray-200' },
-  draft: { label: 'Borrador', cls: 'bg-gray-50 text-gray-500 border-gray-200' },
-};
+function getInvStatus(t: ReturnType<typeof useDashboardLocale>['t']) {
+  return {
+    paid: { label: t.billing_invPaid, cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+    open: { label: t.billing_invOpen, cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+    uncollectible: { label: t.billing_invUncollectible, cls: 'bg-red-50 text-red-700 border-red-200' },
+    void: { label: t.billing_invVoid, cls: 'bg-gray-50 text-gray-500 border-gray-200' },
+    draft: { label: t.billing_invDraft, cls: 'bg-gray-50 text-gray-500 border-gray-200' },
+  } as Record<string, { label: string; cls: string }>;
+}
 
 /* ─── Helpers ─── */
 
@@ -100,11 +105,13 @@ function UsageMeter({
   icon: Icon,
   value,
   limit,
+  unlimitedLabel,
 }: {
   label: string;
   icon: React.ElementType;
   value: number;
   limit: number;
+  unlimitedLabel: string;
 }) {
   const isUnlimited = limit === -1;
   const pct = isUnlimited ? Math.min(value / 100, 1) * 30 : Math.min(value / limit, 1) * 100;
@@ -119,7 +126,7 @@ function UsageMeter({
           {label}
         </div>
         <span className="text-sm tabular-nums text-gray-500">
-          {value} / {isUnlimited ? <span className="text-emerald-600 font-medium">Ilimitado</span> : limit}
+          {value} / {isUnlimited ? <span className="text-emerald-600 font-medium">{unlimitedLabel}</span> : limit}
         </span>
       </div>
       <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
@@ -135,6 +142,9 @@ function UsageMeter({
 /* ─── Main Component ─── */
 
 export default function BillingPage() {
+  const { t } = useDashboardLocale();
+  const STATUS_MAP = getStatusMap(t);
+  const INV_STATUS = getInvStatus(t);
   const searchParams = useSearchParams();
   const [sub, setSub] = useState<SubscriptionData | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -183,11 +193,11 @@ export default function BillingPage() {
         const data = await res.json();
         if (data.url) window.location.href = data.url;
         else {
-          setError(data.error || 'No se pudo crear la sesion. Intenta de nuevo.');
+          setError(data.error || t.billing_noCheckout);
           setActionLoading(null);
         }
       } catch {
-        setError('Error de conexion. Verifica tu internet e intenta de nuevo.');
+        setError(t.billing_connectionError);
         setActionLoading(null);
       }
     },
@@ -202,11 +212,11 @@ export default function BillingPage() {
       const data = await res.json();
       if (data.url) window.location.href = data.url;
       else {
-        setError(data.error || 'No se pudo abrir el portal.');
+        setError(data.error || t.billing_noCheckout);
         setActionLoading(null);
       }
     } catch {
-      setError('Error de conexion.');
+      setError(t.billing_connectionError);
       setActionLoading(null);
     }
   }, []);
@@ -253,8 +263,8 @@ export default function BillingPage() {
     <div className="max-w-5xl mx-auto">
       {/* ─── Header ─── */}
       <div className="mb-8">
-        <h1 className="dash-heading">Facturación</h1>
-        <p className="text-gray-500 mt-1">Gestiona tu suscripcion, uso y pagos en un solo lugar.</p>
+        <h1 className="dash-heading">{t.billing_title}</h1>
+        <p className="text-gray-500 mt-1">{t.billing_subtitle}</p>
       </div>
 
       {/* ─── Checkout banners ─── */}
@@ -262,7 +272,7 @@ export default function BillingPage() {
         <div className="mb-6 flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 p-4 animate-fade-in">
           <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           <p className="text-sm font-medium text-emerald-800 flex-1">
-            Suscripcion activada con exito. Bienvenido a MENIUS.
+            {t.billing_subscriptionActivated}
           </p>
           <button onClick={() => setBanner(null)} className="text-emerald-400 hover:text-emerald-600">
             <X className="w-4 h-4" />
@@ -273,7 +283,7 @@ export default function BillingPage() {
         <div className="mb-6 flex items-center gap-3 rounded-xl bg-amber-50 border border-amber-200 p-4 animate-fade-in">
           <XCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
           <p className="text-sm font-medium text-amber-800 flex-1">
-            El proceso fue cancelado. Puedes intentar de nuevo cuando quieras.
+            {t.billing_processCancelled}
           </p>
           <button onClick={() => setBanner(null)} className="text-amber-400 hover:text-amber-600">
             <X className="w-4 h-4" />
@@ -307,7 +317,7 @@ export default function BillingPage() {
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">Plan {planInfo.name}</h2>
+                    <h2 className="text-xl font-bold text-gray-900">{t.billing_planLabel} {planInfo.name}</h2>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className={cn(
                         'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border',
@@ -326,11 +336,11 @@ export default function BillingPage() {
                     ${planInfo.price[billingInterval]}
                   </span>
                   <span className="text-gray-400 ml-1">
-                    /{billingInterval === 'annual' ? 'ano' : 'mes'}
+                    /{billingInterval === 'annual' ? t.billing_perYear : t.billing_perMonth}
                   </span>
                   {billingInterval === 'annual' && (
                     <span className="ml-3 text-sm text-emerald-600 font-medium">
-                      ${Math.round(planInfo.price.annual / 12)}/mes equivalente
+                      ${Math.round(planInfo.price.annual / 12)}/{t.billing_monthEquiv}
                     </span>
                   )}
                 </div>
@@ -341,13 +351,13 @@ export default function BillingPage() {
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm font-semibold text-blue-800">Periodo de prueba</span>
+                        <span className="text-sm font-semibold text-blue-800">{t.billing_trialPeriod}</span>
                       </div>
                       <span className={cn(
                         'text-sm font-bold',
                         daysLeft <= 3 ? 'text-amber-600' : 'text-blue-700',
                       )}>
-                        {daysLeft} {daysLeft === 1 ? 'dia' : 'dias'} restantes
+                        {daysLeft} {daysLeft === 1 ? t.billing_dayRemaining : t.billing_daysRemaining}
                       </span>
                     </div>
                     <div className="h-2 rounded-full bg-blue-100 overflow-hidden">
@@ -365,7 +375,7 @@ export default function BillingPage() {
                 {/* Billing date */}
                 {!isTrialing && periodEnd && (
                   <p className="text-sm text-gray-500">
-                    {sub.canceled_at ? 'Se cancela el' : 'Proxima facturacion:'}{' '}
+                    {sub.canceled_at ? t.billing_cancelsAt : t.billing_nextBilling}{' '}
                     <span className="font-medium text-gray-700">{periodEnd}</span>
                   </p>
                 )}
@@ -373,7 +383,7 @@ export default function BillingPage() {
                 {sub.canceled_at && sub.status !== 'canceled' && (
                   <p className="text-sm text-amber-600 font-medium flex items-center gap-1.5 mt-2">
                     <AlertTriangle className="w-3.5 h-3.5" />
-                    Tu plan se cancelara al final del periodo
+                    {t.billing_cancelEnd}
                   </p>
                 )}
 
@@ -399,7 +409,7 @@ export default function BillingPage() {
                     className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 transition-all shadow-sm"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    {actionLoading === 'portal' ? 'Redirigiendo...' : 'Gestionar suscripcion'}
+                    {actionLoading === 'portal' ? t.billing_redirecting : t.billing_manageSubscription}
                   </button>
                 )}
                 {sub.stripe_subscription_id && (
@@ -409,7 +419,7 @@ export default function BillingPage() {
                     className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 transition-all shadow-sm"
                   >
                     <CreditCard className="w-4 h-4" />
-                    {actionLoading === 'portal' ? 'Redirigiendo...' : 'Actualizar pago'}
+                    {actionLoading === 'portal' ? t.billing_redirecting : t.billing_updatePayment}
                   </button>
                 )}
                 {isTrialing && (
@@ -419,7 +429,7 @@ export default function BillingPage() {
                     className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50"
                   >
                     <CreditCard className="w-4 h-4" />
-                    {actionLoading === resolvedId ? 'Redirigiendo...' : 'Suscribirse ahora'}
+                    {actionLoading === resolvedId ? t.billing_redirecting : t.billing_subscribeNow}
                   </button>
                 )}
               </div>
@@ -432,26 +442,29 @@ export default function BillingPage() {
       {sub && usage && (
         <div className="rounded-2xl border border-gray-200 bg-white p-6 mb-6">
           <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-5">
-            Uso actual
+            {t.billing_currentUsage}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <UsageMeter
-              label="Productos"
+              label={t.billing_productsLabel}
               icon={Package}
               value={usage.products}
               limit={planLimits.maxProducts}
+              unlimitedLabel={t.billing_unlimited}
             />
             <UsageMeter
-              label="Mesas"
+              label={t.billing_tablesLabel}
               icon={LayoutGrid}
               value={usage.tables}
               limit={planLimits.maxTables}
+              unlimitedLabel={t.billing_unlimited}
             />
             <UsageMeter
-              label="Equipo"
+              label={t.billing_teamLabel}
               icon={Users}
               value={1}
               limit={planLimits.maxUsers}
+              unlimitedLabel={t.billing_unlimited}
             />
           </div>
         </div>
@@ -462,7 +475,7 @@ export default function BillingPage() {
         <div className="rounded-2xl border border-gray-200 bg-white mb-6 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-              Historial de pagos
+              {t.billing_paymentHistory}
             </h3>
             {sub?.stripe_subscription_id && (
               <button
@@ -470,7 +483,7 @@ export default function BillingPage() {
                 disabled={actionLoading !== null}
                 className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1 transition-colors"
               >
-                Ver todas
+                {t.billing_viewAll}
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             )}
@@ -483,7 +496,7 @@ export default function BillingPage() {
                 <div key={inv.id} className="px-6 py-3.5 flex items-center gap-4 hover:bg-gray-50/50 transition-colors">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {inv.number || 'Factura'}
+                      {inv.number || t.billing_invoice}
                     </p>
                     <p className="text-xs text-gray-400">{formatDate(inv.created)}</p>
                   </div>
@@ -502,7 +515,7 @@ export default function BillingPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                      title="Descargar PDF"
+                      title={t.billing_downloadPdf}
                     >
                       <Download className="w-4 h-4" />
                     </a>
@@ -519,10 +532,10 @@ export default function BillingPage() {
         <div className="mt-10 mb-8">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
-              Potencia tu restaurante
+              {t.billing_upgradeTitle}
             </h2>
             <p className="text-gray-500 mt-2 max-w-lg mx-auto">
-              Compara los planes y elige el que mejor se adapte a las necesidades de tu negocio.
+              {t.billing_upgradeDesc}
             </p>
           </div>
           <PricingTable
@@ -540,9 +553,9 @@ export default function BillingPage() {
             <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gray-100 mx-auto mb-4">
               <CreditCard className="w-7 h-7 text-gray-400" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Sin suscripcion activa</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">{t.billing_noSubscription}</h2>
             <p className="text-gray-500 max-w-md mx-auto">
-              Elige un plan para comenzar a usar MENIUS y digitalizar tu restaurante.
+              {t.billing_choosePlan}
             </p>
           </div>
           <PricingTable onSelect={handleCheckout} loading={actionLoading} />

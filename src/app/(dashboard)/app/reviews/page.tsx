@@ -13,7 +13,6 @@ export default async function ReviewsPage() {
 
   return (
     <div>
-      <h1 className="dash-heading mb-6">Reseñas</h1>
       <ReviewsManager
         restaurantId={restaurantId}
         initialReviews={reviews ?? []}

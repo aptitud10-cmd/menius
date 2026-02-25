@@ -13,6 +13,7 @@ import { useToast } from '@/components/dashboard/DashToast';
 import type { Product, Category, DietaryTag, ContentTranslation } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { getLocaleFlag, getLocaleLabel } from '@/lib/i18n';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { ModifierGroupsEditor } from './ModifierGroupsEditor';
 import { MediaPicker } from './MediaPicker';
 
@@ -33,6 +34,7 @@ export function ProductEditor({
 }: Props) {
   const router = useRouter();
   const { success: toastSuccess, error: toastError } = useToast();
+  const { t } = useDashboardLocale();
   const isEditing = !!product;
   const hasMultiLang = availableLocales.length > 1;
 
@@ -69,7 +71,7 @@ export function ProductEditor({
   const busy = uploading || isPending || aiGenerating;
 
   const handleAIGenerate = useCallback(async () => {
-    if (!form.name.trim()) { setError('Ingresa el nombre del producto primero'); return; }
+    if (!form.name.trim()) { setError(t.editor_nameRequired); return; }
     setAiGenerating(true);
     setError('');
     try {
@@ -83,17 +85,17 @@ export function ProductEditor({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error generando imagen');
+      if (!res.ok) throw new Error(data.error || t.editor_errorGeneratingImage);
       setGalleryUrl(data.url);
       setImagePreview(data.url);
       setImageFile(null);
       if (fileRef.current) fileRef.current.value = '';
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error generando imagen con IA');
+      setError(err instanceof Error ? err.message : t.editor_errorGeneratingImage);
     } finally {
       setAiGenerating(false);
     }
-  }, [form.name, form.description, selectedCategory?.name]);
+  }, [form.name, form.description, selectedCategory?.name, t]);
 
   const handleUrlSubmit = useCallback(() => {
     const url = urlValue.trim();
@@ -101,7 +103,7 @@ export function ProductEditor({
     try {
       new URL(url);
     } catch {
-      setError('URL inválida');
+      setError(t.editor_invalidURL);
       return;
     }
     setGalleryUrl(url);
@@ -110,7 +112,7 @@ export function ProductEditor({
     setUrlValue('');
     setShowUrlInput(false);
     if (fileRef.current) fileRef.current.value = '';
-  }, [urlValue]);
+  }, [urlValue, t]);
 
   const handleGallerySelect = useCallback((url: string) => {
     setGalleryUrl(url);
@@ -122,13 +124,13 @@ export function ProductEditor({
   const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { setError('Solo imágenes'); return; }
-    if (file.size > 5 * 1024 * 1024) { setError('Máximo 5MB'); return; }
+    if (!file.type.startsWith('image/')) { setError(t.editor_onlyImages); return; }
+    if (file.size > 5 * 1024 * 1024) { setError(t.editor_maxFileSize); return; }
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     setGalleryUrl(null);
     setError('');
-  }, []);
+  }, [t]);
 
   const uploadImage = async (): Promise<string | null> => {
     if (!imageFile) return null;
@@ -141,7 +143,7 @@ export function ProductEditor({
       if (!res.ok) throw new Error(data.error);
       return data.url;
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Error subiendo imagen');
+      setError(err instanceof Error ? err.message : t.editor_errorUploadingImage);
       return null;
     } finally {
       setUploading(false);
@@ -149,10 +151,10 @@ export function ProductEditor({
   };
 
   const handleSubmit = async () => {
-    if (!form.name.trim()) { setError('Nombre requerido'); return; }
-    if (!form.category_id) { setError('Selecciona categoría'); return; }
+    if (!form.name.trim()) { setError(t.editor_nameRequired); return; }
+    if (!form.category_id) { setError(t.editor_selectCategory); return; }
     const price = parseFloat(form.price);
-    if (isNaN(price) || price < 0) { setError('Precio inválido'); return; }
+    if (isNaN(price) || price < 0) { setError(t.editor_priceInvalid); return; }
 
     let imageUrl: string | null = galleryUrl;
     if (!imageUrl && imageFile) {
@@ -179,7 +181,7 @@ export function ProductEditor({
           const res = await updateProduct(product.id, data);
           if (res.error) { setError(res.error); toastError(res.error); return; }
           setSaved(true);
-          toastSuccess('Producto actualizado');
+          toastSuccess(t.editor_productUpdated);
           setTimeout(() => { setSaved(false); router.push('/app/menu/products'); }, 1200);
         } else {
           const res = await createProduct({
@@ -194,24 +196,24 @@ export function ProductEditor({
           });
           if (res.error) { setError(res.error); toastError(res.error); return; }
           setSaved(true);
-          toastSuccess('Producto creado');
+          toastSuccess(t.editor_productCreated);
           setTimeout(() => router.push('/app/menu/products'), 1200);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error inesperado');
+        setError(err instanceof Error ? err.message : t.editor_unexpectedError);
       }
     });
   };
 
   const handleDelete = () => {
-    if (!product || !confirm('¿Eliminar este producto permanentemente?')) return;
+    if (!product || !confirm(t.editor_deleteConfirm)) return;
     startTransition(async () => {
       try {
         const res = await deleteProduct(product.id);
         if (res?.error) { setError(res.error); return; }
         router.push('/app/menu/products');
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error al eliminar');
+        setError(err instanceof Error ? err.message : t.editor_errorDeleting);
       }
     });
   };
@@ -220,7 +222,7 @@ export function ProductEditor({
     setForm(prev => ({
       ...prev,
       dietary_tags: prev.dietary_tags.includes(tag)
-        ? prev.dietary_tags.filter(t => t !== tag)
+        ? prev.dietary_tags.filter(dt => dt !== tag)
         : [...prev.dietary_tags, tag],
     }));
   };
@@ -246,10 +248,10 @@ export function ProductEditor({
             </button>
             <div className="min-w-0">
               <h1 className="text-lg font-semibold text-gray-900 truncate">
-                {isEditing ? form.name || product.name : 'Nuevo producto'}
+                {isEditing ? form.name || product.name : t.editor_newProduct}
               </h1>
               <p className="text-xs text-gray-500">
-                {isEditing ? 'Editar producto' : 'Crear producto'}
+                {isEditing ? t.editor_editProduct : t.editor_create}
               </p>
             </div>
           </div>
@@ -262,14 +264,14 @@ export function ProductEditor({
                 className="dash-btn-secondary text-red-600 hover:bg-red-50 hover:border-red-200"
               >
                 <Trash2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Eliminar</span>
+                <span className="hidden sm:inline">{t.general_delete}</span>
               </button>
             )}
             <button
               onClick={() => router.push('/app/menu/products')}
               className="dash-btn-secondary"
             >
-              Cancelar
+              {t.general_cancel}
             </button>
             <button
               onClick={handleSubmit}
@@ -277,13 +279,13 @@ export function ProductEditor({
               className={cn('dash-btn-primary', saved && 'bg-emerald-600')}
             >
               {uploading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Subiendo...</>
+                <><Loader2 className="w-4 h-4 animate-spin" /> {t.editor_uploading}</>
               ) : isPending ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
+                <><Loader2 className="w-4 h-4 animate-spin" /> {t.editor_saving}</>
               ) : saved ? (
-                <><Check className="w-4 h-4" /> Guardado</>
+                <><Check className="w-4 h-4" /> {t.editor_saved}</>
               ) : (
-                <><Save className="w-4 h-4" /> {isEditing ? 'Guardar' : 'Crear producto'}</>
+                <><Save className="w-4 h-4" /> {isEditing ? t.editor_save : t.editor_create}</>
               )}
             </button>
           </div>
@@ -311,27 +313,27 @@ export function ProductEditor({
 
             {/* Basic info card */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4">Información básica</h2>
+              <h2 className="text-sm font-semibold text-gray-900 mb-4">{t.editor_basicInfo}</h2>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.editor_name}</label>
                   <input
                     type="text"
                     value={form.name}
                     onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Ej: Tacos al Pastor"
+                    placeholder={t.editor_namePlaceholder}
                     className="dash-input"
                     autoFocus
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t.editor_description}</label>
                   <textarea
                     value={form.description}
                     onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Describe el producto..."
+                    placeholder={t.editor_descPlaceholder}
                     rows={4}
                     className="dash-input resize-none"
                   />
@@ -341,7 +343,7 @@ export function ProductEditor({
 
             {/* Image card */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4">Imagen</h2>
+              <h2 className="text-sm font-semibold text-gray-900 mb-4">{t.editor_image}</h2>
 
               <input
                 ref={fileRef}
@@ -367,26 +369,26 @@ export function ProductEditor({
                       onClick={() => fileRef.current?.click()}
                       className="px-3 py-2 bg-white rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"
                     >
-                      <Camera className="w-4 h-4 inline mr-1" /> Cambiar
+                      <Camera className="w-4 h-4 inline mr-1" /> {t.editor_changeImage}
                     </button>
                     <button
                       onClick={() => setGalleryOpen(true)}
                       className="px-3 py-2 bg-white rounded-lg text-sm font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
                     >
-                      <ImagePlus className="w-4 h-4 inline mr-1" /> Galería
+                      <ImagePlus className="w-4 h-4 inline mr-1" /> {t.editor_fromGallery}
                     </button>
                     <button
                       onClick={handleAIGenerate}
                       disabled={aiGenerating}
                       className="px-3 py-2 bg-white rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 transition-colors disabled:opacity-50"
                     >
-                      {aiGenerating ? <Loader2 className="w-4 h-4 inline mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 inline mr-1" />} IA
+                      {aiGenerating ? <Loader2 className="w-4 h-4 inline mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 inline mr-1" />} {t.editor_aiLabel}
                     </button>
                     <button
                       onClick={removeImage}
                       className="px-3 py-2 bg-white rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
                     >
-                      <Trash2 className="w-4 h-4 inline mr-1" /> Quitar
+                      <Trash2 className="w-4 h-4 inline mr-1" /> {t.editor_removeImage}
                     </button>
                   </div>
                 </div>
@@ -398,26 +400,26 @@ export function ProductEditor({
                       onClick={() => fileRef.current?.click()}
                       className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                     >
-                      Subir imagen
+                      {t.editor_uploadImage}
                     </button>
                     <button
                       onClick={() => setGalleryOpen(true)}
                       className="px-3 py-1.5 text-sm font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
                     >
-                      Elegir de galería
+                      {t.editor_fromGallery}
                     </button>
                     <button
                       onClick={handleAIGenerate}
                       disabled={aiGenerating}
                       className="px-3 py-1.5 text-sm font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
                     >
-                      {aiGenerating ? <><Loader2 className="w-3.5 h-3.5 inline mr-1 animate-spin" /> Generando...</> : <><Sparkles className="w-3.5 h-3.5 inline mr-1" /> Generar con IA</>}
+                      {aiGenerating ? <><Loader2 className="w-3.5 h-3.5 inline mr-1 animate-spin" /> {t.editor_generatingAI}</> : <><Sparkles className="w-3.5 h-3.5 inline mr-1" /> {t.editor_generateAI}</>}
                     </button>
                     <button
                       onClick={() => setShowUrlInput(true)}
                       className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
                     >
-                      <Link2 className="w-3.5 h-3.5 inline mr-1" /> Desde URL
+                      <Link2 className="w-3.5 h-3.5 inline mr-1" /> {t.editor_fromURL}
                     </button>
                   </div>
                   {showUrlInput && (
@@ -427,7 +429,7 @@ export function ProductEditor({
                         value={urlValue}
                         onChange={e => setUrlValue(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') handleUrlSubmit(); if (e.key === 'Escape') setShowUrlInput(false); }}
-                        placeholder="https://ejemplo.com/imagen.jpg"
+                        placeholder={t.editor_pasteURL}
                         className="dash-input flex-1 text-sm"
                         autoFocus
                       />
@@ -439,7 +441,7 @@ export function ProductEditor({
                       </button>
                     </div>
                   )}
-                  <span className="text-xs text-gray-400">PNG, JPG hasta 5MB</span>
+                  <span className="text-xs text-gray-400">{t.editor_fileFormats}</span>
                 </div>
               )}
             </div>
@@ -447,7 +449,7 @@ export function ProductEditor({
             {/* Modifier Groups */}
             {isEditing && product && (
               <div className="bg-white rounded-xl border border-gray-200 p-5">
-                <h2 className="text-sm font-semibold text-gray-900 mb-4">Grupos de modificadores</h2>
+                <h2 className="text-sm font-semibold text-gray-900 mb-4">{t.editor_modifierGroups}</h2>
                 <ModifierGroupsEditor
                   productId={product.id}
                   groups={product.modifier_groups ?? []}
@@ -460,7 +462,7 @@ export function ProductEditor({
               <div className="bg-white rounded-xl border border-gray-200 p-5">
                 <h2 className="text-sm font-semibold text-gray-900 mb-4">
                   <Languages className="w-4 h-4 inline mr-1.5" />
-                  Traducciones
+                  {t.editor_translations}
                 </h2>
                 <div className="space-y-4">
                   {availableLocales
@@ -480,7 +482,7 @@ export function ProductEditor({
                                 [locale]: { ...prev[locale], name: e.target.value },
                               }))
                             }
-                            placeholder={form.name || 'Nombre traducido...'}
+                            placeholder={form.name || t.editor_translatedNamePlaceholder}
                             className="dash-input"
                           />
                           <textarea
@@ -491,7 +493,7 @@ export function ProductEditor({
                                 [locale]: { ...prev[locale], description: e.target.value },
                               }))
                             }
-                            placeholder={form.description || 'Descripción traducida...'}
+                            placeholder={form.description || t.editor_translatedDescPlaceholder}
                             rows={2}
                             className="dash-input resize-none"
                           />
@@ -508,12 +510,12 @@ export function ProductEditor({
 
             {/* Status card */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4">Estado</h2>
+              <h2 className="text-sm font-semibold text-gray-900 mb-4">{t.products_status}</h2>
               <div className="space-y-3">
                 <label className="flex items-center justify-between cursor-pointer group">
                   <span className="flex items-center gap-2 text-sm text-gray-700">
                     {form.is_active ? <Eye className="w-4 h-4 text-emerald-600" /> : <EyeOff className="w-4 h-4 text-gray-400" />}
-                    Visible en menú
+                    {t.editor_visibleInMenu}
                   </span>
                   <button
                     type="button"
@@ -535,7 +537,7 @@ export function ProductEditor({
                 <label className="flex items-center justify-between cursor-pointer group">
                   <span className="flex items-center gap-2 text-sm text-gray-700">
                     {form.in_stock ? <PackageCheck className="w-4 h-4 text-emerald-600" /> : <PackageX className="w-4 h-4 text-red-500" />}
-                    En stock
+                    {t.editor_inStockLabel}
                   </span>
                   <button
                     type="button"
@@ -557,7 +559,7 @@ export function ProductEditor({
                 <label className="flex items-center justify-between cursor-pointer group">
                   <span className="flex items-center gap-2 text-sm text-gray-700">
                     <span className="text-base">🔥</span>
-                    Destacado
+                    {t.editor_featured}
                   </span>
                   <button
                     type="button"
@@ -579,7 +581,7 @@ export function ProductEditor({
                 <label className="flex items-center justify-between cursor-pointer group">
                   <span className="flex items-center gap-2 text-sm text-gray-700">
                     <span className="text-base">🆕</span>
-                    Nuevo
+                    {t.editor_isNew}
                   </span>
                   <button
                     type="button"
@@ -602,7 +604,7 @@ export function ProductEditor({
 
             {/* Pricing card */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4">Precio</h2>
+              <h2 className="text-sm font-semibold text-gray-900 mb-4">{t.editor_price}</h2>
               <div>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">
@@ -623,7 +625,7 @@ export function ProductEditor({
 
             {/* Category card */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4">Categoría</h2>
+              <h2 className="text-sm font-semibold text-gray-900 mb-4">{t.editor_category}</h2>
               <select
                 value={form.category_id}
                 onChange={e => setForm(prev => ({ ...prev, category_id: e.target.value }))}
@@ -635,14 +637,14 @@ export function ProductEditor({
               </select>
               {selectedCategory && (
                 <p className="mt-2 text-xs text-gray-500">
-                  Los productos de esta categoría aparecen bajo "{selectedCategory.name}" en el menú.
+                  {t.editor_categoryNote.replace('{name}', selectedCategory.name)}
                 </p>
               )}
             </div>
 
             {/* Dietary tags card */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4">Etiquetas dietéticas</h2>
+              <h2 className="text-sm font-semibold text-gray-900 mb-4">{t.editor_dietaryTags}</h2>
               <div className="flex flex-wrap gap-2">
                 {DIETARY_TAGS.map(tag => {
                   const active = form.dietary_tags.includes(tag.id);

@@ -29,6 +29,7 @@ import {
 } from '@/lib/actions/restaurant';
 import { formatPrice, cn } from '@/lib/utils';
 import type { Product, Category } from '@/types';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 const MenuImportLazy = lazy(() => import('./MenuImport').then(m => ({ default: m.MenuImport })));
 const BulkImageUploadLazy = lazy(() => import('./BulkImageUpload').then(m => ({ default: m.BulkImageUpload })));
@@ -48,6 +49,7 @@ function InlinePriceCell({
   const [value, setValue] = useState(String(price));
   const [flash, setFlash] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
+  const { t } = useDashboardLocale();
 
   useEffect(() => {
     if (editing) {
@@ -92,7 +94,7 @@ function InlinePriceCell({
         'text-sm font-medium px-2 py-0.5 rounded transition-all cursor-text',
         flash ? 'bg-emerald-50 text-emerald-700' : 'text-gray-900 hover:bg-gray-100'
       )}
-      title="Click para editar precio"
+      title={t.products_clickEditPrice}
     >
       {formatPrice(price, currency)}
     </button>
@@ -131,6 +133,7 @@ export function ProductsManager({
   const [isPending, startTransition] = useTransition();
   const [showImport, setShowImport] = useState(false);
   const [showBulkImages, setShowBulkImages] = useState(false);
+  const { t } = useDashboardLocale();
 
   const toggleCat = (id: string) => {
     setExpanded(prev => {
@@ -141,7 +144,7 @@ export function ProductsManager({
   };
 
   const handleDelete = (id: string) => {
-    if (!confirm('¿Eliminar este producto?')) return;
+    if (!confirm(t.products_deleteConfirm)) return;
     const prev = products;
     setProducts(p => p.filter(x => x.id !== id));
     startTransition(async () => {
@@ -157,7 +160,7 @@ export function ProductsManager({
     const newProduct: Product = {
       ...p,
       id: tempId,
-      name: `${p.name} (copia)`,
+      name: `${p.name} (${t.products_copy})`,
       sort_order: products.length,
     };
     setProducts(prev => [...prev, newProduct]);
@@ -272,7 +275,7 @@ export function ProductsManager({
   };
 
   const handleBulkDelete = () => {
-    if (!confirm(`¿Eliminar ${selected.size} productos?`)) return;
+    if (!confirm(t.products_deleteMultiConfirm.replace('{n}', String(selected.size)))) return;
     const prev = products;
     const ids = new Set(selected);
     setProducts(p => p.filter(x => !ids.has(x.id)));
@@ -315,10 +318,10 @@ export function ProductsManager({
     return (
       <div className="dash-empty py-20">
         <Package className="dash-empty-icon" />
-        <p className="dash-empty-title">Primero crea una categoría</p>
-        <p className="dash-empty-desc">Necesitas al menos una categoría.</p>
+        <p className="dash-empty-title">{t.products_createCategoryFirst}</p>
+        <p className="dash-empty-desc">{t.products_needCategory}</p>
         <Link href="/app/menu/categories" className="dash-btn-primary">
-          Crear categoría
+          {t.products_createCategory}
         </Link>
       </div>
     );
@@ -330,19 +333,19 @@ export function ProductsManager({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-2">
           <Link href="/app/menu/products/new" className="dash-btn-primary">
-            <Plus className="w-4 h-4" /> Nuevo producto
+            <Plus className="w-4 h-4" /> {t.products_new}
           </Link>
           <button onClick={() => setShowBulkImages(true)} className="dash-btn-secondary">
-            <ImagePlus className="w-4 h-4" /> Fotos
+            <ImagePlus className="w-4 h-4" /> {t.products_photos}
           </button>
           <button onClick={() => setShowImport(true)} className="dash-btn-secondary">
-            <Sparkles className="w-4 h-4" /> Importar menu con IA
+            <Sparkles className="w-4 h-4" /> {t.products_importAI}
           </button>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400 hidden sm:inline">
-            {activeCount} activos · {products.length} total
-            {outOfStockCount > 0 && <span className="text-red-400"> · {outOfStockCount} agotados</span>}
+            {activeCount} {t.products_active} · {products.length} {t.products_total}
+            {outOfStockCount > 0 && <span className="text-red-400"> · {outOfStockCount} {t.products_outOfStock}</span>}
           </span>
           <button
             onClick={() => setShowFilters(f => !f)}
@@ -352,7 +355,7 @@ export function ProductsManager({
             )}
           >
             <SlidersHorizontal className="w-4 h-4" />
-            <span className="hidden sm:inline">Filtros</span>
+            <span className="hidden sm:inline">{t.products_filters}</span>
             {activeFilterCount > 0 && (
               <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-center">
                 {activeFilterCount}
@@ -365,7 +368,7 @@ export function ProductsManager({
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar..."
+              placeholder={t.general_search}
               className="dash-input pl-9 pr-8 w-44"
             />
             {search && (
@@ -384,40 +387,40 @@ export function ProductsManager({
       {showFilters && (
         <div className="flex flex-wrap items-center gap-3 mb-4 px-4 py-3 bg-white border border-gray-200 rounded-xl">
           <div>
-            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Categoría</label>
+            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">{t.products_category}</label>
             <select
               value={filterCategory}
               onChange={e => setFilterCategory(e.target.value)}
               className="dash-input py-1.5 text-sm min-w-[140px]"
             >
-              <option value="all">Todas</option>
+              <option value="all">{t.products_allFem}</option>
               {categories.map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Estado</label>
+            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">{t.products_status}</label>
             <select
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value as 'all' | 'active' | 'hidden')}
               className="dash-input py-1.5 text-sm min-w-[120px]"
             >
-              <option value="all">Todos</option>
-              <option value="active">Activos</option>
-              <option value="hidden">Ocultos</option>
+              <option value="all">{t.products_all}</option>
+              <option value="active">{t.products_activeFilter}</option>
+              <option value="hidden">{t.products_hidden}</option>
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Stock</label>
+            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">{t.products_stock}</label>
             <select
               value={filterStock}
               onChange={e => setFilterStock(e.target.value as 'all' | 'in_stock' | 'out_of_stock')}
               className="dash-input py-1.5 text-sm min-w-[120px]"
             >
-              <option value="all">Todos</option>
-              <option value="in_stock">En stock</option>
-              <option value="out_of_stock">Agotados</option>
+              <option value="all">{t.products_all}</option>
+              <option value="in_stock">{t.products_inStock}</option>
+              <option value="out_of_stock">{t.products_outOfStockFilter}</option>
             </select>
           </div>
           {activeFilterCount > 0 && (
@@ -425,7 +428,7 @@ export function ProductsManager({
               onClick={clearFilters}
               className="text-xs text-gray-500 hover:text-gray-800 underline underline-offset-2 mt-4"
             >
-              Limpiar filtros
+              {t.products_clearFilters}
             </button>
           )}
         </div>
@@ -434,16 +437,16 @@ export function ProductsManager({
       {/* Bulk action bar */}
       {selected.size > 0 && (
         <div className="flex items-center gap-3 mb-4 px-4 py-2.5 rounded-lg bg-gray-900 text-white text-sm animate-scale-in">
-          <span className="font-medium">{selected.size} seleccionados</span>
+          <span className="font-medium">{selected.size} {t.products_selected}</span>
           <div className="h-4 w-px bg-gray-700" />
           <button onClick={() => handleBulkToggle(true)} className="hover:text-emerald-400 transition-colors">
-            Activar
+            {t.products_activate}
           </button>
           <button onClick={() => handleBulkToggle(false)} className="hover:text-yellow-400 transition-colors">
-            Desactivar
+            {t.products_deactivate}
           </button>
           <button onClick={handleBulkDelete} className="hover:text-red-400 transition-colors">
-            Eliminar
+            {t.products_delete}
           </button>
           <button onClick={() => setSelected(new Set())} className="ml-auto hover:text-gray-300">
             <X className="w-4 h-4" />
@@ -455,7 +458,7 @@ export function ProductsManager({
       {totalFiltered === 0 && search ? (
         <div className="dash-empty py-16">
           <Search className="dash-empty-icon" />
-          <p className="dash-empty-title">Sin resultados</p>
+          <p className="dash-empty-title">{t.products_noResults}</p>
           <p className="dash-empty-desc">
             No hay productos que coincidan con &ldquo;{search}&rdquo;
           </p>
@@ -463,10 +466,10 @@ export function ProductsManager({
       ) : products.length === 0 ? (
         <div className="dash-empty py-20">
           <Package className="dash-empty-icon" />
-          <p className="dash-empty-title">Sin productos</p>
-          <p className="dash-empty-desc">Crea tu primer producto para empezar.</p>
+          <p className="dash-empty-title">{t.products_noProducts}</p>
+          <p className="dash-empty-desc">{t.products_noProductsDesc}</p>
           <Link href="/app/menu/products/new" className="dash-btn-primary">
-            <Plus className="w-4 h-4" /> Crear producto
+            <Plus className="w-4 h-4" /> {t.products_createProduct}
           </Link>
         </div>
       ) : (
@@ -474,11 +477,11 @@ export function ProductsManager({
           {/* Column headers (desktop) */}
           <div className="hidden md:grid grid-cols-[2rem_1fr_6rem_4.5rem_4rem_4.5rem_5rem] items-center gap-2 px-4 py-2 bg-gray-50/80 border-b border-gray-200 text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
             <div />
-            <div>Producto</div>
-            <div>Precio</div>
-            <div>Estado</div>
-            <div>Stock</div>
-            <div>Opciones</div>
+            <div>{t.products_product}</div>
+            <div>{t.products_price}</div>
+            <div>{t.products_status}</div>
+            <div>{t.products_stock}</div>
+            <div>{t.products_options}</div>
             <div />
           </div>
 
@@ -668,6 +671,7 @@ function SortableProductRow({
     transition,
     isDragging,
   } = useSortable({ id: p.id });
+  const { t } = useDashboardLocale();
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -724,7 +728,7 @@ function SortableProductRow({
         </Link>
         <InlinePriceCell price={Number(p.price)} currency={curr} onSave={v => handlePriceSave(p.id, v)} />
         <span className={cn('dash-badge text-[11px]', p.is_active ? 'dash-badge-active' : 'dash-badge-inactive')}>
-          {p.is_active ? 'Activo' : 'Oculto'}
+          {p.is_active ? t.products_activeStatus : t.products_hiddenStatus}
         </span>
         <button
           onClick={() => handleStockToggle(p)}
@@ -734,12 +738,12 @@ function SortableProductRow({
               ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
               : 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
           )}
-          title={p.in_stock === false ? 'Marcar disponible' : 'Marcar agotado'}
+          title={p.in_stock === false ? t.products_markAvailable : t.products_markOutOfStock}
         >
           {p.in_stock === false ? (
-            <><PackageX className="w-3 h-3" /> Agotado</>
+            <><PackageX className="w-3 h-3" /> {t.products_outOfStockStatus}</>
           ) : (
-            <><PackageCheck className="w-3 h-3" /> En stock</>
+            <><PackageCheck className="w-3 h-3" /> {t.products_inStockStatus}</>
           )}
         </button>
         <div>
@@ -750,13 +754,13 @@ function SortableProductRow({
           )}
         </div>
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => handleDuplicate(p)} className="p-1 rounded hover:bg-indigo-50 text-gray-400 hover:text-indigo-500" title="Duplicar">
+          <button onClick={() => handleDuplicate(p)} className="p-1 rounded hover:bg-indigo-50 text-gray-400 hover:text-indigo-500" title={t.products_duplicate}>
             <Copy className="w-3.5 h-3.5" />
           </button>
-          <button onClick={() => handleToggle(p)} className="p-1 rounded hover:bg-gray-100 text-gray-400" title={p.is_active ? 'Ocultar' : 'Mostrar'}>
+          <button onClick={() => handleToggle(p)} className="p-1 rounded hover:bg-gray-100 text-gray-400" title={p.is_active ? t.products_hide : t.products_show}>
             {p.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
           </button>
-          <button onClick={() => handleDelete(p.id)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500" title="Eliminar">
+          <button onClick={() => handleDelete(p.id)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500" title={t.general_delete}>
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -783,12 +787,12 @@ function SortableProductRow({
             <div className="flex items-center gap-1.5">
               <p className={cn('text-sm font-medium truncate', p.is_active ? 'text-gray-900' : 'text-gray-500')}>{p.name}</p>
               {p.in_stock === false && (
-                <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full flex-shrink-0">Agotado</span>
+                <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full flex-shrink-0">{t.products_outOfStockStatus}</span>
               )}
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
               {formatPrice(Number(p.price), curr)}
-              {modCount > 0 && ` · ${modCount} grupos`}
+              {modCount > 0 && ` · ${modCount} ${t.products_groups}`}
             </p>
           </div>
         </Link>
@@ -798,7 +802,7 @@ function SortableProductRow({
             'p-1.5 rounded-lg transition-colors flex-shrink-0',
             p.in_stock === false ? 'text-red-400 hover:bg-red-50' : 'text-emerald-400 hover:bg-emerald-50'
           )}
-          title={p.in_stock === false ? 'Marcar disponible' : 'Marcar agotado'}
+          title={p.in_stock === false ? t.products_markAvailable : t.products_markOutOfStock}
         >
           {p.in_stock === false ? <PackageX className="w-4 h-4" /> : <PackageCheck className="w-4 h-4" />}
         </button>

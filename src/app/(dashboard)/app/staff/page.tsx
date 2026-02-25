@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Users, Plus, Trash2, Loader2, Mail, Shield, ChefHat, UserCheck, UserX } from 'lucide-react';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface StaffMember {
   id: string;
@@ -13,20 +14,21 @@ interface StaffMember {
   accepted_at: string | null;
 }
 
-const ROLE_LABELS: Record<string, { label: string; color: string; icon: any }> = {
-  admin: { label: 'Administrador', color: 'bg-purple-500/[0.1] text-purple-400', icon: Shield },
-  manager: { label: 'Gerente', color: 'bg-blue-500/[0.1] text-blue-400', icon: Shield },
-  staff: { label: 'Mesero', color: 'bg-green-500/[0.1] text-green-400', icon: UserCheck },
-  kitchen: { label: 'Cocina', color: 'bg-orange-500/[0.1] text-orange-400', icon: ChefHat },
-};
-
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Pendiente', color: 'text-amber-500' },
-  active: { label: 'Activo', color: 'text-emerald-500' },
-  inactive: { label: 'Inactivo', color: 'text-zinc-500' },
-};
-
 export default function StaffPage() {
+  const { t } = useDashboardLocale();
+
+  const ROLE_LABELS: Record<string, { label: string; color: string; icon: any }> = {
+    admin: { label: t.staff_roleAdmin, color: 'bg-purple-500/[0.1] text-purple-400', icon: Shield },
+    manager: { label: t.staff_roleManager, color: 'bg-blue-500/[0.1] text-blue-400', icon: Shield },
+    staff: { label: t.staff_roleStaff, color: 'bg-green-500/[0.1] text-green-400', icon: UserCheck },
+    kitchen: { label: t.staff_roleKitchen, color: 'bg-orange-500/[0.1] text-orange-400', icon: ChefHat },
+  };
+
+  const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+    pending: { label: t.staff_statusPending, color: 'text-amber-500' },
+    active: { label: t.staff_statusActive, color: 'text-emerald-500' },
+    inactive: { label: t.staff_statusInactive, color: 'text-zinc-500' },
+  };
   const [members, setMembers] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -66,7 +68,7 @@ export default function StaffPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar a este miembro del equipo?')) return;
+    if (!confirm(t.staff_deleteConfirm)) return;
     await fetch('/api/tenant/staff', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -76,7 +78,7 @@ export default function StaffPage() {
   };
 
   const handleToggleStatus = async (member: StaffMember) => {
-    if (!confirm(`¿${member.status === 'active' ? 'Desactivar' : 'Activar'} a ${member.full_name || member.email}?`)) return;
+    if (!confirm(`${member.status === 'active' ? t.staff_toggleDeactivate : t.staff_toggleActivate} ${member.full_name || member.email}?`)) return;
     const newStatus = member.status === 'active' ? 'inactive' : 'active';
     await fetch('/api/tenant/staff', {
       method: 'PATCH',
@@ -87,7 +89,7 @@ export default function StaffPage() {
   };
 
   const handleChangeRole = async (id: string, newRole: string) => {
-    if (!confirm('¿Cambiar el rol de este miembro?')) return;
+    if (!confirm(t.staff_changeRoleConfirm)) return;
     await fetch('/api/tenant/staff', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -101,14 +103,14 @@ export default function StaffPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Users className="w-7 h-7 text-blue-500" />
-          <h1 className="dash-heading">Equipo</h1>
+          <h1 className="dash-heading">{t.staff_title}</h1>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
           className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition"
         >
           <Plus className="w-4 h-4" />
-          Invitar Miembro
+          {t.staff_inviteMember}
         </button>
       </div>
 
@@ -116,7 +118,7 @@ export default function StaffPage() {
         <form onSubmit={handleInvite} className="bg-white border border-gray-200 rounded-xl p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm text-gray-500 mb-1">Nombre completo*</label>
+              <label className="block text-sm text-gray-500 mb-1">{t.staff_fullName}</label>
               <input
                 value={fullName}
                 onChange={e => setFullName(e.target.value)}
@@ -126,7 +128,7 @@ export default function StaffPage() {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-500 mb-1">Email*</label>
+              <label className="block text-sm text-gray-500 mb-1">{t.staff_email}</label>
               <input
                 type="email"
                 value={email}
@@ -137,16 +139,16 @@ export default function StaffPage() {
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-500 mb-1">Rol*</label>
+              <label className="block text-sm text-gray-500 mb-1">{t.staff_role}</label>
               <select
                 value={role}
                 onChange={e => setRole(e.target.value)}
                 className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900"
               >
-                <option value="admin">Administrador</option>
-                <option value="manager">Gerente</option>
-                <option value="staff">Mesero</option>
-                <option value="kitchen">Cocina</option>
+                <option value="admin">{t.staff_roleAdmin}</option>
+                <option value="manager">{t.staff_roleManager}</option>
+                <option value="staff">{t.staff_roleStaff}</option>
+                <option value="kitchen">{t.staff_roleKitchen}</option>
               </select>
             </div>
           </div>
@@ -158,10 +160,10 @@ export default function StaffPage() {
               className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition disabled:opacity-50"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              Invitar
+              {t.staff_invite}
             </button>
             <button type="button" onClick={resetForm} className="px-4 py-2 bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200 transition">
-              Cancelar
+              {t.staff_cancel}
             </button>
           </div>
         </form>
@@ -174,8 +176,8 @@ export default function StaffPage() {
       ) : members.length === 0 ? (
         <div className="text-center py-20 text-gray-500">
           <Users className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>No hay miembros en el equipo.</p>
-          <p className="text-sm mt-1">Invita a tu equipo para que ayuden a gestionar el restaurante.</p>
+          <p>{t.staff_noMembers}</p>
+          <p className="text-sm mt-1">{t.staff_noMembersDesc}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -205,14 +207,14 @@ export default function StaffPage() {
                     onChange={e => handleChangeRole(m.id, e.target.value)}
                     className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700"
                   >
-                    <option value="admin">Admin</option>
-                    <option value="manager">Gerente</option>
-                    <option value="staff">Mesero</option>
-                    <option value="kitchen">Cocina</option>
+                    <option value="admin">{t.staff_roleAdmin}</option>
+                    <option value="manager">{t.staff_roleManager}</option>
+                    <option value="staff">{t.staff_roleStaff}</option>
+                    <option value="kitchen">{t.staff_roleKitchen}</option>
                   </select>
                   <button
                     onClick={() => handleToggleStatus(m)}
-                    title={m.status === 'active' ? 'Desactivar' : 'Activar'}
+                    title={m.status === 'active' ? t.staff_toggleDeactivate : t.staff_toggleActivate}
                     className={`p-1.5 rounded-lg transition ${m.status === 'active' ? 'text-emerald-600 hover:bg-emerald-50' : 'text-gray-500 hover:bg-gray-100'}`}
                   >
                     {m.status === 'active' ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4" />}

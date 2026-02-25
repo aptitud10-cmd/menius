@@ -12,7 +12,6 @@ export default async function CustomersPage() {
 
   return (
     <div>
-      <h1 className="dash-heading mb-6">Clientes</h1>
       <CustomersManager
         restaurantId={restaurantId}
         currency={restaurant?.currency ?? 'USD'}

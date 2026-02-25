@@ -6,48 +6,52 @@ import {
   ClipboardList, Tag, ShoppingBag, QrCode, Settings, LogOut, Menu, X,
   ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { logout } from '@/lib/actions/auth';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
+import type { DashboardTranslations } from '@/lib/dashboard-translations';
 
-const NAV_SECTIONS = [
-  {
-    title: null,
-    items: [
-      { href: '/app', label: 'Inicio', icon: LayoutDashboard, exact: true },
-      { href: '/app/orders', label: 'Órdenes', icon: ClipboardList },
-      { href: '/kds', label: 'Cocina (KDS)', icon: Monitor },
-    ],
-  },
-  {
-    title: 'Menú',
-    items: [
-      { href: '/app/menu/categories', label: 'Categorías', icon: Tag },
-      { href: '/app/menu/products', label: 'Productos', icon: ShoppingBag },
-      { href: '/app/media', label: 'Galería', icon: Image },
-    ],
-  },
-  {
-    title: 'Restaurante',
-    items: [
-      { href: '/app/tables', label: 'Mesas & QRs', icon: QrCode },
-      { href: '/app/customers', label: 'Clientes', icon: Contact2 },
-      { href: '/app/reviews', label: 'Reseñas', icon: Star },
-      { href: '/app/promotions', label: 'Promociones', icon: Ticket },
-      { href: '/app/staff', label: 'Equipo', icon: Users },
-    ],
-  },
-  {
-    title: 'Negocio',
-    items: [
-      { href: '/app/analytics', label: 'Analytics', icon: BarChart3 },
-      { href: '/app/marketing', label: 'Marketing', icon: Megaphone },
-      { href: '/app/billing', label: 'Facturación', icon: CreditCard },
-      { href: '/app/settings', label: 'Configuración', icon: Settings },
-      { href: '/app/settings/data', label: 'Datos y Privacidad', icon: Shield },
-    ],
-  },
-];
+function buildNavSections(t: DashboardTranslations) {
+  return [
+    {
+      title: null,
+      items: [
+        { href: '/app', label: t.nav_home, icon: LayoutDashboard, exact: true },
+        { href: '/app/orders', label: t.nav_orders, icon: ClipboardList },
+        { href: '/kds', label: t.nav_kds, icon: Monitor },
+      ],
+    },
+    {
+      title: t.nav_menu,
+      items: [
+        { href: '/app/menu/categories', label: t.nav_categories, icon: Tag },
+        { href: '/app/menu/products', label: t.nav_products, icon: ShoppingBag },
+        { href: '/app/media', label: t.nav_gallery, icon: Image },
+      ],
+    },
+    {
+      title: t.nav_restaurant,
+      items: [
+        { href: '/app/tables', label: t.nav_tables, icon: QrCode },
+        { href: '/app/customers', label: t.nav_customers, icon: Contact2 },
+        { href: '/app/reviews', label: t.nav_reviews, icon: Star },
+        { href: '/app/promotions', label: t.nav_promotions, icon: Ticket },
+        { href: '/app/staff', label: t.nav_staff, icon: Users },
+      ],
+    },
+    {
+      title: t.nav_business,
+      items: [
+        { href: '/app/analytics', label: t.nav_analytics, icon: BarChart3 },
+        { href: '/app/marketing', label: t.nav_marketing, icon: Megaphone },
+        { href: '/app/billing', label: t.nav_billing, icon: CreditCard },
+        { href: '/app/settings', label: t.nav_settings, icon: Settings },
+        { href: '/app/settings/data', label: t.nav_dataPrivacy, icon: Shield },
+      ],
+    },
+  ];
+}
 
 interface DashboardNavProps {
   slug: string;
@@ -57,6 +61,9 @@ interface DashboardNavProps {
 export function DashboardNav({ slug, mobile }: DashboardNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { t } = useDashboardLocale();
+
+  const navSections = useMemo(() => buildNavSections(t), [t]);
 
   useEffect(() => {
     setOpen(false);
@@ -68,7 +75,7 @@ export function DashboardNav({ slug, mobile }: DashboardNavProps) {
   const navContent = (
     <div className="flex flex-col h-full">
       <nav className="flex-1 flex flex-col gap-1">
-        {NAV_SECTIONS.map((section, si) => (
+        {navSections.map((section, si) => (
           <div key={si} className={cn(si > 0 && 'mt-5')}>
             {section.title && (
               <p className="dash-label px-3 mb-2">
@@ -111,14 +118,14 @@ export function DashboardNav({ slug, mobile }: DashboardNavProps) {
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
         >
           <ExternalLink className="w-[18px] h-[18px] text-gray-400" />
-          Ver menú público
+          {t.nav_viewMenu}
         </Link>
         <button
           onClick={() => logout()}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors w-full text-left"
         >
           <LogOut className="w-[18px] h-[18px] text-gray-400" />
-          Cerrar sesión
+          {t.nav_logout}
         </button>
       </div>
     </div>
@@ -130,7 +137,7 @@ export function DashboardNav({ slug, mobile }: DashboardNavProps) {
         <button
           onClick={() => setOpen(!open)}
           className="p-2 -mr-2 rounded-lg hover:bg-gray-100 transition-colors"
-          aria-label={open ? 'Cerrar menú' : 'Abrir menú'}
+          aria-label={open ? t.nav_closeMenu : t.nav_openMenu}
           aria-expanded={open}
         >
           {open ? <X className="w-5 h-5 text-gray-700" /> : <Menu className="w-5 h-5 text-gray-700" />}

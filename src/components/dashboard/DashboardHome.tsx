@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { OnboardingChecklist } from './OnboardingChecklist';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { Order, Restaurant } from '@/types';
 
 interface AnalyticsData {
@@ -52,6 +53,7 @@ interface DashboardHomeProps {
 }
 
 export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrders, subscription, onboarding, analytics }: DashboardHomeProps) {
+  const { t } = useDashboardLocale();
   const salesDelta = stats.salesYesterday > 0
     ? ((stats.salesToday - stats.salesYesterday) / stats.salesYesterday) * 100
     : stats.salesToday > 0 ? 100 : 0;
@@ -71,7 +73,7 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="dash-heading">{restaurant.name}</h1>
-          <p className="text-sm text-gray-500 mt-1">Resumen de hoy</p>
+          <p className="text-sm text-gray-500 mt-1">{t.home_subtitle}</p>
         </div>
         <div className="flex items-center gap-2">
           <ShareMenuButton slug={restaurant.slug} name={restaurant.name} />
@@ -81,7 +83,7 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-600 text-sm font-medium hover:bg-emerald-50 transition-colors border border-emerald-200"
           >
             <ExternalLink className="w-4 h-4" />
-            Ver menú
+            {t.home_viewMenu}
           </Link>
         </div>
       </div>
@@ -107,14 +109,14 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
             <div className="min-w-0">
               <p className={cn('font-semibold text-sm', trialDaysLeft <= 3 ? 'text-red-700' : 'text-emerald-700')}>
                 {trialDaysLeft <= 3
-                  ? `¡Tu prueba gratis termina en ${trialDaysLeft} día${trialDaysLeft !== 1 ? 's' : ''}!`
-                  : `${trialDaysLeft} días restantes de prueba gratis`
+                  ? `${t.home_trialEndsIn} ${trialDaysLeft} ${trialDaysLeft !== 1 ? t.home_trialDays : t.home_trialDay}!`
+                  : `${trialDaysLeft} ${t.home_trialDaysLeft}`
                 }
               </p>
               <p className={cn('text-xs', trialDaysLeft <= 3 ? 'text-red-500/80' : 'text-emerald-600/80')}>
                 {trialDaysLeft <= 3
-                  ? 'Elige un plan para no perder acceso'
-                  : 'Disfruta todas las funciones mientras exploras MENIUS'
+                  ? t.home_trialChoosePlan
+                  : t.home_trialEnjoy
                 }
               </p>
             </div>
@@ -129,7 +131,7 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
             )}
           >
             <CreditCard className="w-4 h-4" />
-            Ver planes
+            {t.home_viewPlans}
           </Link>
         </div>
       )}
@@ -145,37 +147,37 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          label="Ventas hoy"
+          label={t.home_salesToday}
           value={formatPrice(stats.salesToday, restaurant.currency)}
           icon={TrendingUp}
           color="text-emerald-500"
           bg="bg-emerald-500/[0.1]"
           delta={salesDelta}
-          deltaLabel="vs ayer"
+          deltaLabel={t.home_vsYesterday}
         />
         <KPICard
-          label="Órdenes hoy"
+          label={t.home_ordersToday}
           value={stats.ordersToday.toString()}
           icon={ClipboardList}
           color="text-blue-500"
           bg="bg-blue-500/[0.1]"
           delta={ordersDelta}
-          deltaLabel="vs ayer"
+          deltaLabel={t.home_vsYesterday}
         />
         <KPICard
-          label="Ticket promedio"
+          label={t.home_avgTicket}
           value={formatPrice(stats.avgOrderToday, restaurant.currency)}
           icon={DollarSign}
           color="text-indigo-500"
           bg="bg-indigo-500/[0.1]"
         />
         <KPICard
-          label="Cancelaciones"
+          label={t.home_cancellations}
           value={`${stats.cancelledToday}`}
           icon={XCircle}
           color="text-red-400"
           bg="bg-red-500/[0.1]"
-          extra={cancelRate > 0 ? `${cancelRate.toFixed(0)}% tasa` : undefined}
+          extra={cancelRate > 0 ? `${cancelRate.toFixed(0)}% ${t.home_rate}` : undefined}
         />
       </div>
 
@@ -194,9 +196,9 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
             </div>
             <div>
               <p className="font-semibold text-sm text-amber-700">
-                {stats.pendingOrders} {stats.pendingOrders === 1 ? 'orden pendiente' : 'órdenes pendientes'}
+                {stats.pendingOrders} {stats.pendingOrders === 1 ? t.home_pendingOrder : t.home_pendingOrders}
               </p>
-              <p className="text-xs text-amber-600/70">Haz clic para gestionarlas</p>
+              <p className="text-xs text-amber-600/70">{t.home_clickToManage}</p>
             </div>
           </div>
           <ArrowRight className="w-5 h-5 text-amber-600/50 group-hover:translate-x-0.5 transition-transform" />
@@ -212,9 +214,9 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
             </div>
             <div>
               <p className="font-semibold text-sm text-orange-700">
-                {lowStockProducts!.length} producto{lowStockProducts!.length !== 1 ? 's' : ''} con stock bajo
+                {lowStockProducts!.length} {lowStockProducts!.length !== 1 ? t.home_lowStockProducts : t.home_lowStockSingular}
               </p>
-              <p className="text-xs text-orange-600/70">Revisa el inventario</p>
+              <p className="text-xs text-orange-600/70">{t.home_checkInventory}</p>
             </div>
           </div>
           <div className="space-y-1.5">
@@ -222,7 +224,7 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
               <div key={p.id} className="flex items-center justify-between text-sm">
                 <span className="text-gray-700 truncate">{p.name}</span>
                 <span className={cn('font-bold tabular-nums', p.stock_qty <= 0 ? 'text-red-600' : 'text-orange-600')}>
-                  {p.stock_qty <= 0 ? 'Agotado' : `${p.stock_qty} uds`}
+                  {p.stock_qty <= 0 ? t.home_outOfStock : `${p.stock_qty} ${t.home_units}`}
                 </span>
               </div>
             ))}
@@ -233,16 +235,16 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
       {/* Recent orders */}
       <div className="dash-card">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-[15px] text-gray-900">Últimas órdenes</h2>
+          <h2 className="font-semibold text-[15px] text-gray-900">{t.home_recentOrders}</h2>
           <Link href="/app/orders" className="text-xs text-emerald-600 font-medium hover:text-emerald-700 flex items-center gap-1 transition-colors">
-            Ver todas <ArrowRight className="w-3 h-3" />
+            {t.home_viewAll} <ArrowRight className="w-3 h-3" />
           </Link>
         </div>
         {recentOrders.length === 0 ? (
           <div className="dash-empty py-10">
             <ClipboardList className="dash-empty-icon w-8 h-8" />
-            <p className="dash-empty-title text-sm">No hay órdenes aún</p>
-            <p className="dash-empty-desc text-xs">Comparte tu menú QR para empezar a recibir pedidos</p>
+            <p className="dash-empty-title text-sm">{t.home_noOrdersYet}</p>
+            <p className="dash-empty-desc text-xs">{t.home_noOrdersDesc}</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
@@ -252,7 +254,7 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
                 <div key={order.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50/60 transition-colors">
                   <div className="flex items-center gap-3 min-w-0">
                     <div>
-                      <p className="text-sm font-medium text-gray-700 truncate">{order.customer_name || 'Sin nombre'}</p>
+                      <p className="text-sm font-medium text-gray-700 truncate">{order.customer_name || t.home_noName}</p>
                       <p className="text-xs text-gray-500">{order.order_number} · {timeAgo(order.created_at)}</p>
                     </div>
                   </div>
@@ -271,9 +273,9 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
 
       {/* Quick links */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <QuickLink href="/app/orders" label="Gestionar órdenes" icon={ClipboardList} />
-        <QuickLink href="/app/menu/products" label="Editar menú" icon={ShoppingBag} />
-        <QuickLink href="/app/tables" label="Mesas y QR" icon={QrCode} />
+        <QuickLink href="/app/orders" label={t.home_manageOrders} icon={ClipboardList} />
+        <QuickLink href="/app/menu/products" label={t.home_editMenu} icon={ShoppingBag} />
+        <QuickLink href="/app/tables" label={t.home_tablesQR} icon={QrCode} />
       </div>
 
       {/* Getting started CTA for new restaurants */}
@@ -315,6 +317,7 @@ function KPICard({
 }
 
 function RevenueGoal({ salesToday, currency }: { salesToday: number; currency: string }) {
+  const { t } = useDashboardLocale();
   const [goal, setGoal] = useState(() => {
     if (typeof window === 'undefined') return 0;
     return parseFloat(localStorage.getItem('menius-daily-goal') ?? '0');
@@ -339,8 +342,8 @@ function RevenueGoal({ salesToday, currency }: { salesToday: number; currency: s
             <Target className={cn('w-4 h-4', reached ? 'text-emerald-500' : 'text-gray-400')} />
           </div>
           <div>
-            <p className="text-[13px] font-semibold text-gray-700">Meta del día</p>
-            {goal > 0 && <p className="text-[11px] text-gray-400">{pct.toFixed(0)}% completado</p>}
+            <p className="text-[13px] font-semibold text-gray-700">{t.home_dailyGoal}</p>
+            {goal > 0 && <p className="text-[11px] text-gray-400">{pct.toFixed(0)}% {t.home_completed}</p>}
           </div>
         </div>
         {editing ? (
@@ -362,7 +365,7 @@ function RevenueGoal({ salesToday, currency }: { salesToday: number; currency: s
           </div>
         ) : (
           <button onClick={() => { setEditing(true); setInput('1000'); }} className="text-xs text-emerald-600 font-medium hover:text-emerald-700">
-            + Establecer meta
+            {t.home_setGoal}
           </button>
         )}
       </div>
@@ -374,12 +377,13 @@ function RevenueGoal({ salesToday, currency }: { salesToday: number; currency: s
           />
         </div>
       )}
-      {reached && <p className="text-[11px] text-emerald-600 font-semibold mt-1.5">🎉 ¡Meta alcanzada!</p>}
+      {reached && <p className="text-[11px] text-emerald-600 font-semibold mt-1.5">{t.home_goalReached}</p>}
     </div>
   );
 }
 
 function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
+  const { t } = useDashboardLocale();
   const [seeding, setSeeding] = useState(false);
   const [seeded, setSeeded] = useState(false);
   const [error, setError] = useState('');
@@ -397,7 +401,7 @@ function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
         setTimeout(() => window.location.reload(), 1200);
       }
     } catch {
-      setError('Error al generar datos de ejemplo');
+      setError(t.home_errorGenerating);
     } finally {
       setSeeding(false);
     }
@@ -409,12 +413,12 @@ function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
         <Sparkles className="w-7 h-7 text-emerald-600" />
       </div>
       <h3 className="text-lg font-bold text-gray-900 mb-1">
-        {seeded ? '¡Menú de ejemplo creado!' : 'Tu restaurante está listo'}
+        {seeded ? t.home_sampleMenuCreated : t.home_restaurantReady}
       </h3>
       <p className="text-sm text-gray-500 max-w-md mx-auto mb-5">
         {seeded
-          ? 'Ya tienes categorías, productos y mesas de ejemplo. Edítalos desde tu dashboard.'
-          : 'Puedes agregar productos manualmente o cargar un menú de ejemplo para ver cómo funciona.'}
+          ? t.home_sampleMenuDesc
+          : t.home_readyDesc}
       </p>
       {error && (
         <p className="text-xs text-red-400 mb-3">{error}</p>
@@ -429,12 +433,12 @@ function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
             {seeding ? (
               <>
                 <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                Generando...
+                {t.home_generating}
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                Cargar menú de ejemplo
+                {t.home_loadSampleMenu}
               </>
             )}
           </button>
@@ -443,7 +447,7 @@ function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
           >
             <ShoppingBag className="w-4 h-4" />
-            Agregar manualmente
+            {t.home_addManually}
           </Link>
         </div>
       )}
@@ -454,7 +458,7 @@ function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
           >
             <ShoppingBag className="w-4 h-4" />
-            Ver mis productos
+            {t.home_viewMyProducts}
           </Link>
           <Link
             href={`/r/${restaurantSlug}`}
@@ -462,7 +466,7 @@ function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
           >
             <ExternalLink className="w-4 h-4" />
-            Ver mi menú
+            {t.home_viewMyMenu}
           </Link>
         </div>
       )}
@@ -485,6 +489,7 @@ function QuickLink({ href, label, icon: Icon }: { href: string; label: string; i
 /* ─── Analytics Section ─── */
 
 function AnalyticsSection({ analytics, currency }: { analytics: AnalyticsData; currency: string }) {
+  const { t } = useDashboardLocale();
   const [chartMode, setChartMode] = useState<'revenue' | 'orders'>('revenue');
   const { chartData, hourlyData, topProducts, orderTypeCounts } = analytics;
 
@@ -494,9 +499,9 @@ function AnalyticsSection({ analytics, currency }: { analytics: AnalyticsData; c
 
   const totalOrders = orderTypeCounts.dine_in + orderTypeCounts.pickup + orderTypeCounts.delivery;
   const orderTypeSlices = [
-    { label: 'En local', value: orderTypeCounts.dine_in, color: '#10b981' },
-    { label: 'Para llevar', value: orderTypeCounts.pickup, color: '#6366f1' },
-    { label: 'Delivery', value: orderTypeCounts.delivery, color: '#f59e0b' },
+    { label: t.analytics_dineIn, value: orderTypeCounts.dine_in, color: '#10b981' },
+    { label: t.analytics_pickup, value: orderTypeCounts.pickup, color: '#6366f1' },
+    { label: t.analytics_delivery, value: orderTypeCounts.delivery, color: '#f59e0b' },
   ].filter((s) => s.value > 0);
 
   const maxHourly = Math.max(...hourlyData.map((h) => h.count), 1);
@@ -506,8 +511,8 @@ function AnalyticsSection({ analytics, currency }: { analytics: AnalyticsData; c
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <BarChart3 className="w-4 h-4 text-gray-400" />
-        <h2 className="font-semibold text-[15px] text-gray-900">Analytics</h2>
-        <span className="text-xs text-gray-400 ml-1">Últimos 7 días</span>
+        <h2 className="font-semibold text-[15px] text-gray-900">{t.analytics_title}</h2>
+        <span className="text-xs text-gray-400 ml-1">{t.analytics_last7days}</span>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -519,7 +524,7 @@ function AnalyticsSection({ analytics, currency }: { analytics: AnalyticsData; c
                 {chartMode === 'revenue' ? formatPrice(totalWeekRevenue, currency) : totalWeekOrders}
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
-                {chartMode === 'revenue' ? 'Ingresos en 7 días' : 'Órdenes en 7 días'}
+                {chartMode === 'revenue' ? t.analytics_revenue7d : t.analytics_orders7d}
               </p>
             </div>
             <div className="flex rounded-lg bg-gray-100 p-0.5">
@@ -530,7 +535,7 @@ function AnalyticsSection({ analytics, currency }: { analytics: AnalyticsData; c
                   chartMode === 'revenue' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                 )}
               >
-                Ingresos
+                {t.analytics_revenue}
               </button>
               <button
                 onClick={() => setChartMode('orders')}
@@ -539,7 +544,7 @@ function AnalyticsSection({ analytics, currency }: { analytics: AnalyticsData; c
                   chartMode === 'orders' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                 )}
               >
-                Órdenes
+                {t.analytics_orders}
               </button>
             </div>
           </div>
@@ -577,11 +582,11 @@ function AnalyticsSection({ analytics, currency }: { analytics: AnalyticsData; c
         <div className="dash-card p-5 flex flex-col">
           <div className="flex items-center gap-2 mb-3">
             <PieChart className="w-3.5 h-3.5 text-gray-400" />
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tipo de orden</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.analytics_orderType}</p>
           </div>
           {totalOrders === 0 ? (
             <div className="flex-1 flex items-center justify-center">
-              <p className="text-xs text-gray-400">Sin datos aún</p>
+              <p className="text-xs text-gray-400">{t.analytics_noDataYet}</p>
             </div>
           ) : (
             <>
@@ -607,10 +612,10 @@ function AnalyticsSection({ analytics, currency }: { analytics: AnalyticsData; c
         <div className="dash-card p-5">
           <div className="flex items-center gap-2 mb-4">
             <Flame className="w-3.5 h-3.5 text-orange-400" />
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Productos populares</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.analytics_topProducts}</p>
           </div>
           {topProducts.length === 0 ? (
-            <p className="text-xs text-gray-400 py-4 text-center">Sin datos aún</p>
+            <p className="text-xs text-gray-400 py-4 text-center">{t.analytics_noDataYet}</p>
           ) : (
             <div className="space-y-2.5">
               {topProducts.map((p, i) => {
@@ -621,7 +626,7 @@ function AnalyticsSection({ analytics, currency }: { analytics: AnalyticsData; c
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-medium text-gray-700 truncate">{p.name}</span>
-                        <span className="text-xs font-semibold text-gray-500 tabular-nums ml-2">{p.qty} uds</span>
+                        <span className="text-xs font-semibold text-gray-500 tabular-nums ml-2">{p.qty} {t.home_units}</span>
                       </div>
                       <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                         <div
@@ -645,11 +650,11 @@ function AnalyticsSection({ analytics, currency }: { analytics: AnalyticsData; c
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Clock className="w-3.5 h-3.5 text-gray-400" />
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Horarios pico</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t.analytics_peakHours}</p>
             </div>
             {peakHour && peakHour.count > 0 && (
               <span className="text-xs text-emerald-600 font-medium bg-emerald-50 px-2 py-0.5 rounded-full">
-                Pico: {peakHour.hour}
+                {t.analytics_peak}: {peakHour.hour}
               </span>
             )}
           </div>
@@ -726,6 +731,7 @@ function DonutChart({ slices, total }: { slices: { label: string; value: number;
 }
 
 function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
+  const { t } = useDashboardLocale();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const menuUrl = typeof window !== 'undefined' ? `${window.location.origin}/r/${slug}` : `/r/${slug}`;
@@ -741,18 +747,14 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
   };
 
   const shareWhatsApp = () => {
-    const text = encodeURIComponent(`¡Mira el menú de ${name}! Pide directo desde tu celular:\n${menuUrl}`);
+    const text = encodeURIComponent(`${name} — ${menuUrl}`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
   const shareNative = async () => {
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: `Menú de ${name}`,
-          text: `¡Mira nuestro menú digital!`,
-          url: menuUrl,
-        });
+        await navigator.share({ title: name, url: menuUrl });
       } catch (err) {
         console.error('[DashboardHome] shareNative failed:', err);
       }
@@ -768,7 +770,7 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
         className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors"
       >
         <Share2 className="w-4 h-4" />
-        Compartir
+        {t.home_share}
       </button>
 
       {open && (
@@ -780,7 +782,7 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
               className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-gray-500" />}
-              {copied ? 'Copiado' : 'Copiar link'}
+              {copied ? t.home_copied : t.home_copyLink}
             </button>
             <button
               onClick={() => { shareWhatsApp(); setOpen(false); }}
@@ -794,7 +796,7 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
               className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <Share2 className="w-4 h-4 text-gray-500" />
-              Más opciones
+              {t.home_moreOptions}
             </button>
           </div>
         </>

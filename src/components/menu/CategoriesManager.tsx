@@ -23,6 +23,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { createCategory, updateCategory, deleteCategory, reorderCategories } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
 import { SUPPORTED_LOCALES, getLocaleFlag } from '@/lib/i18n';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { Category, ContentTranslation } from '@/types';
 
 interface CategoriesManagerProps {
@@ -48,6 +49,7 @@ function SortableCategoryRow({
   onTranslate: () => void;
   onImageUpload: (file: File) => void;
 }) {
+  const { t } = useDashboardLocale();
   const imgRef = useRef<HTMLInputElement>(null);
   const {
     attributes,
@@ -84,14 +86,14 @@ function SortableCategoryRow({
         </button>
         <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onImageUpload(f); }} />
         {cat.image_url ? (
-          <button onClick={() => imgRef.current?.click()} className="relative w-7 h-7 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 group/img" title="Cambiar imagen">
+          <button onClick={() => imgRef.current?.click()} className="relative w-7 h-7 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 group/img" title={t.editor_changeImage}>
             <Image src={cat.image_url} alt="" fill sizes="28px" className="object-cover" />
             <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/30 flex items-center justify-center transition-colors">
               <Camera className="w-3 h-3 text-white opacity-0 group-hover/img:opacity-100 transition-opacity" />
             </div>
           </button>
         ) : (
-          <button onClick={() => imgRef.current?.click()} className="w-7 h-7 rounded-md bg-gray-50 flex items-center justify-center text-gray-300 hover:text-gray-400 hover:bg-gray-100 transition-colors flex-shrink-0" title="Agregar imagen">
+          <button onClick={() => imgRef.current?.click()} className="w-7 h-7 rounded-md bg-gray-50 flex items-center justify-center text-gray-300 hover:text-gray-400 hover:bg-gray-100 transition-colors flex-shrink-0" title={t.categories_uploadImage}>
             <ImageIcon className="w-3.5 h-3.5" />
           </button>
         )}
@@ -99,22 +101,22 @@ function SortableCategoryRow({
           {cat.name}
         </span>
         {!cat.is_active && (
-          <span className="dash-badge dash-badge-inactive text-[10px]">Inactiva</span>
+          <span className="dash-badge dash-badge-inactive text-[10px]">{t.categories_hidden}</span>
         )}
       </div>
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
         {hasMultiLang && (
-          <button onClick={onTranslate} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" title="Traducir">
+          <button onClick={onTranslate} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" title={t.categories_translate}>
             <Languages className="w-3.5 h-3.5" />
           </button>
         )}
-        <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" title={cat.is_active ? 'Ocultar' : 'Mostrar'}>
+        <button onClick={onToggle} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" title={cat.is_active ? t.products_hide : t.products_show}>
           {cat.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
         </button>
-        <button onClick={onEdit} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" title="Editar">
+        <button onClick={onEdit} className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400" title={t.general_edit}>
           <Pencil className="w-3.5 h-3.5" />
         </button>
-        <button onClick={onDelete} className="p-1.5 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500" title="Eliminar">
+        <button onClick={onDelete} className="p-1.5 rounded-md hover:bg-red-50 text-gray-400 hover:text-red-500" title={t.general_delete}>
           <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -130,6 +132,7 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
   const [error, setError] = useState('');
   const [translatingCat, setTranslatingCat] = useState<Category | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { t } = useDashboardLocale();
 
   const extraLocales = availableLocales.filter((l) => l !== defaultLocale);
   const hasMultiLang = extraLocales.length > 0;
@@ -148,7 +151,7 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
 
   const handleSubmit = () => {
     if (!name.trim()) {
-      setError('Nombre requerido');
+      setError(t.categories_nameRequired);
       return;
     }
 
@@ -173,7 +176,7 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
   };
 
   const handleDelete = (id: string) => {
-    if (!confirm('¿Eliminar esta categoría? Los productos en ella también se eliminarán.')) return;
+    if (!confirm(t.categories_deleteConfirm)) return;
     startTransition(async () => {
       await deleteCategory(id);
       setCategories((prev) => prev.filter((c) => c.id !== id));
@@ -224,7 +227,7 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
           onClick={() => setShowForm(true)}
           className="mb-5 dash-btn-primary"
         >
-          <Plus className="w-4 h-4" /> Nueva categoría
+          <Plus className="w-4 h-4" /> {t.categories_new}
         </button>
       )}
 
@@ -235,17 +238,17 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Nombre de la categoría"
+            placeholder={t.categories_namePlaceholder}
             className="dash-input"
             autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
           />
           <div className="flex gap-2">
             <button onClick={handleSubmit} disabled={isPending} className="dash-btn-primary">
-              {editingId ? 'Guardar' : 'Crear'}
+              {editingId ? t.general_save : t.categories_create}
             </button>
             <button onClick={resetForm} className="dash-btn-secondary">
-              Cancelar
+              {t.general_cancel}
             </button>
           </div>
         </div>
@@ -254,11 +257,11 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
       {categories.length === 0 ? (
         <div className="dash-empty py-20">
           <Tag className="dash-empty-icon" />
-          <p className="dash-empty-title">Organiza tu menú con categorías</p>
-          <p className="dash-empty-desc">Crea categorías como "Entradas", "Platos fuertes", "Bebidas" para organizar tus productos.</p>
+          <p className="dash-empty-title">{t.categories_noCategories}</p>
+          <p className="dash-empty-desc">{t.categories_noCategoriesDesc}</p>
           {!showForm && (
             <button onClick={() => setShowForm(true)} className="dash-btn-primary">
-              <Plus className="w-4 h-4" /> Crear primera categoría
+              <Plus className="w-4 h-4" /> {t.categories_createFirst}
             </button>
           )}
         </div>
@@ -318,6 +321,7 @@ function TranslationModal({
     return init;
   });
   const [isPending, startTransition] = useTransition();
+  const { t } = useDashboardLocale();
 
   const handleSave = () => {
     startTransition(async () => {
@@ -338,7 +342,7 @@ function TranslationModal({
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
             <div>
-              <h2 className="font-bold text-gray-900">Traducir categoría</h2>
+              <h2 className="font-bold text-gray-900">{t.categories_translate}</h2>
               <p className="text-xs text-gray-500 mt-0.5">{category.name}</p>
             </div>
             <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400">
@@ -372,9 +376,9 @@ function TranslationModal({
           </div>
 
           <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-200">
-            <button onClick={onClose} className="dash-btn-secondary">Cancelar</button>
+            <button onClick={onClose} className="dash-btn-secondary">{t.general_cancel}</button>
             <button onClick={handleSave} disabled={isPending} className="dash-btn-primary">
-              {isPending ? 'Guardando...' : 'Guardar traducciones'}
+              {isPending ? t.editor_saving : t.categories_translationSave}
             </button>
           </div>
         </div>

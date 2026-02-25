@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Smartphone, Send, Users, Filter, Sparkles, AlertCircle, CheckCircle2, Loader2, Wand2, Info } from 'lucide-react';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface Props {
   restaurantName: string;
@@ -10,21 +11,22 @@ interface Props {
   customersWithPhone: number;
 }
 
-const FILTERS = [
-  { value: 'all', label: 'Todos los clientes', desc: 'Clientes con teléfono registrado' },
-  { value: 'vip', label: 'Clientes VIP', desc: '5+ órdenes realizadas' },
-  { value: 'inactive', label: 'Inactivos (30+ días)', desc: 'No han ordenado en 30 días' },
-  { value: 'recent', label: 'Recientes (7 días)', desc: 'Ordenaron en los últimos 7 días' },
-];
-
 const TEMPLATES = [
-  { name: 'Promoción', text: '🎉 ¡Hola {nombre}! Hoy tenemos ofertas especiales en {restaurante}. Haz tu pedido: {link}' },
-  { name: 'Te extrañamos', text: '😢 {nombre}, hace tiempo que no nos visitas. ¡Te esperamos! Pide aquí: {link}' },
-  { name: 'Nuevo plato', text: '🆕 ¡Nuevo en {restaurante}! No te pierdas lo último en nuestro menú 🔥 {link}' },
-  { name: 'Agradecimiento', text: '⭐ Gracias por ser parte de {restaurante}, {nombre}. ¡Tu próximo pedido tiene sorpresa! {link}' },
+  { nameKey: 'sms_tplPromo' as const, text: '🎉 ¡Hola {nombre}! Hoy tenemos ofertas especiales en {restaurante}. Haz tu pedido: {link}' },
+  { nameKey: 'sms_tplMissYou' as const, text: '😢 {nombre}, hace tiempo que no nos visitas. ¡Te esperamos! Pide aquí: {link}' },
+  { nameKey: 'sms_tplNewDish' as const, text: '🆕 ¡Nuevo en {restaurante}! No te pierdas lo último en nuestro menú 🔥 {link}' },
+  { nameKey: 'sms_tplThanks' as const, text: '⭐ Gracias por ser parte de {restaurante}, {nombre}. ¡Tu próximo pedido tiene sorpresa! {link}' },
 ];
 
 export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, customersWithPhone }: Props) {
+  const { t } = useDashboardLocale();
+
+  const FILTERS = [
+    { value: 'all', label: t.sms_filterAll, desc: t.sms_filterAllDesc },
+    { value: 'vip', label: t.sms_filterVip, desc: t.sms_filterVipDesc },
+    { value: 'inactive', label: t.sms_filterInactive, desc: t.sms_filterInactiveDesc },
+    { value: 'recent', label: t.sms_filterRecent, desc: t.sms_filterRecentDesc },
+  ];
   const [message, setMessage] = useState('');
   const [filter, setFilter] = useState('all');
   const [sending, setSending] = useState(false);
@@ -56,7 +58,7 @@ export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, custome
       const smsText = (data.body ?? '').replace(/\n/g, ' ').slice(0, 160);
       setMessage(smsText);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error generando con IA');
+      setError(err instanceof Error ? err.message : t.sms_errorGenerating);
     } finally {
       setAiGenerating(false);
     }
@@ -64,7 +66,7 @@ export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, custome
 
   const handleSend = async () => {
     if (!message.trim()) {
-      setError('El mensaje es requerido');
+      setError(t.sms_messageRequired);
       return;
     }
     setError('');
@@ -83,12 +85,12 @@ export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, custome
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || 'Error al enviar');
+        setError(data.error || t.sms_errorSending);
       } else {
         setResult({ sent: data.sent, failed: data.failed, total: data.total });
       }
     } catch {
-      setError('Error de conexión');
+      setError(t.sms_connectionError);
     } finally {
       setSending(false);
     }
@@ -100,22 +102,22 @@ export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, custome
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-            <Users className="w-3.5 h-3.5" /> Total clientes
+            <Users className="w-3.5 h-3.5" /> {t.sms_totalCustomers}
           </div>
           <p className="text-xl font-bold text-gray-900">{totalCustomers}</p>
         </div>
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-            <Smartphone className="w-3.5 h-3.5" /> Con teléfono
+            <Smartphone className="w-3.5 h-3.5" /> {t.sms_withPhone}
           </div>
           <p className="text-xl font-bold text-gray-900">{customersWithPhone}</p>
         </div>
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 col-span-2 md:col-span-1">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-            <Filter className="w-3.5 h-3.5" /> Alcanzables
+            <Filter className="w-3.5 h-3.5" /> {t.sms_reachable}
           </div>
           <p className="text-xl font-bold text-emerald-600">{customersWithPhone}</p>
-          <p className="text-[10px] text-gray-600 mt-0.5">clientes recibirán el SMS</p>
+          <p className="text-[10px] text-gray-600 mt-0.5">{t.sms_willReceive}</p>
         </div>
       </div>
 
@@ -123,10 +125,9 @@ export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, custome
       <div className="flex items-start gap-3 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
         <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
         <div>
-          <p className="font-medium">Servicio SMS</p>
+          <p className="font-medium">{t.sms_serviceTitle}</p>
           <p className="text-xs text-blue-600 mt-0.5">
-            Para enviar SMS se requiere un proveedor como Twilio o MessageBird. Configura tus credenciales en las variables de entorno.
-            Costo aproximado: $0.01-0.05 USD por SMS según el país.
+            {t.sms_serviceDesc}
           </p>
         </div>
       </div>
@@ -134,17 +135,17 @@ export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, custome
       {/* Templates */}
       <div>
         <p className="text-xs text-gray-500 font-medium mb-3 flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5" /> Plantillas rápidas
+          <Sparkles className="w-3.5 h-3.5" /> {t.sms_quickTemplates}
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {TEMPLATES.map(t => (
+          {TEMPLATES.map(tpl => (
             <button
-              key={t.name}
-              onClick={() => setMessage(t.text)}
+              key={tpl.nameKey}
+              onClick={() => setMessage(tpl.text)}
               className="text-left p-3 rounded-xl bg-gray-50 border border-gray-200 hover:bg-emerald-50 hover:border-emerald-200 transition-all group"
             >
-              <p className="text-xs font-medium text-gray-700 group-hover:text-gray-900">{t.name}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-2">{t.text}</p>
+              <p className="text-xs font-medium text-gray-700 group-hover:text-gray-900">{t[tpl.nameKey]}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-2">{tpl.text}</p>
             </button>
           ))}
         </div>
@@ -153,7 +154,7 @@ export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, custome
       {/* AI Generate */}
       <div className="bg-purple-50 border border-purple-200 rounded-xl p-5 space-y-3">
         <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-          <Wand2 className="w-4 h-4 text-purple-600" /> Generar SMS con IA
+          <Wand2 className="w-4 h-4 text-purple-600" /> {t.sms_generateAI}
         </h3>
         <input
           type="text"
@@ -168,19 +169,19 @@ export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, custome
           className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
         >
           {aiGenerating ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> Generando...</>
+            <><Loader2 className="w-4 h-4 animate-spin" /> {t.sms_generating}</>
           ) : (
-            <><Sparkles className="w-4 h-4" /> Generar SMS con IA</>
+            <><Sparkles className="w-4 h-4" /> {t.sms_generateAI}</>
           )}
         </button>
       </div>
 
       {/* Compose */}
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-4">
-        <h3 className="text-sm font-semibold text-gray-900">Componer SMS</h3>
+        <h3 className="text-sm font-semibold text-gray-900">{t.sms_compose}</h3>
 
         <div>
-          <label className="text-xs text-gray-500 mb-1.5 block">Audiencia</label>
+          <label className="text-xs text-gray-500 mb-1.5 block">{t.sms_audience}</label>
           <select
             value={filter}
             onChange={e => setFilter(e.target.value)}
@@ -191,7 +192,7 @@ export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, custome
         </div>
 
         <div>
-          <label className="text-xs text-gray-500 mb-1.5 block">Mensaje</label>
+          <label className="text-xs text-gray-500 mb-1.5 block">{t.sms_message}</label>
           <textarea
             value={message}
             onChange={e => setMessage(e.target.value)}
@@ -217,7 +218,7 @@ export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, custome
         {result && (
           <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
             <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-            <span>Enviado: <strong>{result.sent}</strong> de {result.total} SMS{result.failed > 0 ? ` (${result.failed} fallidos)` : ''}</span>
+            <span>{t.sms_sentResult} <strong>{result.sent}</strong> / {result.total} SMS{result.failed > 0 ? ` (${result.failed} ${t.email_failed})` : ''}</span>
           </div>
         )}
 
@@ -227,9 +228,9 @@ export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, custome
           className="flex items-center justify-center gap-2 w-full px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {sending ? (
-            <><div className="w-4 h-4 border-2 border-emerald-300 border-t-transparent rounded-full animate-spin" /> Enviando...</>
+            <><div className="w-4 h-4 border-2 border-emerald-300 border-t-transparent rounded-full animate-spin" /> {t.sms_sending}</>
           ) : (
-            <><Send className="w-4 h-4" /> Enviar campaña SMS</>
+            <><Send className="w-4 h-4" /> {t.sms_sendCampaign}</>
           )}
         </button>
       </div>

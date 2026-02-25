@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/dashboard/DashToast';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface MediaFile {
   name: string;
@@ -32,6 +33,7 @@ function formatDate(iso: string) {
 }
 
 export function MediaGallery() {
+  const { t } = useDashboardLocale();
   const { success: toastSuccess, error: toastError } = useToast();
   const [images, setImages] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +52,7 @@ export function MediaGallery() {
         setImages(data.images ?? []);
       }
     } catch {
-      toastError('Error cargando imágenes');
+      toastError(t.media_errorLoading);
     } finally {
       setLoading(false);
     }
@@ -61,8 +63,8 @@ export function MediaGallery() {
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) { toastError('Solo imágenes'); return; }
-    if (file.size > 10 * 1024 * 1024) { toastError('Máximo 10MB'); return; }
+    if (!file.type.startsWith('image/')) { toastError(t.media_onlyImages); return; }
+    if (file.size > 10 * 1024 * 1024) { toastError(t.media_maxSize); return; }
 
     setUploading(true);
     try {
@@ -73,10 +75,10 @@ export function MediaGallery() {
         const data = await res.json();
         throw new Error(data.error || 'Error subiendo');
       }
-      toastSuccess('Imagen subida');
+      toastSuccess(t.media_uploaded);
       await fetchImages();
     } catch (err) {
-      toastError(err instanceof Error ? err.message : 'Error subiendo imagen');
+      toastError(err instanceof Error ? err.message : t.media_errorUploading);
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -84,7 +86,7 @@ export function MediaGallery() {
   };
 
   const handleDelete = async (file: MediaFile) => {
-    if (!confirm(`¿Eliminar "${file.name}"? Esta acción no se puede deshacer.`)) return;
+    if (!confirm(t.media_deleteConfirm)) return;
     setDeleting(file.path);
     try {
       const res = await fetch('/api/tenant/media', {
@@ -94,9 +96,9 @@ export function MediaGallery() {
       });
       if (!res.ok) throw new Error('Error eliminando');
       setImages(prev => prev.filter(f => f.path !== file.path));
-      toastSuccess('Imagen eliminada');
+      toastSuccess(t.media_deleted);
     } catch {
-      toastError('Error eliminando imagen');
+      toastError(t.media_errorDeleting);
     } finally {
       setDeleting(null);
     }
@@ -105,9 +107,9 @@ export function MediaGallery() {
   const handleCopyUrl = async (url: string) => {
     try {
       await navigator.clipboard.writeText(url);
-      toastSuccess('URL copiada');
+      toastSuccess(t.media_urlCopied);
     } catch {
-      toastError('No se pudo copiar');
+      toastError(t.media_copyFailed);
     }
   };
 
@@ -120,9 +122,9 @@ export function MediaGallery() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Galería de imágenes</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t.media_title}</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {images.length} {images.length === 1 ? 'imagen' : 'imágenes'} almacenadas
+            {images.length} {images.length === 1 ? t.media_imageSingular : t.media_imagesPlural} {t.media_stored}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -132,7 +134,7 @@ export function MediaGallery() {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar..."
+              placeholder={t.media_search}
               className="dash-input pl-9 pr-8 text-sm"
             />
             {search && (
@@ -157,9 +159,9 @@ export function MediaGallery() {
             className="dash-btn-primary whitespace-nowrap"
           >
             {uploading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Subiendo...</>
+              <><Loader2 className="w-4 h-4 animate-spin" /> {t.media_uploading}</>
             ) : (
-              <><Upload className="w-4 h-4" /> Subir imagen</>
+              <><Upload className="w-4 h-4" /> {t.media_upload}</>
             )}
           </button>
         </div>
@@ -182,17 +184,17 @@ export function MediaGallery() {
         <div className="text-center py-16">
           <ImageOff className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 font-medium">
-            {search ? 'No se encontraron imágenes' : 'No hay imágenes aún'}
+            {search ? t.media_noResults : t.media_noImages}
           </p>
           <p className="text-sm text-gray-400 mt-1">
-            {search ? 'Intenta con otro término' : 'Sube tu primera imagen o importa un menú con IA'}
+            {search ? t.media_tryOtherTerm : t.media_uploadFirst}
           </p>
           {!search && (
             <button
               onClick={() => fileRef.current?.click()}
               className="dash-btn-primary mt-4"
             >
-              <Upload className="w-4 h-4" /> Subir imagen
+              <Upload className="w-4 h-4" /> {t.media_upload}
             </button>
           )}
         </div>
@@ -237,7 +239,7 @@ export function MediaGallery() {
                   <button
                     onClick={() => handleCopyUrl(file.url)}
                     className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-                    title="Copiar URL"
+                    title={t.media_copyUrl}
                   >
                     <Link2 className="w-3 h-3" /> URL
                   </button>
@@ -247,7 +249,7 @@ export function MediaGallery() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
-                    title="Descargar"
+                    title={t.media_download}
                   >
                     <Download className="w-3.5 h-3.5" />
                   </a>
@@ -255,7 +257,7 @@ export function MediaGallery() {
                     onClick={() => handleDelete(file)}
                     disabled={deleting === file.path}
                     className="flex items-center justify-center p-1.5 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
-                    title="Eliminar"
+                    title={t.media_delete}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>

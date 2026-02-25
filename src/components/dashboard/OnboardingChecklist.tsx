@@ -7,6 +7,7 @@ import {
   ShoppingBag, X, ChevronRight, Sparkles, PartyPopper,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface OnboardingStep {
   id: string;
@@ -33,6 +34,7 @@ interface OnboardingChecklistProps {
 export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingChecklistProps) {
   const storageKey = `menius-onboarding-dismissed-${restaurantSlug}`;
   const [dismissed, setDismissed] = useState<boolean | null>(null);
+  const { t } = useDashboardLocale();
 
   useEffect(() => {
     const stored = localStorage.getItem(storageKey);
@@ -44,48 +46,48 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
   const allSteps: OnboardingStep[] = [
     {
       id: 'logo',
-      title: 'Sube el logo de tu restaurante',
-      description: 'Dale identidad visual a tu menú digital',
+      title: t.onboarding_uploadLogo,
+      description: t.onboarding_uploadLogoDesc,
       completed: steps.hasLogo,
       href: '/app/settings',
       icon: <Camera className="w-4 h-4" />,
     },
     {
       id: 'profile',
-      title: 'Completa tu perfil',
-      description: 'Teléfono, dirección y descripción',
+      title: t.onboarding_completeProfile,
+      description: t.onboarding_completeProfileDesc,
       completed: steps.hasProfile,
       href: '/app/settings',
       icon: <FileText className="w-4 h-4" />,
     },
     {
       id: 'hours',
-      title: 'Configura tu horario',
-      description: 'Que tus clientes sepan cuándo estás abierto',
+      title: t.onboarding_setSchedule,
+      description: t.onboarding_setScheduleDesc,
       completed: steps.hasHours,
       href: '/app/settings',
       icon: <Clock className="w-4 h-4" />,
     },
     {
       id: 'menu',
-      title: 'Personaliza tu menú',
-      description: 'Agrega tus productos, precios y fotos',
+      title: t.onboarding_customizeMenu,
+      description: t.onboarding_customizeMenuDesc,
       completed: steps.hasProducts,
       href: '/app/menu/products',
       icon: <UtensilsCrossed className="w-4 h-4" />,
     },
     {
       id: 'tables',
-      title: 'Genera QR para tus mesas',
-      description: 'Imprime y colócalos en cada mesa',
+      title: t.onboarding_generateQR,
+      description: t.onboarding_generateQRDesc,
       completed: steps.hasTables,
       href: '/app/tables',
       icon: <QrCode className="w-4 h-4" />,
     },
     {
       id: 'orders',
-      title: 'Recibe tu primer pedido',
-      description: 'Comparte tu menú y empieza a vender',
+      title: t.onboarding_firstOrder,
+      description: t.onboarding_firstOrderDesc,
       completed: steps.hasOrders,
       href: `/r/${restaurantSlug}`,
       icon: <ShoppingBag className="w-4 h-4" />,
@@ -121,9 +123,9 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
             <PartyPopper className="w-6 h-6 text-emerald-400" />
           </div>
           <div>
-            <p className="font-semibold text-emerald-300">¡Tu restaurante está listo!</p>
+            <p className="font-semibold text-emerald-300">{t.onboarding_allComplete}</p>
             <p className="text-sm text-emerald-400/70 mt-0.5">
-              Has completado todos los pasos. Tu menú digital está funcionando.
+              {t.onboarding_allCompleteDesc}
             </p>
           </div>
         </div>
@@ -143,8 +145,8 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
               <Sparkles className="w-4.5 h-4.5 text-emerald-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-sm text-gray-900">Configura tu restaurante</h3>
-              <p className="text-xs text-gray-500 mt-0.5">{completedCount} de {totalSteps} pasos completados</p>
+              <h3 className="font-semibold text-sm text-gray-900">{t.onboarding_title}</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{completedCount} {t.onboarding_stepsOf} {totalSteps}</p>
             </div>
           </div>
           <button

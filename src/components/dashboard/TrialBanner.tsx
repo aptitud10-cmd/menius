@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Clock, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface SubInfo {
   status: string;
@@ -11,6 +12,7 @@ interface SubInfo {
 }
 
 export function TrialBanner() {
+  const { t } = useDashboardLocale();
   const [sub, setSub] = useState<SubInfo | null>(null);
 
   useEffect(() => {
@@ -41,8 +43,8 @@ export function TrialBanner() {
       <Clock className="w-3.5 h-3.5 flex-shrink-0" />
       <span className="flex-1 leading-snug">
         {daysLeft === 0
-          ? 'Tu prueba termina hoy'
-          : `${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} de prueba`}
+          ? t.trial_endsToday
+          : `${daysLeft} ${daysLeft === 1 ? t.trial_dayOfTrial : t.trial_daysOfTrial}`}
       </span>
       <ArrowRight className="w-3 h-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
     </Link>

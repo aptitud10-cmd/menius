@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Mail, Send, Users, Filter, Sparkles, AlertCircle, CheckCircle2, Loader2, Wand2 } from 'lucide-react';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface Props {
   restaurantName: string;
@@ -10,35 +11,27 @@ interface Props {
   customersWithEmail: number;
 }
 
-const FILTERS = [
-  { value: 'all', label: 'Todos los clientes', desc: 'Clientes con email registrado' },
-  { value: 'vip', label: 'Clientes VIP', desc: '5+ órdenes realizadas' },
-  { value: 'inactive', label: 'Inactivos (30+ días)', desc: 'No han ordenado en 30 días' },
-  { value: 'recent', label: 'Recientes (7 días)', desc: 'Ordenaron en los últimos 7 días' },
-  { value: 'big_spenders', label: 'Grandes compradores', desc: 'Más de $100 gastados' },
-];
-
 const TEMPLATES = [
   {
-    name: 'Promoción general',
+    nameKey: 'email_tplPromo' as const,
     subject: '🎉 ¡Oferta especial en {restaurante}!',
     body: 'Hola {nombre},\n\n¡Tenemos una promoción especial para ti! Esta semana disfruta de descuentos exclusivos en nuestros mejores platillos.\n\nNo te lo pierdas, te esperamos.',
     cta: 'Ver menú',
   },
   {
-    name: 'Te extrañamos',
+    nameKey: 'email_tplMissYou' as const,
     subject: '😢 Te extrañamos, {nombre}',
     body: 'Hola {nombre},\n\nHace tiempo que no nos visitas y te echamos de menos. Queremos darte algo especial para que vuelvas: un descuento exclusivo en tu próximo pedido.\n\n¡Te esperamos de vuelta!',
     cta: 'Ordenar ahora',
   },
   {
-    name: 'Nuevo producto',
+    nameKey: 'email_tplNewProduct' as const,
     subject: '🆕 ¡Nuevo en el menú de {restaurante}!',
     body: 'Hola {nombre},\n\nEstamos emocionados de presentarte lo nuevo en nuestro menú. Hemos agregado platillos increíbles que sabemos te van a encantar.\n\nSé de los primeros en probarlo.',
     cta: 'Descubrir lo nuevo',
   },
   {
-    name: 'Agradecimiento VIP',
+    nameKey: 'email_tplVipThanks' as const,
     subject: '⭐ Gracias por ser cliente frecuente, {nombre}',
     body: 'Hola {nombre},\n\nQueremos agradecerte por tu lealtad. Con {total_ordenes} órdenes y ${total_gastado} en compras, eres uno de nuestros clientes más valiosos.\n\nComo agradecimiento, te tenemos una sorpresa especial en tu próxima visita.',
     cta: 'Reclamar mi sorpresa',
@@ -46,6 +39,15 @@ const TEMPLATES = [
 ];
 
 export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, customersWithEmail }: Props) {
+  const { t } = useDashboardLocale();
+
+  const FILTERS = [
+    { value: 'all', label: t.email_filterAll, desc: t.email_filterAllDesc },
+    { value: 'vip', label: t.email_filterVip, desc: t.email_filterVipDesc },
+    { value: 'inactive', label: t.email_filterInactive, desc: t.email_filterInactiveDesc },
+    { value: 'recent', label: t.email_filterRecent, desc: t.email_filterRecentDesc },
+    { value: 'big_spenders', label: t.email_filterBigSpenders, desc: t.email_filterBigSpendersDesc },
+  ];
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [ctaText, setCtaText] = useState('Ver menú');
@@ -77,7 +79,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
       setMessage(data.body || '');
       setCtaText(data.cta || 'Ver menú');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error generando con IA');
+      setError(err instanceof Error ? err.message : t.email_errorGenerating);
     } finally {
       setAiGenerating(false);
     }
@@ -91,7 +93,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
 
   const handleSend = async () => {
     if (!subject.trim() || !message.trim()) {
-      setError('Asunto y mensaje son requeridos');
+      setError(t.email_subjectRequired);
       return;
     }
     setError('');
@@ -114,12 +116,12 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || 'Error al enviar');
+        setError(data.error || t.email_errorSending);
       } else {
         setResult({ sent: data.sent, failed: data.failed, total: data.total });
       }
     } catch {
-      setError('Error de conexión');
+      setError(t.email_connectionError);
     } finally {
       setSending(false);
     }
@@ -131,39 +133,39 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-            <Users className="w-3.5 h-3.5" /> Total clientes
+            <Users className="w-3.5 h-3.5" /> {t.email_totalCustomers}
           </div>
           <p className="text-xl font-bold text-gray-900">{totalCustomers}</p>
         </div>
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-            <Mail className="w-3.5 h-3.5" /> Con email
+            <Mail className="w-3.5 h-3.5" /> {t.email_withEmail}
           </div>
           <p className="text-xl font-bold text-gray-900">{customersWithEmail}</p>
         </div>
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 col-span-2 md:col-span-1">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-            <Filter className="w-3.5 h-3.5" /> Alcanzables
+            <Filter className="w-3.5 h-3.5" /> {t.email_reachable}
           </div>
           <p className="text-xl font-bold text-emerald-600">{customersWithEmail}</p>
-          <p className="text-[10px] text-gray-600 mt-0.5">clientes recibirán el email</p>
+          <p className="text-[10px] text-gray-600 mt-0.5">{t.email_willReceive}</p>
         </div>
       </div>
 
       {/* Templates */}
       <div>
         <p className="text-xs text-gray-500 font-medium mb-3 flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5" /> Plantillas rápidas
+          <Sparkles className="w-3.5 h-3.5" /> {t.email_quickTemplates}
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {TEMPLATES.map(t => (
+          {TEMPLATES.map(tpl => (
             <button
-              key={t.name}
-              onClick={() => applyTemplate(t)}
+              key={tpl.nameKey}
+              onClick={() => applyTemplate(tpl)}
               className="text-left p-3 rounded-xl bg-gray-50 border border-gray-200 hover:bg-emerald-50 hover:border-emerald-200 transition-all group"
             >
-              <p className="text-xs font-medium text-gray-700 group-hover:text-gray-900 truncate">{t.name}</p>
-              <p className="text-[10px] text-gray-600 mt-0.5 truncate">{t.subject}</p>
+              <p className="text-xs font-medium text-gray-700 group-hover:text-gray-900 truncate">{t[tpl.nameKey]}</p>
+              <p className="text-[10px] text-gray-600 mt-0.5 truncate">{tpl.subject}</p>
             </button>
           ))}
         </div>
@@ -172,26 +174,26 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
       {/* AI Generate */}
       <div className="bg-purple-50 border border-purple-200 rounded-xl p-5 space-y-3">
         <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-          <Wand2 className="w-4 h-4 text-purple-600" /> Generar con IA
+          <Wand2 className="w-4 h-4 text-purple-600" /> {t.email_generateAI}
         </h3>
-        <p className="text-xs text-gray-500">La IA creará asunto, mensaje y CTA optimizados basados en tu restaurante y audiencia.</p>
+        <p className="text-xs text-gray-500">{t.email_aiDesc}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block">Tipo de campaña</label>
+            <label className="text-xs text-gray-500 mb-1.5 block">{t.email_campaignType}</label>
             <select
               value={aiType}
               onChange={(e) => setAiType(e.target.value)}
               className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
             >
-              <option value="promo">Promoción / Descuento</option>
-              <option value="reactivation">Reactivar inactivos</option>
-              <option value="new_product">Nuevo producto</option>
-              <option value="vip_thanks">Agradecimiento VIP</option>
-              <option value="seasonal">Temporada / Festivo</option>
+              <option value="promo">{t.email_typePromo}</option>
+              <option value="reactivation">{t.email_typeReactivation}</option>
+              <option value="new_product">{t.email_typeNewProduct}</option>
+              <option value="vip_thanks">{t.email_typeVipThanks}</option>
+              <option value="seasonal">{t.email_typeSeasonal}</option>
             </select>
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block">Instrucciones extra (opcional)</label>
+            <label className="text-xs text-gray-500 mb-1.5 block">{t.email_extraInstructions}</label>
             <input
               type="text"
               value={aiCustomPrompt}
@@ -207,19 +209,19 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
           className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
         >
           {aiGenerating ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> Generando...</>
+            <><Loader2 className="w-4 h-4 animate-spin" /> {t.email_generating}</>
           ) : (
-            <><Sparkles className="w-4 h-4" /> Generar contenido con IA</>
+            <><Sparkles className="w-4 h-4" /> {t.email_generateContent}</>
           )}
         </button>
       </div>
 
       {/* Compose */}
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 space-y-4">
-        <h3 className="text-sm font-semibold text-gray-900">Componer campaña</h3>
+        <h3 className="text-sm font-semibold text-gray-900">{t.email_compose}</h3>
 
         <div>
-          <label className="text-xs text-gray-500 mb-1.5 block">Audiencia</label>
+          <label className="text-xs text-gray-500 mb-1.5 block">{t.email_audience}</label>
           <select
             value={filter}
             onChange={e => setFilter(e.target.value)}
@@ -232,7 +234,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
         </div>
 
         <div>
-          <label className="text-xs text-gray-500 mb-1.5 block">Asunto del email</label>
+          <label className="text-xs text-gray-500 mb-1.5 block">{t.email_subject}</label>
           <input
             type="text"
             value={subject}
@@ -244,7 +246,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
         </div>
 
         <div>
-          <label className="text-xs text-gray-500 mb-1.5 block">Mensaje</label>
+          <label className="text-xs text-gray-500 mb-1.5 block">{t.email_message}</label>
           <textarea
             value={message}
             onChange={e => setMessage(e.target.value)}
@@ -256,7 +258,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
         </div>
 
         <div>
-          <label className="text-xs text-gray-500 mb-1.5 block">Texto del botón</label>
+          <label className="text-xs text-gray-500 mb-1.5 block">{t.email_buttonText}</label>
           <input
             type="text"
             value={ctaText}
@@ -275,7 +277,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
         {result && (
           <div className="flex items-center gap-2 text-sm text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
             <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-            <span>Enviado: <strong>{result.sent}</strong> de {result.total} emails{result.failed > 0 ? ` (${result.failed} fallidos)` : ''}</span>
+            <span>{t.email_sentResult} <strong>{result.sent}</strong> / {result.total} emails{result.failed > 0 ? ` (${result.failed} ${t.email_failed})` : ''}</span>
           </div>
         )}
 
@@ -287,11 +289,11 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
           {sending ? (
             <>
               <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-              Enviando...
+              {t.email_sending}
             </>
           ) : (
             <>
-              <Send className="w-4 h-4" /> Enviar campaña
+              <Send className="w-4 h-4" /> {t.email_sendCampaign}
             </>
           )}
         </button>

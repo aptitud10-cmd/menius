@@ -7,6 +7,7 @@ import {
   createModifierOption, updateModifierOption, deleteModifierOption,
 } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { ModifierGroup, ModifierOption } from '@/types';
 
 interface ModifierGroupsEditorProps {
@@ -25,6 +26,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate }: ModifierGr
   const [optionForm, setOptionForm] = useState({ name: '', price_delta: '' });
   const [editOptionId, setEditOptionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { t } = useDashboardLocale();
 
   const sync = (updated: ModifierGroup[]) => {
     setItems(updated);
@@ -75,7 +77,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate }: ModifierGr
   };
 
   const handleDeleteGroup = async (id: string) => {
-    if (!confirm('Eliminar este grupo y todas sus opciones?')) return;
+    if (!confirm(t.modifiers_deleteGroupConfirm)) return;
     setLoading(true);
     await deleteModifierGroup(id);
     sync(items.filter(i => i.id !== id));
@@ -132,11 +134,11 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate }: ModifierGr
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Layers className="w-4 h-4 text-emerald-500" />
-          <span className="text-sm font-semibold text-gray-700">Grupos de opciones</span>
+          <span className="text-sm font-semibold text-gray-700">{t.modifiers_title}</span>
         </div>
         {!addingGroup && (
           <button onClick={() => setAddingGroup(true)} className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700">
-            <Plus className="w-3.5 h-3.5" /> Nuevo grupo
+            <Plus className="w-3.5 h-3.5" /> {t.modifiers_newGroup}
           </button>
         )}
       </div>
@@ -144,50 +146,56 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate }: ModifierGr
       {items.length === 0 && !addingGroup && (
         <div className="text-center py-8 text-gray-400">
           <Layers className="w-8 h-8 mx-auto mb-2 opacity-40" />
-          <p className="text-sm font-medium text-gray-500">Sin grupos de opciones</p>
-          <p className="text-xs text-gray-400 mt-1">Agrega opciones como Tamaño, Extras, Salsas...</p>
+          <p className="text-sm font-medium text-gray-500">{t.modifiers_noGroups}</p>
+          <p className="text-xs text-gray-400 mt-1">{t.modifiers_noGroupsDesc}</p>
+          <button
+            onClick={() => setAddingGroup(true)}
+            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" /> {t.modifiers_newGroup}
+          </button>
         </div>
       )}
 
       {addingGroup && (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-4 space-y-3">
-          <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">Nuevo grupo</p>
-          <input value={groupForm.name} onChange={e => setGroupForm({ ...groupForm, name: e.target.value })} placeholder="Ej: Tamaño, Proteína, Salsas..." autoFocus className="dash-input" />
+          <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">{t.modifiers_newGroup}</p>
+          <input value={groupForm.name} onChange={e => setGroupForm({ ...groupForm, name: e.target.value })} placeholder={t.modifiers_optionPlaceholder} autoFocus className="dash-input" />
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] font-medium text-gray-500 mb-1 block">Tipo</label>
+              <label className="text-[11px] font-medium text-gray-500 mb-1 block">{t.modifiers_type}</label>
               <select value={groupForm.selection_type} onChange={e => {
                 const st = e.target.value as 'single' | 'multi';
                 setGroupForm({ ...groupForm, selection_type: st, max_select: st === 'single' ? '1' : groupForm.max_select });
               }} className="dash-select text-sm">
-                <option value="single">Única (elige 1)</option>
-                <option value="multi">Múltiple</option>
+                <option value="single">{t.modifiers_single}</option>
+                <option value="multi">{t.modifiers_multi}</option>
               </select>
             </div>
             <div>
               <label className="flex items-center gap-2 mt-5 cursor-pointer">
                 <input type="checkbox" checked={groupForm.is_required} onChange={e => setGroupForm({ ...groupForm, is_required: e.target.checked, min_select: e.target.checked ? '1' : '0' })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500/30" />
-                <span className="text-sm text-gray-700 font-medium">Requerido</span>
+                <span className="text-sm text-gray-700 font-medium">{t.modifiers_required}</span>
               </label>
             </div>
           </div>
           {groupForm.selection_type === 'multi' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] font-medium text-gray-500 mb-1 block">Mínimo</label>
+                <label className="text-[11px] font-medium text-gray-500 mb-1 block">{t.modifiers_min}</label>
                 <input type="number" min="0" value={groupForm.min_select} onChange={e => setGroupForm({ ...groupForm, min_select: e.target.value })} className="dash-input text-sm" />
               </div>
               <div>
-                <label className="text-[11px] font-medium text-gray-500 mb-1 block">Máximo</label>
+                <label className="text-[11px] font-medium text-gray-500 mb-1 block">{t.modifiers_max}</label>
                 <input type="number" min="1" value={groupForm.max_select} onChange={e => setGroupForm({ ...groupForm, max_select: e.target.value })} className="dash-input text-sm" />
               </div>
             </div>
           )}
           <div className="flex gap-2 pt-1">
             <button onClick={handleAddGroup} disabled={loading || !groupForm.name.trim()} className="dash-btn-primary text-xs py-2">
-              {loading ? 'Creando...' : 'Crear grupo'}
+              {loading ? t.modifiers_creating : t.modifiers_createGroup}
             </button>
-            <button onClick={() => { setAddingGroup(false); setGroupForm({ name: '', selection_type: 'single', min_select: '0', max_select: '1', is_required: false }); }} className="dash-btn-secondary text-xs py-2">Cancelar</button>
+            <button onClick={() => { setAddingGroup(false); setGroupForm({ name: '', selection_type: 'single', min_select: '0', max_select: '1', is_required: false }); }} className="dash-btn-secondary text-xs py-2">{t.general_cancel}</button>
           </div>
         </div>
       )}
@@ -196,10 +204,10 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate }: ModifierGr
         const isExpanded = expandedGroup === group.id;
         const isEditing = editGroupId === group.id;
         const ruleLabel = group.selection_type === 'single'
-          ? (group.is_required ? 'Elige 1 (requerido)' : 'Elige 1 (opcional)')
+          ? (group.is_required ? t.modifiers_choose1Required : t.modifiers_choose1Optional)
           : group.is_required
-            ? `Elige ${group.min_select}-${group.max_select} (requerido)`
-            : `Hasta ${group.max_select} (opcional)`;
+            ? t.modifiers_chooseRange.replace('{min}', String(group.min_select)).replace('{max}', String(group.max_select))
+            : t.modifiers_upTo.replace('{max}', String(group.max_select));
 
         return (
           <div key={group.id} className="rounded-lg border border-gray-200 bg-white overflow-hidden">
@@ -208,29 +216,29 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate }: ModifierGr
                 <input value={groupForm.name} onChange={e => setGroupForm({ ...groupForm, name: e.target.value })} className="dash-input text-sm" />
                 <div className="grid grid-cols-2 gap-3">
                   <select value={groupForm.selection_type} onChange={e => setGroupForm({ ...groupForm, selection_type: e.target.value as 'single' | 'multi' })} className="dash-select text-sm">
-                    <option value="single">Única</option>
-                    <option value="multi">Múltiple</option>
+                    <option value="single">{t.modifiers_singleDesc}</option>
+                    <option value="multi">{t.modifiers_multi}</option>
                   </select>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={groupForm.is_required} onChange={e => setGroupForm({ ...groupForm, is_required: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500/30" />
-                    <span className="text-sm text-gray-700">Requerido</span>
+                    <span className="text-sm text-gray-700">{t.modifiers_required}</span>
                   </label>
                 </div>
                 {groupForm.selection_type === 'multi' && (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] text-gray-500 mb-1 block">Min</label>
+                      <label className="text-[11px] text-gray-500 mb-1 block">{t.modifiers_min}</label>
                       <input type="number" min="0" value={groupForm.min_select} onChange={e => setGroupForm({ ...groupForm, min_select: e.target.value })} className="dash-input text-sm" />
                     </div>
                     <div>
-                      <label className="text-[11px] text-gray-500 mb-1 block">Max</label>
+                      <label className="text-[11px] text-gray-500 mb-1 block">{t.modifiers_max}</label>
                       <input type="number" min="1" value={groupForm.max_select} onChange={e => setGroupForm({ ...groupForm, max_select: e.target.value })} className="dash-input text-sm" />
                     </div>
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <button onClick={() => handleUpdateGroup(group)} disabled={loading} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 disabled:opacity-50">Guardar</button>
-                  <button onClick={() => setEditGroupId(null)} className="text-xs text-gray-500">Cancelar</button>
+                  <button onClick={() => handleUpdateGroup(group)} disabled={loading} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 disabled:opacity-50">{t.modifiers_save}</button>
+                  <button onClick={() => setEditGroupId(null)} className="text-xs text-gray-500">{t.general_cancel}</button>
                 </div>
               </div>
             ) : (
@@ -241,7 +249,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate }: ModifierGr
                 <ChevronRight className={cn('w-4 h-4 text-gray-400 transition-transform', isExpanded && 'rotate-90')} />
                 <div className="flex-1 min-w-0">
                   <span className="text-sm font-semibold text-gray-900">{group.name}</span>
-                  <span className="ml-2 text-[11px] text-gray-400">{group.options.length} opciones</span>
+                  <span className="ml-2 text-[11px] text-gray-400">{group.options.length} {t.modifiers_options}</span>
                 </div>
                 <span className={cn(
                   'text-[10px] font-medium px-2 py-0.5 rounded-full',
@@ -260,16 +268,16 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate }: ModifierGr
                   <div key={opt.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
                     {editOptionId === opt.id ? (
                       <>
-                        <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder="Nombre" className="flex-1 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                        <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder={t.editor_name} className="flex-1 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
                         <input value={optionForm.price_delta} onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })} placeholder="+0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                        <button onClick={() => handleUpdateOption(opt, group.id)} disabled={loading} className="text-xs font-medium text-emerald-600 disabled:opacity-50">Guardar</button>
-                        <button onClick={() => { setEditOptionId(null); setOptionForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-500">Cancelar</button>
+                        <button onClick={() => handleUpdateOption(opt, group.id)} disabled={loading} className="text-xs font-medium text-emerald-600 disabled:opacity-50">{t.modifiers_save}</button>
+                        <button onClick={() => { setEditOptionId(null); setOptionForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-500">{t.general_cancel}</button>
                       </>
                     ) : (
                       <>
                         <span className="flex-1 text-sm text-gray-700 font-medium">{opt.name}</span>
                         <span className="text-sm text-gray-500 font-mono">
-                          {Number(opt.price_delta) > 0 ? `+$${Number(opt.price_delta).toFixed(2)}` : Number(opt.price_delta) < 0 ? `-$${Math.abs(Number(opt.price_delta)).toFixed(2)}` : 'Base'}
+                          {Number(opt.price_delta) > 0 ? `+$${Number(opt.price_delta).toFixed(2)}` : Number(opt.price_delta) < 0 ? `-$${Math.abs(Number(opt.price_delta)).toFixed(2)}` : t.modifiers_base}
                         </span>
                         <button onClick={() => { setEditOptionId(opt.id); setOptionForm({ name: opt.name, price_delta: String(opt.price_delta) }); }} className="p-1 rounded hover:bg-gray-100 text-gray-400"><Pencil className="w-3.5 h-3.5" /></button>
                         <button onClick={() => handleDeleteOption(opt.id, group.id)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
@@ -279,15 +287,25 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate }: ModifierGr
                 ))}
 
                 {addingOptionFor === group.id ? (
-                  <div className="flex items-center gap-2 bg-emerald-50 rounded-lg px-3 py-2 border border-emerald-200">
-                    <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder="Ej: Grande, Queso extra..." autoFocus className="flex-1 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                    <input value={optionForm.price_delta} onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })} placeholder="+0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                    <button onClick={() => handleAddOption(group.id)} disabled={loading || !optionForm.name.trim()} className="text-xs font-bold text-emerald-600 disabled:opacity-50">{loading ? '...' : 'Agregar'}</button>
-                    <button onClick={() => { setAddingOptionFor(null); setOptionForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-500">Cancelar</button>
+                  <div className="bg-emerald-50 rounded-lg px-3 py-3 border border-emerald-200 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1">
+                        <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{t.editor_name}</label>
+                        <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder={t.modifiers_optionPlaceholder} autoFocus className="w-full text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                      </div>
+                      <div className="w-24">
+                        <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{t.editor_price} (+/-)</label>
+                        <input value={optionForm.price_delta} onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-full text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => handleAddOption(group.id)} disabled={loading || !optionForm.name.trim()} className="px-3 py-1.5 rounded-md bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 disabled:opacity-50 transition-colors">{loading ? '...' : t.general_add}</button>
+                      <button onClick={() => { setAddingOptionFor(null); setOptionForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-500 hover:text-gray-700">{t.general_cancel}</button>
+                    </div>
                   </div>
                 ) : (
                   <button onClick={() => { setAddingOptionFor(group.id); setOptionForm({ name: '', price_delta: '' }); }} className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 mt-1">
-                    <Plus className="w-3.5 h-3.5" /> Agregar opción
+                    <Plus className="w-3.5 h-3.5" /> {t.modifiers_addOption}
                   </button>
                 )}
               </div>

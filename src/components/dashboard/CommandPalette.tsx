@@ -8,6 +8,7 @@ import {
   Settings, Plus, ExternalLink,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface PaletteItem {
   id: string;
@@ -19,34 +20,35 @@ interface PaletteItem {
   keywords?: string;
 }
 
-const NAV_ITEMS: PaletteItem[] = [
-  { id: 'home', label: 'Inicio', section: 'Navegación', icon: LayoutDashboard, href: '/app' },
-  { id: 'orders', label: 'Órdenes', section: 'Navegación', icon: ClipboardList, href: '/app/orders', keywords: 'pedidos' },
-  { id: 'kds', label: 'Cocina (KDS)', section: 'Navegación', icon: Monitor, href: '/kds', keywords: 'kitchen display tablet' },
-  { id: 'categories', label: 'Categorías', section: 'Navegación', icon: Tag, href: '/app/menu/categories' },
-  { id: 'products', label: 'Productos', section: 'Navegación', icon: ShoppingBag, href: '/app/menu/products', keywords: 'menu platos' },
-  { id: 'tables', label: 'Mesas & QRs', section: 'Navegación', icon: QrCode, href: '/app/tables' },
-  { id: 'customers', label: 'Clientes', section: 'Navegación', icon: Contact2, href: '/app/customers' },
-  { id: 'promotions', label: 'Promociones', section: 'Navegación', icon: Ticket, href: '/app/promotions', keywords: 'descuentos cupones' },
-  { id: 'staff', label: 'Equipo', section: 'Navegación', icon: Users, href: '/app/staff', keywords: 'empleados personal' },
-  { id: 'analytics', label: 'Analytics', section: 'Navegación', icon: BarChart3, href: '/app/analytics', keywords: 'estadisticas reportes' },
-  { id: 'marketing', label: 'Marketing', section: 'Navegación', icon: Megaphone, href: '/app/marketing' },
-  { id: 'reviews', label: 'Reseñas', section: 'Navegación', icon: ClipboardList, href: '/app/reviews', keywords: 'opiniones calificaciones' },
-  { id: 'media', label: 'Galería', section: 'Navegación', icon: ShoppingBag, href: '/app/media', keywords: 'imagenes fotos archivos' },
-  { id: 'billing', label: 'Facturación', section: 'Navegación', icon: CreditCard, href: '/app/billing', keywords: 'plan suscripcion pago' },
-  { id: 'settings', label: 'Configuración', section: 'Navegación', icon: Settings, href: '/app/settings', keywords: 'ajustes config' },
-  { id: 'data-export', label: 'Exportar datos', section: 'Navegación', icon: ExternalLink, href: '/app/settings/data', keywords: 'csv backup descargar' },
-];
-
-const ACTION_ITEMS: PaletteItem[] = [
-  { id: 'new-product', label: 'Crear producto', section: 'Acciones', icon: Plus, href: '/app/menu/products', keywords: 'nuevo agregar plato' },
-  { id: 'new-category', label: 'Crear categoría', section: 'Acciones', icon: Plus, href: '/app/menu/categories', keywords: 'nueva agregar' },
-  { id: 'new-table', label: 'Crear mesa', section: 'Acciones', icon: Plus, href: '/app/tables', keywords: 'nueva agregar qr' },
-];
-
-const ALL_ITEMS = [...NAV_ITEMS, ...ACTION_ITEMS];
-
 export function CommandPalette({ slug }: { slug: string }) {
+  const { t } = useDashboardLocale();
+
+  const NAV_ITEMS: PaletteItem[] = [
+    { id: 'home', label: t.nav_home, section: t.cmd_sectionNav, icon: LayoutDashboard, href: '/app' },
+    { id: 'orders', label: t.nav_orders, section: t.cmd_sectionNav, icon: ClipboardList, href: '/app/orders', keywords: 'pedidos' },
+    { id: 'kds', label: t.nav_kds, section: t.cmd_sectionNav, icon: Monitor, href: '/kds', keywords: 'kitchen display tablet' },
+    { id: 'categories', label: t.nav_categories, section: t.cmd_sectionNav, icon: Tag, href: '/app/menu/categories' },
+    { id: 'products', label: t.nav_products, section: t.cmd_sectionNav, icon: ShoppingBag, href: '/app/menu/products', keywords: 'menu platos' },
+    { id: 'tables', label: t.nav_tables, section: t.cmd_sectionNav, icon: QrCode, href: '/app/tables' },
+    { id: 'customers', label: t.nav_customers, section: t.cmd_sectionNav, icon: Contact2, href: '/app/customers' },
+    { id: 'promotions', label: t.nav_promotions, section: t.cmd_sectionNav, icon: Ticket, href: '/app/promotions', keywords: 'descuentos cupones' },
+    { id: 'staff', label: t.nav_staff, section: t.cmd_sectionNav, icon: Users, href: '/app/staff', keywords: 'empleados personal' },
+    { id: 'analytics', label: t.nav_analytics, section: t.cmd_sectionNav, icon: BarChart3, href: '/app/analytics', keywords: 'estadisticas reportes' },
+    { id: 'marketing', label: t.nav_marketing, section: t.cmd_sectionNav, icon: Megaphone, href: '/app/marketing' },
+    { id: 'reviews', label: t.nav_reviews, section: t.cmd_sectionNav, icon: ClipboardList, href: '/app/reviews', keywords: 'opiniones calificaciones' },
+    { id: 'media', label: t.nav_gallery, section: t.cmd_sectionNav, icon: ShoppingBag, href: '/app/media', keywords: 'imagenes fotos archivos' },
+    { id: 'billing', label: t.nav_billing, section: t.cmd_sectionNav, icon: CreditCard, href: '/app/billing', keywords: 'plan suscripcion pago' },
+    { id: 'settings', label: t.nav_settings, section: t.cmd_sectionNav, icon: Settings, href: '/app/settings', keywords: 'ajustes config' },
+    { id: 'data-export', label: t.cmd_exportData, section: t.cmd_sectionNav, icon: ExternalLink, href: '/app/settings/data', keywords: 'csv backup descargar' },
+  ];
+
+  const ACTION_ITEMS: PaletteItem[] = [
+    { id: 'new-product', label: t.cmd_createProduct, section: t.cmd_sectionActions, icon: Plus, href: '/app/menu/products', keywords: 'nuevo agregar plato' },
+    { id: 'new-category', label: t.cmd_createCategory, section: t.cmd_sectionActions, icon: Plus, href: '/app/menu/categories', keywords: 'nueva agregar' },
+    { id: 'new-table', label: t.cmd_createTable, section: t.cmd_sectionActions, icon: Plus, href: '/app/tables', keywords: 'nueva agregar qr' },
+  ];
+
+  const ALL_ITEMS = [...NAV_ITEMS, ...ACTION_ITEMS];
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeIdx, setActiveIdx] = useState(0);
@@ -152,7 +154,7 @@ export function CommandPalette({ slug }: { slug: string }) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Buscar o ir a..."
+            placeholder={t.cmd_searchPlaceholder}
             className="flex-1 text-sm text-gray-900 placeholder-gray-400 outline-none bg-transparent"
           />
           <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-gray-200 text-[10px] text-gray-400 font-mono">
@@ -164,7 +166,7 @@ export function CommandPalette({ slug }: { slug: string }) {
         <div ref={listRef} className="max-h-[320px] overflow-y-auto py-2">
           {filtered.length === 0 ? (
             <div className="px-4 py-8 text-center text-sm text-gray-400">
-              Sin resultados para &ldquo;{query}&rdquo;
+              {t.cmd_noResults} &ldquo;{query}&rdquo;
             </div>
           ) : (
             sections.map(section => {
@@ -212,13 +214,13 @@ export function CommandPalette({ slug }: { slug: string }) {
         {/* Footer */}
         <div className="flex items-center gap-4 px-4 py-2 border-t border-gray-100 text-[10px] text-gray-400">
           <span className="flex items-center gap-1">
-            <kbd className="px-1 py-0.5 rounded border border-gray-200 font-mono">↑↓</kbd> navegar
+            <kbd className="px-1 py-0.5 rounded border border-gray-200 font-mono">↑↓</kbd> {t.cmd_navigate}
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1 py-0.5 rounded border border-gray-200 font-mono">↵</kbd> ir
+            <kbd className="px-1 py-0.5 rounded border border-gray-200 font-mono">↵</kbd> {t.cmd_go}
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-1 py-0.5 rounded border border-gray-200 font-mono">esc</kbd> cerrar
+            <kbd className="px-1 py-0.5 rounded border border-gray-200 font-mono">esc</kbd> {t.cmd_closeKey}
           </span>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Mail, Share2, Smartphone, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { EmailCampaigns } from './EmailCampaigns';
 import { SocialMediaManager } from './SocialMediaManager';
 import { SMSCampaigns } from './SMSCampaigns';
@@ -19,22 +20,23 @@ interface Props {
   hasWhatsApp: boolean;
 }
 
-const TABS = [
-  { id: 'email', label: 'Email', icon: Mail },
-  { id: 'social', label: 'Redes Sociales', icon: Share2 },
-  { id: 'sms', label: 'SMS', icon: Smartphone },
-  { id: 'automations', label: 'Automatizaciones', icon: Zap },
-] as const;
-
-type TabId = typeof TABS[number]['id'];
+type TabId = 'email' | 'social' | 'sms' | 'automations';
 
 export function MarketingHub(props: Props) {
+  const { t } = useDashboardLocale();
   const [activeTab, setActiveTab] = useState<TabId>('email');
+
+  const TABS: { id: TabId; label: string; icon: typeof Mail }[] = [
+    { id: 'email', label: t.marketing_tabEmail, icon: Mail },
+    { id: 'social', label: t.marketing_tabSocial, icon: Share2 },
+    { id: 'sms', label: t.marketing_tabSms, icon: Smartphone },
+    { id: 'automations', label: t.marketing_tabAutomations, icon: Zap },
+  ];
 
   return (
     <div>
-      <h1 className="text-xl font-bold text-gray-900 mb-1">Marketing</h1>
-      <p className="text-sm text-gray-500 mb-6">Campañas de email, redes sociales, SMS y automatizaciones con IA</p>
+      <h1 className="text-xl font-bold text-gray-900 mb-1">{t.marketing_title}</h1>
+      <p className="text-sm text-gray-500 mb-6">{t.marketing_subtitle}</p>
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6 overflow-x-auto">

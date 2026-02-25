@@ -13,6 +13,8 @@ import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useNotifications } from '@/hooks/use-notifications';
 import { OrderReceipt } from './OrderReceipt';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
+import type { DashboardTranslations } from '@/lib/dashboard-translations';
 import type { Order, OrderStatus } from '@/types';
 
 const COLUMNS: { status: OrderStatus; icon: typeof Clock }[] = [
@@ -29,16 +31,41 @@ const NEXT_STATUS: Record<string, OrderStatus> = {
   ready: 'delivered',
 };
 
-const ORDER_TYPE_META: Record<string, { icon: typeof Utensils; label: string; color: string }> = {
-  dine_in: { icon: Utensils, label: 'En restaurante', color: 'text-blue-600 bg-blue-50' },
-  pickup: { icon: ShoppingBag, label: 'Para recoger', color: 'text-amber-600 bg-amber-50' },
-  delivery: { icon: Truck, label: 'Delivery', color: 'text-violet-600 bg-violet-50' },
+const ORDER_TYPE_META: Record<string, { icon: typeof Utensils; color: string }> = {
+  dine_in: { icon: Utensils, color: 'text-blue-600 bg-blue-50' },
+  pickup: { icon: ShoppingBag, color: 'text-amber-600 bg-amber-50' },
+  delivery: { icon: Truck, color: 'text-violet-600 bg-violet-50' },
 };
 
-const PAYMENT_META: Record<string, { icon: typeof Banknote; label: string; color: string }> = {
-  cash: { icon: Banknote, label: 'Efectivo', color: 'text-green-700 bg-green-50' },
-  online: { icon: CreditCard, label: 'Pagado online', color: 'text-indigo-700 bg-indigo-50' },
+const PAYMENT_META: Record<string, { icon: typeof Banknote; color: string }> = {
+  cash: { icon: Banknote, color: 'text-green-700 bg-green-50' },
+  online: { icon: CreditCard, color: 'text-indigo-700 bg-indigo-50' },
 };
+
+function orderTypeLabel(t: DashboardTranslations, type?: string | null): string {
+  if (type === 'dine_in') return t.orders_dineIn;
+  if (type === 'pickup') return t.orders_pickup;
+  if (type === 'delivery') return t.orders_delivery;
+  return '';
+}
+
+function paymentLabel(t: DashboardTranslations, method?: string | null): string {
+  if (method === 'cash') return t.orders_cash;
+  if (method === 'online') return t.orders_paidOnline;
+  return '';
+}
+
+function statusLabel(t: DashboardTranslations, status: string): string {
+  const map: Record<string, string> = {
+    pending: t.orders_pending,
+    confirmed: t.orders_confirmed,
+    preparing: t.orders_preparing,
+    ready: t.orders_ready,
+    delivered: t.orders_delivered,
+    cancelled: t.orders_cancelled,
+  };
+  return map[status] ?? status;
+}
 
 interface OrdersBoardProps {
   initialOrders: Order[];
@@ -50,6 +77,7 @@ interface OrdersBoardProps {
 }
 
 export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantName, restaurantPhone, restaurantAddress }: OrdersBoardProps) {
+  const { t } = useDashboardLocale();
   const [isPending, startTransition] = useTransition();
   const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set());
   const [printOrder, setPrintOrder] = useState<Order | null>(null);
@@ -79,7 +107,7 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
     requestPermission,
     notifyNewOrder,
     updateTabTitle,
-  } = useNotifications({ defaultTitle: 'Órdenes — MENIUS' });
+  } = useNotifications({ defaultTitle: `${t.orders_title} — MENIUS` });
 
   const toggleAutoPrint = useCallback((on: boolean) => {
     setAutoPrint(on);
@@ -166,19 +194,19 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         <div className="rounded-2xl border border-amber-500/[0.15] bg-amber-500/[0.06] p-4">
-          <p className="text-xs text-gray-500 font-medium">Pendientes</p>
+          <p className="text-xs text-gray-500 font-medium">{t.orders_pendingPlural}</p>
           <p className="text-2xl font-bold text-amber-500 mt-1">{pendingCount}</p>
         </div>
         <div className="rounded-2xl border border-violet-500/[0.15] bg-violet-500/[0.06] p-4">
-          <p className="text-xs text-gray-500 font-medium">Preparando</p>
+          <p className="text-xs text-gray-500 font-medium">{t.orders_preparing}</p>
           <p className="text-2xl font-bold text-violet-500 mt-1">{preparingCount}</p>
         </div>
         <div className="rounded-2xl border border-emerald-500/[0.15] bg-emerald-500/[0.06] p-4">
-          <p className="text-xs text-gray-500 font-medium">Venta hoy</p>
+          <p className="text-xs text-gray-500 font-medium">{t.orders_salesToday}</p>
           <p className="text-2xl font-bold text-emerald-500 mt-1">{formatPrice(todayTotal, currency)}</p>
         </div>
         <div className="rounded-2xl border border-gray-200 bg-white p-4">
-          <p className="text-xs text-gray-500 font-medium">Órdenes hoy</p>
+          <p className="text-xs text-gray-500 font-medium">{t.orders_ordersToday}</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">{todayOrders.length}</p>
         </div>
       </div>
@@ -192,7 +220,7 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar orden, cliente..."
+            placeholder={t.orders_searchPlaceholder}
             className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
           />
         </div>
@@ -211,7 +239,7 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
                   : 'text-gray-600 hover:bg-gray-100'
               )}
             >
-              {key === 'today' ? 'Hoy' : key === '7' ? '7 días' : key === '30' ? '30 días' : 'Todo'}
+              {key === 'today' ? t.orders_today : key === '7' ? t.orders_thisWeek : key === '30' ? t.orders_thisMonth : t.orders_all}
             </button>
           ))}
         </div>
@@ -222,10 +250,10 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
           onChange={(e) => setFilterType(e.target.value)}
           className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
         >
-          <option value="all">Todos los tipos</option>
-          <option value="dine_in">En restaurante</option>
-          <option value="pickup">Para recoger</option>
-          <option value="delivery">Delivery</option>
+          <option value="all">{t.orders_allTypes}</option>
+          <option value="dine_in">{t.orders_dineIn}</option>
+          <option value="pickup">{t.orders_pickup}</option>
+          <option value="delivery">{t.orders_delivery}</option>
         </select>
 
         {/* History toggle */}
@@ -237,7 +265,7 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
           )}
         >
           {showHistory ? <LayoutGrid className="w-3.5 h-3.5" /> : <History className="w-3.5 h-3.5" />}
-          {showHistory ? 'Kanban' : `Historial (${historyOrders.length})`}
+          {showHistory ? t.orders_kanban : `${t.orders_history} (${historyOrders.length})`}
         </button>
 
         {/* Export */}
@@ -271,7 +299,7 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
         <div className="flex items-center gap-1.5">
           {!hasPermission && (
             <button onClick={requestPermission} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-600 border border-amber-200">
-              <BellRing className="w-3.5 h-3.5" /> Notificar
+              <BellRing className="w-3.5 h-3.5" /> {t.orders_notify}
             </button>
           )}
           <button
@@ -300,14 +328,14 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
       {orders.length === 0 ? (
         <div className="dash-empty py-20">
           <Package className="dash-empty-icon" />
-          <p className="dash-empty-title">No hay órdenes aún</p>
-          <p className="dash-empty-desc">Comparte tu menú QR con tus clientes para empezar a recibir pedidos en tiempo real.</p>
+          <p className="dash-empty-title">{t.orders_noOrders}</p>
+          <p className="dash-empty-desc">{t.orders_emptyDesc}</p>
         </div>
       ) : showHistory ? (
         /* ── History list view ── */
         <div className="space-y-2">
           {historyOrders.length === 0 ? (
-            <p className="text-center text-gray-400 py-10 text-sm">No hay órdenes completadas{search ? ' con ese filtro' : ''}.</p>
+            <p className="text-center text-gray-400 py-10 text-sm">{t.orders_noCompleted}{search ? ` ${t.orders_withFilter}` : ''}.</p>
           ) : historyOrders.map((order) => (
             <div key={order.id} className="bg-white rounded-xl border border-gray-200 p-3.5 flex items-center gap-3">
               <div className="flex-1 min-w-0">
@@ -316,16 +344,16 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
                   <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-semibold',
                     order.status === 'delivered' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'
                   )}>
-                    {order.status === 'delivered' ? 'Entregado' : 'Cancelado'}
+                    {order.status === 'delivered' ? t.orders_delivered : t.orders_cancelled}
                   </span>
                   {ORDER_TYPE_META[order.order_type ?? ''] && (
                     <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-semibold', ORDER_TYPE_META[order.order_type!].color)}>
-                      {ORDER_TYPE_META[order.order_type!].label}
+                      {orderTypeLabel(t, order.order_type)}
                     </span>
                   )}
                   {PAYMENT_META[order.payment_method ?? ''] && (
                     <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-semibold', PAYMENT_META[order.payment_method!].color)}>
-                      {PAYMENT_META[order.payment_method!].label}
+                      {paymentLabel(t, order.payment_method)}
                     </span>
                   )}
                 </div>
@@ -357,7 +385,7 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
               <div key={status} className="space-y-3">
                 <div className="flex items-center gap-2 mb-2">
                   <Icon className={`w-4 h-4 ${config.color}`} />
-                  <span className="text-sm font-semibold text-gray-900">{config.label}</span>
+                  <span className="text-sm font-semibold text-gray-900">{statusLabel(t, status)}</span>
                   <span className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-full ${config.bg} ${config.color}`}>
                     {columnOrders.length}
                   </span>
@@ -386,9 +414,9 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
       {/* Bulk action bar */}
       {bulkSelected.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-5 py-3 rounded-2xl bg-gray-900 text-white shadow-2xl">
-          <span className="text-sm font-medium">{bulkSelected.size} seleccionada{bulkSelected.size > 1 ? 's' : ''}</span>
+          <span className="text-sm font-medium">{bulkSelected.size} {t.orders_selected}</span>
           <button onClick={handleBulkAdvance} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-emerald-500 text-sm font-semibold hover:bg-emerald-600 transition-colors">
-            <ArrowRight className="w-3.5 h-3.5" /> Avanzar estado
+            <ArrowRight className="w-3.5 h-3.5" /> {t.orders_advanceStatus}
           </button>
           <button onClick={clearBulk} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
             <X className="w-4 h-4" />
@@ -432,6 +460,7 @@ function OrderCard({
   onAdvance: () => void; onCancel: () => void; onPrint: () => void; onDetail: () => void;
   isBulkSelected: boolean; onBulkToggle: () => void;
 }) {
+  const { t } = useDashboardLocale();
   const [expanded, setExpanded] = useState(false);
   const typeMeta = ORDER_TYPE_META[order.order_type ?? ''];
   const payMeta = PAYMENT_META[order.payment_method ?? ''];
@@ -445,7 +474,7 @@ function OrderCard({
       {isNew && (
         <div className="flex items-center gap-1 mb-2">
           <Bell className="w-3 h-3 text-emerald-600" />
-          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Nueva orden</span>
+          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">{t.orders_newOrder}</span>
         </div>
       )}
 
@@ -463,12 +492,12 @@ function OrderCard({
       <div className="flex flex-wrap gap-1 mb-2">
         {typeMeta && (
           <span className={cn('inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold', typeMeta.color)}>
-            <typeMeta.icon className="w-2.5 h-2.5" /> {typeMeta.label}
+            <typeMeta.icon className="w-2.5 h-2.5" /> {orderTypeLabel(t, order.order_type)}
           </span>
         )}
         {payMeta && (
           <span className={cn('inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-semibold', payMeta.color)}>
-            <payMeta.icon className="w-2.5 h-2.5" /> {payMeta.label}
+            <payMeta.icon className="w-2.5 h-2.5" /> {paymentLabel(t, order.payment_method)}
           </span>
         )}
       </div>
@@ -491,7 +520,7 @@ function OrderCard({
       {order.items && order.items.length > 0 && (
         <div className="space-y-1 mb-2" onClick={(e) => e.stopPropagation()}>
           {order.items.map((item: any, idx: number) => {
-            const prodName = item.product?.name ?? 'Producto';
+            const prodName = item.product?.name ?? t.orders_product;
             const variantName = item.variant?.name;
             const extras: any[] = item.order_item_extras ?? [];
             const modifiers: any[] = item.order_item_modifiers ?? [];
@@ -537,7 +566,7 @@ function OrderCard({
           className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-gray-600 transition-colors mb-1"
         >
           {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          {expanded ? 'Menos' : 'Detalles'}
+          {expanded ? t.orders_less : t.orders_details}
         </button>
       )}
 
@@ -545,7 +574,7 @@ function OrderCard({
       <div className="flex items-center justify-between pt-1.5 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
         <span className="font-bold text-sm">{formatPrice(Number(order.total), currency)}</span>
         <div className="flex gap-1">
-          <button onClick={onPrint} className="p-1 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors" title="Imprimir">
+          <button onClick={onPrint} className="p-1 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors" title={t.orders_print}>
             <Printer className="w-3.5 h-3.5" />
           </button>
           {NEXT_STATUS[status] && (
@@ -573,6 +602,7 @@ function OrderDetailModal({
   onClose: () => void; onPrint: () => void;
   onStatusChange: (s: OrderStatus) => void;
 }) {
+  const { t } = useDashboardLocale();
   const typeMeta = ORDER_TYPE_META[order.order_type ?? ''];
   const payMeta = PAYMENT_META[order.payment_method ?? ''];
   const statusConfig = ORDER_STATUS_CONFIG[order.status];
@@ -598,23 +628,23 @@ function OrderDetailModal({
           {/* Status + badges */}
           <div className="flex flex-wrap gap-2">
             <span className={cn('inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold', statusConfig?.bg, statusConfig?.color)}>
-              {statusConfig?.label ?? order.status}
+              {statusLabel(t, order.status)}
             </span>
             {typeMeta && (
               <span className={cn('inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold', typeMeta.color)}>
-                <typeMeta.icon className="w-3.5 h-3.5" /> {typeMeta.label}
+                <typeMeta.icon className="w-3.5 h-3.5" /> {orderTypeLabel(t, order.order_type)}
               </span>
             )}
             {payMeta && (
               <span className={cn('inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold', payMeta.color)}>
-                <payMeta.icon className="w-3.5 h-3.5" /> {payMeta.label}
+                <payMeta.icon className="w-3.5 h-3.5" /> {paymentLabel(t, order.payment_method)}
               </span>
             )}
           </div>
 
           {/* Customer */}
           <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</h3>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t.orders_customer}</h3>
             {order.customer_name && (
               <div className="flex items-center gap-2 text-sm text-gray-900">
                 <User className="w-4 h-4 text-gray-400" /> {order.customer_name}
@@ -640,10 +670,10 @@ function OrderDetailModal({
 
           {/* Items */}
           <div>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Productos</h3>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t.orders_products}</h3>
             <div className="space-y-2">
               {(order.items ?? []).map((item: any, idx: number) => {
-                const prodName = item.product?.name ?? 'Producto';
+                const prodName = item.product?.name ?? t.orders_product;
                 const variantName = item.variant?.name;
                 const extras: any[] = item.order_item_extras ?? [];
                 const modifiers: any[] = item.order_item_modifiers ?? [];
@@ -654,7 +684,7 @@ function OrderDetailModal({
                         <p className="text-sm font-semibold text-gray-900">
                           {item.qty}x {prodName}
                         </p>
-                        {variantName && <p className="text-xs text-gray-500 mt-0.5">Variante: {variantName}</p>}
+                        {variantName && <p className="text-xs text-gray-500 mt-0.5">{t.orders_variant}: {variantName}</p>}
                         {extras.map((ex: any, i: number) => (
                           <p key={i} className="text-xs text-gray-500 mt-0.5">
                             + {ex.product_extras?.name ?? 'Extra'} <span className="text-gray-400">({formatPrice(ex.price, currency)})</span>
@@ -681,14 +711,14 @@ function OrderDetailModal({
           {/* Order notes */}
           {order.notes && (
             <div className="bg-amber-50 rounded-xl p-4">
-              <h3 className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-1.5">Notas del cliente</h3>
+              <h3 className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-1.5">{t.orders_customerNotes}</h3>
               <p className="text-sm text-amber-800 italic">{order.notes}</p>
             </div>
           )}
 
           {/* Total */}
           <div className="bg-gray-900 rounded-xl p-4 flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-400">Total</span>
+            <span className="text-sm font-medium text-gray-400">{t.orders_total}</span>
             <span className="text-xl font-bold text-white">{formatPrice(Number(order.total), currency)}</span>
           </div>
         </div>
@@ -696,7 +726,7 @@ function OrderDetailModal({
         {/* Footer actions */}
         <div className="border-t border-gray-200 px-5 py-3 flex items-center gap-2 flex-shrink-0">
           <button onClick={onPrint} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-            <Printer className="w-4 h-4" /> Imprimir
+            <Printer className="w-4 h-4" /> {t.orders_print}
           </button>
           <div className="flex-1" />
           {order.status !== 'cancelled' && order.status !== 'delivered' && (
@@ -704,7 +734,7 @@ function OrderDetailModal({
               onClick={() => onStatusChange('cancelled')}
               className="px-3 py-2 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
             >
-              Cancelar
+              {t.general_cancel}
             </button>
           )}
           {nextStatus && (
@@ -712,7 +742,7 @@ function OrderDetailModal({
               onClick={() => onStatusChange(nextStatus)}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
             >
-              {ORDER_STATUS_CONFIG[nextStatus]?.label ?? nextStatus} <ArrowRight className="w-4 h-4" />
+              {statusLabel(t, nextStatus)} <ArrowRight className="w-4 h-4" />
             </button>
           )}
         </div>

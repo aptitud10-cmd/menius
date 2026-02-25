@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-export default function MenuError({
+export default function TableMenuError({
   error,
   reset,
 }: {
@@ -10,7 +10,7 @@ export default function MenuError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('[MenuPage] rendering error:', error);
+    console.error('[TableMenuPage] rendering error:', error);
   }, [error]);
 
   return (

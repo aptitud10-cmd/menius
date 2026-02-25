@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
 import { Plus, Trash2, QrCode, Download, Share2, Copy, Check, ExternalLink, Printer, Globe, MessageCircle, Pencil, X, Users } from 'lucide-react';
 import { createTable, updateTable, updateTableMeta, deleteTable } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { Table, TableStatus } from '@/types';
 
 const TABLE_STATUS_CONFIG: Record<TableStatus, { label: string; color: string; bg: string; dot: string }> = {
@@ -24,6 +25,7 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
+  const { t } = useDashboardLocale();
 
   const getNextTableName = () => {
     const numbers = tables
@@ -43,7 +45,7 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
   };
 
   const handleSubmit = () => {
-    if (!name.trim()) { setError('Nombre requerido'); return; }
+    if (!name.trim()) { setError(t.tables_nameRequired); return; }
 
     startTransition(async () => {
       const result = await createTable({ name: name.trim() });
@@ -78,7 +80,7 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
   };
 
   const handleDelete = (id: string) => {
-    if (!confirm('¿Eliminar esta mesa?')) return;
+    if (!confirm(t.tables_deleteConfirm)) return;
     startTransition(async () => {
       await deleteTable(id);
       setTables((prev) => prev.filter((t) => t.id !== id));
@@ -89,26 +91,26 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
     <div>
       {!showForm && (
         <button onClick={handleShowForm} className="mb-6 dash-btn-primary">
-          <Plus className="w-4 h-4" /> Nueva mesa
+          <Plus className="w-4 h-4" /> {t.tables_newTable}
         </button>
       )}
 
       {showForm && (
         <div className="mb-6 dash-card p-5 space-y-4">
-          <h3 className="font-semibold text-sm text-gray-900">Crear nueva mesa</h3>
+          <h3 className="font-semibold text-sm text-gray-900">{t.tables_createNewTable}</h3>
           {error && <p className="text-sm text-red-500">{error}</p>}
           <input
             type="text" value={name} onChange={(e) => setName(e.target.value)}
-            placeholder="Ej: Mesa 1, Barra 1, Terraza A" autoFocus
+            placeholder={t.tables_placeholder} autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             className="dash-input"
           />
           <div className="flex gap-2">
             <button onClick={handleSubmit} disabled={isPending} className="dash-btn-primary">
-              Crear mesa
+              {t.tables_createTable}
             </button>
             <button onClick={() => { setShowForm(false); setError(''); }} className="dash-btn-secondary">
-              Cancelar
+              {t.general_cancel}
             </button>
           </div>
         </div>
@@ -122,17 +124,17 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
       {/* Table-specific QRs */}
       <div className="flex items-center gap-3 mb-4 mt-8">
         <QrCode className="w-4 h-4 text-gray-500" />
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">QR por mesa (Dine-in)</h2>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">{t.tables_qrPerTable}</h2>
       </div>
 
       {tables.length === 0 ? (
         <div className="dash-empty py-16">
           <QrCode className="dash-empty-icon" />
-          <p className="dash-empty-title">Sin mesas configuradas</p>
-          <p className="dash-empty-desc">Crea mesas para generar códigos QR personalizados que tus clientes escanean para pedir.</p>
+          <p className="dash-empty-title">{t.tables_noTables}</p>
+          <p className="dash-empty-desc">{t.tables_noTablesDesc}</p>
           {!showForm && (
             <button onClick={handleShowForm} className="dash-btn-primary">
-              <Plus className="w-4 h-4" /> Crear primera mesa
+              <Plus className="w-4 h-4" /> {t.tables_createFirst}
             </button>
           )}
         </div>
@@ -163,6 +165,7 @@ function QRTableCard({ table, onDelete, onEdit, onStatusChange, onCapacityChange
   onCapacityChange: (id: string, capacity: number) => void;
   restaurantName?: string;
 }) {
+  const { t } = useDashboardLocale();
   const qrContainerRef = useRef<HTMLDivElement>(null);
   const brandedCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [qrReady, setQrReady] = useState(false);
@@ -179,7 +182,7 @@ function QRTableCard({ table, onDelete, onEdit, onStatusChange, onCapacityChange
         table.qr_code_value,
         table.name,
         restaurantName ?? '',
-        'Escanea el código para ver el menú'
+        t.tables_scanToView
       );
       brandedCanvasRef.current = card;
       setQrReady(true);
@@ -304,7 +307,7 @@ function QRTableCard({ table, onDelete, onEdit, onStatusChange, onCapacityChange
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors"
             >
               <Download className="w-4 h-4" />
-              Descargar QR
+              {t.tables_downloadQR}
             </button>
 
             <div className="grid grid-cols-3 gap-2">
@@ -313,21 +316,21 @@ function QRTableCard({ table, onDelete, onEdit, onStatusChange, onCapacityChange
                 className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 text-gray-500 text-xs font-medium hover:bg-gray-100 transition-colors"
               >
                 <Printer className="w-3.5 h-3.5" />
-                Imprimir
+                {t.tables_print}
               </button>
               <button
                 onClick={shareLink}
                 className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 text-gray-500 text-xs font-medium hover:bg-gray-100 transition-colors"
               >
                 <Share2 className="w-3.5 h-3.5" />
-                Compartir
+                {t.tables_share}
               </button>
               <button
                 onClick={copyLink}
                 className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 text-gray-500 text-xs font-medium hover:bg-gray-100 transition-colors"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                {copied ? '¡Copiado!' : 'Copiar'}
+                {copied ? t.tables_copiedLink : t.tables_copy}
               </button>
             </div>
 
@@ -336,7 +339,7 @@ function QRTableCard({ table, onDelete, onEdit, onStatusChange, onCapacityChange
               className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-gray-500 text-xs font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              Ver enlace
+              {t.tables_viewLink}
             </button>
           </div>
         )}
@@ -362,7 +365,7 @@ function QRTableCard({ table, onDelete, onEdit, onStatusChange, onCapacityChange
         <button
           onClick={() => onDelete(table.id)}
           className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-          title="Eliminar mesa"
+          title={t.tables_deleteTable}
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
@@ -372,9 +375,11 @@ function QRTableCard({ table, onDelete, onEdit, onStatusChange, onCapacityChange
 }
 
 function StatusBadge({ status, onSelect }: { status: TableStatus; onSelect: (s: TableStatus) => void }) {
+  const { t } = useDashboardLocale();
   const [open, setOpen] = useState(false);
   const config = TABLE_STATUS_CONFIG[status];
   const statuses: TableStatus[] = ['available', 'occupied', 'reserved'];
+  const statusLabels: Record<TableStatus, string> = { available: t.tables_available, occupied: t.tables_occupied, reserved: t.tables_reserved };
 
   return (
     <div className="relative">
@@ -383,7 +388,7 @@ function StatusBadge({ status, onSelect }: { status: TableStatus; onSelect: (s: 
         className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
       >
         <span className={cn('w-1.5 h-1.5 rounded-full', config.dot)} />
-        <span className="text-[10px] text-white font-medium">{config.label}</span>
+        <span className="text-[10px] text-white font-medium">{statusLabels[status]}</span>
       </button>
       {open && (
         <>
@@ -401,7 +406,7 @@ function StatusBadge({ status, onSelect }: { status: TableStatus; onSelect: (s: 
                   )}
                 >
                   <span className={cn('w-2 h-2 rounded-full', c.dot)} />
-                  <span className={c.color}>{c.label}</span>
+                  <span className={c.color}>{statusLabels[s]}</span>
                 </button>
               );
             })}
@@ -415,6 +420,7 @@ function StatusBadge({ status, onSelect }: { status: TableStatus; onSelect: (s: 
 /* ─── General QR Card (Pickup / Delivery / Sharing) ─── */
 
 function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
+  const { t } = useDashboardLocale();
   const qrContainerRef = useRef<HTMLDivElement>(null);
   const brandedCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [qrReady, setQrReady] = useState(false);
@@ -427,7 +433,7 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
     if (!qrContainerRef.current || !menuUrl) return;
     import('@/lib/styled-qr').then(async ({ renderStyledQR, generateBrandedCard }) => {
       await renderStyledQR(qrContainerRef.current!, { data: menuUrl, size: 220 });
-      const card = await generateBrandedCard(menuUrl, name, name, 'Pide y paga desde tu celular');
+      const card = await generateBrandedCard(menuUrl, name, name, t.tables_orderFromPhone);
       brandedCanvasRef.current = card;
       setQrReady(true);
     });
@@ -498,8 +504,8 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
             <Globe className="w-4.5 h-4.5 text-emerald-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm text-gray-900">QR General — Pickup & Delivery</h3>
-            <p className="text-xs text-gray-500">Comparte este QR en redes sociales, stickers, tarjetas, flyers</p>
+            <h3 className="font-semibold text-sm text-gray-900">{t.tables_generalQR}</h3>
+            <p className="text-xs text-gray-500">{t.tables_generalQRDesc}</p>
           </div>
         </div>
       </div>
@@ -520,7 +526,7 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors"
               >
                 <Download className="w-4 h-4" />
-                Descargar QR
+                {t.tables_downloadQR}
               </button>
 
               <button
@@ -528,7 +534,7 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors"
               >
                 <MessageCircle className="w-4 h-4" />
-                Compartir por WhatsApp
+                {t.tables_shareWhatsApp}
               </button>
 
               <div className="grid grid-cols-3 gap-2">
@@ -537,21 +543,21 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
                   className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-100 transition-colors"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  Imprimir
+                  {t.tables_print}
                 </button>
                 <button
                   onClick={shareNative}
                   className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-100 transition-colors"
                 >
                   <Share2 className="w-3.5 h-3.5" />
-                  Compartir
+                  {t.tables_share}
                 </button>
                 <button
                   onClick={copyLink}
                   className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-gray-500 text-xs font-medium hover:bg-gray-100 transition-colors"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copied ? '¡Copiado!' : 'Copiar'}
+                  {copied ? t.tables_copiedLink : t.tables_copy}
                 </button>
               </div>
 
@@ -560,7 +566,7 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
                 className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-gray-500 text-xs font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors"
               >
                 <ExternalLink className="w-3.5 h-3.5" />
-                Abrir menú
+                {t.tables_openMenu}
               </button>
             </div>
           )}

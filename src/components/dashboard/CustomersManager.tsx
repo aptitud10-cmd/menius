@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Search, Phone, Mail, MapPin, Tag, ChevronDown, MessageCircle, Users, TrendingUp, Clock, FileDown } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface Customer {
   id: string;
@@ -25,14 +26,8 @@ interface Props {
 
 type SortKey = 'last_order_at' | 'total_spent' | 'total_orders' | 'name';
 
-const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: 'last_order_at', label: 'Última orden' },
-  { value: 'total_spent', label: 'Mayor gasto' },
-  { value: 'total_orders', label: 'Más órdenes' },
-  { value: 'name', label: 'Nombre A-Z' },
-];
-
 export function CustomersManager({ currency }: Props) {
+  const { t } = useDashboardLocale();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -126,30 +121,31 @@ export function CustomersManager({ currency }: Props) {
 
   return (
     <div className="space-y-6">
+      <h1 className="dash-heading">{t.nav_customers}</h1>
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-            <Users className="w-3.5 h-3.5" /> Total clientes
+            <Users className="w-3.5 h-3.5" /> {t.customers_total}
           </div>
           <p className="text-xl font-bold text-gray-900">{total}</p>
         </div>
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-            <TrendingUp className="w-3.5 h-3.5" /> Gasto promedio
+            <TrendingUp className="w-3.5 h-3.5" /> {t.customers_avgSpend}
           </div>
           <p className="text-xl font-bold text-gray-900">{formatPrice(avgSpend, currency)}</p>
         </div>
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-            <TrendingUp className="w-3.5 h-3.5" /> Top cliente
+            <TrendingUp className="w-3.5 h-3.5" /> {t.customers_topCustomer}
           </div>
           <p className="text-sm font-semibold text-gray-900 truncate">{topSpender?.name || '—'}</p>
           <p className="text-xs text-gray-500">{topSpender ? formatPrice(topSpender.total_spent, currency) : ''}</p>
         </div>
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
           <div className="flex items-center gap-2 text-gray-500 text-xs mb-1">
-            <Clock className="w-3.5 h-3.5" /> Último pedido
+            <Clock className="w-3.5 h-3.5" /> {t.customers_lastOrder}
           </div>
           <p className="text-sm font-semibold text-gray-900">
             {customers[0]?.last_order_at ? formatDate(customers[0].last_order_at) : '—'}
@@ -163,7 +159,7 @@ export function CustomersManager({ currency }: Props) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input
             type="text"
-            placeholder="Buscar por nombre, teléfono o email..."
+            placeholder={t.customers_searchPlaceholder}
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
@@ -175,9 +171,10 @@ export function CustomersManager({ currency }: Props) {
             onChange={e => { setSortBy(e.target.value as SortKey); setPage(1); }}
             className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
           >
-            {SORT_OPTIONS.map(o => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
+            <option value="last_order_at">{t.customers_sortLastOrder}</option>
+            <option value="total_spent">{t.customers_sortMostSpent}</option>
+            <option value="total_orders">{t.customers_sortMostOrders}</option>
+            <option value="name">{t.customers_sortNameAZ}</option>
           </select>
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
         </div>
@@ -212,7 +209,7 @@ export function CustomersManager({ currency }: Props) {
             onClick={() => { setFilterTag(null); setPage(1); }}
             className={`px-3 py-1 text-xs rounded-full border font-medium transition-colors ${filterTag === null ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-emerald-400 hover:text-emerald-600'}`}
           >
-            Todos
+            {t.customers_all}
           </button>
           {allTags.map(tag => (
             <button
@@ -236,7 +233,7 @@ export function CustomersManager({ currency }: Props) {
           <div className="text-center py-20">
             <Users className="w-12 h-12 text-gray-700 mx-auto mb-3" />
             <p className="text-gray-500 text-sm">
-              {search ? 'No se encontraron clientes' : 'Aún no hay clientes. Se crean automáticamente con cada pedido.'}
+              {search ? t.customers_noResults : t.customers_empty}
             </p>
           </div>
         ) : (
@@ -244,12 +241,12 @@ export function CustomersManager({ currency }: Props) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 text-gray-500 text-xs uppercase tracking-wider">
-                  <th className="text-left px-4 py-3 font-medium">Cliente</th>
-                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Contacto</th>
-                  <th className="text-right px-4 py-3 font-medium">Órdenes</th>
-                  <th className="text-right px-4 py-3 font-medium">Total gastado</th>
-                  <th className="text-right px-4 py-3 font-medium hidden sm:table-cell">Última orden</th>
-                  <th className="text-right px-4 py-3 font-medium hidden lg:table-cell">Tags</th>
+                  <th className="text-left px-4 py-3 font-medium">{t.customers_customerCol}</th>
+                  <th className="text-left px-4 py-3 font-medium hidden md:table-cell">{t.customers_contactCol}</th>
+                  <th className="text-right px-4 py-3 font-medium">{t.customers_ordersCol}</th>
+                  <th className="text-right px-4 py-3 font-medium">{t.customers_totalSpentCol}</th>
+                  <th className="text-right px-4 py-3 font-medium hidden sm:table-cell">{t.customers_lastOrderCol}</th>
+                  <th className="text-right px-4 py-3 font-medium hidden lg:table-cell">{t.customers_tagsCol}</th>
                 </tr>
               </thead>
               <tbody>
@@ -260,7 +257,7 @@ export function CustomersManager({ currency }: Props) {
                     className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors ${selectedId === c.id ? 'bg-emerald-50' : ''}`}
                   >
                     <td className="px-4 py-3">
-                      <p className="text-gray-900 font-medium truncate max-w-[200px]">{c.name || 'Sin nombre'}</p>
+                      <p className="text-gray-900 font-medium truncate max-w-[200px]">{c.name || t.customers_noName}</p>
                       {c.address && <p className="text-gray-600 text-xs truncate max-w-[200px]">{c.address}</p>}
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
@@ -299,14 +296,14 @@ export function CustomersManager({ currency }: Props) {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-            <p className="text-xs text-gray-500">{total} clientes</p>
+            <p className="text-xs text-gray-500">{total} {t.customers_paginationLabel}</p>
             <div className="flex gap-2">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage(p => p - 1)}
                 className="px-3 py-1.5 text-xs rounded-lg bg-gray-50 border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-100 transition-colors"
               >
-                Anterior
+                {t.customers_previous}
               </button>
               <span className="px-3 py-1.5 text-xs text-gray-500">{page} / {totalPages}</span>
               <button
@@ -314,7 +311,7 @@ export function CustomersManager({ currency }: Props) {
                 onClick={() => setPage(p => p + 1)}
                 className="px-3 py-1.5 text-xs rounded-lg bg-gray-50 border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-gray-100 transition-colors"
               >
-                Siguiente
+                {t.customers_next}
               </button>
             </div>
           </div>
@@ -326,28 +323,28 @@ export function CustomersManager({ currency }: Props) {
         <div className="bg-white border border-gray-200 rounded-xl p-6 space-y-5">
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">{selected.name || 'Sin nombre'}</h3>
-              <p className="text-xs text-gray-500">Cliente desde {formatDate(selected.created_at)}</p>
+              <h3 className="text-lg font-semibold text-gray-900">{selected.name || t.customers_noName}</h3>
+              <p className="text-xs text-gray-500">{t.customers_customerSince} {formatDate(selected.created_at)}</p>
             </div>
             <button
               onClick={() => setSelectedId(null)}
               className="text-gray-600 hover:text-gray-900 transition-colors text-sm"
             >
-              Cerrar
+              {t.customers_close}
             </button>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">Órdenes</p>
+              <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">{t.customers_ordersLabel}</p>
               <p className="text-gray-900 font-semibold">{selected.total_orders}</p>
             </div>
             <div>
-              <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">Total gastado</p>
+              <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">{t.customers_totalSpent}</p>
               <p className="text-emerald-600 font-semibold">{formatPrice(selected.total_spent, currency)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">Ticket promedio</p>
+              <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">{t.customers_avgTicket}</p>
               <p className="text-gray-900 font-semibold">
                 {selected.total_orders > 0
                   ? formatPrice(selected.total_spent / selected.total_orders, currency)
@@ -355,7 +352,7 @@ export function CustomersManager({ currency }: Props) {
               </p>
             </div>
             <div>
-              <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">Última orden</p>
+              <p className="text-[10px] text-gray-600 uppercase tracking-wider mb-1">{t.customers_lastOrderCol}</p>
               <p className="text-gray-900 text-sm">{formatDate(selected.last_order_at)}</p>
             </div>
           </div>
@@ -376,7 +373,7 @@ export function CustomersManager({ currency }: Props) {
                 href={`tel:${selected.phone}`}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm hover:bg-blue-500/20 transition-colors"
               >
-                <Phone className="w-4 h-4" /> Llamar
+                <Phone className="w-4 h-4" /> {t.customers_call}
               </a>
             )}
             {selected.email && (
@@ -398,24 +395,24 @@ export function CustomersManager({ currency }: Props) {
 
           <div>
             <label className="text-xs text-gray-500 font-medium flex items-center gap-1.5 mb-2">
-              <Tag className="w-3.5 h-3.5" /> Tags (separados por coma)
+              <Tag className="w-3.5 h-3.5" /> {t.customers_tagsLabel}
             </label>
             <input
               type="text"
               value={editTags}
               onChange={e => setEditTags(e.target.value)}
-              placeholder="VIP, frecuente, delivery..."
+              placeholder={t.customers_tagsPlaceholder}
               className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
             />
           </div>
 
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-2 block">Notas internas</label>
+            <label className="text-xs text-gray-500 font-medium mb-2 block">{t.customers_internalNotes}</label>
             <textarea
               value={editNotes}
               onChange={e => setEditNotes(e.target.value)}
               rows={3}
-              placeholder="Alergias, preferencias, notas sobre este cliente..."
+              placeholder={t.customers_notesPlaceholder}
               className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 resize-none"
             />
           </div>
@@ -425,7 +422,7 @@ export function CustomersManager({ currency }: Props) {
             disabled={saving}
             className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium transition-colors disabled:opacity-50"
           >
-            {saving ? 'Guardando...' : 'Guardar notas y tags'}
+            {saving ? t.customers_saving : t.customers_saveNotesTags}
           </button>
         </div>
       )}

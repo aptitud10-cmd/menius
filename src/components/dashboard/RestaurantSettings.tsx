@@ -8,18 +8,30 @@ import { cn } from '@/lib/utils';
 import type { Restaurant } from '@/types';
 import { PhoneField } from '@/components/ui/PhoneField';
 import { AddressAutocomplete } from '@/components/ui/AddressAutocomplete';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 const DAYS = [
-  { key: 'monday', label: 'Lunes' },
-  { key: 'tuesday', label: 'Martes' },
-  { key: 'wednesday', label: 'Miércoles' },
-  { key: 'thursday', label: 'Jueves' },
-  { key: 'friday', label: 'Viernes' },
-  { key: 'saturday', label: 'Sábado' },
-  { key: 'sunday', label: 'Domingo' },
+  { key: 'monday' },
+  { key: 'tuesday' },
+  { key: 'wednesday' },
+  { key: 'thursday' },
+  { key: 'friday' },
+  { key: 'saturday' },
+  { key: 'sunday' },
 ];
 
 export function RestaurantSettings({ initialData }: { initialData: Restaurant }) {
+  const { t } = useDashboardLocale();
+  const dayLabels: Record<string, string> = {
+    monday: t.settings_days_monday,
+    tuesday: t.settings_days_tuesday,
+    wednesday: t.settings_days_wednesday,
+    thursday: t.settings_days_thursday,
+    friday: t.settings_days_friday,
+    saturday: t.settings_days_saturday,
+    sunday: t.settings_days_sunday,
+  };
+
   const [form, setForm] = useState({
     name: initialData.name ?? '',
     description: initialData.description ?? '',
@@ -137,13 +149,13 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
   };
 
   const uploadImage = async (file: File): Promise<string | null> => {
-    if (!file.type.startsWith('image/')) { setError('Solo se permiten imágenes'); return null; }
-    if (file.size > 10 * 1024 * 1024) { setError('Máximo 10MB'); return null; }
+    if (!file.type.startsWith('image/')) { setError(t.settings_onlyImages); return null; }
+    if (file.size > 10 * 1024 * 1024) { setError(t.settings_maxSize); return null; }
     const fd = new FormData();
     fd.append('file', file);
     const res = await fetch('/api/tenant/upload', { method: 'POST', body: fd });
     const data = await res.json();
-    if (!res.ok) { setError(data.error ?? 'Error subiendo imagen'); return null; }
+    if (!res.ok) { setError(data.error ?? t.settings_uploadError); return null; }
     return data.url;
   };
 
@@ -195,7 +207,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       if (!res.ok) throw new Error(data.error);
       setSaved(true);
     } catch (err: any) {
-      setError(err.message ?? 'Error al guardar');
+      setError(err.message ?? t.settings_errorSaving);
     } finally {
       setSaving(false);
     }
@@ -205,8 +217,8 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     <div className="space-y-6 max-w-2xl">
       {/* Logo */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <h2 className="font-semibold text-sm text-gray-900 mb-1">Logo del restaurante</h2>
-        <p className="text-xs text-gray-500 mb-4">Se muestra en el encabezado de tu menú público.</p>
+        <h2 className="font-semibold text-sm text-gray-900 mb-1">{t.settings_logo}</h2>
+        <p className="text-xs text-gray-500 mb-4">{t.settings_logoDesc}</p>
         <input ref={logoRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
         <div className="flex items-center gap-4">
           <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-gray-50 border border-gray-200 group flex-shrink-0">
@@ -239,14 +251,14 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               disabled={uploadingLogo}
               className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
-              {logoUrl ? 'Cambiar logo' : 'Subir logo'}
+              {logoUrl ? t.settings_changeLogo : t.settings_uploadLogo}
             </button>
             {logoUrl && (
               <button
                 onClick={() => { setLogoUrl(''); setSaved(false); }}
                 className="px-4 py-2 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
               >
-                Eliminar
+                {t.settings_remove}
               </button>
             )}
           </div>
@@ -255,9 +267,9 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
       {/* Cover / Banner */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <h2 className="font-semibold text-sm text-gray-900 mb-1">Banner del menú</h2>
+        <h2 className="font-semibold text-sm text-gray-900 mb-1">{t.settings_banner}</h2>
         <p className="text-xs text-gray-500 mb-4">
-          Imagen de portada que aparece en la parte superior de tu menú público. Medida ideal: <strong>1200 x 400px</strong> (3:1). JPG, PNG o WebP, máximo 10MB.
+          {t.settings_bannerDesc} {t.settings_bannerFormatNote}
         </p>
         <input ref={coverRef} type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
         {coverUrl ? (
@@ -270,13 +282,13 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                 className="opacity-0 group-hover:opacity-100 px-3 py-2 bg-white rounded-lg text-sm font-medium hover:bg-gray-100 transition-all"
               >
                 {uploadingCover ? <Loader2 className="w-4 h-4 animate-spin inline mr-1" /> : <Camera className="w-4 h-4 inline mr-1" />}
-                Cambiar
+                {t.settings_change}
               </button>
               <button
                 onClick={() => { setCoverUrl(''); setSaved(false); }}
                 className="opacity-0 group-hover:opacity-100 px-3 py-2 bg-white rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-all"
               >
-                Eliminar
+                {t.settings_remove}
               </button>
             </div>
           </div>
@@ -291,8 +303,8 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             ) : (
               <>
                 <Camera className="w-6 h-6 text-gray-400" />
-                <span className="text-sm font-medium text-gray-500">Subir banner</span>
-                <span className="text-[11px] text-gray-400">1200 x 400px recomendado</span>
+                <span className="text-sm font-medium text-gray-500">{t.settings_uploadBanner}</span>
+                <span className="text-[11px] text-gray-400">{t.settings_bannerRecommended}</span>
               </>
             )}
           </button>
@@ -301,7 +313,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
       {/* Public URL */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <h2 className="font-semibold text-sm mb-3 text-gray-900">Enlace público del menú</h2>
+        <h2 className="font-semibold text-sm mb-3 text-gray-900">{t.settings_publicURL}</h2>
         <div className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 border border-gray-200">
           <span className="text-sm text-gray-500 truncate flex-1 font-mono">{publicUrl}</span>
           <a href={publicUrl} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg hover:bg-gray-100">
@@ -319,29 +331,29 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
       {/* Basic info */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <h2 className="font-semibold text-sm mb-4 text-gray-900">Información básica</h2>
+        <h2 className="font-semibold text-sm mb-4 text-gray-900">{t.settings_basicInfo}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Nombre del restaurante" value={form.name} onChange={(v) => handleChange('name', v)} />
-          <PhoneField label="Teléfono" value={form.phone} onChange={(v) => handleChange('phone', v)} dark={false} />
+          <Field label={t.settings_restaurantName} value={form.name} onChange={(v) => handleChange('name', v)} />
+          <PhoneField label={t.settings_phone} value={form.phone} onChange={(v) => handleChange('phone', v)} dark={false} />
           <div className="sm:col-span-2">
-            <Field label="Descripción" value={form.description} onChange={(v) => handleChange('description', v)} placeholder="Describe tu restaurante..." textarea />
+            <Field label={t.settings_description} value={form.description} onChange={(v) => handleChange('description', v)} placeholder={t.settings_descPlaceholder} textarea />
           </div>
-          <AddressAutocomplete label="Dirección" value={form.address} onChange={(v) => handleChange('address', v)} placeholder="Buscar dirección..." dark={false} />
+          <AddressAutocomplete label={t.settings_address} value={form.address} onChange={(v) => handleChange('address', v)} placeholder={t.settings_addressPlaceholder} dark={false} />
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Latitud" value={String(form.latitude ?? '')} onChange={(v) => handleChange('latitude', v)} placeholder="19.4284" />
-            <Field label="Longitud" value={String(form.longitude ?? '')} onChange={(v) => handleChange('longitude', v)} placeholder="-99.1676" />
+            <Field label={t.settings_latitude} value={String(form.latitude ?? '')} onChange={(v) => handleChange('latitude', v)} placeholder="19.4284" />
+            <Field label={t.settings_longitude} value={String(form.longitude ?? '')} onChange={(v) => handleChange('longitude', v)} placeholder="-99.1676" />
           </div>
-          <Field label="Email" value={form.email} onChange={(v) => handleChange('email', v)} placeholder="contacto@mirestaurante.com" />
-          <Field label="Sitio web" value={form.website} onChange={(v) => handleChange('website', v)} placeholder="https://..." />
+          <Field label={t.settings_email} value={form.email} onChange={(v) => handleChange('email', v)} placeholder="contacto@mirestaurante.com" />
+          <Field label={t.settings_website} value={form.website} onChange={(v) => handleChange('website', v)} placeholder="https://..." />
         </div>
       </div>
 
       {/* Regional */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <h2 className="font-semibold text-sm mb-4 text-gray-900">Regional</h2>
+        <h2 className="font-semibold text-sm mb-4 text-gray-900">{t.settings_regional}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Zona horaria</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">{t.settings_timezone}</label>
             <select
               value={form.timezone}
               onChange={(e) => handleChange('timezone', e.target.value)}
@@ -360,7 +372,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Moneda</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">{t.settings_currency}</label>
             <select
               value={form.currency}
               onChange={(e) => handleChange('currency', e.target.value)}
@@ -378,7 +390,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           <div>
             <label className="flex items-center gap-1 text-xs font-medium text-gray-500 mb-1">
               <Globe className="w-3.5 h-3.5" />
-              Idioma principal
+              {t.settings_mainLanguage}
             </label>
             <select
               value={form.locale}
@@ -399,7 +411,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               ))}
             </select>
             <p className="text-[11px] text-gray-500 mt-1">
-              El idioma base de tus productos y categorías.
+              {t.settings_mainLanguageDesc}
             </p>
           </div>
         </div>
@@ -409,10 +421,10 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
         <div className="flex items-center gap-2 mb-1">
           <Languages className="w-4 h-4 text-emerald-600" />
-          <h2 className="font-semibold text-sm text-gray-900">Idiomas adicionales</h2>
+          <h2 className="font-semibold text-sm text-gray-900">{t.settings_additionalLanguages}</h2>
         </div>
         <p className="text-xs text-gray-500 mb-4">
-          Agrega idiomas para que tus clientes puedan ver el menú en su idioma. Podrás traducir nombres y descripciones de productos en la sección de menú.
+          {t.settings_additionalLanguagesDesc}
         </p>
 
         <div className="flex flex-wrap gap-2 mb-3">
@@ -431,7 +443,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               >
                 <span>{loc?.flag ?? '🌐'}</span>
                 <span>{loc?.label ?? code}</span>
-                {isPrimary && <span className="text-[10px] text-emerald-500 ml-0.5">principal</span>}
+                {isPrimary && <span className="text-[10px] text-emerald-500 ml-0.5">{t.settings_primary}</span>}
                 {!isPrimary && (
                   <button
                     onClick={() => {
@@ -458,7 +470,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               defaultValue=""
               className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
             >
-              <option value="" disabled>Agregar idioma...</option>
+              <option value="" disabled>{t.settings_addLanguageSelect}</option>
               {SUPPORTED_LOCALES.filter((l) => !form.available_locales.includes(l.code)).map((l) => (
                 <option key={l.code} value={l.code}>{l.flag} {l.label}</option>
               ))}
@@ -478,14 +490,14 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               className="px-3 py-2 rounded-xl bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition-colors flex items-center gap-1"
             >
               <Plus className="w-3.5 h-3.5" />
-              Agregar
+              {t.settings_addLanguage}
             </button>
           </div>
         )}
 
         {form.available_locales.length > 1 && (
           <p className="text-[11px] text-emerald-600 mt-3 font-medium">
-            Tus clientes verán un selector de idioma en el menú. Ve a Menú → Productos para agregar traducciones.
+            {t.settings_languageSelectorNote}
           </p>
         )}
       </div>
@@ -494,16 +506,16 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
         <div className="flex items-center gap-2 mb-4">
           <ShoppingBag className="w-4 h-4 text-gray-500" />
-          <h2 className="font-semibold text-sm text-gray-900">Tipos de orden</h2>
+          <h2 className="font-semibold text-sm text-gray-900">{t.settings_orderTypes}</h2>
         </div>
         <p className="text-xs text-gray-500 mb-3">
-          Selecciona qué tipos de orden pueden hacer tus clientes.
+          {t.settings_orderTypesDesc}
         </p>
         <div className="space-y-2.5">
           {([
-            { key: 'dine_in', label: 'Comer aquí', desc: 'El cliente ordena y come en tu restaurante' },
-            { key: 'pickup', label: 'Para recoger', desc: 'El cliente ordena y pasa a recoger' },
-            { key: 'delivery', label: 'Delivery', desc: 'El cliente pone su dirección y tú le envías el pedido' },
+            { key: 'dine_in', label: t.settings_dineIn, desc: t.settings_dineInDesc },
+            { key: 'pickup', label: t.settings_pickup, desc: t.settings_pickupDesc },
+            { key: 'delivery', label: t.settings_delivery, desc: t.settings_deliveryDesc },
           ] as const).map((opt) => {
             const checked = form.order_types_enabled.includes(opt.key);
             return (
@@ -518,7 +530,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                     setForm((prev) => ({
                       ...prev,
                       order_types_enabled: checked
-                        ? prev.order_types_enabled.filter((t) => t !== opt.key)
+                        ? prev.order_types_enabled.filter((ot) => ot !== opt.key)
                         : [...prev.order_types_enabled, opt.key],
                     }));
                     setSaved(false);
@@ -540,7 +552,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="w-4 h-4 text-gray-500" />
-                  <label className="text-xs font-medium text-gray-500">Tiempo estimado (min)</label>
+                  <label className="text-xs font-medium text-gray-500">{t.settings_deliveryTime}</label>
                 </div>
                 <input
                   type="number"
@@ -555,7 +567,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <CreditCard className="w-4 h-4 text-gray-500" />
-                  <label className="text-xs font-medium text-gray-500">Costo de envío</label>
+                  <label className="text-xs font-medium text-gray-500">{t.settings_deliveryFee}</label>
                 </div>
                 <input
                   type="number"
@@ -569,7 +581,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               </div>
             </div>
             <p className="text-[11px] text-gray-400 mt-2">
-              Se muestra a tus clientes antes de confirmar el pedido. Deja en 0 para envío gratis.
+              {t.settings_deliveryFeeNote}
             </p>
           </div>
         )}
@@ -579,15 +591,15 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
         <div className="flex items-center gap-2 mb-4">
           <CreditCard className="w-4 h-4 text-gray-500" />
-          <h2 className="font-semibold text-sm text-gray-900">Métodos de pago</h2>
+          <h2 className="font-semibold text-sm text-gray-900">{t.settings_paymentMethods}</h2>
         </div>
         <p className="text-xs text-gray-500 mb-3">
-          Cómo pueden pagar tus clientes.
+          {t.settings_paymentMethodsDesc}
         </p>
         <div className="space-y-2.5">
           {([
-            { key: 'cash', label: 'Efectivo / En caja', desc: 'El cliente paga al recibir su pedido o en caja' },
-            { key: 'online', label: 'Pago en línea', desc: 'El cliente paga con tarjeta al ordenar (requiere Stripe Connect)' },
+            { key: 'cash', label: t.settings_cash, desc: t.settings_cashDesc },
+            { key: 'online', label: t.settings_onlinePayment, desc: t.settings_onlinePaymentDesc },
           ] as const).map((opt) => {
             const checked = form.payment_methods_enabled.includes(opt.key);
             return (
@@ -622,32 +634,32 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         <div className="mt-4 p-4 rounded-xl border border-gray-200 bg-gray-50">
           <div className="flex items-center gap-2 mb-2">
             <Link2 className="w-4 h-4 text-violet-600" />
-            <h3 className="text-sm font-semibold text-gray-900">Stripe Connect</h3>
+            <h3 className="text-sm font-semibold text-gray-900">{t.settings_stripeConnect}</h3>
           </div>
           <p className="text-xs text-gray-500 mb-3">
-            Conecta tu cuenta de Stripe para recibir pagos directamente.
+            {t.settings_stripeConnectDesc}
           </p>
           {stripeStatus.loading ? (
             <div className="flex items-center gap-2 text-xs text-gray-400">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Verificando...
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> {t.settings_stripeVerifying}
             </div>
           ) : stripeStatus.onboarding_complete ? (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span className="text-sm font-medium text-emerald-700">Conectado — Listo para recibir pagos</span>
+              <span className="text-sm font-medium text-emerald-700">{t.settings_stripeReady}</span>
             </div>
           ) : stripeStatus.connected ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
                 <Clock className="w-4 h-4 text-amber-600" />
-                <span className="text-sm text-amber-700">Cuenta creada — Completa la verificación</span>
+                <span className="text-sm text-amber-700">{t.settings_stripePendingVerify}</span>
               </div>
               <button
                 onClick={handleConnectStripe}
                 disabled={stripeStatus.connecting}
                 className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors"
               >
-                {stripeStatus.connecting ? 'Redirigiendo...' : 'Completar verificación'}
+                {stripeStatus.connecting ? t.settings_stripeRedirecting : t.settings_stripeCompleteVerify}
               </button>
             </div>
           ) : (
@@ -657,9 +669,9 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
               {stripeStatus.connecting ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Conectando...</>
+                <><Loader2 className="w-4 h-4 animate-spin" /> {t.settings_stripeConnecting}</>
               ) : (
-                <><CreditCard className="w-4 h-4" /> Conectar Stripe</>
+                <><CreditCard className="w-4 h-4" /> {t.settings_stripeConnect_btn}</>
               )}
             </button>
           )}
@@ -668,7 +680,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
       {/* Operating hours */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <h2 className="font-semibold text-sm mb-4 text-gray-900">Horario de operación</h2>
+        <h2 className="font-semibold text-sm mb-4 text-gray-900">{t.settings_schedule}</h2>
         <div className="space-y-2.5">
           {DAYS.map((day) => (
             <div key={day.key} className="flex items-center gap-3">
@@ -676,10 +688,10 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                 onClick={() => toggleClosed(day.key)}
                 className={`w-24 text-left text-sm font-medium ${hours[day.key].closed ? 'text-gray-500 line-through' : 'text-gray-700'}`}
               >
-                {day.label}
+                {dayLabels[day.key]}
               </button>
               {hours[day.key].closed ? (
-                <span className="text-sm text-red-400 font-medium">Cerrado</span>
+                <span className="text-sm text-red-400 font-medium">{t.settings_closed}</span>
               ) : (
                 <div className="flex items-center gap-2">
                   <input
@@ -688,7 +700,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                     onChange={(e) => handleHourChange(day.key, 'open', e.target.value)}
                     className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                   />
-                  <span className="text-gray-500 text-sm">a</span>
+                  <span className="text-gray-500 text-sm">{t.settings_timeTo}</span>
                   <input
                     type="time"
                     value={hours[day.key].close}
@@ -701,7 +713,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                 onClick={() => toggleClosed(day.key)}
                 className={`ml-auto text-xs font-medium px-2.5 py-1 rounded-lg ${hours[day.key].closed ? 'bg-gray-50 text-gray-500 hover:bg-gray-100' : 'bg-red-500/[0.08] text-red-400 hover:bg-red-500/[0.12]'}`}
               >
-                {hours[day.key].closed ? 'Abrir' : 'Cerrar'}
+                {hours[day.key].closed ? t.settings_openDay : t.settings_closeDay}
               </button>
             </div>
           ))}
@@ -713,11 +725,11 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Bell className="w-4 h-4 text-gray-500" />
-            <h2 className="font-semibold text-sm text-gray-900">Notificaciones</h2>
+            <h2 className="font-semibold text-sm text-gray-900">{t.settings_notifications}</h2>
           </div>
           <div className="flex items-center gap-2">
             <span className={cn('text-xs font-medium', form.notifications_enabled ? 'text-green-600' : 'text-gray-400')}>
-              {form.notifications_enabled ? 'Activado' : 'Desactivado'}
+              {form.notifications_enabled ? t.settings_enabled : t.settings_disabled}
             </span>
             <button
               onClick={() => { setForm((prev) => ({ ...prev, notifications_enabled: !prev.notifications_enabled })); setSaved(false); }}
@@ -739,7 +751,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             <div>
               <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
                 <MessageCircle className="w-3.5 h-3.5" />
-                WhatsApp para nuevas órdenes
+                {t.settings_whatsappOrdersLabel}
               </div>
               <PhoneField
                 value={form.notification_whatsapp}
@@ -747,13 +759,13 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                 dark={false}
               />
               <p className="text-[11px] text-gray-500 mt-1">
-                Recibirás un mensaje de WhatsApp cada vez que llegue una nueva orden.
+                {t.settings_whatsappOrdersDesc}
               </p>
             </div>
             <div>
               <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
                 <Mail className="w-3.5 h-3.5" />
-                Email para notificaciones del negocio
+                {t.settings_emailNotificationLabel}
               </label>
               <input
                 type="email"
@@ -763,14 +775,14 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                 className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               />
               <p className="text-[11px] text-gray-500 mt-1">
-                Los clientes que dejen su email recibirán confirmaciones y actualizaciones de su pedido.
+                {t.settings_emailNotificationDesc}
               </p>
             </div>
           </div>
         )}
 
         {!form.notifications_enabled && (
-          <p className="text-sm text-gray-500">Las notificaciones están desactivadas. Actívalas para recibir alertas de nuevas órdenes.</p>
+          <p className="text-sm text-gray-500">{t.settings_notificationsOffDesc}</p>
         )}
       </div>
 
@@ -783,7 +795,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         {isDirty && !saved && (
           <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-            Cambios sin guardar
+            {t.settings_unsavedChanges}
           </span>
         )}
         <button
@@ -797,7 +809,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           )}
         >
           {saved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-          {saving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar cambios'}
+          {saving ? t.settings_saving : saved ? t.settings_saved : t.settings_save}
         </button>
       </div>
     </div>
@@ -823,6 +835,7 @@ function Field({
 }
 
 function DomainSection({ domain, domainVerified, onChange }: { domain: string; domainVerified: boolean; onChange: (v: string) => void }) {
+  const { t } = useDashboardLocale();
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState<{ verified: boolean; error?: string } | null>(null);
 
@@ -836,7 +849,7 @@ function DomainSection({ domain, domainVerified, onChange }: { domain: string; d
       const data = await res.json();
       setVerifyResult(data);
     } catch {
-      setVerifyResult({ verified: false, error: 'Error de red. Intenta de nuevo.' });
+      setVerifyResult({ verified: false, error: t.settings_domainNetworkError });
     } finally {
       setVerifying(false);
     }
@@ -846,32 +859,32 @@ function DomainSection({ domain, domainVerified, onChange }: { domain: string; d
     <div className="bg-white rounded-2xl border border-gray-200 p-5">
       <div className="flex items-center gap-2 mb-1">
         <Globe className="w-4 h-4 text-emerald-600" />
-        <h2 className="font-semibold text-sm text-gray-900">Dominio personalizado</h2>
+        <h2 className="font-semibold text-sm text-gray-900">{t.settings_domainTitle}</h2>
         <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium">Plan Pro+</span>
       </div>
-      <p className="text-xs text-gray-500 mb-4">Conecta tu propio dominio para que tus clientes accedan al menú con tu marca.</p>
+      <p className="text-xs text-gray-500 mb-4">{t.settings_domainDesc}</p>
 
       <Field
-        label="Dominio"
+        label={t.settings_domain}
         value={domain}
         onChange={onChange}
-        placeholder="menu.mirestaurante.com"
+        placeholder={t.settings_domainPlaceholder}
       />
 
       {domain && (
         <>
           {/* DNS instructions */}
           <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200">
-            <p className="text-xs font-semibold text-emerald-700 mb-2">Configuración DNS requerida:</p>
+            <p className="text-xs font-semibold text-emerald-700 mb-2">{t.settings_dnsRequired}</p>
             <div className="bg-white rounded-lg p-2.5 border border-emerald-200">
               <div className="grid grid-cols-3 gap-2 text-[11px] font-mono">
-                <div><span className="text-gray-500">Tipo</span><br /><span className="text-gray-900">CNAME</span></div>
-                <div><span className="text-gray-500">Nombre</span><br /><span className="text-gray-900">{domain}</span></div>
-                <div><span className="text-gray-500">Valor</span><br /><span className="text-gray-900">cname.vercel-dns.com</span></div>
+                <div><span className="text-gray-500">{t.settings_dnsType}</span><br /><span className="text-gray-900">CNAME</span></div>
+                <div><span className="text-gray-500">{t.settings_dnsName}</span><br /><span className="text-gray-900">{domain}</span></div>
+                <div><span className="text-gray-500">{t.settings_dnsValue}</span><br /><span className="text-gray-900">cname.vercel-dns.com</span></div>
               </div>
             </div>
             <p className="text-[11px] text-gray-500 mt-2">
-              Agrega este registro CNAME en tu proveedor de dominio (GoDaddy, Namecheap, Cloudflare, etc.). La propagación puede tardar hasta 48 horas.
+              {t.settings_dnsPropagation}
             </p>
           </div>
 
@@ -880,7 +893,7 @@ function DomainSection({ domain, domainVerified, onChange }: { domain: string; d
             {isVerified ? (
               <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/[0.15]">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span className="text-xs font-medium text-emerald-300">Dominio verificado y activo</span>
+                <span className="text-xs font-medium text-emerald-300">{t.settings_domainActive}</span>
               </div>
             ) : (
               <>
@@ -890,7 +903,7 @@ function DomainSection({ domain, domainVerified, onChange }: { domain: string; d
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 text-xs font-medium hover:bg-emerald-50 transition-colors disabled:opacity-50"
                 >
                   {verifying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                  {verifying ? 'Verificando...' : 'Verificar DNS'}
+                  {verifying ? t.settings_domainVerifying : t.settings_domainVerifyDNS}
                 </button>
 
                 {verifyResult && !verifyResult.verified && (

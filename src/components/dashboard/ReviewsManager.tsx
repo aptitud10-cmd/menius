@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Star, Eye, EyeOff, MessageSquare, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface Review {
   id: string;
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function ReviewsManager({ restaurantId, initialReviews }: Props) {
+  const { t } = useDashboardLocale();
   const [reviews, setReviews] = useState(initialReviews);
   const [isPending, startTransition] = useTransition();
 
@@ -56,18 +58,19 @@ export function ReviewsManager({ restaurantId, initialReviews }: Props) {
 
   return (
     <div className="space-y-6">
+      <h1 className="dash-heading">{t.nav_reviews}</h1>
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Promedio" value={avg > 0 ? avg.toFixed(1) : '—'} icon={<Star className="w-5 h-5" />} color="amber" />
-        <StatCard label="Total" value={String(total)} icon={<MessageSquare className="w-5 h-5" />} color="blue" />
-        <StatCard label="Visibles" value={String(visible)} icon={<Eye className="w-5 h-5" />} color="emerald" />
-        <StatCard label="Ocultas" value={String(total - visible)} icon={<EyeOff className="w-5 h-5" />} color="gray" />
+        <StatCard label={t.reviews_average} value={avg > 0 ? avg.toFixed(1) : '—'} icon={<Star className="w-5 h-5" />} color="amber" />
+        <StatCard label={t.reviews_total} value={String(total)} icon={<MessageSquare className="w-5 h-5" />} color="blue" />
+        <StatCard label={t.reviews_visible} value={String(visible)} icon={<Eye className="w-5 h-5" />} color="emerald" />
+        <StatCard label={t.reviews_hidden} value={String(total - visible)} icon={<EyeOff className="w-5 h-5" />} color="gray" />
       </div>
 
       {/* Distribution */}
       <div className="dash-card p-5">
         <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-gray-500" /> Distribución
+          <TrendingUp className="w-4 h-4 text-gray-500" /> {t.reviews_distribution}
         </h3>
         <div className="space-y-2.5">
           {distribution.map(({ star, count }) => (
@@ -92,8 +95,8 @@ export function ReviewsManager({ restaurantId, initialReviews }: Props) {
       {reviews.length === 0 ? (
         <div className="dash-card p-10 text-center">
           <MessageSquare className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-gray-900">Sin reseñas aún</p>
-          <p className="text-xs text-gray-500 mt-1">Las reseñas aparecerán cuando tus clientes califiquen sus pedidos.</p>
+          <p className="text-sm font-semibold text-gray-900">{t.reviews_noReviews}</p>
+          <p className="text-xs text-gray-500 mt-1">{t.reviews_noReviewsDesc}</p>
         </div>
       ) : (
         <div className="dash-card divide-y divide-gray-100">
@@ -126,7 +129,7 @@ export function ReviewsManager({ restaurantId, initialReviews }: Props) {
                   'p-2 rounded-lg transition-colors flex-shrink-0',
                   r.is_visible ? 'hover:bg-red-50 text-gray-400 hover:text-red-500' : 'hover:bg-emerald-50 text-gray-400 hover:text-emerald-500',
                 )}
-                title={r.is_visible ? 'Ocultar reseña' : 'Mostrar reseña'}
+                title={r.is_visible ? t.reviews_hideReview : t.reviews_showReview}
               >
                 {r.is_visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>

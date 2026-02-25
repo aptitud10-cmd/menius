@@ -6,6 +6,7 @@ import {
   Calendar, Percent, Clock, XCircle, ArrowUpRight, ArrowDownRight, Flame, Download, FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface AnalyticsData {
   summary: {
@@ -29,15 +30,17 @@ interface AnalyticsData {
   topProducts: { name: string; qty: number; revenue: number }[];
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pendiente',
-  confirmed: 'Confirmado',
-  preparing: 'Preparando',
-  ready: 'Listo',
-  delivered: 'Entregado',
-  completed: 'Completado',
-  cancelled: 'Cancelado',
-};
+function getStatusLabels(t: ReturnType<typeof useDashboardLocale>['t']): Record<string, string> {
+  return {
+    pending: t.analytics_statusPending,
+    confirmed: t.analytics_statusConfirmed,
+    preparing: t.analytics_statusPreparing,
+    ready: t.analytics_statusReady,
+    delivered: t.analytics_statusDelivered,
+    completed: t.analytics_statusCompleted,
+    cancelled: t.analytics_statusCancelled,
+  };
+}
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-amber-500',
@@ -65,6 +68,8 @@ function formatDateForInput(d: Date) {
 }
 
 export default function AnalyticsPage() {
+  const { t } = useDashboardLocale();
+  const STATUS_LABELS = getStatusLabels(t);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +79,7 @@ export default function AnalyticsPage() {
 
   const fetchData = useCallback(async () => {
     if (period === 'custom' && customStart > customEnd) {
-      setError('La fecha de inicio debe ser anterior a la fecha de fin');
+      setError(t.analytics_startBeforeEnd);
       setData(null);
       setLoading(false);
       return;
@@ -88,11 +93,11 @@ export default function AnalyticsPage() {
       const res = await fetch(`/api/tenant/analytics?${params}`);
       const json = await res.json();
       if (json.error) throw new Error(json.error);
-      if (!res.ok) throw new Error('Error al cargar analytics');
+      if (!res.ok) throw new Error(t.analytics_errorLoading);
       setData(json);
     } catch (err) {
       console.error('[Analytics] fetchData failed:', err);
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      setError(err instanceof Error ? err.message : t.analytics_errorUnknown);
       setData(null);
     }
     setLoading(false);
@@ -104,7 +109,7 @@ export default function AnalyticsPage() {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-        <p className="text-sm text-gray-500">Cargando analytics...</p>
+        <p className="text-sm text-gray-500">{t.analytics_loading}</p>
       </div>
     );
   }
@@ -112,12 +117,12 @@ export default function AnalyticsPage() {
   if (error || !data) {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-4">
-        <p className="text-sm text-red-500">{error ?? 'No se pudieron cargar los datos'}</p>
+        <p className="text-sm text-red-500">{error ?? t.analytics_noDataLoaded}</p>
         <button
           onClick={() => fetchData()}
           className="px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600"
         >
-          Reintentar
+          {t.analytics_retry}
         </button>
       </div>
     );
@@ -133,7 +138,7 @@ export default function AnalyticsPage() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="dash-heading">Analytics</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Métricas y rendimiento de tu restaurante</p>
+          <p className="text-sm text-gray-500 mt-0.5">{t.analytics_subtitle}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 bg-white rounded-xl border border-gray-200 p-1">
@@ -160,13 +165,13 @@ export default function AnalyticsPage() {
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               )}
             >
-              Personalizado
+              {t.analytics_custom}
             </button>
           </div>
           {period === 'custom' && (
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-1.5">
-                <label className="text-xs text-gray-500">Inicio</label>
+                <label className="text-xs text-gray-500">{t.analytics_start}</label>
                 <input
                   type="date"
                   value={customStart}
@@ -175,7 +180,7 @@ export default function AnalyticsPage() {
                 />
               </div>
               <div className="flex items-center gap-1.5">
-                <label className="text-xs text-gray-500">Fin</label>
+                <label className="text-xs text-gray-500">{t.analytics_end}</label>
                 <input
                   type="date"
                   value={customEnd}
@@ -189,7 +194,7 @@ export default function AnalyticsPage() {
             <a
               href={period === 'custom' ? `/api/tenant/reports?start=${customStart}&end=${customEnd}&format=csv` : `/api/tenant/reports?period=${period}&format=csv`}
               className="p-2 rounded-lg bg-gray-50 border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-              title="Exportar CSV"
+              title={t.analytics_exportCsv}
             >
               <Download className="w-4 h-4" />
             </a>
@@ -198,7 +203,7 @@ export default function AnalyticsPage() {
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-lg bg-gray-50 border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
-              title="Reporte PDF (imprimir)"
+              title={t.analytics_reportPdf}
             >
               <FileText className="w-4 h-4" />
             </a>
@@ -210,28 +215,28 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard
           icon={<DollarSign className="w-4 h-4" />}
-          label="Ingresos"
+          label={t.analytics_income}
           value={formatMoney(summary.totalRevenue)}
           change={comparison.revenueChange}
           color="emerald"
         />
         <KPICard
           icon={<ShoppingBag className="w-4 h-4" />}
-          label="Órdenes"
+          label={t.analytics_ordersLabel}
           value={String(summary.totalOrders)}
           change={comparison.ordersChange}
           color="blue"
         />
         <KPICard
           icon={<TrendingUp className="w-4 h-4" />}
-          label="Ticket promedio"
+          label={t.analytics_avgTicket}
           value={formatMoney(summary.avgTicket)}
           change={comparison.ticketChange}
           color="violet"
         />
         <KPICard
           icon={<Percent className="w-4 h-4" />}
-          label="Tasa de conversión"
+          label={t.analytics_conversionRate}
           value={`${summary.conversionRate.toFixed(1)}%`}
           color="amber"
         />
@@ -239,22 +244,22 @@ export default function AnalyticsPage() {
 
       {/* Mini stats row */}
       <div className="grid grid-cols-3 gap-3">
-        <MiniStat icon={<Clock className="w-3.5 h-3.5" />} label="Hora pico" value={summary.peakHour} />
-        <MiniStat icon={<XCircle className="w-3.5 h-3.5" />} label="Cancelaciones" value={String(summary.cancelledOrders)} />
-        <MiniStat icon={<Flame className="w-3.5 h-3.5" />} label="Descuentos" value={formatMoney(summary.totalDiscount)} />
+        <MiniStat icon={<Clock className="w-3.5 h-3.5" />} label={t.analytics_peakHourLabel} value={summary.peakHour} />
+        <MiniStat icon={<XCircle className="w-3.5 h-3.5" />} label={t.analytics_cancellationsLabel} value={String(summary.cancelledOrders)} />
+        <MiniStat icon={<Flame className="w-3.5 h-3.5" />} label={t.analytics_discountsLabel} value={formatMoney(summary.totalDiscount)} />
       </div>
 
       {/* Sales Chart */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="font-semibold text-sm text-gray-900">Ventas por día</h2>
+          <h2 className="font-semibold text-sm text-gray-900">{t.analytics_salesByDay}</h2>
           <div className="flex items-center gap-4 text-xs text-gray-500">
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" /> Ingresos</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/40" /> Órdenes</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" /> {t.analytics_income}</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/40" /> {t.analytics_ordersLegend}</span>
           </div>
         </div>
         {salesByDay.length === 0 ? (
-          <p className="text-gray-500 text-sm text-center py-12">Sin datos en este periodo</p>
+          <p className="text-gray-500 text-sm text-center py-12">{t.analytics_noDataPeriod}</p>
         ) : (
           <div className="flex items-end gap-1.5 h-52">
             {salesByDay.map((d) => {
@@ -263,7 +268,7 @@ export default function AnalyticsPage() {
                 <div key={d.date} className="flex-1 flex flex-col items-center gap-1 group relative">
                   <div className="hidden group-hover:block absolute -top-20 left-1/2 -translate-x-1/2 bg-gray-900 rounded-xl px-3.5 py-2.5 text-xs text-white z-10 whitespace-nowrap shadow-lg">
                     <p className="font-bold">{formatDayLabel(d.date)}</p>
-                    <p className="text-gray-200">{d.orders} órdenes</p>
+                    <p className="text-gray-200">{d.orders} {t.analytics_ordersLegend}</p>
                     <p className="text-emerald-400 font-semibold">{formatMoney(d.revenue)}</p>
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
                   </div>
@@ -283,7 +288,7 @@ export default function AnalyticsPage() {
 
       {/* Hourly Distribution */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <h2 className="font-semibold text-sm mb-4 text-gray-900">Distribución por hora</h2>
+        <h2 className="font-semibold text-sm mb-4 text-gray-900">{t.analytics_hourlyDist}</h2>
         <div className="flex items-end gap-px h-32">
           {hourlyDistribution.map((count, hour) => {
             const height = Math.max((count / maxHourly) * 100, 2);
@@ -291,7 +296,7 @@ export default function AnalyticsPage() {
             return (
               <div key={hour} className="flex-1 flex flex-col items-center gap-1 group relative">
                 <div className="hidden group-hover:block absolute -top-14 left-1/2 -translate-x-1/2 bg-gray-900 rounded-lg px-2.5 py-1.5 text-xs text-white z-10 whitespace-nowrap shadow-lg">
-                  <p>{hour.toString().padStart(2, '0')}:00 — {count} órdenes</p>
+                  <p>{hour.toString().padStart(2, '0')}:00 — {count} {t.analytics_ordersLegend}</p>
                 </div>
                 <div
                   className={cn(
@@ -312,7 +317,7 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Status Distribution */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <h2 className="font-semibold text-sm mb-4 text-gray-900">Estado de órdenes</h2>
+          <h2 className="font-semibold text-sm mb-4 text-gray-900">{t.analytics_orderStatus}</h2>
           <div className="space-y-3">
             {Object.entries(statusCount)
               .sort((a, b) => b[1] - a[1])
@@ -338,9 +343,9 @@ export default function AnalyticsPage() {
 
         {/* Top Products */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <h2 className="font-semibold text-sm mb-4 text-gray-900">Top productos</h2>
+          <h2 className="font-semibold text-sm mb-4 text-gray-900">{t.analytics_topProductsLabel}</h2>
           {topProducts.length === 0 ? (
-            <p className="text-gray-500 text-sm text-center py-12">Sin datos</p>
+            <p className="text-gray-500 text-sm text-center py-12">{t.analytics_noDataShort}</p>
           ) : (
             <div className="space-y-2">
               {topProducts.map((p, i) => {
