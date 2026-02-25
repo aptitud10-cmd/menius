@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { FadeIn, LazyMotion, domAnimation } from './Animations';
+import { FadeIn, Stagger, StaggerItem, LazyMotion, domAnimation } from './Animations';
 
 /* ─── DATA ─── */
 
@@ -138,6 +138,36 @@ const comparison = [
   ['Costo mensual', 'Desde $39/mes', 'Gratis (pero 30% por pedido)'],
 ];
 
+const testimonials = [
+  {
+    name: 'María García',
+    role: 'La Cocina de María · CDMX',
+    quote: 'Dejé de pagar 30% en comisiones. Con MENIUS recuperé el control de mis clientes y mis ventas subieron 40%.',
+    initials: 'MG',
+  },
+  {
+    name: 'Carlos Rodríguez',
+    role: 'Taquería El Patrón · Monterrey',
+    quote: 'El KDS nos cambió la cocina. Ya no perdemos pedidos y los tiempos de preparación bajaron un 35%.',
+    initials: 'CR',
+  },
+  {
+    name: 'Ana Martínez',
+    role: 'Café Aroma · Guadalajara',
+    quote: 'En 2 minutos tenía mi menú con QR. El asistente IA me ayudó a crear promociones que aumentaron ventas un 25%.',
+    initials: 'AM',
+  },
+];
+
+const integrationsList = [
+  { name: 'Stripe', desc: 'Pagos con tarjeta', bg: 'bg-purple-500/10', icon: '💳' },
+  { name: 'WhatsApp', desc: 'Notificaciones', bg: 'bg-emerald-500/10', icon: '💬' },
+  { name: 'Google Maps', desc: 'Ubicación', bg: 'bg-blue-500/10', icon: '📍' },
+  { name: 'Twilio', desc: 'SMS automáticos', bg: 'bg-red-500/10', icon: '📱' },
+  { name: 'Resend', desc: 'Email marketing', bg: 'bg-sky-500/10', icon: '✉️' },
+  { name: 'OpenAI', desc: 'Asistente IA', bg: 'bg-amber-500/10', icon: '✨' },
+];
+
 /* ─── COMPONENTS ─── */
 
 function FeatureTabs() {
@@ -147,7 +177,6 @@ function FeatureTabs() {
 
   return (
     <div>
-      {/* Tabs */}
       <div className="flex flex-wrap gap-1 p-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.06] w-fit mx-auto mb-10 md:mb-14">
         {features.map((feat, i) => (
           <button
@@ -164,7 +193,6 @@ function FeatureTabs() {
         ))}
       </div>
 
-      {/* Content */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
         <div>
           <h3 className="text-2xl md:text-4xl font-semibold text-white leading-tight tracking-tight">
@@ -185,12 +213,10 @@ function FeatureTabs() {
           </div>
         </div>
 
-        {/* Visual — dynamic card per tab */}
         <div className="relative flex justify-center">
           <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full ${colors.glow} blur-[80px]`} />
 
           <div className="relative z-10 w-full max-w-[380px]">
-            {/* Icon header */}
             <div className={`rounded-2xl border ${colors.border} bg-white/[0.02] backdrop-blur-sm overflow-hidden`}>
               <div className={`px-6 py-5 border-b ${colors.border} flex items-center gap-4`}>
                 <div className={`w-12 h-12 rounded-xl ${colors.bg} border ${colors.border} flex items-center justify-center ${colors.text}`}>
@@ -206,7 +232,6 @@ function FeatureTabs() {
                 </div>
               </div>
 
-              {/* Data rows */}
               <div className="divide-y divide-white/[0.04]">
                 {f.visualItems.map((item, i) => (
                   <div key={i} className="px-6 py-4 flex items-center justify-between">
@@ -216,7 +241,6 @@ function FeatureTabs() {
                 ))}
               </div>
 
-              {/* Footer */}
               <div className={`px-6 py-4 border-t ${colors.border} bg-white/[0.01]`}>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-600">Actualizado en tiempo real</span>
@@ -233,11 +257,158 @@ function FeatureTabs() {
   );
 }
 
+function SocialProof() {
+  const logos = ['La Taquería', 'Café Aroma', 'El Patrón', 'Sushi Zen', 'Pizzería Roma', 'Casa Oaxaca'];
+
+  return (
+    <section className="relative py-16 md:py-24 overflow-clip">
+      <div className="max-w-6xl mx-auto px-5 sm:px-6">
+        <FadeIn className="text-center">
+          <p className="text-sm text-gray-500 font-medium mb-8 tracking-wide">
+            Confiado por restaurantes en toda Latinoamérica
+          </p>
+          <div className="flex items-center justify-center gap-8 md:gap-14 flex-wrap">
+            {logos.map((name) => (
+              <span
+                key={name}
+                className="text-base md:text-lg font-bold text-white/25 tracking-tight whitespace-nowrap hover:text-white/40 transition-colors"
+              >
+                {name}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-12 flex items-center justify-center gap-12 md:gap-20">
+            {[
+              { value: '500+', label: 'Restaurantes' },
+              { value: '50K+', label: 'Pedidos procesados' },
+              { value: '15+', label: 'Ciudades' },
+            ].map((stat) => (
+              <div key={stat.label} className="text-center">
+                <p className="text-2xl md:text-3xl font-bold text-white tracking-tight">{stat.value}</p>
+                <p className="text-xs text-gray-500 mt-1.5 font-medium">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </FadeIn>
+      </div>
+    </section>
+  );
+}
+
+function IntegrationsGrid() {
+  return (
+    <Stagger className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 max-w-3xl mx-auto" staggerDelay={0.08}>
+      {integrationsList.map((item) => (
+        <StaggerItem key={item.name}>
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 md:p-6 text-center hover:bg-white/[0.04] hover:border-white/[0.1] transition-all">
+            <div className={`w-12 h-12 rounded-xl ${item.bg} mx-auto mb-3 flex items-center justify-center text-xl`}>
+              {item.icon}
+            </div>
+            <p className="text-sm font-semibold text-white">{item.name}</p>
+            <p className="text-xs text-gray-500 mt-1">{item.desc}</p>
+          </div>
+        </StaggerItem>
+      ))}
+    </Stagger>
+  );
+}
+
+function SavingsCalculator() {
+  const [revenue, setRevenue] = useState(15000);
+  const commissionLoss = Math.round(revenue * 0.25);
+  const meniusCost = 79;
+  const annualSavings = (commissionLoss - meniusCost) * 12;
+
+  return (
+    <div className="max-w-3xl mx-auto">
+      <div className="mb-10 text-center">
+        <label className="text-sm text-gray-400 mb-4 block font-medium">
+          Ventas mensuales de tu restaurante
+        </label>
+        <p className="text-4xl md:text-5xl font-bold text-white mb-8 tracking-tight">
+          ${revenue.toLocaleString()}
+          <span className="text-lg text-gray-500 font-normal ml-1">/mes</span>
+        </p>
+        <input
+          type="range"
+          min={3000}
+          max={80000}
+          step={1000}
+          value={revenue}
+          onChange={(e) => setRevenue(Number(e.target.value))}
+          className="calc-slider w-full max-w-md"
+        />
+        <div className="flex justify-between max-w-md mx-auto mt-2">
+          <span className="text-xs text-gray-600">$3,000</span>
+          <span className="text-xs text-gray-600">$80,000</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.04] p-6 text-center">
+          <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">Con apps de delivery</p>
+          <p className="text-3xl md:text-4xl font-bold text-red-400">${commissionLoss.toLocaleString()}</p>
+          <p className="text-sm text-gray-500 mt-1.5">en comisiones / mes (25%)</p>
+        </div>
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-6 text-center">
+          <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">Con MENIUS Pro</p>
+          <p className="text-3xl md:text-4xl font-bold text-emerald-400">${meniusCost}</p>
+          <p className="text-sm text-gray-500 mt-1.5">tarifa fija / mes</p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/[0.06] to-blue-500/[0.04] p-6 md:p-8 text-center">
+        <p className="text-sm text-gray-400 mb-2 font-medium">Con MENIUS ahorras</p>
+        <p className="text-4xl md:text-6xl font-bold text-white tracking-tight">
+          ${annualSavings.toLocaleString()}
+        </p>
+        <p className="text-lg text-purple-400 font-semibold mt-1">al año</p>
+      </div>
+    </div>
+  );
+}
+
+function TestimonialsSection() {
+  return (
+    <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 max-w-5xl mx-auto" staggerDelay={0.1}>
+      {testimonials.map((t) => (
+        <StaggerItem key={t.name}>
+          <div className="card-premium rounded-2xl p-6 md:p-7 h-full flex flex-col">
+            <div className="flex gap-0.5 mb-4">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <svg key={s} className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              ))}
+            </div>
+            <p className="text-sm text-gray-300 leading-relaxed mb-5 flex-1">&ldquo;{t.quote}&rdquo;</p>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-xs font-bold">{t.initials}</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-white">{t.name}</p>
+                <p className="text-xs text-gray-500">{t.role}</p>
+              </div>
+            </div>
+          </div>
+        </StaggerItem>
+      ))}
+    </Stagger>
+  );
+}
+
 /* ─── MAIN ─── */
 
 export function LandingSections() {
   return (
     <LazyMotion features={domAnimation}>
+      {/* ── Social Proof ── */}
+      <SocialProof />
+
+      <div className="separator-gradient max-w-5xl mx-auto" />
+
       {/* ── Features with Tabs ── */}
       <section id="funciones" className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-purple" />
@@ -259,7 +430,29 @@ export function LandingSections() {
         </div>
       </section>
 
-      {/* Separator */}
+      <div className="separator-gradient max-w-5xl mx-auto" />
+
+      {/* ── Integrations ── */}
+      <section className="relative py-24 md:py-40 overflow-clip">
+        <div className="section-glow section-glow-teal" />
+
+        <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">
+          <FadeIn className="text-center mb-10 md:mb-14">
+            <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Integraciones</p>
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+              Todo conectado
+            </h2>
+            <p className="text-gray-300 mt-4 md:mt-5 text-base md:text-lg max-w-lg mx-auto font-light">
+              Las herramientas que ya usas, integradas en un solo lugar.
+            </p>
+          </FadeIn>
+
+          <FadeIn delay={0.1}>
+            <IntegrationsGrid />
+          </FadeIn>
+        </div>
+      </section>
+
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Comparison ── */}
@@ -278,7 +471,6 @@ export function LandingSections() {
           </FadeIn>
 
           <FadeIn delay={0.1}>
-            {/* Mobile: stacked cards */}
             <div className="md:hidden space-y-3">
               {[
                 { feature: 'Comisión por pedido', menius: '0%', other: '15% – 30%' },
@@ -302,7 +494,6 @@ export function LandingSections() {
               ))}
             </div>
 
-            {/* Desktop: full comparison table */}
             <div className="hidden md:block rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02]">
               <div className="grid grid-cols-3">
                 <div className="p-5 border-b border-white/[0.06]" />
@@ -327,19 +518,33 @@ export function LandingSections() {
                 </div>
               ))}
             </div>
-
-            <div className="mt-8 p-5 md:p-6 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
-              <p className="text-sm md:text-[15px] text-gray-400 leading-relaxed text-center">
-                <strong className="text-white">Ejemplo:</strong> Un restaurante con $10,000/mes pierde{' '}
-                <strong className="text-red-400">$3,000 en comisiones</strong> con apps. Con MENIUS Pro ($79/mes),
-                ahorra <strong className="text-white">$35,000 al año</strong>.
-              </p>
-            </div>
           </FadeIn>
         </div>
       </section>
 
-      {/* Separator */}
+      <div className="separator-gradient max-w-5xl mx-auto" />
+
+      {/* ── Savings Calculator ── */}
+      <section className="relative py-24 md:py-40 overflow-clip">
+        <div className="section-glow section-glow-purple" />
+
+        <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">
+          <FadeIn className="text-center mb-10 md:mb-14">
+            <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Calculadora de ahorro</p>
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+              ¿Cuánto ahorras con MENIUS?
+            </h2>
+            <p className="text-gray-300 mt-4 md:mt-5 text-base md:text-lg max-w-lg mx-auto font-light">
+              Mueve el slider y calcula cuánto pierdes en comisiones con apps de delivery.
+            </p>
+          </FadeIn>
+
+          <FadeIn delay={0.1}>
+            <SavingsCalculator />
+          </FadeIn>
+        </div>
+      </section>
+
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Pricing ── */}
@@ -411,7 +616,6 @@ export function LandingSections() {
         </div>
       </section>
 
-      {/* Separator */}
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── How it works ── */}
@@ -444,7 +648,26 @@ export function LandingSections() {
         </div>
       </section>
 
-      {/* Separator */}
+      <div className="separator-gradient max-w-5xl mx-auto" />
+
+      {/* ── Testimonials ── */}
+      <section className="relative py-24 md:py-40 overflow-clip">
+        <div className="section-glow section-glow-teal" />
+
+        <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">
+          <FadeIn className="text-center mb-10 md:mb-14">
+            <p className="text-sm text-amber-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Testimonios</p>
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+              Lo que dicen nuestros clientes
+            </h2>
+          </FadeIn>
+
+          <FadeIn delay={0.1}>
+            <TestimonialsSection />
+          </FadeIn>
+        </div>
+      </section>
+
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Final CTA ── */}

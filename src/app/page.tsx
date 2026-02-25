@@ -47,7 +47,7 @@ export default function LandingPage() {
                   <ul className="space-y-2.5">
                     <li><Link href="/blog" className="text-sm text-gray-400 hover:text-white transition-colors">Blog</Link></li>
                     <li><Link href="/faq" className="text-sm text-gray-400 hover:text-white transition-colors">FAQ</Link></li>
-                    <li><a href="mailto:soportemenius@gmail.com" className="text-sm text-gray-400 hover:text-white transition-colors">Soporte</a></li>
+                    <li><a href="mailto:soporte@menius.app" className="text-sm text-gray-400 hover:text-white transition-colors">Soporte</a></li>
                   </ul>
                 </div>
               </div>
@@ -101,7 +101,7 @@ export default function LandingPage() {
                     <li><Link href="/blog" className="text-[13px] text-gray-500 hover:text-white transition-colors">Blog</Link></li>
                     <li><Link href="/faq" className="text-[13px] text-gray-500 hover:text-white transition-colors">FAQ</Link></li>
                     <li><Link href="/setup-profesional" className="text-[13px] text-gray-500 hover:text-white transition-colors">Setup profesional</Link></li>
-                    <li><a href="mailto:soportemenius@gmail.com" className="text-[13px] text-gray-500 hover:text-white transition-colors">Soporte</a></li>
+                    <li><a href="mailto:soporte@menius.app" className="text-[13px] text-gray-500 hover:text-white transition-colors">Soporte</a></li>
                   </ul>
                 </div>
                 <div>

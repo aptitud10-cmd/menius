@@ -156,6 +156,7 @@ export interface Order {
   payment_method?: PaymentMethod;
   delivery_address?: string;
   created_at: string;
+  updated_at?: string;
   // joined
   items?: OrderItem[];
   table?: Table;

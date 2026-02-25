@@ -721,3 +721,43 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   50% { box-shadow: inset 0 0 20px 0 rgba(239,68,68,0.12); }
 }
 .kds-late { animation: kdsLate 3s ease-in-out infinite; }
+
+/* Range slider for savings calculator */
+.calc-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+.calc-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a78bfa, #818cf8);
+  cursor: pointer;
+  box-shadow: 0 0 24px rgba(120,80,255,0.35);
+  border: 3px solid #050505;
+  transition: box-shadow 0.2s ease;
+}
+.calc-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 32px rgba(120,80,255,0.5);
+}
+.calc-slider::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a78bfa, #818cf8);
+  cursor: pointer;
+  box-shadow: 0 0 24px rgba(120,80,255,0.35);
+  border: 3px solid #050505;
+}
+.calc-slider::-moz-range-track {
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 999px;
+}
