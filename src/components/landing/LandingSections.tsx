@@ -22,9 +22,9 @@ const features = [
     accent: 'indigo',
     visualItems: [
       { label: 'Escanea QR', value: 'Mesa 5' },
-      { label: 'Hamburguesa Clásica', value: '$14.99' },
-      { label: 'Limonada Fresca', value: '$4.00' },
-      { label: 'Total del pedido', value: '$18.99' },
+      { label: 'Tacos al Pastor', value: '$95' },
+      { label: 'Limonada Natural', value: '$45' },
+      { label: 'Total del pedido', value: '$140' },
     ],
   },
   {
@@ -41,7 +41,7 @@ const features = [
     accent: 'blue',
     visualItems: [
       { label: 'Órdenes hoy', value: '47' },
-      { label: 'Ventas hoy', value: '$1,240' },
+      { label: 'Ventas hoy', value: '$14,350' },
       { label: 'Productos activos', value: '38' },
       { label: 'Mesas activas', value: '12' },
     ],
@@ -59,8 +59,8 @@ const features = [
     gradient: 'from-emerald-500/20 to-green-500/20',
     accent: 'emerald',
     visualItems: [
-      { label: 'Pago recibido', value: '$45.80' },
-      { label: 'Propina (18%)', value: '$8.24' },
+      { label: 'Pago recibido', value: '$685' },
+      { label: 'Propina (18%)', value: '$123' },
       { label: 'Método', value: 'Visa •4242' },
       { label: 'Estado', value: '✓ Exitoso' },
     ],
@@ -79,7 +79,7 @@ const features = [
     accent: 'amber',
     visualItems: [
       { label: 'MENIUS AI', value: 'Online 24/7' },
-      { label: '¿Cuánto vendí hoy?', value: '$1,240' },
+      { label: '¿Cuánto vendí hoy?', value: '$14,350' },
       { label: 'Producto estrella', value: 'Tacos' },
       { label: 'Menú importado (OCR)', value: '38 items' },
     ],

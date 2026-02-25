@@ -7,10 +7,10 @@ import { Counter } from './Animations';
 const ease = [0.22, 1, 0.36, 1] as const;
 
 const mockMenu = [
-  { name: 'Tacos al Pastor', desc: 'Piña, cilantro, cebolla', price: '$12.99', popular: true },
-  { name: 'Guacamole Fresco', desc: 'Aguacate, tomate, limón', price: '$8.50', popular: false },
-  { name: 'Burrito Supreme', desc: 'Carne, frijol, queso', price: '$15.99', popular: false },
-  { name: 'Horchata', desc: 'Bebida artesanal', price: '$4.00', popular: false },
+  { name: 'Tacos al Pastor', desc: 'Piña, cilantro, cebolla', price: '$95', popular: true },
+  { name: 'Guacamole Fresco', desc: 'Aguacate, tomate, limón', price: '$89', popular: false },
+  { name: 'Enchiladas Suizas', desc: 'Pollo, salsa verde, queso', price: '$145', popular: false },
+  { name: 'Horchata', desc: 'Arroz, canela, vainilla', price: '$38', popular: false },
 ];
 
 export function LandingHero() {
@@ -183,7 +183,7 @@ export function LandingHero() {
                       transition={{ delay: 1.4, duration: 0.5, ease }}
                       className="mt-3 py-2.5 rounded-xl bg-white text-center"
                     >
-                      <span className="text-black text-[10px] font-semibold">🛒 Ver carrito · $41.48</span>
+                      <span className="text-black text-[10px] font-semibold">🛒 Ver carrito · $367</span>
                     </m.div>
 
                     <m.div
