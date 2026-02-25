@@ -581,7 +581,7 @@ export function MenuShell({
                   <p className="font-medium">{t.noResults}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {searchResults.map((product) => (
                     <ProductCard
                       key={product.id}
@@ -618,7 +618,7 @@ export function MenuShell({
                   <p className="text-sm mt-1">{locale === 'es' ? 'Toca el ♥ en un producto para guardarlo' : 'Tap ♥ on a product to save it'}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                   {products.filter((p) => favIds.includes(p.id)).map((product) => (
                     <ProductCard
                       key={product.id}
@@ -666,7 +666,7 @@ export function MenuShell({
                     </span>
                     <div className="flex-1 h-px bg-gray-100" />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                     {items.map((product) => (
                       <ProductCard
                         key={product.id}
