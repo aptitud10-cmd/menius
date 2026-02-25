@@ -254,17 +254,15 @@ export const ProductCard = memo(function ProductCard({
         )}
 
         <div className="p-4">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className={cn('font-bold text-base line-clamp-2 leading-snug', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
-              {displayName}
-            </h3>
-            <span className={cn('text-base font-bold flex-shrink-0 tabular-nums', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
-              {fmtPrice(Number(product.price))}
-            </span>
-          </div>
+          <h3 className={cn('font-bold text-base line-clamp-2 leading-snug', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
+            {displayName}
+          </h3>
+          <span className={cn('text-sm font-bold tabular-nums mt-1 block', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
+            {fmtPrice(Number(product.price))}
+          </span>
 
           {displayDesc && (
-            <p className="text-sm text-gray-500 line-clamp-2 mt-1 leading-relaxed">{displayDesc}</p>
+            <p className="text-sm text-gray-500 line-clamp-2 mt-1.5 leading-relaxed">{displayDesc}</p>
           )}
           {(product.dietary_tags?.length ?? 0) > 0 && (
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
