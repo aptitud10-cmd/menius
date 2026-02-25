@@ -6,6 +6,11 @@ import { createRestaurant } from '@/lib/actions/restaurant';
 import { createRestaurantSchema } from '@/lib/validations';
 import { slugify } from '@/lib/utils';
 
+const LANGUAGES = [
+  { code: 'es', label: 'Español' },
+  { code: 'en', label: 'English' },
+];
+
 const CURRENCIES = [
   { code: 'USD', label: 'USD — Dólar americano ($)' },
   { code: 'MXN', label: 'MXN — Peso mexicano ($)' },
@@ -38,6 +43,7 @@ const TIMEZONES = [
 export default function CreateRestaurantPage() {
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
+  const [locale, setLocale] = useState('es');
   const [currency, setCurrency] = useState('USD');
   const [timezone, setTimezone] = useState('America/New_York');
   const [error, setError] = useState('');
@@ -58,6 +64,7 @@ export default function CreateRestaurantPage() {
       slug,
       timezone,
       currency,
+      locale,
     });
 
     if (!parsed.success) {
@@ -157,6 +164,27 @@ export default function CreateRestaurantPage() {
                   Tu menú estará en: <span className="text-gray-400">menius.app/r/{slug}</span>
                 </p>
               )}
+            </div>
+
+            {/* Language */}
+            <div>
+              <label className="block text-[13px] font-medium text-gray-400 mb-2">Idioma del menú / Menu language</label>
+              <div className="grid grid-cols-2 gap-2">
+                {LANGUAGES.map((l) => (
+                  <button
+                    key={l.code}
+                    type="button"
+                    onClick={() => setLocale(l.code)}
+                    className={`px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                      locale === l.code
+                        ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400'
+                        : 'bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:bg-white/[0.06]'
+                    }`}
+                  >
+                    {l.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Currency + Timezone */}

@@ -26,6 +26,8 @@ export async function createRestaurant(data: CreateRestaurantInput) {
 
   if (existing) return { error: 'Ese slug ya está en uso' };
 
+  const locale = data.locale ?? inferLocale(data.currency);
+
   const { data: restaurant, error } = await supabase
     .from('restaurants')
     .insert({
@@ -34,6 +36,7 @@ export async function createRestaurant(data: CreateRestaurantInput) {
       owner_user_id: user.id,
       timezone: data.timezone,
       currency: data.currency,
+      locale,
     })
     .select()
     .single();
@@ -69,7 +72,6 @@ export async function createRestaurant(data: CreateRestaurantInput) {
 
   // Seed example data — runs before redirect (batch inserts, ~1-2s)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-  const locale = inferLocale(data.currency);
   try {
     const { seedRestaurant } = await import('@/lib/seed-restaurant');
     await seedRestaurant(supabase, restaurant.id, restaurant.slug, appUrl, locale);

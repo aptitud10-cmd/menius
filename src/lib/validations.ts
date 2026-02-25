@@ -18,6 +18,7 @@ export const createRestaurantSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Solo letras minúsculas, números y guiones'),
   timezone: z.string().default('America/Mexico_City'),
   currency: z.string().default('MXN'),
+  locale: z.enum(['es', 'en']).default('es'),
 });
 
 const contentTranslationSchema = z.object({
