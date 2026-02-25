@@ -10,25 +10,10 @@ interface CategorySidebarProps {
   products: Product[];
   activeCategory: string | null;
   onSelect: (catId: string | null) => void;
+  restaurantName?: string;
   allLabel?: string;
   locale?: string;
   defaultLocale?: string;
-}
-
-const CATEGORY_ICONS: Record<string, string> = {
-  desayunos: '🍳', breakfast: '🍳',
-  almuerzos: '🥘', lunch: '🥘',
-  cenas: '🍽️', dinner: '🍽️',
-  aperitivos: '🥗', appetizer: '🥗', entradas: '🥗',
-  bebidas: '🥤', beverage: '🥤',
-  licores: '🍷', drinks: '🍷',
-  tortas: '🍰', desserts: '🍰', postres: '🍰',
-  platos: '🍖',
-};
-
-function getCategoryIcon(name: string): string {
-  const key = name.toLowerCase().split(' ')[0];
-  return CATEGORY_ICONS[key] ?? '📋';
 }
 
 export const CategorySidebar = memo(function CategorySidebar({
@@ -36,13 +21,18 @@ export const CategorySidebar = memo(function CategorySidebar({
   products,
   activeCategory,
   onSelect,
-  allLabel,
+  restaurantName,
   locale = 'es',
   defaultLocale = 'es',
 }: CategorySidebarProps) {
   return (
-    <nav className="py-5 pr-3">
-      <p className="px-3 mb-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Menú</p>
+    <nav className="py-5 pr-3 font-sidebar">
+      {restaurantName && (
+        <div className="px-4 mb-4">
+          <p className="text-[15px] font-bold text-gray-900 leading-tight truncate">{restaurantName}</p>
+          <div className="mt-2.5 h-px bg-gray-100" />
+        </div>
+      )}
 
       <div className="space-y-0.5">
         {categories.map((cat) => {
@@ -54,16 +44,15 @@ export const CategorySidebar = memo(function CategorySidebar({
               key={cat.id}
               onClick={() => onSelect(cat.id)}
               className={cn(
-                'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 relative',
+                'w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-[15px] transition-all duration-150 relative',
                 isActive
                   ? 'bg-emerald-50 text-emerald-700 font-semibold'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  : 'text-gray-600 font-medium hover:bg-gray-50'
               )}
             >
               {isActive && (
                 <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald-500" />
               )}
-              <span className="text-base">{getCategoryIcon(cat.name)}</span>
               <span className="truncate flex-1 text-left">{tName(cat, locale, defaultLocale)}</span>
               <span className={cn(
                 'text-xs tabular-nums flex-shrink-0',
@@ -74,10 +63,6 @@ export const CategorySidebar = memo(function CategorySidebar({
             </button>
           );
         })}
-      </div>
-
-      <div className="mt-4 px-3">
-        <div className="h-px bg-gray-100" />
       </div>
     </nav>
   );

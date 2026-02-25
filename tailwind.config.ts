@@ -12,6 +12,7 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         heading: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        sidebar: ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
       },
       colors: {
         brand: {

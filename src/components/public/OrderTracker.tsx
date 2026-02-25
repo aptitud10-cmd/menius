@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CheckCircle2, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, Wifi, Utensils, ShoppingBag, Truck, CreditCard, Banknote, MapPin } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { formatPrice, cn } from '@/lib/utils';
 
 const ORDER_TYPE_LABELS: Record<string, { icon: typeof Utensils; label: string }> = {
@@ -97,18 +98,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, ord
 
   if (error || !order) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="text-center max-w-sm">
-          <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4">
-            <XCircle className="w-8 h-8 text-red-500" />
-          </div>
-          <h2 className="text-lg font-bold mb-1">Pedido no encontrado</h2>
-          <p className="text-sm text-gray-500 mb-6">{error || 'No pudimos encontrar tu pedido'}</p>
-          <Link href={`/r/${restaurantSlug}`} className="px-6 py-3 rounded-xl bg-brand-600 text-white font-semibold text-sm hover:bg-brand-700 transition-colors">
-            Ir al menú
-          </Link>
-        </div>
-      </div>
+      <OrderSuccessRedirect restaurantSlug={restaurantSlug} />
     );
   }
 
@@ -367,6 +357,88 @@ function ReviewPrompt({ restaurantId, orderId, customerName }: { restaurantId: s
       >
         {submitting ? 'Enviando...' : 'Enviar reseña'}
       </button>
+    </div>
+  );
+}
+
+function OrderSuccessRedirect({ restaurantSlug }: { restaurantSlug: string }) {
+  const router = useRouter();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      router.push(`/r/${restaurantSlug}`);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [router, restaurantSlug]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const colors = ['#10b981', '#059669', '#34d399', '#6ee7b7', '#a7f3d0', '#fbbf24', '#f59e0b', '#fb923c'];
+    const dots: HTMLSpanElement[] = [];
+
+    for (let i = 0; i < 40; i++) {
+      const dot = document.createElement('span');
+      const size = Math.random() * 6 + 4;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const left = Math.random() * 100;
+      const delay = Math.random() * 600;
+      const duration = Math.random() * 1200 + 1000;
+
+      Object.assign(dot.style, {
+        position: 'absolute',
+        width: `${size}px`,
+        height: `${size}px`,
+        borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+        backgroundColor: color,
+        left: `${left}%`,
+        top: '50%',
+        opacity: '1',
+        transform: `rotate(${Math.random() * 360}deg)`,
+        animation: `confetti-fall ${duration}ms ${delay}ms ease-out forwards`,
+        pointerEvents: 'none',
+      });
+
+      dots.push(dot);
+      el.appendChild(dot);
+    }
+
+    return () => {
+      dots.forEach((d) => d.remove());
+    };
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <style>{`
+        @keyframes confetti-fall {
+          0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+          100% { transform: translateY(120px) rotate(${Math.random() > 0.5 ? '' : '-'}540deg) scale(0); opacity: 0; }
+        }
+        @keyframes fade-in-up {
+          0% { opacity: 0; transform: translateY(16px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+      <div
+        ref={containerRef}
+        className="text-center max-w-sm relative overflow-hidden"
+        style={{ animation: 'fade-in-up 0.5s ease-out' }}
+      >
+        <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+          <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+        </div>
+        <h2 className="text-lg font-bold text-gray-900 mb-1">Tu pedido fue procesado exitosamente</h2>
+        <p className="text-sm text-gray-500 mb-6 animate-pulse">Regresando al menú...</p>
+        <Link
+          href={`/r/${restaurantSlug}`}
+          className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 transition-colors"
+        >
+          Ir al menú
+        </Link>
+      </div>
     </div>
   );
 }
