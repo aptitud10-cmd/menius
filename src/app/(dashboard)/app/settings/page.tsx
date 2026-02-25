@@ -15,7 +15,7 @@ export default async function SettingsPage() {
 
   return (
     <div>
-      <h1 className="dash-heading mb-5">Configuración</h1>
+      <h1 className="dash-heading mb-5">{restaurant?.locale === 'en' ? 'Settings' : 'Configuración'}</h1>
       <RestaurantSettings initialData={restaurant} />
     </div>
   );

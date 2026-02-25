@@ -34,7 +34,7 @@ export default async function ProductsPage() {
 
   return (
     <div>
-      <h1 className="dash-heading mb-6">Productos</h1>
+      <h1 className="dash-heading mb-6">{restaurant?.locale === 'en' ? 'Products' : 'Productos'}</h1>
       <ProductsManager
         initialProducts={mappedProducts}
         categories={categories ?? []}

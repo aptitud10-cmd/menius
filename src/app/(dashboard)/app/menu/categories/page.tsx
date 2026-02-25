@@ -19,7 +19,7 @@ export default async function CategoriesPage() {
 
   return (
     <div>
-      <h1 className="dash-heading mb-6">Categorías</h1>
+      <h1 className="dash-heading mb-6">{restaurant?.locale === 'en' ? 'Categories' : 'Categorías'}</h1>
       <CategoriesManager
         initialCategories={categories ?? []}
         defaultLocale={restaurant?.locale ?? 'es'}

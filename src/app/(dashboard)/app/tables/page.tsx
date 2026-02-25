@@ -12,7 +12,7 @@ export default async function TablesPage() {
       .order('created_at'),
     supabase
       .from('restaurants')
-      .select('name, slug')
+      .select('name, slug, locale')
       .eq('id', restaurantId)
       .maybeSingle(),
   ]);
@@ -31,7 +31,7 @@ export default async function TablesPage() {
 
   return (
     <div>
-      <h1 className="dash-heading mb-6">Mesas & Códigos QR</h1>
+      <h1 className="dash-heading mb-6">{restaurantRes.data?.locale === 'en' ? 'Tables & QR Codes' : 'Mesas & Códigos QR'}</h1>
       <TablesManager
         initialTables={tables}
         restaurantSlug={slug}

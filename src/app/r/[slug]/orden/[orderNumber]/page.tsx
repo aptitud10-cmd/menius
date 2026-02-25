@@ -20,8 +20,8 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   return {
-    title: `Pedido ${params.orderNumber} | MENIUS`,
-    description: 'Sigue el estado de tu pedido en tiempo real',
+    title: `Order ${params.orderNumber} | MENIUS`,
+    description: 'Track your order status in real time',
   };
 }
 

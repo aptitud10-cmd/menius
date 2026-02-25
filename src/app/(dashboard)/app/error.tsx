@@ -2,6 +2,12 @@
 
 import Link from 'next/link';
 
+function getLocale(): string {
+  if (typeof document === 'undefined') return 'es';
+  const match = document.cookie.match(/menius_locale=(\w+)/);
+  return match?.[1] ?? 'es';
+}
+
 export default function DashboardError({
   error,
   reset,
@@ -9,6 +15,8 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const en = getLocale() === 'en';
+
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="text-center max-w-md">
@@ -17,9 +25,13 @@ export default function DashboardError({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
           </svg>
         </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-1.5">Error en el dashboard</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-1.5">
+          {en ? 'Dashboard error' : 'Error en el dashboard'}
+        </h2>
         <p className="text-sm text-gray-500 mb-6">
-          Algo falló al cargar esta sección. Puedes reintentar o volver al inicio.
+          {en
+            ? 'Something went wrong loading this section. You can retry or go back to the dashboard.'
+            : 'Algo falló al cargar esta sección. Puedes reintentar o volver al inicio.'}
           {error.digest && (
             <span className="block mt-2 text-xs text-gray-600 font-mono">Ref: {error.digest}</span>
           )}
@@ -29,13 +41,13 @@ export default function DashboardError({
             onClick={() => reset()}
             className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 transition-colors"
           >
-            Reintentar
+            {en ? 'Retry' : 'Reintentar'}
           </button>
           <Link
             href="/app"
             className="px-4 py-2 bg-gray-50 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors"
           >
-            Inicio
+            {en ? 'Home' : 'Inicio'}
           </Link>
         </div>
       </div>

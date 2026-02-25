@@ -9,7 +9,7 @@ export default async function OrdersPage() {
   const [{ data: restaurant }, { data: orders }] = await Promise.all([
     supabase
       .from('restaurants')
-      .select('name, currency, phone, address')
+      .select('name, currency, phone, address, locale')
       .eq('id', restaurantId)
       .maybeSingle(),
     supabase
@@ -37,13 +37,13 @@ export default async function OrdersPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="dash-heading">Órdenes</h1>
+        <h1 className="dash-heading">{restaurant?.locale === 'en' ? 'Orders' : 'Órdenes'}</h1>
         <Link
           href="/kds"
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-500/20"
         >
           <Maximize2 className="w-4 h-4" />
-          Modo Tablet
+          {restaurant?.locale === 'en' ? 'Tablet Mode' : 'Modo Tablet'}
         </Link>
       </div>
       <OrdersBoard
