@@ -7,15 +7,42 @@ import type { BlogPost } from '@/lib/blog-data';
 interface BlogGridProps {
   posts: BlogPost[];
   categories: string[];
+  locale?: 'es' | 'en';
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, locale: string): string {
   const d = new Date(dateStr + 'T12:00:00');
-  return d.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
+  return d.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-export function BlogGrid({ posts, categories }: BlogGridProps) {
+function getUiText(locale: string) {
+  if (locale === 'en') return {
+    all: 'All',
+    readArticle: 'Read article',
+    read: 'Read →',
+    minRead: 'min read',
+    noArticles: 'No articles in this category.',
+    ctaTitle: 'Ready to digitize your restaurant?',
+    ctaDesc: 'Create your digital menu in minutes. No credit card. 14-day free trial.',
+    ctaBtn: 'Create free account →',
+    ctaDemo: 'View live demo',
+  };
+  return {
+    all: 'Todos',
+    readArticle: 'Leer artículo',
+    read: 'Leer →',
+    minRead: 'min de lectura',
+    noArticles: 'No hay artículos en esta categoría.',
+    ctaTitle: '¿Listo para digitalizar tu restaurante?',
+    ctaDesc: 'Crea tu menú digital en minutos. Sin tarjeta de crédito. 14 días de prueba gratis.',
+    ctaBtn: 'Crear cuenta gratis →',
+    ctaDemo: 'Ver demo en vivo',
+  };
+}
+
+export function BlogGrid({ posts, categories, locale = 'es' }: BlogGridProps) {
   const [active, setActive] = useState<string | null>(null);
+  const ui = getUiText(locale);
 
   const filtered = active ? posts.filter((p) => p.category === active) : posts;
   const featured = filtered[0];
@@ -35,7 +62,7 @@ export function BlogGrid({ posts, categories }: BlogGridProps) {
                   : 'text-gray-500 hover:text-gray-300'
               }`}
             >
-              Todos ({posts.length})
+              {ui.all} ({posts.length})
             </button>
             {categories.map((cat) => {
               const count = posts.filter((p) => p.category === cat).length;
@@ -68,7 +95,7 @@ export function BlogGrid({ posts, categories }: BlogGridProps) {
                     <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
                       {featured.category}
                     </span>
-                    <span className="text-xs text-gray-500">{featured.readTime} min de lectura</span>
+                    <span className="text-xs text-gray-500">{featured.readTime} {ui.minRead}</span>
                   </div>
                   <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 group-hover:text-emerald-300 transition-colors duration-300 leading-tight tracking-tight">
                     {featured.title}
@@ -77,7 +104,7 @@ export function BlogGrid({ posts, categories }: BlogGridProps) {
                     {featured.description}
                   </p>
                   <span className="inline-flex items-center gap-2 text-sm font-medium text-emerald-400 group-hover:text-emerald-300 transition-colors duration-300">
-                    Leer artículo
+                    {ui.readArticle}
                     <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                   </span>
                 </div>
@@ -105,9 +132,9 @@ export function BlogGrid({ posts, categories }: BlogGridProps) {
                     {post.description}
                   </p>
                   <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center justify-between">
-                    <span className="text-xs text-gray-600">{formatDate(post.date)}</span>
+                    <span className="text-xs text-gray-600">{formatDate(post.date, locale)}</span>
                     <span className="text-xs font-medium text-emerald-400 group-hover:text-emerald-300 transition-colors">
-                      Leer →
+                      {ui.read}
                     </span>
                   </div>
                 </article>
@@ -117,7 +144,7 @@ export function BlogGrid({ posts, categories }: BlogGridProps) {
         )}
 
         {filtered.length === 0 && (
-          <p className="text-center text-gray-500 py-20">No hay artículos en esta categoría.</p>
+          <p className="text-center text-gray-500 py-20">{ui.noArticles}</p>
         )}
 
         {/* CTA */}
@@ -126,23 +153,23 @@ export function BlogGrid({ posts, categories }: BlogGridProps) {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] rounded-full bg-emerald-500/10 blur-[100px] pointer-events-none" />
           <div className="relative z-10">
             <h2 className="text-2xl md:text-4xl font-semibold text-white tracking-tight mb-4">
-              ¿Listo para digitalizar tu restaurante?
+              {ui.ctaTitle}
             </h2>
             <p className="text-gray-400 mb-8 max-w-md mx-auto leading-relaxed font-light">
-              Crea tu menú digital en minutos. Sin tarjeta de crédito. 14 días de prueba gratis.
+              {ui.ctaDesc}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 href="/signup"
                 className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white text-black font-medium text-[15px] hover:bg-gray-100 transition-all btn-glow"
               >
-                Crear cuenta gratis →
+                {ui.ctaBtn}
               </Link>
               <Link
                 href="/r/demo"
                 className="w-full sm:w-auto px-8 py-3.5 rounded-xl border border-white/10 text-gray-400 font-medium text-[15px] hover:text-white hover:border-white/20 transition-all"
               >
-                Ver demo en vivo
+                {ui.ctaDemo}
               </Link>
             </div>
           </div>

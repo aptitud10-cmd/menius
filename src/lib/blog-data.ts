@@ -7,6 +7,49 @@ export interface BlogPost {
   date: string;
   author: string;
   content: string;
+  title_en?: string;
+  description_en?: string;
+  category_en?: string;
+  content_en?: string;
+}
+
+type Locale = 'es' | 'en';
+
+export function getLocalizedPost(post: BlogPost, locale: Locale): BlogPost {
+  if (locale === 'en' && post.title_en) {
+    return {
+      ...post,
+      title: post.title_en,
+      description: post.description_en || post.description,
+      category: post.category_en || post.category,
+      content: post.content_en || post.content,
+    };
+  }
+  return post;
+}
+
+export function getLocalizedBlogPosts(locale: Locale): BlogPost[] {
+  return blogPosts.map(p => getLocalizedPost(p, locale));
+}
+
+export function getLocalizedBlogPost(slug: string, locale: Locale): BlogPost | undefined {
+  const post = blogPosts.find(p => p.slug === slug);
+  if (!post) return undefined;
+  return getLocalizedPost(post, locale);
+}
+
+export function getLocalizedRelatedPosts(slug: string, locale: Locale, limit = 3): BlogPost[] {
+  const current = blogPosts.find(p => p.slug === slug);
+  if (!current) return getLocalizedBlogPosts(locale).slice(0, limit);
+  return blogPosts
+    .filter(p => p.slug !== slug)
+    .sort((a, b) => (a.category === current.category ? -1 : b.category === current.category ? 1 : 0))
+    .slice(0, limit)
+    .map(p => getLocalizedPost(p, locale));
+}
+
+export function getLocalizedCategories(locale: Locale): string[] {
+  return Array.from(new Set(getLocalizedBlogPosts(locale).map(p => p.category)));
 }
 
 export const blogPosts: BlogPost[] = [
@@ -86,6 +129,77 @@ Con tu menú digital activo, los pedidos llegan a tu dashboard en tiempo real. P
 
 Digitalizar tu menú es una de las mejores inversiones que puedes hacer para tu restaurante. No solo mejora la experiencia del cliente, sino que aumenta tus ventas, reduce errores, y te da datos valiosos para tomar mejores decisiones.
     `,
+    title_en: 'How to Create a Digital Menu for Your Restaurant in 2026: Complete Guide',
+    description_en: 'Learn step by step how to digitize your menu, generate QR codes for your tables, and start receiving online orders from your customers\' phones.',
+    category_en: 'Guides',
+    content_en: `
+## Why Do You Need a Digital Menu in 2026?
+
+The restaurant industry has changed dramatically. Customers expect to view your menu from their phone, with attractive photos and the option to order without waiting for a waiter. A digital menu isn't a luxury — it's a competitive necessity.
+
+According to recent studies, **70% of customers** prefer scanning a QR code over waiting for a physical menu. And restaurants that adopt digital menus report a **20-35% increase in orders**.
+
+## Step 1: Choose the Right Platform
+
+Not all solutions are equal. Look for a platform that offers:
+
+- **Visual menu with photos** — Dishes with photos sell up to 30% more
+- **Real-time orders** — Orders go straight to your kitchen
+- **No per-order commissions** — Avoid platforms that charge a percentage
+- **Per-table custom QR codes** — To identify where each order comes from
+- **Analytics** — To know what sells most and when
+
+With MENIUS, you get all this included from $39 USD/month with no additional commissions.
+
+## Step 2: Organize Your Menu into Categories
+
+Your digital menu structure matters more than you think. We recommend:
+
+1. **Starters / Appetizers** — The first thing your customers see
+2. **Main courses** — Your main section
+3. **House specials** — What sets you apart
+4. **Drinks** — Separated for easy access
+5. **Desserts** — The perfect ending
+
+Tip: Don't use more than 6-8 categories. A menu with too many options creates "decision paralysis" and reduces sales.
+
+## Step 3: Add Professional Photos
+
+Photos are the #1 factor influencing purchase decisions. You have two options:
+
+- **Your own photos**: With good natural lighting and a clean background
+- **AI photos**: Platforms like MENIUS include AI-powered photo generation. Describe the dish and AI creates a professional image in seconds
+
+## Step 4: Set Up Prices, Variants, and Extras
+
+A good digital menu lets you configure:
+
+- **Variants**: Size (small/medium/large), protein type, etc.
+- **Extras**: Additional ingredients with pricing (extra cheese, bacon, etc.)
+- **Descriptions**: Brief but appetizing
+
+## Step 5: Generate and Print Your QR Codes
+
+Each table should have its own QR code. This allows you to:
+
+- Identify which table each order comes from
+- Offer a personalized experience
+- Reduce errors in order taking
+
+Print QR codes on water-resistant material and place them in a visible spot on each table.
+
+## Step 6: Receive Orders and Manage Your Operations
+
+With your digital menu active, orders arrive at your dashboard in real time. You can:
+
+- View orders on a Kanban board (pending → preparing → ready)
+- Receive alerts by sound, WhatsApp, or email
+- Review analytics to optimize your menu
+
+## Conclusion
+
+Digitizing your menu is one of the best investments you can make for your restaurant. It not only improves the customer experience but also increases your sales, reduces errors, and gives you valuable data for better decision-making.
+    `,
   },
   {
     slug: 'menu-digital-vs-apps-delivery',
@@ -147,6 +261,61 @@ La clave es migrar gradualmente a tus clientes al canal directo, donde tú contr
 
 No se trata de elegir uno u otro, sino de entender que cada canal tiene su propósito. Pero si hoy dependes 100% de apps de delivery, estás dejando miles de dólares sobre la mesa cada año.
     `,
+    title_en: 'Your Own Digital Menu vs Delivery Apps: Which Is Better?',
+    description_en: 'We compare the costs, benefits, and drawbacks of having your own digital menu vs depending on delivery apps like Uber Eats, Rappi, or DoorDash.',
+    category_en: 'Comparisons',
+    content_en: `
+## Every Restaurant Owner's Dilemma
+
+Being on delivery apps like Uber Eats, Rappi, or DoorDash gives you visibility, but the cost is high. Is it worth it? Let's analyze the numbers.
+
+## The Real Costs of Delivery Apps
+
+Delivery apps charge between **15% and 30%** commission per order. This means:
+
+| Monthly Sales | Commission (25%) | What You Lose Per Year |
+|---|---|---|
+| $5,000 | $1,250/month | **$15,000/year** |
+| $10,000 | $2,500/month | **$30,000/year** |
+| $20,000 | $5,000/month | **$60,000/year** |
+
+Plus, the app keeps your customer data. You can't contact them, you can't do direct marketing, and your brand appears alongside your competition.
+
+## The Alternative: Your Own Digital Menu
+
+With your own digital menu (like MENIUS), you pay a **fixed monthly fee** regardless of how much you sell:
+
+- **$39-$149/month** depending on the plan
+- **0% commission** per order
+- **Your data, your brand, your customers**
+
+Example: A restaurant selling $10,000/month in delivery saves **$2,921/month** switching from a delivery app (25% commission) to MENIUS Pro ($79/month).
+
+## When to Use Each Option?
+
+**Delivery apps are good for:**
+- Getting new customers who don't know you
+- Offering delivery without having your own drivers
+
+**Your digital menu is better for:**
+- Customers who already know you
+- In-restaurant orders (dine-in)
+- Pickup (customer picks up)
+- Maximizing your profit margins
+
+## The Winning Strategy
+
+Most successful restaurants use **both channels**:
+
+1. Delivery apps for acquiring new customers
+2. Your own digital menu for retention and direct orders
+
+The key is gradually migrating your customers to the direct channel, where you control the experience and margins.
+
+## Conclusion
+
+It's not about choosing one or the other, but understanding that each channel has its purpose. But if today you depend 100% on delivery apps, you're leaving thousands of dollars on the table every year.
+    `,
   },
   {
     slug: 'beneficios-codigos-qr-restaurantes',
@@ -197,6 +366,51 @@ Un restaurante promedio gasta entre $500 y $2,000 al año en impresión de menú
 4. Imprímelos en material resistente
 5. Capacita brevemente a tu equipo
 6. ¡Empieza a recibir pedidos digitales!
+    `,
+    title_en: '7 Benefits of QR Codes in Restaurants You Need to Know',
+    description_en: 'Discover how QR codes transform your restaurant experience: from digital menus to faster orders and fewer errors.',
+    category_en: 'Technology',
+    content_en: `
+## QR Codes Are Here to Stay
+
+What started as a temporary solution during the pandemic has become the new standard. QR codes in restaurants offer tangible benefits for both the business and customers.
+
+## 1. Always Up-to-Date Menus
+
+With a printed menu, every price or dish change means reprinting. With QR + digital menu, you update from your phone and the change is reflected instantly.
+
+## 2. Reduced Order Errors
+
+When the customer orders directly from their phone, you eliminate the "telephone game" between customer → waiter → kitchen. The order arrives exactly as the customer placed it.
+
+## 3. Higher Average Ticket
+
+Digital menus with attractive photos and suggested extras (extra cheese, drink, dessert) increase the average ticket by **15% to 25%**. Images sell.
+
+## 4. Faster Table Turnover
+
+Customers don't wait for the waiter to order. They scan, order, and the order goes straight to the kitchen. This can reduce average table time by **10-15 minutes**.
+
+## 5. Valuable Business Data
+
+With a digital system you get analytics that a printed menu will never give you: best-selling dishes, peak hours, average ticket, weekly trends.
+
+## 6. Multilingual Menu
+
+If your restaurant receives tourists or is in a multicultural city, a digital menu can display in multiple languages automatically.
+
+## 7. Savings on Printing Costs
+
+An average restaurant spends between $500 and $2,000 per year on menu printing. With QR, that cost disappears permanently.
+
+## How to Implement QR in Your Restaurant
+
+1. Choose a digital menu platform (like MENIUS)
+2. Set up your menu with categories and photos
+3. Generate a unique QR for each table
+4. Print them on durable material
+5. Briefly train your team
+6. Start receiving digital orders!
     `,
   },
   {
@@ -259,6 +473,61 @@ La estructura ideal de un menú digital para maximizar ventas:
 
 Demasiadas opciones generan parálisis. Menos opciones = decisiones más rápidas = más ventas.
     `,
+    title_en: 'How to Increase Your Restaurant Sales with a Digital Menu',
+    description_en: '5 proven strategies to sell more using your digital menu: photos, upselling, promotions, reviews, and analytics.',
+    category_en: 'Strategy',
+    content_en: `
+## A Digital Menu Doesn't Just Digitize — It Can Multiply Your Sales
+
+Having a digital menu is the first step. Optimizing it to sell more is where the real value lies. Here are 5 proven strategies.
+
+## 1. Professional Photos on ALL Products
+
+Products with photos sell **up to 30% more** than those with just text. If you don't have professional photos, use AI tools to generate them. An appetizing photo can be the difference between a dish that sells and one nobody orders.
+
+## 2. Upselling with Extras and Variants
+
+Set up extras strategically:
+
+- **Popular extras**: Extra cheese ($1.50), bacon ($2.00), avocado ($2.50)
+- **Size upgrades**: "Large for only $2 more?"
+- **Suggested drinks**: "Add a lemonade for $3.99"
+
+Restaurants that implement well-structured extras see an **18-25% increase** in average ticket.
+
+## 3. Promotions and Discount Codes
+
+Create discount codes for:
+
+- **First orders**: "WELCOME" — 15% off
+- **Slow days**: "TUESDAY20" — 20% on Tuesdays
+- **Seasons**: "SUMMER10" — 10% in summer
+
+Smart promotions not only increase sales but also drive traffic during low-demand days and hours.
+
+## 4. Visible Reviews on Your Menu
+
+Other customers' reviews greatly influence purchasing decisions. A dish with 4.8 stars and 50 reviews sells itself. Encourage your customers to leave reviews after each order.
+
+## 5. Use Analytics to Optimize Your Menu
+
+Data tells you exactly what works:
+
+- **Best-selling products** → Put them at the top of each category
+- **Products nobody orders** → Improve the photo/description or remove them
+- **Peak hours** → Adjust your team and preparation
+- **Average ticket** → Measure the impact of your changes
+
+## Bonus: The 3-5-3 Rule
+
+The ideal structure of a digital menu to maximize sales:
+
+- **3 main categories** visible at the top
+- **5-8 products per category** (no more)
+- **3 extras/variants** per relevant product
+
+Too many options create paralysis. Fewer options = faster decisions = more sales.
+    `,
   },
   {
     slug: 'fotos-comida-inteligencia-artificial',
@@ -314,6 +583,55 @@ Sí, siempre que las fotos representen fielmente lo que el cliente va a recibir.
 
 La IA no reemplaza completamente la fotografía profesional, pero democratiza el acceso a fotos de calidad para restaurantes de todos los tamaños. Ya no necesitas un gran presupuesto para tener un menú visualmente atractivo.
     `,
+    title_en: 'Food Photos with Artificial Intelligence: A Guide for Restaurants',
+    description_en: 'How to use AI to generate professional photos of your dishes without hiring a photographer. Save time and money.',
+    category_en: 'Technology',
+    content_en: `
+## The Problem: Professional Photos Are Expensive
+
+A professional photo session for a restaurant menu costs between **$500 and $3,000 USD**. And every time you add a dish, you need another session. For small and medium restaurants, this isn't viable.
+
+## The Solution: Artificial Intelligence
+
+Generative AI (like Google Gemini) can create realistic and appetizing dish photos in seconds. You just need to describe the dish.
+
+## How It Works
+
+1. **Describe the dish**: "Pastor tacos with pineapple, cilantro, and onion, served on corn tortillas, on a clay plate"
+2. **AI generates the image**: In 5-10 seconds you get a professional photo
+3. **Automatically optimized**: The image is resized and converted to WebP for fast loading
+
+## Tips for Better Results
+
+**Be specific in your description:**
+
+❌ "Hamburger" → Generic result
+
+✅ "Double burger with melted cheddar cheese, crispy bacon, fresh lettuce, tomato, and special sauce, on a toasted brioche bun, served with french fries" → Premium result
+
+**Mention the presentation style:**
+- "On a white ceramic plate"
+- "On a rustic wooden board"
+- "Overhead view, dark background"
+- "With soft natural lighting"
+
+## Is It Ethical to Use AI-Generated Photos?
+
+Yes, as long as the photos faithfully represent what the customer will receive. AI helps you present your food attractively, not to deceive. Think of it as a virtual photographer that makes your food look as good as it really is.
+
+## How Much You Can Save
+
+| Concept | Traditional Photographer | AI |
+|---|---|---|
+| Cost per session | $500-$3,000 | Included in MENIUS |
+| Time | 1-2 weeks | 10 seconds |
+| Adding dishes | New session | Quick description |
+| Updating photos | Another cost | No cost |
+
+## Conclusion
+
+AI doesn't completely replace professional photography, but it democratizes access to quality photos for restaurants of all sizes. You no longer need a big budget to have a visually appealing menu.
+    `,
   },
   {
     slug: 'errores-digitalizar-restaurante',
@@ -367,6 +685,54 @@ No pongas todos tus huevos en una sola canasta. Combina tu menú digital propio 
 3. Imprime QR de calidad
 4. Revisa analytics semanalmente
 5. Itera y mejora constantemente
+    `,
+    title_en: 'The 8 Most Common Mistakes When Digitizing Your Restaurant',
+    description_en: 'Avoid these frequent mistakes restaurants make when implementing digital menus, online orders, and QR codes.',
+    category_en: 'Education',
+    content_en: `
+## Digitizing Isn't Just "Putting a QR on the Table"
+
+Many restaurants jump into digitization without a clear strategy. These are the most common mistakes (and how to avoid them).
+
+## Mistake 1: Menu Without Photos
+
+A digital menu without photos is like an online store without product images. Photos are the #1 conversion factor. If you don't have professional photos, use AI to generate them.
+
+## Mistake 2: Too Many Categories and Products
+
+More isn't better. A menu with 15 categories and 200 products overwhelms the customer. Curate your menu: 5-8 categories with 5-10 products each is ideal.
+
+## Mistake 3: Not Training Your Team
+
+Your team needs to know how the system works. A waiter who can't explain the QR creates friction. Spend 15 minutes training your team.
+
+## Mistake 4: Poorly Placed or Low-Quality QR Codes
+
+A QR printed on paper that gets wet or tears causes frustration. Invest in quality printing and place them in a visible, accessible spot on each table.
+
+## Mistake 5: Not Checking Analytics
+
+If you have a digital menu but never check the data, you're wasting one of its biggest advantages. Check your analytics at least weekly.
+
+## Mistake 6: Outdated Prices
+
+Nothing frustrates a customer more than seeing one price on the digital menu and another when paying. Update prices immediately when they change.
+
+## Mistake 7: Ignoring Reviews
+
+If your platform allows reviews, read them and respond. Ignored negative reviews damage your reputation. Positive reviews without a response are missed opportunities.
+
+## Mistake 8: Depending 100% on a Single Channel
+
+Don't put all your eggs in one basket. Combine your own digital menu with delivery app presence. Diversify your sales channels.
+
+## How to Do It Right
+
+1. Start simple: Basic menu with photos and prices
+2. Train your team before launch
+3. Print quality QR codes
+4. Check analytics weekly
+5. Iterate and improve constantly
     `,
   },
   {
@@ -437,6 +803,69 @@ Eso es un retorno de inversión de **3,380%**.
 
 La tecnología no es un gasto, es una inversión. Y en un negocio con márgenes estrechos como un restaurante, cada optimización cuenta.
     `,
+    title_en: 'How to Reduce Operating Costs in Your Restaurant with Technology',
+    description_en: 'Discover how technology can help you save on printing, staff, errors, and delivery commissions.',
+    category_en: 'Strategy',
+    content_en: `
+## Restaurant Margins Are Tight
+
+The average net margin in restaurants is only **3-9%**. Every dollar you save goes directly to your pocket. Technology can help you reduce costs significantly.
+
+## 1. Eliminate Menu Printing Costs
+
+| Concept | Annual Cost |
+|---|---|
+| Printed menus (4 reprints/year) | $500-$2,000 |
+| Digital menu | $0 additional |
+
+A digital menu updates instantly at no printing cost.
+
+## 2. Reduce Order Errors
+
+Order errors cost money: wasted ingredients, remade dishes, unhappy customers. With direct digital orders, human error in order taking **is reduced by up to 90%**.
+
+Estimated cost of order errors: **$200-$800/month** in medium-sized restaurants.
+
+## 3. Eliminate Delivery Commissions
+
+If you sell $5,000/month through delivery apps at 25% commission, you're losing $1,250/month. With your own digital menu and pickup/delivery system, that cost drops to a **fixed monthly fee**.
+
+## 4. Optimize Your Team
+
+A digital ordering system doesn't replace your team, but makes them more efficient:
+
+- Waiters spend less time taking orders and more time serving
+- Kitchen receives clear, organized orders
+- Cashiers process payments faster
+
+## 5. Make Better Decisions with Data
+
+Analytics show you:
+
+- **Low-rotation products** you can eliminate (reducing waste)
+- **Low-demand hours** where you can reduce staff
+- **Higher-margin products** you can promote more
+
+## The ROI of Digitization
+
+For an average restaurant selling $15,000/month:
+
+| Savings | Monthly Amount |
+|---|---|
+| Menu printing | $100 |
+| Error reduction | $400 |
+| Less delivery commissions | $1,500 |
+| Better table turnover | $750 |
+| **Total monthly savings** | **$2,750** |
+| **MENIUS Pro cost** | **$79** |
+| **Monthly ROI** | **$2,671** |
+
+That's a return on investment of **3,380%**.
+
+## Conclusion
+
+Technology isn't an expense, it's an investment. And in a business with tight margins like a restaurant, every optimization counts.
+    `,
   },
   {
     slug: 'tendencias-restaurantes-2026',
@@ -502,6 +931,66 @@ El pago debe ser invisible. Los restaurantes que ofrecen múltiples opciones de 
 5. **Escucha a tus clientes** a través de reseñas y feedback
 
 Los restaurantes que adopten estas tendencias hoy estarán mejor posicionados para el futuro.
+    `,
+    title_en: 'Restaurant Trends in 2026: What You Need to Know',
+    description_en: 'The 6 most important trends transforming the restaurant industry this year.',
+    category_en: 'Trends',
+    content_en: `
+## The Restaurant Industry Is Evolving Fast
+
+2026 brings significant changes in how restaurants operate and how customers expect to be served. These are the most important trends.
+
+## 1. Digital Menus as Standard
+
+What was innovative a few years ago is now expected. Customers — especially millennials and Gen Z — prefer scanning a QR over touching a physical menu. Restaurants that still don't have a digital menu are falling behind.
+
+## 2. Artificial Intelligence in Operations
+
+AI is no longer science fiction in restaurants:
+
+- **AI-generated food photos**
+- **Demand prediction** to reduce waste
+- **Chatbots** for customer service
+- **Menu optimization** based on sales data
+
+## 3. Direct Orders (No Intermediaries)
+
+More and more restaurants are migrating from delivery apps to their own channels. The reason is simple: **margins**. With your own channel, you save the 15-30% commission.
+
+The trend isn't to completely abandon delivery apps, but to reduce dependency and build a direct customer base.
+
+## 4. Omnichannel Experience
+
+Customers expect to interact with your restaurant through multiple channels:
+
+- QR digital menu at the table
+- Orders from your website for pickup
+- Delivery from your direct link
+- WhatsApp notifications
+- Reviews and direct feedback
+
+## 5. Sustainability and Transparency
+
+Customers, especially younger ones, value:
+
+- Clear ingredient and allergen information
+- Visible vegetarian/vegan options
+- Paper reduction (digital vs printed menus)
+- Eco-friendly packaging for delivery
+
+## 6. Frictionless Payments
+
+Payment should be invisible. Restaurants that offer multiple payment options (cash, card, mobile payments) and a quick checkout process see higher conversion rates.
+
+## How to Prepare?
+
+1. **Digitize your menu** if you haven't already
+2. **Experiment with AI** for photos and content
+3. **Build a direct ordering channel**
+4. **Collect data** and use it to make decisions
+5. **Listen to your customers** through reviews and feedback
+
+Restaurants that adopt these trends today will be better positioned for the future.
     `,
   },
   {
@@ -607,6 +1096,104 @@ Una vez que todo funciona correctamente:
 - Crea promociones para impulsar ventas
 - Responde a las reseñas de tus clientes
     `,
+    title_en: 'How to Set Up Online Orders for Your Restaurant Step by Step',
+    description_en: 'Complete tutorial to implement online orders in your restaurant: from the digital menu to the first order.',
+    category_en: 'Guides',
+    content_en: `
+## Online Orders: The Opportunity You Can't Ignore
+
+Online orders represent a growing portion of restaurant revenue. Whether for dine-in (from the table), pickup (customer picks up), or delivery, having the ability to receive digital orders is essential.
+
+## Before You Start: What Do You Need?
+
+1. **A digital menu platform** (like MENIUS)
+2. **Your organized menu** with updated prices
+3. **Photos of your products** (your own or AI-generated)
+4. **A device** to receive orders (phone, tablet, or computer)
+5. **15-30 minutes** for initial setup
+
+## Step 1: Create Your Account and Restaurant
+
+Sign up on the platform (free, no credit card) and provide:
+
+- Your restaurant name
+- Your custom URL (e.g., menius.app/r/your-restaurant)
+- Currency and timezone
+
+When creating your restaurant, a sample menu is automatically generated so you can see how it works.
+
+## Step 2: Set Up Your Categories
+
+Create your menu categories in the order you want:
+
+1. Starters
+2. Main courses
+3. Drinks
+4. Desserts
+
+You can reorder, activate, or deactivate them at any time.
+
+## Step 3: Add Your Products
+
+For each product, configure:
+
+- **Name** of the dish
+- **Description** (brief and appetizing)
+- **Base price**
+- **Photo** (upload one or generate with AI)
+- **Variants** (size, protein type, etc.)
+- **Extras** (additional ingredients with pricing)
+
+## Step 4: Configure Order Types
+
+From your dashboard, enable the order types you'll offer:
+
+- **Dine-in**: For customers in your restaurant
+- **Pickup**: Customer orders and picks up
+- **Delivery**: Customer orders and receives at their address
+
+## Step 5: Configure Payment Methods
+
+Choose how you want your customers to pay:
+
+- **Cash**: Customer pays upon receipt
+- **Online**: Stripe integration for card payments
+
+## Step 6: Generate Your QR Codes
+
+In the tables section of your dashboard:
+
+1. Create your restaurant's tables
+2. Generate the QR for each table
+3. Download and print the QRs
+4. Place them on each table
+
+## Step 7: Run a Test
+
+Before launching, do a complete test:
+
+1. Scan a QR with your phone
+2. Navigate the menu as a customer would
+3. Add products to the cart
+4. Complete a test order
+5. Verify it arrives at your dashboard
+
+## Step 8: Launch!
+
+Once everything works correctly:
+
+1. Train your team (5-10 minutes)
+2. Place the QRs on tables
+3. Share your link on social media
+4. Start receiving orders
+
+## After Launch
+
+- Check your analytics weekly
+- Update photos and descriptions
+- Create promotions to boost sales
+- Respond to your customers' reviews
+    `,
   },
   {
     slug: 'restaurantes-abandonan-apps-delivery',
@@ -677,6 +1264,70 @@ La lógica es simple:
 
 Las apps de delivery seguirán existiendo y tienen su lugar en la estrategia de un restaurante. Pero depender exclusivamente de ellas es un error financiero. Los restaurantes más inteligentes están construyendo sus propios canales digitales para controlar su destino.
     `,
+    title_en: 'Why More and More Restaurants Are Leaving Delivery Apps',
+    description_en: 'Analysis of why restaurants are migrating from delivery apps to their own channels and how this improves their margins.',
+    category_en: 'Opinion',
+    content_en: `
+## The Romance with Delivery Apps Is Ending
+
+For years, delivery apps promised restaurants a new sales channel. But reality has been different for many.
+
+## The Problem: The Numbers Don't Add Up
+
+Let's consider a typical $30 order:
+
+- **App commission**: $7.50 (25%)
+- **Ingredient cost**: $9.00 (30%)
+- **Operating cost**: $6.00 (20%)
+- **Delivery packaging**: $1.50 (5%)
+- **Net profit**: $6.00 (20%)
+
+Now, without the delivery app:
+- **Net profit**: $13.50 (45%)
+
+The difference is **$7.50 per order**. For a restaurant receiving 200 delivery orders per month, that's a **$1,500 monthly difference**.
+
+## It's Not Just About Money
+
+Beyond commissions, delivery apps present other problems:
+
+### 1. You Don't Own the Customer Relationship
+The app has the customer data, not you. You can't send them offers, you can't build loyalty, you can't build a direct relationship.
+
+### 2. Your Brand Competes Alongside Others
+In the app, your restaurant appears next to dozens of competitors. The customer can easily switch to another restaurant for a deal or faster delivery time.
+
+### 3. Limited Quality Control
+The app's delivery driver doesn't represent your brand. If the delivery is poor, the customer associates it with your restaurant, not the app.
+
+### 4. Dangerous Dependency
+If the app changes its terms, increases commissions, or lowers your ranking, your business suffers directly.
+
+## The Alternative: Your Own Channels
+
+More and more restaurants are adopting a mixed strategy:
+
+1. **Delivery apps** for capturing new customers
+2. **Your own digital menu** for retention and margins
+
+The logic is simple:
+- Acquire a new customer through the delivery app
+- Offer them an excellent experience
+- Incentivize them to order directly next time
+- Your margin improves significantly
+
+## How to Make the Transition
+
+1. **Don't abandon apps overnight** — Reduce gradually
+2. **Set up your own digital menu** with MENIUS or another platform
+3. **Promote your direct channel** — Include a flyer in every delivery order
+4. **Offer incentives** — 10% discount for direct orders
+5. **Measure results** — Compare margins from both channels
+
+## Conclusion
+
+Delivery apps will continue to exist and have their place in a restaurant's strategy. But depending exclusively on them is a financial mistake. The smartest restaurants are building their own digital channels to control their destiny.
+    `,
   },
   {
     slug: 'asistente-ia-restaurantes-menius-ai',
@@ -734,6 +1385,57 @@ Nada adicional. MENIUS AI está incluido en todos los planes de MENIUS, incluyen
 
 La IA ya no es el futuro — es el presente. Los restaurantes que adopten herramientas inteligentes hoy tendrán una ventaja competitiva enorme. Con MENIUS AI, tienes un analista de negocio, un consultor, y un asistente técnico — todo en uno, todo gratis, todo el tiempo.
     `,
+    title_en: 'MENIUS AI: How an Intelligent Assistant Is Transforming Restaurant Management',
+    description_en: 'Discover how MENIUS AI, the intelligent assistant built into your dashboard, helps you analyze sales, understand your customers, and make better decisions for your restaurant.',
+    category_en: 'Technology',
+    content_en: `
+## Artificial Intelligence Arrives at the Restaurant
+
+Until recently, AI tools were exclusive to large corporations with million-dollar budgets. In 2026, that changed. Now, a local restaurant can have its own intelligent assistant — and that's exactly what MENIUS AI offers.
+
+## What Is MENIUS AI?
+
+MENIUS AI is an intelligent assistant integrated directly into your restaurant's dashboard. It's not a generic chatbot — it has access to **all your business data in real time**: sales, orders, customers, menu, reviews, promotions, and more.
+
+You can ask questions like:
+
+- "How much did I sell today?"
+- "What's my best-selling product this week?"
+- "Do I have pending orders?"
+- "Who's my best customer?"
+- "Suggest a weekend promotion"
+- "How do I set up delivery?"
+
+## 5 Ways MENIUS AI Helps Your Restaurant
+
+### 1. Instant Sales Analysis
+
+Instead of reviewing charts and numbers, simply ask: "How are sales this week?" and MENIUS AI gives you a clear summary with comparisons vs the previous week, average ticket, and trends.
+
+### 2. Know Your Customers
+
+MENIUS AI analyzes your order data to identify your most frequent customers, their preferences, and how much they spend. Information that used to require an expensive CRM.
+
+### 3. Step-by-Step Dashboard Guide
+
+Don't know how to add a product or create a QR? Ask MENIUS AI and it explains step by step, like having a personalized 24/7 tutor.
+
+### 4. Business Strategies
+
+MENIUS AI can suggest promotions based on your real data: "Your slowest hour is 3 to 5 PM. You could create a Happy Hour discount for those hours."
+
+### 5. Available 24/7 at No Extra Cost
+
+Unlike a consultant who charges by the hour, MENIUS AI is always available and comes included in all plans at no extra cost.
+
+## How Much Does It Cost?
+
+Nothing additional. MENIUS AI is included in all MENIUS plans, including the Starter plan at $39/month. It uses Google Gemini technology optimized to be efficient and economical.
+
+## Conclusion
+
+AI is no longer the future — it's the present. Restaurants that adopt intelligent tools today will have an enormous competitive advantage. With MENIUS AI, you have a business analyst, consultant, and technical assistant — all in one, all free, all the time.
+    `,
   },
   {
     slug: 'google-maps-menu-digital-restaurante',
@@ -788,6 +1490,55 @@ Según estudios de Google:
 ## Conclusión
 
 Un mapa no es un detalle menor — es una herramienta de conversión. Los restaurantes que facilitan que sus clientes los encuentren, venden más. Con MENIUS, Google Maps viene integrado sin costo y sin configuración técnica.
+    `,
+    title_en: 'Why Google Maps in Your Digital Menu Is Key to Attracting More Customers',
+    description_en: 'Integrating Google Maps into your digital menu helps customers find you easily and increases trust in your restaurant. Discover how MENIUS does it automatically.',
+    category_en: 'Marketing',
+    content_en: `
+## Location Matters More Than You Think
+
+When a new customer discovers your digital menu — whether through a QR, a social media link, or a recommendation — one of the first things they want to know is: **where are you?**
+
+If your digital menu doesn't show your location in a clear, interactive way, you're losing potential customers.
+
+## The Problem with Text Addresses
+
+Many restaurants put their address in plain text: "123 Main Street, Downtown." The problem:
+
+- The customer has to copy the address and paste it into another app
+- Written addresses can be confusing
+- They don't convey the same trust as a visual map
+
+## The Solution: Integrated Google Maps
+
+MENIUS integrates Google Maps directly into your restaurant's public page. This means:
+
+1. **Your customers see an interactive map** with your exact location
+2. **They can get directions** with one click
+3. **It builds trust** — a Google map is synonymous with legitimacy
+4. **It works for delivery** — the customer knows exactly how far away they are
+
+## How to Activate Google Maps in MENIUS
+
+It's automatic. You just need to:
+
+1. Go to **Settings** in your dashboard
+2. Enter your complete address
+3. The map automatically appears on your public store
+
+No need to configure APIs or code. MENIUS takes care of everything.
+
+## The Impact in Numbers
+
+According to Google studies:
+
+- **76% of people** who search for a local business visit it within 24 hours
+- Businesses with locations on Google Maps receive **2.7x more direction requests**
+- **86% of consumers** look up a business location online before visiting
+
+## Conclusion
+
+A map is not a minor detail — it's a conversion tool. Restaurants that make it easy for customers to find them sell more. With MENIUS, Google Maps comes integrated at no cost and with no technical setup.
     `,
   },
   {
@@ -848,6 +1599,60 @@ Solo una tablet o monitor en la cocina con conexión a internet. Abres la secci�
 ## Conclusión
 
 Un KDS no es un lujo — es una necesidad operativa. Elimina errores, acelera la cocina, y mejora la experiencia del cliente. Con MENIUS, el KDS viene incluido en todos los planes y funciona desde cualquier dispositivo con navegador.
+    `,
+    title_en: 'Kitchen Display System (KDS): The Screen That Eliminates Errors in Your Kitchen',
+    description_en: 'A KDS shows orders in real time in the kitchen, eliminates paper tickets, and reduces errors. Discover how the MENIUS KDS works.',
+    category_en: 'Operations',
+    content_en: `
+## What Is a KDS (Kitchen Display System)?
+
+A KDS is a digital screen in the kitchen that replaces paper tickets. It shows orders in real time as they come in, with all the details the kitchen team needs: products, variants, extras, customer notes, and contact information.
+
+## The Problem with Paper Tickets
+
+In many restaurants, the process is:
+
+1. The waiter writes down the order (sometimes with illegible handwriting)
+2. Takes the paper to the kitchen
+3. The cook interprets the order
+4. Tickets get lost, orders get mixed up, extras get forgotten
+
+Result: **errors, returned food, unsatisfied customers, and lost money**.
+
+## How the MENIUS KDS Works
+
+With MENIUS, the flow is completely digital:
+
+1. The customer orders from their phone (scans QR or uses the link)
+2. The order appears **instantly** on the kitchen screen
+3. The cook sees all details: products, variants, extras, special notes
+4. Marks each order as "preparing" → "ready"
+5. The customer receives the status update in real time
+
+### What Does the KDS Screen Show?
+
+- **Order number** and time of the order
+- **Customer name and phone** (with direct WhatsApp link)
+- **Each product** with quantity, variant, and extras
+- **Special notes** (allergies, preferences)
+- **Order type**: table, pickup, or delivery
+- **Time elapsed** since the order was placed
+
+## Concrete Benefits
+
+1. **Zero interpretation errors** — Information is exact and readable
+2. **Paper savings** — No more ticket rolls
+3. **Speed** — The order reaches the kitchen in 0 seconds
+4. **Tracking** — You know exactly what state each order is in
+5. **Direct contact** — If there are questions, contact the customer via WhatsApp with one click
+
+## What Do I Need to Use the KDS?
+
+Just a tablet or monitor in the kitchen with internet connection. Open the "Kitchen" section in the MENIUS dashboard and you're set — orders appear in real time. No specialized hardware or additional software needed.
+
+## Conclusion
+
+A KDS is not a luxury — it's an operational necessity. It eliminates errors, speeds up the kitchen, and improves the customer experience. With MENIUS, the KDS is included in all plans and works from any device with a browser.
     `,
   },
 ];

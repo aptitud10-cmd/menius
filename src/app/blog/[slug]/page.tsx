@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
-import { blogPosts, getBlogPost, getRelatedPosts } from '@/lib/blog-data';
+import { blogPosts, getLocalizedBlogPost, getLocalizedRelatedPosts } from '@/lib/blog-data';
 import { BlogContent } from '@/components/blog/BlogContent';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { LandingFooter } from '@/components/landing/LandingFooter';
@@ -17,7 +17,7 @@ export function generateStaticParams() {
 }
 
 export function generateMetadata({ params }: PageProps): Metadata {
-  const post = getBlogPost(params.slug);
+  const post = getLocalizedBlogPost(params.slug, 'es');
   if (!post) return { title: 'Artículo no encontrado' };
 
   const url = `/blog/${post.slug}`;
@@ -43,13 +43,33 @@ export function generateMetadata({ params }: PageProps): Metadata {
   };
 }
 
+function getUiText(locale: string) {
+  if (locale === 'en') return {
+    minRead: 'min read',
+    ctaTitle: 'Ready to get started?',
+    ctaDesc: 'Create your digital menu in minutes. 14-day free trial, no credit card.',
+    ctaBtn: 'Create free account →',
+    ctaDemo: 'View demo',
+    related: 'Related articles',
+  };
+  return {
+    minRead: 'min de lectura',
+    ctaTitle: '¿Listo para empezar?',
+    ctaDesc: 'Crea tu menú digital en minutos. 14 días gratis, sin tarjeta de crédito.',
+    ctaBtn: 'Crear cuenta gratis →',
+    ctaDemo: 'Ver demo',
+    related: 'Artículos relacionados',
+  };
+}
+
 export default function BlogPostPage({ params }: PageProps) {
   const cookieStore = cookies();
   const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as LandingLocale;
-  const post = getBlogPost(params.slug);
+  const post = getLocalizedBlogPost(params.slug, locale);
   if (!post) notFound();
 
-  const related = getRelatedPosts(params.slug, 3);
+  const related = getLocalizedRelatedPosts(params.slug, locale, 3);
+  const ui = getUiText(locale);
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -83,9 +103,9 @@ export default function BlogPostPage({ params }: PageProps) {
             {post.title}
           </h1>
           <div className="flex items-center gap-4 text-sm text-gray-500">
-            <span>{formatDate(post.date)}</span>
+            <span>{formatDate(post.date, locale)}</span>
             <span>·</span>
-            <span>{post.readTime} min de lectura</span>
+            <span>{post.readTime} {ui.minRead}</span>
             <span>·</span>
             <span>{post.author}</span>
           </div>
@@ -103,23 +123,23 @@ export default function BlogPostPage({ params }: PageProps) {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[250px] rounded-full bg-emerald-500/10 blur-[80px] pointer-events-none" />
           <div className="relative z-10 text-center">
             <h3 className="text-xl font-semibold text-white mb-3">
-              ¿Listo para empezar?
+              {ui.ctaTitle}
             </h3>
             <p className="text-gray-400 mb-6 max-w-md mx-auto text-sm leading-relaxed font-light">
-              Crea tu menú digital en minutos. 14 días gratis, sin tarjeta de crédito.
+              {ui.ctaDesc}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 href="/signup"
                 className="w-full sm:w-auto px-8 py-3 rounded-xl bg-white text-black font-medium text-sm hover:bg-gray-100 transition-all btn-glow"
               >
-                Crear cuenta gratis →
+                {ui.ctaBtn}
               </Link>
               <Link
                 href="/r/demo"
                 className="w-full sm:w-auto px-8 py-3 rounded-xl border border-white/10 text-gray-400 font-medium text-sm hover:text-white hover:border-white/20 transition-all"
               >
-                Ver demo
+                {ui.ctaDemo}
               </Link>
             </div>
           </div>
@@ -128,7 +148,7 @@ export default function BlogPostPage({ params }: PageProps) {
         {/* Related Posts */}
         {related.length > 0 && (
           <div className="mt-16">
-            <h3 className="text-lg font-semibold text-white mb-6">Artículos relacionados</h3>
+            <h3 className="text-lg font-semibold text-white mb-6">{ui.related}</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               {related.map((r) => (
                 <Link key={r.slug} href={`/blog/${r.slug}`} className="group">
@@ -139,7 +159,7 @@ export default function BlogPostPage({ params }: PageProps) {
                     <h4 className="text-sm font-semibold text-white mt-3 mb-2 leading-snug group-hover:text-emerald-300 transition-colors line-clamp-2">
                       {r.title}
                     </h4>
-                    <p className="text-xs text-gray-600">{r.readTime} min · {formatDate(r.date)}</p>
+                    <p className="text-xs text-gray-600">{r.readTime} min · {formatDate(r.date, locale)}</p>
                   </article>
                 </Link>
               ))}
@@ -153,7 +173,7 @@ export default function BlogPostPage({ params }: PageProps) {
   );
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, locale: string): string {
   const d = new Date(dateStr + 'T12:00:00');
-  return d.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
+  return d.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-MX', { year: 'numeric', month: 'short', day: 'numeric' });
 }

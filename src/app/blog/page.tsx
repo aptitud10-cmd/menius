@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
-import { blogPosts } from '@/lib/blog-data';
+import { getLocalizedBlogPosts, getLocalizedCategories } from '@/lib/blog-data';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import type { LandingLocale } from '@/lib/landing-translations';
@@ -16,8 +16,6 @@ export const metadata: Metadata = {
     type: 'website',
   },
 };
-
-const categories = Array.from(new Set(blogPosts.map((p) => p.category)));
 
 function getPageText(locale: LandingLocale) {
   if (locale === 'en') return {
@@ -36,6 +34,8 @@ export default function BlogPage() {
   const cookieStore = cookies();
   const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as LandingLocale;
   const pt = getPageText(locale);
+  const posts = getLocalizedBlogPosts(locale);
+  const categories = getLocalizedCategories(locale);
 
   return (
     <div className="min-h-screen landing-bg overflow-x-hidden relative noise-overlay">
@@ -50,7 +50,7 @@ export default function BlogPage() {
         </div>
       </section>
 
-      <BlogGrid posts={blogPosts} categories={categories} />
+      <BlogGrid posts={posts} categories={categories} locale={locale} />
 
       <LandingFooter locale={locale} />
     </div>
