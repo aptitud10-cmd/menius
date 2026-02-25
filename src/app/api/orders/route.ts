@@ -50,7 +50,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ order_id: `demo-order-${Date.now()}`, order_number: demoNum });
     }
 
-    const parsed = publicOrderSchema.safeParse({ customer_name, customer_phone, notes, items });
+    const parsed = publicOrderSchema.safeParse({
+      customer_name, customer_phone, customer_email, order_type, payment_method, notes, items,
+    });
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
@@ -69,16 +71,24 @@ export async function POST(request: NextRequest) {
 
     const productIds = parsed.data.items.map((i) => i.product_id);
 
-    const [{ data: dbProducts }, { data: dbVariants }, { data: dbExtras }] = await Promise.all([
+    const [{ data: dbProducts }, { data: dbVariants }, { data: dbExtras }, { data: dbModGroups }] = await Promise.all([
       supabase.from('products').select('id, price, in_stock').in('id', productIds).eq('restaurant_id', restaurant_id),
       supabase.from('product_variants').select('id, product_id, price_delta').in('product_id', productIds),
       supabase.from('product_extras').select('id, product_id, price').in('product_id', productIds),
+      supabase.from('modifier_groups').select('id, product_id, name, is_required, min_select, max_select').in('product_id', productIds),
     ]);
 
     const productMap = new Map((dbProducts ?? []).map((p) => [p.id, p]));
     const variantMap = new Map((dbVariants ?? []).map((v) => [v.id, v]));
     const extraMap = new Map((dbExtras ?? []).map((e) => [e.id, e]));
     const productsRequiringVariant = new Set((dbVariants ?? []).map((v) => v.product_id));
+
+    const modGroupsByProduct = new Map<string, typeof dbModGroups>();
+    for (const g of dbModGroups ?? []) {
+      const list = modGroupsByProduct.get(g.product_id) ?? [];
+      list.push(g);
+      modGroupsByProduct.set(g.product_id, list);
+    }
 
     for (const item of parsed.data.items) {
       const dbProduct = productMap.get(item.product_id);
@@ -114,6 +124,18 @@ export async function POST(request: NextRequest) {
         expectedUnitPrice += Number(mod.price_delta);
       }
 
+      const groups = modGroupsByProduct.get(item.product_id) ?? [];
+      for (const grp of groups) {
+        if (!grp.is_required) continue;
+        const selected = (item.modifiers ?? []).filter((m: any) => m.group_name === grp.name).length;
+        if (selected < grp.min_select) {
+          return NextResponse.json({ error: `Selecciona al menos ${grp.min_select} opción(es) en "${grp.name}".` }, { status: 400 });
+        }
+        if (grp.max_select > 0 && selected > grp.max_select) {
+          return NextResponse.json({ error: `Máximo ${grp.max_select} opción(es) en "${grp.name}".` }, { status: 400 });
+        }
+      }
+
       const tolerance = 0.02;
       if (Math.abs(item.unit_price - expectedUnitPrice) > tolerance) {
         logger.warn('Price mismatch', { product: item.product_id, sent: item.unit_price, expected: expectedUnitPrice });
@@ -145,8 +167,8 @@ export async function POST(request: NextRequest) {
       notes: parsed.data.notes,
       total,
       status: 'pending',
-      order_type: order_type || 'dine_in',
-      payment_method: payment_method || 'cash',
+      order_type: parsed.data.order_type,
+      payment_method: parsed.data.payment_method,
       delivery_address: delivery_address || null,
       promo_code: promo_code || '',
       discount_amount: discountAmt,

@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const signupSchema = z.object({
   full_name: z.string().min(2, 'Mínimo 2 caracteres'),
   email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'Mínimo 6 caracteres'),
+  password: z.string().min(8, 'Mínimo 8 caracteres'),
 });
 
 export const loginSchema = z.object({
@@ -57,7 +57,10 @@ const uuidOrNull = z.preprocess(
 
 export const publicOrderSchema = z.object({
   customer_name: z.string().min(1, 'Nombre requerido'),
-  customer_phone: z.string().min(7, 'Teléfono requerido'),
+  customer_phone: z.string().min(7, 'Teléfono requerido').regex(/^[+\d\s\-().]+$/, 'Teléfono inválido'),
+  customer_email: z.string().email('Email inválido').optional().or(z.literal('')),
+  order_type: z.enum(['dine_in', 'pickup', 'delivery']).default('dine_in'),
+  payment_method: z.enum(['cash', 'online']).default('cash'),
   notes: z.string().default(''),
   items: z.array(z.object({
     product_id: z.string().uuid(),
