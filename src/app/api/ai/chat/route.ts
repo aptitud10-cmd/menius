@@ -14,7 +14,7 @@ interface ChatMessage {
   text: string;
 }
 
-async function gatherRestaurantContext(restaurantId: string) {
+async function gatherRestaurantContext(restaurantId: string): Promise<{ context: string; locale: string }> {
   const supabase = createClient();
 
   const now = new Date();
@@ -85,9 +85,12 @@ async function gatherRestaurantContext(restaurantId: string) {
   const pickupOrders = allMonth.filter(o => o.order_type === 'pickup').length;
   const dineInOrders = allMonth.filter(o => o.order_type === 'dine_in').length;
 
+  const locale = restaurant?.locale ?? 'es';
+  const en = locale === 'en';
+
   const avgRating = (reviews ?? []).length > 0
     ? ((reviews ?? []).reduce((s, r) => s + r.rating, 0) / (reviews ?? []).length).toFixed(1)
-    : 'Sin reseñas';
+    : (en ? 'No reviews' : 'Sin reseñas');
 
   const plan = subscription ? getPlan(subscription.plan_id) : null;
   const trialEnd = subscription?.trial_end ? new Date(subscription.trial_end) : null;
@@ -99,196 +102,197 @@ async function gatherRestaurantContext(restaurantId: string) {
   const activeTables = (tables ?? []).filter(t => t.is_active);
   const activePromos = (promotions ?? []).filter(p => p.is_active);
 
-  return `
-=== RESTAURANTE ===
-Nombre: ${restaurant?.name ?? 'N/A'}
+  const na = en ? 'Not set' : 'No configurado';
+
+  const context = `
+=== ${en ? 'RESTAURANT' : 'RESTAURANTE'} ===
+${en ? 'Name' : 'Nombre'}: ${restaurant?.name ?? 'N/A'}
 Slug: ${restaurant?.slug ?? 'N/A'}
-URL del menú: menius.app/r/${restaurant?.slug ?? ''}
-Moneda: ${restaurant?.currency ?? 'USD'}
-Idioma: ${restaurant?.locale ?? 'es'}
-Dirección: ${restaurant?.address || 'No configurada'}
-Teléfono: ${restaurant?.phone || 'No configurado'}
-Email: ${restaurant?.email || 'No configurado'}
-WhatsApp notificaciones: ${restaurant?.notification_whatsapp || 'No configurado'}
-Tipos de orden activos: ${(restaurant?.order_types_enabled as string[] ?? ['dine_in']).join(', ')}
-Métodos de pago: ${(restaurant?.payment_methods_enabled as string[] ?? ['cash']).join(', ')}
-Horario: ${restaurant?.operating_hours ? JSON.stringify(restaurant.operating_hours) : 'No configurado'}
+${en ? 'Menu URL' : 'URL del menú'}: menius.app/r/${restaurant?.slug ?? ''}
+${en ? 'Currency' : 'Moneda'}: ${restaurant?.currency ?? 'USD'}
+${en ? 'Language' : 'Idioma'}: ${locale}
+${en ? 'Address' : 'Dirección'}: ${restaurant?.address || na}
+${en ? 'Phone' : 'Teléfono'}: ${restaurant?.phone || na}
+Email: ${restaurant?.email || na}
+${en ? 'WhatsApp notifications' : 'WhatsApp notificaciones'}: ${restaurant?.notification_whatsapp || na}
+${en ? 'Active order types' : 'Tipos de orden activos'}: ${(restaurant?.order_types_enabled as string[] ?? ['dine_in']).join(', ')}
+${en ? 'Payment methods' : 'Métodos de pago'}: ${(restaurant?.payment_methods_enabled as string[] ?? ['cash']).join(', ')}
+${en ? 'Schedule' : 'Horario'}: ${restaurant?.operating_hours ? JSON.stringify(restaurant.operating_hours) : na}
 
-=== SUSCRIPCIÓN ===
-Plan: ${plan?.name ?? 'Sin plan'}
-Estado: ${subscription?.status ?? 'N/A'}
-${trialDaysLeft !== null ? `Días de prueba restantes: ${trialDaysLeft}` : ''}
-${plan ? `Límites: ${plan.limits.maxProducts === -1 ? 'ilimitados' : `${plan.limits.maxProducts} productos, ${plan.limits.maxTables} mesas, ${plan.limits.maxUsers} usuarios`}` : ''}
+=== ${en ? 'SUBSCRIPTION' : 'SUSCRIPCIÓN'} ===
+${en ? 'Plan' : 'Plan'}: ${plan?.name ?? (en ? 'No plan' : 'Sin plan')}
+${en ? 'Status' : 'Estado'}: ${subscription?.status ?? 'N/A'}
+${trialDaysLeft !== null ? `${en ? 'Trial days left' : 'Días de prueba restantes'}: ${trialDaysLeft}` : ''}
+${plan ? `${en ? 'Limits' : 'Límites'}: ${plan.limits.maxProducts === -1 ? (en ? 'unlimited' : 'ilimitados') : `${plan.limits.maxProducts} ${en ? 'products' : 'productos'}, ${plan.limits.maxTables} ${en ? 'tables' : 'mesas'}, ${plan.limits.maxUsers} ${en ? 'users' : 'usuarios'}`}` : ''}
 
-=== MENÚ ===
-Categorías: ${(categories ?? []).map(c => `${c.name}${c.is_active ? '' : ' (inactiva)'}`).join(', ') || 'Ninguna'}
-Productos activos: ${activeProducts.length}
-Productos inactivos: ${inactiveProducts.length}
-Productos sin imagen: ${productsWithoutImage.length}
-Productos destacados: ${activeProducts.filter(p => p.is_featured).length}
-Lista de productos: ${activeProducts.slice(0, 30).map(p => `${p.name} ($${Number(p.price).toFixed(2)})`).join(', ')}
+=== ${en ? 'MENU' : 'MENÚ'} ===
+${en ? 'Categories' : 'Categorías'}: ${(categories ?? []).map(c => `${c.name}${c.is_active ? '' : (en ? ' (inactive)' : ' (inactiva)')}`).join(', ') || (en ? 'None' : 'Ninguna')}
+${en ? 'Active products' : 'Productos activos'}: ${activeProducts.length}
+${en ? 'Inactive products' : 'Productos inactivos'}: ${inactiveProducts.length}
+${en ? 'Products without image' : 'Productos sin imagen'}: ${productsWithoutImage.length}
+${en ? 'Featured products' : 'Productos destacados'}: ${activeProducts.filter(p => p.is_featured).length}
+${en ? 'Product list' : 'Lista de productos'}: ${activeProducts.slice(0, 30).map(p => `${p.name} ($${Number(p.price).toFixed(2)})`).join(', ')}
 
-=== VENTAS HOY ===
-Ordenes hoy: ${allToday.length}
-Completadas hoy: ${completedToday.length}
-Ingresos hoy: $${todayRevenue.toFixed(2)}
-Pendientes ahora: ${pendingToday}
-Ticket promedio hoy: $${completedToday.length > 0 ? (todayRevenue / completedToday.length).toFixed(2) : '0.00'}
+=== ${en ? 'TODAY\'S SALES' : 'VENTAS HOY'} ===
+${en ? 'Orders today' : 'Ordenes hoy'}: ${allToday.length}
+${en ? 'Completed today' : 'Completadas hoy'}: ${completedToday.length}
+${en ? 'Revenue today' : 'Ingresos hoy'}: $${todayRevenue.toFixed(2)}
+${en ? 'Pending now' : 'Pendientes ahora'}: ${pendingToday}
+${en ? 'Avg ticket today' : 'Ticket promedio hoy'}: $${completedToday.length > 0 ? (todayRevenue / completedToday.length).toFixed(2) : '0.00'}
 
-=== VENTAS ESTA SEMANA ===
-Ordenes: ${allWeek.length}
-Completadas: ${completedWeek.length}
-Ingresos: $${weekRevenue.toFixed(2)}
-Ticket promedio: $${completedWeek.length > 0 ? (weekRevenue / completedWeek.length).toFixed(2) : '0.00'}
+=== ${en ? 'THIS WEEK\'S SALES' : 'VENTAS ESTA SEMANA'} ===
+${en ? 'Orders' : 'Ordenes'}: ${allWeek.length}
+${en ? 'Completed' : 'Completadas'}: ${completedWeek.length}
+${en ? 'Revenue' : 'Ingresos'}: $${weekRevenue.toFixed(2)}
+${en ? 'Avg ticket' : 'Ticket promedio'}: $${completedWeek.length > 0 ? (weekRevenue / completedWeek.length).toFixed(2) : '0.00'}
 
-=== VENTAS ESTE MES (30 días) ===
-Ordenes totales: ${allMonth.length}
-Completadas: ${completedMonth.length}
-Canceladas: ${cancelledMonth}
-Ingresos: $${monthRevenue.toFixed(2)}
-Descuentos otorgados: $${monthDiscount.toFixed(2)}
-Ticket promedio: $${completedMonth.length > 0 ? (monthRevenue / completedMonth.length).toFixed(2) : '0.00'}
-Por tipo: Dine-in: ${dineInOrders}, Pickup: ${pickupOrders}, Delivery: ${deliveryOrders}
+=== ${en ? 'THIS MONTH\'S SALES (30 days)' : 'VENTAS ESTE MES (30 días)'} ===
+${en ? 'Total orders' : 'Ordenes totales'}: ${allMonth.length}
+${en ? 'Completed' : 'Completadas'}: ${completedMonth.length}
+${en ? 'Cancelled' : 'Canceladas'}: ${cancelledMonth}
+${en ? 'Revenue' : 'Ingresos'}: $${monthRevenue.toFixed(2)}
+${en ? 'Discounts given' : 'Descuentos otorgados'}: $${monthDiscount.toFixed(2)}
+${en ? 'Avg ticket' : 'Ticket promedio'}: $${completedMonth.length > 0 ? (monthRevenue / completedMonth.length).toFixed(2) : '0.00'}
+${en ? 'By type' : 'Por tipo'}: Dine-in: ${dineInOrders}, Pickup: ${pickupOrders}, Delivery: ${deliveryOrders}
 
-=== CLIENTES TOP (30 días) ===
-${topCustomers.length > 0 ? topCustomers.map((c, i) => `${i + 1}. ${c.name || 'Anónimo'}${c.phone ? ` (${c.phone})` : ''} — ${c.orders} ordenes, $${c.total.toFixed(2)} total`).join('\n') : 'Sin datos de clientes aún'}
+=== ${en ? 'TOP CUSTOMERS (30 days)' : 'CLIENTES TOP (30 días)'} ===
+${topCustomers.length > 0 ? topCustomers.map((c, i) => `${i + 1}. ${c.name || (en ? 'Anonymous' : 'Anónimo')}${c.phone ? ` (${c.phone})` : ''} — ${c.orders} ${en ? 'orders' : 'ordenes'}, $${c.total.toFixed(2)} total`).join('\n') : (en ? 'No customer data yet' : 'Sin datos de clientes aún')}
 
-=== RESEÑAS ===
-Rating promedio: ${avgRating}
-Total reseñas: ${(reviews ?? []).length}
-${(reviews ?? []).slice(0, 5).map(r => `- ${r.customer_name}: ${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)} "${r.comment || 'Sin comentario'}"`).join('\n')}
+=== ${en ? 'REVIEWS' : 'RESEÑAS'} ===
+${en ? 'Average rating' : 'Rating promedio'}: ${avgRating}
+${en ? 'Total reviews' : 'Total reseñas'}: ${(reviews ?? []).length}
+${(reviews ?? []).slice(0, 5).map(r => `- ${r.customer_name}: ${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)} "${r.comment || (en ? 'No comment' : 'Sin comentario')}"`).join('\n')}
 
-=== MESAS ===
-Total: ${(tables ?? []).length} (${activeTables.length} activas)
+=== ${en ? 'TABLES' : 'MESAS'} ===
+Total: ${(tables ?? []).length} (${activeTables.length} ${en ? 'active' : 'activas'})
 ${activeTables.map(t => t.name).join(', ')}
 
-=== PROMOCIONES ===
-${activePromos.length > 0 ? activePromos.map(p => `- ${p.code}: ${p.discount_type === 'percentage' ? `${p.discount_value}%` : `$${p.discount_value}`} off (usado: ${p.usage_count}/${p.max_uses ?? '∞'}${p.expires_at ? `, expira: ${new Date(p.expires_at).toLocaleDateString()}` : ''})`).join('\n') : 'Sin promociones activas'}
+=== ${en ? 'PROMOTIONS' : 'PROMOCIONES'} ===
+${activePromos.length > 0 ? activePromos.map(p => `- ${p.code}: ${p.discount_type === 'percentage' ? `${p.discount_value}%` : `$${p.discount_value}`} off (${en ? 'used' : 'usado'}: ${p.usage_count}/${p.max_uses ?? '∞'}${p.expires_at ? `, ${en ? 'expires' : 'expira'}: ${new Date(p.expires_at).toLocaleDateString()}` : ''})`).join('\n') : (en ? 'No active promotions' : 'Sin promociones activas')}
 
-=== EQUIPO ===
-${(staff ?? []).length > 0 ? (staff ?? []).map(s => `- ${s.name} (${s.role})${s.is_active ? '' : ' — inactivo'}`).join('\n') : 'Solo el propietario'}
+=== ${en ? 'TEAM' : 'EQUIPO'} ===
+${(staff ?? []).length > 0 ? (staff ?? []).map(s => `- ${s.name} (${s.role})${s.is_active ? '' : (en ? ' — inactive' : ' — inactivo')}`).join('\n') : (en ? 'Owner only' : 'Solo el propietario')}
 
-=== BASE DE DATOS DE CLIENTES (CRM) ===
-Total en base de datos: ${(crmCustomers ?? []).length >= 20 ? '20+' : (crmCustomers ?? []).length}
-${(crmCustomers ?? []).length > 0 ? (crmCustomers ?? []).slice(0, 15).map((c, i) => `${i + 1}. ${c.name || 'Anónimo'}${c.phone ? ` (${c.phone})` : ''}${c.email ? ` — ${c.email}` : ''} — ${c.total_orders} ordenes, $${Number(c.total_spent).toFixed(2)} total${c.tags?.length > 0 ? ` [${c.tags.join(', ')}]` : ''}${c.last_order_at ? ` — última: ${new Date(c.last_order_at).toLocaleDateString()}` : ''}`).join('\n') : 'Sin clientes registrados aún'}
+=== ${en ? 'CUSTOMER DATABASE (CRM)' : 'BASE DE DATOS DE CLIENTES (CRM)'} ===
+${en ? 'Total in database' : 'Total en base de datos'}: ${(crmCustomers ?? []).length >= 20 ? '20+' : (crmCustomers ?? []).length}
+${(crmCustomers ?? []).length > 0 ? (crmCustomers ?? []).slice(0, 15).map((c, i) => `${i + 1}. ${c.name || (en ? 'Anonymous' : 'Anónimo')}${c.phone ? ` (${c.phone})` : ''}${c.email ? ` — ${c.email}` : ''} — ${c.total_orders} ${en ? 'orders' : 'ordenes'}, $${Number(c.total_spent).toFixed(2)} total${c.tags?.length > 0 ? ` [${c.tags.join(', ')}]` : ''}${c.last_order_at ? ` — ${en ? 'last' : 'última'}: ${new Date(c.last_order_at).toLocaleDateString()}` : ''}`).join('\n') : (en ? 'No customers yet' : 'Sin clientes registrados aún')}
 
-=== ORDENES RECIENTES HOY ===
-${allToday.slice(0, 10).map(o => `#${o.order_number} — ${o.customer_name || 'Sin nombre'} — $${Number(o.total).toFixed(2)} — ${o.status} — ${o.order_type ?? 'dine_in'}`).join('\n') || 'Sin ordenes hoy'}
+=== ${en ? 'RECENT ORDERS TODAY' : 'ORDENES RECIENTES HOY'} ===
+${allToday.slice(0, 10).map(o => `#${o.order_number} — ${o.customer_name || (en ? 'No name' : 'Sin nombre')} — $${Number(o.total).toFixed(2)} — ${o.status} — ${o.order_type ?? 'dine_in'}`).join('\n') || (en ? 'No orders today' : 'Sin ordenes hoy')}
 `.trim();
+
+  return { context, locale };
 }
 
-const SYSTEM_PROMPT = `Eres "MENIUS AI", el asistente inteligente de MENIUS — plataforma de gestión digital para restaurantes.
+const SHARED_CAPABILITIES = `
+CORE CAPABILITIES:
+1. Analytics & sales — Daily/weekly/monthly sales, average ticket, trends, peak hours, best/worst sellers
+2. CRM & customers — Customer database with history, total spend, frequency, tags, segmentation
+3. Menu & products — Prices, products without images, menu optimization, pricing suggestions
+4. Orders — Order status, pending, cancelled, preparation times
+5. Dashboard guide — Step-by-step explanations of each section
+6. Business strategy — Promotions, schedules, marketing, how to sell more
+7. Reviews — Feedback analysis, suggestions to improve ratings
+8. Subscription — Current plan, limits, which plan to choose
+
+CHEF CONSULTANT:
+9. Recipes — Detailed recipes: ingredients, quantities, steps, timing, chef tips
+10. Drinks & cocktails — Beverage recipes, pairings, menu combinations
+11. Recipe costing — Help calculate cost per portion given ingredient prices
+12. Food trends — Trending dishes, creative variations, themed menus
+13. Cooking tips — Techniques, ingredient substitutions, presentation improvement
+14. Themed menus — Ideas for holidays, seasons, special events
+
+DASHBOARD GUIDE:
+- Menu > Categories: Create/edit categories, drag & drop ordering
+- Menu > Products: Add products with photo, price, variants and extras
+- Tables & QR: Create tables, generate QR codes for printing
+- Kitchen (KDS): Kitchen screen, real-time orders with sound alerts
+- Orders: View all orders, change status, contact via WhatsApp
+- Customers: CRM with history, tags, notes, direct contact
+- Analytics: Sales charts, top products, trends
+- Marketing: Send email campaigns to customers
+- Promotions: Create coupons (percentage or fixed amount)
+- Staff: Add employees with different roles
+- Settings: Logo, banner, address, WhatsApp, order types, payments, schedule
+- Billing: Current plan, change plan, history
+
+RULES:
+- Max 350 words, clear and direct
+- Use **bold** and lists when it improves readability
+- If action is needed, say exactly where to go in the dashboard
+- Use the restaurant's currency for amounts
+- Max 2-3 emojis per response, only when they add value
+- Never make up data
+- On first message / hello, give a quick status summary
+- CRITICAL: Always respond in the same language the user writes in`;
+
+function getSystemPrompt(locale: string) {
+  if (locale === 'en') return `You are "MENIUS AI", the intelligent assistant for MENIUS — a digital management platform for restaurants.
+
+YOUR PERSONALITY:
+You are like an expert business partner: approachable, direct, with real experience in food service and business. You talk like a trusted colleague, not a robot. Your tone is warm and professional. You can be witty when it fits, but you always provide value. Match the user's language — if they write in Spanish, reply in Spanish; if in English, reply in English.
+
+Style examples:
+- Instead of "The average ticket is $15.50" → "Your average ticket is at **$15.50** — not bad, but if you push extras you could easily hit $18."
+- Instead of "You have no active promotions" → "No active promos right now. Want me to suggest one? Tuesdays tend to be slow for many restaurants."
+- Instead of "Error, data not found" → "Hmm, I don't have that info yet. You might need to set it up first."
+${SHARED_CAPABILITIES}`;
+
+  return `Eres "MENIUS AI", el asistente inteligente de MENIUS — plataforma de gestión digital para restaurantes.
 
 TU PERSONALIDAD:
-Eres como un socio experto del restaurante: cercano, directo, con experiencia real en gastronomía y negocios. Hablas como un colega de confianza, no como un robot. Usas un tono cálido y profesional. Puedes ser gracioso cuando viene al caso, pero siempre aportas valor. Tuteas al usuario. Adaptas tu idioma al del usuario (español o inglés).
+Eres como un socio experto del restaurante: cercano, directo, con experiencia real en gastronomía y negocios. Hablas como un colega de confianza, no como un robot. Usas un tono cálido y profesional. Puedes ser gracioso cuando viene al caso, pero siempre aportas valor. Tuteas al usuario. Si el usuario escribe en inglés, responde en inglés; si escribe en español, responde en español.
 
 Ejemplos de tu estilo:
 - En vez de "El ticket promedio es $15.50" → "Tu ticket promedio anda en **$15.50** — nada mal, pero si subes los extras podrías llegar fácil a $18."
 - En vez de "No tienes promociones activas" → "No tienes ninguna promo activa. ¿Quieres que te sugiera una? Los martes suelen ser flojos para muchos restaurantes."
 - En vez de "Error, no encontré datos" → "Hmm, no tengo esa info todavía. Puede que necesites configurarlo primero."
-
-CAPACIDADES PRINCIPALES:
-1. **Analítica y ventas** — Ventas del día/semana/mes, ticket promedio, comparaciones, tendencias, horas pico, productos más y menos vendidos
-2. **CRM y clientes** — Base de clientes con historial, gasto total, frecuencia, tags. Top compradores, clientes inactivos, segmentación
-3. **Menú y productos** — Precios, productos sin imagen, optimización del menú, sugerencias de pricing
-4. **Órdenes** — Estado de pedidos, pendientes, cancelados, tiempos de preparación
-5. **Guía del dashboard** — Explicar paso a paso cómo usar cada sección
-6. **Estrategia de negocio** — Promociones, horarios, marketing, cómo vender más
-7. **Reseñas** — Análisis de feedback, sugerencias para mejorar rating
-8. **Suscripción** — Plan actual, límites, qué plan conviene
-
-CHEF CONSULTOR — Recetas y cocina:
-9. **Recetas** — Puedes dar recetas detalladas de cualquier platillo: ingredientes, cantidades, pasos, tiempos, tips de chef
-10. **Bebidas y cócteles** — Recetas de bebidas, maridajes, combinaciones con el menú
-11. **Costeo de recetas** — Ayudar a calcular costo por porción si dan los precios de ingredientes
-12. **Tendencias gastronómicas** — Sugerir platillos de moda, variaciones creativas, menús temáticos
-13. **Tips de cocina** — Técnicas, sustituciones de ingredientes, cómo mejorar presentación
-14. **Menús temáticos** — Ideas para San Valentín, Navidad, Día de las Madres, temporadas
-
-Cuando te pidan una receta:
-- Da ingredientes con cantidades exactas
-- Pasos numerados claros
-- Tiempo de preparación y porciones
-- Un tip de chef al final
-- Si el platillo está en su menú, relaciona con el precio que cobran
-
-SUGERENCIAS PROACTIVAS:
-Cuando notes algo en los datos, menciónalo sin que te pregunten:
-- Productos sin imagen → "Oye, tienes {n} productos sin foto. Los productos con imagen venden hasta 30% más."
-- Muchas cancelaciones → "Vi que tienes {n} cancelaciones este mes. ¿Quieres que analicemos por qué?"
-- Clientes inactivos → "Tienes clientes que no ordenan hace más de 30 días. Una promo podría reactivarlos."
-- Rating bajo → "Tu rating está en {x}. ¿Revisamos los comentarios para ver qué mejorar?"
-- Sin promociones → "No tienes promos activas. Los restaurantes con promos venden en promedio 15-20% más."
-- Pocos métodos de pago → "Solo aceptas {x}. Agregar más opciones reduce el abandono de pedidos."
-- Sin horario configurado → "No tienes horario de operación configurado. Tus clientes no saben cuándo estás abierto."
-- Trial por vencer → "Te quedan {n} días de prueba. ¿Quieres que te explique los planes?"
-
-GUÍA DEL DASHBOARD:
-- **Menú > Categorías**: Crear/editar categorías, ordenar con drag & drop
-- **Menú > Productos**: Agregar productos con foto, precio, variantes y extras
-- **Mesas y QR**: Crear mesas, generar códigos QR elegantes para imprimir
-- **Cocina (KDS)**: Pantalla para la cocina, pedidos en tiempo real con sonidos
-- **Órdenes**: Ver todos los pedidos, cambiar estado, contactar por WhatsApp
-- **Clientes**: CRM con historial, tags, notas, contacto directo
-- **Analytics**: Gráficas de ventas, productos top, tendencias
-- **Marketing**: Enviar campañas de email a tus clientes
-- **Promociones**: Crear cupones (porcentaje o monto fijo)
-- **Staff**: Agregar empleados con roles diferentes
-- **Configuración**: Logo, banner, dirección, WhatsApp, tipos de orden, pagos, horario
-- **Facturación**: Plan actual, cambiar de plan, historial
-
-REGLAS:
-- Responde en máximo 350 palabras, claro y directo
-- Usa **negritas** y listas cuando mejore la lectura
-- Si algo requiere acción, di exactamente dónde ir: "Ve a **Configuración** y en la pestaña..."
-- Si algo no está configurado, sugiere configurarlo y di cómo
-- Usa la moneda del restaurante para cifras
-- Máximo 2-3 emojis por respuesta, solo cuando aporten
-- Si no tienes la info, dilo honestamente, nunca inventes datos
-- Cuando el usuario abre la conversación o dice hola, dale un resumen rápido del estado de su restaurante hoy (ventas, pedidos pendientes, algo que mejorar)`;
+${SHARED_CAPABILITIES}`;
+}
 
 function buildProactiveTips(context: string): string {
   const tips: string[] = [];
 
-  const noImageMatch = context.match(/Productos sin imagen: (\d+)/);
+  const noImageMatch = context.match(/Products without image|Productos sin imagen: (\d+)/);
   if (noImageMatch && parseInt(noImageMatch[1]) > 0) {
-    tips.push(`ALERTA: ${noImageMatch[1]} productos sin foto — los productos con imagen venden hasta 30% más.`);
+    tips.push(`ALERT: ${noImageMatch[1]} products without images — products with images sell up to 30% more.`);
   }
 
-  const cancelledMatch = context.match(/Canceladas: (\d+)/);
+  const cancelledMatch = context.match(/Cancelled|Canceladas: (\d+)/);
   if (cancelledMatch && parseInt(cancelledMatch[1]) > 3) {
-    tips.push(`ALERTA: ${cancelledMatch[1]} cancelaciones este mes — vale la pena investigar por qué.`);
+    tips.push(`ALERT: ${cancelledMatch[1]} cancellations this month — worth investigating why.`);
   }
 
-  const pendingMatch = context.match(/Pendientes ahora: (\d+)/);
+  const pendingMatch = context.match(/Pending now|Pendientes ahora: (\d+)/);
   if (pendingMatch && parseInt(pendingMatch[1]) > 0) {
-    tips.push(`URGENTE: ${pendingMatch[1]} pedidos pendientes sin atender.`);
+    tips.push(`URGENT: ${pendingMatch[1]} pending orders unattended.`);
   }
 
-  if (context.includes('Dirección: No configurada')) {
-    tips.push('MEJORA: Sin dirección configurada — los clientes no saben dónde encontrarte.');
+  if (context.includes('Address: Not set') || context.includes('Dirección: No configurado')) {
+    tips.push('IMPROVE: No address configured — customers don\'t know where to find you.');
   }
 
-  if (context.includes('Horario: No configurado')) {
-    tips.push('MEJORA: Sin horario configurado — tus clientes no saben cuándo estás abierto.');
+  if (context.includes('Schedule: Not set') || context.includes('Horario: No configurado')) {
+    tips.push('IMPROVE: No schedule configured — customers don\'t know your opening hours.');
   }
 
-  if (context.includes('Sin promociones activas')) {
-    tips.push('OPORTUNIDAD: Sin promociones activas — una promo puede aumentar ventas 15-20%.');
+  if (context.includes('No active promotions') || context.includes('Sin promociones activas')) {
+    tips.push('OPPORTUNITY: No active promotions — promos can increase sales 15-20%.');
   }
 
-  const ratingMatch = context.match(/Rating promedio: ([\d.]+)/);
+  const ratingMatch = context.match(/Average rating|Rating promedio: ([\d.]+)/);
   if (ratingMatch && parseFloat(ratingMatch[1]) < 4.0) {
-    tips.push(`ATENCIÓN: Rating de ${ratingMatch[1]} — revisa los comentarios para mejorar.`);
+    tips.push(`ATTENTION: Rating at ${ratingMatch[1]} — review comments to improve.`);
   }
 
-  const trialMatch = context.match(/Días de prueba restantes: (\d+)/);
+  const trialMatch = context.match(/Trial days left|Días de prueba restantes: (\d+)/);
   if (trialMatch && parseInt(trialMatch[1]) <= 5) {
-    tips.push(`AVISO: Solo quedan ${trialMatch[1]} días de prueba.`);
+    tips.push(`NOTICE: Only ${trialMatch[1]} trial days left.`);
   }
 
   if (tips.length === 0) return '';
-  return `\n\n=== ALERTAS Y OPORTUNIDADES (menciona las relevantes cuando sea natural) ===\n${tips.join('\n')}`;
+  return `\n\n=== ALERTS & OPPORTUNITIES ===\n${tips.join('\n')}`;
 }
 
 export async function POST(request: NextRequest) {
@@ -348,11 +352,10 @@ export async function POST(request: NextRequest) {
       conversationHistory = [];
     }
 
-    const [context] = await Promise.all([
-      gatherRestaurantContext(tenant.restaurantId),
-    ]);
+    const { context, locale: restaurantLocale } = await gatherRestaurantContext(tenant.restaurantId);
 
     const proactiveTips = buildProactiveTips(context);
+    const systemPrompt = getSystemPrompt(restaurantLocale);
 
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -361,7 +364,7 @@ export async function POST(request: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           systemInstruction: {
-            parts: [{ text: `${SYSTEM_PROMPT}\n\nDATOS ACTUALES DEL RESTAURANTE:\n${context}${proactiveTips}` }],
+            parts: [{ text: `${systemPrompt}\n\n${restaurantLocale === 'en' ? 'CURRENT RESTAURANT DATA' : 'DATOS ACTUALES DEL RESTAURANTE'}:\n${context}${proactiveTips}` }],
           },
           contents: [
             ...conversationHistory,

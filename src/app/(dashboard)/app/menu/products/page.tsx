@@ -4,12 +4,16 @@ import { ProductsManager } from '@/components/menu/ProductsManager';
 export default async function ProductsPage() {
   const { supabase, restaurantId: rid } = await getDashboardContext();
 
-  const [{ data: products }, { data: categories }, { data: restaurant }, { data: modifierGroups }] = await Promise.all([
+  const [{ data: products }, { data: categories }, { data: restaurant }] = await Promise.all([
     supabase.from('products').select('*, product_variants(*), product_extras(*)').eq('restaurant_id', rid).order('sort_order'),
     supabase.from('categories').select('*').eq('restaurant_id', rid).eq('is_active', true).order('sort_order'),
     supabase.from('restaurants').select('id, currency, locale, available_locales').eq('id', rid).maybeSingle(),
-    supabase.from('modifier_groups').select('*, modifier_options(*)').eq('restaurant_id', rid).order('sort_order'),
   ]);
+
+  const productIds = (products ?? []).map((p: any) => p.id as string);
+  const { data: modifierGroups } = productIds.length > 0
+    ? await supabase.from('modifier_groups').select('*, modifier_options(*)').in('product_id', productIds).order('sort_order')
+    : { data: [] as any[] };
 
   const groupsByProduct = new Map<string, any[]>();
   for (const g of (modifierGroups ?? [])) {

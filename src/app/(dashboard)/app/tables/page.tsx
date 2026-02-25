@@ -17,12 +17,24 @@ export default async function TablesPage() {
       .maybeSingle(),
   ]);
 
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+  const slug = restaurantRes.data?.slug ?? '';
+  const tables = tablesRes.data ?? [];
+
+  for (const table of tables) {
+    if (table.qr_code_value && !table.qr_code_value.startsWith(appUrl)) {
+      const correctUrl = `${appUrl}/r/${slug}?table=${encodeURIComponent(table.name)}`;
+      await supabase.from('tables').update({ qr_code_value: correctUrl }).eq('id', table.id);
+      table.qr_code_value = correctUrl;
+    }
+  }
+
   return (
     <div>
       <h1 className="dash-heading mb-6">Mesas & Códigos QR</h1>
       <TablesManager
-        initialTables={tablesRes.data ?? []}
-        restaurantSlug={restaurantRes.data?.slug ?? ''}
+        initialTables={tables}
+        restaurantSlug={slug}
         restaurantName={restaurantRes.data?.name ?? ''}
       />
     </div>

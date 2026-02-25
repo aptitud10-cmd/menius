@@ -36,7 +36,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
 
   if (!restaurant) return null;
 
-  const [{ data: categories }, { data: products }, { data: { user } }, { data: modifierGroups }, { data: reviewRows }] = await Promise.all([
+  const [{ data: categories }, { data: products }, { data: { user } }, { data: reviewRows }] = await Promise.all([
     supabase
       .from('categories')
       .select('*')
@@ -51,11 +51,6 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
       .order('sort_order'),
     supabase.auth.getUser(),
     supabase
-      .from('modifier_groups')
-      .select('*, modifier_options(*)')
-      .eq('restaurant_id', restaurant.id)
-      .order('sort_order'),
-    supabase
       .from('reviews')
       .select('id, customer_name, rating, comment, created_at')
       .eq('restaurant_id', restaurant.id)
@@ -63,6 +58,11 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
       .order('created_at', { ascending: false })
       .limit(50),
   ]);
+
+  const productIds = (products ?? []).map((p: any) => p.id as string);
+  const { data: modifierGroups } = productIds.length > 0
+    ? await supabase.from('modifier_groups').select('*, modifier_options(*)').in('product_id', productIds).order('sort_order')
+    : { data: [] as any[] };
 
   const groupsByProduct = new Map<string, any[]>();
   for (const g of (modifierGroups ?? [])) {
