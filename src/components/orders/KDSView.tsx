@@ -368,7 +368,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
               <History className="w-14 h-14 mb-2 text-gray-700" /><p className="text-base font-semibold text-gray-500">Sin historial</p>
             </div>
           ) : (
-            <div className="space-y-1 max-w-5xl mx-auto">
+            <div className="space-y-1.5 max-w-6xl mx-auto">
               {history.map(o => (
                 <HRow key={o.id} order={o} currency={currency} open={expanded.has(o.id)}
                   onToggle={() => toggleExp(o.id)} onPrint={() => setPrintOrder(o)} onRecall={() => recall(o.id)} />
@@ -587,44 +587,129 @@ function Ticket({ order, currency, isNew, isExpanded, isSelected, onBump, onCanc
   );
 }
 
-/* ── History row ── */
+/* ── History row — expands to full card on click ── */
 function HRow({ order, currency, open, onToggle, onPrint, onRecall }: {
   order: Order; currency: string; open: boolean; onToggle: () => void; onPrint: () => void; onRecall: () => void;
 }) {
   const tm = TYPE_META[order.order_type ?? ''];
+  const pm = PAY_META[order.payment_method ?? ''];
   const ok = order.status === 'delivered';
-  return (
-    <div className="bg-gray-800/50 rounded-lg border border-gray-700/30 overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-gray-800/80 touch-manipulation" onClick={onToggle}>
-        <span className={cn('w-2 h-2 rounded-full flex-shrink-0', ok ? 'bg-emerald-500' : 'bg-red-500')} />
-        <span className="text-xs font-bold text-white font-mono w-28 flex-shrink-0">{order.order_number}</span>
-        <span className="text-xs text-gray-300 truncate flex-1">{order.customer_name || '—'}</span>
-        {tm && <span className="hidden md:inline text-[10px] text-gray-500">{tm.label}</span>}
-        <span className="text-xs font-bold text-white tabular-nums w-20 text-right flex-shrink-0">{formatPrice(Number(order.total), currency)}</span>
-        <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-bold', ok ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400')}>{ok ? 'OK' : 'X'}</span>
-        <span className="text-[10px] text-gray-600 w-16 text-right hidden sm:block">{timeAgo(order.created_at)}</span>
-        <button onClick={e => { e.stopPropagation(); onRecall(); }} className="p-1 rounded text-gray-600 hover:text-blue-400 hover:bg-blue-500/10 touch-manipulation" title="Recuperar"><Undo2 className="w-3.5 h-3.5" /></button>
-        <button onClick={e => { e.stopPropagation(); onPrint(); }} className="p-1 rounded text-gray-600 hover:text-white hover:bg-gray-700 touch-manipulation" title="Reimprimir"><Printer className="w-3.5 h-3.5" /></button>
-        <ChevronDown className={cn('w-3.5 h-3.5 text-gray-600 transition-transform', open && 'rotate-180')} />
+  const items = order.items ?? [];
+  const count = items.reduce((s, i: any) => s + i.qty, 0);
+  const created = new Date(order.created_at);
+  const elapsed = order.updated_at
+    ? Math.round((new Date(order.updated_at).getTime() - created.getTime()) / 60000)
+    : null;
+
+  if (!open) {
+    return (
+      <div className="bg-gray-800/50 rounded-lg border border-gray-700/30 overflow-hidden cursor-pointer hover:bg-gray-800/80 touch-manipulation transition-all" onClick={onToggle}>
+        <div className="flex items-center gap-2 px-3 py-2.5">
+          <span className={cn('w-2 h-2 rounded-full flex-shrink-0', ok ? 'bg-emerald-500' : 'bg-red-500')} />
+          <span className="text-xs font-bold text-white font-mono w-28 flex-shrink-0">{order.order_number}</span>
+          <span className="text-xs text-gray-300 truncate flex-1">{order.customer_name || '—'}</span>
+          {tm && <span className="hidden md:inline text-[10px] text-gray-500">{tm.label}</span>}
+          <span className="text-xs font-bold text-white tabular-nums w-20 text-right flex-shrink-0">{formatPrice(Number(order.total), currency)}</span>
+          <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-bold', ok ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400')}>{ok ? 'OK' : 'X'}</span>
+          <span className="text-[10px] text-gray-600 w-16 text-right hidden sm:block">{timeAgo(order.created_at)}</span>
+          <ChevronDown className="w-3.5 h-3.5 text-gray-600" />
+        </div>
       </div>
-      {open && (
-        <div className="px-3 pb-2.5 pt-1 border-t border-gray-700/20 space-y-1.5">
-          <div className="flex items-center gap-2 text-[11px] text-gray-500">
-            <span>{new Date(order.created_at).toLocaleString('es-MX')}</span>
-            {order.customer_phone && <a href={`tel:${order.customer_phone}`} className="text-emerald-400 hover:underline">{order.customer_phone}</a>}
-          </div>
-          {order.delivery_address && <div className="flex items-start gap-1 text-[11px] text-gray-400"><MapPin className="w-3 h-3 text-gray-600 mt-0.5" />{order.delivery_address}</div>}
-          <div className="bg-gray-900/40 rounded-lg p-2 space-y-0.5">
-            {(order.items ?? []).map((i: any, idx: number) => (
-              <div key={idx} className="flex justify-between text-xs">
-                <span className="text-gray-300"><span className="font-bold text-emerald-400">{i.qty}x</span> {i.product?.name ?? 'Producto'}</span>
-                <span className="text-gray-500 tabular-nums">{formatPrice(Number(i.line_total), currency)}</span>
-              </div>
-            ))}
-          </div>
-          {order.notes && <div className="text-[11px] text-amber-400 italic bg-amber-500/10 rounded px-2 py-1">{order.notes}</div>}
+    );
+  }
+
+  return (
+    <div className="rounded-xl overflow-hidden bg-gray-800 border border-gray-600 transition-all">
+      {/* Color header like active tickets */}
+      <div className={cn('px-3 py-2.5 flex items-center justify-between', ok ? 'bg-emerald-700' : 'bg-red-700')}>
+        <div className="flex items-center gap-2 min-w-0">
+          {tm && <tm.icon className="w-4 h-4 text-white/80 flex-shrink-0" />}
+          <span className="text-lg font-black text-white font-mono tracking-wide">{order.order_number}</span>
+          <span className={cn('text-[10px] font-bold text-white bg-white/20 px-1.5 py-0.5 rounded uppercase')}>{ok ? 'Entregado' : 'Cancelado'}</span>
+        </div>
+        <button onClick={onToggle} className="p-1 rounded hover:bg-white/20 touch-manipulation">
+          <ChevronUp className="w-4 h-4 text-white" />
+        </button>
+      </div>
+
+      {/* Meta row */}
+      <div className="px-3 py-1.5 flex items-center gap-2 text-[11px] text-gray-400 border-b border-gray-700/30">
+        {tm && <span>{tm.label}</span>}
+        {pm && <><span className="text-gray-600">·</span><span>{pm.label}</span></>}
+        <span className="text-gray-600">·</span>
+        <span>{count} item{count !== 1 ? 's' : ''}</span>
+        <span className="text-gray-600">·</span>
+        <span>{created.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
+        {elapsed !== null && <><span className="text-gray-600">·</span><span>{elapsed} min</span></>}
+        <span className="ml-auto font-bold text-white text-sm tabular-nums">{formatPrice(Number(order.total), currency)}</span>
+      </div>
+
+      {/* Customer */}
+      {(order.customer_name || order.customer_phone) && (
+        <div className="px-3 py-2 flex items-center gap-2 border-b border-gray-700/20">
+          <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
+          <span className="text-sm font-semibold text-white truncate">{order.customer_name || order.customer_phone}</span>
+          {order.customer_phone && (
+            <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+              <a href={`tel:${order.customer_phone}`} className="p-1.5 rounded bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 touch-manipulation"><PhoneCall className="w-3.5 h-3.5" /></a>
+              <a href={`https://wa.me/${order.customer_phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer"
+                className="p-1.5 rounded bg-green-500/15 text-green-400 hover:bg-green-500/25 touch-manipulation"><MessageSquare className="w-3.5 h-3.5" /></a>
+            </div>
+          )}
         </div>
       )}
+
+      {/* Delivery address */}
+      {order.delivery_address && (
+        <div className="px-3 py-1.5 flex items-start gap-2 border-b border-gray-700/20">
+          <MapPin className="w-3.5 h-3.5 text-violet-400 flex-shrink-0 mt-0.5" />
+          <span className="text-xs text-violet-300">{order.delivery_address}</span>
+        </div>
+      )}
+
+      {/* Items */}
+      <div className="px-3 py-2 space-y-0.5">
+        {items.map((i: any, idx: number) => {
+          const extras: any[] = i.order_item_extras ?? [];
+          const mods: any[] = i.order_item_modifiers ?? [];
+          return (
+            <div key={idx} className="py-0.5">
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-white">
+                  <span className="font-black text-emerald-400 mr-1">{i.qty}x</span>
+                  <span className="font-semibold">{i.product?.name ?? 'Producto'}</span>
+                  {i.variant?.name && <span className="text-gray-500 font-normal ml-1">· {i.variant.name}</span>}
+                </span>
+                <span className="text-xs text-gray-500 tabular-nums ml-2">{formatPrice(Number(i.line_total), currency)}</span>
+              </div>
+              {(extras.length > 0 || mods.length > 0 || i.notes) && (
+                <div className="ml-6 mt-0.5 space-y-0.5">
+                  {extras.map((e: any, j: number) => <p key={j} className="text-[11px] text-cyan-400/80">+ {e.product_extras?.name ?? 'Extra'}</p>)}
+                  {mods.map((m: any, j: number) => <p key={j} className="text-[11px] text-gray-500">{m.group_name}: <span className="text-gray-400">{m.option_name}</span></p>)}
+                  {i.notes && <p className="text-[11px] text-amber-400 font-medium bg-amber-500/10 rounded px-1.5 py-0.5 inline-block">&quot;{i.notes}&quot;</p>}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Notes */}
+      {order.notes && (
+        <div className="mx-3 mb-2 flex items-start gap-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2.5 py-1.5">
+          <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
+          <span className="text-xs font-semibold text-amber-300 italic">{order.notes}</span>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="px-3 pb-3 pt-1 flex items-center gap-1.5 border-t border-gray-700/20">
+        <button onClick={onPrint} className="p-2 rounded-lg text-gray-500 hover:bg-gray-700 hover:text-white touch-manipulation" title="Reimprimir"><Printer className="w-4 h-4" /></button>
+        <button onClick={onRecall} className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm flex items-center justify-center gap-1.5 touch-manipulation active:scale-[0.97] transition-all">
+          <Undo2 className="w-4 h-4" /> RECUPERAR
+        </button>
+        <button onClick={onToggle} className="p-2 rounded-lg text-gray-500 hover:bg-gray-700 hover:text-white touch-manipulation" title="Colapsar"><ChevronUp className="w-4 h-4" /></button>
+      </div>
     </div>
   );
 }
