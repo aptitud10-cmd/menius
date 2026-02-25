@@ -103,7 +103,7 @@ export default function StaffPage() {
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white font-semibold rounded-lg hover:bg-blue-400 transition"
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition"
         >
           <Plus className="w-4 h-4" />
           Invitar Miembro
@@ -153,7 +153,7 @@ export default function StaffPage() {
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500 transition disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition disabled:opacity-50"
             >
               {saving && <Loader2 className="w-4 h-4 animate-spin" />}
               Invitar

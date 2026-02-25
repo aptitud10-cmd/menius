@@ -212,7 +212,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
     return (
       <div className="min-h-[100dvh] bg-gray-50 flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4">
-          <button onClick={goBack} className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors">
+          <button onClick={goBack} aria-label="Volver al menú" className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors">
             <ArrowLeft className="w-5 h-5" />
             <span className="text-sm font-medium">{t.backToMenu}</span>
           </button>
@@ -496,6 +496,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
           <button
             onClick={handleSubmitOrder}
             disabled={submitting || items.length === 0}
+            aria-label="Confirmar orden"
             className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-bold text-base active:scale-[0.98] transition-all duration-150 disabled:opacity-50 shadow-[0_4px_20px_rgba(16,185,129,0.3)]"
           >
             {submitting ? (
