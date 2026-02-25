@@ -35,7 +35,7 @@ export default function DashboardError({
             href="/app"
             className="px-4 py-2 bg-gray-50 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-100 transition-colors"
           >
-            Dashboard
+            Inicio
           </Link>
         </div>
       </div>

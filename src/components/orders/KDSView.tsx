@@ -279,7 +279,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
           active.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-600">
               <Package className="w-14 h-14 mb-2 text-gray-700" />
-              <p className="text-base font-semibold text-gray-500">No hay ordenes activas</p>
+              <p className="text-base font-semibold text-gray-500">No hay órdenes activas</p>
               <p className="text-xs mt-1">Aparecen en tiempo real</p>
             </div>
           ) : (
@@ -331,7 +331,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
           <div className="fixed inset-0 bg-black/70 z-50" onClick={() => setShowPause(false)} />
           <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-gray-900 border border-gray-700 rounded-2xl z-50 p-5 shadow-2xl">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold">Pausar ordenes</h2>
+              <h2 className="text-base font-bold">Pausar órdenes</h2>
               <button onClick={() => setShowPause(false)} className="p-1 text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-1.5 mb-4">
