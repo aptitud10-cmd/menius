@@ -90,7 +90,7 @@ export const ProductCard = memo(function ProductCard({
               {!outOfStock && product.is_new && (
                 <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full leading-none">NEW</span>
               )}
-              <h3 className={cn('font-semibold text-[15px] line-clamp-1 leading-tight', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
+              <h3 className={cn('font-semibold text-[15px] line-clamp-2 leading-tight', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
                 {displayName}
               </h3>
             </div>
@@ -142,12 +142,12 @@ export const ProductCard = memo(function ProductCard({
         </div>
 
         {showImage ? (
-          <div className="relative w-[92px] h-[92px] rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+          <div className="relative w-[100px] h-[100px] rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
             <Image
               src={product.image_url}
               alt={imgAlt}
               fill
-              sizes="92px"
+              sizes="100px"
               loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
@@ -166,7 +166,7 @@ export const ProductCard = memo(function ProductCard({
             </button>
           </div>
         ) : (
-          <div className="relative w-[92px] h-[92px] rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
+          <div className="relative w-[100px] h-[100px] rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
             <UtensilsCrossed className="w-6 h-6 text-gray-200" />
             <button
               onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
@@ -255,7 +255,7 @@ export const ProductCard = memo(function ProductCard({
 
         <div className="p-4">
           <div className="flex items-start justify-between gap-2">
-            <h3 className={cn('font-bold text-base line-clamp-1 leading-snug', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
+            <h3 className={cn('font-bold text-base line-clamp-2 leading-snug', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
               {displayName}
             </h3>
             <span className={cn('text-base font-bold flex-shrink-0 tabular-nums', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
@@ -264,7 +264,7 @@ export const ProductCard = memo(function ProductCard({
           </div>
 
           {displayDesc && (
-            <p className="text-sm text-gray-500 line-clamp-1 mt-1 leading-relaxed">{displayDesc}</p>
+            <p className="text-sm text-gray-500 line-clamp-2 mt-1 leading-relaxed">{displayDesc}</p>
           )}
           {(product.dietary_tags?.length ?? 0) > 0 && (
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
