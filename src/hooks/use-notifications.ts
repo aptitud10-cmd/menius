@@ -12,29 +12,42 @@ function getAudioContext(): AudioContext | null {
   return audioCtx;
 }
 
+function playTone(ctx: AudioContext, freq: number, start: number, dur: number, type: OscillatorType = 'sine', vol = 0.35) {
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, now + start);
+  gain.gain.setValueAtTime(vol, now + start);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(now + start);
+  osc.stop(now + start + dur + 0.05);
+}
+
 function playChime() {
   const ctx = getAudioContext();
   if (!ctx) return;
-
   if (ctx.state === 'suspended') ctx.resume();
+  playTone(ctx, 587.33, 0, 0.15);
+  playTone(ctx, 880, 0.15, 0.25);
+}
 
-  const now = ctx.currentTime;
-  const notes = [
-    { freq: 587.33, start: 0, duration: 0.15 },
-    { freq: 880, start: 0.15, duration: 0.25 },
-  ];
+function playUrgentChime() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+  playTone(ctx, 880, 0, 0.1, 'triangle', 0.4);
+  playTone(ctx, 880, 0.15, 0.1, 'triangle', 0.4);
+  playTone(ctx, 1046.5, 0.3, 0.2, 'triangle', 0.4);
+}
 
-  notes.forEach(({ freq, start, duration }) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, now + start);
-    gain.gain.setValueAtTime(0.35, now + start);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + start + duration);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(now + start);
-    osc.stop(now + start + duration + 0.05);
-  });
+function playSuccessDing() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+  playTone(ctx, 1046.5, 0, 0.15, 'sine', 0.25);
+  playTone(ctx, 1318.5, 0.12, 0.2, 'sine', 0.2);
 }
 
 interface UseNotificationsOptions {
@@ -69,10 +82,12 @@ export function useNotifications(opts: UseNotificationsOptions = {}) {
     return granted;
   }, []);
 
-  const playSound = useCallback(() => {
+  const playSound = useCallback((variant: 'normal' | 'urgent' | 'success' = 'normal') => {
     if (!soundEnabled) return;
     try {
-      playChime();
+      if (variant === 'urgent') playUrgentChime();
+      else if (variant === 'success') playSuccessDing();
+      else playChime();
     } catch (err) {
       console.error('[useNotifications] playSound failed:', err);
     }
@@ -133,11 +148,11 @@ export function useNotifications(opts: UseNotificationsOptions = {}) {
     }
   }, [hasPermission]);
 
-  const notifyNewOrder = useCallback((orderNumber: string, total: string) => {
-    playSound();
+  const notifyNewOrder = useCallback((orderNumber: string, total: string, orderType?: string) => {
+    playSound(orderType === 'delivery' ? 'urgent' : 'normal');
     flashTabTitle(`🔔 Nueva orden #${orderNumber}`);
     sendBrowserNotification(
-      '🍽️ Nueva orden',
+      orderType === 'delivery' ? '🚚 Delivery' : '🍽️ Nueva orden',
       `Orden #${orderNumber} — ${total}`,
     );
   }, [playSound, flashTabTitle, sendBrowserNotification]);

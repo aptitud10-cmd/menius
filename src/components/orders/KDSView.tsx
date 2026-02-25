@@ -39,6 +39,14 @@ const PAY_META: Record<string, { icon: typeof Banknote; label: string }> = {
 
 const AUTO_ARCHIVE_MIN = 120;
 
+const DIET_BADGE: Record<string, { label: string; cls: string }> = {
+  vegetarian: { label: '🥬 VEG', cls: 'bg-green-500/20 text-green-300 border-green-500/30' },
+  vegan: { label: '🌱 VEGAN', cls: 'bg-green-600/20 text-green-300 border-green-600/30' },
+  gluten_free: { label: '🚫 GLUTEN', cls: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+  spicy: { label: '🌶️ PICANTE', cls: 'bg-red-500/20 text-red-300 border-red-500/30' },
+  dairy_free: { label: '🥛 LÁCTEOS', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
+};
+
 /* ── Urgency: returns header color class based on elapsed minutes ── */
 function urgency(createdAt: string) {
   const sec = Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000));
@@ -81,6 +89,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const [undo, setUndo] = useState<Undo | null>(null);
   const undoRef = useRef<NodeJS.Timeout | null>(null);
+  const [selectedIdx, setSelectedIdx] = useState(0);
 
   /* Persisted settings */
   const ls = (k: string, def: boolean) => typeof window !== 'undefined' ? localStorage.getItem(k) !== (def ? 'false' : 'true') : def;
@@ -132,12 +141,12 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   }, [pausedUntil]);
 
   /* Notifications & realtime */
-  const { soundEnabled, setSoundEnabled, notifyNewOrder, updateTabTitle } = useNotifications({ defaultTitle: 'KDS — MENIUS' });
+  const { soundEnabled, setSoundEnabled, notifyNewOrder, updateTabTitle, playSound } = useNotifications({ defaultTitle: 'KDS — MENIUS' });
   const localRef = useRef<(id: string, u: Partial<Order>) => void>(() => {});
   const { orders, updateOrderLocally } = useRealtimeOrders({
     restaurantId, initialOrders,
     onNewOrder: useCallback((o: Order) => {
-      notifyNewOrder(o.order_number, formatPrice(Number(o.total), currency));
+      notifyNewOrder(o.order_number, formatPrice(Number(o.total), currency), o.order_type ?? undefined);
       setNewIds(p => { const n = new Set(p); n.add(o.id); return n; });
       setTimeout(() => setNewIds(p => { const n = new Set(p); n.delete(o.id); return n; }), 8000);
       if (localStorage.getItem('kds-auto-confirm') === 'true' && o.status === 'pending') { localRef.current(o.id, { status: 'confirmed' }); updateOrderStatus(o.id, 'confirmed'); }
@@ -175,10 +184,11 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   const bump = useCallback((id: string, next: OrderStatus) => {
     const o = orders.find(x => x.id === id); if (!o) return;
     updateOrderLocally(id, { status: next }); updateOrderStatus(id, next);
+    if (next === 'ready') playSound('success');
     if (undoRef.current) clearTimeout(undoRef.current);
     setUndo({ orderId: id, num: o.order_number, prev: o.status, next, ts: Date.now() });
     undoRef.current = setTimeout(() => setUndo(null), 5000);
-  }, [orders, updateOrderLocally]);
+  }, [orders, updateOrderLocally, playSound]);
 
   const doUndo = useCallback(() => {
     if (!undo) return;
@@ -195,6 +205,53 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   const tog = (k: string, set: (v: boolean) => void, v: boolean) => { set(v); localStorage.setItem(k, String(v)); };
 
   const recall = useCallback((id: string) => { updateOrderLocally(id, { status: 'ready' }); updateOrderStatus(id, 'ready'); }, [updateOrderLocally]);
+
+  /* Keyboard shortcuts */
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
+      switch (e.key) {
+        case ' ':
+        case 'Enter': {
+          e.preventDefault();
+          const o = active[selectedIdx];
+          if (o) { const n = NEXT[o.status]; if (n) bump(o.id, n); }
+          break;
+        }
+        case 'ArrowRight':
+        case 'ArrowDown':
+          e.preventDefault();
+          setSelectedIdx(i => Math.min(i + 1, active.length - 1));
+          break;
+        case 'ArrowLeft':
+        case 'ArrowUp':
+          e.preventDefault();
+          setSelectedIdx(i => Math.max(i - 1, 0));
+          break;
+        case 'f':
+        case 'F':
+          if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); setShowSearch(s => { if (s) setSearch(''); return !s; }); }
+          break;
+        case 'p':
+        case 'P':
+          if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); setShowPause(true); }
+          break;
+        case 'r':
+        case 'R':
+          if (!e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            const lastDone = orders.find(o => o.status === 'delivered');
+            if (lastDone) recall(lastDone.id);
+          }
+          break;
+        case 'Escape':
+          setShowSearch(false); setShowPause(false); setSearch('');
+          break;
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [active, selectedIdx, bump, orders, recall]);
 
   const markOOS = async (pid: string) => { try { await fetch('/api/products/stock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ product_id: pid, in_stock: false }) }); } catch {} };
 
@@ -284,11 +341,14 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
             </div>
           ) : (
             <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
-              {active.map(o => (
-                <Ticket key={o.id} order={o} currency={currency} isNew={newIds.has(o.id)} isExpanded={expanded.has(o.id)}
-                  onBump={() => { const n = NEXT[o.status]; if (n) bump(o.id, n); }}
-                  onCancel={() => bump(o.id, 'cancelled')} onPrint={() => setPrintOrder(o)}
-                  onExpand={() => toggleExp(o.id)} onOOS={markOOS} />
+              {active.map((o, idx) => (
+                <div key={o.id} style={{ gridColumn: (o.items?.reduce((s: number, i: any) => s + i.qty, 0) ?? 0) >= 8 ? 'span 2' : undefined }}
+                  onClick={() => setSelectedIdx(idx)}>
+                  <Ticket order={o} currency={currency} isNew={newIds.has(o.id)} isExpanded={expanded.has(o.id)} isSelected={idx === selectedIdx}
+                    onBump={() => { const n = NEXT[o.status]; if (n) bump(o.id, n); }}
+                    onCancel={() => bump(o.id, 'cancelled')} onPrint={() => setPrintOrder(o)}
+                    onExpand={() => toggleExp(o.id)} onOOS={markOOS} />
+                </div>
               ))}
             </div>
           )
@@ -314,6 +374,12 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
         <span>{today.length} orden{today.length !== 1 ? 'es' : ''}</span>
         {avgTime !== null && <span>Tiempo prom: <span className="font-bold text-white">{avgTime} min</span></span>}
         <span className="hidden sm:inline">{clock.toLocaleDateString('es-MX', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+        <span className="hidden lg:flex items-center gap-2 text-gray-600">
+          <kbd className="px-1 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[9px]">Space</kbd>BUMP
+          <kbd className="px-1 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[9px]">←→</kbd>Nav
+          <kbd className="px-1 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[9px]">F</kbd>Buscar
+          <kbd className="px-1 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[9px]">R</kbd>Recall
+        </span>
       </div>
 
       {/* Undo */}
@@ -364,8 +430,8 @@ function Ctrl({ on, onClick, icon: I, title, danger }: { on: boolean; onClick: (
    TICKET — Toast/Fresh KDS style card
    Full-color header (green → yellow → red) + items-focused body + bump
    ══════════════════════════════════════════════════════════════════════ */
-function Ticket({ order, currency, isNew, isExpanded, onBump, onCancel, onPrint, onExpand, onOOS }: {
-  order: Order; currency: string; isNew: boolean; isExpanded: boolean;
+function Ticket({ order, currency, isNew, isExpanded, isSelected, onBump, onCancel, onPrint, onExpand, onOOS }: {
+  order: Order; currency: string; isNew: boolean; isExpanded: boolean; isSelected: boolean;
   onBump: () => void; onCancel: () => void; onPrint: () => void; onExpand: () => void;
   onOOS: (pid: string) => void;
 }) {
@@ -382,7 +448,8 @@ function Ticket({ order, currency, isNew, isExpanded, onBump, onCancel, onPrint,
 
   return (
     <div className={cn(
-      'rounded-xl overflow-hidden bg-gray-800 border border-gray-700/50 flex flex-col',
+      'rounded-xl overflow-hidden bg-gray-800 border flex flex-col transition-all',
+      isSelected ? 'border-emerald-500 ring-2 ring-emerald-500/30' : 'border-gray-700/50',
       isNew && 'kds-flash',
       u.late && !isNew && 'kds-late',
     )}>
@@ -451,6 +518,14 @@ function Ticket({ order, currency, isNew, isExpanded, onBump, onCancel, onPrint,
                     <span className="font-semibold">{name}</span>
                     {variant && <span className="text-gray-500 font-normal ml-1">· {variant}</span>}
                   </span>
+                  {item.product?.dietary_tags?.length > 0 && (
+                    <div className="flex gap-0.5 ml-1 flex-shrink-0">
+                      {(item.product.dietary_tags as string[]).map((tag: string) => {
+                        const d = DIET_BADGE[tag];
+                        return d ? <span key={tag} className={cn('text-[8px] font-bold px-1 py-0.5 rounded border', d.cls)}>{d.label}</span> : null;
+                      })}
+                    </div>
+                  )}
                 </button>
                 <span className="text-xs text-gray-500 tabular-nums ml-2">{formatPrice(Number(item.line_total), currency)}</span>
               </div>

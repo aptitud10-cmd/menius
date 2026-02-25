@@ -6,7 +6,7 @@ import {
   ClipboardList, ShoppingBag, QrCode, TrendingUp, ExternalLink,
   ArrowRight, Sparkles, AlertTriangle, CreditCard, Clock,
   Copy, Check, Share2, MessageCircle, BarChart3, PieChart, Flame,
-  ArrowUpRight, ArrowDownRight, XCircle, DollarSign,
+  ArrowUpRight, ArrowDownRight, XCircle, DollarSign, Target,
 } from 'lucide-react';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { OnboardingChecklist } from './OnboardingChecklist';
@@ -137,6 +137,9 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
       {onboarding && (
         <OnboardingChecklist restaurantSlug={restaurant.slug} steps={onboarding} />
       )}
+
+      {/* Revenue Goal */}
+      <RevenueGoal salesToday={stats.salesToday} currency={restaurant.currency} />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -279,6 +282,71 @@ function KPICard({
         </div>
       )}
       {extra && <p className="text-xs text-gray-400 mt-1.5">{extra}</p>}
+    </div>
+  );
+}
+
+function RevenueGoal({ salesToday, currency }: { salesToday: number; currency: string }) {
+  const [goal, setGoal] = useState(() => {
+    if (typeof window === 'undefined') return 0;
+    return parseFloat(localStorage.getItem('menius-daily-goal') ?? '0');
+  });
+  const [editing, setEditing] = useState(false);
+  const [input, setInput] = useState('');
+
+  const save = () => {
+    const v = parseFloat(input);
+    if (v > 0) { setGoal(v); localStorage.setItem('menius-daily-goal', String(v)); }
+    setEditing(false);
+  };
+
+  const pct = goal > 0 ? Math.min((salesToday / goal) * 100, 100) : 0;
+  const reached = pct >= 100;
+
+  return (
+    <div className="dash-card p-4">
+      <div className="flex items-center justify-between mb-2.5">
+        <div className="flex items-center gap-2">
+          <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', reached ? 'bg-emerald-50' : 'bg-gray-50')}>
+            <Target className={cn('w-4 h-4', reached ? 'text-emerald-500' : 'text-gray-400')} />
+          </div>
+          <div>
+            <p className="text-[13px] font-semibold text-gray-700">Meta del día</p>
+            {goal > 0 && <p className="text-[11px] text-gray-400">{pct.toFixed(0)}% completado</p>}
+          </div>
+        </div>
+        {editing ? (
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm text-gray-400">$</span>
+            <input value={input} onChange={e => setInput(e.target.value)} type="number" min="1" autoFocus
+              onKeyDown={e => e.key === 'Enter' && save()}
+              className="w-24 px-2 py-1 rounded-lg border border-gray-200 text-sm text-right focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+            <button onClick={save} className="px-2.5 py-1 rounded-lg bg-emerald-500 text-white text-xs font-bold">OK</button>
+            <button onClick={() => setEditing(false)} className="text-xs text-gray-400">✕</button>
+          </div>
+        ) : goal > 0 ? (
+          <div className="flex items-center gap-2">
+            <span className={cn('text-sm font-bold', reached ? 'text-emerald-600' : 'text-gray-900')}>
+              {formatPrice(salesToday, currency)}
+              <span className="text-gray-400 font-normal"> / {formatPrice(goal, currency)}</span>
+            </span>
+            <button onClick={() => { setEditing(true); setInput(String(goal)); }} className="text-[11px] text-gray-400 hover:text-gray-600">✎</button>
+          </div>
+        ) : (
+          <button onClick={() => { setEditing(true); setInput('1000'); }} className="text-xs text-emerald-600 font-medium hover:text-emerald-700">
+            + Establecer meta
+          </button>
+        )}
+      </div>
+      {goal > 0 && (
+        <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className={cn('h-full rounded-full transition-all duration-700', reached ? 'bg-emerald-500' : pct >= 75 ? 'bg-emerald-400' : 'bg-emerald-300')}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      )}
+      {reached && <p className="text-[11px] text-emerald-600 font-semibold mt-1.5">🎉 ¡Meta alcanzada!</p>}
     </div>
   );
 }
