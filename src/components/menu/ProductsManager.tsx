@@ -147,7 +147,7 @@ export function ProductsManager({
     startTransition(async () => {
       try {
         const res = await deleteProduct(id);
-        if (res?.error) { setProducts(prev); alert(`Error: ${res.error}`); }
+        if (res?.error) { setProducts(prev); }
       } catch { setProducts(prev); }
     });
   };

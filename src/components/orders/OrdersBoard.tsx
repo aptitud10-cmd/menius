@@ -57,6 +57,7 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
   const [search, setSearch] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   const [filterType, setFilterType] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<'today' | '7' | '30' | 'all'>('all');
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const toggleBulk = useCallback((id: string) => {
     setBulkSelected((prev) => {
@@ -116,8 +117,19 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
     if (filterType !== 'all') {
       result = result.filter((o) => o.order_type === filterType);
     }
+    if (dateRange !== 'all') {
+      const cutoff = new Date();
+      if (dateRange === 'today') {
+        cutoff.setHours(0, 0, 0, 0);
+      } else if (dateRange === '7') {
+        cutoff.setDate(cutoff.getDate() - 7);
+      } else if (dateRange === '30') {
+        cutoff.setDate(cutoff.getDate() - 30);
+      }
+      result = result.filter((o) => new Date(o.created_at) >= cutoff);
+    }
     return result;
-  }, [orders, search, filterType]);
+  }, [orders, search, filterType, dateRange]);
 
   const activeOrders = useMemo(() =>
     filteredOrders.filter((o) => !['delivered', 'cancelled'].includes(o.status)),
@@ -183,6 +195,25 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
             placeholder="Buscar orden, cliente..."
             className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 placeholder-gray-400"
           />
+        </div>
+
+        {/* Date filter */}
+        <div className="flex gap-1 rounded-lg border border-gray-200 bg-white p-1">
+          {(['today', '7', '30', 'all'] as const).map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setDateRange(key)}
+              className={cn(
+                'px-2.5 py-1 rounded-md text-sm font-medium transition-colors',
+                dateRange === key
+                  ? 'bg-emerald-600 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              )}
+            >
+              {key === 'today' ? 'Hoy' : key === '7' ? '7 días' : key === '30' ? '30 días' : 'Todo'}
+            </button>
+          ))}
         </div>
 
         {/* Type filter */}

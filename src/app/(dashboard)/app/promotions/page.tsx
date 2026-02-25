@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Ticket, Plus, Trash2, ToggleLeft, ToggleRight, Loader2 } from 'lucide-react';
+import { useToast } from '@/components/dashboard/DashToast';
 
 interface Promotion {
   id: string;
@@ -18,6 +19,7 @@ interface Promotion {
 }
 
 export default function PromotionsPage() {
+  const toast = useToast();
   const [promos, setPromos] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -63,7 +65,7 @@ export default function PromotionsPage() {
       }),
     });
     if (res.ok) { resetForm(); fetchPromos(); }
-    else { const d = await res.json(); alert(d.error); }
+    else { const d = await res.json(); toast.error(d.error || 'Error al guardar promoción'); }
     setSaving(false);
   };
 

@@ -21,6 +21,7 @@ interface AnalyticsData {
 
 interface DashboardHomeProps {
   restaurant: Restaurant;
+  lowStockProducts?: { id: string; name: string; stock_qty: number; low_stock_threshold: number }[];
   stats: {
     ordersToday: number;
     salesToday: number;
@@ -50,7 +51,7 @@ interface DashboardHomeProps {
   analytics?: AnalyticsData;
 }
 
-export function DashboardHome({ restaurant, stats, recentOrders, subscription, onboarding, analytics }: DashboardHomeProps) {
+export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrders, subscription, onboarding, analytics }: DashboardHomeProps) {
   const salesDelta = stats.salesYesterday > 0
     ? ((stats.salesToday - stats.salesYesterday) / stats.salesYesterday) * 100
     : stats.salesToday > 0 ? 100 : 0;
@@ -200,6 +201,33 @@ export function DashboardHome({ restaurant, stats, recentOrders, subscription, o
           </div>
           <ArrowRight className="w-5 h-5 text-amber-600/50 group-hover:translate-x-0.5 transition-transform" />
         </Link>
+      )}
+
+      {/* Low stock alert */}
+      {(lowStockProducts ?? []).length > 0 && (
+        <div className="rounded-2xl bg-orange-500/[0.06] border border-orange-500/[0.15] p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-orange-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-orange-700">
+                {lowStockProducts!.length} producto{lowStockProducts!.length !== 1 ? 's' : ''} con stock bajo
+              </p>
+              <p className="text-xs text-orange-600/70">Revisa el inventario</p>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            {lowStockProducts!.slice(0, 5).map(p => (
+              <div key={p.id} className="flex items-center justify-between text-sm">
+                <span className="text-gray-700 truncate">{p.name}</span>
+                <span className={cn('font-bold tabular-nums', p.stock_qty <= 0 ? 'text-red-600' : 'text-orange-600')}>
+                  {p.stock_qty <= 0 ? 'Agotado' : `${p.stock_qty} uds`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Recent orders */}

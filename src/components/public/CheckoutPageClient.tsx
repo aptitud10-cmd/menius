@@ -69,6 +69,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const [promoError, setPromoError] = useState('');
   const [promoResult, setPromoResult] = useState<{ valid: boolean; discount: number; description?: string } | null>(null);
 
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [orderError, setOrderError] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
@@ -86,6 +87,28 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const finalTotal = Math.max(0, cartTotal - discount + deliveryFee + tipAmount);
 
   const goBack = useCallback(() => transitionNavigate(() => router.push(`/r/${slug}`)), [router, slug]);
+
+  const validateField = useCallback((name: string, value: string) => {
+    let error = '';
+    switch (name) {
+      case 'customer_name':
+        if (!value.trim()) error = 'El nombre es obligatorio';
+        else if (value.trim().length < 2) error = 'Mínimo 2 caracteres';
+        break;
+      case 'customer_phone':
+        if (!value.trim()) error = 'El teléfono es obligatorio';
+        else if (!/^\+?[\d\s()-]{7,}$/.test(value)) error = 'Teléfono no válido';
+        break;
+      case 'customer_email':
+        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = 'Email no válido';
+        break;
+      case 'delivery_address':
+        if (orderType === 'delivery' && !value.trim()) error = 'La dirección es obligatoria para delivery';
+        break;
+    }
+    setFieldErrors(prev => ({ ...prev, [name]: error }));
+    return !error;
+  }, [orderType]);
 
   const validatePromo = async () => {
     if (!promoCode.trim()) return;
@@ -391,7 +414,19 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
             </div>
             {orderType === 'delivery' && (
               <div className="mt-4">
-                <AddressAutocomplete label={t.deliveryAddress} value={deliveryAddress} onChange={setDeliveryAddress} placeholder={t.deliveryAddressPlaceholder} dark={false} required />
+                <AddressAutocomplete
+                  label={t.deliveryAddress}
+                  value={deliveryAddress}
+                  onChange={setDeliveryAddress}
+                  onBlur={() => validateField('delivery_address', deliveryAddress)}
+                  placeholder={t.deliveryAddressPlaceholder}
+                  dark={false}
+                  required
+                  error={!!fieldErrors.delivery_address}
+                />
+                {fieldErrors.delivery_address && (
+                  <p className="text-xs text-red-500 mt-1">{fieldErrors.delivery_address}</p>
+                )}
               </div>
             )}
           </div>
@@ -401,12 +436,46 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{locale === 'es' ? 'Tus datos' : 'Your details'}</p>
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">{t.yourName} <span className="text-red-500">*</span></label>
-              <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder={t.yourNamePlaceholder} className={inputClass} />
+              <input
+                type="text"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                onBlur={(e) => validateField('customer_name', e.target.value)}
+                placeholder={t.yourNamePlaceholder}
+                className={cn(inputClass, fieldErrors.customer_name ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : '')}
+              />
+              {fieldErrors.customer_name && (
+                <p className="text-xs text-red-500 mt-1">{fieldErrors.customer_name}</p>
+              )}
             </div>
-            <PhoneField label={t.yourPhone} value={customerPhone} onChange={setCustomerPhone} placeholder={t.yourPhonePlaceholder} required dark={false} />
+            <div>
+              <PhoneField
+                label={t.yourPhone}
+                value={customerPhone}
+                onChange={setCustomerPhone}
+                onBlur={() => validateField('customer_phone', customerPhone)}
+                placeholder={t.yourPhonePlaceholder}
+                required
+                dark={false}
+                error={!!fieldErrors.customer_phone}
+              />
+              {fieldErrors.customer_phone && (
+                <p className="text-xs text-red-500 mt-1">{fieldErrors.customer_phone}</p>
+              )}
+            </div>
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">{t.yourEmail} <span className="text-gray-400 font-normal text-xs">({t.optional})</span></label>
-              <input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder={t.yourEmailPlaceholder} className={inputClass} />
+              <input
+                type="email"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                onBlur={(e) => validateField('customer_email', e.target.value)}
+                placeholder={t.yourEmailPlaceholder}
+                className={cn(inputClass, fieldErrors.customer_email ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : '')}
+              />
+              {fieldErrors.customer_email && (
+                <p className="text-xs text-red-500 mt-1">{fieldErrors.customer_email}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">{t.orderNotes} <span className="text-gray-400 font-normal text-xs">({t.optional})</span></label>

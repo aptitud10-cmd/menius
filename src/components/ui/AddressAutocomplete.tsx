@@ -8,19 +8,23 @@ const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_PLACES_KEY ?? '';
 interface AddressAutocompleteProps {
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   label?: string;
   placeholder?: string;
   dark?: boolean;
   required?: boolean;
+  error?: boolean;
 }
 
 export function AddressAutocomplete({
   value,
   onChange,
+  onBlur,
   label,
   placeholder = 'Buscar dirección...',
   dark = true,
   required,
+  error = false,
 }: AddressAutocompleteProps) {
   const [localValue, setLocalValue] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -81,9 +85,10 @@ export function AddressAutocomplete({
     onChange(v);
   };
 
-  const inputClass = dark
+  const baseInputClass = dark
     ? 'w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-base bg-white/[0.04] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30'
     : 'w-full pl-11 pr-4 py-3.5 rounded-2xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white';
+  const inputClass = error ? `${baseInputClass} border-red-400 focus:border-red-400 focus:ring-red-400` : baseInputClass;
 
   const labelClass = dark
     ? 'block text-xs font-medium text-gray-400 mb-1'
@@ -106,6 +111,7 @@ export function AddressAutocomplete({
           type="text"
           value={localValue}
           onChange={(e) => handleManualChange(e.target.value)}
+          onBlur={onBlur}
           placeholder={placeholder}
           className={inputClass}
           autoComplete="off"

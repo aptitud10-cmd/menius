@@ -112,13 +112,19 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   /* Online status */
   const [online, setOnline] = useState(true);
   useEffect(() => {
-    const on = () => setOnline(true), off = () => setOnline(false);
+    const off = () => setOnline(false);
+    const on = () => {
+      setOnline(true);
+      const q = offlineQueue.current.splice(0);
+      q.forEach(({ id, status }) => updateOrderStatus(id, status as any));
+    };
     window.addEventListener('online', on); window.addEventListener('offline', off); setOnline(navigator.onLine);
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
 
   /* Wake Lock */
   const wl = useRef<any>(null);
+  const offlineQueue = useRef<{ id: string; status: string }[]>([]);
   useEffect(() => {
     let ok = true;
     const acq = async () => { try { if ('wakeLock' in navigator && ok) wl.current = await (navigator as any).wakeLock.request('screen'); } catch {} };
@@ -183,7 +189,9 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   /* Actions */
   const bump = useCallback((id: string, next: OrderStatus) => {
     const o = orders.find(x => x.id === id); if (!o) return;
-    updateOrderLocally(id, { status: next }); updateOrderStatus(id, next);
+    updateOrderLocally(id, { status: next });
+    if (navigator.onLine) { updateOrderStatus(id, next); }
+    else { offlineQueue.current.push({ id, status: next }); }
     if (next === 'ready') playSound('success');
     if (undoRef.current) clearTimeout(undoRef.current);
     setUndo({ orderId: id, num: o.order_number, prev: o.status, next, ts: Date.now() });
@@ -380,6 +388,9 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
           <kbd className="px-1 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[9px]">F</kbd>Buscar
           <kbd className="px-1 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[9px]">R</kbd>Recall
         </span>
+        {!online && offlineQueue.current.length > 0 && (
+          <span className="text-red-400 font-bold">📴 {offlineQueue.current.length} en cola</span>
+        )}
       </div>
 
       {/* Undo */}

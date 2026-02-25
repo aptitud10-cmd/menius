@@ -76,6 +76,7 @@ export default function StaffPage() {
   };
 
   const handleToggleStatus = async (member: StaffMember) => {
+    if (!confirm(`¿${member.status === 'active' ? 'Desactivar' : 'Activar'} a ${member.full_name || member.email}?`)) return;
     const newStatus = member.status === 'active' ? 'inactive' : 'active';
     await fetch('/api/tenant/staff', {
       method: 'PATCH',
@@ -86,6 +87,7 @@ export default function StaffPage() {
   };
 
   const handleChangeRole = async (id: string, newRole: string) => {
+    if (!confirm('¿Cambiar el rol de este miembro?')) return;
     await fetch('/api/tenant/staff', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

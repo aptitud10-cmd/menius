@@ -14,14 +14,38 @@ export async function GET(request: NextRequest) {
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const { searchParams } = new URL(request.url);
-    const days = Number(searchParams.get('days')) || 7;
-    const since = new Date();
-    since.setDate(since.getDate() - days);
-    const sinceISO = since.toISOString();
+    const startParam = searchParams.get('start');
+    const endParam = searchParams.get('end');
 
-    const prevSince = new Date();
-    prevSince.setDate(prevSince.getDate() - days * 2);
-    const prevSinceISO = prevSince.toISOString();
+    let sinceISO: string;
+    let prevSinceISO: string;
+    let days: number;
+    let endISO: string;
+
+    if (startParam && endParam) {
+      const startDate = new Date(startParam + 'T00:00:00');
+      const endDate = new Date(endParam + 'T23:59:59.999');
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
+        return NextResponse.json({ error: 'Rango de fechas inválido' }, { status: 400 });
+      }
+      sinceISO = startDate.toISOString();
+      endISO = endDate.toISOString();
+      days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      const prevEnd = new Date(startDate);
+      prevEnd.setDate(prevEnd.getDate() - 1);
+      const prevStart = new Date(prevEnd);
+      prevStart.setDate(prevStart.getDate() - days);
+      prevSinceISO = prevStart.toISOString();
+    } else {
+      days = Number(searchParams.get('days')) || 7;
+      const since = new Date();
+      since.setDate(since.getDate() - days);
+      sinceISO = since.toISOString();
+      const prevSince = new Date();
+      prevSince.setDate(prevSince.getDate() - days * 2);
+      prevSinceISO = prevSince.toISOString();
+      endISO = new Date().toISOString();
+    }
 
     const rid = tenant.restaurantId;
 
@@ -31,6 +55,7 @@ export async function GET(request: NextRequest) {
         .select('id, total, status, created_at, discount_amount')
         .eq('restaurant_id', rid)
         .gte('created_at', sinceISO)
+        .lte('created_at', endISO)
         .order('created_at', { ascending: true }),
       supabase
         .from('orders')

@@ -12,7 +12,7 @@ export default async function DashboardPage() {
   weekAgo.setDate(weekAgo.getDate() - 6);
   weekAgo.setHours(0, 0, 0, 0);
 
-  const [restaurantRes, ordersRes, productsRes, tablesRes, recentOrdersRes, subRes, totalOrdersRes, weekOrdersRes, topProductsRes] = await Promise.all([
+  const [restaurantRes, ordersRes, productsRes, tablesRes, recentOrdersRes, subRes, totalOrdersRes, weekOrdersRes, topProductsRes, lowStockRes] = await Promise.all([
     supabase
       .from('restaurants')
       .select('*')
@@ -59,6 +59,16 @@ export default async function DashboardPage() {
       .select('qty, products!inner(name, restaurant_id)')
       .eq('products.restaurant_id', restaurantId)
       .limit(500),
+    supabase
+      .from('products')
+      .select('id, name, stock_qty, low_stock_threshold')
+      .eq('restaurant_id', restaurantId)
+      .eq('track_inventory', true)
+      .eq('in_stock', true)
+      .not('stock_qty', 'is', null)
+      .lte('stock_qty', 10)
+      .order('stock_qty', { ascending: true })
+      .limit(10),
   ]);
 
   const restaurant = restaurantRes.data;
@@ -181,6 +191,7 @@ export default async function DashboardPage() {
       restaurant={restaurant}
       stats={stats}
       recentOrders={recentOrdersRes.data ?? []}
+      lowStockProducts={lowStockRes.data ?? []}
       subscription={subRes.data ?? null}
       onboarding={onboarding}
       analytics={analytics}

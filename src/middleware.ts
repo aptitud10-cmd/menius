@@ -30,6 +30,20 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
+  if (path.startsWith('/api/') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
+    const origin = request.headers.get('origin');
+    const host = request.headers.get('host');
+    if (origin && host) {
+      const originHost = new URL(origin).host;
+      if (originHost !== host) {
+        return new NextResponse(JSON.stringify({ error: 'Invalid origin' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+  }
+
   const isDashboard = path.startsWith('/app') || path.startsWith('/kds');
   const isAdmin = path.startsWith('/admin');
   const isOnboarding = path.startsWith('/onboarding');
@@ -152,6 +166,10 @@ export async function middleware(request: NextRequest) {
       }
     }
   }
+
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
   return response;
 }

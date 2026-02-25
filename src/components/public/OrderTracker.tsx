@@ -279,6 +279,28 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, ord
           <ReviewPrompt restaurantId={restaurantId} orderId={order.id} customerName={order.customer_name} />
         )}
 
+        {/* Reorder */}
+        {isComplete && order.order_items?.length > 0 && (
+          <button
+            onClick={() => {
+              const reorderItems = order.order_items.map((item: any) => ({
+                product_id: item.product_id,
+                name: item.products?.name ?? 'Producto',
+                qty: item.qty,
+                price: Number(item.unit_price),
+                variant_id: item.variant_id,
+                variant_name: item.product_variants?.name,
+                image_url: item.products?.image_url,
+              }));
+              localStorage.setItem('menius-reorder', JSON.stringify(reorderItems));
+              window.location.href = `/r/${restaurantSlug}?reorder=1`;
+            }}
+            className="block w-full py-3.5 rounded-xl bg-emerald-600 text-white text-center font-bold text-sm hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20"
+          >
+            🔄 Volver a pedir lo mismo
+          </button>
+        )}
+
         {/* Back to menu */}
         <Link
           href={`/r/${restaurantSlug}`}
@@ -286,6 +308,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, ord
         >
           Volver al menú
         </Link>
+
+        {/* Save order to local history */}
+        <OrderHistorySaver order={order} restaurantSlug={restaurantSlug} restaurantName={restaurantName} />
       </div>
     </div>
   );
@@ -342,6 +367,58 @@ function ReviewPrompt({ restaurantId, orderId, customerName }: { restaurantId: s
       >
         {submitting ? 'Enviando...' : 'Enviar reseña'}
       </button>
+    </div>
+  );
+}
+
+function OrderHistorySaver({ order, restaurantSlug, restaurantName }: { order: any; restaurantSlug: string; restaurantName: string }) {
+  useEffect(() => {
+    if (!order?.id) return;
+    try {
+      const key = `menius-history-${restaurantSlug}`;
+      const raw = localStorage.getItem(key);
+      const history: any[] = raw ? JSON.parse(raw) : [];
+      if (history.some(h => h.id === order.id)) {
+        const idx = history.findIndex(h => h.id === order.id);
+        history[idx] = { id: order.id, number: order.order_number, status: order.status, total: order.total, date: order.created_at, items: order.order_items?.length ?? 0 };
+      } else {
+        history.unshift({ id: order.id, number: order.order_number, status: order.status, total: order.total, date: order.created_at, items: order.order_items?.length ?? 0 });
+      }
+      localStorage.setItem(key, JSON.stringify(history.slice(0, 20)));
+    } catch {}
+  }, [order, restaurantSlug]);
+
+  const [history, setHistory] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(`menius-history-${restaurantSlug}`);
+      if (raw) setHistory(JSON.parse(raw).filter((h: any) => h.id !== order?.id));
+    } catch {}
+  }, [restaurantSlug, order?.id]);
+
+  if (history.length === 0) return null;
+
+  return (
+    <div className="mt-2">
+      <button onClick={() => setShowHistory(!showHistory)} className="w-full text-center text-xs text-gray-400 hover:text-gray-600 py-2">
+        {showHistory ? 'Ocultar' : `Ver ${history.length} pedido${history.length !== 1 ? 's' : ''} anterior${history.length !== 1 ? 'es' : ''}`}
+      </button>
+      {showHistory && (
+        <div className="space-y-2 mt-1">
+          {history.map((h: any) => (
+            <Link key={h.id} href={`/r/${restaurantSlug}/orden/${h.number}`}
+              className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
+              <div>
+                <p className="text-sm font-medium">#{h.number}</p>
+                <p className="text-xs text-gray-400">{new Date(h.date).toLocaleDateString('es-MX', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · {h.items} items</p>
+              </div>
+              <span className="text-sm font-bold text-gray-700">{formatPrice(Number(h.total), 'USD')}</span>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -58,30 +58,67 @@ function formatDayLabel(dateStr: string) {
   return d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' });
 }
 
+type PeriodPreset = 7 | 14 | 30 | 'custom';
+
+function formatDateForInput(d: Date) {
+  return d.toISOString().split('T')[0];
+}
+
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [days, setDays] = useState(7);
+  const [error, setError] = useState<string | null>(null);
+  const [period, setPeriod] = useState<PeriodPreset>(7);
+  const [customStart, setCustomStart] = useState(() => formatDateForInput(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)));
+  const [customEnd, setCustomEnd] = useState(() => formatDateForInput(new Date()));
 
   const fetchData = useCallback(async () => {
+    if (period === 'custom' && customStart > customEnd) {
+      setError('La fecha de inicio debe ser anterior a la fecha de fin');
+      setData(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`/api/tenant/analytics?days=${days}`);
+      const params = period === 'custom'
+        ? `start=${customStart}&end=${customEnd}`
+        : `days=${period}`;
+      const res = await fetch(`/api/tenant/analytics?${params}`);
       const json = await res.json();
+      if (json.error) throw new Error(json.error);
+      if (!res.ok) throw new Error('Error al cargar analytics');
       setData(json);
     } catch (err) {
       console.error('[Analytics] fetchData failed:', err);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+      setData(null);
     }
     setLoading(false);
-  }, [days]);
+  }, [period, customStart, customEnd]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  if (loading || !data) {
+  if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-32 gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
         <p className="text-sm text-gray-500">Cargando analytics...</p>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 gap-4">
+        <p className="text-sm text-red-500">{error ?? 'No se pudieron cargar los datos'}</p>
+        <button
+          onClick={() => fetchData()}
+          className="px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600"
+        >
+          Reintentar
+        </button>
       </div>
     );
   }
@@ -98,15 +135,15 @@ export default function AnalyticsPage() {
           <h1 className="dash-heading">Analytics</h1>
           <p className="text-sm text-gray-500 mt-0.5">Métricas y rendimiento de tu restaurante</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 bg-white rounded-xl border border-gray-200 p-1">
-            {[7, 14, 30].map(d => (
+            {([7, 14, 30] as const).map(d => (
               <button
                 key={d}
-                onClick={() => setDays(d)}
+                onClick={() => setPeriod(d)}
                 className={cn(
                   'px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all',
-                  days === d
+                  period === d
                     ? 'bg-emerald-500 text-white'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 )}
@@ -114,17 +151,50 @@ export default function AnalyticsPage() {
                 {d}d
               </button>
             ))}
+            <button
+              onClick={() => setPeriod('custom')}
+              className={cn(
+                'px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all',
+                period === 'custom'
+                  ? 'bg-emerald-500 text-white'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              )}
+            >
+              Personalizado
+            </button>
           </div>
+          {period === 'custom' && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <label className="text-xs text-gray-500">Inicio</label>
+                <input
+                  type="date"
+                  value={customStart}
+                  onChange={(e) => setCustomStart(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-lg text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <label className="text-xs text-gray-500">Fin</label>
+                <input
+                  type="date"
+                  value={customEnd}
+                  onChange={(e) => setCustomEnd(e.target.value)}
+                  className="px-2.5 py-1.5 rounded-lg text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                />
+              </div>
+            </div>
+          )}
           <div className="flex gap-1">
             <a
-              href={`/api/tenant/reports?period=${days}&format=csv`}
+              href={period === 'custom' ? `/api/tenant/reports?start=${customStart}&end=${customEnd}&format=csv` : `/api/tenant/reports?period=${period}&format=csv`}
               className="p-2 rounded-lg bg-gray-50 border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
               title="Exportar CSV"
             >
               <Download className="w-4 h-4" />
             </a>
             <a
-              href={`/api/tenant/reports?period=${days}&format=html`}
+              href={period === 'custom' ? `/api/tenant/reports?start=${customStart}&end=${customEnd}&format=html` : `/api/tenant/reports?period=${period}&format=html`}
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-lg bg-gray-50 border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"

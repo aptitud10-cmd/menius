@@ -14,21 +14,46 @@ export async function GET(request: NextRequest) {
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const { searchParams } = new URL(request.url);
-    const period = searchParams.get('period') || '30';
+    const startParam = searchParams.get('start');
+    const endParam = searchParams.get('end');
     const format = searchParams.get('format') || 'csv';
-    const days = Math.min(365, Math.max(1, parseInt(period)));
 
-    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    let since: string;
+    let days: number;
+
+    if (startParam && endParam) {
+      const startDate = new Date(startParam + 'T00:00:00');
+      const endDate = new Date(endParam + 'T23:59:59.999');
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
+        return NextResponse.json({ error: 'Rango de fechas inválido' }, { status: 400 });
+      }
+      since = startDate.toISOString();
+      days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    } else {
+      const period = searchParams.get('period') || '30';
+      days = Math.min(365, Math.max(1, parseInt(period)));
+      since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    }
+
+    const until = startParam && endParam
+      ? new Date(endParam + 'T23:59:59.999').toISOString()
+      : new Date().toISOString();
     const supabase = createClient();
+
+    let ordersQuery = supabase
+      .from('orders')
+      .select('order_number, customer_name, customer_phone, customer_email, status, order_type, payment_method, total, discount_amount, delivery_address, notes, created_at')
+      .eq('restaurant_id', tenant.restaurantId)
+      .gte('created_at', since)
+      .order('created_at', { ascending: false });
+
+    if (startParam && endParam) {
+      ordersQuery = ordersQuery.lte('created_at', until);
+    }
 
     const [{ data: restaurant }, { data: orders }] = await Promise.all([
       supabase.from('restaurants').select('name, currency').eq('id', tenant.restaurantId).maybeSingle(),
-      supabase
-        .from('orders')
-        .select('order_number, customer_name, customer_phone, customer_email, status, order_type, payment_method, total, discount_amount, delivery_address, notes, created_at')
-        .eq('restaurant_id', tenant.restaurantId)
-        .gte('created_at', since)
-        .order('created_at', { ascending: false }),
+      ordersQuery,
     ]);
 
     const currency = restaurant?.currency ?? 'USD';
@@ -113,7 +138,7 @@ export async function GET(request: NextRequest) {
 </head>
 <body>
   <h1>Reporte de Ventas</h1>
-  <p class="subtitle">${restaurantName} — Últimos ${days} días (${new Date(since).toLocaleDateString('es')} - ${new Date().toLocaleDateString('es')})</p>
+  <p class="subtitle">${restaurantName} — ${startParam && endParam ? `${new Date(since).toLocaleDateString('es')} - ${new Date(until).toLocaleDateString('es')}` : `Últimos ${days} días (${new Date(since).toLocaleDateString('es')} - ${new Date().toLocaleDateString('es')})`}</p>
 
   <div class="stats">
     <div class="stat">

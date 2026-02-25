@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Download, Trash2, AlertTriangle, Shield, FileJson } from 'lucide-react';
+import { useToast } from '@/components/dashboard/DashToast';
 
 export default function DataPrivacyPage() {
   const router = useRouter();
+  const toast = useToast();
   const [confirmation, setConfirmation] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -25,7 +27,7 @@ export default function DataPrivacyPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      alert('No se pudo exportar los datos. Intenta de nuevo.');
+      toast.error('No se pudo exportar los datos. Intenta de nuevo.');
     } finally {
       setExporting(false);
     }
