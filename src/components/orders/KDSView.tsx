@@ -8,7 +8,7 @@ import {
   Pause, Utensils, ShoppingBag, Truck,
   CreditCard, Banknote, Phone, StickyNote, ChevronDown, ChevronUp,
   Undo2, AlertTriangle, User, MapPin, History, LogOut,
-  Hash, MessageSquare, PhoneCall,
+  Hash, MessageSquare, PhoneCall, Send, Loader2,
 } from 'lucide-react';
 import { updateOrderStatus } from '@/lib/actions/restaurant';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
@@ -85,6 +85,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   const [showSearch, setShowSearch] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
   const [printOrder, setPrintOrder] = useState<Order | null>(null);
+  const [smsOrder, setSmsOrder] = useState<Order | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const [undo, setUndo] = useState<Undo | null>(null);
@@ -355,7 +356,8 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
                   <Ticket order={o} currency={currency} isNew={newIds.has(o.id)} isExpanded={expanded.has(o.id)} isSelected={idx === selectedIdx}
                     onBump={() => { const n = NEXT[o.status]; if (n) bump(o.id, n); }}
                     onCancel={() => bump(o.id, 'cancelled')} onPrint={() => setPrintOrder(o)}
-                    onExpand={() => toggleExp(o.id)} onOOS={markOOS} />
+                    onExpand={() => toggleExp(o.id)} onOOS={markOOS}
+                    onSMS={() => o.customer_phone ? setSmsOrder(o) : undefined} />
                 </div>
               ))}
             </div>
@@ -428,6 +430,8 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       )}
 
       {printOrder && <OrderReceipt order={printOrder} restaurantName={restaurantName} restaurantPhone={restaurantPhone} restaurantAddress={restaurantAddress} currency={currency} onClose={() => setPrintOrder(null)} />}
+
+      {smsOrder && <SMSQuickSend order={smsOrder} restaurantName={restaurantName} onClose={() => setSmsOrder(null)} />}
     </>
   );
 }
@@ -441,10 +445,10 @@ function Ctrl({ on, onClick, icon: I, title, danger }: { on: boolean; onClick: (
    TICKET — Toast/Fresh KDS style card
    Full-color header (green → yellow → red) + items-focused body + bump
    ══════════════════════════════════════════════════════════════════════ */
-function Ticket({ order, currency, isNew, isExpanded, isSelected, onBump, onCancel, onPrint, onExpand, onOOS }: {
+function Ticket({ order, currency, isNew, isExpanded, isSelected, onBump, onCancel, onPrint, onExpand, onOOS, onSMS }: {
   order: Order; currency: string; isNew: boolean; isExpanded: boolean; isSelected: boolean;
   onBump: () => void; onCancel: () => void; onPrint: () => void; onExpand: () => void;
-  onOOS: (pid: string) => void;
+  onOOS: (pid: string) => void; onSMS: () => void;
 }) {
   const u = urgency(order.created_at);
   const bmp = BUMP[order.status];
@@ -496,6 +500,7 @@ function Ticket({ order, currency, isNew, isExpanded, isSelected, onBump, onCanc
           <span className="text-sm font-semibold text-white truncate">{order.customer_name || order.customer_phone}</span>
           {order.customer_phone && (
             <div className="flex items-center gap-1 ml-auto flex-shrink-0">
+              <button onClick={(e) => { e.stopPropagation(); onSMS(); }} className="p-1.5 rounded bg-violet-500/15 text-violet-400 hover:bg-violet-500/25 touch-manipulation" title="Enviar SMS"><StickyNote className="w-3.5 h-3.5" /></button>
               <a href={`tel:${order.customer_phone}`} className="p-1.5 rounded bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 touch-manipulation"><PhoneCall className="w-3.5 h-3.5" /></a>
               <a href={`https://wa.me/${order.customer_phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer"
                 className="p-1.5 rounded bg-green-500/15 text-green-400 hover:bg-green-500/25 touch-manipulation"><MessageSquare className="w-3.5 h-3.5" /></a>
@@ -621,5 +626,139 @@ function HRow({ order, currency, open, onToggle, onPrint, onRecall }: {
         </div>
       )}
     </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   SMS Quick Send — send predefined messages without leaving KDS
+   ══════════════════════════════════════════════════════════════════════ */
+
+const SMS_TEMPLATES = [
+  { id: 'ready', label: '✅ Tu orden está lista', msg: 'Tu orden #{order} está lista para recoger. ¡Te esperamos!' },
+  { id: 'preparing', label: '👨‍🍳 Estamos preparando', msg: 'Tu orden #{order} se está preparando. Tiempo estimado: ~15 min.' },
+  { id: 'delay', label: '⏰ Demora', msg: 'Tu orden #{order} tiene un pequeño retraso. Gracias por tu paciencia, estará lista pronto.' },
+  { id: 'arrive', label: '🏪 Ya puedes pasar', msg: 'Tu orden #{order} te espera. Ya puedes pasar a recogerla.' },
+  { id: 'thanks', label: '🙏 Gracias', msg: '¡Gracias por tu compra! Esperamos verte pronto. - #{restaurant}' },
+];
+
+function SMSQuickSend({ order, restaurantName, onClose }: { order: Order; restaurantName: string; onClose: () => void }) {
+  const [sending, setSending] = useState<string | null>(null);
+  const [sent, setSent] = useState<Set<string>>(new Set());
+  const [error, setError] = useState('');
+  const [custom, setCustom] = useState('');
+  const [showCustom, setShowCustom] = useState(false);
+
+  const send = async (templateId: string, rawMsg: string) => {
+    if (!order.customer_phone) return;
+    setSending(templateId);
+    setError('');
+    const message = `[${restaurantName}] ${rawMsg
+      .replace('#{order}', order.order_number)
+      .replace('#{restaurant}', restaurantName)}`;
+    try {
+      const res = await fetch('/api/orders/sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: order.customer_phone, message }),
+      });
+      if (res.ok) {
+        setSent(p => { const n = new Set(p); n.add(templateId); return n; });
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setError(d.error || 'Error al enviar');
+      }
+    } catch {
+      setError('Error de conexión');
+    }
+    setSending(null);
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/70 z-50" onClick={onClose} />
+      <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-gray-900 border border-gray-700 rounded-2xl z-50 shadow-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-bold text-white">Enviar SMS</h2>
+            <p className="text-xs text-gray-500">#{order.order_number} · {order.customer_name || order.customer_phone}</p>
+          </div>
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-white"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="p-3 space-y-1.5 max-h-[50vh] overflow-y-auto">
+          {SMS_TEMPLATES.map(t => (
+            <button
+              key={t.id}
+              onClick={() => send(t.id, t.msg)}
+              disabled={sending !== null}
+              className={cn(
+                'w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all touch-manipulation',
+                sent.has(t.id)
+                  ? 'bg-emerald-500/15 border border-emerald-500/30'
+                  : 'bg-gray-800 border border-gray-700/50 hover:bg-gray-750 hover:border-gray-600',
+                sending === t.id && 'opacity-70'
+              )}
+            >
+              <span className="flex-1">
+                <span className="text-sm font-medium text-white block">{t.label}</span>
+                <span className="text-[11px] text-gray-500 block mt-0.5">{t.msg.replace('#{order}', order.order_number).replace('#{restaurant}', restaurantName)}</span>
+              </span>
+              {sending === t.id ? (
+                <Loader2 className="w-4 h-4 text-gray-400 animate-spin flex-shrink-0" />
+              ) : sent.has(t.id) ? (
+                <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              ) : (
+                <Send className="w-4 h-4 text-gray-500 flex-shrink-0" />
+              )}
+            </button>
+          ))}
+
+          {/* Custom message */}
+          {showCustom ? (
+            <div className="space-y-2 pt-1">
+              <textarea
+                value={custom}
+                onChange={e => setCustom(e.target.value)}
+                placeholder="Escribe tu mensaje..."
+                rows={2}
+                maxLength={300}
+                className="w-full px-3 py-2.5 rounded-xl bg-gray-800 border border-gray-700 text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-violet-500/50 resize-none"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <button onClick={() => setShowCustom(false)} className="flex-1 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800">Cancelar</button>
+                <button
+                  onClick={() => custom.trim() && send('custom', custom.trim())}
+                  disabled={!custom.trim() || sending !== null}
+                  className="flex-1 py-2 rounded-lg bg-violet-600 text-white text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  {sending === 'custom' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  Enviar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowCustom(true)}
+              className="w-full py-2.5 rounded-xl border border-dashed border-gray-700 text-sm text-gray-500 hover:text-gray-300 hover:border-gray-500 transition-colors"
+            >
+              ✏️ Mensaje personalizado
+            </button>
+          )}
+        </div>
+
+        {error && (
+          <div className="px-4 py-2 bg-red-500/10 border-t border-red-500/20">
+            <p className="text-xs text-red-400">{error}</p>
+          </div>
+        )}
+
+        {sent.size > 0 && (
+          <div className="px-4 py-2 bg-emerald-500/10 border-t border-emerald-500/20">
+            <p className="text-xs text-emerald-400">{sent.size} mensaje{sent.size !== 1 ? 's' : ''} enviado{sent.size !== 1 ? 's' : ''}</p>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
