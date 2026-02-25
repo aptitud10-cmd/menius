@@ -174,18 +174,8 @@ export async function reseedMyRestaurant() {
 
 // ---- Categories ----
 export async function createCategory(data: CategoryInput) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No autenticado' };
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('default_restaurant_id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' };
-  const restaurantId = profile.default_restaurant_id;
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
 
   // Enforce plan category limit
   const [{ count: catCount }, { data: subRow }] = await Promise.all([
@@ -285,18 +275,8 @@ export async function reorderProducts(orderedIds: string[]) {
 
 // ---- Products ----
 export async function createProduct(data: ProductInput & { image_url?: string }) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No autenticado' };
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('default_restaurant_id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' };
-  const restaurantId = profile.default_restaurant_id;
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
 
   const [{ count: productCount }, { data: subRow }] = await Promise.all([
     supabase.from('products').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
@@ -567,18 +547,8 @@ export async function deleteModifierOption(id: string) {
 
 // ---- Tables ----
 export async function createTable(data: TableInput) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No autenticado' };
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('default_restaurant_id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' };
-  const restaurantId = profile.default_restaurant_id;
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
 
   const [restaurantRes, tablesCountRes, subscriptionRes] = await Promise.all([
     supabase.from('restaurants').select('slug').eq('id', restaurantId).maybeSingle(),
@@ -613,22 +583,13 @@ export async function createTable(data: TableInput) {
 }
 
 export async function updateTable(id: string, newName: string) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No autenticado' };
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('default_restaurant_id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' };
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
 
   const { data: restaurant } = await supabase
     .from('restaurants')
     .select('slug')
-    .eq('id', profile.default_restaurant_id)
+    .eq('id', restaurantId)
     .maybeSingle();
 
   if (!restaurant?.slug) return { error: 'Restaurante no encontrado' };
@@ -641,7 +602,7 @@ export async function updateTable(id: string, newName: string) {
     .from('tables')
     .update({ name, qr_code_value: qrValue })
     .eq('id', id)
-    .eq('restaurant_id', profile.default_restaurant_id);
+    .eq('restaurant_id', restaurantId);
 
   if (error) return { error: error.message };
   revalidatePath('/app/tables');
