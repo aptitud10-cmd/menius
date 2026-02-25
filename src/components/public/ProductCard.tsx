@@ -183,10 +183,10 @@ export const ProductCard = memo(function ProductCard({
       <div
         onClick={handleClick}
         className={cn(
-          'hidden lg:block group relative bg-white rounded-2xl border border-gray-100 overflow-hidden transition-all duration-300 ease-out',
+          'hidden lg:block group relative bg-white rounded-2xl border border-gray-100 overflow-hidden transition-[transform,box-shadow] duration-300 ease-out',
           outOfStock
             ? 'opacity-75 cursor-default'
-            : 'cursor-pointer hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:border-gray-200 hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0'
+            : 'cursor-pointer hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0'
         )}
       >
         {showImage ? (
@@ -199,7 +199,7 @@ export const ProductCard = memo(function ProductCard({
               loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
-              className={cn('object-cover group-hover:scale-[1.03] transition-transform duration-500', outOfStock && 'grayscale')}
+              className={cn('object-cover transition-transform duration-500', outOfStock && 'grayscale')}
               onError={() => setImgError(true)}
             />
             {outOfStock && (
