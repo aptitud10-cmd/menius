@@ -253,13 +253,10 @@ export const ProductCard = memo(function ProductCard({
           </div>
         )}
 
-        <div className="p-4">
+        <div className="p-4 flex flex-col">
           <h3 className={cn('font-bold text-base line-clamp-2 leading-snug', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
             {displayName}
           </h3>
-          <span className={cn('text-sm font-bold tabular-nums mt-1 block', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
-            {fmtPrice(Number(product.price))}
-          </span>
 
           {displayDesc && (
             <p className="text-sm text-gray-500 line-clamp-2 mt-1.5 leading-relaxed">{displayDesc}</p>
@@ -280,18 +277,21 @@ export const ProductCard = memo(function ProductCard({
           )}
 
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-            {outOfStock ? (
-              <span className="inline-flex items-center gap-1 text-xs text-red-500 font-semibold">
-                <Ban className="w-3 h-3" /> Agotado
+            <div className="flex flex-col gap-0.5">
+              <span className={cn('text-base font-bold tabular-nums', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
+                {fmtPrice(Number(product.price))}
               </span>
-            ) : hasModifiers ? (
-              <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
-                {customizeLabel}
-                <ChevronRight className="w-3 h-3" />
-              </span>
-            ) : (
-              <span />
-            )}
+              {outOfStock ? (
+                <span className="inline-flex items-center gap-1 text-xs text-red-500 font-semibold">
+                  <Ban className="w-3 h-3" /> Agotado
+                </span>
+              ) : hasModifiers ? (
+                <span className="inline-flex items-center gap-0.5 text-xs text-emerald-600 font-medium">
+                  {customizeLabel}
+                  <ChevronRight className="w-3 h-3" />
+                </span>
+              ) : null}
+            </div>
             {outOfStock ? (
               <span className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-400 cursor-default">
                 No disponible
