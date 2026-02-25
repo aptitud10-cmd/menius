@@ -113,7 +113,7 @@ export function LandingHero() {
                 className="animate-float"
                 style={{ transformStyle: 'preserve-3d', transform: 'rotateY(-6deg) rotateX(2deg)' }}
               >
-                <div className="relative w-[280px] h-[580px] rounded-[2.5rem] border-[3px] border-white/[0.12] bg-gray-950 shadow-[0_0_80px_rgba(120,80,255,0.15),0_25px_50px_rgba(0,0,0,0.5)] overflow-hidden">
+                <div className="relative w-[280px] h-[580px] rounded-[2.5rem] border-[3px] border-white/[0.12] bg-gray-950 shadow-[0_0_80px_rgba(16,185,129,0.15),0_25px_50px_rgba(0,0,0,0.5)] overflow-hidden">
                   <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[90px] h-[28px] bg-black rounded-full z-20" />
 
                   <div className="relative z-10 pt-10 px-5 pb-2 flex items-center justify-between">
@@ -130,7 +130,7 @@ export function LandingHero() {
 
                   <div className="relative z-10 px-4 pb-4">
                     <div className="text-center mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/80 to-blue-500/80 mx-auto mb-1.5 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/80 to-blue-500/80 mx-auto mb-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/20">
                         <span className="text-white text-sm font-bold">M</span>
                       </div>
                       <p className="text-white text-[11px] font-semibold">La Taquería</p>
@@ -171,7 +171,7 @@ export function LandingHero() {
                           </div>
                           <div className="text-right flex-shrink-0">
                             <p className="text-white text-[10px] font-semibold">{item.price}</p>
-                            <span className="mt-0.5 inline-block px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 text-[7px] font-semibold">+</span>
+                            <span className="mt-0.5 inline-block px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[7px] font-semibold">+</span>
                           </div>
                         </m.div>
                       ))}

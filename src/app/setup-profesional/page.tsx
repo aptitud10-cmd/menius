@@ -118,7 +118,7 @@ export default function SetupProfesionalPage() {
       <section className="relative pt-32 pb-16 md:pt-40 md:pb-24 overflow-hidden">
         <div className="section-glow section-glow-purple" />
         <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-semibold mb-6">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold mb-6">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z" />
             </svg>
@@ -141,8 +141,8 @@ export default function SetupProfesionalPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {processSteps.map((s) => (
               <div key={s.step} className="text-center">
-                <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mx-auto mb-4">
-                  <span className="text-lg font-semibold text-purple-400">{s.step}</span>
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
+                  <span className="text-lg font-semibold text-emerald-400">{s.step}</span>
                 </div>
                 <h3 className="text-sm font-semibold text-white mb-1.5">{s.title}</h3>
                 <p className="text-xs text-gray-500 leading-relaxed">{s.desc}</p>
@@ -166,7 +166,7 @@ export default function SetupProfesionalPage() {
                 key={pkg.id}
                 className={`relative rounded-2xl p-7 flex flex-col transition-all duration-300 ${
                   pkg.tag === 'Recomendado'
-                    ? 'card-gradient-border shimmer-border bg-[#0a0a0a] ring-1 ring-purple-500/30'
+                    ? 'card-gradient-border shimmer-border bg-[#0a0a0a] ring-1 ring-emerald-500/30'
                     : 'card-premium'
                 }`}
               >
@@ -200,7 +200,7 @@ export default function SetupProfesionalPage() {
                 <ul className="space-y-2.5 flex-1">
                   {pkg.includes.map((f) => (
                     <li key={f} className="flex items-start gap-2.5">
-                      <svg className="w-4 h-4 flex-shrink-0 mt-0.5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <svg className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                       <span className="text-sm leading-snug text-gray-400">{f}</span>
@@ -251,10 +251,10 @@ export default function SetupProfesionalPage() {
               { q: '¿Ofrecen garantía?', a: 'Sí. Si no estás satisfecho con el setup, te devolvemos el 100% de tu dinero. Sin preguntas ni letras pequeñas.' },
               { q: '¿Necesito una suscripción mensual también?', a: 'Sí, el servicio de setup es adicional a tu suscripción mensual de MENIUS (desde $39/mes). El setup es un pago único que cubre la configuración inicial completa.' },
             ].map((faq) => (
-              <details key={faq.q} className="group rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden hover:border-purple-500/20 transition-colors duration-300">
+              <details key={faq.q} className="group rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden hover:border-emerald-500/20 transition-colors duration-300">
                 <summary className="flex items-center justify-between px-6 py-5 cursor-pointer">
                   <span className="text-[15px] font-medium text-gray-200 pr-4">{faq.q}</span>
-                  <span className="faq-icon text-purple-400 text-xl font-light transition-transform duration-200 flex-shrink-0">+</span>
+                  <span className="faq-icon text-emerald-400 text-xl font-light transition-transform duration-200 flex-shrink-0">+</span>
                 </summary>
                 <div className="faq-answer px-6 pb-5">
                   <p className="text-sm text-gray-400 leading-relaxed">{faq.a}</p>
@@ -288,7 +288,7 @@ export default function SetupProfesionalPage() {
                 <ul className="space-y-2.5">
                   <li><Link href="/blog" className="text-[13px] text-gray-600 hover:text-white transition-colors">Blog</Link></li>
                   <li><Link href="/faq" className="text-[13px] text-gray-600 hover:text-white transition-colors">FAQ</Link></li>
-                  <li><a href="mailto:soportemenius@gmail.com" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
+                  <li><a href="mailto:soporte@menius.app" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
                 </ul>
               </div>
               <div>

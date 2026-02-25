@@ -26,7 +26,7 @@ export default function BlogPage() {
       <section className="relative pt-32 pb-16 md:pt-40 md:pb-20 overflow-hidden">
         <div className="section-glow section-glow-purple" />
         <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-          <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-5">Blog</p>
+          <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-5">Blog</p>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight mb-5">
             Recursos para restaurantes
           </h1>
@@ -61,7 +61,7 @@ export default function BlogPage() {
                 <ul className="space-y-2.5">
                   <li><Link href="/blog" className="text-[13px] text-gray-600 hover:text-white transition-colors">Blog</Link></li>
                   <li><Link href="/faq" className="text-[13px] text-gray-600 hover:text-white transition-colors">FAQ</Link></li>
-                  <li><a href="mailto:soportemenius@gmail.com" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
+                  <li><a href="mailto:soporte@menius.app" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
                 </ul>
               </div>
               <div>

@@ -21,7 +21,7 @@ interface FaqCategory {
   questions: { q: string; a: ReactNode }[];
 }
 
-const lnk = 'text-purple-400 hover:text-purple-300 transition-colors';
+const lnk = 'text-emerald-400 hover:text-emerald-300 transition-colors';
 
 const categories: FaqCategory[] = [
   {
@@ -291,7 +291,7 @@ const categories: FaqCategory[] = [
       },
       {
         q: '¿Puedo solicitar una demostración personalizada?',
-        a: <>Sí. Si estás interesado en el Plan Business o tienes preguntas específicas sobre cómo MENIUS se adapta a tu restaurante, puedes contactarnos a <a href="mailto:soportemenius@gmail.com" className={lnk}>soportemenius@gmail.com</a> para agendar una demostración personalizada.</>,
+        a: <>Sí. Si estás interesado en el Plan Business o tienes preguntas específicas sobre cómo MENIUS se adapta a tu restaurante, puedes contactarnos a <a href="mailto:soporte@menius.app" className={lnk}>soporte@menius.app</a> para agendar una demostración personalizada.</>,
       },
       {
         q: '¿Tienen tutoriales o guías?',
@@ -299,7 +299,7 @@ const categories: FaqCategory[] = [
       },
       {
         q: '¿Cómo reporto un error o sugiero una mejora?',
-        a: <>Puedes reportar errores o enviar sugerencias directamente a <a href="mailto:soportemenius@gmail.com" className={lnk}>soportemenius@gmail.com</a>. Leemos y respondemos todos los mensajes. Las sugerencias de mejora se evalúan y las más solicitadas se incorporan en futuras actualizaciones de la plataforma.</>,
+        a: <>Puedes reportar errores o enviar sugerencias directamente a <a href="mailto:soporte@menius.app" className={lnk}>soporte@menius.app</a>. Leemos y respondemos todos los mensajes. Las sugerencias de mejora se evalúan y las más solicitadas se incorporan en futuras actualizaciones de la plataforma.</>,
       },
     ],
   },
@@ -348,7 +348,7 @@ export default function FaqPage() {
       <section className="relative pt-32 pb-16 md:pt-40 md:pb-20 overflow-hidden">
         <div className="section-glow section-glow-purple" />
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
-          <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-5">Centro de Ayuda</p>
+          <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-5">Centro de Ayuda</p>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight mb-5">
             Preguntas Frecuentes
           </h1>
@@ -392,11 +392,11 @@ export default function FaqPage() {
               {cat.questions.map((faq, i) => (
                 <details
                   key={i}
-                  className="group rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden hover:border-purple-500/20 transition-colors duration-300"
+                  className="group rounded-2xl bg-white/[0.02] border border-white/[0.06] overflow-hidden hover:border-emerald-500/20 transition-colors duration-300"
                 >
                   <summary className="flex items-center justify-between px-6 py-5 cursor-pointer">
                     <span className="text-[15px] font-medium text-gray-200 pr-4">{faq.q}</span>
-                    <span className="faq-icon text-purple-400 text-xl font-light transition-transform duration-200 flex-shrink-0">+</span>
+                    <span className="faq-icon text-emerald-400 text-xl font-light transition-transform duration-200 flex-shrink-0">+</span>
                   </summary>
                   <div className="faq-answer px-6 pb-5">
                     <p className="text-sm text-gray-400 leading-relaxed">{faq.a}</p>
@@ -409,8 +409,8 @@ export default function FaqPage() {
 
         {/* CTA */}
         <div className="mt-20 relative text-center rounded-2xl overflow-hidden p-10 md:p-14">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-blue-600/10 rounded-2xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] rounded-full bg-purple-500/10 blur-[100px] pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/10 to-blue-600/10 rounded-2xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] rounded-full bg-emerald-500/10 blur-[100px] pointer-events-none" />
           <div className="relative z-10">
             <h2 className="text-2xl md:text-4xl font-semibold text-white tracking-tight mb-4">
               ¿No encontraste tu respuesta?
@@ -420,10 +420,10 @@ export default function FaqPage() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <a
-                href="mailto:soportemenius@gmail.com"
+                href="mailto:soporte@menius.app"
                 className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white text-black font-medium text-[15px] hover:bg-gray-100 transition-all btn-glow"
               >
-                soportemenius@gmail.com
+                soporte@menius.app
               </a>
               <Link
                 href="/r/demo"
@@ -459,7 +459,7 @@ export default function FaqPage() {
                 <ul className="space-y-2.5">
                   <li><Link href="/blog" className="text-[13px] text-gray-600 hover:text-white transition-colors">Blog</Link></li>
                   <li><Link href="/faq" className="text-[13px] text-gray-600 hover:text-white transition-colors">FAQ</Link></li>
-                  <li><a href="mailto:soportemenius@gmail.com" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
+                  <li><a href="mailto:soporte@menius.app" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
                 </ul>
               </div>
               <div>

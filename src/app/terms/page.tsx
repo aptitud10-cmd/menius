@@ -17,7 +17,7 @@ export default function TermsPage() {
       <section className="relative pt-32 pb-12 md:pt-40 md:pb-16 overflow-hidden">
         <div className="section-glow section-glow-purple" />
         <div className="relative z-10 max-w-3xl mx-auto px-6">
-          <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-5">Legal</p>
+          <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-5">Legal</p>
           <h1 className="text-4xl md:text-5xl font-semibold text-white tracking-tight mb-3">
             Términos y Condiciones
           </h1>
@@ -28,7 +28,7 @@ export default function TermsPage() {
       <div className="separator-gradient max-w-3xl mx-auto" />
 
       <main className="relative z-10 max-w-3xl mx-auto px-6 py-12 md:py-16">
-        <div className="prose prose-invert prose-lg max-w-none prose-headings:font-semibold prose-headings:text-white prose-headings:tracking-tight prose-h2:text-xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-base prose-h3:mt-6 prose-h3:mb-3 prose-p:text-gray-400 prose-p:leading-relaxed prose-p:text-[15px] prose-li:text-gray-400 prose-li:text-[15px] prose-strong:text-white prose-a:text-purple-400 prose-a:no-underline hover:prose-a:text-purple-300 prose-code:text-purple-300 prose-code:bg-purple-500/[0.08] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none">
+        <div className="prose prose-invert prose-lg max-w-none prose-headings:font-semibold prose-headings:text-white prose-headings:tracking-tight prose-h2:text-xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-base prose-h3:mt-6 prose-h3:mb-3 prose-p:text-gray-400 prose-p:leading-relaxed prose-p:text-[15px] prose-li:text-gray-400 prose-li:text-[15px] prose-strong:text-white prose-a:text-emerald-400 prose-a:no-underline hover:prose-a:text-emerald-300 prose-code:text-emerald-300 prose-code:bg-emerald-500/[0.08] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none">
 
           <h2>1. Aceptación de los Términos</h2>
           <p>
@@ -56,7 +56,7 @@ export default function TermsPage() {
           </p>
           <h3>3.2 Seguridad de la Cuenta</h3>
           <p>
-            Eres responsable de mantener la confidencialidad de tus credenciales de acceso. Debes notificarnos inmediatamente si sospechas de un acceso no autorizado a tu cuenta en <a href="mailto:soportemenius@gmail.com">soportemenius@gmail.com</a>.
+            Eres responsable de mantener la confidencialidad de tus credenciales de acceso. Debes notificarnos inmediatamente si sospechas de un acceso no autorizado a tu cuenta en <a href="mailto:soporte@menius.app">soporte@menius.app</a>.
           </p>
           <h3>3.3 Una Cuenta por Restaurante</h3>
           <p>
@@ -171,7 +171,7 @@ export default function TermsPage() {
           <h2>16. Contacto</h2>
           <p>Para preguntas sobre estos Términos:</p>
           <ul>
-            <li><strong>Email:</strong> <a href="mailto:soportemenius@gmail.com">soportemenius@gmail.com</a></li>
+            <li><strong>Email:</strong> <a href="mailto:soporte@menius.app">soporte@menius.app</a></li>
             <li><strong>Sitio web:</strong> <a href="https://menius.app">menius.app</a></li>
           </ul>
         </div>
@@ -200,7 +200,7 @@ export default function TermsPage() {
                 <ul className="space-y-2.5">
                   <li><Link href="/blog" className="text-[13px] text-gray-600 hover:text-white transition-colors">Blog</Link></li>
                   <li><Link href="/faq" className="text-[13px] text-gray-600 hover:text-white transition-colors">FAQ</Link></li>
-                  <li><a href="mailto:soportemenius@gmail.com" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
+                  <li><a href="mailto:soporte@menius.app" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
                 </ul>
               </div>
               <div>

@@ -62,21 +62,21 @@ export function BlogGrid({ posts, categories }: BlogGridProps) {
           <>
             <Link href={`/blog/${featured.slug}`} className="group block mb-16">
               <div className="relative rounded-2xl card-premium p-8 md:p-12 overflow-hidden">
-                <div className="absolute top-0 left-0 w-[400px] h-[300px] rounded-full bg-purple-500/10 blur-[100px] pointer-events-none" />
+                <div className="absolute top-0 left-0 w-[400px] h-[300px] rounded-full bg-emerald-500/10 blur-[100px] pointer-events-none" />
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-5">
-                    <span className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-semibold">
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
                       {featured.category}
                     </span>
                     <span className="text-xs text-gray-500">{featured.readTime} min de lectura</span>
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 group-hover:text-purple-300 transition-colors duration-300 leading-tight tracking-tight">
+                  <h2 className="text-2xl md:text-3xl font-semibold text-white mb-4 group-hover:text-emerald-300 transition-colors duration-300 leading-tight tracking-tight">
                     {featured.title}
                   </h2>
                   <p className="text-gray-400 leading-relaxed max-w-2xl mb-6 font-light">
                     {featured.description}
                   </p>
-                  <span className="inline-flex items-center gap-2 text-sm font-medium text-purple-400 group-hover:text-purple-300 transition-colors duration-300">
+                  <span className="inline-flex items-center gap-2 text-sm font-medium text-emerald-400 group-hover:text-emerald-300 transition-colors duration-300">
                     Leer artículo
                     <svg className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
                   </span>
@@ -93,12 +93,12 @@ export function BlogGrid({ posts, categories }: BlogGridProps) {
               <Link key={post.slug} href={`/blog/${post.slug}`} className="group">
                 <article className="h-full flex flex-col p-6 rounded-2xl card-premium hover:-translate-y-1 transition-all duration-300">
                   <div className="flex items-center gap-3 mb-4">
-                    <span className="px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[11px] font-semibold">
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-semibold">
                       {post.category}
                     </span>
                     <span className="text-[11px] text-gray-600">{post.readTime} min</span>
                   </div>
-                  <h3 className="text-base font-semibold text-white mb-3 leading-snug group-hover:text-purple-300 transition-colors duration-300 line-clamp-2">
+                  <h3 className="text-base font-semibold text-white mb-3 leading-snug group-hover:text-emerald-300 transition-colors duration-300 line-clamp-2">
                     {post.title}
                   </h3>
                   <p className="text-sm text-gray-500 leading-relaxed flex-1 line-clamp-3">
@@ -106,7 +106,7 @@ export function BlogGrid({ posts, categories }: BlogGridProps) {
                   </p>
                   <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center justify-between">
                     <span className="text-xs text-gray-600">{formatDate(post.date)}</span>
-                    <span className="text-xs font-medium text-purple-400 group-hover:text-purple-300 transition-colors">
+                    <span className="text-xs font-medium text-emerald-400 group-hover:text-emerald-300 transition-colors">
                       Leer →
                     </span>
                   </div>
@@ -122,8 +122,8 @@ export function BlogGrid({ posts, categories }: BlogGridProps) {
 
         {/* CTA */}
         <div className="mt-20 relative text-center rounded-2xl overflow-hidden p-10 md:p-14">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-blue-600/10 rounded-2xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] rounded-full bg-purple-500/10 blur-[100px] pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/10 to-blue-600/10 rounded-2xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] rounded-full bg-emerald-500/10 blur-[100px] pointer-events-none" />
           <div className="relative z-10">
             <h2 className="text-2xl md:text-4xl font-semibold text-white tracking-tight mb-4">
               ¿Listo para digitalizar tu restaurante?

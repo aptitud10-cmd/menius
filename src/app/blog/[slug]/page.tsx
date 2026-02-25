@@ -70,7 +70,7 @@ export default function BlogPostPage({ params }: PageProps) {
           <div className="flex items-center gap-3 mb-6">
             <Link href="/blog" className="text-xs text-gray-500 hover:text-gray-300 transition-colors">← Blog</Link>
             <span className="text-gray-700">/</span>
-            <span className="px-2.5 py-1 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 text-[11px] font-semibold">
+            <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold">
               {post.category}
             </span>
           </div>
@@ -95,7 +95,7 @@ export default function BlogPostPage({ params }: PageProps) {
 
         {/* CTA */}
         <div className="mt-16 relative rounded-2xl card-premium p-8 md:p-10 overflow-hidden">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[250px] rounded-full bg-purple-500/10 blur-[80px] pointer-events-none" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[250px] rounded-full bg-emerald-500/10 blur-[80px] pointer-events-none" />
           <div className="relative z-10 text-center">
             <h3 className="text-xl font-semibold text-white mb-3">
               ¿Listo para empezar?
@@ -128,10 +128,10 @@ export default function BlogPostPage({ params }: PageProps) {
               {related.map((r) => (
                 <Link key={r.slug} href={`/blog/${r.slug}`} className="group">
                   <article className="h-full p-5 rounded-2xl card-premium hover:-translate-y-1 transition-all duration-300">
-                    <span className="px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[10px] font-semibold">
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[10px] font-semibold">
                       {r.category}
                     </span>
-                    <h4 className="text-sm font-semibold text-white mt-3 mb-2 leading-snug group-hover:text-purple-300 transition-colors line-clamp-2">
+                    <h4 className="text-sm font-semibold text-white mt-3 mb-2 leading-snug group-hover:text-emerald-300 transition-colors line-clamp-2">
                       {r.title}
                     </h4>
                     <p className="text-xs text-gray-600">{r.readTime} min · {formatDate(r.date)}</p>

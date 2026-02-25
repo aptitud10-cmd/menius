@@ -18,8 +18,8 @@ const features = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5z" />
       </svg>
     ),
-    gradient: 'from-purple-500/20 to-blue-500/20',
-    accent: 'purple',
+    gradient: 'from-emerald-500/20 to-blue-500/20',
+    accent: 'indigo',
     visualItems: [
       { label: 'Escanea QR', value: 'Mesa 5' },
       { label: 'Hamburguesa Clásica', value: '$14.99' },
@@ -87,7 +87,7 @@ const features = [
 ];
 
 const accentColors: Record<string, { bg: string; text: string; border: string; glow: string }> = {
-  purple: { bg: 'bg-purple-500/[0.08]', text: 'text-purple-400', border: 'border-purple-500/20', glow: 'bg-purple-500/20' },
+  indigo: { bg: 'bg-indigo-500/[0.08]', text: 'text-indigo-400', border: 'border-indigo-500/20', glow: 'bg-indigo-500/20' },
   blue: { bg: 'bg-blue-500/[0.08]', text: 'text-blue-400', border: 'border-blue-500/20', glow: 'bg-blue-500/20' },
   emerald: { bg: 'bg-emerald-500/[0.08]', text: 'text-emerald-400', border: 'border-emerald-500/20', glow: 'bg-emerald-500/20' },
   amber: { bg: 'bg-amber-500/[0.08]', text: 'text-amber-400', border: 'border-amber-500/20', glow: 'bg-amber-500/20' },
@@ -160,12 +160,12 @@ const testimonials = [
 ];
 
 const integrationsList = [
-  { name: 'Stripe', desc: 'Pagos con tarjeta', bg: 'bg-purple-500/10', icon: '💳' },
+  { name: 'Stripe', desc: 'Pagos con tarjeta', bg: 'bg-emerald-500/10', icon: '💳' },
   { name: 'WhatsApp', desc: 'Notificaciones', bg: 'bg-emerald-500/10', icon: '💬' },
   { name: 'Google Maps', desc: 'Ubicación', bg: 'bg-blue-500/10', icon: '📍' },
   { name: 'Twilio', desc: 'SMS automáticos', bg: 'bg-red-500/10', icon: '📱' },
   { name: 'Resend', desc: 'Email marketing', bg: 'bg-sky-500/10', icon: '✉️' },
-  { name: 'OpenAI', desc: 'Asistente IA', bg: 'bg-amber-500/10', icon: '✨' },
+  { name: 'Gemini AI', desc: 'Asistente IA', bg: 'bg-amber-500/10', icon: '✨' },
 ];
 
 /* ─── COMPONENTS ─── */
@@ -358,12 +358,12 @@ function SavingsCalculator() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-500/[0.06] to-blue-500/[0.04] p-6 md:p-8 text-center">
+      <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.06] to-blue-500/[0.04] p-6 md:p-8 text-center">
         <p className="text-sm text-gray-400 mb-2 font-medium">Con MENIUS ahorras</p>
         <p className="text-4xl md:text-6xl font-bold text-white tracking-tight">
           ${annualSavings.toLocaleString()}
         </p>
-        <p className="text-lg text-purple-400 font-semibold mt-1">al año</p>
+        <p className="text-lg text-emerald-400 font-semibold mt-1">al año</p>
       </div>
     </div>
   );
@@ -384,7 +384,7 @@ function TestimonialsSection() {
             </div>
             <p className="text-sm text-gray-300 leading-relaxed mb-5 flex-1">&ldquo;{t.quote}&rdquo;</p>
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center flex-shrink-0">
                 <span className="text-white text-xs font-bold">{t.initials}</span>
               </div>
               <div>
@@ -415,7 +415,7 @@ export function LandingSections() {
 
         <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">
           <FadeIn className="text-center mb-8">
-            <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Funciones</p>
+            <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Funciones</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Todo bajo control
             </h2>
@@ -482,7 +482,7 @@ export function LandingSections() {
                   <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-3">{row.feature}</p>
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-xs text-purple-400 font-medium mb-1">MENIUS</p>
+                      <p className="text-xs text-emerald-400 font-medium mb-1">MENIUS</p>
                       <p className="text-base font-semibold text-white">{row.menius}</p>
                     </div>
                     <div className="text-right">
@@ -497,7 +497,7 @@ export function LandingSections() {
             <div className="hidden md:block rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02]">
               <div className="grid grid-cols-3">
                 <div className="p-5 border-b border-white/[0.06]" />
-                <div className="p-5 text-center border-b border-white/[0.06] bg-purple-500/[0.06]">
+                <div className="p-5 text-center border-b border-white/[0.06] bg-emerald-500/[0.06]">
                   <span className="text-sm font-semibold text-white">MENIUS</span>
                 </div>
                 <div className="p-5 text-center border-b border-white/[0.06]">
@@ -509,7 +509,7 @@ export function LandingSections() {
                   <div className="px-6 py-4">
                     <p className="text-sm text-gray-400">{feature}</p>
                   </div>
-                  <div className="px-6 py-4 text-center bg-purple-500/[0.03]">
+                  <div className="px-6 py-4 text-center bg-emerald-500/[0.03]">
                     <p className="text-sm font-medium text-white">{menius}</p>
                   </div>
                   <div className="px-6 py-4 text-center">
@@ -550,7 +550,7 @@ export function LandingSections() {
       {/* ── Pricing ── */}
       <section id="precios" className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-blue" />
-        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-purple-600/20 blur-[100px] pointer-events-none" />
+        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-emerald-600/20 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 max-w-5xl mx-auto px-5 sm:px-6">
           <FadeIn className="text-center mb-10 md:mb-14">
@@ -568,12 +568,12 @@ export function LandingSections() {
                   key={plan.name}
                   className={`relative rounded-2xl p-8 flex flex-col transition-all duration-300 ${
                     plan.popular
-                      ? 'card-popular-glow bg-white/[0.04] border border-purple-500/20 shimmer-border'
+                      ? 'card-popular-glow bg-white/[0.04] border border-emerald-500/20 shimmer-border'
                       : 'card-gradient-border bg-white/[0.02] rounded-2xl hover:bg-white/[0.04]'
                   }`}
                 >
                   {plan.popular && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-5 py-1.5 bg-gradient-to-r from-purple-500 to-blue-500 text-white text-[11px] font-semibold rounded-full uppercase tracking-wider shadow-lg shadow-purple-500/25">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-5 py-1.5 bg-gradient-to-r from-emerald-500 to-blue-500 text-white text-[11px] font-semibold rounded-full uppercase tracking-wider shadow-lg shadow-emerald-500/25">
                       Popular
                     </span>
                   )}
@@ -586,7 +586,7 @@ export function LandingSections() {
                   <ul className="space-y-3.5 flex-1">
                     {plan.features.map((feat) => (
                       <li key={feat} className="flex items-start gap-3">
-                        <svg className="w-4 h-4 text-purple-400/60 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        <svg className="w-4 h-4 text-emerald-400/60 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                         <span className="text-sm text-gray-400 leading-snug">{feat}</span>
                       </li>
                     ))}
@@ -624,7 +624,7 @@ export function LandingSections() {
 
         <div className="relative z-10 max-w-4xl mx-auto px-5 sm:px-6">
           <FadeIn className="text-center mb-10 md:mb-14">
-            <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Cómo funciona</p>
+            <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Cómo funciona</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Listo en minutos
             </h2>
@@ -634,8 +634,8 @@ export function LandingSections() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
               {howItWorks.map((item) => (
                 <div key={item.step} className="card-premium rounded-2xl p-6 md:p-8 flex gap-5">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-purple-400">{item.step}</span>
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-bold text-emerald-400">{item.step}</span>
                   </div>
                   <div>
                     <p className="text-[15px] font-semibold text-white">{item.title}</p>
@@ -672,7 +672,7 @@ export function LandingSections() {
 
       {/* ── Final CTA ── */}
       <section className="relative py-24 md:py-52 overflow-clip">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-gradient-to-br from-purple-600/25 to-blue-600/20 blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-gradient-to-br from-emerald-600/25 to-blue-600/20 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl mx-auto px-5 sm:px-6 text-center">
           <FadeIn>

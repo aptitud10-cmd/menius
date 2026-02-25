@@ -17,7 +17,7 @@ export default function PrivacyPage() {
       <section className="relative pt-32 pb-12 md:pt-40 md:pb-16 overflow-hidden">
         <div className="section-glow section-glow-purple" />
         <div className="relative z-10 max-w-3xl mx-auto px-6">
-          <p className="text-sm text-purple-400 uppercase tracking-[0.2em] font-medium mb-5">Legal</p>
+          <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-5">Legal</p>
           <h1 className="text-4xl md:text-5xl font-semibold text-white tracking-tight mb-3">
             Política de Privacidad
           </h1>
@@ -28,7 +28,7 @@ export default function PrivacyPage() {
       <div className="separator-gradient max-w-3xl mx-auto" />
 
       <main className="relative z-10 max-w-3xl mx-auto px-6 py-12 md:py-16">
-        <div className="prose prose-invert prose-lg max-w-none prose-headings:font-semibold prose-headings:text-white prose-headings:tracking-tight prose-h2:text-xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-base prose-h3:mt-6 prose-h3:mb-3 prose-p:text-gray-400 prose-p:leading-relaxed prose-p:text-[15px] prose-li:text-gray-400 prose-li:text-[15px] prose-strong:text-white prose-a:text-purple-400 prose-a:no-underline hover:prose-a:text-purple-300 prose-code:text-purple-300 prose-code:bg-purple-500/[0.08] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none">
+        <div className="prose prose-invert prose-lg max-w-none prose-headings:font-semibold prose-headings:text-white prose-headings:tracking-tight prose-h2:text-xl prose-h2:mt-10 prose-h2:mb-4 prose-h3:text-base prose-h3:mt-6 prose-h3:mb-3 prose-p:text-gray-400 prose-p:leading-relaxed prose-p:text-[15px] prose-li:text-gray-400 prose-li:text-[15px] prose-strong:text-white prose-a:text-emerald-400 prose-a:no-underline hover:prose-a:text-emerald-300 prose-code:text-emerald-300 prose-code:bg-emerald-500/[0.08] prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:before:content-none prose-code:after:content-none">
 
           <h2>1. Introducción</h2>
           <p>
@@ -109,7 +109,7 @@ export default function PrivacyPage() {
             <li><strong>Oposición:</strong> oponerte al procesamiento de tus datos para ciertos fines.</li>
             <li><strong>Retirar consentimiento:</strong> cuando el procesamiento se base en tu consentimiento.</li>
           </ul>
-          <p>Para ejercer cualquiera de estos derechos, contáctanos en <a href="mailto:soportemenius@gmail.com">soportemenius@gmail.com</a>.</p>
+          <p>Para ejercer cualquiera de estos derechos, contáctanos en <a href="mailto:soporte@menius.app">soporte@menius.app</a>.</p>
 
           <h2>8. Residentes de California (CCPA)</h2>
           <p>
@@ -134,7 +134,7 @@ export default function PrivacyPage() {
           <h2>12. Contacto</h2>
           <p>Si tienes preguntas sobre esta Política de Privacidad, puedes contactarnos en:</p>
           <ul>
-            <li><strong>Email:</strong> <a href="mailto:soportemenius@gmail.com">soportemenius@gmail.com</a></li>
+            <li><strong>Email:</strong> <a href="mailto:soporte@menius.app">soporte@menius.app</a></li>
             <li><strong>Sitio web:</strong> <a href="https://menius.app">menius.app</a></li>
           </ul>
         </div>
@@ -163,7 +163,7 @@ export default function PrivacyPage() {
                 <ul className="space-y-2.5">
                   <li><Link href="/blog" className="text-[13px] text-gray-600 hover:text-white transition-colors">Blog</Link></li>
                   <li><Link href="/faq" className="text-[13px] text-gray-600 hover:text-white transition-colors">FAQ</Link></li>
-                  <li><a href="mailto:soportemenius@gmail.com" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
+                  <li><a href="mailto:soporte@menius.app" className="text-[13px] text-gray-600 hover:text-white transition-colors">Soporte</a></li>
                 </ul>
               </div>
               <div>
