@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { X, ArrowLeft, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -10,6 +10,7 @@ import type { Restaurant, OrderType, PaymentMethod } from '@/types';
 import { WalletButton } from './WalletButton';
 import { PushOptIn } from './PushOptIn';
 import type { Translations, Locale } from '@/lib/translations';
+import { playSuccessChime, spawnConfetti } from '@/lib/celebration';
 
 const AddressAutocomplete = dynamic(
   () => import('@/components/ui/AddressAutocomplete').then((m) => ({ default: m.AddressAutocomplete })),
@@ -76,6 +77,7 @@ export function CheckoutSheet({
   const [payLoading, setPayLoading] = useState(false);
 
   const [tipPercent, setTipPercent] = useState<number | null>(null);
+  const confirmRef = useRef<HTMLDivElement>(null);
   const [customTip, setCustomTip] = useState('');
   const tipAmount = tipPercent !== null
     ? Math.round(cartTotal * tipPercent) / 100
@@ -224,6 +226,8 @@ export function CheckoutSheet({
       saveLastOrder();
       clearCart();
       setStep('confirmation');
+      playSuccessChime();
+      setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
     } catch {
       setOrderError('Error de conexión');
     } finally {
@@ -276,7 +280,7 @@ export function CheckoutSheet({
               <X className="w-4 h-4 text-gray-400" />
             </button>
           </div>
-          <div className="flex-1 flex flex-col items-center justify-center px-8">
+          <div ref={confirmRef} className="flex-1 flex flex-col items-center justify-center px-8 relative overflow-hidden">
             <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mb-5">
               <CheckCircle className="w-8 h-8 text-emerald-500" />
             </div>
@@ -306,7 +310,7 @@ export function CheckoutSheet({
                   </button>
                 )
               )}
-              {!restaurant.id.startsWith('demo') && (
+              {!restaurant.id.startsWith('demo') && orderNumber && orderNumber !== 'WALLET' && (
                 <a
                   href={`/r/${restaurant.slug}/orden/${orderNumber}`}
                   className="block w-full py-3 rounded-xl bg-gray-900 text-white font-semibold text-sm text-center hover:bg-gray-800 transition-colors"

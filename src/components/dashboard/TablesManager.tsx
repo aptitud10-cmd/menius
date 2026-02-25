@@ -163,8 +163,8 @@ function QRTableCard({ table, onDelete, onEdit, onStatusChange, onCapacityChange
   onCapacityChange: (id: string, capacity: number) => void;
   restaurantName?: string;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const brandedCanvasRef = useRef<HTMLCanvasElement>(null);
+  const qrContainerRef = useRef<HTMLDivElement>(null);
+  const brandedCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [qrReady, setQrReady] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -172,92 +172,19 @@ function QRTableCard({ table, onDelete, onEdit, onStatusChange, onCapacityChange
   const [editName, setEditName] = useState(table.name);
 
   useEffect(() => {
-    if (!canvasRef.current || table.qr_code_value === '#') return;
-    import('qrcode').then((QRCode) => {
-      QRCode.toCanvas(canvasRef.current, table.qr_code_value, {
-        width: 200,
-        margin: 2,
-        color: { dark: '#1f2937', light: '#ffffff' },
-        errorCorrectionLevel: 'H',
-      }, () => {
-        setQrReady(true);
-        generateBrandedQR();
-      });
+    if (!qrContainerRef.current || table.qr_code_value === '#') return;
+    import('@/lib/styled-qr').then(async ({ renderStyledQR, generateBrandedCard }) => {
+      await renderStyledQR(qrContainerRef.current!, { data: table.qr_code_value, size: 200 });
+      const card = await generateBrandedCard(
+        table.qr_code_value,
+        table.name,
+        restaurantName ?? '',
+        'Escanea el código para ver el menú'
+      );
+      brandedCanvasRef.current = card;
+      setQrReady(true);
     });
-  }, [table.qr_code_value]);
-
-  const generateBrandedQR = useCallback(() => {
-    if (!canvasRef.current || !brandedCanvasRef.current) return;
-
-    const qrCanvas = canvasRef.current;
-    const canvas = brandedCanvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const scale = 3;
-    const w = 320 * scale;
-    const qrSize = 240 * scale;
-    const pad = 40 * scale;
-    const h = (420) * scale;
-
-    canvas.width = w;
-    canvas.height = h;
-
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.roundRect(0, 0, w, h, 24 * scale);
-    ctx.fill();
-
-    ctx.strokeStyle = '#e5e7eb';
-    ctx.lineWidth = 1 * scale;
-    ctx.beginPath();
-    ctx.roundRect(0, 0, w, h, 24 * scale);
-    ctx.stroke();
-
-    ctx.fillStyle = '#7c3aed';
-    ctx.font = `bold ${11 * scale}px system-ui, -apple-system, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.letterSpacing = `${4 * scale}px`;
-    ctx.fillText('MENIUS', w / 2, 36 * scale);
-    ctx.letterSpacing = '0px';
-
-    if (restaurantName) {
-      ctx.fillStyle = '#111827';
-      ctx.font = `600 ${14 * scale}px system-ui, -apple-system, sans-serif`;
-      ctx.fillText(restaurantName, w / 2, 58 * scale);
-    }
-
-    const sep1Y = 72 * scale;
-    ctx.strokeStyle = '#f3f4f6';
-    ctx.lineWidth = 1 * scale;
-    ctx.beginPath();
-    ctx.moveTo(pad, sep1Y);
-    ctx.lineTo(w - pad, sep1Y);
-    ctx.stroke();
-
-    const qrX = (w - qrSize) / 2;
-    const qrY = 84 * scale;
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(qrX - 8 * scale, qrY - 8 * scale, qrSize + 16 * scale, qrSize + 16 * scale, 16 * scale);
-    ctx.fillStyle = '#fafafa';
-    ctx.fill();
-    ctx.restore();
-
-    ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
-
-    const belowQR = qrY + qrSize + 24 * scale;
-
-    ctx.fillStyle = '#111827';
-    ctx.font = `bold ${20 * scale}px system-ui, -apple-system, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText(table.name, w / 2, belowQR);
-
-    ctx.fillStyle = '#6b7280';
-    ctx.font = `${10 * scale}px system-ui, -apple-system, sans-serif`;
-    ctx.fillText('Escanea el código para ver el menú', w / 2, belowQR + 20 * scale);
-
-  }, [table.name, restaurantName]);
+  }, [table.qr_code_value, table.name, restaurantName]);
 
   const downloadBrandedQR = () => {
     if (!brandedCanvasRef.current) return;
@@ -366,10 +293,7 @@ function QRTableCard({ table, onDelete, onEdit, onStatusChange, onCapacityChange
 
       {/* QR */}
       <div className="p-5 flex flex-col items-center">
-        <div className="bg-gray-50 rounded-xl p-3 mb-3">
-          <canvas ref={canvasRef} className="rounded-lg" />
-        </div>
-        <canvas ref={brandedCanvasRef} className="hidden" />
+        <div ref={qrContainerRef} className="bg-gray-50 rounded-xl p-3 mb-3 flex items-center justify-center min-h-[200px] min-w-[200px]" />
         <p className="text-xs text-gray-500 text-center truncate max-w-[200px] mb-4">{table.qr_code_value}</p>
 
         {/* Actions */}
@@ -491,8 +415,8 @@ function StatusBadge({ status, onSelect }: { status: TableStatus; onSelect: (s: 
 /* ─── General QR Card (Pickup / Delivery / Sharing) ─── */
 
 function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const brandedCanvasRef = useRef<HTMLCanvasElement>(null);
+  const qrContainerRef = useRef<HTMLDivElement>(null);
+  const brandedCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [qrReady, setQrReady] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -500,69 +424,14 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
   const menuUrl = `${appUrl}/r/${slug}`;
 
   useEffect(() => {
-    if (!canvasRef.current || !menuUrl) return;
-    import('qrcode').then((QRCode) => {
-      QRCode.toCanvas(canvasRef.current, menuUrl, {
-        width: 220,
-        margin: 2,
-        color: { dark: '#1f2937', light: '#ffffff' },
-        errorCorrectionLevel: 'H',
-      }, () => {
-        setQrReady(true);
-        generateBrandedQR();
-      });
+    if (!qrContainerRef.current || !menuUrl) return;
+    import('@/lib/styled-qr').then(async ({ renderStyledQR, generateBrandedCard }) => {
+      await renderStyledQR(qrContainerRef.current!, { data: menuUrl, size: 220 });
+      const card = await generateBrandedCard(menuUrl, name, name, 'Pide y paga desde tu celular');
+      brandedCanvasRef.current = card;
+      setQrReady(true);
     });
-  }, [menuUrl]);
-
-  const generateBrandedQR = useCallback(() => {
-    if (!canvasRef.current || !brandedCanvasRef.current) return;
-
-    const qrCanvas = canvasRef.current;
-    const canvas = brandedCanvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const padding = 40;
-    const headerHeight = 70;
-    const footerHeight = 55;
-    const qrSize = qrCanvas.width;
-    const totalWidth = qrSize + padding * 2;
-    const totalHeight = headerHeight + qrSize + footerHeight + padding;
-
-    canvas.width = totalWidth;
-    canvas.height = totalHeight;
-
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.roundRect(0, 0, totalWidth, totalHeight, 20);
-    ctx.fill();
-
-    const gradient = ctx.createLinearGradient(0, 0, totalWidth, 0);
-    gradient.addColorStop(0, '#7c3aed');
-    gradient.addColorStop(1, '#6d28d9');
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.roundRect(0, 0, totalWidth, headerHeight + 10, [20, 20, 0, 0]);
-    ctx.fill();
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 16px system-ui, -apple-system, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(name, totalWidth / 2, headerHeight / 2);
-    ctx.font = '12px system-ui, -apple-system, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.8)';
-    ctx.fillText('Escanea para ver el menú', totalWidth / 2, headerHeight / 2 + 18);
-
-    ctx.drawImage(qrCanvas, padding, headerHeight + 10, qrSize, qrSize);
-
-    ctx.fillStyle = '#7c3aed';
-    ctx.font = 'bold 14px system-ui, -apple-system, sans-serif';
-    const footerY = headerHeight + qrSize + 20;
-    ctx.fillText('MENIUS', totalWidth / 2, footerY + 18);
-    ctx.fillStyle = '#9ca3af';
-    ctx.font = '10px system-ui, -apple-system, sans-serif';
-    ctx.fillText('Pide y paga desde tu celular', totalWidth / 2, footerY + 36);
-  }, [name]);
+  }, [menuUrl, name]);
 
   const downloadQR = () => {
     if (!brandedCanvasRef.current) return;
@@ -639,10 +508,7 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
         <div className="flex flex-col sm:flex-row items-center gap-6">
           {/* QR */}
           <div className="flex flex-col items-center flex-shrink-0">
-            <div className="bg-white rounded-xl p-3 mb-2">
-              <canvas ref={canvasRef} className="rounded-lg" />
-            </div>
-            <canvas ref={brandedCanvasRef} className="hidden" />
+            <div ref={qrContainerRef} className="bg-white rounded-xl p-3 mb-2 flex items-center justify-center min-h-[220px] min-w-[220px]" />
             <p className="text-[11px] text-gray-400 text-center truncate max-w-[220px]">{menuUrl}</p>
           </div>
 

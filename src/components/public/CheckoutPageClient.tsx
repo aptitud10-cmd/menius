@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -13,6 +13,7 @@ import type { Restaurant, OrderType, PaymentMethod } from '@/types';
 import { trackEvent } from '@/lib/analytics';
 import { WalletButton } from './WalletButton';
 import { PushOptIn } from './PushOptIn';
+import { playSuccessChime, spawnConfetti } from '@/lib/celebration';
 
 const AddressAutocomplete = dynamic(
   () => import('@/components/ui/AddressAutocomplete').then((m) => ({ default: m.AddressAutocomplete })),
@@ -75,6 +76,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const [orderNumber, setOrderNumber] = useState('');
   const [orderId, setOrderId] = useState('');
   const [payLoading, setPayLoading] = useState(false);
+  const confirmRef = useRef<HTMLDivElement>(null);
 
   const [tipPercent, setTipPercent] = useState<number | null>(null);
   const [customTip, setCustomTip] = useState('');
@@ -198,6 +200,8 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
       });
       clearCart();
       setStep('confirmation');
+      playSuccessChime();
+      setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
     } catch {
       setOrderError('Error de conexión');
     } finally {
@@ -262,7 +266,8 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
           <button onClick={goBack} className="text-sm text-emerald-600 font-medium">{t.backToMenu}</button>
         </header>
         <motion.div
-          className="flex-1 flex flex-col items-center justify-center px-8"
+          ref={confirmRef}
+          className="flex-1 flex flex-col items-center justify-center px-8 relative overflow-hidden"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
@@ -291,7 +296,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
                 </button>
               )
             )}
-            {!restaurant.id.startsWith('demo') && (
+            {!restaurant.id.startsWith('demo') && orderNumber && orderNumber !== 'WALLET' && (
               <a href={`/r/${restaurant.slug}/orden/${orderNumber}`} className="block w-full py-3.5 rounded-xl bg-gray-900 text-white font-semibold text-sm text-center hover:bg-gray-800 transition-colors">
                 {t.trackOrder}
               </a>

@@ -163,17 +163,30 @@ export function MenuShell({
     toastTimer.current = setTimeout(() => setToastName(null), 2000);
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = 1200;
-      gain.gain.value = 0.08;
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.12);
+      const t = ctx.currentTime;
+      const master = ctx.createGain();
+      master.gain.setValueAtTime(0.18, t);
+      master.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      master.connect(ctx.destination);
+      const o1 = ctx.createOscillator();
+      o1.frequency.setValueAtTime(880, t);
+      o1.frequency.exponentialRampToValueAtTime(1320, t + 0.08);
+      o1.type = 'sine';
+      o1.connect(master);
+      o1.start(t);
+      o1.stop(t + 0.35);
+      const o2 = ctx.createOscillator();
+      const g2 = ctx.createGain();
+      g2.gain.setValueAtTime(0.06, t + 0.06);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+      o2.frequency.value = 1760;
+      o2.type = 'sine';
+      o2.connect(g2);
+      g2.connect(ctx.destination);
+      o2.start(t + 0.06);
+      o2.stop(t + 0.25);
     } catch {}
-    try { navigator.vibrate?.(40); } catch {}
+    try { navigator.vibrate?.([30, 20, 15]); } catch {}
   }, []);
 
   const handleQuickAdd = useCallback((product: Product) => {

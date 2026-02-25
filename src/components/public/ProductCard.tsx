@@ -47,7 +47,7 @@ export const ProductCard = memo(function ProductCard({
   const isFav = useFavoritesStore((s) => s.ids.includes(product.id));
   const toggleFav = useFavoritesStore((s) => s.toggle);
 
-  const haptic = () => { try { navigator?.vibrate?.(10); } catch {} };
+  const haptic = () => { try { navigator?.vibrate?.([25, 15, 10]); } catch {} };
 
   const handleClick = () => {
     if (outOfStock) return;
