@@ -460,7 +460,6 @@ export function MenuShell({
             products={products}
             activeCategory={activeCategory}
             onSelect={handleCategorySelect}
-            restaurantName={restaurant.name}
             allLabel={t.allCategories}
             locale={locale}
             defaultLocale={defaultLocale}

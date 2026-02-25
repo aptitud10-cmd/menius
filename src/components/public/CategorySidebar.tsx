@@ -10,7 +10,6 @@ interface CategorySidebarProps {
   products: Product[];
   activeCategory: string | null;
   onSelect: (catId: string | null) => void;
-  restaurantName?: string;
   allLabel?: string;
   locale?: string;
   defaultLocale?: string;
@@ -21,19 +20,11 @@ export const CategorySidebar = memo(function CategorySidebar({
   products,
   activeCategory,
   onSelect,
-  restaurantName,
   locale = 'es',
   defaultLocale = 'es',
 }: CategorySidebarProps) {
   return (
     <nav className="py-5 pr-3 font-sidebar">
-      {restaurantName && (
-        <div className="px-4 mb-4">
-          <p className="text-[15px] font-bold text-gray-900 leading-tight truncate">{restaurantName}</p>
-          <div className="mt-2.5 h-px bg-gray-100" />
-        </div>
-      )}
-
       <div className="space-y-0.5">
         {categories.map((cat) => {
           const count = products.filter((p) => p.category_id === cat.id).length;
