@@ -371,13 +371,13 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
             )}
             {deliveryFee > 0 && (
               <div className="flex justify-between text-[15px] text-gray-500">
-                <span>{locale === 'es' ? 'Envio' : 'Delivery'}</span>
+                <span>{locale === 'es' ? 'Envío' : 'Delivery'}</span>
                 <span className="font-semibold tabular-nums">+{fmtPrice(deliveryFee)}</span>
               </div>
             )}
             {orderType === 'delivery' && deliveryFee === 0 && restaurant.order_types_enabled?.includes('delivery') && (
               <div className="flex justify-between text-[15px] text-emerald-600">
-                <span>{locale === 'es' ? 'Envio' : 'Delivery'}</span>
+                <span>{locale === 'es' ? 'Envío' : 'Delivery'}</span>
                 <span className="font-semibold">{locale === 'es' ? 'Gratis' : 'Free'}</span>
               </div>
             )}

@@ -89,8 +89,8 @@ export async function requestPasswordReset(email: string) {
 }
 
 export async function updatePassword(newPassword: string) {
-  if (!newPassword || newPassword.length < 6) {
-    return { error: 'La contraseña debe tener al menos 6 caracteres' };
+  if (!newPassword || newPassword.length < 8) {
+    return { error: 'La contraseña debe tener al menos 8 caracteres' };
   }
 
   const supabase = createClient();

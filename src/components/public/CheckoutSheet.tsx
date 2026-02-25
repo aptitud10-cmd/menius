@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { X, ArrowLeft, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -68,6 +68,7 @@ export function CheckoutSheet({
   const [promoError, setPromoError] = useState('');
   const [promoResult, setPromoResult] = useState<{ valid: boolean; discount: number; description?: string } | null>(null);
 
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [orderError, setOrderError] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
@@ -109,6 +110,27 @@ export function CheckoutSheet({
     return () => { document.body.style.overflow = ''; };
   }, []);
 
+  const validateField = useCallback((name: string, value: string) => {
+    let error = '';
+    switch (name) {
+      case 'customer_name':
+        if (!value.trim()) error = locale === 'es' ? 'El nombre es obligatorio' : 'Name is required';
+        else if (value.trim().length < 2) error = locale === 'es' ? 'Mínimo 2 caracteres' : 'Min 2 characters';
+        break;
+      case 'customer_phone':
+        if (!value.trim()) error = locale === 'es' ? 'El teléfono es obligatorio' : 'Phone is required';
+        else if (!/^\+?[\d\s()-]{7,}$/.test(value)) error = locale === 'es' ? 'Teléfono no válido' : 'Invalid phone';
+        break;
+      case 'customer_email':
+        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = locale === 'es' ? 'Email no válido' : 'Invalid email';
+        break;
+      case 'delivery_address':
+        if (orderType === 'delivery' && !value.trim()) error = locale === 'es' ? 'La dirección es obligatoria' : 'Address is required';
+        break;
+    }
+    setFieldErrors(prev => ({ ...prev, [name]: error }));
+    return !error;
+  }, [orderType, locale]);
 
   const validatePromo = async () => {
     if (!promoCode.trim()) return;
@@ -139,14 +161,11 @@ export function CheckoutSheet({
   };
 
   const handleSubmitOrder = async () => {
-    if (!customerName.trim() || !customerPhone.trim()) {
-      setOrderError(locale === 'es' ? 'Nombre y teléfono son requeridos' : 'Name and phone required');
-      return;
-    }
-    if (orderType === 'delivery' && !deliveryAddress.trim()) {
-      setOrderError(locale === 'es' ? 'Dirección de entrega requerida' : 'Delivery address required');
-      return;
-    }
+    const nameOk = validateField('customer_name', customerName);
+    const phoneOk = validateField('customer_phone', customerPhone);
+    const addrOk = orderType === 'delivery' ? validateField('delivery_address', deliveryAddress) : true;
+    const emailOk = validateField('customer_email', customerEmail);
+    if (!nameOk || !phoneOk || !addrOk || !emailOk) return;
 
     setSubmitting(true);
     setOrderError('');
@@ -377,18 +396,26 @@ export function CheckoutSheet({
       </div>
 
       {orderType === 'delivery' && (
-        <AddressAutocomplete label={t.deliveryAddress} value={deliveryAddress} onChange={setDeliveryAddress} placeholder={t.deliveryAddressPlaceholder} dark={false} required />
+        <div>
+          <AddressAutocomplete label={t.deliveryAddress} value={deliveryAddress} onChange={setDeliveryAddress} placeholder={t.deliveryAddressPlaceholder} dark={false} required onBlur={() => validateField('delivery_address', deliveryAddress)} error={!!fieldErrors.delivery_address} />
+          {fieldErrors.delivery_address && <p className="text-sm text-red-500 mt-1.5 ml-1">{fieldErrors.delivery_address}</p>}
+        </div>
       )}
 
       <div className="space-y-5">
         <div>
           <label className="block text-sm font-semibold text-gray-900 mb-2">{t.yourName} <span className="text-red-500">*</span></label>
-          <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder={t.yourNamePlaceholder} className={inputClass} />
+          <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} onBlur={() => validateField('customer_name', customerName)} placeholder={t.yourNamePlaceholder} className={cn(inputClass, fieldErrors.customer_name && 'border-red-400')} />
+          {fieldErrors.customer_name && <p className="text-sm text-red-500 mt-1.5 ml-1">{fieldErrors.customer_name}</p>}
         </div>
-        <PhoneField label={t.yourPhone} value={customerPhone} onChange={setCustomerPhone} placeholder={t.yourPhonePlaceholder} required dark={false} />
+        <div>
+          <PhoneField label={t.yourPhone} value={customerPhone} onChange={setCustomerPhone} placeholder={t.yourPhonePlaceholder} required dark={false} onBlur={() => validateField('customer_phone', customerPhone)} error={!!fieldErrors.customer_phone} />
+          {fieldErrors.customer_phone && <p className="text-sm text-red-500 mt-1.5 ml-1">{fieldErrors.customer_phone}</p>}
+        </div>
         <div>
           <label className="block text-sm font-semibold text-gray-900 mb-2">{t.yourEmail} <span className="text-gray-400 font-normal text-xs">({t.optional})</span></label>
-          <input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder={t.yourEmailPlaceholder} className={inputClass} />
+          <input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} onBlur={() => validateField('customer_email', customerEmail)} placeholder={t.yourEmailPlaceholder} className={cn(inputClass, fieldErrors.customer_email && 'border-red-400')} />
+          {fieldErrors.customer_email && <p className="text-sm text-red-500 mt-1.5 ml-1">{fieldErrors.customer_email}</p>}
         </div>
         <div>
           <label className="block text-sm font-semibold text-gray-900 mb-2">{t.orderNotes} <span className="text-gray-400 font-normal text-xs">({t.optional})</span></label>

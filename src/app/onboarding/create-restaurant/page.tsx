@@ -76,7 +76,7 @@ export default function CreateRestaurantPage() {
   return (
     <div className="min-h-[100dvh] flex items-center justify-center px-5 py-10 landing-bg noise-overlay relative overflow-x-hidden">
       {/* Ambient glows */}
-      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/[0.12] rounded-full blur-[180px]" />
+      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/[0.06] rounded-full blur-[180px]" />
       <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-blue-500/[0.08] rounded-full blur-[120px]" />
 
       <div className="relative z-10 w-full max-w-md">
@@ -125,7 +125,7 @@ export default function CreateRestaurantPage() {
                   onChange={(e) => handleNameChange(e.target.value)}
                   onFocus={() => setFocused('name')}
                   onBlur={() => setFocused(null)}
-                  className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder-gray-600 focus:outline-none transition-colors"
+                  className="w-full px-4 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
                   placeholder="Mi Restaurante"
                 />
               </div>
@@ -139,7 +139,7 @@ export default function CreateRestaurantPage() {
                   ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
                   : ''
               }`}>
-                <span className="px-3.5 py-3 text-sm text-gray-500 border-r border-white/[0.08] bg-white/[0.04] flex-shrink-0">
+                <span className="px-3.5 py-3.5 text-[15px] md:text-sm text-gray-500 border-r border-white/[0.08] bg-white/[0.04] flex-shrink-0">
                   menius.app/r/
                 </span>
                 <input
@@ -148,7 +148,7 @@ export default function CreateRestaurantPage() {
                   onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                   onFocus={() => setFocused('slug')}
                   onBlur={() => setFocused(null)}
-                  className="flex-1 px-3 py-3 text-sm bg-white/[0.04] border-y border-r border-white/[0.08] rounded-r-xl text-white placeholder-gray-600 focus:outline-none"
+                  className="flex-1 px-3 py-3.5 text-[15px] md:text-sm bg-white/[0.04] border-y border-r border-white/[0.08] rounded-r-xl text-white placeholder-gray-500 focus:outline-none"
                   placeholder="mi-restaurante"
                 />
               </div>
@@ -166,7 +166,7 @@ export default function CreateRestaurantPage() {
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full px-3.5 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all appearance-none cursor-pointer"
+                  className="w-full px-3.5 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all appearance-none cursor-pointer"
                 >
                   {CURRENCIES.map((c) => (
                     <option key={c.code} value={c.code} className="bg-[#0a0a0a] text-white">{c.label}</option>
@@ -179,7 +179,7 @@ export default function CreateRestaurantPage() {
                 <select
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full px-3.5 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all appearance-none cursor-pointer"
+                  className="w-full px-3.5 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all appearance-none cursor-pointer"
                 >
                   {TIMEZONES.map((t) => (
                     <option key={t.tz} value={t.tz} className="bg-[#0a0a0a] text-white">{t.label}</option>
@@ -192,7 +192,7 @@ export default function CreateRestaurantPage() {
             <button
               type="submit"
               disabled={loading || !name.trim()}
-              className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-base hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] md:text-sm hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
