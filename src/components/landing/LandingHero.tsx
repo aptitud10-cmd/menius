@@ -19,24 +19,24 @@ export function LandingHero() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
 
           <div className="text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.04] mb-6 md:mb-8">
+            <div className="d-fade-up inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.04] mb-6 md:mb-8">
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
               <span className="text-sm text-gray-300 tracking-wide">
                 Plataforma #1 para restaurantes
               </span>
             </div>
 
-            <h1 className="text-[2.75rem] sm:text-[3.5rem] lg:text-[4.5rem] font-semibold leading-[0.92] tracking-[-0.04em] text-white">
+            <h1 className="d-fade-up d-delay-1 text-[2.75rem] sm:text-[3.5rem] lg:text-[4.5rem] font-semibold leading-[0.92] tracking-[-0.04em] text-white">
               Menú digital y{' '}
               <span className="text-gradient-premium">pedidos directos</span>
             </h1>
 
-            <p className="mt-6 md:mt-7 text-lg sm:text-xl text-gray-300 max-w-[480px] mx-auto lg:mx-0 leading-relaxed font-light">
+            <p className="d-fade-up d-delay-2 mt-6 md:mt-7 text-lg sm:text-xl text-gray-300 max-w-[480px] mx-auto lg:mx-0 leading-relaxed font-light">
               QR por mesa, pedidos online, cocina KDS y asistente IA.
               Sin comisiones. Configura en 2 minutos.
             </p>
 
-            <div className="mt-8 md:mt-9 flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3.5">
+            <div className="d-fade-up d-delay-3 mt-8 md:mt-9 flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3.5">
               <Link
                 href="/signup"
                 className="group w-full sm:w-auto px-8 py-4 rounded-2xl bg-white text-black font-semibold text-base hover:bg-gray-100 transition-all text-center"
@@ -52,7 +52,7 @@ export function LandingHero() {
               </Link>
             </div>
 
-            <div className="mt-12 md:mt-14 flex items-center justify-center lg:justify-start gap-10 sm:gap-12">
+            <div className="d-fade-up d-delay-4 mt-12 md:mt-14 flex items-center justify-center lg:justify-start gap-10 sm:gap-12">
               {[
                 { value: '0%', label: 'Comisiones' },
                 { value: '14 días', label: 'Prueba gratis' },
@@ -66,8 +66,8 @@ export function LandingHero() {
             </div>
           </div>
 
-          <div className="hidden lg:flex justify-center" style={{ perspective: '1200px' }}>
-            <div style={{ transformStyle: 'preserve-3d', transform: 'rotateY(-6deg) rotateX(2deg)' }}>
+          <div className="hidden lg:flex justify-center d-scale-in d-delay-3" style={{ perspective: '1200px' }}>
+            <div className="d-float" style={{ transformStyle: 'preserve-3d', transform: 'rotateY(-6deg) rotateX(2deg)' }}>
               <div className="relative w-[280px] h-[580px] rounded-[2.5rem] border-[3px] border-white/[0.12] bg-gray-950 shadow-[0_0_80px_rgba(16,185,129,0.15),0_25px_50px_rgba(0,0,0,0.5)] overflow-hidden">
                 <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[90px] h-[28px] bg-black rounded-full z-20" />
 

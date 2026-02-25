@@ -140,6 +140,19 @@ html, body {
 .delay-400 { animation-delay: 400ms; }
 .delay-500 { animation-delay: 500ms; }
 
+/* Desktop-only landing animations (no animation on mobile = no flicker) */
+@media (min-width: 768px) {
+  .d-fade-up { animation: fadeInUp 0.7s cubic-bezier(0.22,1,0.36,1) both; }
+  .d-fade-in { animation: fadeIn 0.6s ease-out both; }
+  .d-scale-in { animation: scaleIn 0.6s cubic-bezier(0.22,1,0.36,1) both; }
+  .d-float { animation: float 4s ease-in-out infinite; }
+  .d-delay-1 { animation-delay: 80ms; }
+  .d-delay-2 { animation-delay: 160ms; }
+  .d-delay-3 { animation-delay: 280ms; }
+  .d-delay-4 { animation-delay: 400ms; }
+  .d-delay-5 { animation-delay: 550ms; }
+}
+
 /* Skeleton loading */
 .skeleton {
   background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);

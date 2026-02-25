@@ -262,7 +262,7 @@ function SocialProof() {
   return (
     <section className="relative py-20 md:py-24 overflow-clip">
       <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center">
+        <div className="text-center d-fade-in">
           <p className="text-sm text-gray-500 font-medium mb-8 tracking-wide">
             Confiado por restaurantes en toda Latinoamérica
           </p>
@@ -413,7 +413,7 @@ export function LandingSections() {
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
-          <div className="text-center mb-8">
+          <div className="text-center mb-8 d-fade-up">
             <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Funciones</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Todo bajo control
@@ -423,7 +423,7 @@ export function LandingSections() {
             </p>
           </div>
 
-          <div>
+          <div className="d-fade-up d-delay-2">
             <FeatureTabs />
           </div>
         </div>
@@ -436,7 +436,7 @@ export function LandingSections() {
         <div className="section-glow section-glow-teal" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
-          <div className="text-center mb-10 md:mb-14">
+          <div className="text-center mb-10 md:mb-14 d-fade-up">
             <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Integraciones</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Todo conectado
@@ -446,7 +446,7 @@ export function LandingSections() {
             </p>
           </div>
 
-          <div>
+          <div className="d-scale-in d-delay-2">
             <IntegrationsGrid />
           </div>
         </div>
@@ -459,7 +459,7 @@ export function LandingSections() {
         <div className="section-glow section-glow-teal" />
 
         <div className="relative z-10 max-w-4xl mx-auto px-6">
-          <div className="text-center mb-10 md:mb-14">
+          <div className="text-center mb-10 md:mb-14 d-fade-up">
             <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Sin intermediarios</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               MENIUS vs Apps de Delivery
@@ -528,7 +528,7 @@ export function LandingSections() {
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
-          <div className="text-center mb-10 md:mb-14">
+          <div className="text-center mb-10 md:mb-14 d-fade-up">
             <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Calculadora de ahorro</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               ¿Cuánto ahorras con MENIUS?
@@ -538,7 +538,7 @@ export function LandingSections() {
             </p>
           </div>
 
-          <div>
+          <div className="d-fade-up d-delay-2">
             <SavingsCalculator />
           </div>
         </div>
@@ -552,7 +552,7 @@ export function LandingSections() {
         <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-emerald-600/20 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 max-w-5xl mx-auto px-6">
-          <div className="text-center mb-10 md:mb-14">
+          <div className="text-center mb-10 md:mb-14 d-fade-up">
             <p className="text-sm text-blue-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Precios</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Sin comisiones. Sin sorpresas.
@@ -560,7 +560,7 @@ export function LandingSections() {
             <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl font-light">14 días gratis. Sin tarjeta. Cancela cuando quieras.</p>
           </div>
 
-          <div>
+          <div className="d-scale-in d-delay-2">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {plans.map((plan) => (
                 <div
@@ -622,14 +622,14 @@ export function LandingSections() {
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-4xl mx-auto px-6">
-          <div className="text-center mb-10 md:mb-14">
+          <div className="text-center mb-10 md:mb-14 d-fade-up">
             <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Cómo funciona</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Listo en minutos
             </h2>
           </div>
 
-          <div>
+          <div className="d-fade-up d-delay-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
               {howItWorks.map((item) => (
                 <div key={item.step} className="card-premium rounded-2xl p-6 md:p-8 flex gap-5">
@@ -654,14 +654,14 @@ export function LandingSections() {
         <div className="section-glow section-glow-teal" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
-          <div className="text-center mb-10 md:mb-14">
+          <div className="text-center mb-10 md:mb-14 d-fade-up">
             <p className="text-sm text-amber-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Testimonios</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Lo que dicen nuestros clientes
             </h2>
           </div>
 
-          <div>
+          <div className="d-fade-up d-delay-2">
             <TestimonialsSection />
           </div>
         </div>
@@ -674,7 +674,7 @@ export function LandingSections() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-gradient-to-br from-emerald-600/25 to-blue-600/20 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
-          <div>
+          <div className="d-fade-up">
             <h2 className="text-3xl md:text-5xl lg:text-7xl font-semibold text-white tracking-tight leading-[1.05]">
               Tu menú digital.
               <br />
@@ -683,7 +683,7 @@ export function LandingSections() {
             <p className="mt-5 md:mt-6 text-lg md:text-xl text-gray-200 md:text-gray-300 font-light max-w-md mx-auto">
               14 días gratis. Sin tarjeta. Configura tu menú en minutos.
             </p>
-            <div className="mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 px-2 sm:px-0">
+            <div className="mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 px-2 sm:px-0 d-fade-up d-delay-2">
               <Link
                 href="/signup"
                 className="w-full sm:w-auto px-10 py-4 rounded-2xl bg-white text-black font-semibold text-base sm:text-[15px] hover:bg-gray-100 transition-all btn-glow"
