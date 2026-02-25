@@ -705,3 +705,19 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   animation: borderShimmer 4s linear infinite;
   pointer-events: none;
 }
+
+/* KDS: new order flash */
+@keyframes kdsFlash {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+  25% { box-shadow: 0 0 30px 4px rgba(16,185,129,0.5); }
+  50% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+  75% { box-shadow: 0 0 30px 4px rgba(16,185,129,0.5); }
+}
+.kds-flash { animation: kdsFlash 2s ease-in-out 3; }
+
+/* KDS: late order pulse */
+@keyframes kdsLate {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(239,68,68,0); }
+  50% { box-shadow: inset 0 0 20px 0 rgba(239,68,68,0.12); }
+}
+.kds-late { animation: kdsLate 3s ease-in-out infinite; }
