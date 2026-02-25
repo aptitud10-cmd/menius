@@ -23,6 +23,26 @@ CREATE INDEX IF NOT EXISTS idx_orders_order_number ON orders (order_number);
 CREATE INDEX IF NOT EXISTS idx_orders_restaurant_status ON orders (restaurant_id, status);
 CREATE INDEX IF NOT EXISTS idx_orders_restaurant_created ON orders (restaurant_id, created_at DESC);
 
+-- Fix race condition in order number generation using advisory lock
+CREATE OR REPLACE FUNCTION generate_order_number(rest_id UUID)
+RETURNS TEXT AS $$
+DECLARE
+  count_today INTEGER;
+  today_str TEXT;
+  lock_key BIGINT;
+BEGIN
+  lock_key := ('x' || left(replace(rest_id::text, '-', ''), 15))::bit(64)::bigint;
+  PERFORM pg_advisory_xact_lock(lock_key);
+
+  today_str := TO_CHAR(NOW(), 'YYMMDD');
+  SELECT COUNT(*) + 1 INTO count_today
+  FROM public.orders
+  WHERE restaurant_id = rest_id
+    AND created_at::DATE = NOW()::DATE;
+  RETURN 'ORD-' || today_str || '-' || LPAD(count_today::TEXT, 3, '0');
+END;
+$$ LANGUAGE plpgsql SET search_path = '';
+
 -- Fix storage policy: restrict uploads to restaurant owners
 DROP POLICY IF EXISTS "Authenticated users upload product images" ON storage.objects;
 CREATE POLICY "Authenticated users upload product images" ON storage.objects
