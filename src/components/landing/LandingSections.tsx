@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { FadeIn, Stagger, StaggerItem, LazyMotion, domAnimation } from './Animations';
 
 /* ─── DATA ─── */
 
@@ -195,10 +194,10 @@ function FeatureTabs() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
         <div>
-          <h3 className="text-2xl md:text-4xl font-semibold text-white leading-tight tracking-tight">
+          <h3 className="text-3xl md:text-4xl font-semibold text-white leading-tight tracking-tight">
             {f.title}
           </h3>
-          <p className="mt-4 md:mt-6 text-base md:text-lg text-gray-200 md:text-gray-300 leading-relaxed font-light">
+          <p className="mt-4 md:mt-6 text-lg md:text-xl text-gray-200 md:text-gray-300 leading-relaxed font-light">
             {f.desc}
           </p>
           <div className="mt-7 md:mt-10 space-y-3.5 md:space-y-4">
@@ -261,9 +260,9 @@ function SocialProof() {
   const logos = ['La Taquería', 'Café Aroma', 'El Patrón', 'Sushi Zen', 'Pizzería Roma', 'Casa Oaxaca'];
 
   return (
-    <section className="relative py-16 md:py-24 overflow-clip">
-      <div className="max-w-6xl mx-auto px-5 sm:px-6">
-        <FadeIn className="text-center">
+    <section className="relative py-20 md:py-24 overflow-clip">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="text-center">
           <p className="text-sm text-gray-500 font-medium mb-8 tracking-wide">
             Confiado por restaurantes en toda Latinoamérica
           </p>
@@ -271,7 +270,7 @@ function SocialProof() {
             {logos.map((name) => (
               <span
                 key={name}
-                className="text-base md:text-lg font-bold text-white/25 tracking-tight whitespace-nowrap hover:text-white/40 transition-colors"
+                className="text-lg md:text-xl font-bold text-white/25 tracking-tight whitespace-nowrap hover:text-white/40 transition-colors"
               >
                 {name}
               </span>
@@ -290,7 +289,7 @@ function SocialProof() {
               </div>
             ))}
           </div>
-        </FadeIn>
+        </div>
       </div>
     </section>
   );
@@ -298,9 +297,9 @@ function SocialProof() {
 
 function IntegrationsGrid() {
   return (
-    <Stagger className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 max-w-3xl mx-auto" staggerDelay={0.08}>
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 max-w-3xl mx-auto">
       {integrationsList.map((item) => (
-        <StaggerItem key={item.name}>
+        <div key={item.name}>
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 md:p-6 text-center hover:bg-white/[0.04] hover:border-white/[0.1] transition-all">
             <div className={`w-12 h-12 rounded-xl ${item.bg} mx-auto mb-3 flex items-center justify-center text-xl`}>
               {item.icon}
@@ -308,9 +307,9 @@ function IntegrationsGrid() {
             <p className="text-sm font-semibold text-white">{item.name}</p>
             <p className="text-xs text-gray-500 mt-1">{item.desc}</p>
           </div>
-        </StaggerItem>
+        </div>
       ))}
-    </Stagger>
+    </div>
   );
 }
 
@@ -371,9 +370,9 @@ function SavingsCalculator() {
 
 function TestimonialsSection() {
   return (
-    <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 max-w-5xl mx-auto" staggerDelay={0.1}>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 max-w-5xl mx-auto">
       {testimonials.map((t) => (
-        <StaggerItem key={t.name}>
+        <div key={t.name}>
           <div className="card-premium rounded-2xl p-6 md:p-7 h-full flex flex-col">
             <div className="flex gap-0.5 mb-4">
               {[1, 2, 3, 4, 5].map((s) => (
@@ -393,9 +392,9 @@ function TestimonialsSection() {
               </div>
             </div>
           </div>
-        </StaggerItem>
+        </div>
       ))}
-    </Stagger>
+    </div>
   );
 }
 
@@ -403,7 +402,7 @@ function TestimonialsSection() {
 
 export function LandingSections() {
   return (
-    <LazyMotion features={domAnimation}>
+    <>
       {/* ── Social Proof ── */}
       <SocialProof />
 
@@ -413,20 +412,20 @@ export function LandingSections() {
       <section id="funciones" className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-purple" />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">
-          <FadeIn className="text-center mb-8">
+        <div className="relative z-10 max-w-6xl mx-auto px-6">
+          <div className="text-center mb-8">
             <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Funciones</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Todo bajo control
             </h2>
-            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-base md:text-lg max-w-lg mx-auto font-light">
+            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
               Las herramientas que necesitas para digitalizar tu restaurante.
             </p>
-          </FadeIn>
+          </div>
 
-          <FadeIn delay={0.15}>
+          <div>
             <FeatureTabs />
-          </FadeIn>
+          </div>
         </div>
       </section>
 
@@ -436,20 +435,20 @@ export function LandingSections() {
       <section className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-teal" />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">
-          <FadeIn className="text-center mb-10 md:mb-14">
+        <div className="relative z-10 max-w-6xl mx-auto px-6">
+          <div className="text-center mb-10 md:mb-14">
             <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Integraciones</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Todo conectado
             </h2>
-            <p className="text-gray-300 mt-4 md:mt-5 text-base md:text-lg max-w-lg mx-auto font-light">
+            <p className="text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
               Las herramientas que ya usas, integradas en un solo lugar.
             </p>
-          </FadeIn>
+          </div>
 
-          <FadeIn delay={0.1}>
+          <div>
             <IntegrationsGrid />
-          </FadeIn>
+          </div>
         </div>
       </section>
 
@@ -459,18 +458,18 @@ export function LandingSections() {
       <section className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-teal" />
 
-        <div className="relative z-10 max-w-4xl mx-auto px-5 sm:px-6">
-          <FadeIn className="text-center mb-10 md:mb-14">
+        <div className="relative z-10 max-w-4xl mx-auto px-6">
+          <div className="text-center mb-10 md:mb-14">
             <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Sin intermediarios</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               MENIUS vs Apps de Delivery
             </h2>
-            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-base md:text-lg max-w-lg mx-auto font-light">
+            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
               Las apps cobran hasta 30% por pedido. Con MENIUS, tarifa fija y tus ventas son tuyas.
             </p>
-          </FadeIn>
+          </div>
 
-          <FadeIn delay={0.1}>
+          <div>
             <div className="md:hidden space-y-3">
               {[
                 { feature: 'Comisión por pedido', menius: '0%', other: '15% – 30%' },
@@ -518,7 +517,7 @@ export function LandingSections() {
                 </div>
               ))}
             </div>
-          </FadeIn>
+          </div>
         </div>
       </section>
 
@@ -528,20 +527,20 @@ export function LandingSections() {
       <section className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-purple" />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">
-          <FadeIn className="text-center mb-10 md:mb-14">
+        <div className="relative z-10 max-w-6xl mx-auto px-6">
+          <div className="text-center mb-10 md:mb-14">
             <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Calculadora de ahorro</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               ¿Cuánto ahorras con MENIUS?
             </h2>
-            <p className="text-gray-300 mt-4 md:mt-5 text-base md:text-lg max-w-lg mx-auto font-light">
+            <p className="text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
               Mueve el slider y calcula cuánto pierdes en comisiones con apps de delivery.
             </p>
-          </FadeIn>
+          </div>
 
-          <FadeIn delay={0.1}>
+          <div>
             <SavingsCalculator />
-          </FadeIn>
+          </div>
         </div>
       </section>
 
@@ -552,16 +551,16 @@ export function LandingSections() {
         <div className="section-glow section-glow-blue" />
         <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-emerald-600/20 blur-[100px] pointer-events-none" />
 
-        <div className="relative z-10 max-w-5xl mx-auto px-5 sm:px-6">
-          <FadeIn className="text-center mb-10 md:mb-14">
+        <div className="relative z-10 max-w-5xl mx-auto px-6">
+          <div className="text-center mb-10 md:mb-14">
             <p className="text-sm text-blue-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Precios</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Sin comisiones. Sin sorpresas.
             </h2>
-            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-base md:text-lg font-light">14 días gratis. Sin tarjeta. Cancela cuando quieras.</p>
-          </FadeIn>
+            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl font-light">14 días gratis. Sin tarjeta. Cancela cuando quieras.</p>
+          </div>
 
-          <FadeIn delay={0.1}>
+          <div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {plans.map((plan) => (
                 <div
@@ -612,7 +611,7 @@ export function LandingSections() {
               <span className="text-sm text-gray-400">¿No tienes tiempo? <strong className="text-gray-200">Te lo configuramos</strong> — desde $149</span>
               <svg className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
             </Link>
-          </FadeIn>
+          </div>
         </div>
       </section>
 
@@ -622,15 +621,15 @@ export function LandingSections() {
       <section className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-purple" />
 
-        <div className="relative z-10 max-w-4xl mx-auto px-5 sm:px-6">
-          <FadeIn className="text-center mb-10 md:mb-14">
+        <div className="relative z-10 max-w-4xl mx-auto px-6">
+          <div className="text-center mb-10 md:mb-14">
             <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Cómo funciona</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Listo en minutos
             </h2>
-          </FadeIn>
+          </div>
 
-          <FadeIn delay={0.1}>
+          <div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
               {howItWorks.map((item) => (
                 <div key={item.step} className="card-premium rounded-2xl p-6 md:p-8 flex gap-5">
@@ -644,7 +643,7 @@ export function LandingSections() {
                 </div>
               ))}
             </div>
-          </FadeIn>
+          </div>
         </div>
       </section>
 
@@ -654,17 +653,17 @@ export function LandingSections() {
       <section className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-teal" />
 
-        <div className="relative z-10 max-w-6xl mx-auto px-5 sm:px-6">
-          <FadeIn className="text-center mb-10 md:mb-14">
+        <div className="relative z-10 max-w-6xl mx-auto px-6">
+          <div className="text-center mb-10 md:mb-14">
             <p className="text-sm text-amber-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">Testimonios</p>
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
               Lo que dicen nuestros clientes
             </h2>
-          </FadeIn>
+          </div>
 
-          <FadeIn delay={0.1}>
+          <div>
             <TestimonialsSection />
-          </FadeIn>
+          </div>
         </div>
       </section>
 
@@ -674,14 +673,14 @@ export function LandingSections() {
       <section className="relative py-24 md:py-52 overflow-clip">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-gradient-to-br from-emerald-600/25 to-blue-600/20 blur-[100px] pointer-events-none" />
 
-        <div className="relative z-10 max-w-3xl mx-auto px-5 sm:px-6 text-center">
-          <FadeIn>
+        <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
+          <div>
             <h2 className="text-3xl md:text-5xl lg:text-7xl font-semibold text-white tracking-tight leading-[1.05]">
               Tu menú digital.
               <br />
               <span className="text-gradient-premium">Disponible hoy.</span>
             </h2>
-            <p className="mt-5 md:mt-6 text-base md:text-lg text-gray-200 md:text-gray-300 font-light max-w-md mx-auto">
+            <p className="mt-5 md:mt-6 text-lg md:text-xl text-gray-200 md:text-gray-300 font-light max-w-md mx-auto">
               14 días gratis. Sin tarjeta. Configura tu menú en minutos.
             </p>
             <div className="mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 px-2 sm:px-0">
@@ -698,9 +697,9 @@ export function LandingSections() {
                 Ver demo en vivo
               </Link>
             </div>
-          </FadeIn>
+          </div>
         </div>
       </section>
-    </LazyMotion>
+    </>
   );
 }

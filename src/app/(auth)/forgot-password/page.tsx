@@ -33,10 +33,10 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen-safe flex items-center justify-center px-4 landing-bg noise-overlay relative overflow-hidden">
-        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/[0.12] rounded-full blur-[180px]" />
+      <div className="min-h-[100dvh] flex items-center justify-center px-4 landing-bg noise-overlay relative overflow-hidden">
+        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/[0.06] rounded-full blur-[180px]" />
 
-        <div className="relative z-10 w-full max-w-[380px] text-center animate-fade-in-up">
+        <div className="relative z-10 w-full max-w-[380px] text-center">
           <div className="text-center mb-8">
             <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
               <span className="text-white">MENIUS</span>
@@ -45,8 +45,8 @@ export default function ForgotPasswordPage() {
 
           <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
             <div className="bg-[#0a0a0a] rounded-2xl p-8">
-              <div className="w-14 h-14 rounded-2xl bg-purple-500/[0.1] border border-purple-500/[0.15] flex items-center justify-center mx-auto mb-5">
-                <svg className="w-7 h-7 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/[0.1] border border-emerald-500/[0.15] flex items-center justify-center mx-auto mb-5">
+                <svg className="w-7 h-7 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                 </svg>
               </div>
@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
 
           <div className="mt-8 space-y-3">
             <p className="text-[13px] text-gray-500">
-              <Link href="/login" className="text-white font-medium hover:text-purple-400 transition-colors">
+              <Link href="/login" className="text-white font-medium hover:text-emerald-400 transition-colors">
                 ← Volver a iniciar sesión
               </Link>
             </p>
@@ -73,11 +73,11 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen-safe flex items-center justify-center px-4 landing-bg noise-overlay relative overflow-hidden">
-      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/[0.12] rounded-full blur-[180px]" />
+    <div className="min-h-[100dvh] flex items-center justify-center px-4 landing-bg noise-overlay relative overflow-hidden">
+      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/[0.06] rounded-full blur-[180px]" />
       <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-blue-500/[0.08] rounded-full blur-[120px]" />
 
-      <div className="relative z-10 w-full max-w-[380px] animate-fade-in-up">
+      <div className="relative z-10 w-full max-w-[380px]">
         <div className="text-center mb-10">
           <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
             <span className="text-white">MENIUS</span>
@@ -107,7 +107,7 @@ export default function ForgotPasswordPage() {
               <label className="block text-[13px] font-medium text-gray-400 mb-2">Email</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused
-                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.08)]'
+                  ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
                   : ''
               }`}>
                 <input
@@ -126,7 +126,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed mt-1 btn-glow"
+              className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed mt-1"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -141,7 +141,7 @@ export default function ForgotPasswordPage() {
         <div className="mt-8 space-y-3 text-center">
           <p className="text-[13px] text-gray-500">
             ¿Recordaste tu contraseña?{' '}
-            <Link href="/login" className="text-white font-medium hover:text-purple-400 transition-colors">
+            <Link href="/login" className="text-white font-medium hover:text-emerald-400 transition-colors">
               Inicia sesión
             </Link>
           </p>

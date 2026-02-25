@@ -5,7 +5,7 @@ import { LandingNav } from '@/components/landing/LandingNav';
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen-safe landing-bg relative w-full max-w-[100vw] overflow-hidden">
+    <div className="landing-bg relative w-full max-w-[100vw] overflow-x-hidden">
       <LandingNav />
 
       <LandingHero />
@@ -21,7 +21,7 @@ export default function LandingPage() {
           </span>
         </div>
 
-        <div className="relative z-10 md:-mt-[7rem] lg:-mt-[9rem] bg-black pt-10 md:pt-10 pb-10 md:pb-16">
+        <div className="relative z-10 md:-mt-[7rem] lg:-mt-[9rem] bg-black pt-10 md:pt-10 pb-6 md:pb-16">
           <div className="max-w-6xl mx-auto px-5 sm:px-6">
 
             {/* Mobile footer: simplified stacked layout */}

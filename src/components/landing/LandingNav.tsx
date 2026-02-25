@@ -26,7 +26,7 @@ export function LandingNav() {
           <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">
             Iniciar sesión
           </Link>
-          <Link href="/signup" className="text-sm font-medium px-5 py-2.5 rounded-xl bg-white text-black hover:bg-gray-100 transition-all btn-glow">
+          <Link href="/signup" className="text-sm font-medium px-5 py-2.5 rounded-xl bg-white text-black hover:bg-gray-100 transition-colors">
             Empezar gratis
           </Link>
         </div>

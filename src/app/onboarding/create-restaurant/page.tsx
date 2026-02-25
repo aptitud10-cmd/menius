@@ -74,12 +74,12 @@ export default function CreateRestaurantPage() {
   };
 
   return (
-    <div className="min-h-screen-safe flex items-center justify-center px-4 py-12 landing-bg noise-overlay relative overflow-hidden">
+    <div className="min-h-[100dvh] flex items-center justify-center px-5 py-10 landing-bg noise-overlay relative overflow-x-hidden">
       {/* Ambient glows */}
       <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/[0.12] rounded-full blur-[180px]" />
       <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-blue-500/[0.08] rounded-full blur-[120px]" />
 
-      <div className="relative z-10 w-full max-w-md animate-fade-in-up">
+      <div className="relative z-10 w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
           <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
@@ -88,13 +88,13 @@ export default function CreateRestaurantPage() {
 
           {/* Step indicator */}
           <div className="flex items-center justify-center gap-2 mt-6 mb-4">
-            <div className="w-8 h-1 rounded-full bg-purple-500" />
+            <div className="w-8 h-1 rounded-full bg-emerald-500" />
             <div className="w-8 h-1 rounded-full bg-white/[0.08]" />
             <div className="w-8 h-1 rounded-full bg-white/[0.08]" />
           </div>
 
-          <h1 className="text-xl font-bold text-white">Crea tu restaurante</h1>
-          <p className="text-gray-400 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
+          <h1 className="text-2xl font-bold text-white">Crea tu restaurante</h1>
+          <p className="text-gray-400 text-base mt-3 max-w-sm mx-auto leading-relaxed">
             Configura lo básico y te prepararemos un menú de ejemplo con categorías, productos y mesas listas para editar.
           </p>
         </div>
@@ -116,7 +116,7 @@ export default function CreateRestaurantPage() {
               <label className="block text-[13px] font-medium text-gray-400 mb-2">Nombre del restaurante</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused === 'name'
-                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.08)]'
+                  ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
                   : ''
               }`}>
                 <input
@@ -136,7 +136,7 @@ export default function CreateRestaurantPage() {
               <label className="block text-[13px] font-medium text-gray-400 mb-2">URL de tu menú</label>
               <div className={`flex items-center rounded-xl overflow-hidden transition-all duration-300 ${
                 focused === 'slug'
-                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.08)]'
+                  ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
                   : ''
               }`}>
                 <span className="px-3.5 py-3 text-sm text-gray-500 border-r border-white/[0.08] bg-white/[0.04] flex-shrink-0">
@@ -166,7 +166,7 @@ export default function CreateRestaurantPage() {
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full px-3.5 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/30 transition-all appearance-none cursor-pointer"
+                  className="w-full px-3.5 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all appearance-none cursor-pointer"
                 >
                   {CURRENCIES.map((c) => (
                     <option key={c.code} value={c.code} className="bg-[#0a0a0a] text-white">{c.label}</option>
@@ -179,7 +179,7 @@ export default function CreateRestaurantPage() {
                 <select
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  className="w-full px-3.5 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/30 transition-all appearance-none cursor-pointer"
+                  className="w-full px-3.5 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all appearance-none cursor-pointer"
                 >
                   {TIMEZONES.map((t) => (
                     <option key={t.tz} value={t.tz} className="bg-[#0a0a0a] text-white">{t.label}</option>
@@ -192,7 +192,7 @@ export default function CreateRestaurantPage() {
             <button
               type="submit"
               disabled={loading || !name.trim()}
-              className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed btn-glow"
+              className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-base hover:bg-gray-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">

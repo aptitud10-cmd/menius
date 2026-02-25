@@ -34,12 +34,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen-safe md:flex md:items-center md:justify-center px-5 md:px-4 landing-bg noise-overlay relative overflow-x-hidden overflow-y-auto w-full max-w-[100vw]">
+    <div className="min-h-[100dvh] md:flex md:items-center md:justify-center px-5 md:px-4 landing-bg noise-overlay relative overflow-x-hidden overflow-y-auto w-full max-w-[100vw]">
       {/* Ambient glows */}
-      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/[0.12] rounded-full blur-[180px]" />
+      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/[0.06] rounded-full blur-[180px]" />
       <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-blue-500/[0.08] rounded-full blur-[120px]" />
 
-      <div className="relative z-10 w-full max-w-[380px] mx-auto pt-20 md:pt-0 animate-fade-in-up">
+      <div className="relative z-10 w-full max-w-[380px] mx-auto pt-20 md:pt-0">
         {/* Logo */}
         <div className="text-center mb-8 md:mb-10">
           <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
@@ -68,7 +68,7 @@ export default function LoginPage() {
               <label className="block text-[13px] font-medium text-gray-400 mb-2">Email</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused === 'email'
-                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.08)]'
+                  ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
                   : ''
               }`}>
                 <input
@@ -88,13 +88,13 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-[13px] font-medium text-gray-400">Contraseña</label>
-                <Link href="/forgot-password" className="text-[12px] text-gray-600 hover:text-purple-400 transition-colors">
+                <Link href="/forgot-password" className="text-[12px] text-gray-600 hover:text-emerald-400 transition-colors">
                   ¿Olvidaste tu contraseña?
                 </Link>
               </div>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused === 'password'
-                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.08)]'
+                  ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
                   : ''
               }`}>
                 <input
@@ -122,7 +122,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed mt-1 btn-glow"
+              className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed mt-1"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -161,7 +161,7 @@ export default function LoginPage() {
         <div className="mt-8 space-y-3 text-center">
           <p className="text-[13px] text-gray-500">
             ¿No tienes cuenta?{' '}
-            <Link href="/signup" className="text-white font-medium hover:text-purple-400 transition-colors">
+            <Link href="/signup" className="text-white font-medium hover:text-emerald-400 transition-colors">
               Regístrate gratis
             </Link>
           </p>

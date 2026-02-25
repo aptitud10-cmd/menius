@@ -46,10 +46,10 @@ export default function SignupPage() {
 
   if (confirmEmail) {
     return (
-      <div className="min-h-screen-safe flex items-center justify-center px-4 landing-bg noise-overlay relative overflow-hidden">
-        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/[0.12] rounded-full blur-[180px]" />
+      <div className="min-h-[100dvh] flex items-center justify-center px-4 landing-bg noise-overlay relative overflow-hidden">
+        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/[0.06] rounded-full blur-[180px]" />
 
-        <div className="relative z-10 w-full max-w-[380px] text-center animate-fade-in-up">
+        <div className="relative z-10 w-full max-w-[380px] text-center">
           <div className="text-center mb-8">
             <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
               <span className="text-white">MENIUS</span>
@@ -58,8 +58,8 @@ export default function SignupPage() {
 
           <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
             <div className="bg-[#0a0a0a] rounded-2xl p-8">
-              <div className="w-14 h-14 rounded-2xl bg-purple-500/[0.1] border border-purple-500/[0.15] flex items-center justify-center mx-auto mb-5">
-                <svg className="w-7 h-7 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/[0.1] border border-emerald-500/[0.15] flex items-center justify-center mx-auto mb-5">
+                <svg className="w-7 h-7 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                 </svg>
               </div>
@@ -74,7 +74,7 @@ export default function SignupPage() {
           </div>
 
           <p className="text-[13px] text-gray-500 mt-7">
-            <Link href="/login" className="text-white font-medium hover:text-purple-400 transition-colors">
+            <Link href="/login" className="text-white font-medium hover:text-emerald-400 transition-colors">
               Ir a iniciar sesión →
             </Link>
           </p>
@@ -84,12 +84,12 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen-safe md:flex md:items-center md:justify-center px-5 md:px-4 py-6 md:py-12 landing-bg noise-overlay relative overflow-x-hidden overflow-y-auto w-full max-w-[100vw]">
+    <div className="min-h-[100dvh] md:flex md:items-center md:justify-center px-5 md:px-4 py-6 md:py-12 landing-bg noise-overlay relative overflow-x-hidden overflow-y-auto w-full max-w-[100vw]">
       {/* Ambient glows */}
-      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/[0.12] rounded-full blur-[180px]" />
+      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/[0.06] rounded-full blur-[180px]" />
       <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-blue-500/[0.08] rounded-full blur-[120px]" />
 
-      <div className="relative z-10 w-full max-w-[380px] mx-auto pt-14 md:pt-0 animate-fade-in-up">
+      <div className="relative z-10 w-full max-w-[380px] mx-auto pt-14 md:pt-0">
         {/* Logo */}
         <div className="text-center mb-6 md:mb-10">
           <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
@@ -118,7 +118,7 @@ export default function SignupPage() {
               <label className="block text-[13px] font-medium text-gray-400 mb-2">Nombre completo</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused === 'name'
-                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.08)]'
+                  ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
                   : ''
               }`}>
                 <input
@@ -139,7 +139,7 @@ export default function SignupPage() {
               <label className="block text-[13px] font-medium text-gray-400 mb-2">Email</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused === 'email'
-                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.08)]'
+                  ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
                   : ''
               }`}>
                 <input
@@ -160,7 +160,7 @@ export default function SignupPage() {
               <label className="block text-[13px] font-medium text-gray-400 mb-2">Contraseña</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused === 'password'
-                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.08)]'
+                  ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
                   : ''
               }`}>
                 <input
@@ -193,7 +193,7 @@ export default function SignupPage() {
                   onChange={(e) => setAcceptedTerms(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-4 h-4 rounded border border-white/[0.12] bg-white/[0.04] peer-checked:bg-purple-500 peer-checked:border-purple-500 transition-all flex items-center justify-center">
+                <div className="w-4 h-4 rounded border border-white/[0.12] bg-white/[0.04] peer-checked:bg-emerald-500 peer-checked:border-emerald-500 transition-all flex items-center justify-center">
                   {acceptedTerms && (
                     <svg className="w-2.5 h-2.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -217,7 +217,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading || !acceptedTerms}
-              className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed mt-1 btn-glow"
+              className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all duration-300 disabled:opacity-30 disabled:cursor-not-allowed mt-1"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -256,7 +256,7 @@ export default function SignupPage() {
         <div className="mt-8 space-y-3 text-center">
           <p className="text-[13px] text-gray-500">
             ¿Ya tienes cuenta?{' '}
-            <Link href="/login" className="text-white font-medium hover:text-purple-400 transition-colors">
+            <Link href="/login" className="text-white font-medium hover:text-emerald-400 transition-colors">
               Inicia sesión
             </Link>
           </p>

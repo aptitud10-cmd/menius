@@ -41,10 +41,10 @@ export default function ResetPasswordPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen-safe flex items-center justify-center px-4 landing-bg noise-overlay relative overflow-hidden">
-        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/[0.12] rounded-full blur-[180px]" />
+      <div className="min-h-[100dvh] flex items-center justify-center px-4 landing-bg noise-overlay relative overflow-hidden">
+        <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/[0.06] rounded-full blur-[180px]" />
 
-        <div className="relative z-10 w-full max-w-[380px] text-center animate-fade-in-up">
+        <div className="relative z-10 w-full max-w-[380px] text-center">
           <div className="text-center mb-8">
             <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
               <span className="text-white">MENIUS</span>
@@ -64,7 +64,7 @@ export default function ResetPasswordPage() {
               </p>
               <Link
                 href="/login"
-                className="inline-flex items-center justify-center w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all duration-300 btn-glow"
+                className="inline-flex items-center justify-center w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all duration-300"
               >
                 Iniciar sesión
               </Link>
@@ -76,11 +76,11 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen-safe flex items-center justify-center px-4 landing-bg noise-overlay relative overflow-hidden">
-      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/[0.12] rounded-full blur-[180px]" />
+    <div className="min-h-[100dvh] flex items-center justify-center px-4 landing-bg noise-overlay relative overflow-hidden">
+      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/[0.06] rounded-full blur-[180px]" />
       <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-blue-500/[0.08] rounded-full blur-[120px]" />
 
-      <div className="relative z-10 w-full max-w-[380px] animate-fade-in-up">
+      <div className="relative z-10 w-full max-w-[380px]">
         <div className="text-center mb-10">
           <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
             <span className="text-white">MENIUS</span>
@@ -106,7 +106,7 @@ export default function ResetPasswordPage() {
               <label className="block text-[13px] font-medium text-gray-400 mb-2">Nueva contraseña</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused === 'password'
-                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.08)]'
+                  ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
                   : ''
               }`}>
                 <input
@@ -134,7 +134,7 @@ export default function ResetPasswordPage() {
               <label className="block text-[13px] font-medium text-gray-400 mb-2">Confirmar contraseña</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused === 'confirm'
-                  ? 'ring-1 ring-purple-500/30 shadow-[0_0_20px_rgba(120,80,255,0.08)]'
+                  ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
                   : ''
               }`}>
                 <input
@@ -160,7 +160,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed mt-1 btn-glow"
+              className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed mt-1"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
