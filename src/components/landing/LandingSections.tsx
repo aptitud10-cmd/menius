@@ -31,13 +31,43 @@ const accentColors: Record<string, { bg: string; text: string; border: string; g
   amber: { bg: 'bg-amber-500/[0.08]', text: 'text-amber-400', border: 'border-amber-500/20', glow: 'bg-amber-500/20' },
 };
 
-const integrationStatic = [
-  { name: 'Stripe', bg: 'bg-emerald-500/10', icon: '💳' },
-  { name: 'WhatsApp', bg: 'bg-emerald-500/10', icon: '💬' },
-  { name: 'Google Maps', bg: 'bg-blue-500/10', icon: '📍' },
-  { name: 'Twilio', bg: 'bg-red-500/10', icon: '📱' },
-  { name: 'Resend', bg: 'bg-sky-500/10', icon: '✉️' },
-  { name: 'Gemini AI', bg: 'bg-amber-500/10', icon: '✨' },
+const integrationLogos: { name: string; gradient: string; borderHover: string; logo: React.ReactNode }[] = [
+  {
+    name: 'Stripe',
+    gradient: 'from-indigo-500/10 to-purple-500/10',
+    borderHover: 'hover:border-indigo-500/30',
+    logo: <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" fill="#635BFF"/></svg>,
+  },
+  {
+    name: 'WhatsApp',
+    gradient: 'from-green-500/10 to-emerald-500/10',
+    borderHover: 'hover:border-green-500/30',
+    logo: <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" fill="#25D366"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.555 4.124 1.527 5.86L.055 23.765l6.068-1.45A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.855 0-3.632-.5-5.182-1.445l-.372-.22-3.6.86.902-3.498-.243-.387A9.782 9.782 0 012.182 12c0-5.413 4.405-9.818 9.818-9.818S21.818 6.587 21.818 12s-4.405 9.818-9.818 9.818z" fill="#25D366"/></svg>,
+  },
+  {
+    name: 'Supabase',
+    gradient: 'from-emerald-500/10 to-teal-500/10',
+    borderHover: 'hover:border-emerald-500/30',
+    logo: <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none"><path d="M13.7 21.8c-.4.5-1.3.2-1.3-.5v-7.9h8.2c.7 0 1.1.9.6 1.4l-7.5 7z" fill="url(#sb-a)"/><path d="M13.7 21.8c-.4.5-1.3.2-1.3-.5v-7.9h8.2c.7 0 1.1.9.6 1.4l-7.5 7z" fill="url(#sb-b)" fillOpacity=".2"/><path d="M10.3 2.2c.4-.5 1.3-.2 1.3.5v7.9H3.4c-.7 0-1.1-.9-.6-1.4l7.5-7z" fill="#3ECF8E"/><defs><linearGradient id="sb-a" x1="12.4" y1="15.4" x2="19" y2="19.3" gradientUnits="userSpaceOnUse"><stop stopColor="#249361"/><stop offset="1" stopColor="#3ECF8E"/></linearGradient><linearGradient id="sb-b" x1="8.6" y1="11.5" x2="12.4" y2="17.5" gradientUnits="userSpaceOnUse"><stop/><stop offset="1" stopOpacity="0"/></linearGradient></defs></svg>,
+  },
+  {
+    name: 'Twilio',
+    gradient: 'from-red-500/10 to-pink-500/10',
+    borderHover: 'hover:border-red-500/30',
+    logo: <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 20.25c-4.556 0-8.25-3.694-8.25-8.25S7.444 3.75 12 3.75s8.25 3.694 8.25 8.25-3.694 8.25-8.25 8.25z" fill="#F22F46"/><circle cx="9.15" cy="9.15" r="1.8" fill="#F22F46"/><circle cx="14.85" cy="9.15" r="1.8" fill="#F22F46"/><circle cx="9.15" cy="14.85" r="1.8" fill="#F22F46"/><circle cx="14.85" cy="14.85" r="1.8" fill="#F22F46"/></svg>,
+  },
+  {
+    name: 'Resend',
+    gradient: 'from-sky-500/10 to-blue-500/10',
+    borderHover: 'hover:border-sky-500/30',
+    logo: <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none"><path d="M2 6a2 2 0 012-2h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" stroke="#38BDF8" strokeWidth="1.5"/><path d="M2 6l10 7 10-7" stroke="#38BDF8" strokeWidth="1.5" strokeLinecap="round"/></svg>,
+  },
+  {
+    name: 'Gemini AI',
+    gradient: 'from-amber-500/10 to-orange-500/10',
+    borderHover: 'hover:border-amber-500/30',
+    logo: <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="url(#gm-a)"/><path d="M12 7.5l1.2 3.3 3.3 1.2-3.3 1.2L12 16.5l-1.2-3.3L7.5 12l3.3-1.2L12 7.5z" fill="white"/><defs><linearGradient id="gm-a" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse"><stop stopColor="#4285F4"/><stop offset=".33" stopColor="#9B72CB"/><stop offset=".66" stopColor="#D96570"/><stop offset="1" stopColor="#F0C14E"/></linearGradient></defs></svg>,
+  },
 ];
 
 /* ─── COMPONENTS ─── */
@@ -135,20 +165,20 @@ function SocialProof({ t }: { t: LandingT['socialProof'] }) {
     <section className="relative py-20 md:py-24 overflow-clip">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center d-fade-in">
-          <p className="text-sm text-gray-500 font-medium mb-8 tracking-wide">{t.headline}</p>
+          <p className="text-sm text-emerald-400/80 font-medium mb-8 tracking-wide uppercase">{t.headline}</p>
           <div className="flex items-center justify-center gap-8 md:gap-14 flex-wrap">
             {t.logos.map((name) => (
-              <span key={name} className="text-lg md:text-xl font-bold text-white/25 tracking-tight whitespace-nowrap hover:text-white/40 transition-colors">
+              <span key={name} className="text-base md:text-lg font-semibold text-white/20 tracking-tight whitespace-nowrap hover:text-white/40 transition-colors duration-300">
                 {name}
               </span>
             ))}
           </div>
 
-          <div className="mt-12 flex items-center justify-center gap-12 md:gap-20">
+          <div className="mt-14 flex items-center justify-center gap-10 md:gap-20">
             {t.stats.map((stat) => (
               <div key={stat.label} className="text-center">
-                <p className="text-2xl md:text-3xl font-bold text-white tracking-tight">{stat.value}</p>
-                <p className="text-xs text-gray-500 mt-1.5 font-medium">{stat.label}</p>
+                <p className="text-3xl md:text-4xl font-bold text-white tracking-tight">{stat.value}</p>
+                <p className="text-xs text-gray-500 mt-2 font-medium tracking-wide">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -161,14 +191,17 @@ function SocialProof({ t }: { t: LandingT['socialProof'] }) {
 function IntegrationsGrid({ t }: { t: LandingT['integrations'] }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 max-w-3xl mx-auto">
-      {integrationStatic.map((item, i) => (
-        <div key={item.name}>
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 md:p-6 text-center hover:bg-white/[0.04] hover:border-white/[0.1] transition-all">
-            <div className={`w-12 h-12 rounded-xl ${item.bg} mx-auto mb-3 flex items-center justify-center text-xl`}>
-              {item.icon}
+      {integrationLogos.map((item, i) => (
+        <div key={item.name} className="group">
+          <div className={`relative rounded-2xl border border-white/[0.06] bg-gradient-to-br ${item.gradient} p-6 md:p-7 text-center ${item.borderHover} hover:bg-white/[0.04] transition-all duration-300 overflow-hidden`}>
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="relative z-10">
+              <div className="w-14 h-14 rounded-xl bg-white/[0.06] mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                {item.logo}
+              </div>
+              <p className="text-sm font-semibold text-white">{item.name}</p>
+              <p className="text-xs text-gray-500 mt-1">{t.items[i]?.desc}</p>
             </div>
-            <p className="text-sm font-semibold text-white">{item.name}</p>
-            <p className="text-xs text-gray-500 mt-1">{t.items[i].desc}</p>
           </div>
         </div>
       ))}

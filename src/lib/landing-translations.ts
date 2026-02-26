@@ -78,12 +78,12 @@ const es = {
     },
   },
   socialProof: {
-    headline: 'Confiado por restaurantes en toda Latinoamérica',
-    logos: ['La Taquería', 'Café Aroma', 'El Patrón', 'Sushi Zen', 'Pizzería Roma', 'Casa Oaxaca'],
+    headline: 'Tecnología de clase mundial para tu restaurante',
+    logos: ['Stripe', 'Google Gemini', 'Supabase', 'Vercel', 'Sentry', 'Cloudflare'],
     stats: [
-      { value: '500+', label: 'Restaurantes' },
-      { value: '50K+', label: 'Pedidos procesados' },
-      { value: '15+', label: 'Ciudades' },
+      { value: '0%', label: 'Comisión por pedido' },
+      { value: '2 min', label: 'Menú listo' },
+      { value: '24/7', label: 'Asistente IA' },
     ],
   },
   features: {
@@ -110,7 +110,7 @@ const es = {
         tab: 'Dashboard',
         title: 'Gestiona todo desde un solo lugar',
         desc: 'Pedidos en tiempo real, cocina KDS en pantalla dedicada, analytics de ventas, notificaciones WhatsApp, editor de menú y gestión de equipo.',
-        details: ['Pedidos en tiempo real + Cocina KDS', 'Analytics y reportes avanzados', 'Notificaciones WhatsApp y email', 'Google Maps integrado en tu tienda'],
+        details: ['Pedidos en tiempo real + Cocina KDS', 'Analytics y reportes avanzados', 'Notificaciones WhatsApp y email', 'CRM de clientes integrado'],
         visualItems: [
           { label: 'Órdenes hoy', value: '47' },
           { label: 'Ventas hoy', value: '$1,240' },
@@ -151,7 +151,7 @@ const es = {
     items: [
       { desc: 'Pagos con tarjeta' },
       { desc: 'Notificaciones' },
-      { desc: 'Ubicación' },
+      { desc: 'Base de datos' },
       { desc: 'SMS automáticos' },
       { desc: 'Email marketing' },
       { desc: 'Asistente IA' },
@@ -171,7 +171,7 @@ const es = {
       { feature: 'Asistente IA', menius: 'Incluido (MENIUS AI)', other: 'No disponible' },
       { feature: 'Asistente de negocio', menius: 'IA consultor 24/7', other: 'No disponible' },
       { feature: 'WhatsApp + email', menius: 'Integrado', other: 'No disponible' },
-      { feature: 'Google Maps', menius: 'Integrado', other: 'No disponible' },
+      { feature: 'CRM de clientes', menius: 'Integrado', other: 'No disponible' },
       { feature: 'Costo mensual', menius: 'Desde $39/mes', other: 'Gratis (pero 30% por pedido)' },
     ],
     mobileRows: [
@@ -206,7 +206,7 @@ const es = {
         price: 39,
         desc: 'Para restaurantes que inician.',
         cta: 'Empezar gratis',
-        features: ['Menú digital con fotos', 'QR elegantes hasta 10 mesas', 'Pedidos (dine-in + pickup)', 'MENIUS AI (asistente IA)', 'Importar menú desde foto (OCR)', 'Google Maps integrado', 'Login con Google', 'Soporte por email'],
+        features: ['Menú digital con fotos', 'QR elegantes hasta 10 mesas', 'Pedidos (dine-in + pickup)', 'MENIUS AI (asistente IA)', 'Importar menú desde foto (OCR)', 'Generación de imágenes con IA', 'Login con Google', 'Soporte por email'],
       },
       {
         name: 'Pro',
@@ -353,12 +353,12 @@ const en: LandingT = {
     },
   },
   socialProof: {
-    headline: 'Trusted by restaurants across the Americas',
-    logos: ['La Taquería', 'Café Aroma', 'El Patrón', 'Sushi Zen', 'Pizzería Roma', 'Casa Oaxaca'],
+    headline: 'World-class technology for your restaurant',
+    logos: ['Stripe', 'Google Gemini', 'Supabase', 'Vercel', 'Sentry', 'Cloudflare'],
     stats: [
-      { value: '500+', label: 'Restaurants' },
-      { value: '50K+', label: 'Orders processed' },
-      { value: '15+', label: 'Cities' },
+      { value: '0%', label: 'Commission per order' },
+      { value: '2 min', label: 'Menu ready' },
+      { value: '24/7', label: 'AI Assistant' },
     ],
   },
   features: {
@@ -385,7 +385,7 @@ const en: LandingT = {
         tab: 'Dashboard',
         title: 'Manage everything from one place',
         desc: 'Real-time orders, dedicated KDS screen, sales analytics, WhatsApp notifications, menu editor & team management.',
-        details: ['Real-time orders + Kitchen KDS', 'Advanced analytics & reports', 'WhatsApp & email notifications', 'Google Maps integrated in your store'],
+        details: ['Real-time orders + Kitchen KDS', 'Advanced analytics & reports', 'WhatsApp & email notifications', 'Built-in customer CRM'],
         visualItems: [
           { label: 'Orders today', value: '47' },
           { label: 'Sales today', value: '$1,240' },
@@ -426,7 +426,7 @@ const en: LandingT = {
     items: [
       { desc: 'Card payments' },
       { desc: 'Notifications' },
-      { desc: 'Location' },
+      { desc: 'Database' },
       { desc: 'Automated SMS' },
       { desc: 'Email marketing' },
       { desc: 'AI assistant' },
@@ -446,7 +446,7 @@ const en: LandingT = {
       { feature: 'AI assistant', menius: 'Included (MENIUS AI)', other: 'Not available' },
       { feature: 'Business advisor', menius: 'AI consultant 24/7', other: 'Not available' },
       { feature: 'WhatsApp + email', menius: 'Integrated', other: 'Not available' },
-      { feature: 'Google Maps', menius: 'Integrated', other: 'Not available' },
+      { feature: 'Customer CRM', menius: 'Integrated', other: 'Not available' },
       { feature: 'Monthly cost', menius: 'From $39/mo', other: 'Free (but 30% per order)' },
     ],
     mobileRows: [
@@ -481,7 +481,7 @@ const en: LandingT = {
         price: 39,
         desc: 'For restaurants getting started.',
         cta: 'Start free',
-        features: ['Digital menu with photos', 'Elegant QR codes up to 10 tables', 'Orders (dine-in + pickup)', 'MENIUS AI (AI assistant)', 'Import menu from photo (OCR)', 'Google Maps integrated', 'Login with Google', 'Email support'],
+        features: ['Digital menu with photos', 'Elegant QR codes up to 10 tables', 'Orders (dine-in + pickup)', 'MENIUS AI (AI assistant)', 'Import menu from photo (OCR)', 'AI image generation', 'Login with Google', 'Email support'],
       },
       {
         name: 'Pro',
