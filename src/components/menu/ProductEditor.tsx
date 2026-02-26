@@ -7,10 +7,10 @@ import {
   ArrowLeft, Save, Loader2, Check, Camera, Trash2, X,
   ImagePlus, Eye, EyeOff, PackageCheck, PackageX, Languages, Sparkles, Link2,
 } from 'lucide-react';
-import { createProduct, updateProduct, deleteProduct } from '@/lib/actions/restaurant';
+import { createProduct, updateProduct, deleteProduct, deleteVariant, deleteExtra } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/dashboard/DashToast';
-import type { Product, Category, DietaryTag, ContentTranslation } from '@/types';
+import type { Product, Category, DietaryTag, ContentTranslation, ProductVariant, ProductExtra } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { getLocaleFlag, getLocaleLabel } from '@/lib/i18n';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
@@ -23,6 +23,95 @@ interface Props {
   currency: string;
   defaultLocale?: string;
   availableLocales?: string[];
+}
+
+function LegacyOptionsSection({
+  variants,
+  extras,
+  currency,
+  t,
+}: {
+  variants: ProductVariant[];
+  extras: ProductExtra[];
+  currency: string;
+  t: Record<string, string>;
+}) {
+  const router = useRouter();
+  const [pending, setPending] = useState<string | null>(null);
+
+  const handleDeleteVariant = async (id: string) => {
+    if (!confirm(t.editor_legacyDeleteConfirm)) return;
+    setPending(id);
+    const res = await deleteVariant(id);
+    setPending(null);
+    if (!res.error) router.refresh();
+  };
+
+  const handleDeleteExtra = async (id: string) => {
+    if (!confirm(t.editor_legacyDeleteConfirm)) return;
+    setPending(id);
+    const res = await deleteExtra(id);
+    setPending(null);
+    if (!res.error) router.refresh();
+  };
+
+  return (
+    <div className="bg-amber-50 rounded-xl border border-amber-200 p-5">
+      <p className="text-xs text-amber-600 mb-3">{t.editor_legacyHint}</p>
+
+      {variants.length > 0 && (
+        <div className="mb-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-2">{t.editor_legacyVariants}</h3>
+          <div className="space-y-1.5">
+            {variants.map((v) => (
+              <div key={v.id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-amber-100">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-800">{v.name}</span>
+                  {v.price_delta !== 0 && (
+                    <span className="text-xs text-gray-500">
+                      {v.price_delta > 0 ? '+' : ''}{currency}{v.price_delta.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleDeleteVariant(v.id)}
+                  disabled={pending === v.id}
+                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+                >
+                  {pending === v.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {extras.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 mb-2">{t.editor_legacyExtras}</h3>
+          <div className="space-y-1.5">
+            {extras.map((e) => (
+              <div key={e.id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-amber-100">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-800">{e.name}</span>
+                  {e.price > 0 && (
+                    <span className="text-xs text-gray-500">+{currency}{e.price.toFixed(2)}</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleDeleteExtra(e.id)}
+                  disabled={pending === e.id}
+                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+                >
+                  {pending === e.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function ProductEditor({
@@ -446,6 +535,16 @@ export function ProductEditor({
               )}
             </div>
 
+            {/* Legacy Variants & Extras */}
+            {isEditing && product && ((product.variants?.length ?? 0) > 0 || (product.extras?.length ?? 0) > 0) && (
+              <LegacyOptionsSection
+                variants={product.variants ?? []}
+                extras={product.extras ?? []}
+                currency={currency}
+                t={t}
+              />
+            )}
+
             {/* Modifier Groups */}
             {isEditing && product && (
               <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -453,6 +552,7 @@ export function ProductEditor({
                 <ModifierGroupsEditor
                   productId={product.id}
                   groups={product.modifier_groups ?? []}
+                  currency={currency}
                 />
               </div>
             )}

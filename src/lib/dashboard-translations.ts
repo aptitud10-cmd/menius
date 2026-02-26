@@ -344,6 +344,10 @@ export interface DashboardTranslations {
   editor_deleteConfirm: string;
   editor_deleting: string;
   editor_modifierGroups: string;
+  editor_legacyVariants: string;
+  editor_legacyExtras: string;
+  editor_legacyHint: string;
+  editor_legacyDeleteConfirm: string;
   editor_basicInfo: string;
   editor_uploading: string;
   editor_productUpdated: string;
@@ -405,6 +409,22 @@ export interface DashboardTranslations {
   modifiers_optionPlaceholder: string;
   modifiers_deleteGroupConfirm: string;
   modifiers_save: string;
+  modifiers_pickTemplate: string;
+  modifiers_templateSize: string;
+  modifiers_templateSizeDesc: string;
+  modifiers_templateExtras: string;
+  modifiers_templateExtrasDesc: string;
+  modifiers_templatePrep: string;
+  modifiers_templatePrepDesc: string;
+  modifiers_templateSides: string;
+  modifiers_templateSidesDesc: string;
+  modifiers_templateCustom: string;
+  modifiers_templateCustomDesc: string;
+  modifiers_priceHint: string;
+  modifiers_singleLabel: string;
+  modifiers_multiLabel: string;
+  modifiers_minHelper: string;
+  modifiers_maxHelper: string;
 
   // Settings
   settings_title: string;
@@ -1340,6 +1360,10 @@ const es: DashboardTranslations = {
   editor_deleteConfirm: '¿Seguro que quieres eliminar este producto? Esta acción no se puede deshacer.',
   editor_deleting: 'Eliminando...',
   editor_modifierGroups: 'Grupos de opciones',
+  editor_legacyVariants: 'Variantes existentes',
+  editor_legacyExtras: 'Extras existentes',
+  editor_legacyHint: 'Estas opciones fueron creadas con el sistema anterior. Puedes eliminarlas aquí.',
+  editor_legacyDeleteConfirm: '¿Eliminar esta opción?',
   editor_basicInfo: 'Información básica',
   editor_uploading: 'Subiendo...',
   editor_productUpdated: 'Producto actualizado',
@@ -1382,13 +1406,13 @@ const es: DashboardTranslations = {
   modifiers_newGroup: 'Nuevo grupo',
   modifiers_noGroups: 'Sin grupos de opciones',
   modifiers_noGroupsDesc: 'Agrega opciones como Tamaño, Extras, Salsas...',
-  modifiers_type: 'Tipo',
-  modifiers_single: 'Única (elige 1)',
-  modifiers_singleDesc: 'Única',
-  modifiers_multi: 'Múltiple',
-  modifiers_required: 'Requerido',
-  modifiers_min: 'Mínimo',
-  modifiers_max: 'Máximo',
+  modifiers_type: '¿Cuántas puede elegir?',
+  modifiers_single: 'El cliente escoge UNA',
+  modifiers_singleDesc: 'Escoge UNA',
+  modifiers_multi: 'El cliente escoge VARIAS',
+  modifiers_required: 'Obligatorio',
+  modifiers_min: 'Mínimo a elegir',
+  modifiers_max: 'Máximo a elegir',
   modifiers_creating: 'Creando...',
   modifiers_createGroup: 'Crear grupo',
   modifiers_options: 'opciones',
@@ -1396,11 +1420,27 @@ const es: DashboardTranslations = {
   modifiers_choose1Optional: 'Elige 1 (opcional)',
   modifiers_chooseRange: 'Elige {min}-{max} (requerido)',
   modifiers_upTo: 'Hasta {max} (opcional)',
-  modifiers_base: 'Base',
+  modifiers_base: 'Incluido',
   modifiers_addOption: 'Agregar opción',
   modifiers_optionPlaceholder: 'Ej: Grande, Queso extra...',
   modifiers_deleteGroupConfirm: 'Eliminar este grupo y todas sus opciones?',
   modifiers_save: 'Guardar',
+  modifiers_pickTemplate: 'Escoge una plantilla para comenzar rápido:',
+  modifiers_templateSize: 'Tamaño',
+  modifiers_templateSizeDesc: 'Pequeño, Mediano, Grande',
+  modifiers_templateExtras: 'Extras / Toppings',
+  modifiers_templateExtrasDesc: 'Tocino, Queso, Aguacate',
+  modifiers_templatePrep: 'Preparación',
+  modifiers_templatePrepDesc: 'Término medio, Bien cocido',
+  modifiers_templateSides: 'Acompañamiento',
+  modifiers_templateSidesDesc: 'Papas, Ensalada, Arroz',
+  modifiers_templateCustom: 'Personalizado',
+  modifiers_templateCustomDesc: 'Crear desde cero',
+  modifiers_priceHint: '$0.00 = incluido',
+  modifiers_singleLabel: 'El cliente escoge UNA',
+  modifiers_multiLabel: 'El cliente escoge VARIAS',
+  modifiers_minHelper: 'Mínimo a elegir',
+  modifiers_maxHelper: 'Máximo a elegir',
 
   // Settings
   settings_title: 'Configuración',
@@ -2336,6 +2376,10 @@ const en: DashboardTranslations = {
   editor_deleteConfirm: 'Are you sure you want to delete this product? This action cannot be undone.',
   editor_deleting: 'Deleting...',
   editor_modifierGroups: 'Options & extras',
+  editor_legacyVariants: 'Existing variants',
+  editor_legacyExtras: 'Existing extras',
+  editor_legacyHint: 'These options were created with the previous system. You can delete them here.',
+  editor_legacyDeleteConfirm: 'Delete this option?',
   editor_basicInfo: 'Basic information',
   editor_uploading: 'Uploading...',
   editor_productUpdated: 'Product updated',
@@ -2378,13 +2422,13 @@ const en: DashboardTranslations = {
   modifiers_newGroup: 'New group',
   modifiers_noGroups: 'No option groups',
   modifiers_noGroupsDesc: 'Add options like Size, Extras, Sauces...',
-  modifiers_type: 'Type',
-  modifiers_single: 'Single (choose 1)',
-  modifiers_singleDesc: 'Single',
-  modifiers_multi: 'Multiple',
+  modifiers_type: 'How many can they pick?',
+  modifiers_single: 'Customer picks ONE',
+  modifiers_singleDesc: 'Picks ONE',
+  modifiers_multi: 'Customer picks SEVERAL',
   modifiers_required: 'Required',
-  modifiers_min: 'Minimum',
-  modifiers_max: 'Maximum',
+  modifiers_min: 'Minimum to pick',
+  modifiers_max: 'Maximum to pick',
   modifiers_creating: 'Creating...',
   modifiers_createGroup: 'Create group',
   modifiers_options: 'options',
@@ -2392,11 +2436,27 @@ const en: DashboardTranslations = {
   modifiers_choose1Optional: 'Choose 1 (optional)',
   modifiers_chooseRange: 'Choose {min}-{max} (required)',
   modifiers_upTo: 'Up to {max} (optional)',
-  modifiers_base: 'Base',
+  modifiers_base: 'Included',
   modifiers_addOption: 'Add option',
   modifiers_optionPlaceholder: 'e.g. Large, Extra cheese...',
   modifiers_deleteGroupConfirm: 'Delete this group and all its options?',
   modifiers_save: 'Save',
+  modifiers_pickTemplate: 'Pick a template to get started quickly:',
+  modifiers_templateSize: 'Size',
+  modifiers_templateSizeDesc: 'Small, Medium, Large',
+  modifiers_templateExtras: 'Extras / Toppings',
+  modifiers_templateExtrasDesc: 'Bacon, Cheese, Avocado',
+  modifiers_templatePrep: 'Preparation',
+  modifiers_templatePrepDesc: 'Medium rare, Well done',
+  modifiers_templateSides: 'Side',
+  modifiers_templateSidesDesc: 'Fries, Salad, Rice',
+  modifiers_templateCustom: 'Custom',
+  modifiers_templateCustomDesc: 'Build from scratch',
+  modifiers_priceHint: '$0.00 = included',
+  modifiers_singleLabel: 'Customer picks ONE',
+  modifiers_multiLabel: 'Customer picks SEVERAL',
+  modifiers_minHelper: 'Minimum to pick',
+  modifiers_maxHelper: 'Maximum to pick',
 
   // Settings
   settings_title: 'Settings',

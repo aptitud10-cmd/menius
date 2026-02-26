@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Layers, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, Trash2, Layers, ChevronRight, Ruler, UtensilsCrossed, Flame, Salad, Settings2, X } from 'lucide-react';
 import {
   createModifierGroup, updateModifierGroup, deleteModifierGroup,
   createModifierOption, updateModifierOption, deleteModifierOption,
@@ -10,6 +10,24 @@ import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { getDashboardTranslations, type DashboardLocale } from '@/lib/dashboard-translations';
 import type { ModifierGroup, ModifierOption } from '@/types';
+
+interface Template {
+  icon: React.ElementType;
+  nameKey: 'modifiers_templateSize' | 'modifiers_templateExtras' | 'modifiers_templatePrep' | 'modifiers_templateSides' | 'modifiers_templateCustom';
+  descKey: 'modifiers_templateSizeDesc' | 'modifiers_templateExtrasDesc' | 'modifiers_templatePrepDesc' | 'modifiers_templateSidesDesc' | 'modifiers_templateCustomDesc';
+  selection_type: 'single' | 'multi';
+  is_required: boolean;
+  max_select: number;
+  optionNames?: { es: string[]; en: string[] };
+}
+
+const TEMPLATES: Template[] = [
+  { icon: Ruler, nameKey: 'modifiers_templateSize', descKey: 'modifiers_templateSizeDesc', selection_type: 'single', is_required: true, max_select: 1, optionNames: { es: ['Pequeño', 'Mediano', 'Grande'], en: ['Small', 'Medium', 'Large'] } },
+  { icon: UtensilsCrossed, nameKey: 'modifiers_templateExtras', descKey: 'modifiers_templateExtrasDesc', selection_type: 'multi', is_required: false, max_select: 5, optionNames: { es: ['Tocino', 'Queso', 'Aguacate'], en: ['Bacon', 'Cheese', 'Avocado'] } },
+  { icon: Flame, nameKey: 'modifiers_templatePrep', descKey: 'modifiers_templatePrepDesc', selection_type: 'single', is_required: true, max_select: 1, optionNames: { es: ['Término medio', 'Tres cuartos', 'Bien cocido'], en: ['Medium Rare', 'Medium Well', 'Well Done'] } },
+  { icon: Salad, nameKey: 'modifiers_templateSides', descKey: 'modifiers_templateSidesDesc', selection_type: 'single', is_required: false, max_select: 1, optionNames: { es: ['Papas fritas', 'Ensalada', 'Arroz'], en: ['Fries', 'Salad', 'Rice'] } },
+  { icon: Settings2, nameKey: 'modifiers_templateCustom', descKey: 'modifiers_templateCustomDesc', selection_type: 'single', is_required: false, max_select: 1 },
+];
 
 interface ModifierGroupsEditorProps {
   groups: ModifierGroup[];
@@ -21,8 +39,10 @@ interface ModifierGroupsEditorProps {
 
 export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: localeProp, currency }: ModifierGroupsEditorProps) {
   const [items, setItems] = useState(groups);
+  const [showTemplates, setShowTemplates] = useState(false);
   const [addingGroup, setAddingGroup] = useState(false);
   const [groupForm, setGroupForm] = useState({ name: '', selection_type: 'single' as 'single' | 'multi', min_select: '0', max_select: '1', is_required: false });
+  const [pendingOptions, setPendingOptions] = useState<string[]>([]);
   const [editGroupId, setEditGroupId] = useState<string | null>(null);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(groups[0]?.id ?? null);
   const [addingOptionFor, setAddingOptionFor] = useState<string | null>(null);
@@ -31,11 +51,37 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
   const [loading, setLoading] = useState(false);
   const dashboard = useDashboardLocale();
   const t = localeProp ? getDashboardTranslations(localeProp) : dashboard.t;
+  const lang: 'es' | 'en' = (localeProp ?? dashboard.locale ?? 'es') as 'es' | 'en';
   const currSymbol = currency === 'EUR' ? '\u20AC' : '$';
 
   const sync = (updated: ModifierGroup[]) => {
     setItems(updated);
     onUpdate?.(updated);
+  };
+
+  const resetAddState = () => {
+    setAddingGroup(false);
+    setShowTemplates(false);
+    setPendingOptions([]);
+    setGroupForm({ name: '', selection_type: 'single', min_select: '0', max_select: '1', is_required: false });
+  };
+
+  const applyTemplate = (tpl: Template) => {
+    if (tpl.nameKey === 'modifiers_templateCustom') {
+      setShowTemplates(false);
+      setAddingGroup(true);
+      return;
+    }
+    setGroupForm({
+      name: t[tpl.nameKey],
+      selection_type: tpl.selection_type,
+      min_select: tpl.is_required ? '1' : '0',
+      max_select: String(tpl.max_select),
+      is_required: tpl.is_required,
+    });
+    setPendingOptions(tpl.optionNames?.[lang] ?? []);
+    setShowTemplates(false);
+    setAddingGroup(true);
   };
 
   const handleAddGroup = async () => {
@@ -50,12 +96,23 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       sort_order: items.length,
     });
     if (result.group) {
-      const newItems = [...items, result.group as ModifierGroup];
+      let newGroup = result.group as ModifierGroup;
+      for (let i = 0; i < pendingOptions.length; i++) {
+        const optResult = await createModifierOption(newGroup.id, {
+          name: pendingOptions[i],
+          price_delta: 0,
+          is_default: false,
+          sort_order: i,
+        });
+        if (optResult.option) {
+          newGroup = { ...newGroup, options: [...(newGroup.options ?? []), optResult.option as ModifierOption] };
+        }
+      }
+      const newItems = [...items, newGroup];
       sync(newItems);
-      setExpandedGroup(result.group.id);
+      setExpandedGroup(newGroup.id);
     }
-    setGroupForm({ name: '', selection_type: 'single', min_select: '0', max_select: '1', is_required: false });
-    setAddingGroup(false);
+    resetAddState();
     setLoading(false);
   };
 
@@ -141,24 +198,47 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
           <Layers className="w-4 h-4 text-emerald-500" />
           <span className="text-sm font-semibold text-gray-700">{t.modifiers_title}</span>
         </div>
-        {!addingGroup && (
-          <button onClick={() => setAddingGroup(true)} className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700">
+        {!addingGroup && !showTemplates && (
+          <button onClick={() => setShowTemplates(true)} className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700">
             <Plus className="w-3.5 h-3.5" /> {t.modifiers_newGroup}
           </button>
         )}
       </div>
 
-      {items.length === 0 && !addingGroup && (
+      {items.length === 0 && !addingGroup && !showTemplates && (
         <div className="text-center py-8 text-gray-400">
           <Layers className="w-8 h-8 mx-auto mb-2 opacity-40" />
           <p className="text-sm font-medium text-gray-500">{t.modifiers_noGroups}</p>
           <p className="text-xs text-gray-400 mt-1">{t.modifiers_noGroupsDesc}</p>
           <button
-            onClick={() => setAddingGroup(true)}
+            onClick={() => setShowTemplates(true)}
             className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition-colors"
           >
             <Plus className="w-3.5 h-3.5" /> {t.modifiers_newGroup}
           </button>
+        </div>
+      )}
+
+      {showTemplates && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50/30 p-4 space-y-3">
+          <p className="text-xs font-bold text-emerald-700 uppercase tracking-wider">{t.modifiers_pickTemplate}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {TEMPLATES.map((tpl) => {
+              const Icon = tpl.icon;
+              return (
+                <button
+                  key={tpl.nameKey}
+                  onClick={() => applyTemplate(tpl)}
+                  className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-gray-200 bg-white hover:border-emerald-400 hover:bg-emerald-50 transition-all text-center group"
+                >
+                  <Icon className="w-5 h-5 text-gray-400 group-hover:text-emerald-500 transition-colors" />
+                  <span className="text-xs font-semibold text-gray-800">{t[tpl.nameKey]}</span>
+                  <span className="text-[10px] text-gray-400 leading-tight">{t[tpl.descKey]}</span>
+                </button>
+              );
+            })}
+          </div>
+          <button onClick={resetAddState} className="text-xs text-gray-500 hover:text-gray-700">{t.general_cancel}</button>
         </div>
       )}
 
@@ -173,8 +253,8 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
                 const st = e.target.value as 'single' | 'multi';
                 setGroupForm({ ...groupForm, selection_type: st, max_select: st === 'single' ? '1' : groupForm.max_select });
               }} className="dash-select text-sm">
-                <option value="single">{t.modifiers_single}</option>
-                <option value="multi">{t.modifiers_multi}</option>
+                <option value="single">{t.modifiers_singleLabel}</option>
+                <option value="multi">{t.modifiers_multiLabel}</option>
               </select>
             </div>
             <div>
@@ -187,20 +267,34 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
           {groupForm.selection_type === 'multi' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] font-medium text-gray-500 mb-1 block">{t.modifiers_min}</label>
+                <label className="text-[11px] font-medium text-gray-500 mb-1 block">{t.modifiers_minHelper}</label>
                 <input type="number" min="0" value={groupForm.min_select} onChange={e => setGroupForm({ ...groupForm, min_select: e.target.value })} className="dash-input text-sm" />
               </div>
               <div>
-                <label className="text-[11px] font-medium text-gray-500 mb-1 block">{t.modifiers_max}</label>
+                <label className="text-[11px] font-medium text-gray-500 mb-1 block">{t.modifiers_maxHelper}</label>
                 <input type="number" min="1" value={groupForm.max_select} onChange={e => setGroupForm({ ...groupForm, max_select: e.target.value })} className="dash-input text-sm" />
               </div>
+            </div>
+          )}
+          {pendingOptions.length > 0 && (
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium text-gray-500 block">{t.modifiers_options}</label>
+              <div className="flex flex-wrap gap-1.5">
+                {pendingOptions.map((name, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-gray-200 text-xs text-gray-700">
+                    {name}
+                    <button onClick={() => setPendingOptions(prev => prev.filter((_, idx) => idx !== i))} className="text-gray-400 hover:text-red-500"><X className="w-3 h-3" /></button>
+                  </span>
+                ))}
+              </div>
+              <p className="text-[10px] text-gray-400">{t.modifiers_priceHint}</p>
             </div>
           )}
           <div className="flex gap-2 pt-1">
             <button onClick={handleAddGroup} disabled={loading || !groupForm.name.trim()} className="dash-btn-primary text-xs py-2">
               {loading ? t.modifiers_creating : t.modifiers_createGroup}
             </button>
-            <button onClick={() => { setAddingGroup(false); setGroupForm({ name: '', selection_type: 'single', min_select: '0', max_select: '1', is_required: false }); }} className="dash-btn-secondary text-xs py-2">{t.general_cancel}</button>
+            <button onClick={resetAddState} className="dash-btn-secondary text-xs py-2">{t.general_cancel}</button>
           </div>
         </div>
       )}
@@ -221,8 +315,8 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
                 <input value={groupForm.name} onChange={e => setGroupForm({ ...groupForm, name: e.target.value })} className="dash-input text-sm" />
                 <div className="grid grid-cols-2 gap-3">
                   <select value={groupForm.selection_type} onChange={e => setGroupForm({ ...groupForm, selection_type: e.target.value as 'single' | 'multi' })} className="dash-select text-sm">
-                    <option value="single">{t.modifiers_singleDesc}</option>
-                    <option value="multi">{t.modifiers_multi}</option>
+                    <option value="single">{t.modifiers_singleLabel}</option>
+                    <option value="multi">{t.modifiers_multiLabel}</option>
                   </select>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={groupForm.is_required} onChange={e => setGroupForm({ ...groupForm, is_required: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500/30" />
@@ -232,11 +326,11 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
                 {groupForm.selection_type === 'multi' && (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] text-gray-500 mb-1 block">{t.modifiers_min}</label>
+                      <label className="text-[11px] text-gray-500 mb-1 block">{t.modifiers_minHelper}</label>
                       <input type="number" min="0" value={groupForm.min_select} onChange={e => setGroupForm({ ...groupForm, min_select: e.target.value })} className="dash-input text-sm" />
                     </div>
                     <div>
-                      <label className="text-[11px] text-gray-500 mb-1 block">{t.modifiers_max}</label>
+                      <label className="text-[11px] text-gray-500 mb-1 block">{t.modifiers_maxHelper}</label>
                       <input type="number" min="1" value={groupForm.max_select} onChange={e => setGroupForm({ ...groupForm, max_select: e.target.value })} className="dash-input text-sm" />
                     </div>
                   </div>
@@ -302,11 +396,12 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
                         <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder={t.modifiers_optionPlaceholder} autoFocus className="w-full text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
                       </div>
                       <div className="w-32">
-                        <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{localeProp === 'en' ? 'Extra price' : 'Precio extra'}</label>
+                        <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{lang === 'en' ? 'Extra price' : 'Precio extra'}</label>
                         <div className="relative">
                           <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{currSymbol}</span>
                           <input value={optionForm.price_delta} onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
                         </div>
+                        <p className="text-[9px] text-gray-400 mt-0.5">{t.modifiers_priceHint}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
