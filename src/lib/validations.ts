@@ -84,6 +84,88 @@ export const publicOrderSchema = z.object({
   })).min(1, 'Agrega al menos un producto'),
 });
 
+// ── Billing schemas ──
+
+export const changePlanSchema = z.object({
+  plan_id: z.enum(['starter', 'pro', 'business']),
+  interval: z.enum(['monthly', 'annual']).default('monthly'),
+});
+
+export const createCheckoutSchema = z.object({
+  plan_id: z.enum(['starter', 'pro', 'business']),
+  interval: z.enum(['monthly', 'annual']).default('monthly'),
+});
+
+// ── Tenant schemas ──
+
+export const staffSchema = z.object({
+  email: z.string().email(),
+  full_name: z.string().min(1).max(100),
+  role: z.enum(['staff', 'manager']).default('staff'),
+});
+
+export const campaignSchema = z.object({
+  subject: z.string().min(1).max(200),
+  body: z.string().min(1).max(10000),
+  recipient_filter: z.enum(['all', 'recent', 'inactive']).default('all'),
+});
+
+export const smsCampaignSchema = z.object({
+  message: z.string().min(1).max(1600),
+  recipient_filter: z.enum(['all', 'recent', 'inactive']).default('all'),
+});
+
+export const promotionSchema = z.object({
+  code: z.string().min(2).max(30).transform(v => v.toUpperCase().trim()),
+  discount_type: z.enum(['percentage', 'fixed']),
+  discount_value: z.number().min(0),
+  max_uses: z.number().int().min(0).default(0),
+  min_order_amount: z.number().min(0).default(0),
+  expires_at: z.string().nullable().optional(),
+  is_active: z.boolean().default(true),
+});
+
+export const reviewSubmitSchema = z.object({
+  restaurant_id: z.string().uuid(),
+  order_id: z.string().uuid().optional(),
+  customer_name: z.string().min(1).max(100),
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().max(2000).default(''),
+});
+
+export const restaurantUpdateSchema = z.object({
+  name: z.string().min(2).max(80).optional(),
+  description: z.string().max(500).optional(),
+  address: z.string().max(300).optional(),
+  phone: z.string().max(30).optional(),
+  logo_url: z.string().url().nullable().optional(),
+  cover_image_url: z.string().url().nullable().optional(),
+  timezone: z.string().optional(),
+  currency: z.string().optional(),
+  locale: z.enum(['es', 'en']).optional(),
+  theme_color: z.string().max(20).optional(),
+  order_types: z.array(z.enum(['dine_in', 'pickup', 'delivery'])).optional(),
+  tax_rate: z.number().min(0).max(100).optional(),
+}).partial();
+
+// ── Payment schemas ──
+
+export const paymentIntentSchema = z.object({
+  order_id: z.string().uuid(),
+  amount: z.number().int().min(1),
+  currency: z.string().min(3).max(3).default('usd'),
+});
+
+export const paymentCheckoutSchema = z.object({
+  order_id: z.string().uuid(),
+  restaurant_id: z.string().uuid(),
+  amount: z.number().int().min(1),
+  currency: z.string().min(3).max(3).default('usd'),
+  customer_email: z.string().email().optional(),
+});
+
+// ── Type exports ──
+
 export type SignupInput = z.infer<typeof signupSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateRestaurantInput = z.infer<typeof createRestaurantSchema>;
@@ -91,3 +173,13 @@ export type CategoryInput = z.infer<typeof categorySchema>;
 export type ProductInput = z.infer<typeof productSchema>;
 export type TableInput = z.infer<typeof tableSchema>;
 export type PublicOrderInput = z.infer<typeof publicOrderSchema>;
+export type ChangePlanInput = z.infer<typeof changePlanSchema>;
+export type CreateCheckoutInput = z.infer<typeof createCheckoutSchema>;
+export type StaffInput = z.infer<typeof staffSchema>;
+export type CampaignInput = z.infer<typeof campaignSchema>;
+export type SmsCampaignInput = z.infer<typeof smsCampaignSchema>;
+export type PromotionInput = z.infer<typeof promotionSchema>;
+export type ReviewSubmitInput = z.infer<typeof reviewSubmitSchema>;
+export type RestaurantUpdateInput = z.infer<typeof restaurantUpdateSchema>;
+export type PaymentIntentInput = z.infer<typeof paymentIntentSchema>;
+export type PaymentCheckoutInput = z.infer<typeof paymentCheckoutSchema>;

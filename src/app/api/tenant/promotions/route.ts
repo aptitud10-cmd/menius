@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
+import { captureError } from '@/lib/error-reporting';
+import { promotionSchema } from '@/lib/validations';
 
 const logger = createLogger('tenant-promotions');
 
@@ -23,6 +25,7 @@ export async function GET() {
     return NextResponse.json({ promotions: data ?? [] });
   } catch (err) {
     logger.error('GET failed', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/tenant/promotions' });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
@@ -34,46 +37,22 @@ export async function POST(request: NextRequest) {
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const body = await request.json();
-    const { code, description, discount_type, discount_value, min_order, max_uses, expires_at } = body;
-
-    if (!code || !discount_type || !discount_value) {
-      return NextResponse.json({ error: 'Código, tipo y valor de descuento requeridos' }, { status: 400 });
-    }
-
-    const validTypes = ['percentage', 'fixed'];
-    if (!validTypes.includes(discount_type)) {
-      return NextResponse.json({ error: 'Tipo de descuento inválido' }, { status: 400 });
-    }
-
-    const numValue = Number(discount_value);
-    if (isNaN(numValue) || numValue <= 0 || numValue > 100000) {
-      return NextResponse.json({ error: 'Valor de descuento inválido' }, { status: 400 });
-    }
-
-    if (discount_type === 'percentage' && numValue > 100) {
-      return NextResponse.json({ error: 'Porcentaje no puede ser mayor a 100' }, { status: 400 });
-    }
-
-    const numMinOrder = Number(min_order) || 0;
-    if (numMinOrder < 0) {
-      return NextResponse.json({ error: 'Mínimo de orden no puede ser negativo' }, { status: 400 });
-    }
-
-    if (expires_at && isNaN(Date.parse(expires_at))) {
-      return NextResponse.json({ error: 'Fecha de expiración inválida' }, { status: 400 });
+    const parsed = promotionSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
     }
 
     const { data, error } = await supabase
       .from('promotions')
       .insert({
         restaurant_id: tenant.restaurantId,
-        code: code.toUpperCase().trim().slice(0, 50),
-        description: (description ?? '').slice(0, 200),
-        discount_type,
-        discount_value: numValue,
-        min_order: numMinOrder,
-        max_uses: max_uses ? Math.max(1, Number(max_uses)) : null,
-        expires_at: expires_at || null,
+        code: parsed.data.code,
+        description: (body.description ?? '').slice(0, 200),
+        discount_type: parsed.data.discount_type,
+        discount_value: parsed.data.discount_value,
+        min_order: parsed.data.min_order_amount,
+        max_uses: parsed.data.max_uses || null,
+        expires_at: parsed.data.expires_at || null,
       })
       .select()
       .single();
@@ -82,6 +61,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ promotion: data });
   } catch (err) {
     logger.error('POST failed', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/tenant/promotions' });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
@@ -103,6 +83,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (err) {
     logger.error('DELETE failed', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/tenant/promotions' });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

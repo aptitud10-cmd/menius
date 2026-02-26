@@ -6,6 +6,7 @@ import { getTenant } from '@/lib/auth/get-tenant';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
+import { captureError } from '@/lib/error-reporting';
 
 const logger = createLogger('sms-campaigns');
 
@@ -51,10 +52,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Rate limit reached. Try again in an hour.' }, { status: 429 });
     }
 
-    const { message, filter, menuUrl } = await request.json();
-    if (!message?.trim()) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    const body = await request.json();
+    const { smsCampaignSchema } = await import('@/lib/validations');
+    const parsed = smsCampaignSchema.safeParse({ message: body.message, recipient_filter: body.filter });
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
     }
+    const { message, filter, menuUrl } = body;
 
     const supabase = createClient();
 
@@ -108,6 +112,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     logger.error('SMS campaign error', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/tenant/sms-campaigns' });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

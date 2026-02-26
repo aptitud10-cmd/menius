@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
+import { captureError } from '@/lib/error-reporting';
 
 const logger = createLogger('tenant-customers');
 
@@ -63,6 +64,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ customers: customers ?? [], total: count ?? 0, page, limit });
   } catch (err) {
     logger.error('GET failed', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/tenant/customers' });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

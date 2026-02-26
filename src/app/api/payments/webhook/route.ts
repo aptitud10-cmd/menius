@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createLogger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe, getWebhookSecret } from '@/lib/stripe';
+import { captureError } from '@/lib/error-reporting';
 
 const logger = createLogger('payments-webhook');
 
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (err: unknown) {
     logger.error('Webhook processing error', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/payments/webhook' });
     return NextResponse.json({ error: 'Webhook error' }, { status: 500 });
   }
 }

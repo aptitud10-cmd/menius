@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPlanByStripePrice, getIntervalByStripePrice } from '@/lib/plans';
 import { createLogger } from '@/lib/logger';
 import { getStripe, getWebhookSecret } from '@/lib/stripe';
+import { captureError } from '@/lib/error-reporting';
 
 const logger = createLogger('billing-webhook');
 
@@ -41,6 +42,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true, skipped: true });
     }
 
+    const auditLog = async (restaurantId: string | null, action: string, oldStatus: string | null, newStatus: string, meta: Record<string, unknown> = {}) => {
+      if (!restaurantId) return;
+      await supabase.from('subscription_audit_log').insert({
+        restaurant_id: restaurantId,
+        action,
+        old_status: oldStatus,
+        new_status: newStatus,
+        metadata: { stripe_event_id: eventId, stripe_event_type: event.type, ...meta },
+      }).then(() => {});
+    };
+
+    // Resolve restaurant_id from customer_id when metadata is missing
+    const resolveRestaurantId = async (restaurantId: string | null, customerId: string | null): Promise<string | null> => {
+      if (restaurantId) return restaurantId;
+      if (!customerId) return null;
+      const { data: subRow } = await supabase
+        .from('subscriptions')
+        .select('restaurant_id')
+        .eq('stripe_customer_id', customerId)
+        .maybeSingle();
+      return subRow?.restaurant_id ?? null;
+    };
+
     switch (event.type) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
@@ -49,6 +73,18 @@ export async function POST(request: NextRequest) {
         const customerId = sub.customer as string;
 
         if (!restaurantId && !customerId) break;
+
+        // Get previous status for audit trail
+        const resolvedId = await resolveRestaurantId(restaurantId, customerId);
+        let previousStatus: string | null = null;
+        if (resolvedId) {
+          const { data: prevSub } = await supabase
+            .from('subscriptions')
+            .select('status')
+            .eq('restaurant_id', resolvedId)
+            .maybeSingle();
+          previousStatus = prevSub?.status ?? null;
+        }
 
         const priceId = sub.items?.data?.[0]?.price?.id;
         const plan = priceId ? getPlanByStripePrice(priceId) : null;
@@ -93,8 +129,11 @@ export async function POST(request: NextRequest) {
         }
         if (dbError) {
           logger.error('DB update failed for subscription event', { event: event.type, error: dbError.message });
+          captureError(new Error(dbError.message), { route: '/api/billing/webhook', restaurantId: resolvedId ?? undefined });
           return NextResponse.json({ error: 'DB error' }, { status: 500 });
         }
+
+        await auditLog(resolvedId, `webhook_${event.type}`, previousStatus, status, { plan_id: plan?.id, interval });
         break;
       }
 
@@ -102,6 +141,17 @@ export async function POST(request: NextRequest) {
         const sub = event.data.object as any;
         const restaurantId = sub.metadata?.restaurant_id;
         const customerId = sub.customer as string;
+        const resolvedId = await resolveRestaurantId(restaurantId, customerId);
+
+        let previousStatus: string | null = null;
+        if (resolvedId) {
+          const { data: prevSub } = await supabase
+            .from('subscriptions')
+            .select('status')
+            .eq('restaurant_id', resolvedId)
+            .maybeSingle();
+          previousStatus = prevSub?.status ?? null;
+        }
 
         const updateData = {
           status: 'canceled',
@@ -120,8 +170,11 @@ export async function POST(request: NextRequest) {
         }
         if (dbError) {
           logger.error('DB update failed for subscription.deleted', { error: dbError.message });
+          captureError(new Error(dbError.message), { route: '/api/billing/webhook', restaurantId: resolvedId ?? undefined });
           return NextResponse.json({ error: 'DB error' }, { status: 500 });
         }
+
+        await auditLog(resolvedId, 'webhook_subscription_deleted', previousStatus, 'canceled');
         break;
       }
 
@@ -203,14 +256,17 @@ export async function POST(request: NextRequest) {
         const customerId = invoice.customer as string;
 
         if (customerId) {
+          const resolvedId = await resolveRestaurantId(null, customerId);
           const { error: dbError } = await supabase
             .from('subscriptions')
             .update({ status: 'past_due', updated_at: new Date().toISOString() })
             .eq('stripe_customer_id', customerId);
           if (dbError) {
             logger.error('DB update failed for invoice.payment_failed', { error: dbError.message });
+            captureError(new Error(dbError.message), { route: '/api/billing/webhook', restaurantId: resolvedId ?? undefined });
             return NextResponse.json({ error: 'DB error' }, { status: 500 });
           }
+          await auditLog(resolvedId, 'webhook_payment_failed', null, 'past_due', { invoice_id: invoice.id });
         }
         break;
       }
@@ -221,6 +277,7 @@ export async function POST(request: NextRequest) {
         const subId = invoice.subscription as string;
 
         if (customerId && subId) {
+          const resolvedId = await resolveRestaurantId(null, customerId);
           const { error: dbError } = await supabase
             .from('subscriptions')
             .update({ status: 'active', updated_at: new Date().toISOString() })
@@ -228,14 +285,15 @@ export async function POST(request: NextRequest) {
             .eq('stripe_subscription_id', subId);
           if (dbError) {
             logger.error('DB update failed for invoice.paid', { error: dbError.message });
+            captureError(new Error(dbError.message), { route: '/api/billing/webhook', restaurantId: resolvedId ?? undefined });
             return NextResponse.json({ error: 'DB error' }, { status: 500 });
           }
+          await auditLog(resolvedId, 'webhook_payment_succeeded', null, 'active', { invoice_id: invoice.id });
         }
         break;
       }
     }
 
-    // Mark event as processed (idempotency) — upsert ignores conflicts silently
     await supabase
       .from('processed_webhook_events')
       .upsert(
@@ -246,6 +304,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (err) {
     logger.error('Billing webhook error', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/billing/webhook' });
     return NextResponse.json({ error: 'Webhook error' }, { status: 500 });
   }
 }

@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { sanitizeText, sanitizeMultiline } from '@/lib/sanitize';
+import { captureError } from '@/lib/error-reporting';
 import type { CreateRestaurantInput, CategoryInput, ProductInput, TableInput } from '@/lib/validations';
 
 const EN_CURRENCIES = new Set(['USD', 'GBP', 'CAD', 'AUD', 'NZD']);
@@ -28,50 +29,27 @@ export async function createRestaurant(data: CreateRestaurantInput) {
 
   const locale = data.locale ?? inferLocale(data.currency);
 
-  const { data: restaurant, error } = await supabase
-    .from('restaurants')
-    .insert({
-      name: data.name,
-      slug: data.slug,
-      owner_user_id: user.id,
-      timezone: data.timezone,
-      currency: data.currency,
-      locale,
-    })
-    .select()
-    .single();
+  // Atomic transaction: creates restaurant + subscription + profile link in a single DB call.
+  // If any step fails, the entire transaction rolls back — no orphaned records.
+  const { data: rpcResult, error } = await supabase.rpc('create_restaurant_with_subscription', {
+    p_name: data.name,
+    p_slug: data.slug,
+    p_owner_user_id: user.id,
+    p_timezone: data.timezone,
+    p_currency: data.currency,
+    p_locale: locale,
+    p_plan_id: 'starter',
+  });
 
-  if (error) return { error: error.message };
-
-  // Link profile to restaurant — upsert guarantees it works even if profile doesn't exist yet
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .upsert({
-      user_id: user.id,
-      full_name: user.user_metadata?.full_name || '',
-      role: 'owner',
-      default_restaurant_id: restaurant.id,
-    }, { onConflict: 'user_id' });
-
-  if (profileError) {
-    return { error: 'Restaurante creado pero hubo un error al vincular tu cuenta. Intenta cerrar sesión y volver a entrar.' };
+  if (error) {
+    captureError(new Error(error.message), { route: 'createRestaurant', userId: user.id });
+    return { error: error.message };
   }
 
-  // Create trial subscription — must complete before redirect
-  const trialEnd = new Date();
-  trialEnd.setDate(trialEnd.getDate() + 14);
-  const trialIso = trialEnd.toISOString();
-  const { error: subError } = await supabase.from('subscriptions').upsert({
-    restaurant_id: restaurant.id,
-    plan_id: 'starter',
-    status: 'trialing',
-    trial_start: new Date().toISOString(),
-    trial_end: trialIso,
-    current_period_end: trialIso,
-  }, { onConflict: 'restaurant_id' });
-  if (subError) {
-    console.error('Failed to create trial subscription:', subError.message);
-  }
+  const restaurant = rpcResult as {
+    id: string; name: string; slug: string; owner_user_id: string;
+    timezone: string; currency: string; locale: string; created_at: string;
+  };
 
   // Seed example data — runs before redirect (batch inserts, ~1-2s)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';

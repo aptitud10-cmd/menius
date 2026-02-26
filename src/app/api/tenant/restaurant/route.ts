@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
+import { captureError } from '@/lib/error-reporting';
 
 const logger = createLogger('tenant-restaurant');
 
@@ -23,6 +24,7 @@ export async function GET() {
     return NextResponse.json({ restaurant });
   } catch (err) {
     logger.error('GET failed', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/tenant/restaurant' });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
@@ -67,6 +69,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ restaurant });
   } catch (err) {
     logger.error('PATCH failed', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/tenant/restaurant' });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

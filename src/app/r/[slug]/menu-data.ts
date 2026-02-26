@@ -37,32 +37,37 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
 
   if (!restaurant) return null;
 
-  // Check subscription status
-  const { data: subscription } = await supabase
-    .from('subscriptions')
-    .select('status, trial_end, current_period_end')
-    .eq('restaurant_id', restaurant.id)
-    .maybeSingle();
-
+  // Check subscription status — wrapped in try/catch for graceful degradation.
+  // If the query fails, default to showing the menu (don't punish customers for a DB hiccup).
   let subscriptionExpired = false;
-  const now = new Date();
+  try {
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('status, trial_end, current_period_end')
+      .eq('restaurant_id', restaurant.id)
+      .maybeSingle();
 
-  if (!subscription) {
-    const createdAt = new Date(restaurant.created_at);
-    const graceEnds = new Date(createdAt.getTime() + 14 * 24 * 60 * 60 * 1000);
-    if (now > graceEnds) subscriptionExpired = true;
-  } else {
-    const { status } = subscription;
-    if (status === 'active' || status === 'past_due') {
-      // OK
-    } else if (status === 'trialing') {
-      if (subscription.trial_end && new Date(subscription.trial_end) < now) {
-        subscriptionExpired = true;
-      }
+    const now = new Date();
+
+    if (!subscription) {
+      const createdAt = new Date(restaurant.created_at);
+      const graceEnds = new Date(createdAt.getTime() + 14 * 24 * 60 * 60 * 1000);
+      if (now > graceEnds) subscriptionExpired = true;
     } else {
-      const periodEnded = subscription.current_period_end && new Date(subscription.current_period_end) < now;
-      if (periodEnded) subscriptionExpired = true;
+      const { status } = subscription;
+      if (status === 'active' || status === 'past_due') {
+        // OK
+      } else if (status === 'trialing') {
+        if (subscription.trial_end && new Date(subscription.trial_end) < now) {
+          subscriptionExpired = true;
+        }
+      } else {
+        const periodEnded = subscription.current_period_end && new Date(subscription.current_period_end) < now;
+        if (periodEnded) subscriptionExpired = true;
+      }
     }
+  } catch {
+    console.error('[menu-data] Subscription check failed — showing menu', { restaurantId: restaurant.id });
   }
 
   const [{ data: categories }, { data: products }, { data: { user } }, { data: reviewRows }] = await Promise.all([

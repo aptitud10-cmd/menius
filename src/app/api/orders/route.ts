@@ -7,6 +7,7 @@ import { notifyNewOrder } from '@/lib/notifications/order-notifications';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 import { sanitizeText, sanitizeEmail, sanitizeMultiline } from '@/lib/sanitize';
 import { createLogger } from '@/lib/logger';
+import { captureError } from '@/lib/error-reporting';
 
 const logger = createLogger('orders');
 
@@ -297,7 +298,8 @@ export async function POST(request: NextRequest) {
       order_id: order.id,
       slug: restaurant.slug,
     });
-  } catch {
+  } catch (err) {
+    captureError(err, { route: '/api/orders' });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

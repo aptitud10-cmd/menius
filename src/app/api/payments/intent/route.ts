@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 import { getStripe } from '@/lib/stripe';
+import { captureError } from '@/lib/error-reporting';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,10 +19,11 @@ export async function POST(request: NextRequest) {
 
     const stripe = getStripe();
 
-    const { order_id } = await request.json();
+    const body = await request.json();
+    const order_id = body.order_id;
 
-    if (!order_id) {
-      return NextResponse.json({ error: 'order_id requerido' }, { status: 400 });
+    if (!order_id || typeof order_id !== 'string' || !/^[0-9a-f-]{36}$/.test(order_id)) {
+      return NextResponse.json({ error: 'Valid order_id required' }, { status: 400 });
     }
 
     const supabase = createClient();
@@ -60,6 +62,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });
   } catch (err: any) {
+    captureError(err, { route: '/api/payments/intent' });
     return NextResponse.json({ error: err.message ?? 'Error creating payment intent' }, { status: 500 });
   }
 }

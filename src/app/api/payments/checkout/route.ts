@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 import { getStripe } from '@/lib/stripe';
+import { captureError } from '@/lib/error-reporting';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,9 +19,13 @@ export async function POST(request: NextRequest) {
 
     const stripe = getStripe();
 
-    const { order_id, slug } = await request.json();
-    if (!order_id || !slug) {
-      return NextResponse.json({ error: 'order_id y slug requeridos' }, { status: 400 });
+    const body = await request.json();
+    const { order_id, slug } = body;
+    if (!order_id || typeof order_id !== 'string' || !/^[0-9a-f-]{36}$/.test(order_id)) {
+      return NextResponse.json({ error: 'Valid order_id required' }, { status: 400 });
+    }
+    if (!slug || typeof slug !== 'string') {
+      return NextResponse.json({ error: 'slug required' }, { status: 400 });
     }
 
     const supabase = createClient();
@@ -81,6 +86,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {
+    captureError(err, { route: '/api/payments/checkout' });
     return NextResponse.json({ error: err.message ?? 'Error creando sesión de pago' }, { status: 500 });
   }
 }

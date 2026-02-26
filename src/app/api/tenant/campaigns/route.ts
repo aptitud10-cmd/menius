@@ -7,6 +7,7 @@ import { sendEmail } from '@/lib/notifications/email';
 import { formatPrice } from '@/lib/utils';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
+import { captureError } from '@/lib/error-reporting';
 
 const logger = createLogger('tenant-campaigns');
 
@@ -69,11 +70,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { subject, message, ctaText, ctaUrl, filter } = body;
-
-    if (!subject || !message) {
-      return NextResponse.json({ error: 'Subject and message are required' }, { status: 400 });
+    const { campaignSchema } = await import('@/lib/validations');
+    const parsed = campaignSchema.safeParse({ subject: body.subject, body: body.message, recipient_filter: body.filter });
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
     }
+    const { subject, filter } = body;
+    const message = body.message;
+    const { ctaText, ctaUrl } = body;
 
     const supabase = createClient();
 
@@ -160,6 +164,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     logger.error('POST failed', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/tenant/campaigns' });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

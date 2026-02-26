@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 import { sanitizeText, sanitizeMultiline } from '@/lib/sanitize';
 import { createLogger } from '@/lib/logger';
+import { captureError } from '@/lib/error-reporting';
+import { reviewSubmitSchema } from '@/lib/validations';
 
 const logger = createLogger('reviews');
 
@@ -34,6 +36,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ reviews, average: Math.round(avg * 10) / 10, total: reviews.length });
   } catch (err) {
     logger.error('GET failed', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/reviews' });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
@@ -47,15 +50,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { restaurant_id, order_id, customer_name, rating, comment } = body;
-
-    if (!restaurant_id || !customer_name || !rating) {
-      return NextResponse.json({ error: 'restaurant_id, customer_name y rating requeridos' }, { status: 400 });
-    }
-
-    const numRating = Number(rating);
-    if (!Number.isInteger(numRating) || numRating < 1 || numRating > 5) {
-      return NextResponse.json({ error: 'Rating debe ser un entero entre 1 y 5' }, { status: 400 });
+    const parsed = reviewSubmitSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
     }
 
     const supabase = createClient();
@@ -63,7 +60,7 @@ export async function POST(request: NextRequest) {
     const { data: restaurant } = await supabase
       .from('restaurants')
       .select('id')
-      .eq('id', restaurant_id)
+      .eq('id', parsed.data.restaurant_id)
       .maybeSingle();
 
     if (!restaurant) {
@@ -73,11 +70,11 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from('reviews')
       .insert({
-        restaurant_id,
-        order_id: order_id || null,
-        customer_name: sanitizeText(customer_name, 100),
-        rating: numRating,
-        comment: sanitizeMultiline(comment ?? '', 500),
+        restaurant_id: parsed.data.restaurant_id,
+        order_id: parsed.data.order_id || null,
+        customer_name: sanitizeText(parsed.data.customer_name, 100),
+        rating: parsed.data.rating,
+        comment: sanitizeMultiline(parsed.data.comment ?? '', 500),
       })
       .select()
       .single();
@@ -86,6 +83,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ review: data });
   } catch (err) {
     logger.error('POST failed', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/reviews' });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

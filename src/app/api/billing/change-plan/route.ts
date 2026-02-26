@@ -6,6 +6,9 @@ import { PLANS, type PlanId, type BillingInterval } from '@/lib/plans';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
 import { getStripe } from '@/lib/stripe';
+import { captureError } from '@/lib/error-reporting';
+import { withRetry } from '@/lib/retry';
+import { changePlanSchema } from '@/lib/validations';
 
 const logger = createLogger('billing-change-plan');
 
@@ -17,8 +20,12 @@ export async function POST(request: NextRequest) {
     if (!tenant) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
     const body = await request.json();
-    const planId = body.plan_id as PlanId;
-    const interval = (body.interval as BillingInterval) || 'monthly';
+    const parsed = changePlanSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
+    }
+    const planId = parsed.data.plan_id as PlanId;
+    const interval = parsed.data.interval as BillingInterval;
 
     const plan = PLANS[planId];
     if (!plan) return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
@@ -40,7 +47,10 @@ export async function POST(request: NextRequest) {
 
     logger.info('Changing plan', { from: subscription.plan_id, to: planId, interval });
 
-    const stripeSub = await stripe.subscriptions.retrieve(stripeSubId);
+    const stripeSub = await withRetry(
+      () => stripe.subscriptions.retrieve(stripeSubId),
+      { context: 'retrieve-subscription' },
+    );
     const currentItem = stripeSub.items.data[0];
     if (!currentItem) {
       return NextResponse.json({ error: 'Subscription has no items' }, { status: 400 });
@@ -50,17 +60,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Already on this plan' }, { status: 400 });
     }
 
-    await stripe.subscriptions.update(stripeSubId, {
-      items: [{
-        id: currentItem.id,
-        price: priceId,
-      }],
-      proration_behavior: 'create_prorations',
-      metadata: {
-        ...stripeSub.metadata,
-        plan_id: planId,
-      },
-    });
+    await withRetry(
+      () => stripe.subscriptions.update(stripeSubId, {
+        items: [{ id: currentItem.id, price: priceId }],
+        proration_behavior: 'create_prorations',
+        metadata: { ...stripeSub.metadata, plan_id: planId },
+      }),
+      { context: 'update-subscription' },
+    );
 
     await supabase
       .from('subscriptions')
@@ -77,6 +84,7 @@ export async function POST(request: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     logger.error('Change plan error', { error: message });
+    captureError(err, { route: '/api/billing/change-plan' });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
 import { getStripe } from '@/lib/stripe';
+import { captureError } from '@/lib/error-reporting';
 
 const logger = createLogger('billing-portal');
 
@@ -36,6 +37,7 @@ export async function POST() {
     return NextResponse.json({ url: portalSession.url });
   } catch (err: unknown) {
     logger.error('Billing portal error', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/billing/portal' });
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Error' }, { status: 500 });
   }
 }

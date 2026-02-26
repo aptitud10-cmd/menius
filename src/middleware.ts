@@ -149,42 +149,47 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isDashboard && hasRestaurant && profile?.default_restaurant_id && !isBillingPage && !isSubscriptionWall && !isVerifyEmailWall) {
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('status, current_period_end, trial_end, created_at')
-      .eq('restaurant_id', profile.default_restaurant_id)
-      .maybeSingle();
-
-    const now = new Date();
-
-    if (!subscription) {
-      // No subscription record: 14-day grace period after restaurant creation
-      const { data: restaurant } = await supabase
-        .from('restaurants')
-        .select('created_at')
-        .eq('id', profile.default_restaurant_id)
+    try {
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('status, current_period_end, trial_end, created_at')
+        .eq('restaurant_id', profile.default_restaurant_id)
         .maybeSingle();
-      const createdAt = restaurant?.created_at ? new Date(restaurant.created_at) : new Date(0);
-      const graceEnds = new Date(createdAt.getTime() + 14 * 24 * 60 * 60 * 1000);
-      if (now > graceEnds) {
-        return NextResponse.redirect(new URL('/app/subscription-expired', request.url));
-      }
-    } else {
-      const { status } = subscription;
-      const trialEnded = subscription.trial_end && new Date(subscription.trial_end) < now;
-      const periodEnded = subscription.current_period_end && new Date(subscription.current_period_end) < now;
 
-      // Active or past_due (Stripe is retrying payment) — always allow access
-      if (status === 'active' || status === 'past_due') {
-        // allow
-      } else if (status === 'trialing' && trialEnded) {
-        return NextResponse.redirect(new URL('/app/subscription-expired', request.url));
-      } else if (status === 'trialing') {
-        // still in valid trial — allow
-      } else if (periodEnded) {
-        // canceled, unpaid, incomplete with expired period
-        return NextResponse.redirect(new URL('/app/subscription-expired', request.url));
+      const now = new Date();
+
+      if (!subscription) {
+        const { data: restaurant } = await supabase
+          .from('restaurants')
+          .select('created_at')
+          .eq('id', profile.default_restaurant_id)
+          .maybeSingle();
+        const createdAt = restaurant?.created_at ? new Date(restaurant.created_at) : new Date(0);
+        const graceEnds = new Date(createdAt.getTime() + 14 * 24 * 60 * 60 * 1000);
+        if (now > graceEnds) {
+          return NextResponse.redirect(new URL('/app/subscription-expired', request.url));
+        }
+      } else {
+        const { status } = subscription;
+        const trialEnded = subscription.trial_end && new Date(subscription.trial_end) < now;
+        const periodEnded = subscription.current_period_end && new Date(subscription.current_period_end) < now;
+
+        if (status === 'active' || status === 'past_due') {
+          // allow
+        } else if (status === 'trialing' && trialEnded) {
+          return NextResponse.redirect(new URL('/app/subscription-expired', request.url));
+        } else if (status === 'trialing') {
+          // still in valid trial — allow
+        } else if (periodEnded) {
+          return NextResponse.redirect(new URL('/app/subscription-expired', request.url));
+        }
       }
+    } catch {
+      // Graceful degradation: if subscription check fails, allow access but log the failure.
+      // This prevents a DB outage from locking all users out of their dashboards.
+      console.error('[middleware] Subscription check failed — allowing access', {
+        restaurantId: profile.default_restaurant_id,
+      });
     }
   }
 

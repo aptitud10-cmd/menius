@@ -6,6 +6,9 @@ import { PLANS, type PlanId, type BillingInterval } from '@/lib/plans';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
 import { getStripe } from '@/lib/stripe';
+import { captureError } from '@/lib/error-reporting';
+import { withRetry } from '@/lib/retry';
+import { createCheckoutSchema } from '@/lib/validations';
 
 const logger = createLogger('billing-checkout');
 
@@ -18,8 +21,12 @@ export async function POST(request: NextRequest) {
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const body = await request.json();
-    const planId = body.plan_id as PlanId;
-    const interval = (body.interval as BillingInterval) || 'monthly';
+    const parsed = createCheckoutSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
+    }
+    const planId = parsed.data.plan_id as PlanId;
+    const interval = parsed.data.interval as BillingInterval;
 
     const plan = PLANS[planId];
     if (!plan) {
@@ -50,14 +57,15 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
 
       logger.info('Creating Stripe customer');
-      const customer = await stripe.customers.create({
-        email: (await supabase.auth.getUser()).data.user?.email,
-        name: restaurant?.name ?? '',
-        metadata: {
-          restaurant_id: tenant.restaurantId,
-          user_id: tenant.userId,
-        },
-      });
+      const userEmail = (await supabase.auth.getUser()).data.user?.email;
+      const customer = await withRetry(
+        () => stripe.customers.create({
+          email: userEmail,
+          name: restaurant?.name ?? '',
+          metadata: { restaurant_id: tenant.restaurantId, user_id: tenant.userId },
+        }),
+        { context: 'create-customer' },
+      );
       customerId = customer.id;
 
       await supabase
@@ -79,10 +87,10 @@ export async function POST(request: NextRequest) {
 
     if (isLiveSubscription) {
       logger.info('Redirecting to billing portal');
-      const portalSession = await stripe.billingPortal.sessions.create({
-        customer: customerId,
-        return_url: `${appUrl}/app/billing`,
-      });
+      const portalSession = await withRetry(
+        () => stripe.billingPortal.sessions.create({ customer: customerId!, return_url: `${appUrl}/app/billing` }),
+        { context: 'create-portal-session' },
+      );
       return NextResponse.json({ url: portalSession.url });
     }
 
@@ -93,39 +101,32 @@ export async function POST(request: NextRequest) {
       new Date(subscription.trial_end) > new Date();
 
     logger.info('Creating checkout session', { customerId, hasValidTrial });
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      line_items: [{ price: priceId, quantity: 1 }],
-      mode: 'subscription',
-      success_url: `${appUrl}/app/billing?checkout=success`,
-      cancel_url: `${appUrl}/app/billing?checkout=cancel`,
-      subscription_data: {
-        ...(hasValidTrial
-          ? { trial_end: Math.floor(new Date(subscription!.trial_end!).getTime() / 1000) }
-          : {}),
-        metadata: {
-          restaurant_id: tenant.restaurantId,
-          plan_id: planId,
+    const session = await withRetry(
+      () => stripe.checkout.sessions.create({
+        customer: customerId!,
+        payment_method_types: ['card'],
+        line_items: [{ price: priceId, quantity: 1 }],
+        mode: 'subscription',
+        success_url: `${appUrl}/app/billing?checkout=success`,
+        cancel_url: `${appUrl}/app/billing?checkout=cancel`,
+        subscription_data: {
+          ...(hasValidTrial
+            ? { trial_end: Math.floor(new Date(subscription!.trial_end!).getTime() / 1000) }
+            : {}),
+          metadata: { restaurant_id: tenant.restaurantId, plan_id: planId },
         },
-      },
-      metadata: {
-        restaurant_id: tenant.restaurantId,
-        plan_id: planId,
-      },
-    });
+        metadata: { restaurant_id: tenant.restaurantId, plan_id: planId },
+      }),
+      { context: 'create-checkout-session' },
+    );
 
     return NextResponse.json({ url: session.url });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     const name = err instanceof Error ? err.constructor.name : 'Unknown';
     const stripeCode = (err as any)?.code ?? (err as any)?.type ?? '';
-    logger.error('Billing checkout error', {
-      error: message,
-      type: name,
-      stripeCode,
-      stack: err instanceof Error ? err.stack : undefined,
-    });
+    logger.error('Billing checkout error', { error: message, type: name, stripeCode });
+    captureError(err, { route: '/api/billing/create-checkout' });
     return NextResponse.json(
       { error: message, code: stripeCode || name },
       { status: 500 },

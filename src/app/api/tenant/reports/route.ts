@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { formatPrice } from '@/lib/utils';
 import { createLogger } from '@/lib/logger';
+import { captureError } from '@/lib/error-reporting';
 
 const logger = createLogger('tenant-reports');
 
