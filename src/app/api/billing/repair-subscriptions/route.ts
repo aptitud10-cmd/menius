@@ -35,11 +35,12 @@ export async function POST(request: NextRequest) {
     if (!sub) {
       const trialEnd = new Date(r.created_at);
       trialEnd.setDate(trialEnd.getDate() + 14);
+      const isExpired = trialEnd < new Date();
 
       const { error } = await supabase.from('subscriptions').insert({
         restaurant_id: r.id,
         plan_id: 'starter',
-        status: 'trialing',
+        status: isExpired ? 'canceled' : 'trialing',
         trial_start: r.created_at,
         trial_end: trialEnd.toISOString(),
         current_period_end: trialEnd.toISOString(),

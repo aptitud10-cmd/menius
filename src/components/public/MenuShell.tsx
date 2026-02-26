@@ -157,12 +157,16 @@ export function MenuShell({
   }, []);
 
   const handleProductSelect = useCallback((product: Product) => {
-    if (isOwner && typeof window !== 'undefined' && window.innerWidth >= 1024) {
-      setOwnerEditProduct(product);
-      return;
-    }
     setCustomization({ product, editIndex: null });
-  }, [isOwner]);
+  }, []);
+
+  const handleOwnerEdit = useCallback((product: Product) => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      setOwnerEditProduct(product);
+    } else {
+      setCustomization({ product, editIndex: null });
+    }
+  }, []);
 
 
   const showToast = useCallback((name: string) => {
@@ -596,6 +600,7 @@ export function MenuShell({
                       product={product}
                       onSelect={handleProductSelect}
                       onQuickAdd={handleQuickAdd}
+                      onEdit={isOwner ? handleOwnerEdit : undefined}
                       fmtPrice={fmtPrice}
                       addLabel={t.addToCart}
                       customizeLabel={t.customize}
@@ -634,6 +639,7 @@ export function MenuShell({
                       product={product}
                       onSelect={handleProductSelect}
                       onQuickAdd={handleQuickAdd}
+                      onEdit={isOwner ? handleOwnerEdit : undefined}
                       fmtPrice={fmtPrice}
                       addLabel={t.addToCart}
                       customizeLabel={t.customize}
@@ -683,6 +689,7 @@ export function MenuShell({
                         product={product}
                         onSelect={handleProductSelect}
                         onQuickAdd={handleQuickAdd}
+                        onEdit={isOwner ? handleOwnerEdit : undefined}
                         fmtPrice={fmtPrice}
                         addLabel={t.addToCart}
                         customizeLabel={t.customize}

@@ -14,6 +14,7 @@ interface ProductCardProps {
   product: Product;
   onSelect: (p: Product) => void;
   onQuickAdd: (p: Product) => void;
+  onEdit?: (p: Product) => void;
   fmtPrice: (n: number) => string;
   addLabel: string;
   customizeLabel: string;
@@ -27,6 +28,7 @@ export const ProductCard = memo(function ProductCard({
   product,
   onSelect,
   onQuickAdd,
+  onEdit,
   fmtPrice,
   addLabel,
   customizeLabel,
@@ -54,7 +56,7 @@ export const ProductCard = memo(function ProductCard({
 
   const handleClick = () => {
     if (outOfStock) return;
-    if (isOwner || hasModifiers) {
+    if (hasModifiers) {
       onSelect(product);
     } else {
       haptic();
@@ -237,10 +239,14 @@ export const ProductCard = memo(function ProductCard({
             >
               <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover:text-gray-500')} />
             </button>
-            {isOwner && (
-              <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-purple-600/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg">
+            {isOwner && onEdit && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit(product); }}
+                className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-purple-600/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg hover:bg-purple-600 hover:scale-110 active:scale-95"
+                aria-label="Edit product"
+              >
                 <Pencil className="w-3.5 h-3.5 text-white" />
-              </div>
+              </button>
             )}
           </div>
         ) : (
@@ -268,10 +274,14 @@ export const ProductCard = memo(function ProductCard({
             >
               <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover:text-gray-500')} />
             </button>
-            {isOwner && (
-              <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-purple-600/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg">
+            {isOwner && onEdit && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit(product); }}
+                className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-purple-600/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg hover:bg-purple-600 hover:scale-110 active:scale-95"
+                aria-label="Edit product"
+              >
                 <Pencil className="w-3.5 h-3.5 text-white" />
-              </div>
+              </button>
             )}
           </div>
         )}
