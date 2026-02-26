@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
 
       for (const dbSub of stripeSubs) {
         try {
-          const stripeSub = await stripe.subscriptions.retrieve(dbSub.stripe_subscription_id!);
+          const stripeSub = await stripe.subscriptions.retrieve(dbSub.stripe_subscription_id!) as any;
           let mismatch = false;
           const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
