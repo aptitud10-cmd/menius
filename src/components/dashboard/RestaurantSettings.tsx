@@ -338,7 +338,22 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           <div className="sm:col-span-2">
             <Field label={t.settings_description} value={form.description} onChange={(v) => handleChange('description', v)} placeholder={t.settings_descPlaceholder} textarea />
           </div>
-          <AddressAutocomplete label={t.settings_address} value={form.address} onChange={(v) => handleChange('address', v)} placeholder={t.settings_addressPlaceholder} dark={false} />
+          <AddressAutocomplete
+            label={t.settings_address}
+            value={form.address}
+            onChange={(v) => handleChange('address', v)}
+            onPlaceSelect={(place) => {
+              setForm((prev) => ({
+                ...prev,
+                address: place.address,
+                latitude: place.lat ?? prev.latitude,
+                longitude: place.lng ?? prev.longitude,
+              }));
+              setSaved(false);
+            }}
+            placeholder={t.settings_addressPlaceholder}
+            dark={false}
+          />
           <div className="grid grid-cols-2 gap-3">
             <Field label={t.settings_latitude} value={String(form.latitude ?? '')} onChange={(v) => handleChange('latitude', v)} placeholder="19.4284" />
             <Field label={t.settings_longitude} value={String(form.longitude ?? '')} onChange={(v) => handleChange('longitude', v)} placeholder="-99.1676" />

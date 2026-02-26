@@ -136,7 +136,7 @@ export default function BlogPostPage({ params }: PageProps) {
                 {ui.ctaBtn}
               </Link>
               <Link
-                href="/r/demo"
+                href="/demo"
                 className="w-full sm:w-auto px-8 py-3 rounded-xl border border-white/10 text-gray-400 font-medium text-sm hover:text-white hover:border-white/20 transition-all"
               >
                 {ui.ctaDemo}

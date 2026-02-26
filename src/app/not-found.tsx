@@ -27,7 +27,7 @@ export default function NotFound() {
             {en ? 'Go home' : 'Ir al inicio'}
           </Link>
           <Link
-            href="/r/demo"
+            href="/demo"
             className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
           >
             {en ? 'View demo' : 'Ver demo'}

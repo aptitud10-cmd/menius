@@ -83,15 +83,19 @@ export async function createRestaurant(data: CreateRestaurantInput) {
   if (user.email) {
     try {
       const { sendEmail, buildWelcomeEmail } = await import('@/lib/notifications/email');
+      const en = locale === 'en';
       const html = buildWelcomeEmail({
         ownerName: user.user_metadata?.full_name || data.name,
         restaurantName: data.name,
         dashboardUrl: `${appUrl}/app`,
         menuUrl: `${appUrl}/r/${data.slug}`,
+        locale,
       });
       sendEmail({
         to: user.email!,
-        subject: `¡Bienvenido a MENIUS! — ${data.name} ya tiene su menú digital`,
+        subject: en
+          ? `Welcome to MENIUS! — ${data.name} now has a digital menu`
+          : `¡Bienvenido a MENIUS! — ${data.name} ya tiene su menú digital`,
         html,
       }).catch(() => {});
     } catch {

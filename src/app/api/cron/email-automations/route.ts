@@ -35,19 +35,20 @@ export async function GET(request: NextRequest) {
 
       const { data: restaurant } = await supabase
         .from('restaurants')
-        .select('name, slug')
+        .select('name, slug, locale')
         .eq('id', customer.restaurant_id)
         .maybeSingle();
 
       if (!restaurant) continue;
 
+      const en = restaurant.locale === 'en';
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
       const menuUrl = `${appUrl}/r/${restaurant.slug}`;
 
       const sent = await sendEmail({
         to: customer.email,
-        subject: `¡Bienvenido a ${restaurant.name}! 🎉`,
-        html: buildWelcomeEmail(customer.name || 'Cliente', restaurant.name, menuUrl),
+        subject: en ? `Welcome to ${restaurant.name}! 🎉` : `¡Bienvenido a ${restaurant.name}! 🎉`,
+        html: buildWelcomeEmail(customer.name || (en ? 'Customer' : 'Cliente'), restaurant.name, menuUrl, en),
       });
 
       if (sent) {
@@ -76,19 +77,20 @@ export async function GET(request: NextRequest) {
 
       const { data: restaurant } = await supabase
         .from('restaurants')
-        .select('name, slug')
+        .select('name, slug, locale')
         .eq('id', customer.restaurant_id)
         .maybeSingle();
 
       if (!restaurant) continue;
 
+      const en = restaurant.locale === 'en';
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
       const menuUrl = `${appUrl}/r/${restaurant.slug}`;
 
       const sent = await sendEmail({
         to: customer.email,
-        subject: `Te extrañamos, ${customer.name || 'amigo'}! 😢`,
-        html: buildReactivationEmail(customer.name || 'Cliente', restaurant.name, menuUrl),
+        subject: en ? `We miss you, ${customer.name || 'friend'}! 😢` : `Te extrañamos, ${customer.name || 'amigo'}! 😢`,
+        html: buildReactivationEmail(customer.name || (en ? 'Customer' : 'Cliente'), restaurant.name, menuUrl, en),
       });
 
       if (sent) {
@@ -123,19 +125,20 @@ export async function GET(request: NextRequest) {
 
       const { data: restaurant } = await supabase
         .from('restaurants')
-        .select('name, slug')
+        .select('name, slug, locale')
         .eq('id', order.restaurant_id)
         .maybeSingle();
 
       if (!restaurant) continue;
 
+      const en = restaurant.locale === 'en';
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
       const menuUrl = `${appUrl}/r/${restaurant.slug}`;
 
       const sent = await sendEmail({
         to: order.customer_email,
-        subject: `¿Cómo estuvo tu pedido en ${restaurant.name}? ⭐`,
-        html: buildReviewRequestEmail(order.customer_name || 'Cliente', restaurant.name, menuUrl),
+        subject: en ? `How was your order at ${restaurant.name}? ⭐` : `¿Cómo estuvo tu pedido en ${restaurant.name}? ⭐`,
+        html: buildReviewRequestEmail(order.customer_name || (en ? 'Customer' : 'Cliente'), restaurant.name, menuUrl, en),
       });
 
       if (sent) results.review_request++;
@@ -162,19 +165,22 @@ export async function GET(request: NextRequest) {
     for (const sub of trialRestaurants ?? []) {
       const { data: restaurant } = await supabase
         .from('restaurants')
-        .select('name, notification_email, owner_user_id')
+        .select('name, notification_email, owner_user_id, locale')
         .eq('id', sub.restaurant_id)
         .maybeSingle();
 
       if (!restaurant?.notification_email) continue;
 
+      const en = restaurant.locale === 'en';
       const daysLeft = Math.ceil((new Date(sub.trial_end!).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       const dashUrl = `${appUrl}/app/billing`;
 
       const sent = await sendEmail({
         to: restaurant.notification_email,
-        subject: `⏰ Tu prueba de MENIUS termina en ${daysLeft} día${daysLeft !== 1 ? 's' : ''}`,
-        html: buildTrialExpiringEmail(restaurant.name, daysLeft, dashUrl),
+        subject: en
+          ? `⏰ Your MENIUS trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`
+          : `⏰ Tu prueba de MENIUS termina en ${daysLeft} día${daysLeft !== 1 ? 's' : ''}`,
+        html: buildTrialExpiringEmail(restaurant.name, daysLeft, dashUrl, en),
       });
 
       if (sent) results.platform_trial++;
@@ -186,7 +192,7 @@ export async function GET(request: NextRequest) {
     const sevenDaysAgoSetup = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data: newRestaurants } = await supabase
       .from('restaurants')
-      .select('id, name, notification_email, slug')
+      .select('id, name, notification_email, slug, locale')
       .lte('created_at', twoDaysAgoSetup)
       .gte('created_at', sevenDaysAgoSetup)
       .not('notification_email', 'is', null)
@@ -202,12 +208,15 @@ export async function GET(request: NextRequest) {
 
       if ((count ?? 0) > 0) continue;
 
+      const en = restaurant.locale === 'en';
       const setupUrl = `${appUrl}/app/menu/products`;
 
       const sent = await sendEmail({
         to: restaurant.notification_email,
-        subject: `🍽️ ${restaurant.name}: tu menú está vacío — configúralo en minutos`,
-        html: buildSetupIncompleteEmail(restaurant.name, setupUrl),
+        subject: en
+          ? `🍽️ ${restaurant.name}: your menu is empty — set it up in minutes`
+          : `🍽️ ${restaurant.name}: tu menú está vacío — configúralo en minutos`,
+        html: buildSetupIncompleteEmail(restaurant.name, setupUrl, en),
       });
 
       if (sent) results.platform_setup++;
@@ -217,7 +226,7 @@ export async function GET(request: NextRequest) {
     // 6. No orders nudge: restaurants with products but 0 orders in last 7 days
     const { data: activeRestaurants } = await supabase
       .from('restaurants')
-      .select('id, name, notification_email, slug')
+      .select('id, name, notification_email, slug, locale')
       .eq('is_active', true)
       .not('notification_email', 'is', null)
       .limit(100);
@@ -251,12 +260,15 @@ export async function GET(request: NextRequest) {
 
       if ((recentOrderCount ?? 0) > 0) continue;
 
+      const en = restaurant.locale === 'en';
       const tipsUrl = `${appUrl}/app`;
 
       const sent = await sendEmail({
         to: restaurant.notification_email,
-        subject: `📊 Tips para recibir tu primer pedido en ${restaurant.name}`,
-        html: buildNoOrdersEmail(restaurant.name, `${appUrl}/r/${restaurant.slug}`, tipsUrl),
+        subject: en
+          ? `📊 Tips to get your first order at ${restaurant.name}`
+          : `📊 Tips para recibir tu primer pedido en ${restaurant.name}`,
+        html: buildNoOrdersEmail(restaurant.name, `${appUrl}/r/${restaurant.slug}`, tipsUrl, en),
       });
 
       if (sent) results.platform_inactive++;
@@ -280,7 +292,7 @@ export async function GET(request: NextRequest) {
 
       const { data: targetRestaurants } = await supabase
         .from('restaurants')
-        .select('id, name, slug, notification_email')
+        .select('id, name, slug, notification_email, locale')
         .gte('created_at', dayStart)
         .lt('created_at', dayEnd)
         .not('notification_email', 'is', null)
@@ -298,13 +310,14 @@ export async function GET(request: NextRequest) {
 
         if (existingTag) continue;
 
+        const en = restaurant.locale === 'en';
         const dashUrl = `${appUrl}/app`;
         const menuUrl = `${appUrl}/r/${restaurant.slug}`;
 
         const sent = await sendEmail({
           to: restaurant.notification_email,
-          subject: step.builder('subject', restaurant.name),
-          html: step.builder('html', restaurant.name, dashUrl, menuUrl),
+          subject: step.builder('subject', restaurant.name, undefined, undefined, en),
+          html: step.builder('html', restaurant.name, dashUrl, menuUrl, en),
         });
 
         if (sent) {
@@ -327,7 +340,7 @@ export async function GET(request: NextRequest) {
 
       const { data: activeRests } = await supabase
         .from('restaurants')
-        .select('id, name, notification_email, slug')
+        .select('id, name, notification_email, slug, locale')
         .eq('is_active', true)
         .not('notification_email', 'is', null)
         .limit(200);
@@ -347,13 +360,16 @@ export async function GET(request: NextRequest) {
           .gte('created_at', monthStart)
           .lt('created_at', monthEnd);
 
+        const en = restaurant.locale === 'en';
         const revenue = (orders ?? []).reduce((s, o) => s + Number(o.total ?? 0), 0);
         const dashUrl = `${appUrl}/app/analytics`;
 
         const sent = await sendEmail({
           to: restaurant.notification_email,
-          subject: `📊 Resumen mensual de ${restaurant.name} — MENIUS`,
-          html: buildMonthlyReportEmail(restaurant.name, orderCount ?? 0, newCustomerCount ?? 0, revenue, dashUrl),
+          subject: en
+            ? `📊 Monthly report for ${restaurant.name} — MENIUS`
+            : `📊 Resumen mensual de ${restaurant.name} — MENIUS`,
+          html: buildMonthlyReportEmail(restaurant.name, orderCount ?? 0, newCustomerCount ?? 0, revenue, dashUrl, en),
         });
 
         if (sent) results.monthly_report++;
@@ -365,11 +381,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: true, ...results });
   } catch (err) {
     logger.error('Automations failed', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
 
-function buildWelcomeEmail(name: string, restaurantName: string, menuUrl: string): string {
+function buildWelcomeEmail(name: string, restaurantName: string, menuUrl: string, en = false): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -380,22 +396,22 @@ function buildWelcomeEmail(name: string, restaurantName: string, menuUrl: string
       <h1 style="font-size:20px;font-weight:800;color:#7c3aed;margin:0;">${restaurantName}</h1>
     </div>
     <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);padding:32px 24px;">
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">Hola ${name}, 👋</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">¡Bienvenido a <strong>${restaurantName}</strong>! Estamos encantados de tenerte como cliente.</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">Puedes ver nuestro menú completo y hacer pedidos en cualquier momento desde tu celular.</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Hi ${name}` : `Hola ${name}`}, 👋</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Welcome to <strong>${restaurantName}</strong>! We're thrilled to have you as a customer.` : `¡Bienvenido a <strong>${restaurantName}</strong>! Estamos encantados de tenerte como cliente.`}</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? 'You can browse our full menu and place orders anytime from your phone.' : 'Puedes ver nuestro menú completo y hacer pedidos en cualquier momento desde tu celular.'}</p>
       <a href="${menuUrl}" style="display:block;margin-top:24px;padding:14px;background:#7c3aed;color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
-        Ver nuestro menú
+        ${en ? 'View our menu' : 'Ver nuestro menú'}
       </a>
     </div>
     <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:20px;">
-      Enviado por ${restaurantName} a través de MENIUS
+      ${en ? `Sent by ${restaurantName} via MENIUS` : `Enviado por ${restaurantName} a través de MENIUS`}
     </p>
   </div>
 </body>
 </html>`;
 }
 
-function buildReactivationEmail(name: string, restaurantName: string, menuUrl: string): string {
+function buildReactivationEmail(name: string, restaurantName: string, menuUrl: string, en = false): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -406,22 +422,22 @@ function buildReactivationEmail(name: string, restaurantName: string, menuUrl: s
       <h1 style="font-size:20px;font-weight:800;color:#7c3aed;margin:0;">${restaurantName}</h1>
     </div>
     <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);padding:32px 24px;">
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">Hola ${name}, 😢</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">Hace tiempo que no nos visitas y <strong>te echamos de menos</strong>. Hemos estado preparando cosas deliciosas y nos encantaría que vuelvas a probarlas.</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">¡Te esperamos de vuelta!</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Hi ${name}` : `Hola ${name}`}, 😢</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `It's been a while since your last visit and <strong>we miss you</strong>. We've been preparing delicious new dishes and would love for you to come back and try them.` : `Hace tiempo que no nos visitas y <strong>te echamos de menos</strong>. Hemos estado preparando cosas deliciosas y nos encantaría que vuelvas a probarlas.`}</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? 'We hope to see you again soon!' : '¡Te esperamos de vuelta!'}</p>
       <a href="${menuUrl}" style="display:block;margin-top:24px;padding:14px;background:#7c3aed;color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
-        Pedir de nuevo
+        ${en ? 'Order again' : 'Pedir de nuevo'}
       </a>
     </div>
     <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:20px;">
-      Enviado por ${restaurantName} a través de MENIUS
+      ${en ? `Sent by ${restaurantName} via MENIUS` : `Enviado por ${restaurantName} a través de MENIUS`}
     </p>
   </div>
 </body>
 </html>`;
 }
 
-function buildReviewRequestEmail(name: string, restaurantName: string, menuUrl: string): string {
+function buildReviewRequestEmail(name: string, restaurantName: string, menuUrl: string, en = false): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -432,15 +448,15 @@ function buildReviewRequestEmail(name: string, restaurantName: string, menuUrl: 
       <h1 style="font-size:20px;font-weight:800;color:#7c3aed;margin:0;">${restaurantName}</h1>
     </div>
     <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);padding:32px 24px;">
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">Hola ${name}, ⭐</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">¡Esperamos que hayas disfrutado tu pedido en <strong>${restaurantName}</strong>!</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">Tu opinión es muy importante para nosotros. ¿Nos dejarías una reseña rápida? Solo toma un minuto.</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Hi ${name}` : `Hola ${name}`}, ⭐</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `We hope you enjoyed your order at <strong>${restaurantName}</strong>!` : `¡Esperamos que hayas disfrutado tu pedido en <strong>${restaurantName}</strong>!`}</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? 'Your opinion means a lot to us. Would you leave a quick review? It only takes a minute.' : 'Tu opinión es muy importante para nosotros. ¿Nos dejarías una reseña rápida? Solo toma un minuto.'}</p>
       <a href="${menuUrl}" style="display:block;margin-top:24px;padding:14px;background:#f59e0b;color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
-        Dejar mi reseña ⭐
+        ${en ? 'Leave a review ⭐' : 'Dejar mi reseña ⭐'}
       </a>
     </div>
     <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:20px;">
-      Enviado por ${restaurantName} a través de MENIUS
+      ${en ? `Sent by ${restaurantName} via MENIUS` : `Enviado por ${restaurantName} a través de MENIUS`}
     </p>
   </div>
 </body>
@@ -451,7 +467,7 @@ function buildReviewRequestEmail(name: string, restaurantName: string, menuUrl: 
 // PLATFORM EMAILS (MENIUS → Restaurant Owners)
 // ═══════════════════════════════════════════════════════════════
 
-function buildTrialExpiringEmail(restaurantName: string, daysLeft: number, billingUrl: string): string {
+function buildTrialExpiringEmail(restaurantName: string, daysLeft: number, billingUrl: string, en = false): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -462,23 +478,23 @@ function buildTrialExpiringEmail(restaurantName: string, daysLeft: number, billi
       <h1 style="font-size:22px;font-weight:800;color:#7c3aed;margin:0;">MENIUS</h1>
     </div>
     <div style="background:#0a0a0a;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);padding:32px 24px;">
-      <p style="margin:0 0 16px;font-size:16px;color:#f3f4f6;line-height:1.6;font-weight:600;">⏰ Tu prueba gratuita termina en ${daysLeft} día${daysLeft !== 1 ? 's' : ''}</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">Hola, el periodo de prueba de <strong style="color:#f3f4f6;">${restaurantName}</strong> en MENIUS está por terminar.</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">Para seguir recibiendo pedidos online, menú digital y todas las herramientas, elige un plan que se adapte a tu negocio.</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">Planes desde <strong style="color:#f3f4f6;">$39/mes</strong>. Cancela cuando quieras.</p>
+      <p style="margin:0 0 16px;font-size:16px;color:#f3f4f6;line-height:1.6;font-weight:600;">${en ? `⏰ Your free trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}` : `⏰ Tu prueba gratuita termina en ${daysLeft} día${daysLeft !== 1 ? 's' : ''}`}</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? `Hi, your trial for <strong style="color:#f3f4f6;">${restaurantName}</strong> on MENIUS is about to end.` : `Hola, el periodo de prueba de <strong style="color:#f3f4f6;">${restaurantName}</strong> en MENIUS está por terminar.`}</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? 'To keep receiving online orders, your digital menu, and all the tools, choose a plan that fits your business.' : 'Para seguir recibiendo pedidos online, menú digital y todas las herramientas, elige un plan que se adapte a tu negocio.'}</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? 'Plans starting at <strong style="color:#f3f4f6;">$39/mo</strong>. Cancel anytime.' : 'Planes desde <strong style="color:#f3f4f6;">$39/mes</strong>. Cancela cuando quieras.'}</p>
       <a href="${billingUrl}" style="display:block;margin-top:24px;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
-        Elegir mi plan
+        ${en ? 'Choose my plan' : 'Elegir mi plan'}
       </a>
     </div>
     <p style="text-align:center;font-size:11px;color:#4b5563;margin-top:20px;">
-      MENIUS — Menú digital para restaurantes
+      MENIUS — ${en ? 'Digital menu for restaurants' : 'Menú digital para restaurantes'}
     </p>
   </div>
 </body>
 </html>`;
 }
 
-function buildSetupIncompleteEmail(restaurantName: string, setupUrl: string): string {
+function buildSetupIncompleteEmail(restaurantName: string, setupUrl: string, en = false): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -489,100 +505,100 @@ function buildSetupIncompleteEmail(restaurantName: string, setupUrl: string): st
       <h1 style="font-size:22px;font-weight:800;color:#7c3aed;margin:0;">MENIUS</h1>
     </div>
     <div style="background:#0a0a0a;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);padding:32px 24px;">
-      <p style="margin:0 0 16px;font-size:16px;color:#f3f4f6;line-height:1.6;font-weight:600;">🍽️ Tu menú está esperando</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">Creaste <strong style="color:#f3f4f6;">${restaurantName}</strong> en MENIUS pero aún no has agregado productos a tu menú.</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;"><strong style="color:#f3f4f6;">Es súper rápido:</strong> toma una foto de tu menú físico y nuestra IA lo importa completo con categorías, precios e imágenes en segundos.</p>
+      <p style="margin:0 0 16px;font-size:16px;color:#f3f4f6;line-height:1.6;font-weight:600;">${en ? '🍽️ Your menu is waiting' : '🍽️ Tu menú está esperando'}</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? `You created <strong style="color:#f3f4f6;">${restaurantName}</strong> on MENIUS but haven't added any products to your menu yet.` : `Creaste <strong style="color:#f3f4f6;">${restaurantName}</strong> en MENIUS pero aún no has agregado productos a tu menú.`}</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? '<strong style="color:#f3f4f6;">It\'s super fast:</strong> take a photo of your physical menu and our AI imports everything with categories, prices, and images in seconds.' : '<strong style="color:#f3f4f6;">Es súper rápido:</strong> toma una foto de tu menú físico y nuestra IA lo importa completo con categorías, precios e imágenes en segundos.'}</p>
       <a href="${setupUrl}" style="display:block;margin-top:24px;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
-        Configurar mi menú
+        ${en ? 'Set up my menu' : 'Configurar mi menú'}
       </a>
     </div>
     <p style="text-align:center;font-size:11px;color:#4b5563;margin-top:20px;">
-      MENIUS — Menú digital para restaurantes
+      MENIUS — ${en ? 'Digital menu for restaurants' : 'Menú digital para restaurantes'}
     </p>
   </div>
 </body>
 </html>`;
 }
 
-function buildOnboardingDay1Email(type: 'subject' | 'html', restaurantName: string, dashUrl?: string, menuUrl?: string): string {
-  if (type === 'subject') return `🎉 ¡Bienvenido a MENIUS, ${restaurantName}!`;
+function buildOnboardingDay1Email(type: 'subject' | 'html', restaurantName: string, dashUrl?: string, menuUrl?: string, en = false): string {
+  if (type === 'subject') return en ? `🎉 Welcome to MENIUS, ${restaurantName}!` : `🎉 ¡Bienvenido a MENIUS, ${restaurantName}!`;
   return `
 <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#050505;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:520px;margin:0 auto;padding:40px 20px;">
     <div style="text-align:center;margin-bottom:32px;"><h1 style="font-size:22px;font-weight:800;color:#7c3aed;margin:0;">MENIUS</h1></div>
     <div style="background:#0a0a0a;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);padding:32px 24px;">
-      <p style="margin:0 0 16px;font-size:16px;color:#f3f4f6;font-weight:600;">¡Hola! Tu menú digital está listo 🎉</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">Acabas de crear <strong style="color:#f3f4f6;">${restaurantName}</strong> en MENIUS. Estos son tus primeros pasos:</p>
+      <p style="margin:0 0 16px;font-size:16px;color:#f3f4f6;font-weight:600;">${en ? 'Hello! Your digital menu is ready 🎉' : '¡Hola! Tu menú digital está listo 🎉'}</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? `You just created <strong style="color:#f3f4f6;">${restaurantName}</strong> on MENIUS. Here are your first steps:` : `Acabas de crear <strong style="color:#f3f4f6;">${restaurantName}</strong> en MENIUS. Estos son tus primeros pasos:`}</p>
       <div style="margin:16px 0;padding:16px;background:rgba(124,58,237,0.08);border-radius:12px;border:1px solid rgba(124,58,237,0.15);">
-        <p style="margin:0 0 8px;font-size:14px;color:#c4b5fd;">1. <strong>Agrega tus productos</strong> — manual o con foto + IA</p>
-        <p style="margin:0 0 8px;font-size:14px;color:#c4b5fd;">2. <strong>Personaliza tu menú</strong> — logo, colores, horarios</p>
-        <p style="margin:0;font-size:14px;color:#c4b5fd;">3. <strong>Comparte el link</strong> — en redes, WhatsApp o con QR</p>
+        <p style="margin:0 0 8px;font-size:14px;color:#c4b5fd;">1. <strong>${en ? 'Add your products' : 'Agrega tus productos'}</strong> — ${en ? 'manually or with photo + AI' : 'manual o con foto + IA'}</p>
+        <p style="margin:0 0 8px;font-size:14px;color:#c4b5fd;">2. <strong>${en ? 'Customize your menu' : 'Personaliza tu menú'}</strong> — ${en ? 'logo, colors, hours' : 'logo, colores, horarios'}</p>
+        <p style="margin:0;font-size:14px;color:#c4b5fd;">3. <strong>${en ? 'Share the link' : 'Comparte el link'}</strong> — ${en ? 'on social media, WhatsApp, or QR' : 'en redes, WhatsApp o con QR'}</p>
       </div>
-      <p style="margin:12px 0;font-size:13px;color:#6b7280;">Tu menú: <a href="${menuUrl}" style="color:#7c3aed;">${menuUrl}</a></p>
-      <a href="${dashUrl}" style="display:block;margin-top:20px;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">Ir a mi dashboard</a>
+      <p style="margin:12px 0;font-size:13px;color:#6b7280;">${en ? 'Your menu' : 'Tu menú'}: <a href="${menuUrl}" style="color:#7c3aed;">${menuUrl}</a></p>
+      <a href="${dashUrl}" style="display:block;margin-top:20px;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">${en ? 'Go to my dashboard' : 'Ir a mi dashboard'}</a>
     </div>
-    <p style="text-align:center;font-size:11px;color:#4b5563;margin-top:20px;">MENIUS — Menú digital para restaurantes</p>
+    <p style="text-align:center;font-size:11px;color:#4b5563;margin-top:20px;">MENIUS — ${en ? 'Digital menu for restaurants' : 'Menú digital para restaurantes'}</p>
   </div>
 </body></html>`;
 }
 
-function buildOnboardingDay3Email(type: 'subject' | 'html', restaurantName: string, dashUrl?: string, _menuUrl?: string): string {
-  if (type === 'subject') return `💡 3 tips para que ${restaurantName} reciba más pedidos`;
+function buildOnboardingDay3Email(type: 'subject' | 'html', restaurantName: string, dashUrl?: string, _menuUrl?: string, en = false): string {
+  if (type === 'subject') return en ? `💡 3 tips for ${restaurantName} to get more orders` : `💡 3 tips para que ${restaurantName} reciba más pedidos`;
   return `
 <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#050505;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:520px;margin:0 auto;padding:40px 20px;">
     <div style="text-align:center;margin-bottom:32px;"><h1 style="font-size:22px;font-weight:800;color:#7c3aed;margin:0;">MENIUS</h1></div>
     <div style="background:#0a0a0a;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);padding:32px 24px;">
-      <p style="margin:0 0 16px;font-size:16px;color:#f3f4f6;font-weight:600;">Tips para maximizar ${restaurantName} 💡</p>
-      <p style="margin:0 0 16px;font-size:15px;color:#9ca3af;line-height:1.6;">Ya llevas 3 días con MENIUS. Estos tips te ayudarán a sacarle el máximo:</p>
+      <p style="margin:0 0 16px;font-size:16px;color:#f3f4f6;font-weight:600;">${en ? `Tips to maximize ${restaurantName} 💡` : `Tips para maximizar ${restaurantName} 💡`}</p>
+      <p style="margin:0 0 16px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? 'You\'ve been on MENIUS for 3 days. These tips will help you get the most out of it:' : 'Ya llevas 3 días con MENIUS. Estos tips te ayudarán a sacarle el máximo:'}</p>
       <div style="margin:0 0 12px;padding:14px;background:rgba(124,58,237,0.08);border-radius:10px;border-left:3px solid #7c3aed;">
-        <p style="margin:0;font-size:14px;color:#c4b5fd;"><strong>📸 Agrega fotos</strong> — Los productos con foto venden hasta 30% más</p>
+        <p style="margin:0;font-size:14px;color:#c4b5fd;"><strong>${en ? '📸 Add photos' : '📸 Agrega fotos'}</strong> — ${en ? 'Products with photos sell up to 30% more' : 'Los productos con foto venden hasta 30% más'}</p>
       </div>
       <div style="margin:0 0 12px;padding:14px;background:rgba(124,58,237,0.08);border-radius:10px;border-left:3px solid #7c3aed;">
-        <p style="margin:0;font-size:14px;color:#c4b5fd;"><strong>🤖 Importa con IA</strong> — Toma una foto de tu menú físico y la IA lo digitaliza completo</p>
+        <p style="margin:0;font-size:14px;color:#c4b5fd;"><strong>${en ? '🤖 Import with AI' : '🤖 Importa con IA'}</strong> — ${en ? 'Take a photo of your physical menu and AI digitizes it completely' : 'Toma una foto de tu menú físico y la IA lo digitaliza completo'}</p>
       </div>
       <div style="margin:0 0 12px;padding:14px;background:rgba(124,58,237,0.08);border-radius:10px;border-left:3px solid #7c3aed;">
-        <p style="margin:0;font-size:14px;color:#c4b5fd;"><strong>🔔 Activa notificaciones</strong> — Nunca pierdas un pedido</p>
+        <p style="margin:0;font-size:14px;color:#c4b5fd;"><strong>${en ? '🔔 Enable notifications' : '🔔 Activa notificaciones'}</strong> — ${en ? 'Never miss an order' : 'Nunca pierdas un pedido'}</p>
       </div>
-      <a href="${dashUrl}" style="display:block;margin-top:20px;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">Configurar ahora</a>
+      <a href="${dashUrl}" style="display:block;margin-top:20px;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">${en ? 'Set up now' : 'Configurar ahora'}</a>
     </div>
-    <p style="text-align:center;font-size:11px;color:#4b5563;margin-top:20px;">MENIUS — Menú digital para restaurantes</p>
+    <p style="text-align:center;font-size:11px;color:#4b5563;margin-top:20px;">MENIUS — ${en ? 'Digital menu for restaurants' : 'Menú digital para restaurantes'}</p>
   </div>
 </body></html>`;
 }
 
-function buildOnboardingDay7Email(type: 'subject' | 'html', restaurantName: string, dashUrl?: string, _menuUrl?: string): string {
-  if (type === 'subject') return `🚀 ${restaurantName}: tips avanzados para crecer con MENIUS`;
+function buildOnboardingDay7Email(type: 'subject' | 'html', restaurantName: string, dashUrl?: string, _menuUrl?: string, en = false): string {
+  if (type === 'subject') return en ? `🚀 ${restaurantName}: advanced tips to grow with MENIUS` : `🚀 ${restaurantName}: tips avanzados para crecer con MENIUS`;
   return `
 <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#050505;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:520px;margin:0 auto;padding:40px 20px;">
     <div style="text-align:center;margin-bottom:32px;"><h1 style="font-size:22px;font-weight:800;color:#7c3aed;margin:0;">MENIUS</h1></div>
     <div style="background:#0a0a0a;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);padding:32px 24px;">
-      <p style="margin:0 0 16px;font-size:16px;color:#f3f4f6;font-weight:600;">Una semana con MENIUS 🚀</p>
-      <p style="margin:0 0 16px;font-size:15px;color:#9ca3af;line-height:1.6;">¡Ya llevas una semana! Es hora de usar las herramientas avanzadas:</p>
+      <p style="margin:0 0 16px;font-size:16px;color:#f3f4f6;font-weight:600;">${en ? 'One week with MENIUS 🚀' : 'Una semana con MENIUS 🚀'}</p>
+      <p style="margin:0 0 16px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? 'You\'ve been here a week! Time to use the advanced tools:' : '¡Ya llevas una semana! Es hora de usar las herramientas avanzadas:'}</p>
       <div style="margin:0 0 12px;padding:14px;background:rgba(124,58,237,0.08);border-radius:10px;border-left:3px solid #7c3aed;">
-        <p style="margin:0;font-size:14px;color:#c4b5fd;"><strong>📧 Email marketing</strong> — Envía campañas a tus clientes con IA</p>
+        <p style="margin:0;font-size:14px;color:#c4b5fd;"><strong>${en ? '📧 Email marketing' : '📧 Email marketing'}</strong> — ${en ? 'Send AI-powered campaigns to your customers' : 'Envía campañas a tus clientes con IA'}</p>
       </div>
       <div style="margin:0 0 12px;padding:14px;background:rgba(124,58,237,0.08);border-radius:10px;border-left:3px solid #7c3aed;">
-        <p style="margin:0;font-size:14px;color:#c4b5fd;"><strong>📊 Analytics</strong> — Revisa tus métricas de pedidos y clientes</p>
+        <p style="margin:0;font-size:14px;color:#c4b5fd;"><strong>📊 Analytics</strong> — ${en ? 'Review your order and customer metrics' : 'Revisa tus métricas de pedidos y clientes'}</p>
       </div>
       <div style="margin:0 0 12px;padding:14px;background:rgba(124,58,237,0.08);border-radius:10px;border-left:3px solid #7c3aed;">
-        <p style="margin:0;font-size:14px;color:#c4b5fd;"><strong>🎯 Promociones</strong> — Crea códigos de descuento para atraer clientes</p>
+        <p style="margin:0;font-size:14px;color:#c4b5fd;"><strong>${en ? '🎯 Promotions' : '🎯 Promociones'}</strong> — ${en ? 'Create discount codes to attract customers' : 'Crea códigos de descuento para atraer clientes'}</p>
       </div>
       <div style="margin:16px 0;padding:12px;background:rgba(245,158,11,0.08);border-radius:10px;border:1px solid rgba(245,158,11,0.15);">
-        <p style="margin:0;font-size:13px;color:#fbbf24;">💡 <strong>¿Sabías?</strong> Con el plan Pro ($79/mes) puedes activar delivery, WhatsApp y tener hasta 3 usuarios.</p>
+        <p style="margin:0;font-size:13px;color:#fbbf24;">💡 <strong>${en ? 'Did you know?' : '¿Sabías?'}</strong> ${en ? 'With the Pro plan ($79/mo) you can enable delivery, WhatsApp, and have up to 3 users.' : 'Con el plan Pro ($79/mes) puedes activar delivery, WhatsApp y tener hasta 3 usuarios.'}</p>
       </div>
-      <a href="${dashUrl}/billing" style="display:block;margin-top:20px;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">Ver planes</a>
+      <a href="${dashUrl}/billing" style="display:block;margin-top:20px;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">${en ? 'View plans' : 'Ver planes'}</a>
     </div>
-    <p style="text-align:center;font-size:11px;color:#4b5563;margin-top:20px;">MENIUS — Menú digital para restaurantes</p>
+    <p style="text-align:center;font-size:11px;color:#4b5563;margin-top:20px;">MENIUS — ${en ? 'Digital menu for restaurants' : 'Menú digital para restaurantes'}</p>
   </div>
 </body></html>`;
 }
 
-function buildMonthlyReportEmail(restaurantName: string, orders: number, newCustomers: number, revenue: number, dashUrl: string): string {
+function buildMonthlyReportEmail(restaurantName: string, orders: number, newCustomers: number, revenue: number, dashUrl: string, en = false): string {
   return `
 <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#050505;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
@@ -590,34 +606,36 @@ function buildMonthlyReportEmail(restaurantName: string, orders: number, newCust
     <div style="text-align:center;margin-bottom:32px;"><h1 style="font-size:22px;font-weight:800;color:#7c3aed;margin:0;">MENIUS</h1></div>
     <div style="background:#0a0a0a;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);">
       <div style="background:linear-gradient(135deg,#7c3aed 0%,#4f46e5 100%);padding:28px 24px;text-align:center;">
-        <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0 0 4px;">Resumen mensual</p>
+        <p style="color:rgba(255,255,255,0.7);font-size:12px;margin:0 0 4px;">${en ? 'Monthly summary' : 'Resumen mensual'}</p>
         <h2 style="color:#fff;font-size:20px;font-weight:700;margin:0;">${restaurantName}</h2>
       </div>
       <div style="padding:28px 24px;">
         <div style="display:flex;gap:12px;margin-bottom:20px;">
           <div style="flex:1;background:rgba(124,58,237,0.08);border-radius:12px;padding:16px;text-align:center;">
             <p style="font-size:24px;font-weight:800;color:#7c3aed;margin:0;">${orders}</p>
-            <p style="font-size:11px;color:#9ca3af;margin:4px 0 0;">Pedidos</p>
+            <p style="font-size:11px;color:#9ca3af;margin:4px 0 0;">${en ? 'Orders' : 'Pedidos'}</p>
           </div>
           <div style="flex:1;background:rgba(16,185,129,0.08);border-radius:12px;padding:16px;text-align:center;">
             <p style="font-size:24px;font-weight:800;color:#10b981;margin:0;">${newCustomers}</p>
-            <p style="font-size:11px;color:#9ca3af;margin:4px 0 0;">Nuevos clientes</p>
+            <p style="font-size:11px;color:#9ca3af;margin:4px 0 0;">${en ? 'New customers' : 'Nuevos clientes'}</p>
           </div>
           <div style="flex:1;background:rgba(245,158,11,0.08);border-radius:12px;padding:16px;text-align:center;">
             <p style="font-size:24px;font-weight:800;color:#f59e0b;margin:0;">$${revenue.toFixed(0)}</p>
             <p style="font-size:11px;color:#9ca3af;margin:4px 0 0;">Revenue</p>
           </div>
         </div>
-        ${orders === 0 ? '<p style="margin:0 0 16px;font-size:14px;color:#9ca3af;line-height:1.6;">Aún no has recibido pedidos este mes. Comparte tu menú en redes sociales y WhatsApp para empezar a recibir.</p>' : '<p style="margin:0 0 16px;font-size:14px;color:#9ca3af;line-height:1.6;">¡Buen trabajo! Revisa tu analytics para ver tendencias y oportunidades de crecimiento.</p>'}
-        <a href="${dashUrl}" style="display:block;margin-top:16px;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">Ver analytics completo</a>
+        ${orders === 0
+          ? `<p style="margin:0 0 16px;font-size:14px;color:#9ca3af;line-height:1.6;">${en ? 'You haven\'t received any orders this month yet. Share your menu on social media and WhatsApp to start receiving them.' : 'Aún no has recibido pedidos este mes. Comparte tu menú en redes sociales y WhatsApp para empezar a recibir.'}</p>`
+          : `<p style="margin:0 0 16px;font-size:14px;color:#9ca3af;line-height:1.6;">${en ? 'Great job! Check your analytics to see trends and growth opportunities.' : '¡Buen trabajo! Revisa tu analytics para ver tendencias y oportunidades de crecimiento.'}</p>`}
+        <a href="${dashUrl}" style="display:block;margin-top:16px;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">${en ? 'View full analytics' : 'Ver analytics completo'}</a>
       </div>
     </div>
-    <p style="text-align:center;font-size:11px;color:#4b5563;margin-top:20px;">MENIUS — Menú digital para restaurantes</p>
+    <p style="text-align:center;font-size:11px;color:#4b5563;margin-top:20px;">MENIUS — ${en ? 'Digital menu for restaurants' : 'Menú digital para restaurantes'}</p>
   </div>
 </body></html>`;
 }
 
-function buildNoOrdersEmail(restaurantName: string, menuUrl: string, dashUrl: string): string {
+function buildNoOrdersEmail(restaurantName: string, menuUrl: string, dashUrl: string, en = false): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -628,21 +646,21 @@ function buildNoOrdersEmail(restaurantName: string, menuUrl: string, dashUrl: st
       <h1 style="font-size:22px;font-weight:800;color:#7c3aed;margin:0;">MENIUS</h1>
     </div>
     <div style="background:#0a0a0a;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.06);padding:32px 24px;">
-      <p style="margin:0 0 16px;font-size:16px;color:#f3f4f6;line-height:1.6;font-weight:600;">📊 Tips para recibir tus primeros pedidos</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">Tu menú digital de <strong style="color:#f3f4f6;">${restaurantName}</strong> está listo, pero aún no has recibido pedidos. Aquí van algunos tips:</p>
+      <p style="margin:0 0 16px;font-size:16px;color:#f3f4f6;line-height:1.6;font-weight:600;">${en ? '📊 Tips to get your first orders' : '📊 Tips para recibir tus primeros pedidos'}</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#9ca3af;line-height:1.6;">${en ? `Your digital menu for <strong style="color:#f3f4f6;">${restaurantName}</strong> is ready, but you haven't received any orders yet. Here are some tips:` : `Tu menú digital de <strong style="color:#f3f4f6;">${restaurantName}</strong> está listo, pero aún no has recibido pedidos. Aquí van algunos tips:`}</p>
       <div style="margin:16px 0;padding:16px;background:rgba(124,58,237,0.08);border-radius:12px;border:1px solid rgba(124,58,237,0.15);">
-        <p style="margin:0 0 8px;font-size:14px;color:#c4b5fd;">1. <strong>Comparte tu menú</strong> en redes sociales y WhatsApp</p>
-        <p style="margin:0 0 8px;font-size:14px;color:#c4b5fd;">2. <strong>Imprime QR codes</strong> para las mesas de tu restaurante</p>
-        <p style="margin:0 0 8px;font-size:14px;color:#c4b5fd;">3. <strong>Agrega fotos</strong> a tus productos — venden hasta 30% más</p>
-        <p style="margin:0;font-size:14px;color:#c4b5fd;">4. <strong>Activa notificaciones</strong> para no perder ningún pedido</p>
+        <p style="margin:0 0 8px;font-size:14px;color:#c4b5fd;">1. <strong>${en ? 'Share your menu' : 'Comparte tu menú'}</strong> ${en ? 'on social media and WhatsApp' : 'en redes sociales y WhatsApp'}</p>
+        <p style="margin:0 0 8px;font-size:14px;color:#c4b5fd;">2. <strong>${en ? 'Print QR codes' : 'Imprime QR codes'}</strong> ${en ? 'for your restaurant tables' : 'para las mesas de tu restaurante'}</p>
+        <p style="margin:0 0 8px;font-size:14px;color:#c4b5fd;">3. <strong>${en ? 'Add photos' : 'Agrega fotos'}</strong> ${en ? 'to your products — they sell up to 30% more' : 'a tus productos — venden hasta 30% más'}</p>
+        <p style="margin:0;font-size:14px;color:#c4b5fd;">4. <strong>${en ? 'Enable notifications' : 'Activa notificaciones'}</strong> ${en ? 'so you never miss an order' : 'para no perder ningún pedido'}</p>
       </div>
-      <p style="margin:0 0 12px;font-size:13px;color:#6b7280;line-height:1.6;">Tu menú: <a href="${menuUrl}" style="color:#7c3aed;">${menuUrl}</a></p>
+      <p style="margin:0 0 12px;font-size:13px;color:#6b7280;line-height:1.6;">${en ? 'Your menu' : 'Tu menú'}: <a href="${menuUrl}" style="color:#7c3aed;">${menuUrl}</a></p>
       <a href="${dashUrl}" style="display:block;margin-top:16px;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
-        Ir a mi dashboard
+        ${en ? 'Go to my dashboard' : 'Ir a mi dashboard'}
       </a>
     </div>
     <p style="text-align:center;font-size:11px;color:#4b5563;margin-top:20px;">
-      MENIUS — Menú digital para restaurantes
+      MENIUS — ${en ? 'Digital menu for restaurants' : 'Menú digital para restaurantes'}
     </p>
   </div>
 </body>

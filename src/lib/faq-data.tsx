@@ -22,7 +22,7 @@ const es: FaqCategory[] = [
       { q: '¿Mis clientes necesitan descargar una app?', a: 'No. Tu menú funciona directamente en el navegador del celular. El cliente escanea el código QR y ve tu menú al instante, sin descargar nada ni registrarse. Es una Progressive Web App (PWA) ultrarrápida optimizada para móvil.' },
       { q: '¿En qué países funciona MENIUS?', a: 'MENIUS funciona en cualquier país del mundo. La plataforma soporta múltiples monedas (USD, MXN, COP, PEN, EUR, ARS, CLP y más) y tu menú puede estar en español o inglés. Los pagos online se procesan a través de Stripe, disponible en más de 46 países.' },
       { q: '¿MENIUS funciona para todo tipo de restaurante?', a: 'Sí. Funciona para taquerías, pizzerías, cafeterías, sushi bars, food trucks, panaderías, heladerías, bares, restaurantes de servicio completo, cocinas fantasma (dark kitchens), catering y cualquier negocio de alimentos y bebidas.' },
-      { q: '¿Puedo ver un demo antes de registrarme?', a: <>Sí. Tenemos demos en vivo disponibles sin necesidad de crear cuenta. Puedes explorar un restaurante de ejemplo completo con menú, carrito, checkout y seguimiento de pedido. <Link href="/r/demo" className={lnk}>Ver demo en vivo →</Link></> },
+      { q: '¿Puedo ver un demo antes de registrarme?', a: <>Sí. Tenemos demos en vivo disponibles sin necesidad de crear cuenta. Puedes explorar un restaurante de ejemplo completo con menú, carrito, checkout y seguimiento de pedido. <Link href="/demo" className={lnk}>Ver demo en vivo →</Link></> },
     ],
   },
   {
@@ -60,7 +60,7 @@ const es: FaqCategory[] = [
     icon: '💰',
     questions: [
       { q: '¿Hay comisiones por pedido?', a: 'No. MENIUS no cobra ninguna comisión ni porcentaje por cada pedido o venta. Pagas una tarifa mensual fija según tu plan y listo. El 100% de lo que vendes es tuyo (menos la tarifa estándar de Stripe si usas pagos online).' },
-      { q: '¿Puedo probar MENIUS antes de pagar?', a: <>Sí. Todos los planes incluyen 14 días de prueba gratuita con acceso a todas las funciones. No necesitas tarjeta de crédito para empezar. También puedes explorar nuestros <Link href="/r/demo" className={lnk}>demos en vivo</Link> sin crear una cuenta.</> },
+      { q: '¿Puedo probar MENIUS antes de pagar?', a: <>Sí. Todos los planes incluyen 14 días de prueba gratuita con acceso a todas las funciones. No necesitas tarjeta de crédito para empezar. También puedes explorar nuestros <Link href="/demo" className={lnk}>demos en vivo</Link> sin crear una cuenta.</> },
       { q: '¿Qué pasa después de los 14 días de prueba?', a: 'Al terminar la prueba, eliges el plan que prefieras y continúas sin interrupciones. Si no eliges un plan, tu cuenta se pausa temporalmente, pero nunca pierdes tus datos, menú ni configuración. Puedes reactivar en cualquier momento.' },
       { q: '¿Cuáles son los planes disponibles?', a: <>Ofrecemos tres planes: Starter ($39/mes) con menú digital, QR elegantes, MENIUS AI, Google Maps y login con Google; Pro ($79/mes) con delivery, WhatsApp, cocina KDS, analytics avanzado y promociones; y Business ($149/mes) con todo ilimitado, dominio propio y soporte dedicado. Todos sin comisiones por pedido. <Link href="/#precios" className={lnk}>Ver planes y precios →</Link></> },
       { q: '¿Puedo cambiar de plan en cualquier momento?', a: 'Sí. Puedes subir o bajar de plan cuando quieras desde tu dashboard. Los cambios se aplican inmediatamente y el cobro se ajusta de forma proporcional (prorrateado). Sin penalidades ni contratos.' },
@@ -142,7 +142,7 @@ const en: FaqCategory[] = [
       { q: 'Do my customers need to download an app?', a: 'No. Your menu works directly in the phone\'s browser. The customer scans the QR code and sees your menu instantly, without downloading anything or signing up. It\'s an ultrafast Progressive Web App (PWA) optimized for mobile.' },
       { q: 'In which countries does MENIUS work?', a: 'MENIUS works in any country in the world. The platform supports multiple currencies (USD, MXN, COP, PEN, EUR, ARS, CLP and more) and your menu can be in Spanish or English. Online payments are processed through Stripe, available in over 46 countries.' },
       { q: 'Does MENIUS work for all types of restaurants?', a: 'Yes. It works for taco shops, pizzerias, cafés, sushi bars, food trucks, bakeries, ice cream shops, bars, full-service restaurants, ghost kitchens (dark kitchens), catering, and any food and beverage business.' },
-      { q: 'Can I see a demo before signing up?', a: <>Yes. We have live demos available without creating an account. You can explore a complete sample restaurant with menu, cart, checkout, and order tracking. <Link href="/r/demo" className={lnk}>View live demo →</Link></> },
+      { q: 'Can I see a demo before signing up?', a: <>Yes. We have live demos available without creating an account. You can explore a complete sample restaurant with menu, cart, checkout, and order tracking. <Link href="/demo" className={lnk}>View live demo →</Link></> },
     ],
   },
   {
@@ -180,7 +180,7 @@ const en: FaqCategory[] = [
     icon: '💰',
     questions: [
       { q: 'Are there per-order commissions?', a: 'No. MENIUS does not charge any commission or percentage on each order or sale. You pay a fixed monthly fee based on your plan and that\'s it. 100% of what you sell is yours (minus the standard Stripe fee if you use online payments).' },
-      { q: 'Can I try MENIUS before paying?', a: <>Yes. All plans include a 14-day free trial with access to all features. No credit card required to get started. You can also explore our <Link href="/r/demo" className={lnk}>live demos</Link> without creating an account.</> },
+      { q: 'Can I try MENIUS before paying?', a: <>Yes. All plans include a 14-day free trial with access to all features. No credit card required to get started. You can also explore our <Link href="/demo" className={lnk}>live demos</Link> without creating an account.</> },
       { q: 'What happens after the 14-day trial?', a: 'When the trial ends, you choose the plan you prefer and continue without interruptions. If you don\'t choose a plan, your account is temporarily paused, but you never lose your data, menu, or settings. You can reactivate at any time.' },
       { q: 'What plans are available?', a: <>We offer three plans: Starter ($39/mo) with digital menu, elegant QR codes, MENIUS AI, Google Maps, and Google login; Pro ($79/mo) with delivery, WhatsApp, kitchen KDS, advanced analytics, and promotions; and Business ($149/mo) with everything unlimited, custom domain, and dedicated support. All with zero per-order commissions. <Link href="/#precios" className={lnk}>View plans and pricing →</Link></> },
       { q: 'Can I change plans at any time?', a: 'Yes. You can upgrade or downgrade your plan whenever you want from your dashboard. Changes apply immediately and billing is adjusted proportionally (prorated). No penalties or contracts.' },

@@ -2,7 +2,7 @@
 
 import { memo, useState, useCallback } from 'react';
 import Image from 'next/image';
-import { Plus, Check, UtensilsCrossed, ChevronRight, Heart, Ban } from 'lucide-react';
+import { Plus, Check, UtensilsCrossed, ChevronRight, Heart, Ban, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
@@ -20,6 +20,7 @@ interface ProductCardProps {
   popularLabel: string;
   locale?: string;
   defaultLocale?: string;
+  isOwner?: boolean;
 }
 
 export const ProductCard = memo(function ProductCard({
@@ -32,6 +33,7 @@ export const ProductCard = memo(function ProductCard({
   popularLabel,
   locale = 'es',
   defaultLocale = 'es',
+  isOwner = false,
 }: ProductCardProps) {
   const hasVariants = (product.variants?.length ?? 0) > 0;
   const hasExtras = (product.extras?.length ?? 0) > 0;
@@ -51,7 +53,7 @@ export const ProductCard = memo(function ProductCard({
 
   const handleClick = () => {
     if (outOfStock) return;
-    if (hasModifiers) {
+    if (isOwner || hasModifiers) {
       onSelect(product);
     } else {
       haptic();
@@ -224,6 +226,11 @@ export const ProductCard = memo(function ProductCard({
             >
               <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover:text-gray-500')} />
             </button>
+            {isOwner && (
+              <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-purple-600/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg">
+                <Pencil className="w-3.5 h-3.5 text-white" />
+              </div>
+            )}
           </div>
         ) : (
           <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
@@ -250,6 +257,11 @@ export const ProductCard = memo(function ProductCard({
             >
               <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover:text-gray-500')} />
             </button>
+            {isOwner && (
+              <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-purple-600/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg">
+                <Pencil className="w-3.5 h-3.5 text-white" />
+              </div>
+            )}
           </div>
         )}
 

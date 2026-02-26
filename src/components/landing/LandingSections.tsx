@@ -552,7 +552,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
                 {t.finalCta.ctaPrimary} &rarr;
               </Link>
               <Link
-                href="/r/demo"
+                href="/demo"
                 className="w-full sm:w-auto px-10 py-4 rounded-2xl border border-white/10 text-gray-200 font-semibold text-base sm:text-[15px] hover:text-white hover:border-white/20 transition-all"
               >
                 {t.finalCta.ctaSecondary}

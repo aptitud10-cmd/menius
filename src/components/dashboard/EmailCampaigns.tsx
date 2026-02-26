@@ -7,11 +7,12 @@ import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 interface Props {
   restaurantName: string;
   menuSlug: string;
+  restaurantLocale: string;
   totalCustomers: number;
   customersWithEmail: number;
 }
 
-const TEMPLATES = [
+const TEMPLATES_ES = [
   {
     nameKey: 'email_tplPromo' as const,
     subject: '🎉 ¡Oferta especial en {restaurante}!',
@@ -38,8 +39,37 @@ const TEMPLATES = [
   },
 ];
 
-export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, customersWithEmail }: Props) {
+const TEMPLATES_EN = [
+  {
+    nameKey: 'email_tplPromo' as const,
+    subject: '🎉 Special offer at {restaurante}!',
+    body: 'Hi {nombre},\n\nWe have a special promotion just for you! This week enjoy exclusive discounts on our best dishes.\n\nDon\'t miss out, we\'re waiting for you.',
+    cta: 'View menu',
+  },
+  {
+    nameKey: 'email_tplMissYou' as const,
+    subject: '😢 We miss you, {nombre}',
+    body: 'Hi {nombre},\n\nIt\'s been a while since your last visit and we miss you. We\'d love to give you something special: an exclusive discount on your next order.\n\nWe hope to see you again soon!',
+    cta: 'Order now',
+  },
+  {
+    nameKey: 'email_tplNewProduct' as const,
+    subject: '🆕 New on the menu at {restaurante}!',
+    body: 'Hi {nombre},\n\nWe\'re excited to introduce what\'s new on our menu. We\'ve added incredible dishes we know you\'ll love.\n\nBe one of the first to try them.',
+    cta: 'Discover new items',
+  },
+  {
+    nameKey: 'email_tplVipThanks' as const,
+    subject: '⭐ Thanks for being a loyal customer, {nombre}',
+    body: 'Hi {nombre},\n\nWe want to thank you for your loyalty. With {total_ordenes} orders and ${total_gastado} in purchases, you\'re one of our most valued customers.\n\nAs a thank you, we have a special surprise for your next visit.',
+    cta: 'Claim my surprise',
+  },
+];
+
+export function EmailCampaigns({ restaurantName, menuSlug, restaurantLocale, totalCustomers, customersWithEmail }: Props) {
   const { t } = useDashboardLocale();
+  const en = restaurantLocale === 'en';
+  const TEMPLATES = en ? TEMPLATES_EN : TEMPLATES_ES;
 
   const FILTERS = [
     { value: 'all', label: t.email_filterAll, desc: t.email_filterAllDesc },
@@ -50,7 +80,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
   ];
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
-  const [ctaText, setCtaText] = useState('Ver menú');
+  const [ctaText, setCtaText] = useState(en ? 'View menu' : 'Ver menú');
   const [filter, setFilter] = useState('all');
   const [sending, setSending] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
@@ -70,6 +100,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
           campaignType: aiType,
           audience: filter,
           restaurantName,
+          locale: restaurantLocale,
           customPrompt: aiCustomPrompt.trim() || undefined,
         }),
       });
@@ -77,7 +108,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
       if (!res.ok) throw new Error(data.error || 'Error generando contenido');
       setSubject(data.subject || '');
       setMessage(data.body || '');
-      setCtaText(data.cta || 'Ver menú');
+      setCtaText(data.cta || (en ? 'View menu' : 'Ver menú'));
     } catch (err) {
       setError(err instanceof Error ? err.message : t.email_errorGenerating);
     } finally {
@@ -108,7 +139,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
         body: JSON.stringify({
           subject: subject.trim(),
           message: message.trim(),
-          ctaText: ctaText.trim() || 'Ver menú',
+          ctaText: ctaText.trim() || (en ? 'View menu' : 'Ver menú'),
           ctaUrl: `${appUrl}/r/${menuSlug}`,
           filter,
         }),
@@ -198,7 +229,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
               type="text"
               value={aiCustomPrompt}
               onChange={(e) => setAiCustomPrompt(e.target.value)}
-              placeholder="Ej: Menciona el 2x1 en pizzas..."
+              placeholder={en ? 'E.g.: Mention the 2-for-1 pizza deal...' : 'Ej: Menciona el 2x1 en pizzas...'}
               className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
             />
           </div>
@@ -239,10 +270,10 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
             type="text"
             value={subject}
             onChange={e => setSubject(e.target.value)}
-            placeholder="🎉 ¡Oferta especial en tu restaurante!"
+            placeholder={en ? '🎉 Special offer at your restaurant!' : '🎉 ¡Oferta especial en tu restaurante!'}
             className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
           />
-          <p className="text-[10px] text-gray-600 mt-1">Usa {'{nombre}'} para personalizar con el nombre del cliente, {'{restaurante}'} para tu restaurante</p>
+          <p className="text-[10px] text-gray-600 mt-1">{en ? `Use {'{nombre}'} for customer name, {'{restaurante}'} for your restaurant` : `Usa {'{nombre}'} para personalizar con el nombre del cliente, {'{restaurante}'} para tu restaurante`}</p>
         </div>
 
         <div>
@@ -251,7 +282,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
             value={message}
             onChange={e => setMessage(e.target.value)}
             rows={6}
-            placeholder="Hola {nombre}, tenemos algo especial para ti..."
+            placeholder={en ? 'Hi {nombre}, we have something special for you...' : 'Hola {nombre}, tenemos algo especial para ti...'}
             className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 resize-none"
           />
           <p className="text-[10px] text-gray-600 mt-1">Variables: {'{nombre}'}, {'{total_ordenes}'}, {'{total_gastado}'}, {'{restaurante}'}</p>
@@ -263,7 +294,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, totalCustomers, custo
             type="text"
             value={ctaText}
             onChange={e => setCtaText(e.target.value)}
-            placeholder="Ver menú"
+            placeholder={en ? 'View menu' : 'Ver menú'}
             className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30"
           />
         </div>

@@ -38,7 +38,7 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
                 <span className="inline-block ml-1.5 group-hover:translate-x-0.5 transition-transform">&rarr;</span>
               </Link>
               <Link
-                href="/r/demo"
+                href="/demo"
                 className="w-full sm:w-auto px-8 py-4 rounded-2xl border border-white/10 text-gray-200 font-semibold text-base hover:text-white hover:border-white/20 hover:bg-white/[0.03] transition-all text-center"
               >
                 {h.ctaSecondary}

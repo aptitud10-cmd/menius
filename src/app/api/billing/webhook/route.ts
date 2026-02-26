@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
         if (restaurantId) {
           const { data } = await supabase
             .from('restaurants')
-            .select('id, name, owner_user_id')
+            .select('id, name, owner_user_id, locale')
             .eq('id', restaurantId)
             .maybeSingle();
           restaurantData = data;
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
           if (subRow) {
             const { data } = await supabase
               .from('restaurants')
-              .select('id, name, owner_user_id')
+              .select('id, name, owner_user_id, locale')
               .eq('id', subRow.restaurant_id)
               .maybeSingle();
             restaurantData = data;
@@ -174,17 +174,22 @@ export async function POST(request: NextRequest) {
               const daysLeft = Math.max(1, Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
               const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
+              const rLocale = restaurantData.locale ?? 'es';
+              const isEn = rLocale === 'en';
               const { sendEmail, buildTrialEndingEmail } = await import('@/lib/notifications/email');
               const html = buildTrialEndingEmail({
                 ownerName,
                 restaurantName: restaurantData.name,
                 daysLeft,
                 billingUrl: `${appUrl}/app/billing`,
+                locale: rLocale,
               });
 
               await sendEmail({
                 to: ownerEmail,
-                subject: `${daysLeft <= 1 ? '🚨' : '⏰'} Tu prueba de MENIUS termina en ${daysLeft} día${daysLeft !== 1 ? 's' : ''}`,
+                subject: isEn
+                  ? `${daysLeft <= 1 ? '🚨' : '⏰'} Your MENIUS trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`
+                  : `${daysLeft <= 1 ? '🚨' : '⏰'} Tu prueba de MENIUS termina en ${daysLeft} día${daysLeft !== 1 ? 's' : ''}`,
                 html,
               });
             }

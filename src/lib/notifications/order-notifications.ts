@@ -29,7 +29,7 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('name, slug, currency, notification_whatsapp, notification_email, notifications_enabled')
+      .select('name, slug, currency, locale, notification_whatsapp, notification_email, notifications_enabled')
       .eq('id', restaurantId)
       .maybeSingle();
 
@@ -55,6 +55,9 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
     }));
 
     // Email to customer
+    const locale = restaurant.locale ?? 'es';
+    const en = locale === 'en';
+
     if (notificationsOn && customerEmail) {
       const html = buildOrderConfirmationEmail({
         customerName,
@@ -63,16 +66,18 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
         total: totalFormatted,
         items: emailItems,
         trackingUrl,
+        locale,
       });
 
       sendEmail({
         to: customerEmail,
-        subject: `Pedido #${orderNumber} confirmado — ${restaurant.name}`,
+        subject: en
+          ? `Order #${orderNumber} confirmed — ${restaurant.name}`
+          : `Pedido #${orderNumber} confirmado — ${restaurant.name}`,
         html,
       }).catch(() => {});
     }
 
-    // Email to restaurant owner
     if (notificationsOn && restaurant.notification_email) {
       const ownerHtml = buildOwnerNewOrderEmail({
         orderNumber,
@@ -82,11 +87,14 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
         total: totalFormatted,
         items: emailItems,
         dashboardUrl: `${appUrl}/app/orders`,
+        locale,
       });
 
       sendEmail({
         to: restaurant.notification_email,
-        subject: `🔔 Nuevo pedido #${orderNumber} — ${customerName} — ${totalFormatted}`,
+        subject: en
+          ? `🔔 New order #${orderNumber} — ${customerName} — ${totalFormatted}`
+          : `🔔 Nuevo pedido #${orderNumber} — ${customerName} — ${totalFormatted}`,
         html: ownerHtml,
       }).catch(() => {});
     }
@@ -115,12 +123,13 @@ export async function notifyStatusChange(params: {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('name, slug, notifications_enabled')
+      .select('name, slug, locale, notifications_enabled')
       .eq('id', restaurantId)
       .maybeSingle();
 
     if (!restaurant || restaurant.notifications_enabled === false) return;
 
+    const rLocale = restaurant.locale ?? 'es';
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
     const trackingUrl = `${appUrl}/r/${restaurant.slug}/orden/${orderNumber}`;
 
@@ -131,11 +140,12 @@ export async function notifyStatusChange(params: {
         restaurantName: restaurant.name,
         status,
         trackingUrl,
+        locale: rLocale,
       });
 
       sendEmail({
         to: customerEmail,
-        subject: getStatusSubject(status, orderNumber, restaurant.name),
+        subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale),
         html,
       }).catch(() => {});
     }
@@ -149,13 +159,23 @@ export async function notifyStatusChange(params: {
   }
 }
 
-function getStatusSubject(status: string, orderNumber: string, restaurantName: string): string {
-  const subjects: Record<string, string> = {
-    confirmed: `Pedido #${orderNumber} confirmado`,
-    preparing: `Tu pedido #${orderNumber} se está preparando`,
-    ready: `¡Tu pedido #${orderNumber} está listo!`,
-    delivered: `Pedido #${orderNumber} entregado — ¡Buen provecho!`,
-    cancelled: `Pedido #${orderNumber} cancelado`,
-  };
-  return `${subjects[status] ?? `Actualización pedido #${orderNumber}`} — ${restaurantName}`;
+function getStatusSubject(status: string, orderNumber: string, restaurantName: string, locale = 'es'): string {
+  const en = locale === 'en';
+  const subjects: Record<string, string> = en
+    ? {
+        confirmed: `Order #${orderNumber} confirmed`,
+        preparing: `Your order #${orderNumber} is being prepared`,
+        ready: `Your order #${orderNumber} is ready!`,
+        delivered: `Order #${orderNumber} delivered — Enjoy!`,
+        cancelled: `Order #${orderNumber} cancelled`,
+      }
+    : {
+        confirmed: `Pedido #${orderNumber} confirmado`,
+        preparing: `Tu pedido #${orderNumber} se está preparando`,
+        ready: `¡Tu pedido #${orderNumber} está listo!`,
+        delivered: `Pedido #${orderNumber} entregado — ¡Buen provecho!`,
+        cancelled: `Pedido #${orderNumber} cancelado`,
+      };
+  const fallback = en ? `Order #${orderNumber} update` : `Actualización pedido #${orderNumber}`;
+  return `${subjects[status] ?? fallback} — ${restaurantName}`;
 }

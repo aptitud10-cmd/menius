@@ -24,7 +24,7 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
           <Link href="/#precios" className="text-sm text-gray-400 hover:text-white transition-colors">{n.pricing}</Link>
           <Link href="/blog" className="text-sm text-gray-400 hover:text-white transition-colors">{n.blog}</Link>
           <Link href="/faq" className="text-sm text-gray-400 hover:text-white transition-colors">{n.faq}</Link>
-          <Link href="/r/demo" className="text-sm text-gray-400 hover:text-white transition-colors">{n.demo}</Link>
+          <Link href="/demo" className="text-sm text-gray-400 hover:text-white transition-colors">{n.demo}</Link>
         </nav>
 
         <div className="hidden md:flex items-center gap-4">
@@ -53,7 +53,7 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
           <nav className="flex flex-col px-5 py-4 gap-1">
             <Link href="/#funciones" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors">{n.features}</Link>
             <Link href="/#precios" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors">{n.pricing}</Link>
-            <Link href="/r/demo" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors">{n.demo}</Link>
+            <Link href="/demo" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors">{n.demo}</Link>
             <Link href="/blog" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors">{n.blog}</Link>
             <Link href="/faq" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors">{n.faq}</Link>
             <div className="h-px bg-white/[0.06] my-2" />

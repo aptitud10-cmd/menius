@@ -7,19 +7,29 @@ import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 interface Props {
   restaurantName: string;
   menuSlug: string;
+  restaurantLocale: string;
   totalCustomers: number;
   customersWithPhone: number;
 }
 
-const TEMPLATES = [
+const TEMPLATES_ES = [
   { nameKey: 'sms_tplPromo' as const, text: '🎉 ¡Hola {nombre}! Hoy tenemos ofertas especiales en {restaurante}. Haz tu pedido: {link}' },
   { nameKey: 'sms_tplMissYou' as const, text: '😢 {nombre}, hace tiempo que no nos visitas. ¡Te esperamos! Pide aquí: {link}' },
   { nameKey: 'sms_tplNewDish' as const, text: '🆕 ¡Nuevo en {restaurante}! No te pierdas lo último en nuestro menú 🔥 {link}' },
   { nameKey: 'sms_tplThanks' as const, text: '⭐ Gracias por ser parte de {restaurante}, {nombre}. ¡Tu próximo pedido tiene sorpresa! {link}' },
 ];
 
-export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, customersWithPhone }: Props) {
+const TEMPLATES_EN = [
+  { nameKey: 'sms_tplPromo' as const, text: '🎉 Hi {nombre}! We have special offers today at {restaurante}. Order now: {link}' },
+  { nameKey: 'sms_tplMissYou' as const, text: '😢 {nombre}, it\'s been a while! We miss you. Order here: {link}' },
+  { nameKey: 'sms_tplNewDish' as const, text: '🆕 New at {restaurante}! Don\'t miss the latest on our menu 🔥 {link}' },
+  { nameKey: 'sms_tplThanks' as const, text: '⭐ Thanks for being part of {restaurante}, {nombre}. Your next order has a surprise! {link}' },
+];
+
+export function SMSCampaigns({ restaurantName, menuSlug, restaurantLocale, totalCustomers, customersWithPhone }: Props) {
   const { t } = useDashboardLocale();
+  const en = restaurantLocale === 'en';
+  const TEMPLATES = en ? TEMPLATES_EN : TEMPLATES_ES;
 
   const FILTERS = [
     { value: 'all', label: t.sms_filterAll, desc: t.sms_filterAllDesc },
@@ -50,7 +60,8 @@ export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, custome
           campaignType: 'promo',
           audience: filter,
           restaurantName,
-          customPrompt: `Genera SOLO un mensaje SMS corto (máximo 160 caracteres). ${aiPrompt}`.trim(),
+          locale: restaurantLocale,
+          customPrompt: (en ? `Generate ONLY a short SMS message (max 160 characters). ${aiPrompt}` : `Genera SOLO un mensaje SMS corto (máximo 160 caracteres). ${aiPrompt}`).trim(),
         }),
       });
       const data = await res.json();
@@ -160,7 +171,7 @@ export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, custome
           type="text"
           value={aiPrompt}
           onChange={(e) => setAiPrompt(e.target.value)}
-          placeholder="Ej: 2x1 en hamburguesas este viernes..."
+          placeholder={en ? 'E.g.: 2-for-1 burgers this Friday...' : 'Ej: 2x1 en hamburguesas este viernes...'}
           className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
         />
         <button
@@ -198,7 +209,7 @@ export function SMSCampaigns({ restaurantName, menuSlug, totalCustomers, custome
             onChange={e => setMessage(e.target.value)}
             rows={3}
             maxLength={320}
-            placeholder="Hola {nombre}, tenemos algo especial para ti..."
+            placeholder={en ? 'Hi {nombre}, we have something special for you...' : 'Hola {nombre}, tenemos algo especial para ti...'}
             className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/30 resize-none"
           />
           <div className="flex justify-between mt-1">

@@ -113,7 +113,7 @@ export default function FaqPage() {
               <a href="mailto:soporte@menius.app" className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white text-black font-medium text-[15px] hover:bg-gray-100 transition-all btn-glow">
                 soporte@menius.app
               </a>
-              <Link href="/r/demo" className="w-full sm:w-auto px-8 py-3.5 rounded-xl border border-white/10 text-gray-400 font-medium text-[15px] hover:text-white hover:border-white/20 transition-all">
+              <Link href="/demo" className="w-full sm:w-auto px-8 py-3.5 rounded-xl border border-white/10 text-gray-400 font-medium text-[15px] hover:text-white hover:border-white/20 transition-all">
                 {pt.ctaDemo}
               </Link>
             </div>

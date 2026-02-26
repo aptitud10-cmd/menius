@@ -6,11 +6,14 @@ const MAIN_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || '';
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } });
 
+  let detectedLocale: string | null = null;
   if (!request.cookies.get('menius_locale')?.value) {
     const acceptLang = request.headers.get('accept-language') || '';
     const primaryLang = acceptLang.split(',')[0]?.split(';')[0]?.split('-')[0]?.trim().toLowerCase();
-    const detected = primaryLang === 'en' ? 'en' : 'es';
-    response.cookies.set('menius_locale', detected, {
+    detectedLocale = primaryLang === 'en' ? 'en' : 'es';
+    request.cookies.set({ name: 'menius_locale', value: detectedLocale });
+    response = NextResponse.next({ request: { headers: request.headers } });
+    response.cookies.set('menius_locale', detectedLocale, {
       path: '/',
       maxAge: 365 * 24 * 60 * 60,
       sameSite: 'lax',
@@ -29,6 +32,13 @@ export async function middleware(request: NextRequest) {
           request.cookies.set({ name, value, ...options });
           response = NextResponse.next({ request: { headers: request.headers } });
           response.cookies.set({ name, value, ...options });
+          if (detectedLocale) {
+            response.cookies.set('menius_locale', detectedLocale, {
+              path: '/',
+              maxAge: 365 * 24 * 60 * 60,
+              sameSite: 'lax',
+            });
+          }
         },
         remove(name: string, options: CookieOptions) {
           request.cookies.set({ name, value: '', ...options });

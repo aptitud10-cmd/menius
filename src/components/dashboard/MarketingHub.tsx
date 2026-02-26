@@ -12,6 +12,7 @@ import { AutomationsPanel } from './AutomationsPanel';
 interface Props {
   restaurantName: string;
   menuSlug: string;
+  restaurantLocale: string;
   totalCustomers: number;
   customersWithEmail: number;
   customersWithPhone: number;
@@ -65,6 +66,7 @@ export function MarketingHub(props: Props) {
         <EmailCampaigns
           restaurantName={props.restaurantName}
           menuSlug={props.menuSlug}
+          restaurantLocale={props.restaurantLocale}
           totalCustomers={props.totalCustomers}
           customersWithEmail={props.customersWithEmail}
         />
@@ -74,6 +76,7 @@ export function MarketingHub(props: Props) {
         <SocialMediaManager
           restaurantName={props.restaurantName}
           menuSlug={props.menuSlug}
+          restaurantLocale={props.restaurantLocale}
         />
       )}
 
@@ -81,6 +84,7 @@ export function MarketingHub(props: Props) {
         <SMSCampaigns
           restaurantName={props.restaurantName}
           menuSlug={props.menuSlug}
+          restaurantLocale={props.restaurantLocale}
           totalCustomers={props.totalCustomers}
           customersWithPhone={props.customersWithPhone}
         />

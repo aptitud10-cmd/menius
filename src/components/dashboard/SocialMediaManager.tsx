@@ -8,6 +8,7 @@ import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 interface Props {
   restaurantName: string;
   menuSlug: string;
+  restaurantLocale: string;
 }
 
 const PLATFORMS = [
@@ -27,7 +28,7 @@ interface GeneratedPost {
   tip: string;
 }
 
-export function SocialMediaManager({ restaurantName, menuSlug }: Props) {
+export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale }: Props) {
   const { t } = useDashboardLocale();
 
   const POST_TYPES = [
@@ -56,7 +57,7 @@ export function SocialMediaManager({ restaurantName, menuSlug }: Props) {
       const res = await fetch('/api/ai/social-post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform, postType, customPrompt: customPrompt.trim() || undefined }),
+        body: JSON.stringify({ platform, postType, locale: restaurantLocale, customPrompt: customPrompt.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error generando post');
@@ -128,7 +129,7 @@ export function SocialMediaManager({ restaurantName, menuSlug }: Props) {
               type="text"
               value={customPrompt}
               onChange={(e) => setCustomPrompt(e.target.value)}
-              placeholder="Ej: Menciona el 2x1 en pizzas los martes..."
+              placeholder={restaurantLocale === 'en' ? 'E.g.: Mention the 2-for-1 pizza deal on Tuesdays...' : 'Ej: Menciona el 2x1 en pizzas los martes...'}
               className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
             />
           </div>

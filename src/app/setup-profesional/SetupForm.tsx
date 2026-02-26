@@ -11,8 +11,78 @@ interface PackageOption {
   price: number;
 }
 
-export function SetupForm({ packages }: { packages: PackageOption[] }) {
+const formT = {
+  es: {
+    serviceLabel: 'Servicio *',
+    priceMonthly: '/mes',
+    priceOneTime: 'único',
+    nameLabel: 'Tu nombre *',
+    namePlaceholder: 'Juan Pérez',
+    emailLabel: 'Email *',
+    emailPlaceholder: 'juan@mirestaurante.com',
+    restaurantLabel: 'Nombre del restaurante *',
+    restaurantPlaceholder: 'Mi Restaurante',
+    phoneLabel: 'Teléfono (opcional)',
+    menuLabel: '¿Cómo tienes tu menú actualmente?',
+    menuDefault: 'Selecciona una opción',
+    menuOptions: [
+      { value: 'printed', label: 'Menú impreso / físico' },
+      { value: 'pdf', label: 'PDF o documento digital' },
+      { value: 'photos', label: 'Fotos del menú' },
+      { value: 'other_platform', label: 'En otra plataforma digital' },
+      { value: 'none', label: 'No tengo menú aún' },
+    ],
+    messageLabel: 'Mensaje adicional (opcional)',
+    messagePlaceholder: 'Cuéntanos sobre tu restaurante, cuántos productos tienes, necesidades especiales...',
+    submitSending: 'Enviando...',
+    submitButton: 'Enviar solicitud',
+    submitFooter: 'Te contactaremos en menos de 24 horas. Sin compromiso.',
+    errorRequired: 'Por favor completa todos los campos requeridos.',
+    errorGeneric: 'Error enviando la solicitud. Intenta de nuevo.',
+    successTitle: '¡Solicitud enviada!',
+    successPrefix: 'Recibimos tu solicitud. Te contactaremos en menos de',
+    successHours: '24 horas',
+    successMid: 'al email',
+    successSuffix: 'para confirmar los detalles y comenzar.',
+  },
+  en: {
+    serviceLabel: 'Service *',
+    priceMonthly: '/mo',
+    priceOneTime: 'one-time',
+    nameLabel: 'Your name *',
+    namePlaceholder: 'John Smith',
+    emailLabel: 'Email *',
+    emailPlaceholder: 'john@myrestaurant.com',
+    restaurantLabel: 'Restaurant name *',
+    restaurantPlaceholder: 'My Restaurant',
+    phoneLabel: 'Phone (optional)',
+    menuLabel: 'How do you currently have your menu?',
+    menuDefault: 'Select an option',
+    menuOptions: [
+      { value: 'printed', label: 'Printed / physical menu' },
+      { value: 'pdf', label: 'PDF or digital document' },
+      { value: 'photos', label: 'Photos of the menu' },
+      { value: 'other_platform', label: 'On another digital platform' },
+      { value: 'none', label: "I don't have a menu yet" },
+    ],
+    messageLabel: 'Additional message (optional)',
+    messagePlaceholder: 'Tell us about your restaurant, how many products you have, special needs...',
+    submitSending: 'Sending...',
+    submitButton: 'Send request',
+    submitFooter: "We'll contact you within 24 hours. No commitment.",
+    errorRequired: 'Please fill in all required fields.',
+    errorGeneric: 'Error sending the request. Please try again.',
+    successTitle: 'Request sent!',
+    successPrefix: 'We received your request. We\'ll contact you within',
+    successHours: '24 hours',
+    successMid: 'at',
+    successSuffix: 'to confirm details and get started.',
+  },
+} as const;
+
+export function SetupForm({ packages, locale = 'es' }: { packages: PackageOption[]; locale?: 'es' | 'en' }) {
   const searchParams = useSearchParams();
+  const s = formT[locale];
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -42,7 +112,7 @@ export function SetupForm({ packages }: { packages: PackageOption[] }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.restaurant_name || !form.package_id) {
-      setError('Por favor completa todos los campos requeridos.');
+      setError(s.errorRequired);
       return;
     }
 
@@ -64,12 +134,12 @@ export function SetupForm({ packages }: { packages: PackageOption[] }) {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Error enviando solicitud');
+        throw new Error(data.error || s.errorGeneric);
       }
 
       setSent(true);
     } catch (err: any) {
-      setError(err.message || 'Error enviando la solicitud. Intenta de nuevo.');
+      setError(err.message || s.errorGeneric);
     } finally {
       setSending(false);
     }
@@ -81,10 +151,10 @@ export function SetupForm({ packages }: { packages: PackageOption[] }) {
         <div className="w-16 h-16 rounded-full bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mx-auto mb-5">
           <CheckCircle2 className="w-8 h-8 text-purple-400" />
         </div>
-        <h3 className="text-xl font-semibold text-white mb-2">¡Solicitud enviada!</h3>
+        <h3 className="text-xl font-semibold text-white mb-2">{s.successTitle}</h3>
         <p className="text-sm text-gray-400 max-w-md mx-auto">
-          Recibimos tu solicitud. Te contactaremos en menos de <strong className="text-white">24 horas</strong> al email{' '}
-          <strong className="text-white">{form.email}</strong> para confirmar los detalles y comenzar.
+          {s.successPrefix} <strong className="text-white">{s.successHours}</strong> {s.successMid}{' '}
+          <strong className="text-white">{form.email}</strong> {s.successSuffix}
         </p>
       </div>
     );
@@ -96,7 +166,7 @@ export function SetupForm({ packages }: { packages: PackageOption[] }) {
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* Package selector */}
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Servicio *</label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">{s.serviceLabel}</label>
         <div className="grid grid-cols-2 gap-2">
           {packages.map((pkg) => (
             <button
@@ -111,7 +181,7 @@ export function SetupForm({ packages }: { packages: PackageOption[] }) {
             >
               <p className={`text-sm font-semibold ${form.package_id === pkg.id ? 'text-white' : 'text-gray-300'}`}>{pkg.name}</p>
               <p className="text-xs text-gray-500 mt-0.5">
-                ${pkg.price} {pkg.id === 'soporte-mensual' ? '/mes' : 'único'}
+                ${pkg.price} {pkg.id === 'soporte-mensual' ? s.priceMonthly : s.priceOneTime}
               </p>
             </button>
           ))}
@@ -120,23 +190,23 @@ export function SetupForm({ packages }: { packages: PackageOption[] }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">Tu nombre *</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1.5">{s.nameLabel}</label>
           <input
             type="text"
             value={form.name}
             onChange={(e) => handleChange('name', e.target.value)}
-            placeholder="Juan Pérez"
+            placeholder={s.namePlaceholder}
             className={inputClasses}
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">Email *</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1.5">{s.emailLabel}</label>
           <input
             type="email"
             value={form.email}
             onChange={(e) => handleChange('email', e.target.value)}
-            placeholder="juan@mirestaurante.com"
+            placeholder={s.emailPlaceholder}
             className={inputClasses}
             required
           />
@@ -145,19 +215,19 @@ export function SetupForm({ packages }: { packages: PackageOption[] }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1.5">Nombre del restaurante *</label>
+          <label className="block text-sm font-medium text-gray-300 mb-1.5">{s.restaurantLabel}</label>
           <input
             type="text"
             value={form.restaurant_name}
             onChange={(e) => handleChange('restaurant_name', e.target.value)}
-            placeholder="Mi Restaurante"
+            placeholder={s.restaurantPlaceholder}
             className={inputClasses}
             required
           />
         </div>
         <div>
           <PhoneField
-            label="Teléfono (opcional)"
+            label={s.phoneLabel}
             value={form.phone}
             onChange={(v) => handleChange('phone', v)}
             dark={true}
@@ -166,27 +236,25 @@ export function SetupForm({ packages }: { packages: PackageOption[] }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1.5">¿Cómo tienes tu menú actualmente?</label>
+        <label className="block text-sm font-medium text-gray-300 mb-1.5">{s.menuLabel}</label>
         <select
           value={form.current_menu}
           onChange={(e) => handleChange('current_menu', e.target.value)}
           className={`${inputClasses} bg-[#0a0a0a]`}
         >
-          <option value="">Selecciona una opción</option>
-          <option value="printed">Menú impreso / físico</option>
-          <option value="pdf">PDF o documento digital</option>
-          <option value="photos">Fotos del menú</option>
-          <option value="other_platform">En otra plataforma digital</option>
-          <option value="none">No tengo menú aún</option>
+          <option value="">{s.menuDefault}</option>
+          {s.menuOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
         </select>
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1.5">Mensaje adicional (opcional)</label>
+        <label className="block text-sm font-medium text-gray-300 mb-1.5">{s.messageLabel}</label>
         <textarea
           value={form.message}
           onChange={(e) => handleChange('message', e.target.value)}
-          placeholder="Cuéntanos sobre tu restaurante, cuántos productos tienes, necesidades especiales..."
+          placeholder={s.messagePlaceholder}
           rows={4}
           className={`${inputClasses} resize-none`}
         />
@@ -206,18 +274,18 @@ export function SetupForm({ packages }: { packages: PackageOption[] }) {
         {sending ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin" />
-            Enviando...
+            {s.submitSending}
           </>
         ) : (
           <>
             <Send className="w-4 h-4" />
-            Enviar solicitud
+            {s.submitButton}
           </>
         )}
       </button>
 
       <p className="text-xs text-center text-gray-600">
-        Te contactaremos en menos de 24 horas. Sin compromiso.
+        {s.submitFooter}
       </p>
     </form>
   );

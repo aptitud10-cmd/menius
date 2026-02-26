@@ -27,8 +27,10 @@ function buildCampaignEmail(params: {
   body: string;
   ctaText?: string;
   ctaUrl?: string;
+  locale?: string;
 }): string {
-  const { restaurantName, body, ctaText, ctaUrl } = params;
+  const { restaurantName, body, ctaText, ctaUrl, locale } = params;
+  const en = locale === 'en';
   const bodyHtml = body.split('\n').map(line => `<p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${line}</p>`).join('');
 
   return `
@@ -49,7 +51,7 @@ function buildCampaignEmail(params: {
       ` : ''}
     </div>
     <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:20px;">
-      Enviado por ${restaurantName} a través de MENIUS
+      ${en ? `Sent by ${restaurantName} via MENIUS` : `Enviado por ${restaurantName} a través de MENIUS`}
     </p>
   </div>
 </body>
@@ -59,29 +61,32 @@ function buildCampaignEmail(params: {
 export async function POST(request: NextRequest) {
   try {
     const tenant = await getTenant();
-    if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { allowed } = checkRateLimit(`campaign:${tenant.userId}`, { limit: 5, windowSec: 3600 });
     if (!allowed) {
-      return NextResponse.json({ error: 'Máximo 5 campañas por hora. Intenta más tarde.' }, { status: 429 });
+      return NextResponse.json({ error: 'Rate limit reached. Try again in an hour.' }, { status: 429 });
     }
 
     const body = await request.json();
     const { subject, message, ctaText, ctaUrl, filter } = body;
 
     if (!subject || !message) {
-      return NextResponse.json({ error: 'Asunto y mensaje son requeridos' }, { status: 400 });
+      return NextResponse.json({ error: 'Subject and message are required' }, { status: 400 });
     }
 
     const supabase = createClient();
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('name, slug, currency')
+      .select('name, slug, currency, locale')
       .eq('id', tenant.restaurantId)
       .maybeSingle();
 
-    if (!restaurant) return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 });
+    if (!restaurant) return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
+
+    const rLocale = restaurant.locale ?? 'es';
+    const en = rLocale === 'en';
 
     let query = supabase
       .from('customers')
@@ -107,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     const recipients = (customers ?? []) as CampaignCustomer[];
     if (recipients.length === 0) {
-      return NextResponse.json({ error: 'No hay clientes con email que coincidan con el filtro.' }, { status: 400 });
+      return NextResponse.json({ error: en ? 'No customers with email match the selected filter.' : 'No hay clientes con email que coincidan con el filtro.' }, { status: 400 });
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
@@ -117,8 +122,9 @@ export async function POST(request: NextRequest) {
       restaurantName: restaurant.name,
       subject,
       body: message,
-      ctaText: ctaText || 'Ver menú',
+      ctaText: ctaText || (en ? 'View menu' : 'Ver menú'),
       ctaUrl: ctaUrl || menuUrl,
+      locale: rLocale,
     });
 
     let sent = 0;
@@ -154,6 +160,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     logger.error('POST failed', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

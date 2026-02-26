@@ -44,16 +44,16 @@ async function sendSMS(to: string, message: string): Promise<boolean> {
 export async function POST(request: NextRequest) {
   try {
     const tenant = await getTenant();
-    if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { allowed } = checkRateLimit(`sms-campaign:${tenant.userId}`, { limit: 5, windowSec: 3600 });
     if (!allowed) {
-      return NextResponse.json({ error: 'Límite de envío alcanzado. Intenta en una hora.' }, { status: 429 });
+      return NextResponse.json({ error: 'Rate limit reached. Try again in an hour.' }, { status: 429 });
     }
 
     const { message, filter, menuUrl } = await request.json();
     if (!message?.trim()) {
-      return NextResponse.json({ error: 'Mensaje requerido' }, { status: 400 });
+      return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
     const supabase = createClient();
@@ -108,6 +108,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     logger.error('SMS campaign error', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

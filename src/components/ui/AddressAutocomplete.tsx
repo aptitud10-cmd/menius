@@ -5,9 +5,16 @@ import { MapPin } from 'lucide-react';
 
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_PLACES_KEY ?? '';
 
+export interface PlaceResult {
+  address: string;
+  lat: number | null;
+  lng: number | null;
+}
+
 interface AddressAutocompleteProps {
   value: string;
   onChange: (value: string) => void;
+  onPlaceSelect?: (place: PlaceResult) => void;
   onBlur?: () => void;
   label?: string;
   placeholder?: string;
@@ -19,6 +26,7 @@ interface AddressAutocompleteProps {
 export function AddressAutocomplete({
   value,
   onChange,
+  onPlaceSelect,
   onBlur,
   label,
   placeholder = 'Buscar dirección...',
@@ -74,11 +82,17 @@ export function AddressAutocomplete({
       if (place?.formatted_address) {
         setLocalValue(place.formatted_address);
         onChange(place.formatted_address);
+        const loc = place.geometry?.location;
+        onPlaceSelect?.({
+          address: place.formatted_address,
+          lat: loc ? loc.lat() : null,
+          lng: loc ? loc.lng() : null,
+        });
       }
     });
 
     autocompleteRef.current = ac;
-  }, [loaded, onChange]);
+  }, [loaded, onChange, onPlaceSelect]);
 
   const handleManualChange = (v: string) => {
     setLocalValue(v);

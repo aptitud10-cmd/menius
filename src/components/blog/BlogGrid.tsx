@@ -166,7 +166,7 @@ export function BlogGrid({ posts, categories, locale = 'es' }: BlogGridProps) {
                 {ui.ctaBtn}
               </Link>
               <Link
-                href="/r/demo"
+                href="/demo"
                 className="w-full sm:w-auto px-8 py-3.5 rounded-xl border border-white/10 text-gray-400 font-medium text-[15px] hover:text-white hover:border-white/20 transition-all"
               >
                 {ui.ctaDemo}

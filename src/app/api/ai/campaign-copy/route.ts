@@ -18,10 +18,10 @@ export async function POST(request: NextRequest) {
     const apiKey = (process.env.GEMINI_API_KEY ?? '').trim();
     if (!apiKey) return NextResponse.json({ error: 'IA no configurada.' }, { status: 503 });
 
-    const { campaignType, audience, restaurantName, customPrompt } = await request.json();
+    const { campaignType, audience, restaurantName, customPrompt, locale: reqLocale } = await request.json();
 
     const supabase = createClient();
-    const [{ data: topProducts }, { data: recentReviews }] = await Promise.all([
+    const [{ data: topProducts }, { data: recentReviews }, { data: restaurant }] = await Promise.all([
       supabase
         .from('products')
         .select('name, price, is_featured')
@@ -36,14 +36,28 @@ export async function POST(request: NextRequest) {
         .eq('is_visible', true)
         .order('created_at', { ascending: false })
         .limit(5),
+      supabase
+        .from('restaurants')
+        .select('locale')
+        .eq('id', tenant.restaurantId)
+        .maybeSingle(),
     ]);
+
+    const locale = reqLocale ?? restaurant?.locale ?? 'es';
+    const en = locale === 'en';
 
     const productList = (topProducts ?? []).map((p) => `${p.name} ($${p.price})`).join(', ');
     const avgRating = (recentReviews ?? []).length > 0
       ? ((recentReviews ?? []).reduce((s, r) => s + r.rating, 0) / (recentReviews ?? []).length).toFixed(1)
       : null;
 
-    const audienceLabels: Record<string, string> = {
+    const audienceLabels: Record<string, string> = en ? {
+      all: 'All customers',
+      vip: 'VIP customers (5+ orders)',
+      inactive: 'Inactive customers (30+ days without ordering)',
+      recent: 'Recent customers (last 7 days)',
+      big_spenders: 'Big spenders ($100+ spent)',
+    } : {
       all: 'Todos los clientes',
       vip: 'Clientes VIP (5+ pedidos)',
       inactive: 'Clientes inactivos (30+ días sin ordenar)',
@@ -51,7 +65,13 @@ export async function POST(request: NextRequest) {
       big_spenders: 'Grandes compradores ($100+ gastados)',
     };
 
-    const typeLabels: Record<string, string> = {
+    const typeLabels: Record<string, string> = en ? {
+      promo: 'Promotion / Discount',
+      reactivation: 'Reactivate inactive customers',
+      new_product: 'New product on the menu',
+      vip_thanks: 'Thank you to loyal customers',
+      seasonal: 'Seasonal / holiday campaign',
+    } : {
       promo: 'Promoción / Descuento',
       reactivation: 'Reactivar clientes inactivos',
       new_product: 'Nuevo producto en el menú',
@@ -59,7 +79,32 @@ export async function POST(request: NextRequest) {
       seasonal: 'Campaña de temporada / festiva',
     };
 
-    const prompt = `Eres un copywriter experto en email marketing para restaurantes.
+    const langRule = en
+      ? '- Write in English\n- Professional but warm tone, like a friend recommending something\n- Do NOT use technical jargon\n- Subject should create curiosity or urgency\n- Body should be concise, each paragraph max 2 sentences\n- Mention specific products when relevant\n- CTA should be a clear, direct action'
+      : '- Escribe en español\n- Tono profesional pero cercano, como un amigo que te recomienda algo\n- NO uses jerga técnica ni palabras rebuscadas\n- El asunto debe generar curiosidad o urgencia\n- El cuerpo debe ser conciso, cada párrafo max 2 oraciones\n- Menciona productos específicos cuando sea relevante\n- El CTA debe ser una acción clara y directa';
+
+    const prompt = en
+      ? `You are an expert email marketing copywriter for restaurants.
+
+Generate an email campaign for "${restaurantName}".
+
+CONTEXT:
+- Campaign type: ${typeLabels[campaignType] ?? campaignType ?? 'General promotion'}
+- Audience: ${audienceLabels[audience] ?? audience ?? 'All customers'}
+- Popular products: ${productList || 'Not available'}
+- Average rating: ${avgRating ?? 'No reviews yet'}
+${customPrompt ? `- Additional user instructions: ${customPrompt}` : ''}
+
+RESPONSE FORMAT (strict JSON, no markdown):
+{
+  "subject": "Email subject (use emojis, max 60 chars, include {nombre} or {restaurante} as variables)",
+  "body": "Email body (2-3 short paragraphs, use {nombre}, {restaurante}, {total_ordenes}, {total_gastado} as variables, warm and personal tone, subtle urgency)",
+  "cta": "CTA button text (max 4 words, clear action)"
+}
+
+RULES:
+${langRule}`
+      : `Eres un copywriter experto en email marketing para restaurantes.
 
 Genera una campaña de email para "${restaurantName}".
 
@@ -78,13 +123,7 @@ FORMATO DE RESPUESTA (JSON estricto, sin markdown):
 }
 
 REGLAS:
-- Escribe en español
-- Tono profesional pero cercano, como un amigo que te recomienda algo
-- NO uses jerga técnica ni palabras rebuscadas
-- El asunto debe generar curiosidad o urgencia
-- El cuerpo debe ser conciso, cada párrafo max 2 oraciones
-- Menciona productos específicos cuando sea relevante
-- El CTA debe ser una acción clara y directa`;
+${langRule}`;
 
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,

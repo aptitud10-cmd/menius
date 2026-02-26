@@ -27,7 +27,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
                 <ul className="space-y-2.5">
                   <li><a href="#funciones" className="text-sm text-gray-400 hover:text-white transition-colors">{f.features}</a></li>
                   <li><a href="#precios" className="text-sm text-gray-400 hover:text-white transition-colors">{f.pricing}</a></li>
-                  <li><Link href="/r/demo" className="text-sm text-gray-400 hover:text-white transition-colors">{f.demo}</Link></li>
+                  <li><Link href="/demo" className="text-sm text-gray-400 hover:text-white transition-colors">{f.demo}</Link></li>
                 </ul>
               </div>
               <div>
@@ -73,8 +73,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
                 <ul className="space-y-2.5">
                   <li><a href="#funciones" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.features}</a></li>
                   <li><a href="#precios" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.pricing}</a></li>
-                  <li><Link href="/r/demo" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.demoLive}</Link></li>
-                  <li><Link href="/r/the-grill-house" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.demoEnglish}</Link></li>
+                  <li><Link href="/demo" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.demo}</Link></li>
                 </ul>
               </div>
               <div>
