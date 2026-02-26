@@ -58,7 +58,10 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
       if (status === 'active' || status === 'past_due') {
         // OK
       } else if (status === 'trialing') {
-        if (subscription.trial_end && new Date(subscription.trial_end) < now) {
+        const trialOver = subscription.trial_end
+          ? new Date(subscription.trial_end) < now
+          : (subscription.current_period_end ? new Date(subscription.current_period_end) < now : false);
+        if (trialOver) {
           subscriptionExpired = true;
         }
       } else {

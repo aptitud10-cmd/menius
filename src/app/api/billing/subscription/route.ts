@@ -31,17 +31,23 @@ export async function GET() {
         const createdAt = new Date(restaurant.created_at);
         const trialEnd = new Date(createdAt.getTime() + 14 * 24 * 60 * 60 * 1000);
 
-        const { data: repaired } = await supabase
+        const { data: repaired, error: upsertError } = await supabase
           .from('subscriptions')
           .upsert({
             restaurant_id: tenant.restaurantId,
             plan_id: 'starter',
             status: new Date() > trialEnd ? 'canceled' : 'trialing',
+            trial_start: createdAt.toISOString(),
+            trial_end: trialEnd.toISOString(),
             current_period_start: createdAt.toISOString(),
             current_period_end: trialEnd.toISOString(),
           }, { onConflict: 'restaurant_id' })
           .select('*')
           .maybeSingle();
+
+        if (upsertError) {
+          console.error('[billing/subscription] Auto-repair upsert failed:', upsertError);
+        }
 
         if (repaired) {
           return NextResponse.json({ subscription: repaired });

@@ -171,7 +171,9 @@ export async function middleware(request: NextRequest) {
         }
       } else {
         const { status } = subscription;
-        const trialEnded = subscription.trial_end && new Date(subscription.trial_end) < now;
+        const trialEnded = subscription.trial_end
+          ? new Date(subscription.trial_end) < now
+          : (subscription.current_period_end ? new Date(subscription.current_period_end) < now : false);
         const periodEnded = subscription.current_period_end && new Date(subscription.current_period_end) < now;
 
         if (status === 'active' || status === 'past_due') {
