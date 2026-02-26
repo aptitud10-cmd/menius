@@ -426,6 +426,26 @@ export interface DashboardTranslations {
   modifiers_minHelper: string;
   modifiers_maxHelper: string;
 
+  // AI Chat
+  chat_title: string;
+  chat_subtitle: string;
+  chat_welcome: string;
+  chat_welcomeDesc: string;
+  chat_placeholder: string;
+  chat_newConversation: string;
+  chat_quickLabel: string;
+  chat_disclaimer: string;
+  chat_errorConnection: string;
+  chat_errorLimit: string;
+  chat_q1: string;
+  chat_q2: string;
+  chat_q3: string;
+  chat_q4: string;
+  chat_q5: string;
+  chat_q6: string;
+  chat_q7: string;
+  chat_q8: string;
+
   // Settings
   settings_title: string;
   settings_save: string;
@@ -1442,6 +1462,26 @@ const es: DashboardTranslations = {
   modifiers_minHelper: 'Mínimo a elegir',
   modifiers_maxHelper: 'Máximo a elegir',
 
+  // AI Chat
+  chat_title: 'MENIUS AI',
+  chat_subtitle: 'Tu asistente inteligente',
+  chat_welcome: '¡Hola! Soy MENIUS AI',
+  chat_welcomeDesc: 'Tu socio de negocio y chef consultor. Pregúntame sobre ventas, clientes, recetas, estrategias o cómo usar el dashboard.',
+  chat_placeholder: 'Pregúntame lo que quieras...',
+  chat_newConversation: 'Nueva conversación',
+  chat_quickLabel: 'Preguntas rápidas',
+  chat_disclaimer: 'MENIUS AI puede cometer errores. Verifica la información importante.',
+  chat_errorConnection: 'Error de conexión. Intenta de nuevo.',
+  chat_errorLimit: 'Has alcanzado el límite de mensajes. Intenta en unos minutos.',
+  chat_q1: '¿Cómo va mi día?',
+  chat_q2: '¿Qué puedo mejorar?',
+  chat_q3: 'Sugiéreme una promoción',
+  chat_q4: '¿Cómo agrego un producto?',
+  chat_q5: '¿Quiénes son mis mejores clientes?',
+  chat_q6: 'Ideas de marketing para mi restaurante',
+  chat_q7: '¿Cómo configuro el delivery?',
+  chat_q8: 'Ayuda con un problema técnico',
+
   // Settings
   settings_title: 'Configuración',
   settings_save: 'Guardar cambios',
@@ -2457,6 +2497,26 @@ const en: DashboardTranslations = {
   modifiers_multiLabel: 'Customer picks SEVERAL',
   modifiers_minHelper: 'Minimum to pick',
   modifiers_maxHelper: 'Maximum to pick',
+
+  // AI Chat
+  chat_title: 'MENIUS AI',
+  chat_subtitle: 'Your smart assistant',
+  chat_welcome: 'Hi! I\'m MENIUS AI',
+  chat_welcomeDesc: 'Your business partner and chef consultant. Ask me about sales, customers, recipes, strategies, or how to use the dashboard.',
+  chat_placeholder: 'Ask me anything...',
+  chat_newConversation: 'New conversation',
+  chat_quickLabel: 'Quick questions',
+  chat_disclaimer: 'MENIUS AI can make mistakes. Verify important information.',
+  chat_errorConnection: 'Connection error. Try again.',
+  chat_errorLimit: 'You\'ve reached the message limit. Try again in a few minutes.',
+  chat_q1: 'How is my day going?',
+  chat_q2: 'What can I improve?',
+  chat_q3: 'Suggest a promotion',
+  chat_q4: 'How do I add a product?',
+  chat_q5: 'Who are my best customers?',
+  chat_q6: 'Marketing ideas for my restaurant',
+  chat_q7: 'How do I set up delivery?',
+  chat_q8: 'Help with a technical issue',
 
   // Settings
   settings_title: 'Settings',

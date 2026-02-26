@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface Message {
   id: string;
@@ -8,17 +9,6 @@ interface Message {
   text: string;
   timestamp: Date;
 }
-
-const QUICK_QUESTIONS = [
-  '¿Cómo va mi día?',
-  '¿Qué puedo mejorar?',
-  'Sugiéreme una promoción',
-  'Dame una receta creativa',
-  '¿Cómo agrego un producto?',
-  '¿Quiénes son mis mejores clientes?',
-  'Ideas para menú de temporada',
-  '¿Cómo configuro el WhatsApp?',
-];
 
 function formatAIText(text: string) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
@@ -38,8 +28,10 @@ export function AIChatWidget() {
   const [showQuick, setShowQuick] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const { t } = useDashboardLocale();
+
+  const quickQuestions = [t.chat_q1, t.chat_q2, t.chat_q3, t.chat_q4, t.chat_q5, t.chat_q6, t.chat_q7, t.chat_q8];
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,18 +51,28 @@ export function AIChatWidget() {
         .then(r => r.ok ? r.json() : null)
         .then(data => {
           if (data?.messages?.length > 0) {
-            setMessages(data.messages.map((m: { role: string; content: string; created_at: string }, i: number) => ({
-              id: `h-${i}`,
-              role: m.role as 'user' | 'assistant',
-              text: m.content,
-              timestamp: new Date(m.created_at),
-            })));
-            setShowQuick(false);
+            const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+            const recent = data.messages.filter((m: { created_at: string }) => new Date(m.created_at).getTime() > cutoff);
+            if (recent.length > 0) {
+              setMessages(recent.slice(-10).map((m: { role: string; content: string; created_at: string }, i: number) => ({
+                id: `h-${i}`,
+                role: m.role as 'user' | 'assistant',
+                text: m.content,
+                timestamp: new Date(m.created_at),
+              })));
+              setShowQuick(false);
+            }
           }
         })
         .catch(() => {});
     }
   }, [open, historyLoaded]);
+
+  const handleNewConversation = () => {
+    setMessages([]);
+    setShowQuick(true);
+    setInput('');
+  };
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || loading) return;
@@ -88,7 +90,7 @@ export function AIChatWidget() {
     setShowQuick(false);
 
     try {
-      const history = messages.slice(-10).map(m => ({ role: m.role, text: m.text }));
+      const history = messages.slice(-8).map(m => ({ role: m.role, text: m.text }));
 
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -101,7 +103,7 @@ export function AIChatWidget() {
       const assistantMsg: Message = {
         id: `a-${Date.now()}`,
         role: 'assistant',
-        text: data.reply ?? data.error ?? 'No pude procesar tu pregunta.',
+        text: data.reply ?? data.error ?? t.chat_errorConnection,
         timestamp: new Date(),
       };
 
@@ -112,7 +114,7 @@ export function AIChatWidget() {
         {
           id: `e-${Date.now()}`,
           role: 'assistant',
-          text: 'Error de conexión. Intenta de nuevo.',
+          text: t.chat_errorConnection,
           timestamp: new Date(),
         },
       ]);
@@ -128,7 +130,6 @@ export function AIChatWidget() {
 
   return (
     <>
-      {/* Floating button */}
       <button
         onClick={() => setOpen(prev => !prev)}
         className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-2xl shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-105 ${
@@ -136,7 +137,7 @@ export function AIChatWidget() {
             ? 'bg-white/10 backdrop-blur-xl border border-white/20 rotate-0'
             : 'bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 shadow-purple-500/25'
         }`}
-        aria-label={open ? 'Cerrar asistente' : 'Abrir asistente IA'}
+        aria-label={open ? 'Close assistant' : 'Open AI assistant'}
       >
         {open ? (
           <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -149,7 +150,6 @@ export function AIChatWidget() {
         )}
       </button>
 
-      {/* Chat panel */}
       <div
         className={`fixed bottom-24 right-6 z-50 w-[400px] max-w-[calc(100vw-2rem)] transition-all duration-300 origin-bottom-right ${
           open ? 'scale-100 opacity-100 pointer-events-auto' : 'scale-95 opacity-0 pointer-events-none'
@@ -164,18 +164,22 @@ export function AIChatWidget() {
               </svg>
             </div>
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-white">MENIUS AI</h3>
-              <p className="text-[11px] text-gray-500">Tu asistente inteligente</p>
+              <h3 className="text-sm font-semibold text-white">{t.chat_title}</h3>
+              <p className="text-[11px] text-gray-500">{t.chat_subtitle}</p>
             </div>
-            <div className="ml-auto flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[10px] text-emerald-400/80">Online</span>
-              </div>
+            <div className="ml-auto flex items-center gap-2">
+              {messages.length > 0 && (
+                <button
+                  onClick={handleNewConversation}
+                  className="px-2.5 py-1 rounded-lg text-[10px] font-medium text-gray-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-all"
+                  title={t.chat_newConversation}
+                >
+                  {t.chat_newConversation}
+                </button>
+              )}
               <button
                 onClick={() => setOpen(false)}
                 className="w-7 h-7 rounded-lg hover:bg-white/[0.08] flex items-center justify-center transition-colors"
-                aria-label="Cerrar chat"
               >
                 <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -186,7 +190,6 @@ export function AIChatWidget() {
 
           {/* Messages area */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 scrollbar-hide">
-            {/* Welcome message */}
             {messages.length === 0 && (
               <div className="text-center py-6">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/20 flex items-center justify-center mx-auto mb-4">
@@ -194,19 +197,18 @@ export function AIChatWidget() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                   </svg>
                 </div>
-                <h4 className="text-white font-semibold text-sm mb-1">Hola! Soy MENIUS AI</h4>
+                <h4 className="text-white font-semibold text-sm mb-1">{t.chat_welcome}</h4>
                 <p className="text-gray-500 text-xs leading-relaxed max-w-[280px] mx-auto">
-                  Tu socio de negocio y chef consultor. Pregúntame sobre ventas, clientes, recetas, estrategias o cómo usar el dashboard.
+                  {t.chat_welcomeDesc}
                 </p>
               </div>
             )}
 
-            {/* Quick questions */}
             {messages.length === 0 && showQuick && (
               <div className="space-y-2">
-                <p className="text-[11px] text-gray-600 uppercase tracking-wider font-medium px-1">Preguntas rápidas</p>
+                <p className="text-[11px] text-gray-600 uppercase tracking-wider font-medium px-1">{t.chat_quickLabel}</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {QUICK_QUESTIONS.map((q) => (
+                  {quickQuestions.map((q) => (
                     <button
                       key={q}
                       onClick={() => sendMessage(q)}
@@ -219,7 +221,6 @@ export function AIChatWidget() {
               </div>
             )}
 
-            {/* Chat messages */}
             {messages.map((msg) => (
               <div
                 key={msg.id}
@@ -251,7 +252,6 @@ export function AIChatWidget() {
               </div>
             ))}
 
-            {/* Typing indicator */}
             {loading && (
               <div className="flex justify-start">
                 <div className="bg-white/[0.05] border border-white/[0.06] rounded-2xl rounded-bl-md px-4 py-3">
@@ -275,7 +275,7 @@ export function AIChatWidget() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Pregúntame lo que quieras..."
+                placeholder={t.chat_placeholder}
                 disabled={loading}
                 className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500/30 focus:border-purple-500/20 transition-all disabled:opacity-50"
               />
@@ -290,7 +290,7 @@ export function AIChatWidget() {
               </button>
             </form>
             <p className="text-center text-[9px] text-gray-700 mt-2">
-              MENIUS AI puede cometer errores. Verifica la información importante.
+              {t.chat_disclaimer}
             </p>
           </div>
         </div>

@@ -76,13 +76,19 @@ ${categoryHint}
 ${stylePrompt}
 ${angleHint}
 
+FRAMING (critical):
+- Landscape orientation, roughly 16:9 aspect ratio (wider than tall)
+- The ENTIRE dish must be fully visible within the frame — no part of the plate or food cut off at any edge
+- Center the dish with 10-15% breathing room (margin) around all sides
+- The dish should fill about 70-80% of the frame, leaving clean background visible
+
 Technical requirements:
-- Ultra-realistic food photography, indistinguishable from a real photo
+- Ultra-realistic food photography, indistinguishable from a real photo taken by a professional photographer
 - Absolutely NO text, watermarks, logos, or labels anywhere in the image
 - Single dish, perfectly plated, as it would be served in a real restaurant
 - Food must look fresh, steaming if hot, glistening if sauced, crispy if fried
 - Professional color grading with appetizing warm tones
-- Square aspect ratio (1:1), tight crop on the dish
+- Shallow depth of field with the dish in sharp focus
 - No human hands, no faces, no distracting background elements`;
 
     const model = genAI.getGenerativeModel({

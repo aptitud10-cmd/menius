@@ -12,12 +12,14 @@ export async function GET() {
     }
 
     const supabase = createClient();
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: messages } = await supabase
       .from('chat_messages')
       .select('role, content, created_at')
       .eq('restaurant_id', tenant.restaurantId)
+      .gte('created_at', oneDayAgo)
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(10);
 
     return NextResponse.json({
       messages: (messages ?? []).reverse(),
