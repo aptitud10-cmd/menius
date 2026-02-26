@@ -1,8 +1,17 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export default function OfflinePage() {
+  const [isEn, setIsEn] = useState(false);
+
+  useEffect(() => {
+    const lang = navigator.language?.split('-')[0]?.toLowerCase();
+    const cookie = document.cookie.match(/menius_locale=(\w+)/)?.[1];
+    setIsEn((cookie || lang) === 'en');
+  }, []);
+
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-6">
       <div className="max-w-md w-full text-center">
@@ -12,9 +21,13 @@ export default function OfflinePage() {
           </svg>
         </div>
 
-        <h1 className="text-2xl font-bold text-gray-900 mb-3">Sin conexión</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-3">
+          {isEn ? 'No connection' : 'Sin conexión'}
+        </h1>
         <p className="text-gray-500 mb-8 leading-relaxed">
-          Verifica tu conexión a internet e intenta de nuevo.
+          {isEn
+            ? 'Check your internet connection and try again.'
+            : 'Verifica tu conexión a internet e intenta de nuevo.'}
         </p>
 
         <div className="space-y-3">
@@ -22,13 +35,13 @@ export default function OfflinePage() {
             onClick={() => window.location.reload()}
             className="w-full py-3.5 px-6 rounded-2xl bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 active:scale-[0.98] transition-all"
           >
-            Reintentar
+            {isEn ? 'Retry' : 'Reintentar'}
           </button>
           <Link
             href="/"
             className="block w-full py-3 px-6 rounded-xl text-gray-400 text-sm hover:text-gray-600 transition-colors"
           >
-            Ir al inicio
+            {isEn ? 'Go to homepage' : 'Ir al inicio'}
           </Link>
         </div>
 

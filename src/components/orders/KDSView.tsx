@@ -271,7 +271,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   return (
     <>
       {/* ════ TOP BAR ════ */}
-      <header className="flex items-center gap-2 px-3 h-11 bg-gray-900 border-b border-gray-800 flex-shrink-0">
+      <header className="flex items-center gap-2 px-3 h-14 bg-gray-900 border-b border-gray-800 flex-shrink-0">
         <div className="w-7 h-7 rounded-md bg-emerald-600 flex items-center justify-center flex-shrink-0">
           <span className="text-white text-xs font-black">M</span>
         </div>
@@ -303,8 +303,8 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
           <Ctrl on={soundEnabled} onClick={() => setSoundEnabled(!soundEnabled)} icon={soundEnabled ? Volume2 : VolumeX} title={t.kds_sound} />
           <Ctrl on={smsEnabled} onClick={() => tog('kds-sms-enabled', setSmsEnabled, !smsEnabled)} icon={MessageSquare} title="SMS" />
           <Ctrl on={!!pausedUntil} onClick={() => setShowPause(true)} icon={Pause} title={t.kds_pause} danger />
-          <button onClick={() => { setShowSearch(s => !s); if (showSearch) setSearch(''); }} className="p-1.5 rounded text-gray-500 hover:text-white hover:bg-gray-800"><Search className="w-4 h-4" /></button>
-          <Link href="/app/orders" className="p-1.5 rounded text-gray-500 hover:text-white hover:bg-gray-800"><LogOut className="w-4 h-4" /></Link>
+          <button onClick={() => { setShowSearch(s => !s); if (showSearch) setSearch(''); }} className="p-2.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 touch-manipulation"><Search className="w-5 h-5" /></button>
+          <Link href="/app/orders" className="p-2.5 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 touch-manipulation"><LogOut className="w-5 h-5" /></Link>
         </div>
       </header>
 
@@ -320,19 +320,19 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       )}
 
       {/* ════ TABS + FILTER ════ */}
-      <div className="flex items-center h-9 border-b border-gray-800 flex-shrink-0 px-3 bg-gray-900/50">
-        <button onClick={() => setTab('active')} className={cn('px-3 h-full text-xs font-bold relative', tab === 'active' ? 'text-white' : 'text-gray-500')}>
+      <div className="flex items-center h-12 border-b border-gray-800 flex-shrink-0 px-3 bg-gray-900/50">
+        <button onClick={() => setTab('active')} className={cn('px-4 h-full text-sm font-bold relative touch-manipulation', tab === 'active' ? 'text-white' : 'text-gray-500')}>
           {t.kds_activeTab} ({active.length}){tab === 'active' && <div className="absolute bottom-0 inset-x-0 h-[2px] bg-emerald-500" />}
         </button>
-        <button onClick={() => setTab('history')} className={cn('px-3 h-full text-xs font-bold relative flex items-center gap-1', tab === 'history' ? 'text-white' : 'text-gray-500')}>
-          <History className="w-3 h-3" /> {t.kds_history} ({history.length}){tab === 'history' && <div className="absolute bottom-0 inset-x-0 h-[2px] bg-emerald-500" />}
+        <button onClick={() => setTab('history')} className={cn('px-4 h-full text-sm font-bold relative flex items-center gap-1.5 touch-manipulation', tab === 'history' ? 'text-white' : 'text-gray-500')}>
+          <History className="w-4 h-4" /> {t.kds_history} ({history.length}){tab === 'history' && <div className="absolute bottom-0 inset-x-0 h-[2px] bg-emerald-500" />}
         </button>
         {tab === 'active' && (
-          <div className="ml-auto flex items-center gap-0.5">
+          <div className="ml-auto flex items-center gap-1">
             {(['all', 'dine_in', 'pickup', 'delivery'] as const).map(f => {
               const m = f !== 'all' ? TYPE_META[f] : null;
               return (
-                <button key={f} onClick={() => setFilter(f)} className={cn('px-2 py-1 rounded text-[11px] font-bold', filter === f ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300')}>
+                <button key={f} onClick={() => setFilter(f)} className={cn('px-3 py-1.5 rounded-lg text-xs font-bold touch-manipulation', filter === f ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300')}>
                   {f === 'all' ? t.kds_all : f === 'dine_in' ? t.kds_table : f === 'pickup' ? t.kds_pickup : t.kds_delivery}
                 </button>
               );
@@ -381,7 +381,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       </div>
 
       {/* ════ BOTTOM STATS BAR ════ */}
-      <div className="h-8 flex items-center justify-center gap-6 px-3 bg-gray-900 border-t border-gray-800 flex-shrink-0 text-[11px] text-gray-500">
+      <div className="h-10 flex items-center justify-center gap-6 px-3 bg-gray-900 border-t border-gray-800 flex-shrink-0 text-xs text-gray-500">
         <span>{t.kds_today}: <span className="font-bold text-white">{formatPrice(todayTotal, currency)}</span></span>
         <span>{today.length} {today.length !== 1 ? t.kds_orderPlural : t.kds_orderSingular}</span>
         {avgTime !== null && <span>{t.kds_avgTime}: <span className="font-bold text-white">{avgTime} min</span></span>}
@@ -440,7 +440,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
 
 /* ── Toolbar control ── */
 function Ctrl({ on, onClick, icon: I, title, danger }: { on: boolean; onClick: () => void; icon: any; title: string; danger?: boolean }) {
-  return <button onClick={onClick} title={title} className={cn('p-1.5 rounded transition-colors', on ? danger ? 'text-red-400 bg-red-500/15' : 'text-emerald-400 bg-emerald-500/10' : 'text-gray-600 hover:text-gray-400 hover:bg-gray-800')}><I className="w-4 h-4" /></button>;
+  return <button onClick={onClick} title={title} className={cn('p-2.5 rounded-lg transition-colors touch-manipulation', on ? danger ? 'text-red-400 bg-red-500/15' : 'text-emerald-400 bg-emerald-500/10' : 'text-gray-600 hover:text-gray-400 hover:bg-gray-800')}><I className="w-5 h-5" /></button>;
 }
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -506,11 +506,11 @@ function Ticket({ order, currency, isNew, isExpanded, isSelected, onBump, onCanc
           <User className="w-4 h-4 text-gray-500 flex-shrink-0" />
           <span className="text-sm font-semibold text-white truncate">{order.customer_name || order.customer_phone}</span>
           {order.customer_phone && (
-            <div className="flex items-center gap-1 ml-auto flex-shrink-0">
-              <button onClick={(e) => { e.stopPropagation(); onSMS(); }} className="p-1.5 rounded bg-violet-500/15 text-violet-400 hover:bg-violet-500/25 touch-manipulation" title={t.kds_sendSms}><StickyNote className="w-3.5 h-3.5" /></button>
-              <a href={`tel:${order.customer_phone}`} className="p-1.5 rounded bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 touch-manipulation"><PhoneCall className="w-3.5 h-3.5" /></a>
+            <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
+              <button onClick={(e) => { e.stopPropagation(); onSMS(); }} className="p-2 rounded-lg bg-violet-500/15 text-violet-400 hover:bg-violet-500/25 touch-manipulation" title={t.kds_sendSms}><StickyNote className="w-4 h-4" /></button>
+              <a href={`tel:${order.customer_phone}`} className="p-2 rounded-lg bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 touch-manipulation"><PhoneCall className="w-4 h-4" /></a>
               <a href={`https://wa.me/${order.customer_phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer"
-                className="p-1.5 rounded bg-green-500/15 text-green-400 hover:bg-green-500/25 touch-manipulation"><MessageSquare className="w-3.5 h-3.5" /></a>
+                className="p-2 rounded-lg bg-green-500/15 text-green-400 hover:bg-green-500/25 touch-manipulation"><MessageSquare className="w-4 h-4" /></a>
             </div>
           )}
         </div>
@@ -579,14 +579,14 @@ function Ticket({ order, currency, isNew, isExpanded, isSelected, onBump, onCanc
       )}
 
       {/* ── BUMP BUTTON ── */}
-      <div className="px-3 pb-3 pt-1 flex items-center gap-1.5">
-        <button onClick={onPrint} className="p-2 rounded-lg text-gray-500 hover:bg-gray-700 hover:text-white touch-manipulation"><Printer className="w-4 h-4" /></button>
+      <div className="px-3 pb-3 pt-1 flex items-center gap-2">
+        <button onClick={onPrint} className="p-3 rounded-xl text-gray-500 hover:bg-gray-700 hover:text-white touch-manipulation"><Printer className="w-5 h-5" /></button>
         {order.status !== 'cancelled' && order.status !== 'delivered' && (
-          <button onClick={onCancel} className="p-2 rounded-lg text-gray-500 hover:bg-red-500/20 hover:text-red-400 touch-manipulation"><XCircle className="w-4 h-4" /></button>
+          <button onClick={onCancel} className="p-3 rounded-xl text-gray-500 hover:bg-red-500/20 hover:text-red-400 touch-manipulation"><XCircle className="w-5 h-5" /></button>
         )}
         {nxt && bmp && (
-          <button onClick={onBump} className={cn('flex-1 py-3 rounded-lg text-white font-black text-sm flex items-center justify-center gap-1.5 transition-all active:scale-[0.97] touch-manipulation', bmp.cls)}>
-            {bumpLabel[order.status] ?? bmp.label} <ArrowRight className="w-4 h-4" />
+          <button onClick={onBump} className={cn('flex-1 py-4 rounded-xl text-white font-black text-base flex items-center justify-center gap-2 transition-all active:scale-[0.97] touch-manipulation', bmp.cls)}>
+            {bumpLabel[order.status] ?? bmp.label} <ArrowRight className="w-5 h-5" />
           </button>
         )}
       </div>
@@ -713,12 +713,12 @@ function HRow({ order, currency, open, onToggle, onPrint, onRecall }: {
       )}
 
       {/* Actions */}
-      <div className="px-3 pb-3 pt-1 flex items-center gap-1.5 border-t border-gray-700/20">
-        <button onClick={onPrint} className="p-2 rounded-lg text-gray-500 hover:bg-gray-700 hover:text-white touch-manipulation" title={t.kds_reprint}><Printer className="w-4 h-4" /></button>
-        <button onClick={onRecall} className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm flex items-center justify-center gap-1.5 touch-manipulation active:scale-[0.97] transition-all">
-          <Undo2 className="w-4 h-4" /> {t.kds_recover}
+      <div className="px-3 pb-3 pt-1 flex items-center gap-2 border-t border-gray-700/20">
+        <button onClick={onPrint} className="p-3 rounded-xl text-gray-500 hover:bg-gray-700 hover:text-white touch-manipulation" title={t.kds_reprint}><Printer className="w-5 h-5" /></button>
+        <button onClick={onRecall} className="flex-1 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-base flex items-center justify-center gap-2 touch-manipulation active:scale-[0.97] transition-all">
+          <Undo2 className="w-5 h-5" /> {t.kds_recover}
         </button>
-        <button onClick={onToggle} className="p-2 rounded-lg text-gray-500 hover:bg-gray-700 hover:text-white touch-manipulation" title={t.kds_collapse}><ChevronUp className="w-4 h-4" /></button>
+        <button onClick={onToggle} className="p-3 rounded-xl text-gray-500 hover:bg-gray-700 hover:text-white touch-manipulation" title={t.kds_collapse}><ChevronUp className="w-5 h-5" /></button>
       </div>
     </div>
   );

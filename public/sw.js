@@ -1,4 +1,4 @@
-const SW_VERSION = '6';
+const SW_VERSION = '7';
 const CACHE_NAME = 'menius-v' + SW_VERSION;
 const STATIC_CACHE = 'menius-static-v' + SW_VERSION;
 const IMAGE_CACHE = 'menius-images-v' + SW_VERSION;
@@ -48,7 +48,7 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/_next/webpack')) return;
 
   if (url.pathname.startsWith('/r/')) {
-    event.respondWith(networkFirstWithCache(request, CACHE_NAME, 5000));
+    event.respondWith(networkFirstWithCache(request, CACHE_NAME, 15000));
     return;
   }
 
