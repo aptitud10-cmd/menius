@@ -20,7 +20,6 @@ import { ProductCard } from './ProductCard';
 import { CartPanel } from './CartPanel';
 import { CustomizationSheet } from './CustomizationSheet';
 import { WelcomeScreen } from './WelcomeScreen';
-import { OwnerProductEditModal } from './OwnerProductEditModal';
 
 interface ReviewStats {
   average: number;
@@ -45,7 +44,6 @@ interface MenuShellProps {
   backUrl?: string;
   reviewStats?: ReviewStats | null;
   recentReviews?: ReviewItem[];
-  isOwner?: boolean;
 }
 
 interface CustomizationTarget {
@@ -63,7 +61,6 @@ export function MenuShell({
   backUrl,
   reviewStats,
   recentReviews,
-  isOwner = false,
 }: MenuShellProps) {
   const router = useRouter();
   const defaultLocale = initialLocale;
@@ -116,7 +113,6 @@ export function MenuShell({
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [customization, setCustomization] = useState<CustomizationTarget | null>(null);
-  const [ownerEditProduct, setOwnerEditProduct] = useState<Product | null>(null);
   const [toastName, setToastName] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const catScrollRef = useRef<HTMLDivElement>(null);
@@ -158,14 +154,6 @@ export function MenuShell({
 
   const handleProductSelect = useCallback((product: Product) => {
     setCustomization({ product, editIndex: null });
-  }, []);
-
-  const handleOwnerEdit = useCallback((product: Product) => {
-    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
-      setOwnerEditProduct(product);
-    } else {
-      setCustomization({ product, editIndex: null });
-    }
   }, []);
 
 
@@ -600,14 +588,12 @@ export function MenuShell({
                       product={product}
                       onSelect={handleProductSelect}
                       onQuickAdd={handleQuickAdd}
-                      onEdit={isOwner ? handleOwnerEdit : undefined}
                       fmtPrice={fmtPrice}
                       addLabel={t.addToCart}
                       customizeLabel={t.customize}
                       popularLabel={t.popular}
                       locale={locale}
                       defaultLocale={defaultLocale}
-                      isOwner={isOwner}
                     />
                   ))}
                 </div>
@@ -639,14 +625,12 @@ export function MenuShell({
                       product={product}
                       onSelect={handleProductSelect}
                       onQuickAdd={handleQuickAdd}
-                      onEdit={isOwner ? handleOwnerEdit : undefined}
                       fmtPrice={fmtPrice}
                       addLabel={t.addToCart}
                       customizeLabel={t.customize}
                       popularLabel={t.popular}
                       locale={locale}
                       defaultLocale={defaultLocale}
-                      isOwner={isOwner}
                     />
                   ))}
                 </div>
@@ -689,14 +673,12 @@ export function MenuShell({
                         product={product}
                         onSelect={handleProductSelect}
                         onQuickAdd={handleQuickAdd}
-                        onEdit={isOwner ? handleOwnerEdit : undefined}
                         fmtPrice={fmtPrice}
                         addLabel={t.addToCart}
                         customizeLabel={t.customize}
                         popularLabel={t.popular}
                         locale={locale}
                         defaultLocale={defaultLocale}
-                        isOwner={isOwner}
                       />
                     ))}
                   </div>
@@ -975,18 +957,6 @@ export function MenuShell({
         )}
       </AnimatePresence>
 
-      {/* ── Owner Edit Modal (desktop only) ── */}
-      <AnimatePresence>
-        {ownerEditProduct && (
-          <OwnerProductEditModal
-            product={ownerEditProduct}
-            categories={categories}
-            currency={currency}
-            locale={locale}
-            onClose={() => setOwnerEditProduct(null)}
-          />
-        )}
-      </AnimatePresence>
 
       {/* ── Mobile Full-screen Search Overlay ── */}
       <AnimatePresence>

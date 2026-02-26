@@ -136,7 +136,6 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         availableLocales={data.availableLocales}
         reviewStats={data.reviewStats}
         recentReviews={data.recentReviews}
-        isOwner={data.isOwner}
       />
     </>
   );
