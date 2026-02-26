@@ -6,6 +6,7 @@ import { Bell, BellOff, X, ShoppingBag } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { useNotifications } from '@/hooks/use-notifications';
 import { formatPrice } from '@/lib/utils';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface OrderNotifierProps {
   restaurantId: string;
@@ -21,6 +22,7 @@ interface OrderToast {
 }
 
 export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
+  const { t } = useDashboardLocale();
   const {
     soundEnabled,
     setSoundEnabled,
@@ -108,8 +110,8 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
               <Bell className="w-4 h-4 text-emerald-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900">Activar notificaciones</p>
-              <p className="text-xs text-gray-500 mt-0.5">Recibe alertas cuando llegue un nuevo pedido.</p>
+              <p className="text-sm font-semibold text-gray-900">{t.notif_enable}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t.notif_enableDesc}</p>
               <div className="flex gap-2 mt-3">
                 <button
                   onClick={async () => {
@@ -118,13 +120,13 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
                   }}
                   className="px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition-colors"
                 >
-                  Activar
+                  {t.notif_activate}
                 </button>
                 <button
                   onClick={() => setShowPermBanner(false)}
                   className="px-3 py-1.5 rounded-lg text-gray-500 text-xs font-medium hover:bg-gray-100 transition-colors"
                 >
-                  Ahora no
+                  {t.notif_notNow}
                 </button>
               </div>
             </div>
@@ -143,7 +145,7 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
             ? 'bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:bg-emerald-600 hover:shadow-[0_0_28px_rgba(16,185,129,0.5)]'
             : 'bg-white border border-gray-200 shadow-sm hover:bg-gray-50'
         }`}
-        title={soundEnabled ? 'Silenciar notificaciones' : 'Activar sonido'}
+        title={soundEnabled ? t.notif_mute : t.notif_unmute}
       >
         {soundEnabled ? (
           <Bell className={`w-6 h-6 text-white ${shaking ? 'bell-shake' : ''}`} />
@@ -164,7 +166,7 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-gray-900">
-                Nueva orden #{toast.orderNumber}
+                {t.notif_newOrder} #{toast.orderNumber}
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
                 {toast.customerName && <span>{toast.customerName} · </span>}
@@ -174,7 +176,7 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
                 href="/app/orders"
                 className="inline-flex items-center text-xs font-semibold text-emerald-600 hover:text-emerald-700 mt-2 transition-colors"
               >
-                Ver pedidos →
+                {t.notif_viewOrders} →
               </Link>
             </div>
             <button

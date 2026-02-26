@@ -8,15 +8,18 @@ import {
 } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
+import { getDashboardTranslations, type DashboardLocale } from '@/lib/dashboard-translations';
 import type { ModifierGroup, ModifierOption } from '@/types';
 
 interface ModifierGroupsEditorProps {
   groups: ModifierGroup[];
   productId: string;
   onUpdate?: (groups: ModifierGroup[]) => void;
+  locale?: DashboardLocale;
+  currency?: string;
 }
 
-export function ModifierGroupsEditor({ groups, productId, onUpdate }: ModifierGroupsEditorProps) {
+export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: localeProp, currency }: ModifierGroupsEditorProps) {
   const [items, setItems] = useState(groups);
   const [addingGroup, setAddingGroup] = useState(false);
   const [groupForm, setGroupForm] = useState({ name: '', selection_type: 'single' as 'single' | 'multi', min_select: '0', max_select: '1', is_required: false });
@@ -26,7 +29,9 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate }: ModifierGr
   const [optionForm, setOptionForm] = useState({ name: '', price_delta: '' });
   const [editOptionId, setEditOptionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const { t } = useDashboardLocale();
+  const dashboard = useDashboardLocale();
+  const t = localeProp ? getDashboardTranslations(localeProp) : dashboard.t;
+  const currSymbol = currency === 'EUR' ? '\u20AC' : '$';
 
   const sync = (updated: ModifierGroup[]) => {
     setItems(updated);
@@ -268,16 +273,19 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate }: ModifierGr
                   <div key={opt.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
                     {editOptionId === opt.id ? (
                       <>
-                        <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder={t.editor_name} className="flex-1 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                        <input value={optionForm.price_delta} onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })} placeholder="+0.00" type="number" step="0.01" className="w-20 text-sm px-2 py-1 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                        <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder={t.editor_name} className="flex-1 text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                        <div className="relative w-28">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{currSymbol}</span>
+                          <input value={optionForm.price_delta} onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                        </div>
                         <button onClick={() => handleUpdateOption(opt, group.id)} disabled={loading} className="text-xs font-medium text-emerald-600 disabled:opacity-50">{t.modifiers_save}</button>
                         <button onClick={() => { setEditOptionId(null); setOptionForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-500">{t.general_cancel}</button>
                       </>
                     ) : (
                       <>
                         <span className="flex-1 text-sm text-gray-700 font-medium">{opt.name}</span>
-                        <span className="text-sm text-gray-500 font-mono">
-                          {Number(opt.price_delta) > 0 ? `+$${Number(opt.price_delta).toFixed(2)}` : Number(opt.price_delta) < 0 ? `-$${Math.abs(Number(opt.price_delta)).toFixed(2)}` : t.modifiers_base}
+                        <span className={cn('text-sm font-mono px-2 py-0.5 rounded', Number(opt.price_delta) !== 0 ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-400')}>
+                          {Number(opt.price_delta) > 0 ? `+${currSymbol}${Number(opt.price_delta).toFixed(2)}` : Number(opt.price_delta) < 0 ? `-${currSymbol}${Math.abs(Number(opt.price_delta)).toFixed(2)}` : t.modifiers_base}
                         </span>
                         <button onClick={() => { setEditOptionId(opt.id); setOptionForm({ name: opt.name, price_delta: String(opt.price_delta) }); }} className="p-1 rounded hover:bg-gray-100 text-gray-400"><Pencil className="w-3.5 h-3.5" /></button>
                         <button onClick={() => handleDeleteOption(opt.id, group.id)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
@@ -293,9 +301,12 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate }: ModifierGr
                         <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{t.editor_name}</label>
                         <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder={t.modifiers_optionPlaceholder} autoFocus className="w-full text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
                       </div>
-                      <div className="w-24">
-                        <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{t.editor_price} (+/-)</label>
-                        <input value={optionForm.price_delta} onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-full text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                      <div className="w-32">
+                        <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{localeProp === 'en' ? 'Extra price' : 'Precio extra'}</label>
+                        <div className="relative">
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{currSymbol}</span>
+                          <input value={optionForm.price_delta} onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">

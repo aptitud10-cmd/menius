@@ -194,7 +194,7 @@ export function OwnerProductEditModal({ product, categories, currency, locale, o
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="fixed inset-4 lg:inset-8 z-[101] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        className="fixed inset-4 z-[101] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden lg:inset-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-4xl lg:max-h-[85vh]"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50/80 flex-shrink-0">
@@ -320,6 +320,8 @@ export function OwnerProductEditModal({ product, categories, currency, locale, o
                   <ModifierGroupsEditor
                     productId={product.id}
                     groups={product.modifier_groups ?? []}
+                    locale={locale as 'es' | 'en'}
+                    currency={currency}
                   />
                 </div>
               </div>

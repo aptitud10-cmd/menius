@@ -98,6 +98,16 @@ export interface DashboardTranslations {
   analytics_peakHours: string;
   analytics_peak: string;
 
+  // Notifications
+  notif_enable: string;
+  notif_enableDesc: string;
+  notif_activate: string;
+  notif_notNow: string;
+  notif_mute: string;
+  notif_unmute: string;
+  notif_newOrder: string;
+  notif_viewOrders: string;
+
   // Orders
   orders_title: string;
   orders_pending: string;
@@ -1083,6 +1093,16 @@ const es: DashboardTranslations = {
   analytics_peakHours: 'Horarios pico',
   analytics_peak: 'Pico',
 
+  // Notifications
+  notif_enable: 'Activar notificaciones',
+  notif_enableDesc: 'Recibe alertas cuando llegue un nuevo pedido.',
+  notif_activate: 'Activar',
+  notif_notNow: 'Ahora no',
+  notif_mute: 'Silenciar notificaciones',
+  notif_unmute: 'Activar sonido',
+  notif_newOrder: 'Nueva orden',
+  notif_viewOrders: 'Ver pedidos',
+
   // Orders
   orders_title: 'Órdenes',
   orders_pending: 'Pendiente',
@@ -2067,6 +2087,16 @@ const en: DashboardTranslations = {
   analytics_topProducts: 'Popular products',
   analytics_peakHours: 'Peak hours',
   analytics_peak: 'Peak',
+
+  // Notifications
+  notif_enable: 'Enable notifications',
+  notif_enableDesc: 'Get alerts when a new order arrives.',
+  notif_activate: 'Enable',
+  notif_notNow: 'Not now',
+  notif_mute: 'Mute notifications',
+  notif_unmute: 'Enable sound',
+  notif_newOrder: 'New order',
+  notif_viewOrders: 'View orders',
 
   // Orders
   orders_title: 'Orders',
