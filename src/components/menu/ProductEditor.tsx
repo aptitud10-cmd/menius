@@ -14,6 +14,7 @@ import type { Product, Category, DietaryTag, ContentTranslation, ProductVariant,
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { getLocaleFlag, getLocaleLabel } from '@/lib/i18n';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
+import type { DashboardTranslations } from '@/lib/dashboard-translations';
 import { ModifierGroupsEditor } from './ModifierGroupsEditor';
 import { MediaPicker } from './MediaPicker';
 
@@ -34,7 +35,7 @@ function LegacyOptionsSection({
   variants: ProductVariant[];
   extras: ProductExtra[];
   currency: string;
-  t: Record<string, string>;
+  t: DashboardTranslations;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState<string | null>(null);
