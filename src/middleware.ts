@@ -158,14 +158,14 @@ export async function middleware(request: NextRequest) {
     const now = new Date();
 
     if (!subscription) {
-      // No subscription record: 24-hour grace period after restaurant creation
+      // No subscription record: 14-day grace period after restaurant creation
       const { data: restaurant } = await supabase
         .from('restaurants')
         .select('created_at')
         .eq('id', profile.default_restaurant_id)
         .maybeSingle();
       const createdAt = restaurant?.created_at ? new Date(restaurant.created_at) : new Date(0);
-      const graceEnds = new Date(createdAt.getTime() + 24 * 60 * 60 * 1000);
+      const graceEnds = new Date(createdAt.getTime() + 14 * 24 * 60 * 60 * 1000);
       if (now > graceEnds) {
         return NextResponse.redirect(new URL('/app/subscription-expired', request.url));
       }

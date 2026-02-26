@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Check, X, Loader2 } from 'lucide-react';
 import { PLANS, type PlanId, type BillingInterval } from '@/lib/plans';
 import { cn } from '@/lib/utils';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface PricingTableProps {
   onSelect: (planId: PlanId, interval: BillingInterval) => void;
@@ -13,8 +14,10 @@ interface PricingTableProps {
 }
 
 const PLAN_ORDER: PlanId[] = ['starter', 'pro', 'business'];
+const PLAN_RANK: Record<PlanId, number> = { starter: 0, pro: 1, business: 2 };
 
 export function PricingTable({ onSelect, currentPlan, loading, compact }: PricingTableProps) {
+  const { locale } = useDashboardLocale();
   const [interval, setInterval] = useState<BillingInterval>('annual');
 
   const annualSavings = Math.round(((39 * 12 - 390) / (39 * 12)) * 100);
@@ -38,7 +41,7 @@ export function PricingTable({ onSelect, currentPlan, loading, compact }: Pricin
               interval === 'monthly' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700',
             )}
           >
-            Mensual
+            {locale === 'en' ? 'Monthly' : 'Mensual'}
           </button>
           <button
             onClick={() => setInterval('annual')}
@@ -47,12 +50,12 @@ export function PricingTable({ onSelect, currentPlan, loading, compact }: Pricin
               interval === 'annual' ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700',
             )}
           >
-            Anual
+            {locale === 'en' ? 'Annual' : 'Anual'}
           </button>
         </div>
         {interval === 'annual' && (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold animate-fade-in">
-            Ahorra {annualSavings}%
+            {locale === 'en' ? `Save ${annualSavings}%` : `Ahorra ${annualSavings}%`}
           </span>
         )}
       </div>
@@ -97,16 +100,16 @@ export function PricingTable({ onSelect, currentPlan, loading, compact }: Pricin
                 {/* Badges */}
                 {isPopular && (
                   <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[11px] font-bold rounded-full uppercase tracking-wider shadow-md">
-                    Mas popular
+                    {locale === 'en' ? 'Most popular' : 'Mas popular'}
                   </span>
                 )}
                 {isCurrent && (
-                  <span className={cn(
-                    'absolute -top-3 right-4 px-3 py-1 text-[11px] font-bold rounded-full uppercase tracking-wider',
-                    isBusiness ? 'bg-white text-gray-900' : 'bg-gray-900 text-white',
-                  )}>
-                    Tu plan
-                  </span>
+                    <span className={cn(
+                      'absolute -top-3 right-4 px-3 py-1 text-[11px] font-bold rounded-full uppercase tracking-wider',
+                      isBusiness ? 'bg-white text-gray-900' : 'bg-gray-900 text-white',
+                    )}>
+                    {locale === 'en' ? 'Your plan' : 'Tu plan'}
+                    </span>
                 )}
 
                 {/* Plan name & description */}
@@ -136,7 +139,7 @@ export function PricingTable({ onSelect, currentPlan, loading, compact }: Pricin
                       'text-sm',
                       isBusiness ? 'text-gray-400' : 'text-gray-500',
                     )}>
-                      /mes
+                      /{locale === 'en' ? 'mo' : 'mes'}
                     </span>
                   </div>
                   {interval === 'annual' && (
@@ -144,7 +147,7 @@ export function PricingTable({ onSelect, currentPlan, loading, compact }: Pricin
                       'text-xs mt-1',
                       isBusiness ? 'text-gray-500' : 'text-gray-400',
                     )}>
-                      ${price}/ano — facturado anualmente
+                      ${price}/{locale === 'en' ? 'yr — billed annually' : 'año — facturado anualmente'}
                     </p>
                   )}
                 </div>
@@ -207,14 +210,16 @@ export function PricingTable({ onSelect, currentPlan, loading, compact }: Pricin
                   {loading === id ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Redirigiendo...
+                      {locale === 'en' ? 'Redirecting...' : 'Redirigiendo...'}
                     </>
                   ) : isCurrent ? (
-                    'Plan actual'
+                    locale === 'en' ? 'Current plan' : 'Plan actual'
                   ) : currentPlan ? (
-                    `Cambiar a ${plan.name}`
+                    PLAN_RANK[id] > PLAN_RANK[currentPlan as PlanId]
+                      ? (locale === 'en' ? `Upgrade to ${plan.name}` : `Mejorar a ${plan.name}`)
+                      : (locale === 'en' ? `Switch to ${plan.name}` : `Cambiar a ${plan.name}`)
                   ) : (
-                    'Comenzar prueba gratis'
+                    locale === 'en' ? 'Start free trial' : 'Comenzar prueba gratis'
                   )}
                 </button>
               </div>

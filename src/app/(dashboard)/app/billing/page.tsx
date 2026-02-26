@@ -180,28 +180,46 @@ export default function BillingPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  const handleCheckout = useCallback(
+  const handlePlanSelect = useCallback(
     async (planId: PlanId, interval: BillingInterval) => {
       setActionLoading(planId);
       setError(null);
       try {
-        const res = await fetch('/api/billing/create-checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ plan_id: planId, interval }),
-        });
-        const data = await res.json();
-        if (data.url) window.location.href = data.url;
-        else {
-          setError(data.error || t.billing_noCheckout);
-          setActionLoading(null);
+        const hasLiveSub = sub?.stripe_subscription_id &&
+          (sub.status === 'active' || sub.status === 'past_due');
+
+        if (hasLiveSub) {
+          const res = await fetch('/api/billing/change-plan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan_id: planId, interval }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            window.location.reload();
+          } else {
+            setError(data.error || t.billing_noCheckout);
+            setActionLoading(null);
+          }
+        } else {
+          const res = await fetch('/api/billing/create-checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ plan_id: planId, interval }),
+          });
+          const data = await res.json();
+          if (data.url) window.location.href = data.url;
+          else {
+            setError(data.error || t.billing_noCheckout);
+            setActionLoading(null);
+          }
         }
       } catch {
         setError(t.billing_connectionError);
         setActionLoading(null);
       }
     },
-    [],
+    [sub],
   );
 
   const handlePortal = useCallback(async () => {
@@ -424,7 +442,7 @@ export default function BillingPage() {
                 )}
                 {isTrialing && (
                   <button
-                    onClick={() => handleCheckout(resolvedId as PlanId, 'monthly')}
+                    onClick={() => handlePlanSelect(resolvedId as PlanId, 'monthly')}
                     disabled={actionLoading !== null}
                     className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50"
                   >
@@ -527,8 +545,8 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* ─── Upgrade section ─── */}
-      {sub && resolvedId && resolvedId !== 'business' && (isActive || isTrialing) && (
+      {/* ─── Change plan section ─── */}
+      {sub && resolvedId && (isActive || isTrialing) && (
         <div className="mt-10 mb-8">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
@@ -539,7 +557,7 @@ export default function BillingPage() {
             </p>
           </div>
           <PricingTable
-            onSelect={handleCheckout}
+            onSelect={handlePlanSelect}
             currentPlan={resolvedId}
             loading={actionLoading}
           />
@@ -558,7 +576,7 @@ export default function BillingPage() {
               {t.billing_choosePlan}
             </p>
           </div>
-          <PricingTable onSelect={handleCheckout} loading={actionLoading} />
+          <PricingTable onSelect={handlePlanSelect} loading={actionLoading} />
         </div>
       )}
     </div>

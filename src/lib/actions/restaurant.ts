@@ -61,7 +61,7 @@ export async function createRestaurant(data: CreateRestaurantInput) {
   const trialEnd = new Date();
   trialEnd.setDate(trialEnd.getDate() + 14);
   const trialIso = trialEnd.toISOString();
-  await supabase.from('subscriptions').upsert({
+  const { error: subError } = await supabase.from('subscriptions').upsert({
     restaurant_id: restaurant.id,
     plan_id: 'starter',
     status: 'trialing',
@@ -69,6 +69,9 @@ export async function createRestaurant(data: CreateRestaurantInput) {
     trial_end: trialIso,
     current_period_end: trialIso,
   }, { onConflict: 'restaurant_id' });
+  if (subError) {
+    console.error('Failed to create trial subscription:', subError.message);
+  }
 
   // Seed example data — runs before redirect (batch inserts, ~1-2s)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
