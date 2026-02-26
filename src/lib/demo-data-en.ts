@@ -202,7 +202,7 @@ export const grillHouseProducts: Product[] = [
     id: 'buc-p-lobster', restaurant_id: RID, category_id: CAT_DINNER,
     name: 'Lobster Tail',
     description: 'Broiled Maine lobster tail with drawn butter, baked potato, and Caesar salad.',
-    price: 34.99, image_url: 'https://images.unsplash.com/photo-1553247407-23251ce81f59?w=600&h=340&fit=crop&q=80',
+    price: 34.99, image_url: 'https://images.unsplash.com/photo-1559737558-2f5a35f4523b?w=600&h=340&fit=crop&q=80',
     is_active: true, sort_order: 4, created_at: now, variants: [], extras: [],
   },
   {
@@ -225,7 +225,7 @@ export const grillHouseProducts: Product[] = [
     id: P_WINGS, restaurant_id: RID, category_id: CAT_APPETIZER,
     name: 'Buffalo Wings',
     description: 'Crispy wings tossed in your choice of sauce, served with celery and blue cheese dip.',
-    price: 12.99, image_url: 'https://images.unsplash.com/photo-1608039829572-9b0088ca6e13?w=600&h=340&fit=crop&q=80',
+    price: 12.99, image_url: 'https://images.unsplash.com/photo-1527477396000-e27163b60a61?w=600&h=340&fit=crop&q=80',
     is_active: true, is_featured: true, sort_order: 1, created_at: older,
     variants: [
       { id: 'buc-v-wings-6', product_id: P_WINGS, name: '6 Pieces', price_delta: 0, sort_order: 1 },

@@ -507,6 +507,7 @@ export interface DashboardTranslations {
   settings_timeTo: string;
   settings_openDay: string;
   settings_closeDay: string;
+  settings_24h: string;
   settings_enabled: string;
   settings_disabled: string;
   settings_whatsappOrdersLabel: string;
@@ -1502,6 +1503,7 @@ const es: DashboardTranslations = {
   settings_timeTo: 'a',
   settings_openDay: 'Abrir',
   settings_closeDay: 'Cerrar',
+  settings_24h: '24 horas',
   settings_enabled: 'Activado',
   settings_disabled: 'Desactivado',
   settings_whatsappOrdersLabel: 'WhatsApp para nuevas órdenes',
@@ -2497,6 +2499,7 @@ const en: DashboardTranslations = {
   settings_timeTo: 'to',
   settings_openDay: 'Open',
   settings_closeDay: 'Close',
+  settings_24h: '24 hours',
   settings_enabled: 'Enabled',
   settings_disabled: 'Disabled',
   settings_whatsappOrdersLabel: 'WhatsApp for new orders',

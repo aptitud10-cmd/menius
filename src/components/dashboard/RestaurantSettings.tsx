@@ -55,16 +55,18 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     longitude: initialData.longitude ?? '',
   });
 
-  const [hours, setHours] = useState<Record<string, { open: string; close: string; closed: boolean }>>(
+  const [hours, setHours] = useState<Record<string, { open: string; close: string; closed: boolean; fullDay?: boolean }>>(
     DAYS.reduce((acc, day) => {
       const existing = initialData.operating_hours?.[day.key];
+      const isFullDay = existing?.open === '00:00' && existing?.close === '23:59';
       acc[day.key] = {
         open: existing?.open ?? '09:00',
         close: existing?.close ?? '22:00',
         closed: existing?.closed ?? false,
+        fullDay: isFullDay,
       };
       return acc;
-    }, {} as Record<string, { open: string; close: string; closed: boolean }>)
+    }, {} as Record<string, { open: string; close: string; closed: boolean; fullDay?: boolean }>)
   );
 
   const [logoUrl, setLogoUrl] = useState(initialData.logo_url ?? '');
@@ -144,7 +146,24 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
   };
 
   const toggleClosed = (day: string) => {
-    setHours((prev) => ({ ...prev, [day]: { ...prev[day], closed: !prev[day].closed } }));
+    setHours((prev) => ({ ...prev, [day]: { ...prev[day], closed: !prev[day].closed, fullDay: false } }));
+    setSaved(false);
+  };
+
+  const toggleFullDay = (day: string) => {
+    setHours((prev) => {
+      const wasFullDay = prev[day].fullDay;
+      return {
+        ...prev,
+        [day]: {
+          ...prev[day],
+          fullDay: !wasFullDay,
+          open: wasFullDay ? '09:00' : '00:00',
+          close: wasFullDay ? '22:00' : '23:59',
+          closed: false,
+        },
+      };
+    });
     setSaved(false);
   };
 
@@ -707,6 +726,8 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               </button>
               {hours[day.key].closed ? (
                 <span className="text-sm text-red-400 font-medium">{t.settings_closed}</span>
+              ) : hours[day.key].fullDay ? (
+                <span className="text-sm text-emerald-600 font-semibold">{t.settings_24h}</span>
               ) : (
                 <div className="flex items-center gap-2">
                   <input
@@ -724,12 +745,22 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                   />
                 </div>
               )}
-              <button
-                onClick={() => toggleClosed(day.key)}
-                className={`ml-auto text-xs font-medium px-2.5 py-1 rounded-lg ${hours[day.key].closed ? 'bg-gray-50 text-gray-500 hover:bg-gray-100' : 'bg-red-500/[0.08] text-red-400 hover:bg-red-500/[0.12]'}`}
-              >
-                {hours[day.key].closed ? t.settings_openDay : t.settings_closeDay}
-              </button>
+              <div className="ml-auto flex items-center gap-1.5">
+                {!hours[day.key].closed && (
+                  <button
+                    onClick={() => toggleFullDay(day.key)}
+                    className={`text-xs font-medium px-2.5 py-1 rounded-lg ${hours[day.key].fullDay ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/15' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
+                  >
+                    {t.settings_24h}
+                  </button>
+                )}
+                <button
+                  onClick={() => toggleClosed(day.key)}
+                  className={`text-xs font-medium px-2.5 py-1 rounded-lg ${hours[day.key].closed ? 'bg-gray-50 text-gray-500 hover:bg-gray-100' : 'bg-red-500/[0.08] text-red-400 hover:bg-red-500/[0.12]'}`}
+                >
+                  {hours[day.key].closed ? t.settings_openDay : t.settings_closeDay}
+                </button>
+              </div>
             </div>
           ))}
         </div>

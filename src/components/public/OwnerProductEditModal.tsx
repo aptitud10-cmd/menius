@@ -189,12 +189,17 @@ export function OwnerProductEditModal({ product, categories, currency, locale, o
         className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
+      <div
+        className="fixed inset-0 z-[101] flex items-center justify-center p-4"
+        onClick={onClose}
+      >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="fixed inset-4 z-[101] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden lg:inset-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-4xl lg:max-h-[85vh]"
+        className="bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden w-full max-w-4xl max-h-[85vh]"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50/80 flex-shrink-0">
@@ -410,6 +415,7 @@ export function OwnerProductEditModal({ product, categories, currency, locale, o
           </div>
         </div>
       </motion.div>
+      </div>
 
       <MediaPicker open={galleryOpen} onClose={() => setGalleryOpen(false)} onSelect={handleGallerySelect} />
     </>

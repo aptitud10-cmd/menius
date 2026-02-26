@@ -38,6 +38,8 @@ const t = {
       },
     ],
     poweredBy: 'Ambos demos funcionan con datos de ejemplo. No se procesan pagos reales.',
+    cta: '¿Listo para digitalizar tu restaurante?',
+    ctaBtn: 'Empieza gratis',
   },
   en: {
     badge: 'Live Demos',
@@ -64,6 +66,8 @@ const t = {
       },
     ],
     poweredBy: 'Both demos use sample data. No real payments are processed.',
+    cta: 'Ready to digitize your restaurant?',
+    ctaBtn: 'Start free trial',
   },
 } as const;
 
@@ -163,8 +167,22 @@ export default function DemoSelectorPage() {
             ))}
           </div>
 
+          {/* Free trial CTA */}
+          <div className="mt-14 flex flex-col items-center gap-4">
+            <p className="text-base text-gray-300 font-light">{s.cta}</p>
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/20"
+            >
+              {s.ctaBtn}
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+              </svg>
+            </Link>
+          </div>
+
           {/* Disclaimer */}
-          <p className="mt-10 text-xs text-gray-500 font-medium">
+          <p className="mt-8 text-xs text-gray-500 font-medium">
             {s.poweredBy}
           </p>
         </div>
