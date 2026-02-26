@@ -85,7 +85,7 @@ export const grillHouseProducts: Product[] = [
     id: 'buc-p-benedict', restaurant_id: RID, category_id: CAT_BREAKFAST,
     name: 'Eggs Benedict',
     description: 'Poached eggs on toasted English muffins with Canadian bacon and hollandaise sauce.',
-    price: 13.99, image_url: 'https://images.unsplash.com/photo-1608039829572-9b0088ca6e13?w=600&h=340&fit=crop&q=80',
+    price: 13.99, image_url: 'https://images.unsplash.com/photo-1577973354094-121b629ce309?w=600&h=340&fit=crop&q=80',
     is_active: true, sort_order: 2, created_at: older, variants: [], extras: [],
   },
   {
@@ -152,7 +152,7 @@ export const grillHouseProducts: Product[] = [
     id: 'buc-p-fishnchips', restaurant_id: RID, category_id: CAT_LUNCH,
     name: 'Fish & Chips',
     description: 'Beer-battered Atlantic cod with golden fries, coleslaw, and tartar sauce.',
-    price: 15.99, image_url: 'https://images.unsplash.com/photo-1579208030886-b1f5b814e3ae?w=600&h=340&fit=crop&q=80',
+    price: 15.99, image_url: 'https://images.unsplash.com/photo-1580217593608-61931cefc821?w=600&h=340&fit=crop&q=80',
     is_active: true, sort_order: 4, created_at: older, variants: [], extras: [],
   },
   {
@@ -225,7 +225,7 @@ export const grillHouseProducts: Product[] = [
     id: P_WINGS, restaurant_id: RID, category_id: CAT_APPETIZER,
     name: 'Buffalo Wings',
     description: 'Crispy wings tossed in your choice of sauce, served with celery and blue cheese dip.',
-    price: 12.99, image_url: 'https://images.unsplash.com/photo-1527477396000-e27163b60a61?w=600&h=340&fit=crop&q=80',
+    price: 12.99, image_url: 'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=600&h=340&fit=crop&q=80',
     is_active: true, is_featured: true, sort_order: 1, created_at: older,
     variants: [
       { id: 'buc-v-wings-6', product_id: P_WINGS, name: '6 Pieces', price_delta: 0, sort_order: 1 },
@@ -267,7 +267,7 @@ export const grillHouseProducts: Product[] = [
     id: 'buc-p-mushrooms', restaurant_id: RID, category_id: CAT_APPETIZER,
     name: 'Stuffed Mushrooms',
     description: 'Button mushrooms filled with herbed cream cheese and breadcrumbs, baked golden.',
-    price: 10.99, image_url: 'https://images.unsplash.com/photo-1604579278540-db6507ee0fdb?w=600&h=340&fit=crop&q=80',
+    price: 10.99, image_url: 'https://images.unsplash.com/photo-1756478629551-2f5708638b23?w=600&h=340&fit=crop&q=80',
     is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
@@ -309,7 +309,7 @@ export const grillHouseProducts: Product[] = [
     id: 'buc-p-freshjuice', restaurant_id: RID, category_id: CAT_BEVERAGE,
     name: 'Fresh Orange Juice',
     description: 'Freshly squeezed orange juice, no added sugar. Pure sunshine in a glass.',
-    price: 5.49, image_url: 'https://images.unsplash.com/photo-1613478223719-2ab802602d23?w=600&h=340&fit=crop&q=80',
+    price: 5.49, image_url: 'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=600&h=340&fit=crop&q=80',
     is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
   {
