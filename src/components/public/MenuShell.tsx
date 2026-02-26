@@ -546,10 +546,11 @@ export function MenuShell({
                   const dayKey = days[new Date().getDay()];
                   const dh = restaurant.operating_hours?.[dayKey];
                   if (!dh || dh.closed) return null;
+                  const is24h = dh.open === '00:00' && dh.close === '23:59';
                   return (
-                    <span className="inline-flex items-center gap-1.5">
+                    <span className={`inline-flex items-center gap-1.5 ${is24h ? 'text-emerald-500 font-medium' : ''}`}>
                       <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                      {dh.open} – {dh.close}
+                      {is24h ? (locale === 'en' ? 'Open 24 Hours' : 'Abierto 24 Horas') : `${dh.open} – ${dh.close}`}
                     </span>
                   );
                 })()}
@@ -778,7 +779,9 @@ export function MenuShell({
                         <p className="text-sm text-gray-500 mt-0.5">
                           <span className="font-medium text-gray-700">{dayNames[todayIdx]}:</span>{' '}
                           {todayHours && !todayHours.closed
-                            ? `${todayHours.open} – ${todayHours.close}`
+                            ? (todayHours.open === '00:00' && todayHours.close === '23:59'
+                              ? <span className="text-emerald-500 font-medium">{locale === 'en' ? 'Open 24 Hours' : 'Abierto 24 Horas'}</span>
+                              : `${todayHours.open} – ${todayHours.close}`)
                             : (locale === 'en' ? 'Closed' : 'Cerrado')}
                         </p>
                       </div>
