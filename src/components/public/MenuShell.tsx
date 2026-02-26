@@ -825,37 +825,30 @@ export function MenuShell({
                 )}
               </div>
 
-              {/* Powered by MENIUS */}
-              <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-center gap-3">
-                <a
-                  href="https://menius.app"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group/pw inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 hover:bg-emerald-50 text-xs text-gray-400 hover:text-emerald-600 transition-all duration-200"
-                >
-                  <svg className="w-3.5 h-3.5 text-gray-300 group-hover/pw:text-emerald-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>
-                  <span>{locale === 'en' ? 'Powered by' : 'Creado con'}</span>
-                  <span className="font-bold text-gray-500 group-hover/pw:text-emerald-700 tracking-tight transition-colors">MENIUS</span>
-                </a>
-              </div>
             </section>
           )}
 
-          {/* Fallback powered-by when no restaurant info */}
-          {!restaurant.address && !restaurant.phone && !restaurant.operating_hours && (
-            <div className="mt-12 mb-6 border-t border-gray-100 pt-6 flex items-center justify-center">
-              <a
-                href="https://menius.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group/pw inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 hover:bg-emerald-50 text-xs text-gray-400 hover:text-emerald-600 transition-all duration-200"
-              >
-                <svg className="w-3.5 h-3.5 text-gray-300 group-hover/pw:text-emerald-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>
-                <span>{locale === 'en' ? 'Powered by' : 'Creado con'}</span>
-                <span className="font-bold text-gray-500 group-hover/pw:text-emerald-700 tracking-tight transition-colors">MENIUS</span>
-              </a>
-            </div>
-          )}
+          {/* Powered by MENIUS — always visible */}
+          <div className="mt-10 mb-6 pt-6 border-t border-gray-100 flex flex-col items-center gap-2">
+            <a
+              href="https://menius.app?ref=menu"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group/pw inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-50 hover:bg-emerald-50 border border-gray-100 hover:border-emerald-200 text-xs text-gray-400 hover:text-emerald-600 transition-all duration-300"
+            >
+              <svg className="w-4 h-4 text-emerald-400 group-hover/pw:text-emerald-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>
+              <span>{locale === 'en' ? 'Powered by' : 'Creado con'}</span>
+              <span className="font-bold text-gray-600 group-hover/pw:text-emerald-700 tracking-tight transition-colors">MENIUS</span>
+            </a>
+            <a
+              href="https://menius.app?ref=menu-cta"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] text-gray-300 hover:text-emerald-500 transition-colors"
+            >
+              {locale === 'en' ? 'Create your digital menu for free →' : 'Crea tu menú digital gratis →'}
+            </a>
+          </div>
 
           </div>{/* end px wrapper */}
         </main>
