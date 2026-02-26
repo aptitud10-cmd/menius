@@ -20,7 +20,7 @@ const t = {
     cards: [
       {
         slug: 'demo',
-        name: 'Demo Menius',
+        name: 'La Casa del Sabor',
         flag: '🇪🇸',
         lang: 'Español',
         desc: 'Restaurante completo con menú en español, categorías, extras, carrito y checkout.',
@@ -46,7 +46,7 @@ const t = {
     cards: [
       {
         slug: 'demo',
-        name: 'Demo Menius',
+        name: 'La Casa del Sabor',
         flag: '🇪🇸',
         lang: 'Español',
         desc: 'Complete restaurant with Spanish menu, categories, extras, cart & checkout.',
@@ -139,9 +139,9 @@ export default function DemoSelectorPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-[#070f0b] via-transparent to-transparent" />
 
                   {/* Language pill */}
-                  <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/50 backdrop-blur-sm border border-white/10">
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/90 backdrop-blur-sm shadow-lg shadow-emerald-500/25">
                     <span className="text-sm leading-none">{card.flag}</span>
-                    <span className="text-[11px] font-medium text-gray-200">{card.lang}</span>
+                    <span className="text-xs font-bold text-white tracking-wide">{card.lang}</span>
                   </div>
                 </div>
 
