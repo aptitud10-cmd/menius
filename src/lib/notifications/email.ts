@@ -343,3 +343,89 @@ export function buildOwnerNewOrderEmail(params: {
 </body>
 </html>`;
 }
+
+export interface SocialPostDigestItem {
+  platform: string;
+  hook: string;
+  caption: string;
+  hashtags: string;
+  cta: string;
+  image_url?: string | null;
+  image_idea?: string;
+  best_time?: string;
+  tip?: string;
+}
+
+const PLATFORM_EMOJI: Record<string, string> = {
+  instagram: '📸', facebook: '👥', linkedin: '💼', twitter: '🐦', tiktok: '🎵',
+};
+
+const PLATFORM_COLOR: Record<string, string> = {
+  instagram: '#E1306C', facebook: '#1877F2', linkedin: '#0A66C2', twitter: '#1DA1F2', tiktok: '#000000',
+};
+
+export function buildSocialPostDigestEmail(posts: SocialPostDigestItem[], date: string): string {
+  const postsHtml = posts.map((p) => {
+    const emoji = PLATFORM_EMOJI[p.platform] || '📱';
+    const color = PLATFORM_COLOR[p.platform] || '#6b7280';
+    const platformName = p.platform.charAt(0).toUpperCase() + p.platform.slice(1);
+    const captionPreview = p.caption.length > 300 ? p.caption.slice(0, 300) + '...' : p.caption;
+
+    return `
+      <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);margin-bottom:24px;">
+        <div style="background:${color};padding:16px 20px;display:flex;align-items:center;">
+          <span style="font-size:20px;margin-right:8px;">${emoji}</span>
+          <span style="color:#fff;font-size:16px;font-weight:700;">${platformName}</span>
+        </div>
+        ${p.image_url ? `<div style="text-align:center;background:#f9fafb;padding:12px;"><img src="${p.image_url}" alt="Post image" style="max-width:100%;max-height:400px;border-radius:8px;" /></div>` : ''}
+        <div style="padding:20px;">
+          <div style="background:#f0fdf4;border-left:4px solid #059669;padding:12px 16px;border-radius:0 8px 8px 0;margin-bottom:16px;">
+            <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#059669;margin:0 0 4px;font-weight:700;">HOOK</p>
+            <p style="font-size:15px;color:#111827;margin:0;font-weight:600;">${p.hook}</p>
+          </div>
+          <div style="margin-bottom:16px;">
+            <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;margin:0 0 6px;font-weight:700;">CAPTION</p>
+            <p style="font-size:14px;color:#374151;margin:0;line-height:1.6;white-space:pre-line;">${captionPreview}</p>
+          </div>
+          <div style="margin-bottom:16px;">
+            <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;margin:0 0 6px;font-weight:700;">CTA</p>
+            <p style="font-size:14px;color:#7c3aed;margin:0;font-weight:600;">${p.cta}</p>
+          </div>
+          <div style="background:#f9fafb;border-radius:8px;padding:12px 16px;margin-bottom:12px;">
+            <p style="font-size:12px;color:#6366f1;margin:0;word-break:break-all;">${p.hashtags}</p>
+          </div>
+          ${p.best_time ? `<p style="font-size:12px;color:#6b7280;margin:0 0 6px;">⏰ Best time: <strong>${p.best_time}</strong></p>` : ''}
+          ${p.tip ? `<p style="font-size:12px;color:#059669;margin:0;">💡 ${p.tip}</p>` : ''}
+          ${p.image_idea && !p.image_url ? `<p style="font-size:12px;color:#9ca3af;margin:8px 0 0;">🖼️ Image idea: ${p.image_idea}</p>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:600px;margin:0 auto;padding:40px 20px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <h1 style="font-size:28px;font-weight:800;color:#059669;margin:0;">MENIUS</h1>
+      <p style="font-size:13px;color:#6b7280;margin:8px 0 0;">Social Media Post Generator</p>
+    </div>
+    <div style="background:linear-gradient(135deg,#059669,#047857);border-radius:16px;padding:32px 24px;text-align:center;margin-bottom:28px;">
+      <div style="font-size:36px;margin-bottom:12px;">📱</div>
+      <h2 style="color:#fff;font-size:22px;font-weight:700;margin:0 0 4px;">Your posts are ready!</h2>
+      <p style="color:rgba(255,255,255,0.85);font-size:14px;margin:0;">${date} · ${posts.length} posts generated</p>
+    </div>
+    ${postsHtml}
+    <div style="text-align:center;margin-top:24px;">
+      <a href="https://menius.app/admin/social-generator" style="display:inline-block;padding:14px 40px;background:#059669;color:#fff;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
+        View all posts
+      </a>
+    </div>
+    <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:24px;">
+      Automated by MENIUS AI · <a href="https://menius.app/admin" style="color:#059669;text-decoration:none;">Admin Panel</a>
+    </p>
+  </div>
+</body>
+</html>`;
+}
