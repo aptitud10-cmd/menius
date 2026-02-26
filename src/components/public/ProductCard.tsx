@@ -41,6 +41,7 @@ export const ProductCard = memo(function ProductCard({
   const hasModifiers = hasVariants || hasExtras || hasModifierGroups;
   const outOfStock = product.in_stock === false;
   const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   const displayName = tName(product, locale, defaultLocale);
   const displayDesc = tDesc(product, locale, defaultLocale);
@@ -84,7 +85,7 @@ export const ProductCard = memo(function ProductCard({
           <div>
             <div className="flex items-center gap-1.5">
               {outOfStock && (
-                <span className="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full leading-none">Agotado</span>
+                <span className="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full leading-none">{locale === 'en' ? 'Sold out' : 'Agotado'}</span>
               )}
               {!outOfStock && product.is_featured && (
                 <span className="text-xs">🔥</span>
@@ -131,13 +132,15 @@ export const ProductCard = memo(function ProductCard({
               <button
                 onClick={handleAddClick}
                 className={cn(
-                  'flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 active:scale-90',
+                  'flex items-center justify-center w-9 h-9 rounded-full transition-all duration-300 active:scale-90',
                   justAdded
-                    ? 'bg-emerald-600 text-white'
+                    ? 'bg-emerald-600 text-white scale-110'
                     : 'bg-emerald-500 text-white'
                 )}
               >
-                {justAdded ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                <span className={cn('transition-transform duration-300', justAdded && 'scale-110')}>
+                  {justAdded ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                </span>
               </button>
             )}
           </div>
@@ -145,6 +148,9 @@ export const ProductCard = memo(function ProductCard({
 
         {showImage ? (
           <div className="relative w-[100px] h-[100px] rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+            {!imgLoaded && (
+              <div className="absolute inset-0 bg-gray-100 animate-pulse" />
+            )}
             <Image
               src={product.image_url}
               alt={imgAlt}
@@ -153,7 +159,8 @@ export const ProductCard = memo(function ProductCard({
               loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
-              className={cn('object-cover', outOfStock && 'grayscale')}
+              className={cn('object-cover transition-opacity duration-300', imgLoaded ? 'opacity-100' : 'opacity-0', outOfStock && 'grayscale')}
+              onLoad={() => setImgLoaded(true)}
               onError={() => setImgError(true)}
             />
             {outOfStock && (
@@ -193,6 +200,9 @@ export const ProductCard = memo(function ProductCard({
       >
         {showImage ? (
           <div className="relative w-full aspect-[16/9] bg-gray-100 overflow-hidden">
+            {!imgLoaded && (
+              <div className="absolute inset-0 bg-gray-100 animate-pulse" />
+            )}
             <Image
               src={product.image_url}
               alt={imgAlt}
@@ -201,12 +211,13 @@ export const ProductCard = memo(function ProductCard({
               loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
-              className={cn('object-cover transition-transform duration-500', outOfStock && 'grayscale')}
+              className={cn('object-cover transition-[transform,opacity] duration-500', imgLoaded ? 'opacity-100' : 'opacity-0', outOfStock && 'grayscale')}
+              onLoad={() => setImgLoaded(true)}
               onError={() => setImgError(true)}
             />
             {outOfStock && (
               <div className="absolute inset-0 bg-white/40 flex items-center justify-center">
-                <span className="px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-bold">Agotado</span>
+                <span className="px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-bold">{locale === 'en' ? 'Sold out' : 'Agotado'}</span>
               </div>
             )}
             {!outOfStock && product.is_featured && (
@@ -237,7 +248,7 @@ export const ProductCard = memo(function ProductCard({
             <UtensilsCrossed className="w-10 h-10 text-gray-200" />
             {outOfStock && (
               <div className="absolute inset-0 bg-white/40 flex items-center justify-center">
-                <span className="px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-bold">Agotado</span>
+                <span className="px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-bold">{locale === 'en' ? 'Sold out' : 'Agotado'}</span>
               </div>
             )}
             {!outOfStock && product.is_featured && (
@@ -281,7 +292,7 @@ export const ProductCard = memo(function ProductCard({
                 return (
                   <span key={tagId} className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">
                     <span>{tag.emoji}</span>
-                    <span>{tag.labelEs}</span>
+                    <span>{locale === 'en' ? tag.labelEn : tag.labelEs}</span>
                   </span>
                 );
               })}
@@ -295,7 +306,7 @@ export const ProductCard = memo(function ProductCard({
               </span>
               {outOfStock ? (
                 <span className="inline-flex items-center gap-1 text-xs text-red-500 font-semibold">
-                  <Ban className="w-3 h-3" /> Agotado
+                  <Ban className="w-3 h-3" /> {locale === 'en' ? 'Sold out' : 'Agotado'}
                 </span>
               ) : hasModifiers ? (
                 <span className="inline-flex items-center gap-0.5 text-xs text-emerald-600 font-medium">
@@ -306,20 +317,20 @@ export const ProductCard = memo(function ProductCard({
             </div>
             {outOfStock ? (
               <span className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-400 cursor-default">
-                No disponible
+                {locale === 'en' ? 'Unavailable' : 'No disponible'}
               </span>
             ) : (
               <button
                 onClick={handleAddClick}
                 className={cn(
-                  'flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 active:scale-95',
+                  'flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 active:scale-95',
                   justAdded
-                    ? 'bg-emerald-600 text-white'
+                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 scale-105'
                     : 'bg-emerald-500 text-white hover:bg-emerald-600 hover:shadow-md'
                 )}
               >
                 {justAdded ? (
-                  <><Check className="w-3.5 h-3.5" /> ✓</>
+                  <><Check className="w-3.5 h-3.5" /> {locale === 'en' ? 'Added' : 'Listo'}</>
                 ) : (
                   <><Plus className="w-3.5 h-3.5" /> {addLabel}</>
                 )}
