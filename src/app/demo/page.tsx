@@ -171,7 +171,7 @@ export default function DemoSelectorPage() {
           <div className="mt-14 flex flex-col items-center gap-4">
             <p className="text-base text-gray-300 font-light">{s.cta}</p>
             <Link
-              href="/register"
+              href="/signup"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/20"
             >
               {s.ctaBtn}

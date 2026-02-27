@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       locale: isEn ? 'en_US' : 'es_MX',
     },
     twitter: { card: 'summary_large_image', title: restaurant.name, description, images: [image] },
-    alternates: { canonical: url },
+    alternates: { canonical: `${APP_URL}/r/${params.slug}` },
     robots: { index: true, follow: true },
   };
 }

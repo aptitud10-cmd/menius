@@ -482,9 +482,9 @@ export function MenuShell({
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 px-5 pb-4 lg:px-8 lg:pb-5">
-                <h2 className="text-white font-extrabold text-xl lg:text-2xl tracking-tight drop-shadow-sm lg:hidden">
+                <h1 className="text-white font-extrabold text-xl lg:text-2xl tracking-tight drop-shadow-sm lg:hidden">
                   {restaurant.name}
-                </h2>
+                </h1>
                 {reviewStats && reviewStats.total > 0 && (
                   <div className="flex items-center gap-1.5 mt-1 lg:hidden">
                     <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
@@ -500,7 +500,7 @@ export function MenuShell({
           {!restaurant.cover_image_url && (
             <div className="lg:hidden px-4 pt-4 pb-2">
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-lg font-extrabold text-gray-900 tracking-tight truncate">{restaurant.name}</h2>
+                <h1 className="text-lg font-extrabold text-gray-900 tracking-tight truncate">{restaurant.name}</h1>
                 {reviewStats && reviewStats.total > 0 && (
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
@@ -520,7 +520,7 @@ export function MenuShell({
           <div className="hidden lg:block mb-8">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">{restaurant.name}</h2>
+                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">{restaurant.name}</h1>
                 {restaurant.description && (
                   <p className="text-base text-gray-500 mt-1.5 max-w-xl">{restaurant.description}</p>
                 )}

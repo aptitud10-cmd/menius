@@ -71,15 +71,18 @@ export default function BlogPostPage({ params }: PageProps) {
   const related = getLocalizedRelatedPosts(params.slug, locale, 3);
   const ui = getUiText(locale);
 
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
     headline: post.title,
     description: post.description,
+    image: `${APP_URL}/opengraph-image`,
     datePublished: post.date,
+    dateModified: post.date,
     author: { '@type': 'Organization', name: post.author },
-    publisher: { '@type': 'Organization', name: 'MENIUS' },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': `${process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app'}/blog/${post.slug}` },
+    publisher: { '@type': 'Organization', name: 'MENIUS', logo: { '@type': 'ImageObject', url: `${APP_URL}/icons/icon-512.svg` } },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `${APP_URL}/blog/${post.slug}` },
   };
 
   return (

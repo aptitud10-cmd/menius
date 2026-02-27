@@ -78,6 +78,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
       </head>
       <body className="bg-black text-gray-900 antialiased font-sans">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: 'MENIUS',
+              url: 'https://menius.app',
+              logo: 'https://menius.app/icons/icon-512.svg',
+              sameAs: [],
+              description: 'La plataforma #1 de menús digitales con QR para restaurantes.',
+            }),
+          }}
+        />
         <Suspense fallback={null}>
           <PostHogProvider>{children}</PostHogProvider>
         </Suspense>
