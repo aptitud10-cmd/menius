@@ -228,11 +228,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const inputClass = 'w-full px-4 py-3.5 rounded-2xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white';
 
   if (!hasMounted) {
-    return (
-      <div className="min-h-[100dvh] bg-gray-50 flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <div className="min-h-[100dvh] bg-gray-50" />;
   }
 
   if (items.length === 0 && step !== 'confirmation') {

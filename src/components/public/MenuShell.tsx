@@ -929,7 +929,7 @@ export function MenuShell({
                   fmtPrice={fmtPrice}
                   t={t}
                   onEdit={(idx) => { setOpen(false); handleEditCartItem(idx); }}
-                  onCheckout={() => { setOpen(false); handleOpenCheckout(); }}
+                  onCheckout={() => { setOpen(false); setTimeout(handleOpenCheckout, 150); }}
                 />
               </div>
             </motion.div>
