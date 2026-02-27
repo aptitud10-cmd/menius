@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { ArrowLeft, CheckCircle, ShoppingCart, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
-import { cn, formatPrice, transitionNavigate } from '@/lib/utils';
+import { cn, formatPrice } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, OrderType, PaymentMethod } from '@/types';
 import { trackEvent } from '@/lib/analytics';
@@ -88,7 +88,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const deliveryFee = (orderType === 'delivery' && restaurant.delivery_fee) ? restaurant.delivery_fee : 0;
   const finalTotal = Math.max(0, cartTotal - discount + deliveryFee + tipAmount);
 
-  const goBack = useCallback(() => transitionNavigate(() => router.push(`/r/${slug}`)), [router, slug]);
+  const goBack = useCallback(() => router.push(`/r/${slug}`), [router, slug]);
 
   const validateField = useCallback((name: string, value: string) => {
     let error = '';

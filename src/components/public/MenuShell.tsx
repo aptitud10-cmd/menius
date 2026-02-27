@@ -7,7 +7,7 @@ import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star,
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
-import { formatPrice, cn, transitionNavigate } from '@/lib/utils';
+import { formatPrice, cn } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, Category, Product, OrderType, DietaryTag } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
@@ -218,7 +218,7 @@ export function MenuShell({
       item_count: rawCartCount,
       total: rawCartTotal,
     });
-    transitionNavigate(() => router.push(`/r/${restaurant.slug}/checkout`));
+    router.push(`/r/${restaurant.slug}/checkout`);
   }, [router, restaurant.slug, restaurant.id, rawCartCount, rawCartTotal]);
 
   const availableDiets = useMemo(() => {
@@ -929,7 +929,7 @@ export function MenuShell({
                   fmtPrice={fmtPrice}
                   t={t}
                   onEdit={(idx) => { setOpen(false); handleEditCartItem(idx); }}
-                  onCheckout={() => { setOpen(false); setTimeout(handleOpenCheckout, 150); }}
+                  onCheckout={handleOpenCheckout}
                 />
               </div>
             </motion.div>
