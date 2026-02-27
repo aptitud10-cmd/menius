@@ -20,7 +20,7 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
               <span className="text-sm text-gray-300 tracking-wide">{h.badge}</span>
             </div>
 
-            <h1 className="d-fade-up d-delay-1 text-[2.75rem] sm:text-[3.5rem] lg:text-[4.5rem] font-semibold leading-[0.92] tracking-[-0.04em] text-white">
+            <h1 className="d-fade-up d-delay-1 text-[2.75rem] sm:text-[3.5rem] lg:text-[4.5rem] font-semibold leading-tight tracking-[-0.04em] text-white">
               {h.titleLine1}
               <span className="text-gradient-premium">{h.titleHighlight}</span>
             </h1>

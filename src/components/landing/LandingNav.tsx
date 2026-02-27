@@ -1,12 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { getLandingT, type LandingLocale } from '@/lib/landing-translations';
 
 export function LandingNav({ locale }: { locale: LandingLocale }) {
   const [open, setOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
   const n = getLandingT(locale).nav;
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent | TouchEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('touchstart', handleClick);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('touchstart', handleClick);
+    };
+  }, [open]);
 
   const switchLocale = (l: LandingLocale) => {
     if (l === locale) return;
@@ -15,7 +31,7 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
   };
 
   return (
-    <header className="fixed top-0 w-full z-50 bg-[#050505]/80 backdrop-blur-2xl border-b border-white/[0.04]">
+    <header ref={navRef} className="fixed top-0 w-full z-50 bg-[#050505]/80 backdrop-blur-2xl border-b border-white/[0.04]">
       <div className="max-w-6xl mx-auto px-5 h-14 md:h-16 flex items-center justify-between">
         <Link href="/" className="text-lg font-bold tracking-tight text-white">MENIUS</Link>
 
@@ -39,7 +55,7 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
 
         <button
           onClick={() => setOpen(!open)}
-          className="md:hidden flex flex-col items-center justify-center w-9 h-9 gap-[5px]"
+          className="md:hidden flex flex-col items-center justify-center w-11 h-11 gap-[5px]"
           aria-label={n.menuLabel}
         >
           <span className={`block w-5 h-[1.5px] bg-gray-300 transition-all duration-300 ${open ? 'rotate-45 translate-y-[6.5px]' : ''}`} />
