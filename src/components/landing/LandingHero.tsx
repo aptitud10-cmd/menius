@@ -20,7 +20,7 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
               <span className="text-sm text-gray-300 tracking-wide">{h.badge}</span>
             </div>
 
-            <h1 className="d-fade-up d-delay-1 text-[2.75rem] sm:text-[3.5rem] lg:text-[4.5rem] font-semibold leading-tight tracking-[-0.04em] text-white">
+            <h1 className="d-fade-up d-delay-1 text-[2.75rem] sm:text-[3.5rem] lg:text-[4.5rem] font-extrabold leading-tight tracking-[-0.04em] text-white">
               {h.titleLine1}
               <span className="text-gradient-premium">{h.titleHighlight}</span>
             </h1>
@@ -32,14 +32,14 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
             <div className="d-fade-up d-delay-3 mt-8 md:mt-9 flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3.5">
               <Link
                 href="/signup"
-                className="group w-full sm:w-auto px-8 py-4 rounded-2xl bg-white text-black font-semibold text-base hover:bg-gray-100 transition-all text-center"
+                className="group w-full sm:w-auto px-8 py-5 rounded-2xl bg-white text-black font-extrabold text-[17px] hover:bg-gray-100 active:scale-[0.98] transition-all text-center shadow-[0_4px_20px_rgba(255,255,255,0.15)]"
               >
                 {h.ctaPrimary}
                 <span className="inline-block ml-1.5 group-hover:translate-x-0.5 transition-transform">&rarr;</span>
               </Link>
               <Link
                 href="/demo"
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl border border-white/10 text-gray-200 font-semibold text-base hover:text-white hover:border-white/20 hover:bg-white/[0.03] transition-all text-center"
+                className="w-full sm:w-auto px-8 py-5 rounded-2xl border-2 border-white/15 text-gray-200 font-bold text-[17px] hover:text-white hover:border-white/25 hover:bg-white/[0.03] active:scale-[0.98] transition-all text-center"
               >
                 {h.ctaSecondary}
               </Link>

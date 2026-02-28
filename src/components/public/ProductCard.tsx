@@ -75,7 +75,7 @@ export const ProductCard = memo(function ProductCard({
       <div
         onClick={handleClick}
         className={cn(
-          'lg:hidden flex gap-3 p-3 bg-white rounded-2xl border border-gray-100 transition-all duration-150',
+          'lg:hidden flex gap-3 p-3.5 bg-white rounded-2xl border-2 border-gray-200 transition-all duration-150',
           outOfStock ? 'opacity-70 cursor-default' : 'cursor-pointer active:bg-gray-50/80 active:scale-[0.98]'
         )}
       >
@@ -91,7 +91,7 @@ export const ProductCard = memo(function ProductCard({
               {!outOfStock && product.is_new && (
                 <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full leading-none">NEW</span>
               )}
-              <h3 className={cn('font-semibold text-[15px] line-clamp-2 leading-tight', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
+              <h3 className={cn('font-bold text-[15px] line-clamp-2 leading-tight', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
                 {displayName}
               </h3>
             </div>
@@ -119,25 +119,25 @@ export const ProductCard = memo(function ProductCard({
             )}
           </div>
           <div className="flex items-center justify-between mt-2">
-            <span className={cn('text-[15px] font-bold tabular-nums', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
+            <span className={cn('text-base font-extrabold tabular-nums', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
               {fmtPrice(Number(product.price))}
             </span>
             {outOfStock ? (
-              <div className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100">
-                <Ban className="w-4 h-4 text-gray-300" />
+              <div className="flex items-center justify-center w-11 h-11 rounded-full bg-gray-100">
+                <Ban className="w-4.5 h-4.5 text-gray-300" />
               </div>
             ) : (
               <button
                 onClick={handleAddClick}
                 className={cn(
-                  'flex items-center justify-center w-9 h-9 rounded-full transition-all duration-300 active:scale-90',
+                  'flex items-center justify-center w-11 h-11 rounded-full transition-all duration-300 active:scale-90 shadow-sm',
                   justAdded
                     ? 'bg-emerald-600 text-white scale-110'
                     : 'bg-emerald-500 text-white'
                 )}
               >
                 <span className={cn('transition-transform duration-300', justAdded && 'scale-110')}>
-                  {justAdded ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                  {justAdded ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                 </span>
               </button>
             )}
@@ -166,10 +166,10 @@ export const ProductCard = memo(function ProductCard({
             )}
             <button
               onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
-              className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center"
+              className="absolute top-1.5 right-1.5 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center"
               aria-label="Favorite"
             >
-              <Heart className={cn('w-3.5 h-3.5 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+              <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
             </button>
           </div>
         ) : (
@@ -177,10 +177,10 @@ export const ProductCard = memo(function ProductCard({
             <UtensilsCrossed className="w-6 h-6 text-gray-200" />
             <button
               onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
-              className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center"
+              className="absolute top-1.5 right-1.5 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center"
               aria-label="Favorite"
             >
-              <Heart className={cn('w-3.5 h-3.5 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+              <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
             </button>
           </div>
         )}

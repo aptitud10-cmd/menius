@@ -10,7 +10,7 @@ export default function LandingPage() {
   const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as LandingLocale;
 
   return (
-    <div className="landing-bg relative w-full max-w-[100vw] overflow-x-hidden">
+    <div className="landing-bg relative w-full max-w-[100vw] overflow-x-hidden overflow-y-auto">
       <LandingNav locale={locale} />
       <LandingHero locale={locale} />
       <LandingSections locale={locale} />

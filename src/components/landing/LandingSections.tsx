@@ -85,7 +85,7 @@ function FeatureTabs({ t }: { t: LandingT }) {
           <button
             key={feat.tab}
             onClick={() => setActive(i)}
-            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
+            className={`px-4 sm:px-6 py-3 sm:py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
               active === i
                 ? 'bg-white text-black shadow-lg shadow-white/10'
                 : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.03]'
@@ -98,7 +98,7 @@ function FeatureTabs({ t }: { t: LandingT }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
         <div>
-          <h3 className="text-3xl md:text-4xl font-semibold text-white leading-tight tracking-tight">
+          <h3 className="text-3xl md:text-4xl font-bold text-white leading-tight tracking-tight">
             {item.title}
           </h3>
           <p className="mt-4 md:mt-6 text-lg md:text-xl text-gray-200 md:text-gray-300 leading-relaxed font-light">
@@ -311,7 +311,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
         <div className="relative z-10 max-w-6xl mx-auto px-6">
           <div className="text-center mb-8 d-fade-up">
             <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.features.sectionLabel}</p>
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
               {t.features.sectionTitle}
             </h2>
             <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
@@ -334,7 +334,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
         <div className="relative z-10 max-w-6xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
             <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.integrations.sectionLabel}</p>
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
               {t.integrations.sectionTitle}
             </h2>
             <p className="text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
@@ -357,7 +357,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
         <div className="relative z-10 max-w-4xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
             <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.comparison.sectionLabel}</p>
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
               {t.comparison.sectionTitle}
             </h2>
             <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
@@ -421,7 +421,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
         <div className="relative z-10 max-w-6xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
             <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.savings.sectionLabel}</p>
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
               {t.savings.sectionTitle}
             </h2>
             <p className="text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
@@ -445,7 +445,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
         <div className="relative z-10 max-w-5xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
             <p className="text-sm text-blue-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.pricing.sectionLabel}</p>
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
               {t.pricing.sectionTitle}
             </h2>
             <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl font-light">{t.pricing.sectionDesc}</p>
@@ -485,10 +485,10 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
                     </ul>
                     <Link
                       href={`/signup?plan=${plan.name.toLowerCase()}`}
-                      className={`mt-8 block text-center py-3.5 rounded-xl font-medium text-[15px] transition-all duration-300 ${
+                      className={`mt-8 block text-center py-4 rounded-xl font-bold text-base active:scale-[0.98] transition-all duration-300 ${
                         isPopular
                           ? 'bg-white text-black hover:bg-gray-100 btn-glow shadow-lg shadow-white/5'
-                          : 'bg-white/[0.06] text-gray-300 border border-white/[0.08] hover:text-white hover:bg-white/[0.1] hover:border-white/[0.15]'
+                          : 'bg-white/[0.06] text-gray-300 border-2 border-white/[0.10] hover:text-white hover:bg-white/[0.1] hover:border-white/[0.18]'
                       }`}
                     >
                       {plan.cta}
@@ -518,7 +518,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
         <div className="relative z-10 max-w-4xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
             <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.howItWorks.sectionLabel}</p>
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
               {t.howItWorks.sectionTitle}
             </h2>
           </div>
@@ -550,7 +550,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
         <div className="relative z-10 max-w-6xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
             <p className="text-sm text-amber-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.testimonials.sectionLabel}</p>
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight">
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
               {t.testimonials.sectionTitle}
             </h2>
           </div>
@@ -569,7 +569,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
 
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
           <div className="d-fade-up">
-            <h2 className="text-3xl md:text-5xl lg:text-7xl font-semibold text-white tracking-tight leading-[1.05]">
+            <h2 className="text-3xl md:text-5xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.05]">
               {t.finalCta.line1}
               <br />
               <span className="text-gradient-premium">{t.finalCta.line2}</span>
@@ -580,13 +580,13 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
             <div className="mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 px-2 sm:px-0 d-fade-up d-delay-2">
               <Link
                 href="/signup"
-                className="w-full sm:w-auto px-10 py-4 rounded-2xl bg-white text-black font-semibold text-base sm:text-[15px] hover:bg-gray-100 transition-all btn-glow"
+                className="w-full sm:w-auto px-10 py-5 rounded-2xl bg-white text-black font-extrabold text-[17px] sm:text-base hover:bg-gray-100 active:scale-[0.98] transition-all btn-glow shadow-[0_4px_20px_rgba(255,255,255,0.15)]"
               >
                 {t.finalCta.ctaPrimary} &rarr;
               </Link>
               <Link
                 href="/demo"
-                className="w-full sm:w-auto px-10 py-4 rounded-2xl border border-white/10 text-gray-200 font-semibold text-base sm:text-[15px] hover:text-white hover:border-white/20 transition-all"
+                className="w-full sm:w-auto px-10 py-5 rounded-2xl border-2 border-white/15 text-gray-200 font-bold text-[17px] sm:text-base hover:text-white hover:border-white/25 active:scale-[0.98] transition-all"
               >
                 {t.finalCta.ctaSecondary}
               </Link>

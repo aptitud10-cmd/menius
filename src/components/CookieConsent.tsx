@@ -47,7 +47,7 @@ export default function CookieConsent() {
   const s = t[locale];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4 animate-fade-in-up">
+    <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] animate-fade-in-up">
       <div className="max-w-xl mx-auto bg-brand-950 border border-white/10 rounded-2xl shadow-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <div className="flex-1 min-w-0">
           <p className="text-sm text-gray-300 leading-relaxed">

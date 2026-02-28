@@ -12,7 +12,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
         </span>
       </div>
 
-      <div className="relative z-10 md:-mt-[7rem] lg:-mt-[9rem] bg-black pt-10 md:pt-10 pb-6 md:pb-16">
+      <div className="relative z-10 md:-mt-[7rem] lg:-mt-[9rem] bg-black pt-10 md:pt-10 pb-[max(2rem,env(safe-area-inset-bottom))] md:pb-16">
         <div className="max-w-6xl mx-auto px-5 sm:px-6">
           {/* Mobile footer */}
           <div className="md:hidden space-y-6">

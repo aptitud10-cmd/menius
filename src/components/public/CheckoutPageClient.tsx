@@ -218,14 +218,19 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
         body: JSON.stringify({ order_id: orderId, slug: restaurant.slug }),
       });
       const data = await res.json();
-      if (data.url) window.location.href = data.url;
-      else setPayLoading(false);
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        setOrderError(data.error || (locale === 'es' ? 'Error al iniciar el pago. Intenta de nuevo.' : 'Payment failed. Please try again.'));
+        setPayLoading(false);
+      }
     } catch {
+      setOrderError(locale === 'es' ? 'Error de conexión al procesar el pago.' : 'Connection error processing payment.');
       setPayLoading(false);
     }
   };
 
-  const inputClass = 'w-full px-4 py-3.5 rounded-2xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white';
+  const inputClass = 'w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white';
 
   if (!hasMounted) {
     return <div className="min-h-[100dvh] bg-gray-50" />;
@@ -332,7 +337,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
         <div className="max-w-lg mx-auto px-5 py-6 space-y-6">
 
           {/* Order summary */}
-          <div className="bg-white rounded-2xl p-5 space-y-3 border border-gray-100 shadow-sm">
+          <div className="bg-white rounded-2xl p-5 space-y-3 border-2 border-gray-200 shadow-sm">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t.myOrder}</p>
             {items.map((item, idx) => (
               <div key={idx} className="flex gap-3 items-start">
@@ -395,7 +400,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
           </div>
 
           {/* Order type */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+          <div className="bg-white rounded-2xl p-5 border-2 border-gray-200 shadow-sm">
             <label className="block text-sm font-semibold text-gray-900 mb-3">{t.orderType}</label>
             <div className={cn('grid gap-2', enabledOrderTypes.length === 3 ? 'grid-cols-3' : enabledOrderTypes.length === 2 ? 'grid-cols-2' : 'grid-cols-1')}>
               {enabledOrderTypes.map((type) => (
@@ -403,7 +408,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
                   key={type}
                   onClick={() => setOrderType(type)}
                   className={cn(
-                    'py-3.5 px-3 rounded-xl text-[15px] font-semibold text-center transition-all duration-150 border-2',
+                    'py-4 px-3 rounded-xl text-[15px] font-bold text-center transition-all duration-150 border-2',
                     orderType === type
                       ? 'bg-gray-900 text-white border-gray-900'
                       : 'bg-white text-gray-600 border-gray-200 active:border-gray-400'
@@ -433,7 +438,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
           </div>
 
           {/* Customer details */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm space-y-5">
+          <div className="bg-white rounded-2xl p-5 border-2 border-gray-200 shadow-sm space-y-5">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{locale === 'es' ? 'Tus datos' : 'Your details'}</p>
             <div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">{t.yourName} <span className="text-red-500">*</span></label>
@@ -485,22 +490,20 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
           </div>
 
           {/* Payment method */}
-          {enabledPaymentMethods.length > 1 && (
-            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-              <label className="block text-sm font-semibold text-gray-900 mb-3">{t.paymentMethod}</label>
-              <div className="space-y-2">
-                {enabledPaymentMethods.map((method) => (
-                  <label key={method} className={cn('flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-150', paymentMethod === method ? 'border-gray-900 bg-gray-50' : 'border-gray-200')}>
-                    <input type="radio" name="paymentMethod" value={method} checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} className="w-5 h-5 text-gray-900 focus:ring-gray-900/20" />
-                    <span className="text-[15px] font-medium text-gray-800">{method === 'cash' ? t.payCash : t.payOnline}</span>
-                  </label>
-                ))}
-              </div>
+          <div className="bg-white rounded-2xl p-5 border-2 border-gray-200 shadow-sm">
+            <label className="block text-sm font-semibold text-gray-900 mb-3">{t.paymentMethod}</label>
+            <div className="space-y-2">
+              {enabledPaymentMethods.map((method) => (
+                <label key={method} className={cn('flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-150', paymentMethod === method ? 'border-gray-900 bg-gray-50' : 'border-gray-200')}>
+                  <input type="radio" name="paymentMethod" value={method} checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} className="w-5 h-5 text-gray-900 focus:ring-gray-900/20" />
+                  <span className="text-[15px] font-medium text-gray-800">{method === 'cash' ? t.payCash : t.payOnline}</span>
+                </label>
+              ))}
             </div>
-          )}
+          </div>
 
           {/* Promo code */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+          <div className="bg-white rounded-2xl p-5 border-2 border-gray-200 shadow-sm">
             <label className="block text-sm font-semibold text-gray-900 mb-2">{t.promoCode}</label>
             <div className="flex gap-2">
               <input type="text" value={promoCode} onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); setPromoResult(null); }} placeholder={t.promoCodePlaceholder} className={cn(inputClass, 'flex-1 uppercase')} />
@@ -539,7 +542,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
       </div>
 
       {/* Sticky footer */}
-      <div className="sticky bottom-0 bg-white border-t-2 border-gray-100 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3">
+      <div className="sticky bottom-0 bg-white border-t-2 border-gray-200 px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] space-y-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
         <AnimatePresence>
           {orderError && (
             <motion.div
@@ -567,7 +570,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
             onClick={handleSubmitOrder}
             disabled={submitting || items.length === 0}
             aria-label="Confirmar orden"
-            className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-bold text-base active:scale-[0.98] transition-all duration-150 disabled:opacity-50 shadow-[0_4px_20px_rgba(16,185,129,0.3)]"
+            className="w-full py-5 rounded-2xl bg-emerald-500 text-white font-extrabold text-[17px] active:scale-[0.98] transition-all duration-150 disabled:opacity-50 shadow-[0_4px_20px_rgba(16,185,129,0.35)]"
           >
             {submitting ? (
               <span className="flex items-center justify-center gap-2">

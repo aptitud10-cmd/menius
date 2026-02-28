@@ -55,7 +55,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
       {/* Items — scrollable */}
       <div className="flex-1 overflow-y-auto overscroll-contain px-5 space-y-2 pb-3">
         {items.map((item, idx) => (
-          <div key={idx} className="flex gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+          <div key={idx} className="flex gap-3 p-3 rounded-xl bg-gray-50 border-2 border-gray-200">
             {/* Thumbnail */}
             {item.product.image_url ? (
               <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
@@ -114,19 +114,19 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
 
               {/* Qty + Price */}
               <div className="flex items-center justify-between mt-2">
-                <div className="flex items-center bg-white rounded-lg border border-gray-200">
+                <div className="flex items-center bg-white rounded-xl border-2 border-gray-200">
                   <button
                     onClick={() => updateQty(idx, item.qty - 1)}
-                    className="w-7 h-7 flex items-center justify-center rounded-l-lg hover:bg-gray-50 transition-colors"
+                    className="w-9 h-9 flex items-center justify-center rounded-l-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
                   >
-                    <Minus className="w-3 h-3 text-gray-500" />
+                    <Minus className="w-3.5 h-3.5 text-gray-600" />
                   </button>
-                  <span className="w-6 text-center text-xs font-bold tabular-nums">{item.qty}</span>
+                  <span className="w-7 text-center text-sm font-bold tabular-nums">{item.qty}</span>
                   <button
                     onClick={() => updateQty(idx, item.qty + 1)}
-                    className="w-7 h-7 flex items-center justify-center rounded-r-lg hover:bg-gray-50 transition-colors"
+                    className="w-9 h-9 flex items-center justify-center rounded-r-xl hover:bg-gray-50 active:bg-gray-100 transition-colors"
                   >
-                    <Plus className="w-3 h-3 text-gray-500" />
+                    <Plus className="w-3.5 h-3.5 text-gray-600" />
                   </button>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -135,9 +135,9 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
                   </span>
                   <button
                     onClick={() => removeItem(idx)}
-                    className="p-1 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                    className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -147,7 +147,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
       </div>
 
       {/* Footer */}
-      <div className="border-t border-gray-100 px-5 py-4 flex-shrink-0 space-y-3">
+      <div className="border-t-2 border-gray-200 px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] flex-shrink-0 space-y-3">
         {estimatedMinutes && (
           <div className="flex items-center gap-1.5 text-xs text-gray-400">
             <Clock className="w-3.5 h-3.5" />
@@ -172,7 +172,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
         )}
         <button
           onClick={onCheckout}
-          className="w-full py-3.5 rounded-2xl bg-emerald-500 text-white font-bold text-[15px] hover:bg-emerald-600 active:scale-[0.98] transition-all duration-150 shadow-sm"
+          className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-extrabold text-base hover:bg-emerald-600 active:scale-[0.98] transition-all duration-150 shadow-[0_4px_20px_rgba(16,185,129,0.3)]"
         >
           {t.checkout} →
         </button>

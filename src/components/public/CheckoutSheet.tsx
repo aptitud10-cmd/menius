@@ -247,9 +247,11 @@ export function CheckoutSheet({
       if (data.url) {
         window.location.href = data.url;
       } else {
+        setOrderError(data.error || (locale === 'es' ? 'Error al iniciar el pago. Intenta de nuevo.' : 'Payment failed. Please try again.'));
         setPayLoading(false);
       }
     } catch {
+      setOrderError(locale === 'es' ? 'Error de conexión al procesar el pago.' : 'Connection error processing payment.');
       setPayLoading(false);
     }
   };
@@ -427,19 +429,17 @@ export function CheckoutSheet({
         </div>
       </div>
 
-      {enabledPaymentMethods.length > 1 && (
-        <div>
-          <label className="block text-sm font-semibold text-gray-900 mb-3">{t.paymentMethod}</label>
-          <div className="space-y-2">
-            {enabledPaymentMethods.map((method) => (
-              <label key={method} className={cn('flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-150', paymentMethod === method ? 'border-gray-900 bg-gray-50' : 'border-gray-200')}>
-                <input type="radio" name="paymentMethod" value={method} checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} className="w-5 h-5 text-gray-900 focus:ring-gray-900/20" />
-                <span className="text-[15px] font-medium text-gray-800">{method === 'cash' ? t.payCash : t.payOnline}</span>
-              </label>
-            ))}
-          </div>
+      <div>
+        <label className="block text-sm font-semibold text-gray-900 mb-3">{t.paymentMethod}</label>
+        <div className="space-y-2">
+          {enabledPaymentMethods.map((method) => (
+            <label key={method} className={cn('flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-150', paymentMethod === method ? 'border-gray-900 bg-gray-50' : 'border-gray-200')}>
+              <input type="radio" name="paymentMethod" value={method} checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} className="w-5 h-5 text-gray-900 focus:ring-gray-900/20" />
+              <span className="text-[15px] font-medium text-gray-800">{method === 'cash' ? t.payCash : t.payOnline}</span>
+            </label>
+          ))}
         </div>
-      )}
+      </div>
 
       <div>
         <label className="block text-sm font-semibold text-gray-900 mb-2">{t.promoCode}</label>

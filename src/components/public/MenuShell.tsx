@@ -349,10 +349,10 @@ export function MenuShell({
       data-pill-id={id}
       onClick={() => handleCategorySelect(id)}
       className={cn(
-        'flex-shrink-0 px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap',
+        'flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap',
         isActive
-          ? 'bg-emerald-500 text-white shadow-sm'
-          : 'bg-gray-100 text-gray-600 active:bg-gray-200'
+          ? 'bg-emerald-500 text-white shadow-md'
+          : 'bg-gray-100 text-gray-700 active:bg-gray-200'
       )}
     >
       {label}
@@ -367,10 +367,10 @@ export function MenuShell({
       data-pill-id="__favs__"
       onClick={() => { setShowFavs(!showFavs); if (!showFavs) setActiveCategory(null); }}
       className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap',
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap',
         showFavs
-          ? 'bg-red-500 text-white shadow-sm'
-          : 'bg-gray-100 text-gray-600 active:bg-gray-200'
+          ? 'bg-red-500 text-white shadow-md'
+          : 'bg-gray-100 text-gray-700 active:bg-gray-200'
       )}
     >
       <Heart className={cn('w-3.5 h-3.5', showFavs ? 'fill-white' : '')} />
@@ -389,10 +389,10 @@ export function MenuShell({
         if (next) setActiveCategory(null);
       }}
       className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap',
+        'flex-shrink-0 inline-flex items-center gap-1 px-4 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap',
         activeDiet === dt.id
-          ? 'bg-emerald-500 text-white shadow-sm'
-          : 'bg-gray-100 text-gray-600 active:bg-gray-200'
+          ? 'bg-emerald-500 text-white shadow-md'
+          : 'bg-gray-100 text-gray-700 active:bg-gray-200'
       )}
     >
       <span className="text-xs">{dt.emoji}</span>
@@ -405,7 +405,7 @@ export function MenuShell({
   );
 
   const mobileCategoryPills = (
-    <div ref={mobilePillsRef} className="lg:hidden py-3 px-4 flex gap-2.5 overflow-x-auto scrollbar-hide border-b border-gray-100 bg-white sticky z-30" style={{ top: HEADER_HEIGHT }}>
+    <div ref={mobilePillsRef} className="lg:hidden py-3 px-4 flex gap-2.5 overflow-x-auto scrollbar-hide border-b-2 border-gray-200 bg-white sticky z-30" style={{ top: HEADER_HEIGHT }}>
       {visibleCats.map((cat) => categoryPill(cat.id, tName(cat, locale, defaultLocale), activeCategory === cat.id && !showFavs && !activeDiet))}
       {filterDivider}
       {dietPills}
@@ -874,17 +874,17 @@ export function MenuShell({
             <div className="max-w-lg mx-auto pointer-events-auto">
               <button
                 onClick={() => setOpen(true)}
-                className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-emerald-500 text-white shadow-[0_8px_30px_rgba(16,185,129,0.3)] active:scale-[0.98]"
+                className="w-full flex items-center justify-between px-6 py-5 rounded-2xl bg-emerald-500 text-white shadow-[0_8px_30px_rgba(16,185,129,0.35)] active:scale-[0.98] transition-transform"
               >
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <ShoppingCart className="w-5 h-5" />
-                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-white text-emerald-600 text-[10px] font-bold px-1">
+                    <ShoppingCart className="w-6 h-6" />
+                    <span className="absolute -top-2.5 -right-2.5 min-w-[20px] h-[20px] flex items-center justify-center rounded-full bg-white text-emerald-600 text-[11px] font-extrabold px-1">
                       {cartCount}
                     </span>
                   </div>
                 </div>
-                <span className="font-bold text-[15px] tabular-nums">
+                <span className="font-extrabold text-base tabular-nums">
                   {fmtPrice(cartTotal)}
                 </span>
               </button>
