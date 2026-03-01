@@ -268,8 +268,8 @@ export async function POST(request: NextRequest) {
 
     if (extrasToInsert.length > 0 || modifiersToInsert.length > 0) {
       const insertJobs: Promise<any>[] = [];
-      if (extrasToInsert.length > 0) insertJobs.push(supabase.from('order_item_extras').insert(extrasToInsert));
-      if (modifiersToInsert.length > 0) insertJobs.push(supabase.from('order_item_modifiers').insert(modifiersToInsert));
+      if (extrasToInsert.length > 0) insertJobs.push(Promise.resolve(supabase.from('order_item_extras').insert(extrasToInsert)));
+      if (modifiersToInsert.length > 0) insertJobs.push(Promise.resolve(supabase.from('order_item_modifiers').insert(modifiersToInsert)));
       const results = await Promise.all(insertJobs);
       const extrasErr = results[0]?.error;
       const modsErr = results[1]?.error ?? (extrasToInsert.length === 0 ? results[0]?.error : undefined);
