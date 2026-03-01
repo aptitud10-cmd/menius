@@ -55,9 +55,12 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
     : (['cash'] as PaymentMethod[]);
 
   const [step, setStep] = useState<CheckoutStep>('form');
-  const [orderType, setOrderType] = useState<OrderType>(
-    tableName ? 'dine_in' : welcomeOrderType ?? enabledOrderTypes[0]
-  );
+  const [orderType, setOrderType] = useState<OrderType>(enabledOrderTypes[0]);
+  useEffect(() => {
+    const correct: OrderType = tableName ? 'dine_in' : welcomeOrderType ?? enabledOrderTypes[0];
+    setOrderType((prev) => (prev !== correct ? correct : prev));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tableName, welcomeOrderType]);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
