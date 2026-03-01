@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe } from 'lucide-react';
@@ -50,6 +50,41 @@ interface CustomizationTarget {
   product: Product;
   editIndex: number | null;
 }
+
+// Renders children only when the section scrolls near the viewport.
+// Once rendered, stays rendered (one-way latch) to avoid thrashing.
+// The wrapping <section> with sectionRef is unaffected — scroll-spy works normally.
+const LazyProductGrid = memo(function LazyProductGrid({
+  itemCount,
+  children,
+}: {
+  itemCount: number;
+  children: React.ReactNode;
+}) {
+  const [visible, setVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (visible) return;
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setVisible(true); },
+      { rootMargin: '400px 0px' }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [visible]);
+
+  // Estimated height: ~190px per card on mobile (1-col). Prevents layout jump.
+  const estimatedHeight = `${itemCount * 190}px`;
+
+  return (
+    <div ref={ref} style={!visible ? { minHeight: estimatedHeight } : undefined}>
+      {visible && children}
+    </div>
+  );
+});
 
 export function MenuShell({
   restaurant,
@@ -677,22 +712,24 @@ export function MenuShell({
                     </span>
                     <div className="flex-1 h-px bg-gradient-to-r from-gray-100 to-transparent" />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {items.map((product) => (
-                      <ProductCard
-                        key={product.id}
-                        product={product}
-                        onSelect={handleProductSelect}
-                        onQuickAdd={handleQuickAdd}
-                        fmtPrice={fmtPrice}
-                        addLabel={t.addToCart}
-                        customizeLabel={t.customize}
-                        popularLabel={t.popular}
-                        locale={locale}
-                        defaultLocale={defaultLocale}
-                      />
-                    ))}
-                  </div>
+                  <LazyProductGrid itemCount={items.length}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                      {items.map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          onSelect={handleProductSelect}
+                          onQuickAdd={handleQuickAdd}
+                          fmtPrice={fmtPrice}
+                          addLabel={t.addToCart}
+                          customizeLabel={t.customize}
+                          popularLabel={t.popular}
+                          locale={locale}
+                          defaultLocale={defaultLocale}
+                        />
+                      ))}
+                    </div>
+                  </LazyProductGrid>
                 </section>
               ))}
             </div>
