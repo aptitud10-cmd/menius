@@ -78,9 +78,15 @@ export async function POST(request: NextRequest) {
       supabase.from('modifier_groups').select('id, product_id, name, is_required, min_select, max_select').in('product_id', productIds),
     ]);
 
+    const modGroupIds = (dbModGroups ?? []).map((g) => g.id);
+    const { data: dbModOptions } = modGroupIds.length > 0
+      ? await supabase.from('modifier_options').select('id, group_id, price_delta').in('group_id', modGroupIds)
+      : { data: [] };
+
     const productMap = new Map((dbProducts ?? []).map((p) => [p.id, p]));
     const variantMap = new Map((dbVariants ?? []).map((v) => [v.id, v]));
     const extraMap = new Map((dbExtras ?? []).map((e) => [e.id, e]));
+    const modOptionMap = new Map((dbModOptions ?? []).map((o) => [o.id, o]));
     const productsRequiringVariant = new Set((dbVariants ?? []).map((v) => v.product_id));
 
     const modGroupsByProduct = new Map<string, typeof dbModGroups>();
@@ -121,7 +127,16 @@ export async function POST(request: NextRequest) {
         expectedUnitPrice += Number(dbExtra.price);
       }
       for (const mod of (item.modifiers ?? [])) {
-        expectedUnitPrice += Number(mod.price_delta);
+        const isLegacy = !mod.option_id || String(mod.option_id).startsWith('__legacy');
+        if (isLegacy) {
+          expectedUnitPrice += Number(mod.price_delta);
+        } else {
+          const dbOpt = modOptionMap.get(mod.option_id);
+          if (!dbOpt) {
+            return NextResponse.json({ error: 'Opción de modificador inválida.' }, { status: 400 });
+          }
+          expectedUnitPrice += Number(dbOpt.price_delta);
+        }
       }
 
       const groups = modGroupsByProduct.get(item.product_id) ?? [];
@@ -156,7 +171,25 @@ export async function POST(request: NextRequest) {
     const serverDeliveryFee = Number(restaurant.delivery_fee) || 0;
     const deliveryFeeAmt = parsed.data.order_type === 'delivery' ? serverDeliveryFee : 0;
     const subtotal = parsed.data.items.reduce((sum, item) => sum + item.line_total, 0);
-    const discountAmt = Number(discount_amount) || 0;
+
+    let discountAmt = 0;
+    if (promo_code) {
+      const { data: promo } = await supabase
+        .from('promotions')
+        .select('discount_type, discount_value, min_order, expires_at, max_uses, current_uses, is_active')
+        .eq('restaurant_id', restaurant_id)
+        .eq('code', promo_code.toUpperCase().trim())
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (promo && !(promo.expires_at && new Date(promo.expires_at) < new Date()) && !(promo.max_uses && promo.current_uses >= promo.max_uses) && !(promo.min_order && subtotal < Number(promo.min_order))) {
+        discountAmt = promo.discount_type === 'percentage'
+          ? subtotal * (Number(promo.discount_value) / 100)
+          : Number(promo.discount_value);
+        discountAmt = Math.min(discountAmt, subtotal);
+      }
+    }
+
     const total = Math.max(0, subtotal - discountAmt + tipAmt + deliveryFeeAmt);
 
     const orderInsert: Record<string, any> = {

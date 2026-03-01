@@ -83,21 +83,17 @@ export async function GET() {
 
       if (insertError) {
         console.error('[billing/subscription] Auto-repair insert ALSO FAILED:', JSON.stringify(insertError));
-        return NextResponse.json({ subscription: null, _debug: { upsertError, insertError, restaurantId: tenant.restaurantId } });
+        return NextResponse.json({ subscription: null }, { status: 500 });
       }
 
       if (inserted) {
-        console.log('[billing/subscription] Auto-repair via INSERT succeeded for:', tenant.restaurantId);
         return NextResponse.json({ subscription: inserted });
       }
     }
 
-    if (repaired) {
-      console.log('[billing/subscription] Auto-repair via UPSERT succeeded for:', tenant.restaurantId);
-    }
     return NextResponse.json({ subscription: repaired ?? null });
   } catch (err) {
     console.error('[billing/subscription] Unexpected error:', err instanceof Error ? err.message : err);
-    return NextResponse.json({ error: 'Error interno', _debug: String(err) }, { status: 500 });
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
