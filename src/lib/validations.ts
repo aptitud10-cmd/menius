@@ -63,6 +63,7 @@ export const publicOrderSchema = z.object({
   order_type: z.enum(['dine_in', 'pickup', 'delivery']).default('dine_in'),
   payment_method: z.enum(['cash', 'online']).default('cash'),
   notes: z.string().default(''),
+  tip_amount: z.number().min(0, 'La propina no puede ser negativa').max(1000, 'Propina máxima: $1,000').optional(),
   items: z.array(z.object({
     product_id: z.string().uuid(),
     variant_id: uuidOrNull,

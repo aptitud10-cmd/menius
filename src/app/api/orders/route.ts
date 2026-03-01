@@ -36,8 +36,6 @@ export async function POST(request: NextRequest) {
     const order_type = sanitizeText(body.order_type, 20);
     const payment_method = sanitizeText(body.payment_method, 20);
     const delivery_address = sanitizeMultiline(body.delivery_address, 300);
-    const tip_amount = body.tip_amount;
-    const delivery_fee = body.delivery_fee;
 
     if (!restaurant_id) {
       return NextResponse.json({ error: 'restaurant_id requerido' }, { status: 400 });
@@ -53,6 +51,7 @@ export async function POST(request: NextRequest) {
 
     const parsed = publicOrderSchema.safeParse({
       customer_name, customer_phone, customer_email, order_type, payment_method, notes, items,
+      tip_amount: body.tip_amount !== undefined ? Number(body.tip_amount) : undefined,
     });
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
@@ -62,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('id, slug')
+      .select('id, slug, delivery_fee')
       .eq('id', restaurant_id)
       .maybeSingle();
 
@@ -153,8 +152,9 @@ export async function POST(request: NextRequest) {
     const { data: orderNum } = await supabase.rpc('generate_order_number', { rest_id: restaurant_id });
     const orderNumber = orderNum ?? `ORD-${Date.now().toString(36).toUpperCase()}`;
 
-    const tipAmt = Math.max(0, Number(tip_amount) || 0);
-    const deliveryFeeAmt = Math.max(0, Number(delivery_fee) || 0);
+    const tipAmt = Math.max(0, Number(parsed.data.tip_amount) || 0);
+    const serverDeliveryFee = Number(restaurant.delivery_fee) || 0;
+    const deliveryFeeAmt = parsed.data.order_type === 'delivery' ? serverDeliveryFee : 0;
     const subtotal = parsed.data.items.reduce((sum, item) => sum + item.line_total, 0);
     const discountAmt = Number(discount_amount) || 0;
     const total = Math.max(0, subtotal - discountAmt + tipAmt + deliveryFeeAmt);
