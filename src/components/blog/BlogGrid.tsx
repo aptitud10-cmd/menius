@@ -52,8 +52,8 @@ export function BlogGrid({ posts, categories, locale = 'es' }: BlogGridProps) {
     <>
       {/* Categories */}
       <section className="sticky top-16 z-40 bg-[#050505]/80 backdrop-blur-2xl border-b border-white/[0.04]">
-        <div className="max-w-5xl mx-auto px-6">
-          <nav className="flex items-center gap-1 overflow-x-auto py-3 scrollbar-hide">
+        <div className="max-w-5xl mx-auto">
+          <nav className="flex items-center gap-1 overflow-x-auto py-3 scrollbar-hide px-6">
             <button
               onClick={() => setActive(null)}
               className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -80,6 +80,7 @@ export function BlogGrid({ posts, categories, locale = 'es' }: BlogGridProps) {
                 </button>
               );
             })}
+            <div className="flex-shrink-0 w-2" aria-hidden />
           </nav>
         </div>
       </section>
