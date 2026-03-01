@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useState } from 'react';
 import { Minus, Plus, Pencil, Trash2, ShoppingCart, Clock } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
@@ -22,12 +23,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
   const removeItem = useCartStore((s) => s.removeItem);
   const clearCart = useCartStore((s) => s.clearCart);
   const cartTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
-
-  const handleClear = () => {
-    if (window.confirm(t.clearCartConfirm)) {
-      clearCart();
-    }
-  };
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   if (items.length === 0) {
     return (
@@ -54,7 +50,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
 
       {/* Items — scrollable */}
       <div className="flex-1 overflow-y-auto overscroll-contain px-5 space-y-2 pb-3">
-        {items.map((item) => (
+        {items.map((item, idx) => (
           <div key={`${item.product.id}-${item.variant_id ?? 'base'}`} className="flex gap-3 p-3 rounded-xl bg-gray-50 border-2 border-gray-200">
             {/* Thumbnail */}
             {item.product.image_url ? (
@@ -176,12 +172,30 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
         >
           {t.checkout} →
         </button>
-        <button
-          onClick={handleClear}
-          className="w-full text-center text-xs text-gray-400 hover:text-red-500 transition-colors py-0.5"
-        >
-          {t.clearCart}
-        </button>
+
+        {showClearConfirm ? (
+          <div className="flex gap-2">
+            <button
+              onClick={() => { clearCart(); setShowClearConfirm(false); }}
+              className="flex-1 py-2 rounded-xl bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 active:bg-red-200 transition-colors"
+            >
+              {locale === 'es' ? 'Sí, vaciar' : 'Yes, clear'}
+            </button>
+            <button
+              onClick={() => setShowClearConfirm(false)}
+              className="flex-1 py-2 rounded-xl bg-gray-100 text-gray-600 text-xs font-semibold hover:bg-gray-200 transition-colors"
+            >
+              {locale === 'es' ? 'Cancelar' : 'Cancel'}
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowClearConfirm(true)}
+            className="w-full text-center text-xs text-gray-400 hover:text-red-500 transition-colors py-0.5"
+          >
+            {t.clearCart}
+          </button>
+        )}
       </div>
     </div>
   );

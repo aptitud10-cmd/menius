@@ -15,13 +15,15 @@ import { WalletButton } from './WalletButton';
 import { PushOptIn } from './PushOptIn';
 import { playSuccessChime, spawnConfetti } from '@/lib/celebration';
 
+const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl border-2 border-gray-200 bg-gray-100 animate-pulse" />;
+
 const AddressAutocomplete = dynamic(
   () => import('@/components/ui/AddressAutocomplete').then((m) => ({ default: m.AddressAutocomplete })),
-  { ssr: false }
+  { ssr: false, loading: () => fieldSkeleton }
 );
 const PhoneField = dynamic(
   () => import('@/components/ui/PhoneField').then((m) => ({ default: m.PhoneField })),
-  { ssr: false }
+  { ssr: false, loading: () => fieldSkeleton }
 );
 
 interface CheckoutPageClientProps {
@@ -240,7 +242,36 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const inputClass = 'w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white';
 
   if (!hasMounted) {
-    return <div className="min-h-[100dvh] bg-gray-50" />;
+    return (
+      <div className="min-h-[100dvh] bg-gray-50 flex flex-col animate-pulse">
+        <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4">
+          <div className="h-5 w-24 bg-gray-200 rounded-full" />
+        </header>
+        <div className="flex-1 px-4 py-5 space-y-4 max-w-lg mx-auto w-full">
+          <div className="bg-white rounded-2xl p-5 space-y-3 border-2 border-gray-200">
+            <div className="h-3 w-32 bg-gray-200 rounded-full" />
+            <div className="h-12 bg-gray-100 rounded-2xl" />
+            <div className="h-12 bg-gray-100 rounded-2xl" />
+            <div className="h-12 bg-gray-100 rounded-2xl" />
+          </div>
+          <div className="bg-white rounded-2xl p-5 space-y-3 border-2 border-gray-200">
+            <div className="h-3 w-24 bg-gray-200 rounded-full" />
+            <div className="grid grid-cols-2 gap-2">
+              <div className="h-12 bg-gray-100 rounded-2xl" />
+              <div className="h-12 bg-gray-100 rounded-2xl" />
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl p-5 space-y-3 border-2 border-gray-200">
+            <div className="h-3 w-20 bg-gray-200 rounded-full" />
+            <div className="h-16 bg-gray-100 rounded-2xl" />
+            <div className="h-16 bg-gray-100 rounded-2xl" />
+          </div>
+        </div>
+        <div className="sticky bottom-0 bg-white border-t-2 border-gray-200 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="h-14 bg-gray-200 rounded-2xl" />
+        </div>
+      </div>
+    );
   }
 
   if (items.length === 0 && step !== 'confirmation') {
