@@ -37,8 +37,9 @@ export async function POST(request: NextRequest) {
     const payment_method = sanitizeText(body.payment_method, 20);
     const delivery_address = sanitizeMultiline(body.delivery_address, 300);
 
-    if (!restaurant_id) {
-      return NextResponse.json({ error: 'restaurant_id requerido' }, { status: 400 });
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!restaurant_id || (!String(restaurant_id).startsWith('demo') && !UUID_RE.test(String(restaurant_id)))) {
+      return NextResponse.json({ error: 'restaurant_id inválido' }, { status: 400 });
     }
 
     if (String(restaurant_id).startsWith('demo')) {

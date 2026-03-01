@@ -115,6 +115,7 @@ export function MenuShell({
   const [customization, setCustomization] = useState<CustomizationTarget | null>(null);
   const [toastName, setToastName] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const audioCtxRef = useRef<AudioContext | null>(null);
   const catScrollRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement | null>(null);
   const [mainEl, setMainEl] = useState<HTMLElement | null>(null);
@@ -162,7 +163,11 @@ export function MenuShell({
     setToastName(name);
     toastTimer.current = setTimeout(() => setToastName(null), 2000);
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      if (audioCtxRef.current.state === 'suspended') audioCtxRef.current.resume();
+      const ctx = audioCtxRef.current;
       const t = ctx.currentTime;
       const master = ctx.createGain();
       master.gain.setValueAtTime(0.18, t);

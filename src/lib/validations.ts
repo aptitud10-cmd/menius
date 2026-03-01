@@ -67,7 +67,7 @@ export const publicOrderSchema = z.object({
   items: z.array(z.object({
     product_id: z.string().uuid(),
     variant_id: uuidOrNull,
-    qty: z.number().min(1),
+    qty: z.number().min(1).max(99, 'Cantidad máxima por producto: 99'),
     unit_price: z.number(),
     line_total: z.number(),
     notes: z.string().default(''),
@@ -82,7 +82,7 @@ export const publicOrderSchema = z.object({
       option_name: z.string(),
       price_delta: z.number(),
     })).default([]),
-  })).min(1, 'Agrega al menos un producto'),
+  })).min(1, 'Agrega al menos un producto').max(50, 'Máximo 50 productos por orden'),
 });
 
 // ── Billing schemas ──

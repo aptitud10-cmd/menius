@@ -45,7 +45,10 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const welcomeOrderType = useCartStore((s) => s.selectedOrderType);
 
   const [hasMounted, setHasMounted] = useState(false);
-  useEffect(() => setHasMounted(true), []);
+  useEffect(() => {
+    setHasMounted(true);
+    return () => { clearTimeout(confettiTimer.current); };
+  }, []);
 
   const enabledOrderTypes = restaurant.order_types_enabled?.length
     ? restaurant.order_types_enabled
@@ -80,6 +83,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const [orderId, setOrderId] = useState('');
   const [payLoading, setPayLoading] = useState(false);
   const confirmRef = useRef<HTMLDivElement>(null);
+  const confettiTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const [tipPercent, setTipPercent] = useState<number | null>(null);
   const [customTip, setCustomTip] = useState('');
@@ -204,7 +208,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
       clearCart();
       setStep('confirmation');
       playSuccessChime();
-      setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
+      confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
     } catch {
       setOrderError('Error de conexión');
     } finally {
@@ -342,8 +346,8 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
           {/* Order summary */}
           <div className="bg-white rounded-2xl p-5 space-y-3 border-2 border-gray-200 shadow-sm">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t.myOrder}</p>
-            {items.map((item, idx) => (
-              <div key={idx} className="flex gap-3 items-start">
+            {items.map((item) => (
+              <div key={`${item.product.id}-${item.variant_id ?? 'base'}`} className="flex gap-3 items-start">
                 {item.product.image_url && (
                   <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                     <Image
