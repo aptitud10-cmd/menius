@@ -218,8 +218,13 @@ export function MenuShell({
       item_count: rawCartCount,
       total: rawCartTotal,
     });
-    router.push(`/r/${restaurant.slug}/checkout`);
-  }, [router, restaurant.slug, restaurant.id, rawCartCount, rawCartTotal]);
+
+    setOpen(false);
+
+    requestAnimationFrame(() => {
+      router.push(`/r/${restaurant.slug}/checkout`);
+    });
+  }, [router, restaurant.slug, restaurant.id, rawCartCount, rawCartTotal, setOpen]);
 
   const availableDiets = useMemo(() => {
     const tagSet = new Set<string>();
