@@ -19,7 +19,22 @@ export async function GET(request: NextRequest) {
   const supabase = createClient();
   const results = { welcome: 0, reactivation: 0, review_request: 0, platform_trial: 0, platform_setup: 0, platform_inactive: 0, onboarding_d1: 0, onboarding_d3: 0, onboarding_d7: 0, monthly_report: 0, errors: 0 };
 
+  // Restaurant cache to avoid N+1 queries across all sections
+  const restaurantCache = new Map<string, { name: string; slug: string; locale: string; notification_email?: string }>();
+  async function getRestaurant(id: string) {
+    if (restaurantCache.has(id)) return restaurantCache.get(id)!;
+    const { data } = await supabase
+      .from('restaurants')
+      .select('name, slug, locale, notification_email')
+      .eq('id', id)
+      .maybeSingle();
+    if (data) restaurantCache.set(id, data);
+    return data;
+  }
+
   try {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+
     // 1. Welcome emails: customers created in last 24h who haven't received a welcome
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: newCustomers } = await supabase
@@ -33,16 +48,10 @@ export async function GET(request: NextRequest) {
     for (const customer of newCustomers ?? []) {
       if ((customer.tags ?? []).includes('welcome_sent')) continue;
 
-      const { data: restaurant } = await supabase
-        .from('restaurants')
-        .select('name, slug, locale')
-        .eq('id', customer.restaurant_id)
-        .maybeSingle();
-
+      const restaurant = await getRestaurant(customer.restaurant_id);
       if (!restaurant) continue;
 
       const en = restaurant.locale === 'en';
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
       const menuUrl = `${appUrl}/r/${restaurant.slug}`;
 
       const sent = await sendEmail({
@@ -75,16 +84,10 @@ export async function GET(request: NextRequest) {
     for (const customer of inactiveCustomers ?? []) {
       if ((customer.tags ?? []).includes('reactivation_sent')) continue;
 
-      const { data: restaurant } = await supabase
-        .from('restaurants')
-        .select('name, slug, locale')
-        .eq('id', customer.restaurant_id)
-        .maybeSingle();
-
+      const restaurant = await getRestaurant(customer.restaurant_id);
       if (!restaurant) continue;
 
       const en = restaurant.locale === 'en';
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
       const menuUrl = `${appUrl}/r/${restaurant.slug}`;
 
       const sent = await sendEmail({
@@ -123,16 +126,10 @@ export async function GET(request: NextRequest) {
 
       if (existingReview) continue;
 
-      const { data: restaurant } = await supabase
-        .from('restaurants')
-        .select('name, slug, locale')
-        .eq('id', order.restaurant_id)
-        .maybeSingle();
-
+      const restaurant = await getRestaurant(order.restaurant_id);
       if (!restaurant) continue;
 
       const en = restaurant.locale === 'en';
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
       const menuUrl = `${appUrl}/r/${restaurant.slug}`;
 
       const sent = await sendEmail({
@@ -148,8 +145,6 @@ export async function GET(request: NextRequest) {
     // ═══════════════════════════════════════════════════════════
     // PLATFORM → RESTAURANT OWNER automations (MENIUS marketing)
     // ═══════════════════════════════════════════════════════════
-
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
     // 4. Trial expiring: restaurants with trial ending in 3 days or less
     const threeDaysFromNow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
@@ -223,7 +218,7 @@ export async function GET(request: NextRequest) {
       else results.errors++;
     }
 
-    // 6. No orders nudge: restaurants with products but 0 orders in last 7 days
+    // 6. No orders nudge: restaurants with products but 0 orders in last 14 days
     const { data: activeRestaurants } = await supabase
       .from('restaurants')
       .select('id, name, notification_email, slug, locale')
@@ -231,48 +226,37 @@ export async function GET(request: NextRequest) {
       .not('notification_email', 'is', null)
       .limit(100);
 
-    for (const restaurant of activeRestaurants ?? []) {
-      if (!restaurant.notification_email) continue;
-
-      const { count: productCount } = await supabase
-        .from('products')
-        .select('id', { count: 'exact', head: true })
-        .eq('restaurant_id', restaurant.id)
-        .eq('is_active', true);
-
-      if ((productCount ?? 0) === 0) continue;
-
-      const sevenDaysAgoOrders = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const { count: orderCount } = await supabase
-        .from('orders')
-        .select('id', { count: 'exact', head: true })
-        .eq('restaurant_id', restaurant.id)
-        .gte('created_at', sevenDaysAgoOrders);
-
-      if ((orderCount ?? 0) > 0) continue;
-
+    if (activeRestaurants && activeRestaurants.length > 0) {
+      const restIds = activeRestaurants.map((r) => r.id);
       const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-      const { count: recentOrderCount } = await supabase
-        .from('orders')
-        .select('id', { count: 'exact', head: true })
-        .eq('restaurant_id', restaurant.id)
-        .gte('created_at', fourteenDaysAgo);
 
-      if ((recentOrderCount ?? 0) > 0) continue;
+      const [{ data: productsPerRest }, { data: recentOrders }] = await Promise.all([
+        supabase.from('products').select('restaurant_id').eq('is_active', true).in('restaurant_id', restIds),
+        supabase.from('orders').select('restaurant_id').in('restaurant_id', restIds).gte('created_at', fourteenDaysAgo),
+      ]);
 
-      const en = restaurant.locale === 'en';
-      const tipsUrl = `${appUrl}/app`;
+      const hasProducts = new Set((productsPerRest ?? []).map((p) => p.restaurant_id));
+      const hasRecentOrders = new Set((recentOrders ?? []).map((o) => o.restaurant_id));
 
-      const sent = await sendEmail({
-        to: restaurant.notification_email,
-        subject: en
-          ? `📊 Tips to get your first order at ${restaurant.name}`
-          : `📊 Tips para recibir tu primer pedido en ${restaurant.name}`,
-        html: buildNoOrdersEmail(restaurant.name, `${appUrl}/r/${restaurant.slug}`, tipsUrl, en),
-      });
+      for (const restaurant of activeRestaurants) {
+        if (!restaurant.notification_email) continue;
+        if (!hasProducts.has(restaurant.id)) continue;
+        if (hasRecentOrders.has(restaurant.id)) continue;
 
-      if (sent) results.platform_inactive++;
-      else results.errors++;
+        const en = restaurant.locale === 'en';
+        const tipsUrl = `${appUrl}/app`;
+
+        const sent = await sendEmail({
+          to: restaurant.notification_email,
+          subject: en
+            ? `📊 Tips to get your first order at ${restaurant.name}`
+            : `📊 Tips para recibir tu primer pedido en ${restaurant.name}`,
+          html: buildNoOrdersEmail(restaurant.name, `${appUrl}/r/${restaurant.slug}`, tipsUrl, en),
+        });
+
+        if (sent) results.platform_inactive++;
+        else results.errors++;
+      }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -345,35 +329,46 @@ export async function GET(request: NextRequest) {
         .not('notification_email', 'is', null)
         .limit(200);
 
-      for (const restaurant of activeRests ?? []) {
-        if (!restaurant.notification_email) continue;
+      if (activeRests && activeRests.length > 0) {
+        const restIds = activeRests.map((r) => r.id);
 
-        const [{ count: orderCount }, { data: orders }] = await Promise.all([
-          supabase.from('orders').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurant.id).gte('created_at', monthStart).lt('created_at', monthEnd),
-          supabase.from('orders').select('total').eq('restaurant_id', restaurant.id).gte('created_at', monthStart).lt('created_at', monthEnd),
+        const [{ data: monthOrders }, { data: monthCustomers }] = await Promise.all([
+          supabase.from('orders').select('restaurant_id, total').in('restaurant_id', restIds).gte('created_at', monthStart).lt('created_at', monthEnd),
+          supabase.from('customers').select('restaurant_id').in('restaurant_id', restIds).gte('created_at', monthStart).lt('created_at', monthEnd),
         ]);
 
-        const { count: newCustomerCount } = await supabase
-          .from('customers')
-          .select('id', { count: 'exact', head: true })
-          .eq('restaurant_id', restaurant.id)
-          .gte('created_at', monthStart)
-          .lt('created_at', monthEnd);
+        const ordersByRest = new Map<string, { count: number; revenue: number }>();
+        for (const o of monthOrders ?? []) {
+          const entry = ordersByRest.get(o.restaurant_id) ?? { count: 0, revenue: 0 };
+          entry.count++;
+          entry.revenue += Number(o.total ?? 0);
+          ordersByRest.set(o.restaurant_id, entry);
+        }
 
-        const en = restaurant.locale === 'en';
-        const revenue = (orders ?? []).reduce((s, o) => s + Number(o.total ?? 0), 0);
-        const dashUrl = `${appUrl}/app/analytics`;
+        const customersByRest = new Map<string, number>();
+        for (const c of monthCustomers ?? []) {
+          customersByRest.set(c.restaurant_id, (customersByRest.get(c.restaurant_id) ?? 0) + 1);
+        }
 
-        const sent = await sendEmail({
-          to: restaurant.notification_email,
-          subject: en
-            ? `📊 Monthly report for ${restaurant.name} — MENIUS`
-            : `📊 Resumen mensual de ${restaurant.name} — MENIUS`,
-          html: buildMonthlyReportEmail(restaurant.name, orderCount ?? 0, newCustomerCount ?? 0, revenue, dashUrl, en),
-        });
+        for (const restaurant of activeRests) {
+          if (!restaurant.notification_email) continue;
 
-        if (sent) results.monthly_report++;
-        else results.errors++;
+          const en = restaurant.locale === 'en';
+          const stats = ordersByRest.get(restaurant.id) ?? { count: 0, revenue: 0 };
+          const newCustCount = customersByRest.get(restaurant.id) ?? 0;
+          const dashUrl = `${appUrl}/app/analytics`;
+
+          const sent = await sendEmail({
+            to: restaurant.notification_email,
+            subject: en
+              ? `📊 Monthly report for ${restaurant.name} — MENIUS`
+              : `📊 Resumen mensual de ${restaurant.name} — MENIUS`,
+            html: buildMonthlyReportEmail(restaurant.name, stats.count, newCustCount, stats.revenue, dashUrl, en),
+          });
+
+          if (sent) results.monthly_report++;
+          else results.errors++;
+        }
       }
     }
 

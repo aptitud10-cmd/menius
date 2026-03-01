@@ -1,10 +1,13 @@
 /**
  * Rate limiter with optional Redis backend (Upstash).
  * Falls back to in-memory when UPSTASH_REDIS_REST_URL is not set.
+ * For multi-instance deployments (Vercel), Redis is required for accuracy.
  */
 
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+
+let redisWarningLogged = false;
 
 // ── In-memory fallback ──
 
@@ -88,7 +91,13 @@ export async function checkRateLimitAsync(
   config: RateLimitConfig = { limit: 30, windowSec: 60 }
 ): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
   const limiter = getRedisLimiter();
-  if (!limiter) return memoryRateLimit(identifier, config);
+  if (!limiter) {
+    if (!redisWarningLogged && process.env.NODE_ENV === 'production') {
+      console.warn('[rate-limit] Upstash Redis not configured — using in-memory fallback (not shared across instances)');
+      redisWarningLogged = true;
+    }
+    return memoryRateLimit(identifier, config);
+  }
 
   try {
     const result = await limiter.limit(identifier);

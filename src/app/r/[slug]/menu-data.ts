@@ -37,16 +37,40 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
 
   if (!restaurant) return null;
 
-  // Check subscription status — wrapped in try/catch for graceful degradation.
-  // If the query fails, default to showing the menu (don't punish customers for a DB hiccup).
+  // Parallelize all data fetching: subscription, categories, products, auth, reviews
+  const [subResult, { data: categories }, { data: products }, { data: { user } }, { data: reviewRows }] = await Promise.all([
+    Promise.resolve(
+      supabase
+        .from('subscriptions')
+        .select('status, trial_end, current_period_end')
+        .eq('restaurant_id', restaurant.id)
+        .maybeSingle()
+    ).then((r) => r.data).catch(() => null),
+    supabase
+      .from('categories')
+      .select('*')
+      .eq('restaurant_id', restaurant.id)
+      .eq('is_active', true)
+      .order('sort_order'),
+    supabase
+      .from('products')
+      .select('*, product_variants(*), product_extras(*)')
+      .eq('restaurant_id', restaurant.id)
+      .eq('is_active', true)
+      .order('sort_order'),
+    supabase.auth.getUser(),
+    supabase
+      .from('reviews')
+      .select('id, customer_name, rating, comment, created_at')
+      .eq('restaurant_id', restaurant.id)
+      .eq('is_visible', true)
+      .order('created_at', { ascending: false })
+      .limit(50),
+  ]);
+
   let subscriptionExpired = false;
   try {
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('status, trial_end, current_period_end')
-      .eq('restaurant_id', restaurant.id)
-      .maybeSingle();
-
+    const subscription = subResult;
     const now = new Date();
 
     if (!subscription) {
@@ -72,29 +96,6 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
   } catch {
     console.error('[menu-data] Subscription check failed — showing menu', { restaurantId: restaurant.id });
   }
-
-  const [{ data: categories }, { data: products }, { data: { user } }, { data: reviewRows }] = await Promise.all([
-    supabase
-      .from('categories')
-      .select('*')
-      .eq('restaurant_id', restaurant.id)
-      .eq('is_active', true)
-      .order('sort_order'),
-    supabase
-      .from('products')
-      .select('*, product_variants(*), product_extras(*)')
-      .eq('restaurant_id', restaurant.id)
-      .eq('is_active', true)
-      .order('sort_order'),
-    supabase.auth.getUser(),
-    supabase
-      .from('reviews')
-      .select('id, customer_name, rating, comment, created_at')
-      .eq('restaurant_id', restaurant.id)
-      .eq('is_visible', true)
-      .order('created_at', { ascending: false })
-      .limit(50),
-  ]);
 
   const productIds = (products ?? []).map((p: any) => p.id as string);
   const { data: modifierGroups } = productIds.length > 0
