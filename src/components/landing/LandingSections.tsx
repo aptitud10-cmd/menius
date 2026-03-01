@@ -167,11 +167,26 @@ function SocialProof({ t }: { t: LandingT['socialProof'] }) {
         <div className="text-center d-fade-in">
           <p className="text-sm text-emerald-400/80 font-medium mb-8 tracking-wide uppercase">{t.headline}</p>
           <div className="flex items-center justify-center gap-8 md:gap-14 flex-wrap">
-            {t.logos.map((name) => (
-              <span key={name} className="text-base md:text-lg font-semibold text-white/20 tracking-tight whitespace-nowrap hover:text-white/40 transition-colors duration-300">
-                {name}
-              </span>
-            ))}
+            {t.logos.map((name) => {
+              const brandColor: Record<string, string> = {
+                'Stripe': '#635BFF',
+                'Google Gemini': '#4285F4',
+                'Supabase': '#3ECF8E',
+                'Vercel': '#FFFFFF',
+                'Sentry': '#F55150',
+                'Cloudflare': '#F48120',
+              };
+              const color = brandColor[name] ?? 'rgba(255,255,255,0.5)';
+              return (
+                <span
+                  key={name}
+                  style={{ color }}
+                  className="text-base md:text-lg font-bold tracking-tight whitespace-nowrap transition-opacity duration-300 opacity-70 hover:opacity-100"
+                >
+                  {name}
+                </span>
+              );
+            })}
           </div>
 
           <div className="mt-14 flex items-center justify-center gap-10 md:gap-20">
