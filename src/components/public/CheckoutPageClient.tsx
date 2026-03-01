@@ -378,7 +378,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
           <div className="bg-white rounded-2xl p-5 space-y-3 border-2 border-gray-200 shadow-sm">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t.myOrder}</p>
             {items.map((item) => (
-              <div key={`${item.product.id}-${item.variant_id ?? 'base'}`} className="flex gap-3 items-start">
+              <div key={`${item.product.id}-${item.variant?.id ?? 'base'}`} className="flex gap-3 items-start">
                 {item.product.image_url && (
                   <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                     <Image

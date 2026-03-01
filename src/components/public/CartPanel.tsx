@@ -51,7 +51,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
       {/* Items — scrollable */}
       <div className="flex-1 overflow-y-auto overscroll-contain px-5 space-y-2 pb-3">
         {items.map((item, idx) => (
-          <div key={`${item.product.id}-${item.variant_id ?? 'base'}`} className="flex gap-3 p-3 rounded-xl bg-gray-50 border-2 border-gray-200">
+          <div key={`${item.product.id}-${item.variant?.id ?? 'base'}`} className="flex gap-3 p-3 rounded-xl bg-gray-50 border-2 border-gray-200">
             {/* Thumbnail */}
             {item.product.image_url ? (
               <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
