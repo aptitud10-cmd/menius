@@ -133,10 +133,12 @@ export async function POST(request: NextRequest) {
           expectedUnitPrice += Number(mod.price_delta);
         } else {
           const dbOpt = modOptionMap.get(mod.option_id);
-          if (!dbOpt) {
-            return NextResponse.json({ error: 'Opción de modificador inválida.' }, { status: 400 });
+          if (dbOpt) {
+            expectedUnitPrice += Number(dbOpt.price_delta);
+          } else {
+            logger.warn('modifier option not in map, using client price_delta', { option_id: mod.option_id });
+            expectedUnitPrice += Number(mod.price_delta);
           }
-          expectedUnitPrice += Number(dbOpt.price_delta);
         }
       }
 
