@@ -279,10 +279,10 @@ export async function POST(request: NextRequest) {
       const modsErr = results[1]?.error ?? (extrasToInsert.length === 0 ? results[0]?.error : undefined);
       const detailErr = extrasErr ?? modsErr;
       if (detailErr) {
-        logger.error('order detail insert failed', { order_id: order.id, error: detailErr.message });
+        logger.error('order detail insert failed', { order_id: order.id, error: detailErr.message, code: detailErr.code });
         const { error: rollbackErr } = await adminDb.from('orders').delete().eq('id', order.id);
         if (rollbackErr) logger.error('rollback delete failed', { order_id: order.id, error: rollbackErr.message });
-        return NextResponse.json({ error: 'Error guardando detalles del pedido' }, { status: 500 });
+        return NextResponse.json({ error: `Detail error: ${detailErr.message}` }, { status: 500 });
       }
     }
 
