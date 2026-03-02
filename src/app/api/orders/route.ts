@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { publicOrderSchema } from '@/lib/validations';
 import { NextRequest, NextResponse } from 'next/server';
 import { notifyNewOrder } from '@/lib/notifications/order-notifications';
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createClient();
+    const adminDb = createAdminClient();
 
     const { data: restaurant } = await supabase
       .from('restaurants')
@@ -213,7 +215,7 @@ export async function POST(request: NextRequest) {
     if (tipAmt > 0) orderInsert.tip_amount = tipAmt;
     if (deliveryFeeAmt > 0) orderInsert.delivery_fee = deliveryFeeAmt;
 
-    const { data: order, error: orderError } = await supabase
+    const { data: order, error: orderError } = await adminDb
       .from('orders')
       .insert(orderInsert)
       .select()
@@ -223,7 +225,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: orderError.message }, { status: 500 });
     }
 
-    const { data: insertedItems, error: itemsError } = await supabase
+    const { data: insertedItems, error: itemsError } = await adminDb
       .from('order_items')
       .insert(
         parsed.data.items.map((item) => ({
@@ -240,7 +242,7 @@ export async function POST(request: NextRequest) {
 
     if (itemsError) {
       logger.error('order_items insert failed', { error: itemsError.message });
-      const { error: rollbackErr } = await supabase.from('orders').delete().eq('id', order.id);
+      const { error: rollbackErr } = await adminDb.from('orders').delete().eq('id', order.id);
       if (rollbackErr) logger.error('rollback delete failed', { order_id: order.id, error: rollbackErr.message });
       return NextResponse.json({ error: 'Error guardando items' }, { status: 500 });
     }
@@ -270,15 +272,15 @@ export async function POST(request: NextRequest) {
 
     if (extrasToInsert.length > 0 || modifiersToInsert.length > 0) {
       const insertJobs: Promise<any>[] = [];
-      if (extrasToInsert.length > 0) insertJobs.push(Promise.resolve(supabase.from('order_item_extras').insert(extrasToInsert)));
-      if (modifiersToInsert.length > 0) insertJobs.push(Promise.resolve(supabase.from('order_item_modifiers').insert(modifiersToInsert)));
+      if (extrasToInsert.length > 0) insertJobs.push(Promise.resolve(adminDb.from('order_item_extras').insert(extrasToInsert)));
+      if (modifiersToInsert.length > 0) insertJobs.push(Promise.resolve(adminDb.from('order_item_modifiers').insert(modifiersToInsert)));
       const results = await Promise.all(insertJobs);
       const extrasErr = results[0]?.error;
       const modsErr = results[1]?.error ?? (extrasToInsert.length === 0 ? results[0]?.error : undefined);
       const detailErr = extrasErr ?? modsErr;
       if (detailErr) {
         logger.error('order detail insert failed', { order_id: order.id, error: detailErr.message });
-        const { error: rollbackErr } = await supabase.from('orders').delete().eq('id', order.id);
+        const { error: rollbackErr } = await adminDb.from('orders').delete().eq('id', order.id);
         if (rollbackErr) logger.error('rollback delete failed', { order_id: order.id, error: rollbackErr.message });
         return NextResponse.json({ error: 'Error guardando detalles del pedido' }, { status: 500 });
       }
