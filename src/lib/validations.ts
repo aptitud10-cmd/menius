@@ -61,7 +61,7 @@ export const publicOrderSchema = z.object({
   customer_phone: z.string().min(7, 'Teléfono requerido').regex(/^[+\d\s\-().]+$/, 'Teléfono inválido'),
   customer_email: z.string().email('Email inválido').optional().or(z.literal('')),
   order_type: z.enum(['dine_in', 'pickup', 'delivery']).default('dine_in'),
-  payment_method: z.enum(['cash', 'online']).default('cash'),
+  payment_method: z.enum(['cash', 'online', 'wallet']).default('cash'),
   notes: z.string().default(''),
   tip_amount: z.number().min(0, 'La propina no puede ser negativa').max(1000, 'Propina máxima: $1,000').optional(),
   items: z.array(z.object({

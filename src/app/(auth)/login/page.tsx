@@ -13,7 +13,7 @@ export default function LoginPage() {
   const locale = useLocale();
   const t = getLandingT(locale).auth.login;
 
-  const [tab, setTab] = useState<'password' | 'magic'>('magic');
+  const [tab, setTab] = useState<'password' | 'magic'>('password');
 
   // Password login state
   const [email, setEmail] = useState('');

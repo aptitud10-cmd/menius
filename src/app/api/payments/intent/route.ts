@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 import { getStripe } from '@/lib/stripe';
@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Valid order_id required' }, { status: 400 });
     }
 
-    const supabase = createClient();
-    const { data: order } = await supabase
+    const adminDb = createAdminClient();
+    const { data: order } = await adminDb
       .from('orders')
       .select('id, total, order_number, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete )')
       .eq('id', order_id)

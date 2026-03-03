@@ -96,6 +96,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const [orderNumber, setOrderNumber] = useState('');
   const [orderId, setOrderId] = useState('');
   const [payLoading, setPayLoading] = useState(false);
+  const [paidViaWallet, setPaidViaWallet] = useState(false);
   const confirmRef = useRef<HTMLDivElement>(null);
   const confettiTimer = useRef<ReturnType<typeof setTimeout>>();
 
@@ -247,6 +248,61 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
     }
   };
 
+  const handleCreateOrderForWallet = useCallback(async (): Promise<{ orderId: string; orderNumber: string } | { error: string }> => {
+    if (!customerName.trim() || !customerPhone.trim()) {
+      return { error: locale === 'es' ? 'Nombre y teléfono son requeridos' : 'Name and phone required' };
+    }
+    if (orderType === 'delivery' && !deliveryAddress.trim()) {
+      return { error: locale === 'es' ? 'Dirección de entrega requerida' : 'Delivery address required' };
+    }
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id: restaurant.id,
+          customer_name: customerName.trim(),
+          customer_phone: customerPhone.trim(),
+          customer_email: customerEmail.trim() || undefined,
+          notes: orderNotes.trim(),
+          order_type: orderType,
+          payment_method: 'wallet',
+          delivery_address: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
+          promo_code: promoResult?.valid ? promoCode.trim() : undefined,
+          discount_amount: discount,
+          tip_amount: tipAmount > 0 ? tipAmount : undefined,
+          items: items.map((item) => ({
+            product_id: item.product.id,
+            variant_id: item.variant?.id ?? null,
+            qty: item.qty,
+            unit_price:
+              Number(item.product.price) +
+              (item.variant?.price_delta ?? 0) +
+              item.extras.reduce((s, e) => s + Number(e.price), 0) +
+              (item.modifierSelections ?? []).reduce((s, ms) => s + ms.selectedOptions.reduce((ss, o) => ss + Number(o.price_delta), 0), 0),
+            line_total: item.lineTotal,
+            notes: item.notes,
+            extras: item.extras.map((e) => ({ extra_id: e.id, price: Number(e.price) })),
+            modifiers: (item.modifierSelections ?? []).flatMap((ms) =>
+              ms.selectedOptions.map((opt) => ({
+                group_id: ms.group.id,
+                group_name: ms.group.name,
+                option_id: opt.id,
+                option_name: opt.name,
+                price_delta: Number(opt.price_delta),
+              }))
+            ),
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: data.error || 'Error creando orden' };
+      return { orderId: data.order_id, orderNumber: data.order_number };
+    } catch {
+      return { error: 'Error de conexión' };
+    }
+  }, [customerName, customerPhone, customerEmail, orderNotes, orderType, deliveryAddress, promoResult, promoCode, discount, tipAmount, items, restaurant.id, locale]);
+
   const handlePayOnline = async () => {
     setPayLoading(true);
     try {
@@ -357,7 +413,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
                 {orderError}
               </div>
             )}
-            {paymentMethod === 'online' && orderId && (
+            {paymentMethod === 'online' && orderId && !paidViaWallet && (
               restaurant.id.startsWith('demo') ? (
                 <div className="w-full py-3 rounded-xl bg-gray-100 text-center">
                   <p className="text-sm font-semibold text-gray-500">{locale === 'es' ? 'Pago con tarjeta via Stripe' : 'Card payment via Stripe'}</p>
@@ -649,7 +705,38 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
             currency={restaurant.currency ?? 'MXN'}
             label={restaurant.name}
             disabled={submitting || items.length === 0 || !customerName.trim() || !customerPhone.trim()}
-            onSuccess={() => { saveLastOrder(); clearCart(); setOrderNumber('WALLET'); setStep('confirmation'); }}
+            onCreateOrder={handleCreateOrderForWallet}
+            onSuccess={(orderId, orderNumber) => {
+              setOrderId(orderId);
+              setOrderNumber(orderNumber);
+              setPaidViaWallet(true);
+              saveLastOrder();
+              try {
+                if (rememberMe) {
+                  localStorage.setItem('menius_guest_info', JSON.stringify({
+                    name: customerName.trim(),
+                    phone: customerPhone.trim(),
+                    email: customerEmail.trim(),
+                  }));
+                } else {
+                  localStorage.removeItem('menius_guest_info');
+                }
+              } catch {}
+              trackEvent('order_placed', {
+                restaurant_id: restaurant.id,
+                restaurant_slug: restaurant.slug,
+                order_number: orderNumber,
+                order_type: orderType,
+                payment_method: 'wallet',
+                item_count: items.length,
+                total: cartTotal,
+                currency: restaurant.currency,
+              });
+              clearCart();
+              playSuccessChime();
+              setStep('confirmation');
+              confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
+            }}
             onError={(msg) => setOrderError(msg)}
           />
         )}

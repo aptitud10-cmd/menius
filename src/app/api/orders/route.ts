@@ -369,7 +369,8 @@ export async function POST(request: NextRequest) {
       logger.error('notifyNewOrder failed', { error: err instanceof Error ? err.message : String(err) });
     }
 
-    // For online payments: create Stripe Checkout session immediately
+    // For online payments via Stripe Checkout: create session immediately.
+    // 'wallet' payments (Apple Pay / Google Pay) use a PaymentIntent directly — no Checkout Session needed.
     let stripeUrl: string | null = null;
     if (parsed.data.payment_method === 'online') {
       try {

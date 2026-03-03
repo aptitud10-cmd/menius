@@ -3,7 +3,7 @@
 // ============================================================
 
 export type OrderType = 'dine_in' | 'pickup' | 'delivery';
-export type PaymentMethod = 'cash' | 'online';
+export type PaymentMethod = 'cash' | 'online' | 'wallet';
 
 export interface Restaurant {
   id: string;

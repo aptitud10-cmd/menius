@@ -8,10 +8,9 @@ interface WalletButtonProps {
   amount: number;
   currency: string;
   label: string;
-  onSuccess: () => void;
+  onSuccess: (orderId: string, orderNumber: string) => void;
   onError: (msg: string) => void;
-  orderId?: string;
-  orderNumber?: string;
+  onCreateOrder: () => Promise<{ orderId: string; orderNumber: string } | { error: string }>;
   disabled?: boolean;
 }
 
@@ -25,8 +24,7 @@ export function WalletButton({
   label,
   onSuccess,
   onError,
-  orderId,
-  orderNumber,
+  onCreateOrder,
   disabled,
 }: WalletButtonProps) {
   const [canPay, setCanPay] = useState(false);
@@ -35,8 +33,8 @@ export function WalletButton({
   const prRef = useRef<PaymentRequest | null>(null);
   const stripeRef = useRef<Stripe | null>(null);
 
-  const callbacksRef = useRef({ onSuccess, onError, orderId, orderNumber, amount, currency });
-  callbacksRef.current = { onSuccess, onError, orderId, orderNumber, amount, currency };
+  const callbacksRef = useRef({ onSuccess, onError, onCreateOrder, amount, currency });
+  callbacksRef.current = { onSuccess, onError, onCreateOrder, amount, currency };
 
   useEffect(() => {
     if (!stripePromise) return;
@@ -57,15 +55,20 @@ export function WalletButton({
       paymentRequest.on('paymentmethod', async (ev) => {
         const cb = callbacksRef.current;
         try {
+          // Step 1: create the order before charging
+          const orderResult = await cb.onCreateOrder();
+          if ('error' in orderResult) {
+            ev.complete('fail');
+            cb.onError(orderResult.error);
+            setPaying(false);
+            return;
+          }
+
+          // Step 2: create a PaymentIntent for the confirmed order
           const res = await fetch('/api/payments/intent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              amount: cb.amount,
-              currency: cb.currency.toLowerCase(),
-              order_id: cb.orderId,
-              order_number: cb.orderNumber,
-            }),
+            body: JSON.stringify({ order_id: orderResult.orderId }),
           });
           const data = await res.json();
 
@@ -76,6 +79,7 @@ export function WalletButton({
             return;
           }
 
+          // Step 3: confirm payment with the wallet's payment method
           const { error, paymentIntent } = await s.confirmCardPayment(
             data.clientSecret,
             { payment_method: ev.paymentMethod.id },
@@ -95,11 +99,11 @@ export function WalletButton({
             if (confirmError) {
               cb.onError(confirmError.message ?? 'Payment failed');
             } else {
-              cb.onSuccess();
+              cb.onSuccess(orderResult.orderId, orderResult.orderNumber);
             }
           } else {
             ev.complete('success');
-            cb.onSuccess();
+            cb.onSuccess(orderResult.orderId, orderResult.orderNumber);
           }
           setPaying(false);
         } catch {
