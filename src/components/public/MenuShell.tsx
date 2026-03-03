@@ -19,8 +19,6 @@ import { CategorySidebar } from './CategorySidebar';
 import { ProductCard } from './ProductCard';
 import { CartPanel } from './CartPanel';
 import { CustomizationSheet } from './CustomizationSheet';
-import { WelcomeScreen } from './WelcomeScreen';
-
 interface ReviewStats {
   average: number;
   total: number;
@@ -121,27 +119,12 @@ export function MenuShell({
     ? restaurant.order_types_enabled
     : ['dine_in', 'pickup', 'delivery'];
 
-  const shouldShowWelcome = !tableName && enabledOrderTypes.length >= 2;
-  const [showWelcome, setShowWelcome] = useState(shouldShowWelcome);
-
-  const setSelectedOrderType = useCartStore((s) => s.setSelectedOrderType);
-  const existingOrderType = useCartStore((s) => s.selectedOrderType);
-
-  const handleWelcomeSelect = useCallback((type: OrderType) => {
-    setSelectedOrderType(type);
-    setShowWelcome(false);
-  }, [setSelectedOrderType]);
-
   useEffect(() => {
     setHasMounted(true);
     setRestaurantId(restaurant.id);
     setTableName(tableName);
     router.prefetch(`/r/${restaurant.slug}/checkout`);
-    // If user already chose an order type (e.g. coming back from checkout), skip welcome screen
-    if (existingOrderType) {
-      setShowWelcome(false);
-    }
-  }, [restaurant.id, restaurant.slug, tableName, setRestaurantId, setTableName, router, existingOrderType]);
+  }, [restaurant.id, restaurant.slug, tableName, setRestaurantId, setTableName, router]);
 
   const cartCount = hasMounted ? rawCartCount : 0;
   const cartTotal = hasMounted ? rawCartTotal : 0;
@@ -462,19 +445,6 @@ export function MenuShell({
       {favPill}
     </div>
   );
-
-  if (showWelcome) {
-    return (
-      <WelcomeScreen
-        restaurant={restaurant}
-        enabledTypes={enabledOrderTypes}
-        onSelect={handleWelcomeSelect}
-        onReorder={() => setShowWelcome(false)}
-        products={products}
-        t={t}
-      />
-    );
-  }
 
   return (
     <div className="h-[100dvh] flex flex-col bg-white overflow-hidden overscroll-none touch-pan-y">
