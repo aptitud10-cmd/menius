@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { publicOrderSchema } from '@/lib/validations';
 import { NextRequest, NextResponse } from 'next/server';
 import { notifyNewOrder } from '@/lib/notifications/order-notifications';
+import { sendEmail } from '@/lib/notifications/email';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 import { sanitizeText, sanitizeEmail, sanitizeMultiline } from '@/lib/sanitize';
 import { createLogger } from '@/lib/logger';
@@ -307,6 +308,28 @@ export async function POST(request: NextRequest) {
       if (custErr) logger.error('upsert_customer failed', { error: custErr.message });
     });
 
+    // First order "wow" email — fire-and-forget to restaurant owner
+    if (restaurant.notification_email) {
+      adminDb
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('restaurant_id', restaurant_id)
+        .then(({ count }) => {
+          if (count === 1 && restaurant.notification_email) {
+            const en = restaurant.locale === 'en';
+            const dashUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app'}/app`;
+            sendEmail({
+              to: restaurant.notification_email,
+              subject: en
+                ? `🎉 ${restaurant.name} just received its first order!`
+                : `🎉 ¡${restaurant.name} acaba de recibir su primer pedido!`,
+              html: buildFirstOrderWowEmail(restaurant.name, dashUrl, en),
+            }).catch(() => {});
+          }
+        })
+        .catch(() => {});
+    }
+
     // Send notifications — awaited so Vercel doesn't freeze the process before emails are sent
     try {
       const notifProductIds = parsed.data.items.map((i) => i.product_id);
@@ -396,4 +419,54 @@ export async function POST(request: NextRequest) {
     captureError(err, { route: '/api/orders' });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
+}
+
+function buildFirstOrderWowEmail(restaurantName: string, dashUrl: string, en = false): string {
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#050505;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:520px;margin:0 auto;padding:40px 20px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <h1 style="font-size:22px;font-weight:800;color:#10b981;margin:0;">MENIUS</h1>
+    </div>
+    <div style="background:#0a0a0a;border-radius:20px;overflow:hidden;border:1px solid rgba(16,185,129,0.2);box-shadow:0 0 60px rgba(16,185,129,0.08);">
+      <div style="background:linear-gradient(135deg,#059669 0%,#10b981 100%);padding:40px 32px;text-align:center;">
+        <div style="font-size:56px;margin-bottom:12px;">🎉</div>
+        <h2 style="color:#fff;font-size:24px;font-weight:800;margin:0 0 8px;line-height:1.2;">
+          ${en ? 'Your first order!' : '¡Tu primer pedido!'}
+        </h2>
+        <p style="color:rgba(255,255,255,0.85);font-size:15px;margin:0;">
+          ${en ? `${restaurantName} is officially open for business` : `${restaurantName} está oficialmente en marcha`}
+        </p>
+      </div>
+      <div style="padding:32px 28px;">
+        <p style="margin:0 0 20px;font-size:16px;color:#f3f4f6;line-height:1.7;font-weight:500;">
+          ${en
+            ? 'This is a big moment. 🏆 Your first customer just placed an order through your digital menu — the same one you set up on MENIUS.'
+            : 'Este es un gran momento. 🏆 Tu primer cliente acaba de hacer un pedido a través de tu menú digital — el mismo que configuraste en MENIUS.'}
+        </p>
+        <p style="margin:0 0 24px;font-size:15px;color:#9ca3af;line-height:1.6;">
+          ${en
+            ? 'Go to your dashboard to see the order and mark it as in preparation. From here, every order adds up.'
+            : 'Ve a tu dashboard para ver el pedido y marcarlo en preparación. A partir de aquí, cada pedido suma.'}
+        </p>
+        <a href="${dashUrl}/orders" style="display:block;padding:16px;background:linear-gradient(135deg,#059669,#10b981);color:#fff;text-align:center;border-radius:14px;font-weight:700;font-size:16px;text-decoration:none;letter-spacing:-0.01em;">
+          ${en ? 'See my first order →' : 'Ver mi primer pedido →'}
+        </a>
+        <div style="margin-top:24px;padding:16px;background:rgba(16,185,129,0.06);border-radius:12px;border:1px solid rgba(16,185,129,0.12);">
+          <p style="margin:0;font-size:13px;color:#6ee7b7;line-height:1.6;text-align:center;">
+            💡 ${en
+              ? 'Tip: enable WhatsApp notifications in Settings so you never miss an order.'
+              : 'Tip: activa notificaciones de WhatsApp en Ajustes para no perder ningún pedido.'}
+          </p>
+        </div>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:11px;color:#374151;margin-top:20px;">
+      MENIUS — ${en ? 'Digital menu for restaurants' : 'Menú digital para restaurantes'}
+    </p>
+  </div>
+</body>
+</html>`;
 }

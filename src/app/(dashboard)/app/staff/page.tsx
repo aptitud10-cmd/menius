@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Users, Plus, Trash2, Loader2, Mail, Shield, ChefHat, UserCheck, UserX } from 'lucide-react';
+import { Users, Plus, Trash2, Loader2, Mail, Shield, ChefHat, UserCheck, UserX, UserPlus } from 'lucide-react';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface StaffMember {
@@ -176,8 +176,15 @@ export default function StaffPage() {
       ) : members.length === 0 ? (
         <div className="text-center py-20 text-gray-500">
           <Users className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>{t.staff_noMembers}</p>
+          <p className="font-semibold text-gray-700">{t.staff_noMembers}</p>
           <p className="text-sm mt-1">{t.staff_noMembersDesc}</p>
+          <button
+            onClick={() => setShowForm(true)}
+            className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors"
+          >
+            <UserPlus className="w-4 h-4" />
+            {t.staff_inviteMember ?? 'Invitar miembro'}
+          </button>
         </div>
       ) : (
         <div className="space-y-3">

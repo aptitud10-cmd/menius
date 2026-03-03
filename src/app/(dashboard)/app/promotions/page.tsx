@@ -213,8 +213,15 @@ export default function PromotionsPage() {
       ) : promos.length === 0 ? (
         <div className="text-center py-20 text-gray-500">
           <Ticket className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>{t.promo_noPromos}</p>
+          <p className="font-semibold text-gray-700">{t.promo_noPromos}</p>
           <p className="text-sm mt-1">{t.promo_noPromosDesc}</p>
+          <button
+            onClick={() => setShowForm(true)}
+            className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            {t.promo_newPromo ?? 'Nueva promoción'}
+          </button>
         </div>
       ) : (
         <div className="space-y-3">

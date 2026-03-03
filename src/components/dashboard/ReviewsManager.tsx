@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Star, Eye, EyeOff, MessageSquare, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
+import { Star, Eye, EyeOff, MessageSquare, TrendingUp, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
@@ -97,6 +98,13 @@ export function ReviewsManager({ restaurantId, initialReviews }: Props) {
           <MessageSquare className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-sm font-semibold text-gray-900">{t.reviews_noReviews}</p>
           <p className="text-xs text-gray-500 mt-1">{t.reviews_noReviewsDesc}</p>
+          <Link
+            href="/app/marketing"
+            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors"
+          >
+            <Share2 className="w-4 h-4" />
+            {t.nav_marketing ?? 'Ir a Marketing'}
+          </Link>
         </div>
       ) : (
         <div className="dash-card divide-y divide-gray-100">

@@ -245,6 +245,13 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
             <ClipboardList className="dash-empty-icon w-8 h-8" />
             <p className="dash-empty-title text-sm">{t.home_noOrdersYet}</p>
             <p className="dash-empty-desc text-xs">{t.home_noOrdersDesc}</p>
+            <Link
+              href="/app/tables"
+              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              {t.tables_title ?? 'Ver QR de mesas'}
+            </Link>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">

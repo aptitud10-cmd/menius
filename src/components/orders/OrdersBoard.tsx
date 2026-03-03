@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useTransition, useEffect, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import {
   Clock, ChefHat, CheckCircle, Package, XCircle, User, ArrowRight, Bell,
   Volume2, VolumeX, BellRing, Wifi, Printer, MapPin, StickyNote,
   Utensils, ShoppingBag, Truck, ChevronDown, ChevronUp, Search,
   CreditCard, Banknote, X, History, LayoutGrid, Eye, FileDown,
-  CheckSquare, Square,
+  CheckSquare, Square, QrCode,
 } from 'lucide-react';
 import { updateOrderStatus } from '@/lib/actions/restaurant';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
@@ -330,6 +331,13 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
           <Package className="dash-empty-icon" />
           <p className="dash-empty-title">{t.orders_noOrders}</p>
           <p className="dash-empty-desc">{t.orders_emptyDesc}</p>
+          <Link
+            href="/app/tables"
+            className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors"
+          >
+            <QrCode className="w-4 h-4" />
+            {t.orders_viewQR ?? 'Ver QR de mesas'}
+          </Link>
         </div>
       ) : showHistory ? (
         /* ── History list view ── */
