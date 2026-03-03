@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
@@ -114,6 +114,27 @@ export function MenuShell({
   const addItem = useCartStore((s) => s.addItem);
 
   const [hasMounted, setHasMounted] = useState(false);
+  const [reorderDismissed, setReorderDismissed] = useState(false);
+  const [cartResumeShown, setCartResumeShown] = useState(false);
+
+  const lastOrder = useCartStore((s) => s.lastOrder);
+  const reorder = useCartStore((s) => s.reorder);
+
+  const showReorderBanner =
+    hasMounted &&
+    !reorderDismissed &&
+    rawCartCount === 0 &&
+    !!lastOrder &&
+    lastOrder.restaurantId === restaurant.id &&
+    lastOrder.items.length > 0;
+
+  const handleReorder = useCallback(() => {
+    const added = reorder(products);
+    if (added > 0) {
+      setReorderDismissed(true);
+      setOpen(true);
+    }
+  }, [reorder, products, setOpen]);
 
   const enabledOrderTypes: OrderType[] = restaurant.order_types_enabled?.length
     ? restaurant.order_types_enabled
@@ -124,6 +145,16 @@ export function MenuShell({
     setRestaurantId(restaurant.id);
     setTableName(tableName);
     router.prefetch(`/r/${restaurant.slug}/checkout`);
+
+    // If returning customer has items in cart, show a brief "resume cart" toast
+    const stored = useCartStore.getState();
+    if (
+      stored.restaurantId === restaurant.id &&
+      stored.items.length > 0
+    ) {
+      setCartResumeShown(true);
+      setTimeout(() => setCartResumeShown(false), 4000);
+    }
   }, [restaurant.id, restaurant.slug, tableName, setRestaurantId, setTableName, router]);
 
   const cartCount = hasMounted ? rawCartCount : 0;
@@ -532,6 +563,36 @@ export function MenuShell({
               {restaurant.description && (
                 <p className="text-sm text-gray-500 mt-1 line-clamp-2">{restaurant.description}</p>
               )}
+            </div>
+          )}
+
+          {/* Reorder banner — shown when customer has a previous order here */}
+          {showReorderBanner && (
+            <div className="mx-4 lg:mx-8 mt-3 lg:mt-5 flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-50 border border-emerald-200">
+              <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <RotateCcw className="w-4 h-4 text-emerald-600" strokeWidth={2.5} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-emerald-800">
+                  {locale === 'en' ? 'Reorder your last order?' : '¿Repetir tu último pedido?'}
+                </p>
+                <p className="text-xs text-emerald-600 truncate mt-0.5">
+                  {lastOrder!.items.map((i) => `${i.qty}× ${i.productName}`).join(' · ')}
+                </p>
+              </div>
+              <button
+                onClick={handleReorder}
+                className="flex-shrink-0 px-3.5 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold active:scale-95 transition-transform"
+              >
+                {locale === 'en' ? 'Add to cart' : 'Agregar'}
+              </button>
+              <button
+                onClick={() => setReorderDismissed(true)}
+                className="flex-shrink-0 p-1.5 text-emerald-400 hover:text-emerald-600 transition-colors"
+                aria-label="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           )}
 
@@ -1079,6 +1140,19 @@ export function MenuShell({
           <div className="px-4 py-2.5 rounded-full bg-gray-900 text-white text-sm font-medium shadow-lg">
             {toastName} {locale === 'es' ? 'se ha agregado al carrito' : 'added to cart'}
           </div>
+        </div>
+      )}
+
+      {/* ── Cart resumption toast — shown once when returning with items in cart ── */}
+      {cartResumeShown && !toastName && (
+        <div className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:bottom-6 lg:left-auto lg:right-6 pointer-events-none">
+          <button
+            className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-full bg-emerald-600 text-white text-sm font-semibold shadow-lg active:scale-95 transition-transform"
+            onClick={() => { setCartResumeShown(false); setOpen(true); }}
+          >
+            <ShoppingCart className="w-4 h-4" />
+            {locale === 'en' ? `Continue your order (${rawCartCount} items)` : `Continúa tu pedido (${rawCartCount} items)`}
+          </button>
         </div>
       )}
 
