@@ -125,6 +125,7 @@ export function MenuShell({
   const [showWelcome, setShowWelcome] = useState(shouldShowWelcome);
 
   const setSelectedOrderType = useCartStore((s) => s.setSelectedOrderType);
+  const existingOrderType = useCartStore((s) => s.selectedOrderType);
 
   const handleWelcomeSelect = useCallback((type: OrderType) => {
     setSelectedOrderType(type);
@@ -136,7 +137,11 @@ export function MenuShell({
     setRestaurantId(restaurant.id);
     setTableName(tableName);
     router.prefetch(`/r/${restaurant.slug}/checkout`);
-  }, [restaurant.id, restaurant.slug, tableName, setRestaurantId, setTableName, router]);
+    // If user already chose an order type (e.g. coming back from checkout), skip welcome screen
+    if (existingOrderType) {
+      setShowWelcome(false);
+    }
+  }, [restaurant.id, restaurant.slug, tableName, setRestaurantId, setTableName, router, existingOrderType]);
 
   const cartCount = hasMounted ? rawCartCount : 0;
   const cartTotal = hasMounted ? rawCartTotal : 0;
