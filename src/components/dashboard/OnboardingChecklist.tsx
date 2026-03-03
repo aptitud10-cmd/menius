@@ -38,8 +38,14 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
 
   useEffect(() => {
     const stored = localStorage.getItem(storageKey);
-    setDismissed(stored === 'true');
-  }, [storageKey]);
+    // If previously dismissed but not all steps complete, reset so checklist shows again
+    if (stored === 'true' && !Object.values(steps).every(Boolean)) {
+      localStorage.removeItem(storageKey);
+      setDismissed(false);
+    } else {
+      setDismissed(stored === 'true');
+    }
+  }, [storageKey, steps]);
 
   if (dismissed === null) return null;
 
@@ -99,11 +105,12 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
   const totalSteps = allSteps.length;
   const allComplete = completedCount === totalSteps;
   const progress = (completedCount / totalSteps) * 100;
+  const canDismiss = allComplete;
 
-  if (dismissed && !allComplete) return null;
   if (dismissed && allComplete) return null;
 
   const handleDismiss = () => {
+    if (!canDismiss) return;
     localStorage.setItem(storageKey, 'true');
     setDismissed(true);
   };
@@ -149,13 +156,15 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
               <p className="text-xs text-gray-500 mt-0.5">{completedCount} {t.onboarding_stepsOf} {totalSteps}</p>
             </div>
           </div>
-          <button
-            onClick={handleDismiss}
-            className="p-1.5 rounded-lg text-gray-600 hover:text-gray-500 hover:bg-gray-50 transition-colors"
-            aria-label="Ocultar"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          {canDismiss && (
+            <button
+              onClick={handleDismiss}
+              className="p-1.5 rounded-lg text-gray-600 hover:text-gray-500 hover:bg-gray-50 transition-colors"
+              aria-label="Ocultar"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Progress bar */}
