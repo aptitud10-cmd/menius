@@ -35,14 +35,14 @@ export const metadata: Metadata = {
     siteName: 'MENIUS',
     title: 'MENIUS — Menús digitales inteligentes para restaurantes',
     description: 'Crea tu menú digital con QR, recibe pedidos en tiempo real, y gestiona tu restaurante desde un solo lugar.',
-    images: [{ url: '/icons/icon-512.svg', width: 512, height: 512, alt: 'MENIUS Logo' }],
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'MENIUS — Menús digitales para restaurantes' }],
     locale: 'es_MX',
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: 'MENIUS — Menús digitales para restaurantes',
     description: 'Crea tu menú digital con QR y recibe pedidos en tiempo real.',
-    images: ['/icons/icon-512.svg'],
+    images: ['/opengraph-image'],
   },
   robots: {
     index: true,

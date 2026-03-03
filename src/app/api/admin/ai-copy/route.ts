@@ -1,17 +1,8 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
-
-async function verifyAdmin() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (!adminEmail || user.email !== adminEmail) return null;
-  return { supabase, user };
-}
+import { verifyAdmin } from '@/lib/auth/verify-admin';
 
 export async function POST(request: NextRequest) {
   try {

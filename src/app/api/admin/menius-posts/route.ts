@@ -1,22 +1,11 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-
-const ADMIN_EMAILS = (process.env.ADMIN_EMAIL ?? '').split(',').map(e => e.trim().toLowerCase());
-
-async function isAdmin() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user?.email) return false;
-  return ADMIN_EMAILS.includes(user.email.toLowerCase());
-}
+import { createAdminClient } from '@/lib/supabase/admin';
+import { verifyAdmin } from '@/lib/auth/verify-admin';
 
 function getServiceClient() {
-  const { createClient: createServiceClient } = require('@supabase/supabase-js');
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createServiceClient(url, key);
+  return createAdminClient();
 }
 
 const POST_TYPES: Record<string, string> = {
@@ -41,7 +30,7 @@ const PLATFORMS: Record<string, { maxLen: number; style: string }> = {
 /* ── GET: List saved posts ─────────────────────── */
 export async function GET(request: NextRequest) {
   try {
-    if (!(await isAdmin())) {
+    if (!(await verifyAdmin())) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -65,7 +54,7 @@ export async function GET(request: NextRequest) {
 /* ── POST: Generate a new post ─────────────────── */
 export async function POST(request: NextRequest) {
   try {
-    if (!(await isAdmin())) {
+    if (!(await verifyAdmin())) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -171,7 +160,7 @@ RESPOND IN THIS EXACT JSON FORMAT:
 /* ── PATCH: Update post status ─────────────────── */
 export async function PATCH(request: NextRequest) {
   try {
-    if (!(await isAdmin())) {
+    if (!(await verifyAdmin())) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
