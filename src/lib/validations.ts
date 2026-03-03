@@ -32,6 +32,8 @@ export const categorySchema = z.object({
   is_active: z.boolean().default(true),
   image_url: z.string().nullable().optional(),
   translations: z.record(z.string(), contentTranslationSchema).nullable().optional(),
+  available_from: z.string().nullable().optional(), // "HH:MM" 24h
+  available_to: z.string().nullable().optional(),   // "HH:MM" 24h
 });
 
 export const productSchema = z.object({

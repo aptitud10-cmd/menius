@@ -30,7 +30,7 @@ export default async function OrderTrackingPage({ params }: PageProps) {
 
   const { data: restaurant } = await adminDb
     .from('restaurants')
-    .select('id, name, slug, currency')
+    .select('id, name, slug, currency, address')
     .eq('slug', params.slug)
     .maybeSingle();
 
@@ -41,6 +41,7 @@ export default async function OrderTrackingPage({ params }: PageProps) {
       restaurantId={restaurant.id}
       restaurantName={restaurant.name}
       restaurantSlug={restaurant.slug}
+      restaurantAddress={restaurant.address ?? undefined}
       orderNumber={params.orderNumber}
       currency={restaurant.currency ?? 'MXN'}
     />

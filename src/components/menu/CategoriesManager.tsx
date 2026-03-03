@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useRef } from 'react';
-import { Plus, Pencil, Trash2, Eye, EyeOff, Tag, GripVertical, Languages, X, Camera, ImageIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, Tag, GripVertical, Languages, X, Camera, ImageIcon, Clock } from 'lucide-react';
 import Image from 'next/image';
 import {
   DndContext,
@@ -97,9 +97,17 @@ function SortableCategoryRow({
             <ImageIcon className="w-3.5 h-3.5" />
           </button>
         )}
-        <span className={cn('text-sm font-medium', cat.is_active ? 'text-gray-900' : 'text-gray-500 line-through')}>
-          {cat.name}
-        </span>
+        <div className="min-w-0">
+          <span className={cn('text-sm font-medium', cat.is_active ? 'text-gray-900' : 'text-gray-500 line-through')}>
+            {cat.name}
+          </span>
+          {cat.available_from && cat.available_to && (
+            <span className="flex items-center gap-1 text-[10px] text-gray-400 mt-0.5">
+              <Clock className="w-2.5 h-2.5" />
+              {cat.available_from} – {cat.available_to}
+            </span>
+          )}
+        </div>
         {!cat.is_active && (
           <span className="dash-badge dash-badge-inactive text-[10px]">{t.categories_hidden}</span>
         )}
@@ -129,6 +137,8 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
+  const [availableFrom, setAvailableFrom] = useState('');
+  const [availableTo, setAvailableTo] = useState('');
   const [error, setError] = useState('');
   const [translatingCat, setTranslatingCat] = useState<Category | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -144,6 +154,8 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
 
   const resetForm = () => {
     setName('');
+    setAvailableFrom('');
+    setAvailableTo('');
     setEditingId(null);
     setShowForm(false);
     setError('');
@@ -155,15 +167,18 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
       return;
     }
 
+    const from = availableFrom || null;
+    const to = availableTo || null;
+
     startTransition(async () => {
       if (editingId) {
-        const result = await updateCategory(editingId, { name, sort_order: 0, is_active: true });
+        const result = await updateCategory(editingId, { name, sort_order: 0, is_active: true, available_from: from, available_to: to });
         if (result.error) { setError(result.error); return; }
-        setCategories((prev) => prev.map((c) => c.id === editingId ? { ...c, name } : c));
+        setCategories((prev) => prev.map((c) => c.id === editingId ? { ...c, name, available_from: from, available_to: to } : c));
       } else {
-        const result = await createCategory({ name, sort_order: categories.length, is_active: true });
+        const result = await createCategory({ name, sort_order: categories.length, is_active: true, available_from: from, available_to: to });
         if (result.error) { setError(result.error); return; }
-        setCategories((prev) => [...prev, { id: `temp-${Date.now()}`, restaurant_id: '', name, sort_order: prev.length, is_active: true, created_at: new Date().toISOString() }]);
+        setCategories((prev) => [...prev, { id: `temp-${Date.now()}`, restaurant_id: '', name, sort_order: prev.length, is_active: true, created_at: new Date().toISOString(), available_from: from, available_to: to }]);
       }
       resetForm();
     });
@@ -172,6 +187,8 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
   const handleEdit = (cat: Category) => {
     setEditingId(cat.id);
     setName(cat.name);
+    setAvailableFrom(cat.available_from ?? '');
+    setAvailableTo(cat.available_to ?? '');
     setShowForm(true);
   };
 
@@ -243,6 +260,43 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
             autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
           />
+          {/* Time-based availability (optional) */}
+          <div>
+            <label className="text-xs font-medium text-gray-500 flex items-center gap-1.5 mb-2">
+              <Clock className="w-3.5 h-3.5" />
+              Disponibilidad por horario (opcional)
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="time"
+                value={availableFrom}
+                onChange={(e) => setAvailableFrom(e.target.value)}
+                className="dash-input flex-1 text-sm"
+                placeholder="Desde"
+              />
+              <span className="text-gray-400 text-sm flex-shrink-0">–</span>
+              <input
+                type="time"
+                value={availableTo}
+                onChange={(e) => setAvailableTo(e.target.value)}
+                className="dash-input flex-1 text-sm"
+                placeholder="Hasta"
+              />
+              {(availableFrom || availableTo) && (
+                <button
+                  type="button"
+                  onClick={() => { setAvailableFrom(''); setAvailableTo(''); }}
+                  className="p-2 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                  title="Quitar horario"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1">
+              Dejar en blanco para mostrar siempre. Ejemplo: Desayunos de 07:00 a 11:00.
+            </p>
+          </div>
           <div className="flex gap-2">
             <button onClick={handleSubmit} disabled={isPending} className="dash-btn-primary">
               {editingId ? t.general_save : t.categories_create}

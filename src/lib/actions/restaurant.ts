@@ -188,6 +188,8 @@ export async function createCategory(data: CategoryInput) {
     name: sanitizeText(data.name, 100),
     sort_order: data.sort_order,
     is_active: data.is_active,
+    available_from: data.available_from || null,
+    available_to: data.available_to || null,
   }).select('id, name').single();
 
   if (error) return { error: error.message };
@@ -222,6 +224,8 @@ export async function updateCategory(id: string, data: CategoryInput) {
   };
   if (data.translations !== undefined) payload.translations = data.translations;
   if (data.image_url !== undefined) payload.image_url = data.image_url;
+  if (data.available_from !== undefined) payload.available_from = data.available_from || null;
+  if (data.available_to !== undefined) payload.available_to = data.available_to || null;
 
   const { error } = await supabase
     .from('categories')

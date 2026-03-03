@@ -3,7 +3,7 @@
 import { memo, useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ShoppingCart, Search, X, ArrowLeft, LayoutDashboard, Clock } from 'lucide-react';
+import { ShoppingCart, Search, X, ArrowLeft, LayoutDashboard, Clock, History } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
@@ -165,6 +165,16 @@ export const MenuHeader = memo(function MenuHeader({
               {tableName}
             </span>
           )}
+
+          {/* My orders link */}
+          <Link
+            href={`/r/${restaurant.slug}/mis-pedidos`}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label="Mis pedidos"
+            title="Ver mis pedidos anteriores"
+          >
+            <History className="w-4 h-4 text-gray-500" />
+          </Link>
 
           {/* Mobile search toggle */}
           <button onClick={onToggleSearch} className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Search">

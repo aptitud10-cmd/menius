@@ -4,7 +4,13 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { CheckCircle2, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, Wifi, Utensils, ShoppingBag, Truck, CreditCard, Banknote, MapPin } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { formatPrice, cn } from '@/lib/utils';
+
+const DeliveryMap = dynamic(
+  () => import('./DeliveryMap').then((m) => m.DeliveryMap),
+  { ssr: false, loading: () => <div className="w-full h-48 rounded-2xl bg-gray-100 animate-pulse" /> }
+);
 
 const ORDER_TYPE_LABELS: Record<string, { icon: typeof Utensils; label: string }> = {
   dine_in: { icon: Utensils, label: 'En restaurante' },
@@ -22,6 +28,7 @@ interface OrderTrackerProps {
   restaurantId: string;
   restaurantName: string;
   restaurantSlug: string;
+  restaurantAddress?: string;
   orderNumber: string;
   currency?: string;
 }
@@ -34,7 +41,7 @@ const STEPS = [
   { key: 'delivered', label: 'Entregado', icon: Package, description: 'Pedido entregado. ¡Buen provecho!', color: 'text-emerald-600', bg: 'bg-emerald-100' },
 ];
 
-export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, orderNumber, currency = 'MXN' }: OrderTrackerProps) {
+export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, orderNumber, currency = 'MXN' }: OrderTrackerProps) {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -264,6 +271,18 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, ord
           </div>
         </div>
 
+        {/* Delivery map — shown for delivery orders when restaurant has an address */}
+        {order.order_type === 'delivery' && restaurantAddress && (
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">Ubicación</p>
+            <DeliveryMap
+              restaurantAddress={restaurantAddress}
+              deliveryAddress={order.delivery_address}
+              restaurantName={restaurantName}
+            />
+          </div>
+        )}
+
         {/* Review prompt when delivered */}
         {isComplete && (
           <ReviewPrompt restaurantId={restaurantId} orderId={order.id} customerName={order.customer_name} />
@@ -297,6 +316,14 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, ord
           className="block w-full py-3 rounded-xl bg-white border border-gray-200 text-center font-semibold text-sm text-gray-700 hover:bg-gray-50 transition-colors"
         >
           Volver al menú
+        </Link>
+
+        {/* My orders history link */}
+        <Link
+          href={`/r/${restaurantSlug}/mis-pedidos`}
+          className="block w-full py-2.5 text-center text-xs text-gray-400 hover:text-emerald-600 transition-colors"
+        >
+          Ver todos mis pedidos anteriores →
         </Link>
 
         {/* Save order to local history */}

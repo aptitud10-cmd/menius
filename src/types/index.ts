@@ -60,6 +60,8 @@ export interface Category {
   is_active: boolean;
   translations?: Record<string, ContentTranslation>;
   created_at: string;
+  available_from?: string | null; // "HH:MM" 24h, null = always available
+  available_to?: string | null;   // "HH:MM" 24h
 }
 
 export type DietaryTag =

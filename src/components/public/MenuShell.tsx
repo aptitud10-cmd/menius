@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe, RotateCcw } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe, RotateCcw, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
@@ -298,14 +298,25 @@ export function MenuShell({
     return products.filter((p) => p.dietary_tags?.includes(activeDiet));
   }, [products, activeDiet]);
 
+  // Returns true if category has no schedule restriction or current time is within window
+  const isCategoryAvailableNow = useCallback((cat: { available_from?: string | null; available_to?: string | null }) => {
+    if (!cat.available_from || !cat.available_to) return true;
+    const now = new Date();
+    const [fromH, fromM] = cat.available_from.split(':').map(Number);
+    const [toH, toM] = cat.available_to.split(':').map(Number);
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    return nowMins >= fromH * 60 + fromM && nowMins <= toH * 60 + toM;
+  }, []);
+
   const itemsByCategory = useMemo(() => {
     return categories
       .map((cat) => ({
         category: cat,
         items: filteredProducts.filter((p) => p.category_id === cat.id),
+        available: isCategoryAvailableNow(cat),
       }))
-      .filter((g) => g.items.length > 0);
-  }, [categories, filteredProducts]);
+      .filter((g) => g.items.length > 0 && g.available); // hide out-of-schedule categories
+  }, [categories, filteredProducts, isCategoryAvailableNow]);
 
   // Search results
   const searchResults = useMemo(() => {
