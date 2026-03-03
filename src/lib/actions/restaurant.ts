@@ -51,6 +51,14 @@ export async function createRestaurant(data: CreateRestaurantInput) {
     timezone: string; currency: string; locale: string; created_at: string;
   };
 
+  // Set owner's email as default notification_email so they receive order alerts immediately
+  if (user.email) {
+    await supabase
+      .from('restaurants')
+      .update({ notification_email: user.email, notifications_enabled: true })
+      .eq('id', restaurant.id);
+  }
+
   // Seed example data — runs before redirect (batch inserts, ~1-2s)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
   try {
