@@ -55,7 +55,15 @@ export async function middleware(request: NextRequest) {
     const origin = request.headers.get('origin');
     const host = request.headers.get('host');
     if (origin && host) {
-      const originHost = new URL(origin).host;
+      let originHost: string;
+      try {
+        originHost = new URL(origin).host;
+      } catch {
+        return new NextResponse(JSON.stringify({ error: 'Invalid origin' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
       if (originHost !== host) {
         return new NextResponse(JSON.stringify({ error: 'Invalid origin' }), {
           status: 403,
@@ -103,8 +111,15 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Admin routes: only require auth + admin email check (no restaurant needed)
+  // Admin routes: require auth + must be a recognised admin email
   if (isAdmin) {
+    const adminEmails = (process.env.ADMIN_EMAIL ?? '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+    if (!adminEmails.length || !adminEmails.includes((user.email ?? '').toLowerCase())) {
+      return NextResponse.redirect(new URL('/app', request.url));
+    }
     return response;
   }
 

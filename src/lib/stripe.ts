@@ -11,5 +11,13 @@ export function getStripe(): Stripe {
 }
 
 export function getWebhookSecret(): string {
-  return (process.env.STRIPE_WEBHOOK_SECRET ?? '').trim();
+  const secret = (process.env.STRIPE_WEBHOOK_SECRET ?? '').trim();
+  if (!secret) throw new Error('STRIPE_WEBHOOK_SECRET is not set');
+  return secret;
+}
+
+export function getPaymentsWebhookSecret(): string {
+  const secret = (process.env.STRIPE_PAYMENTS_WEBHOOK_SECRET ?? process.env.STRIPE_WEBHOOK_SECRET ?? '').trim();
+  if (!secret) throw new Error('STRIPE_PAYMENTS_WEBHOOK_SECRET (or STRIPE_WEBHOOK_SECRET) is not set');
+  return secret;
 }

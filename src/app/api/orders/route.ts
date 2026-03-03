@@ -400,14 +400,31 @@ export async function POST(request: NextRequest) {
 
         const connectedAccount = restStripe?.stripe_onboarding_complete ? restStripe?.stripe_account_id : null;
 
-        const lineItems = parsed.data.items.map((item) => ({
-          price_data: {
-            currency: (restaurant.currency || 'usd').toLowerCase(),
-            product_data: { name: 'Producto' },
-            unit_amount: Math.round(Number(item.unit_price) * 100),
-          },
-          quantity: item.qty,
-        }));
+        const stripeProductIds = parsed.data.items.map((i) => i.product_id);
+        const { data: stripeProducts } = await adminDb
+          .from('products')
+          .select('id, name, variants:product_variants(id, name)')
+          .in('id', stripeProductIds);
+
+        const stripeProductMap = new Map((stripeProducts ?? []).map((p) => [p.id, p]));
+
+        const lineItems = parsed.data.items.map((item) => {
+          const prod = stripeProductMap.get(item.product_id);
+          const prodName = prod?.name ?? 'Item';
+          const variantName = item.variant_id
+            ? (prod?.variants as { id: string; name: string }[] | undefined)?.find((v) => v.id === item.variant_id)?.name
+            : undefined;
+          return {
+            price_data: {
+              currency: (restaurant.currency || 'usd').toLowerCase(),
+              product_data: {
+                name: [prodName, variantName].filter(Boolean).join(' – ').slice(0, 500),
+              },
+              unit_amount: Math.round(Number(item.unit_price) * 100),
+            },
+            quantity: item.qty,
+          };
+        });
 
         const sessionParams: any = {
           line_items: lineItems,

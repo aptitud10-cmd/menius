@@ -142,7 +142,7 @@ export const useCartStore = create<CartState>()(
         const { lastOrder } = get();
         if (!lastOrder) return 0;
         const productMap = new Map(products.map((p) => [p.id, p]));
-        let added = 0;
+        const newItems = [];
         for (const saved of lastOrder.items) {
           const product = productMap.get(saved.productId);
           if (!product || !product.is_active) continue;
@@ -150,12 +150,10 @@ export const useCartStore = create<CartState>()(
             ? product.variants?.find((v) => v.id === saved.variantId) ?? null
             : null;
           const lineTotal = calcLineTotal(product, variant, [], saved.qty);
-          set((state) => ({
-            items: [...state.items, { product, variant, extras: [], modifierSelections: [], qty: saved.qty, notes: '', lineTotal }],
-          }));
-          added++;
+          newItems.push({ product, variant, extras: [], modifierSelections: [], qty: saved.qty, notes: '', lineTotal });
         }
-        return added;
+        set({ items: newItems });
+        return newItems.length;
       },
 
       clearCart: () => set({ items: [] }),

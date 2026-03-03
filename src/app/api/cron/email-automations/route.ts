@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
     const sevenDaysAgoSetup = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data: newRestaurants } = await supabase
       .from('restaurants')
-      .select('id, name, notification_email, slug, locale')
+      .select('id, name, notification_email, slug, locale, tags')
       .lte('created_at', twoDaysAgoSetup)
       .gte('created_at', sevenDaysAgoSetup)
       .not('notification_email', 'is', null)
@@ -199,6 +199,7 @@ export async function GET(request: NextRequest) {
 
     for (const restaurant of newRestaurants ?? []) {
       if (!restaurant.notification_email) continue;
+      if ((restaurant.tags ?? []).includes('setup_email_sent')) continue;
 
       const { count } = await supabase
         .from('products')
@@ -218,14 +219,20 @@ export async function GET(request: NextRequest) {
         html: buildSetupIncompleteEmail(restaurant.name, setupUrl, en),
       });
 
-      if (sent) results.platform_setup++;
-      else results.errors++;
+      if (sent) {
+        results.platform_setup++;
+        try {
+          await supabase.rpc('append_restaurant_tag', { p_restaurant_id: restaurant.id, p_tag: 'setup_email_sent' });
+        } catch { /* non-blocking */ }
+      } else {
+        results.errors++;
+      }
     }
 
     // 6. No orders nudge: restaurants with products but 0 orders in last 14 days
     const { data: activeRestaurants } = await supabase
       .from('restaurants')
-      .select('id, name, notification_email, slug, locale')
+      .select('id, name, notification_email, slug, locale, tags')
       .eq('is_active', true)
       .not('notification_email', 'is', null)
       .limit(100);
@@ -246,6 +253,7 @@ export async function GET(request: NextRequest) {
         if (!restaurant.notification_email) continue;
         if (!hasProducts.has(restaurant.id)) continue;
         if (hasRecentOrders.has(restaurant.id)) continue;
+        if ((restaurant.tags ?? []).includes('no_orders_email_sent')) continue;
 
         const en = restaurant.locale === 'en';
         const tipsUrl = `${appUrl}/app`;
@@ -258,8 +266,14 @@ export async function GET(request: NextRequest) {
           html: buildNoOrdersEmail(restaurant.name, `${appUrl}/r/${restaurant.slug}`, tipsUrl, en),
         });
 
-        if (sent) results.platform_inactive++;
-        else results.errors++;
+        if (sent) {
+          results.platform_inactive++;
+          try {
+            await supabase.rpc('append_restaurant_tag', { p_restaurant_id: restaurant.id, p_tag: 'no_orders_email_sent' });
+          } catch { /* non-blocking */ }
+        } else {
+          results.errors++;
+        }
       }
     }
 
@@ -324,7 +338,8 @@ export async function GET(request: NextRequest) {
     const today = new Date();
     if (today.getDate() === 1) {
       // Build idempotency tag for this specific month (e.g. "monthly_report_2026_03")
-      const reportMonthTag = `monthly_report_${today.getFullYear()}_${String(today.getMonth()).padStart(2, '0')}`;
+      // getMonth() is 0-indexed so add 1 to get the correct month number
+      const reportMonthTag = `monthly_report_${today.getFullYear()}_${String(today.getMonth() + 1).padStart(2, '0')}`;
 
       const monthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString();
       const monthEnd = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();

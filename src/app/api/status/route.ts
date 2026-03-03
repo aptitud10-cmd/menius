@@ -42,7 +42,9 @@ export async function GET() {
       })
     : null;
 
-  const [database, auth, storage, stripe, email, menu] = await Promise.all([
+  const geminiKey = process.env.GEMINI_API_KEY ?? '';
+
+  const [database, auth, storage, stripe, email, menu, ai] = await Promise.all([
 
     // DB — real lightweight query; RLS returns [] but no error if DB is up
     (async (): Promise<{ status: ServiceStatus; latency: number }> => {
@@ -140,6 +142,24 @@ export async function GET() {
         return { status: 'outage', latency: Date.now() - start };
       }
     })(),
+
+    // AI (Gemini) — lightweight models list endpoint; confirms API key is valid and service is reachable
+    (async (): Promise<{ status: ServiceStatus; latency: number }> => {
+      if (!geminiKey) return { status: 'degraded', latency: 0 };
+      const start = Date.now();
+      try {
+        const res = await withTimeout(
+          fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiKey}&pageSize=1`),
+          8000
+        );
+        const latency = Date.now() - start;
+        if (res.status >= 500) return { status: 'outage', latency };
+        if (res.status === 403 || res.status === 401) return { status: 'outage', latency };
+        return { status: toStatus(latency), latency };
+      } catch {
+        return { status: 'outage', latency: Date.now() - start };
+      }
+    })(),
   ]);
 
   const api: { status: ServiceStatus; latency: number } = { status: 'operational', latency: 1 };
@@ -152,6 +172,7 @@ export async function GET() {
     { id: 'stripe',   name: 'Pagos (Stripe)',              nameEn: 'Payments (Stripe)',      ...stripe },
     { id: 'email',    name: 'Notificaciones (Email)',      nameEn: 'Email Notifications',   ...email },
     { id: 'menu',     name: 'Menú digital (QR)',           nameEn: 'Digital Menu (QR)',      ...menu },
+    { id: 'ai',       name: 'Asistente IA (Gemini)',       nameEn: 'AI Assistant (Gemini)', ...ai },
   ];
 
   return NextResponse.json({ services, checkedAt: new Date().toISOString() });

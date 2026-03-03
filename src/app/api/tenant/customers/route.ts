@@ -14,7 +14,9 @@ export async function GET(request: NextRequest) {
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get('search') || '';
+    // Strip characters that can break the PostgREST filter syntax (parens, commas, percent)
+    const rawSearch = searchParams.get('search') || '';
+    const search = rawSearch.replace(/[(),%]/g, '').slice(0, 100);
     const sortBy = searchParams.get('sort') || 'last_order_at';
     const order = searchParams.get('order') === 'asc' ? true : false;
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));

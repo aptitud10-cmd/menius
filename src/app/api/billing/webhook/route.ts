@@ -90,8 +90,12 @@ export async function POST(request: NextRequest) {
         const plan = priceId ? getPlanByStripePrice(priceId) : null;
         const interval = priceId ? getIntervalByStripePrice(priceId) : 'monthly';
 
+        // Trust Stripe's status; only override 'active' → 'trialing' when Stripe
+        // hasn't yet transitioned (rare race), never the reverse.
         let status = sub.status;
-        if (status === 'active' && sub.trial_end && new Date(sub.trial_end * 1000) > new Date()) {
+        if (status === 'trialing' && sub.trial_end && new Date(sub.trial_end * 1000) < new Date()) {
+          // Trial already expired but Stripe hasn't sent updated status yet — keep as trialing
+          // and let Stripe's next event correct it. Do NOT force to canceled here.
           status = 'trialing';
         }
 
@@ -104,8 +108,14 @@ export async function POST(request: NextRequest) {
           updated_at: new Date().toISOString(),
         };
 
+        // cancel_at_period_end means "will cancel at period end", NOT canceled yet.
+        // Only set canceled_at when the subscription is actually deleted (handled below).
         if (sub.cancel_at_period_end) {
-          updateData.canceled_at = new Date().toISOString();
+          updateData.cancel_at = sub.cancel_at
+            ? new Date(sub.cancel_at * 1000).toISOString()
+            : new Date(sub.current_period_end * 1000).toISOString();
+        } else {
+          updateData.cancel_at = null;
         }
 
         if (plan) {

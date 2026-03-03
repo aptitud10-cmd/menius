@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { createLogger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
-import { getStripe, getWebhookSecret } from '@/lib/stripe';
+import { getStripe, getPaymentsWebhookSecret } from '@/lib/stripe';
 import { captureError } from '@/lib/error-reporting';
 
 const logger = createLogger('payments-webhook');
@@ -26,7 +26,7 @@ async function updateOrderPayment(orderId: string, status: 'paid' | 'failed', pa
 export async function POST(request: NextRequest) {
   try {
     const stripe = getStripe();
-    const webhookSecret = getWebhookSecret();
+    const webhookSecret = getPaymentsWebhookSecret();
 
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');

@@ -438,148 +438,221 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
       return `${digits.slice(0, 2)} / ${digits.slice(2)}`;
     };
 
+    const cardDigits = demoCardNum.replace(/\s/g, '');
+    const isVisa = cardDigits.startsWith('4');
+    const isMastercard = /^5[1-5]/.test(cardDigits) || /^2[2-7]/.test(cardDigits);
+    const isAmex = /^3[47]/.test(cardDigits);
+
+    const VisaSvg = () => (
+      <svg viewBox="0 0 48 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto">
+        <text x="0" y="14" fontFamily="Arial" fontWeight="900" fontSize="16" fontStyle="italic" fill="#1A1F71">VISA</text>
+      </svg>
+    );
+    const MastercardSvg = () => (
+      <svg viewBox="0 0 38 24" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto">
+        <circle cx="15" cy="12" r="10" fill="#EB001B" />
+        <circle cx="23" cy="12" r="10" fill="#F79E1B" />
+        <path d="M19 5.3a10 10 0 010 13.4A10 10 0 0119 5.3z" fill="#FF5F00" />
+      </svg>
+    );
+    const AmexSvg = () => (
+      <svg viewBox="0 0 48 16" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto">
+        <rect width="48" height="16" rx="2" fill="#007BC1"/>
+        <text x="4" y="12" fontFamily="Arial" fontWeight="900" fontSize="9" fill="white" letterSpacing="0.5">AMERICAN EXPRESS</text>
+      </svg>
+    );
+
+    const restaurantInitial = restaurant.name.charAt(0).toUpperCase();
+    const [summaryOpen, setSummaryOpen] = useState(false);
+
     return (
-      <div className="min-h-[100dvh] bg-gray-50 flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between">
-          <button
-            onClick={() => setStep('form')}
-            className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-medium">{locale === 'es' ? 'Volver' : 'Back'}</span>
-          </button>
-          <h1 className="text-base font-bold text-gray-900">{locale === 'es' ? 'Pago seguro' : 'Secure payment'}</h1>
-          <div className="flex items-center gap-1.5 text-gray-400">
-            <Lock className="w-3.5 h-3.5" />
-            <span className="text-xs font-medium">{locale === 'es' ? 'Seguro' : 'Secure'}</span>
-          </div>
-        </header>
+      <div className="min-h-[100dvh] flex flex-col" style={{ backgroundColor: '#f6f9fc' }}>
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-sm mx-auto px-5 py-6 space-y-5">
-
-            {/* Demo mode banner */}
-            <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200">
-              <span className="text-lg">🧪</span>
-              <div>
-                <p className="text-xs font-bold text-amber-800">{locale === 'es' ? 'MODO DEMO — Tarjeta de prueba' : 'DEMO MODE — Test card'}</p>
-                <p className="text-[11px] text-amber-600 mt-0.5">
-                  {locale === 'es' ? 'Los datos ya están pre-llenados. Ningún cargo real.' : 'Fields are pre-filled. No real charge.'}
-                </p>
-              </div>
-            </div>
-
-            {/* Card visual */}
-            <div className="relative w-full h-44 rounded-2xl overflow-hidden select-none"
-              style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }}
-            >
-              {/* Chip */}
-              <div className="absolute top-6 left-6 w-10 h-7 rounded-md border border-yellow-400/40"
-                style={{ background: 'linear-gradient(135deg, #ffd700 0%, #b8960c 100%)' }}
-              />
-              {/* Card number on card */}
-              <div className="absolute top-[72px] left-6 right-6">
-                <p className="text-white/90 text-[17px] font-mono tracking-[0.18em]">
-                  {demoCardNum || '4242 4242 4242 4242'}
-                </p>
-              </div>
-              {/* Expiry + CVC row */}
-              <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end">
-                <div>
-                  <p className="text-white/40 text-[9px] uppercase tracking-wider mb-0.5">{locale === 'es' ? 'Válida hasta' : 'Valid thru'}</p>
-                  <p className="text-white/90 text-sm font-mono tracking-wider">{demoExpiry || '12 / 28'}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-white/40 text-[9px] uppercase tracking-wider mb-0.5">CVC</p>
-                  <p className="text-white/90 text-sm font-mono">{'·'.repeat((demoCVC || '123').length)}</p>
-                </div>
-                {/* Visa logo */}
-                <div className="absolute bottom-0 right-0">
-                  <span className="text-white font-extrabold text-xl italic tracking-tight opacity-80">VISA</span>
-                </div>
-              </div>
-              {/* Shimmer */}
-              <div className="absolute inset-0 rounded-2xl opacity-10"
-                style={{ background: 'radial-gradient(circle at 70% 30%, white 0%, transparent 60%)' }}
-              />
-            </div>
-
-            {/* Card form */}
-            <div className="bg-white rounded-2xl border-2 border-gray-200 p-5 space-y-4 shadow-sm">
-              {/* Card number */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                  {locale === 'es' ? 'Número de tarjeta' : 'Card number'}
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={demoCardNum}
-                  onChange={(e) => setDemoCardNum(formatCardNum(e.target.value))}
-                  placeholder="1234 5678 9012 3456"
-                  maxLength={19}
-                  className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-sm font-mono tracking-wider transition-colors bg-gray-50 focus:bg-white"
-                />
-              </div>
-              {/* Expiry + CVC */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                    {locale === 'es' ? 'Vencimiento' : 'Expiry'}
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={demoExpiry}
-                    onChange={(e) => setDemoExpiry(formatExpiry(e.target.value))}
-                    placeholder="MM / AA"
-                    maxLength={7}
-                    className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-sm font-mono tracking-wider transition-colors bg-gray-50 focus:bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">CVC</label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={demoCVC}
-                    onChange={(e) => setDemoCVC(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    placeholder="123"
-                    maxLength={4}
-                    className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-sm font-mono tracking-wider transition-colors bg-gray-50 focus:bg-white"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Order total */}
-            <div className="flex items-center justify-between px-1">
-              <span className="text-sm text-gray-500">{locale === 'es' ? 'Total a pagar' : 'Total'}</span>
-              <span className="text-lg font-extrabold text-gray-900 tabular-nums">{fmtPrice(finalTotal)}</span>
-            </div>
-          </div>
+        {/* TEST MODE banner — top of page, like Stripe */}
+        <div className="w-full bg-orange-500 px-4 py-2 text-center">
+          <p className="text-white text-xs font-semibold tracking-wide">
+            {locale === 'es' ? '🧪 MODO DEMO — Sin cobro real. Datos pre-llenados.' : '🧪 TEST MODE — No real charge. Data pre-filled.'}
+          </p>
         </div>
 
-        {/* Sticky pay button */}
-        <div className="sticky bottom-0 bg-white border-t-2 border-gray-200 px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-          <button
-            onClick={handleDemoPayment}
-            disabled={demoPayProcessing}
-            className="w-full py-5 rounded-2xl bg-emerald-500 text-white font-extrabold text-[17px] active:scale-[0.98] transition-all duration-150 disabled:opacity-80 shadow-[0_4px_20px_rgba(16,185,129,0.35)]"
-          >
-            {demoPayProcessing ? (
-              <span className="flex items-center justify-center gap-3">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-md mx-auto px-5 py-8 space-y-5">
+
+            {/* Merchant info — like Stripe shows brand + amount */}
+            <div className="flex flex-col items-center text-center gap-3 pb-2">
+              {/* Logo */}
+              <div className="w-14 h-14 rounded-2xl bg-white border border-gray-200 shadow-sm flex items-center justify-center overflow-hidden">
+                {restaurant.logo_url ? (
+                  <Image src={restaurant.logo_url} alt={restaurant.name} width={56} height={56} className="object-cover w-full h-full rounded-2xl" />
+                ) : (
+                  <span className="text-2xl font-black text-gray-700">{restaurantInitial}</span>
+                )}
+              </div>
+              {/* Name */}
+              <p className="text-sm text-gray-500 font-medium">{restaurant.name}</p>
+              {/* Amount */}
+              <p className="text-4xl font-black text-gray-900 tabular-nums tracking-tight">{fmtPrice(finalTotal)}</p>
+            </div>
+
+            {/* Order summary — collapsible like Stripe */}
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+              <button
+                onClick={() => setSummaryOpen((o) => !o)}
+                className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <span>{locale === 'es' ? 'Resumen del pedido' : 'Order summary'} ({items.length} {items.length === 1 ? (locale === 'es' ? 'item' : 'item') : (locale === 'es' ? 'items' : 'items')})</span>
+                <svg
+                  className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${summaryOpen ? 'rotate-180' : ''}`}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
-                {locale === 'es' ? 'Procesando pago…' : 'Processing payment…'}
-              </span>
-            ) : (
-              `${locale === 'es' ? 'Pagar' : 'Pay'} ${fmtPrice(finalTotal)}`
-            )}
-          </button>
+              </button>
+              {summaryOpen && (
+                <div className="border-t border-gray-100 px-4 py-3 space-y-2">
+                  {items.map((item, idx) => (
+                    <div key={idx} className="flex justify-between text-sm text-gray-600">
+                      <span className="flex-1 truncate pr-2">{item.qty > 1 ? `${item.qty}× ` : ''}{item.product.name}{item.variant ? ` · ${item.variant.name}` : ''}</span>
+                      <span className="tabular-nums font-medium text-gray-800 shrink-0">{fmtPrice(item.lineTotal)}</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-gray-100 pt-2 flex justify-between text-sm font-semibold text-gray-800">
+                    <span>{locale === 'es' ? 'Total' : 'Total'}</span>
+                    <span className="tabular-nums">{fmtPrice(finalTotal)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Card holder name */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                {locale === 'es' ? 'Nombre en la tarjeta' : 'Name on card'}
+              </label>
+              <input
+                type="text"
+                defaultValue="Test User"
+                placeholder={locale === 'es' ? 'Nombre completo' : 'Full name'}
+                className="w-full px-3.5 py-3 rounded-lg border border-gray-300 focus:border-[#635BFF] focus:ring-2 focus:ring-[#635BFF]/20 focus:outline-none text-sm text-gray-900 bg-white transition-all"
+              />
+            </div>
+
+            {/* Unified card input — Stripe style */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                {locale === 'es' ? 'Información de tarjeta' : 'Card information'}
+              </label>
+              <div className="rounded-lg border border-gray-300 overflow-hidden shadow-sm focus-within:border-[#635BFF] focus-within:ring-2 focus-within:ring-[#635BFF]/20 transition-all bg-white">
+                {/* Card number row */}
+                <div className="flex items-center px-3.5 py-3 border-b border-gray-200">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={demoCardNum}
+                    onChange={(e) => setDemoCardNum(formatCardNum(e.target.value))}
+                    placeholder="1234 1234 1234 1234"
+                    maxLength={19}
+                    className="flex-1 text-sm font-mono tracking-wider text-gray-900 bg-transparent focus:outline-none placeholder-gray-400"
+                  />
+                  <div className="ml-2 shrink-0 h-5 flex items-center">
+                    {isVisa && <VisaSvg />}
+                    {isMastercard && <MastercardSvg />}
+                    {isAmex && <AmexSvg />}
+                    {!isVisa && !isMastercard && !isAmex && (
+                      <svg className="w-8 h-5 text-gray-300" viewBox="0 0 32 20" fill="none">
+                        <rect x="0.5" y="0.5" width="31" height="19" rx="3.5" stroke="currentColor"/>
+                        <rect x="4" y="7" width="24" height="2" rx="1" fill="currentColor"/>
+                        <rect x="4" y="11" width="8" height="2" rx="1" fill="currentColor"/>
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                {/* Expiry + CVC row */}
+                <div className="flex">
+                  <div className="flex-1 px-3.5 py-3 border-r border-gray-200">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={demoExpiry}
+                      onChange={(e) => setDemoExpiry(formatExpiry(e.target.value))}
+                      placeholder="MM / YY"
+                      maxLength={7}
+                      className="w-full text-sm font-mono tracking-wider text-gray-900 bg-transparent focus:outline-none placeholder-gray-400"
+                    />
+                  </div>
+                  <div className="flex-1 px-3.5 py-3 flex items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={demoCVC}
+                      onChange={(e) => setDemoCVC(e.target.value.replace(/\D/g, '').slice(0, isAmex ? 4 : 3))}
+                      placeholder={isAmex ? '1234' : 'CVC'}
+                      maxLength={isAmex ? 4 : 3}
+                      className="flex-1 text-sm font-mono tracking-wider text-gray-900 bg-transparent focus:outline-none placeholder-gray-400"
+                    />
+                    <svg className="w-5 h-5 text-gray-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                      <rect x="2" y="5" width="20" height="14" rx="2" />
+                      <path d="M2 10h20" />
+                      <path d="M7 15h2" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pay button */}
+            <button
+              onClick={handleDemoPayment}
+              disabled={demoPayProcessing}
+              className="w-full py-4 rounded-lg font-bold text-[15px] text-white transition-all duration-150 disabled:opacity-80 active:scale-[0.99] shadow-md"
+              style={{ backgroundColor: demoPayProcessing ? '#8b85f0' : '#635BFF' }}
+            >
+              {demoPayProcessing ? (
+                <span className="flex items-center justify-center gap-2.5">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  {locale === 'es' ? 'Procesando…' : 'Processing…'}
+                </span>
+              ) : (
+                `${locale === 'es' ? 'Pagar' : 'Pay'} ${fmtPrice(finalTotal)}`
+              )}
+            </button>
+
+            {/* Back link */}
+            <button
+              onClick={() => setStep('form')}
+              className="w-full flex items-center justify-center gap-1.5 py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              {locale === 'es' ? 'Volver al formulario' : 'Back to form'}
+            </button>
+
+            {/* Powered by Stripe footer */}
+            <div className="flex flex-col items-center gap-2 pt-2 pb-4">
+              <div className="flex items-center gap-1.5 text-gray-400">
+                <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
+                  <path fillRule="evenodd" clipRule="evenodd" d="M6 1a5 5 0 100 10A5 5 0 006 1zM5 4a1 1 0 112 0v3a1 1 0 11-2 0V4zm1 5.5a.75.75 0 100-1.5.75.75 0 000 1.5z" fill="currentColor"/>
+                </svg>
+                <span className="text-[11px]">
+                  {locale === 'es' ? 'Pago seguro y cifrado' : 'Secure encrypted payment'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 text-gray-400">
+                <span className="text-[11px]">Powered by</span>
+                <svg className="h-[14px] w-auto" viewBox="0 0 60 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M59.64 14.28h-8.06c.19 1.93 1.6 2.55 3.2 2.55 1.64 0 2.96-.37 4.05-.95v3.32a8.33 8.33 0 01-4.56 1.1c-4.01 0-6.83-2.5-6.83-7.48 0-4.19 2.39-7.52 6.3-7.52 3.92 0 5.96 3.28 5.96 7.5 0 .4-.04 1.26-.06 1.48zm-5.92-5.62c-1.03 0-2.17.73-2.17 2.58h4.25c0-1.85-1.07-2.58-2.08-2.58zM40.95 20.3c-1.44 0-2.32-.6-2.9-1.04l-.02 4.63-4.44.94V5.2h3.94l.14 1.07c.6-.72 1.7-1.33 3.29-1.33 3.01 0 5.7 2.68 5.7 7.5-.02 5.29-2.67 7.86-5.71 7.86zm-.95-11.64c-.95 0-1.55.35-1.97.8l.05 5.99c.42.47 1.01.8 1.92.8 1.51 0 2.54-1.65 2.54-3.81-.01-2.22-.99-3.78-2.54-3.78zM28.24 5.2h4.44v14.83h-4.44V5.2zm0-4.75l4.44-.94v3.56l-4.44.94V.45zM19.69 20.03c-1.87 0-3.49-.75-3.49-3.83V8.43h-1.89V5.2h1.89V1.51l4.42-.93V5.2h2.56v3.23h-2.56v6.82c0 1.14.49 1.63 1.55 1.63.36 0 .74-.07 1.01-.15v3.2c-.43.12-1.16.1-1.49.1zM12.06 6.01l-.17-1.15c-.62-.56-1.72-1.1-3.07-1.1C5.49 3.76 3.01 6.24 3.01 10c0 4.01 2.61 6.26 5.81 6.26 1.35 0 2.45-.52 3.07-1.07l.17-1.14v1.99H16V5.2h-3.94v.81zm-3.07 8.08c-1.51 0-2.62-1.24-2.62-3.11 0-1.87 1.11-3.11 2.62-3.11 1.5 0 2.63 1.24 2.63 3.11 0 1.87-1.13 3.11-2.63 3.11z" fill="#6772E5"/>
+                </svg>
+              </div>
+              <div className="flex items-center gap-3 text-[10px] text-gray-400">
+                <a href="#" className="hover:text-gray-600 transition-colors">Terms</a>
+                <span>·</span>
+                <a href="#" className="hover:text-gray-600 transition-colors">Privacy</a>
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
     );
