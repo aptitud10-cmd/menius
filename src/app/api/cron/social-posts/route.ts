@@ -8,7 +8,7 @@ import { createLogger } from '@/lib/logger';
 const logger = createLogger('cron-social-posts');
 
 const CRON_SECRET = process.env.CRON_SECRET;
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'aptitud10@gmail.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
 /* ──────────────────────────────────────
    Content pillars — rotate automatically
@@ -336,17 +336,20 @@ export async function GET(request: NextRequest) {
     });
 
     const html = buildSocialPostDigestEmail(generatedPosts, dateStr);
-    const adminEmails = ADMIN_EMAIL.split(',').map(e => e.trim()).filter(Boolean);
 
-    for (const email of adminEmails) {
-      await sendEmail({
-        to: email,
-        subject: `📱 MENIUS Social Posts Ready — ${dateStr}`,
-        html,
-      });
+    if (!ADMIN_EMAIL) {
+      logger.warn('ADMIN_EMAIL env var is not set — skipping digest email');
+    } else {
+      const adminEmails = ADMIN_EMAIL.split(',').map(e => e.trim()).filter(Boolean);
+      for (const email of adminEmails) {
+        await sendEmail({
+          to: email,
+          subject: `📱 MENIUS Social Posts Ready — ${dateStr}`,
+          html,
+        });
+      }
+      logger.info(`Generated ${generatedPosts.length} posts, email sent to ${adminEmails.join(', ')}`);
     }
-
-    logger.info(`Generated ${generatedPosts.length} posts, email sent to ${adminEmails.join(', ')}`);
   } else {
     logger.error('No posts were generated');
   }

@@ -2,10 +2,10 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { getStripe } from '@/lib/stripe';
 import { createLogger } from '@/lib/logger';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 
 const logger = createLogger('account-delete');
 
@@ -27,6 +27,30 @@ export async function POST(request: NextRequest) {
 
     const rid = tenant.restaurantId;
 
+    // Cancel active Stripe subscription before deleting data
+    try {
+      const adminDb = createAdminClient();
+      const { data: sub } = await adminDb
+        .from('subscriptions')
+        .select('stripe_subscription_id')
+        .eq('restaurant_id', rid)
+        .maybeSingle();
+
+      if (sub?.stripe_subscription_id) {
+        const stripe = getStripe();
+        await stripe.subscriptions.cancel(sub.stripe_subscription_id, {
+          prorate: false,
+        });
+        logger.info('Stripe subscription cancelled', { subscriptionId: sub.stripe_subscription_id });
+      }
+    } catch (stripeErr) {
+      // Log but don't block the deletion — the account should still be removable
+      logger.error('Failed to cancel Stripe subscription during account deletion', {
+        error: stripeErr instanceof Error ? stripeErr.message : String(stripeErr),
+        restaurantId: rid,
+      });
+    }
+
     // Delete restaurant (cascades: categories, products, orders, customers, tables, subscriptions)
     const { error: deleteErr } = await supabase
       .from('restaurants')
@@ -43,15 +67,14 @@ export async function POST(request: NextRequest) {
     await supabase.from('profiles').delete().eq('user_id', user.id);
 
     // Delete Supabase Auth user (requires service role key)
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (serviceKey) {
-      const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-      const adminClient = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        serviceKey,
-        { auth: { autoRefreshToken: false, persistSession: false } }
-      );
-      await adminClient.auth.admin.deleteUser(user.id);
+    try {
+      const authAdminClient = createAdminClient();
+      await authAdminClient.auth.admin.deleteUser(user.id);
+    } catch (authErr) {
+      logger.error('Failed to delete auth user', {
+        error: authErr instanceof Error ? authErr.message : String(authErr),
+        userId: user.id,
+      });
     }
 
     // Sign out
