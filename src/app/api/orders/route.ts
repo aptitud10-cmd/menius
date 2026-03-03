@@ -310,24 +310,24 @@ export async function POST(request: NextRequest) {
 
     // First order "wow" email — fire-and-forget to restaurant owner
     if (restaurant.notification_email) {
-      adminDb
-        .from('orders')
-        .select('id', { count: 'exact', head: true })
-        .eq('restaurant_id', restaurant_id)
-        .then(({ count }) => {
-          if (count === 1 && restaurant.notification_email) {
-            const en = restaurant.locale === 'en';
-            const dashUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app'}/app`;
-            sendEmail({
-              to: restaurant.notification_email,
-              subject: en
-                ? `🎉 ${restaurant.name} just received its first order!`
-                : `🎉 ¡${restaurant.name} acaba de recibir su primer pedido!`,
-              html: buildFirstOrderWowEmail(restaurant.name, dashUrl, en),
-            }).catch(() => {});
-          }
-        })
-        .catch(() => {});
+      Promise.resolve(
+        adminDb
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('restaurant_id', restaurant_id)
+      ).then(({ count }) => {
+        if (count === 1 && restaurant.notification_email) {
+          const en = restaurant.locale === 'en';
+          const dashUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app'}/app`;
+          sendEmail({
+            to: restaurant.notification_email,
+            subject: en
+              ? `🎉 ${restaurant.name} just received its first order!`
+              : `🎉 ¡${restaurant.name} acaba de recibir su primer pedido!`,
+            html: buildFirstOrderWowEmail(restaurant.name, dashUrl, en),
+          }).catch(() => {});
+        }
+      }).catch(() => {});
     }
 
     // Send notifications — awaited so Vercel doesn't freeze the process before emails are sent
