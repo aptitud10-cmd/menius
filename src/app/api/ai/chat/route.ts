@@ -14,7 +14,7 @@ interface ChatMessage {
   text: string;
 }
 
-async function gatherRestaurantContext(restaurantId: string): Promise<{ context: string; locale: string }> {
+async function gatherRestaurantContext(restaurantId: string): Promise<{ context: string; locale: string; restaurantName: string }> {
   const supabase = createClient();
 
   const now = new Date();
