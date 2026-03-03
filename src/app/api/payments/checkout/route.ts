@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 import { getStripe } from '@/lib/stripe';
@@ -28,10 +28,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'slug required' }, { status: 400 });
     }
 
-    const supabase = createClient();
+    const adminDb = createAdminClient();
 
     // Fetch order with items + restaurant currency
-    const { data: order, error } = await supabase
+    const { data: order, error } = await adminDb
       .from('orders')
       .select(`
         id, order_number, total, customer_name, restaurant_id,

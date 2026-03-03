@@ -9,6 +9,7 @@ import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
 import { sanitizeText, sanitizeEmail, sanitizeMultiline } from '@/lib/sanitize';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
+import { getStripe } from '@/lib/stripe';
 
 const logger = createLogger('orders');
 
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('id, slug, delivery_fee')
+      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled')
       .eq('id', restaurant_id)
       .maybeSingle();
 
@@ -326,6 +327,15 @@ export async function POST(request: NextRequest) {
           orderId: order.id,
           orderNumber: order.order_number,
           restaurantId: restaurant_id,
+          restaurantData: {
+            name: restaurant.name,
+            slug: restaurant.slug,
+            currency: restaurant.currency,
+            locale: restaurant.locale,
+            notification_email: restaurant.notification_email,
+            notification_whatsapp: restaurant.notification_whatsapp,
+            notifications_enabled: restaurant.notifications_enabled,
+          },
           customerName: parsed.data.customer_name,
           customerEmail: customer_email || undefined,
           customerPhone: parsed.data.customer_phone || undefined,
@@ -338,10 +348,51 @@ export async function POST(request: NextRequest) {
       }
     })();
 
+    // For online payments: create Stripe Checkout session immediately
+    let stripeUrl: string | null = null;
+    if (parsed.data.payment_method === 'online') {
+      try {
+        const stripe = getStripe();
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+        const { data: restStripe } = await adminDb
+          .from('restaurants')
+          .select('stripe_account_id, stripe_onboarding_complete')
+          .eq('id', restaurant_id)
+          .maybeSingle();
+
+        const connectedAccount = restStripe?.stripe_onboarding_complete ? restStripe?.stripe_account_id : null;
+
+        const lineItems = parsed.data.items.map((item) => ({
+          price_data: {
+            currency: (restaurant.currency || 'usd').toLowerCase(),
+            product_data: { name: 'Producto' },
+            unit_amount: Math.round(Number(item.unit_price) * 100),
+          },
+          quantity: item.qty,
+        }));
+
+        const sessionParams: any = {
+          line_items: lineItems,
+          mode: 'payment',
+          success_url: `${appUrl}/r/${restaurant.slug}/orden/${order.order_number}?paid=true`,
+          cancel_url: `${appUrl}/r/${restaurant.slug}/orden/${order.order_number}?paid=false`,
+          metadata: { order_id: order.id, order_number: order.order_number },
+        };
+        if (connectedAccount) {
+          sessionParams.payment_intent_data = { transfer_data: { destination: connectedAccount } };
+        }
+        const session = await stripe.checkout.sessions.create(sessionParams);
+        stripeUrl = session.url;
+      } catch (stripeErr) {
+        logger.error('stripe session creation failed', { order_id: order.id, error: stripeErr instanceof Error ? stripeErr.message : String(stripeErr) });
+      }
+    }
+
     return NextResponse.json({
       order_number: order.order_number,
       order_id: order.id,
       slug: restaurant.slug,
+      stripe_url: stripeUrl,
     });
   } catch (err) {
     captureError(err, { route: '/api/orders' });

@@ -3,10 +3,21 @@ import { sendWhatsApp, formatNewOrderWhatsApp, formatStatusUpdateWhatsApp } from
 import { sendEmail, buildOrderConfirmationEmail, buildStatusUpdateEmail, buildOwnerNewOrderEmail } from './email';
 import { formatPrice } from '@/lib/utils';
 
+interface RestaurantNotificationData {
+  name: string;
+  slug: string;
+  currency?: string | null;
+  locale?: string | null;
+  notification_whatsapp?: string | null;
+  notification_email?: string | null;
+  notifications_enabled?: boolean | null;
+}
+
 interface OrderNotificationPayload {
   orderId: string;
   orderNumber: string;
   restaurantId: string;
+  restaurantData?: RestaurantNotificationData;
   customerName: string;
   customerEmail?: string;
   customerPhone?: string;
@@ -22,16 +33,20 @@ interface OrderNotificationPayload {
  * Non-blocking — errors are logged but don't affect the order flow.
  */
 export async function notifyNewOrder(payload: OrderNotificationPayload) {
-  const { orderNumber, restaurantId, customerName, customerEmail, customerPhone, orderType, total, items } = payload;
+  const { orderNumber, restaurantId, restaurantData, customerName, customerEmail, customerPhone, orderType, total, items } = payload;
 
   try {
-    const adminDb = createAdminClient();
+    let restaurant = restaurantData ?? null;
 
-    const { data: restaurant } = await adminDb
-      .from('restaurants')
-      .select('name, slug, currency, locale, notification_whatsapp, notification_email, notifications_enabled')
-      .eq('id', restaurantId)
-      .maybeSingle();
+    if (!restaurant) {
+      const adminDb = createAdminClient();
+      const { data } = await adminDb
+        .from('restaurants')
+        .select('name, slug, currency, locale, notification_whatsapp, notification_email, notifications_enabled')
+        .eq('id', restaurantId)
+        .maybeSingle();
+      restaurant = data;
+    }
 
     if (!restaurant) return;
 

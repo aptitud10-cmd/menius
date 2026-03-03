@@ -209,6 +209,11 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
       setOrderNumber(data.order_number);
       setOrderId(data.order_id);
       saveLastOrder();
+      // For online payments: redirect immediately to Stripe
+      if (data.stripe_url) {
+        window.location.href = data.stripe_url;
+        return;
+      }
       // Save customer info for next visit
       try {
         if (rememberMe) {
