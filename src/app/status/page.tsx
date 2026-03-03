@@ -11,20 +11,22 @@ export const metadata: Metadata = {
   alternates: { canonical: '/status' },
 };
 
-const SERVICES = [
-  { name: 'API & Dashboard', nameEn: 'API & Dashboard', status: 'operational' as const },
-  { name: 'Menú digital (QR)', nameEn: 'Digital Menu (QR)', status: 'operational' as const },
-  { name: 'Pagos (Stripe)', nameEn: 'Payments (Stripe)', status: 'operational' as const },
-  { name: 'Notificaciones (Email)', nameEn: 'Notifications (Email)', status: 'operational' as const },
-  { name: 'Base de datos', nameEn: 'Database', status: 'operational' as const },
-  { name: 'Almacenamiento de imágenes', nameEn: 'Image Storage', status: 'operational' as const },
-  { name: 'Autenticación', nameEn: 'Authentication', status: 'operational' as const },
-  { name: 'IA (Asistente MENIUS)', nameEn: 'AI (MENIUS Assistant)', status: 'operational' as const },
+const SERVICES: Service[] = [
+  { name: 'API & Dashboard', nameEn: 'API & Dashboard', status: 'operational' },
+  { name: 'Menú digital (QR)', nameEn: 'Digital Menu (QR)', status: 'operational' },
+  { name: 'Pagos (Stripe)', nameEn: 'Payments (Stripe)', status: 'operational' },
+  { name: 'Notificaciones (Email)', nameEn: 'Notifications (Email)', status: 'operational' },
+  { name: 'Base de datos', nameEn: 'Database', status: 'operational' },
+  { name: 'Almacenamiento de imágenes', nameEn: 'Image Storage', status: 'operational' },
+  { name: 'Autenticación', nameEn: 'Authentication', status: 'operational' },
+  { name: 'IA (Asistente MENIUS)', nameEn: 'AI (MENIUS Assistant)', status: 'operational' },
 ];
 
 const INCIDENTS: { date: string; title: string; titleEn: string; description: string; descriptionEn: string; resolved: boolean }[] = [];
 
 type ServiceStatus = 'operational' | 'degraded' | 'outage';
+
+interface Service { name: string; nameEn: string; status: ServiceStatus }
 
 function StatusBadge({ status, en }: { status: ServiceStatus; en: boolean }) {
   if (status === 'operational') {
