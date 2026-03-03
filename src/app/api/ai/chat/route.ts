@@ -372,17 +372,19 @@ ${SHARED_CAPABILITIES}`;
 function buildProactiveTips(context: string): string {
   const tips: string[] = [];
 
-  const noImageMatch = context.match(/Products without image|Productos sin imagen: (\d+)/);
+  // Each regex uses a non-capturing group for the bilingual label and a capturing group for the number,
+  // so both English and Spanish versions correctly extract the value.
+  const noImageMatch = context.match(/(?:Products without image|Productos sin imagen): (\d+)/);
   if (noImageMatch && parseInt(noImageMatch[1]) > 0) {
     tips.push(`ALERT: ${noImageMatch[1]} products without images — products with images sell up to 30% more.`);
   }
 
-  const cancelledMatch = context.match(/Cancelled|Canceladas: (\d+)/);
+  const cancelledMatch = context.match(/(?:Cancelled|Canceladas): (\d+)/);
   if (cancelledMatch && parseInt(cancelledMatch[1]) > 3) {
     tips.push(`ALERT: ${cancelledMatch[1]} cancellations this month — worth investigating why.`);
   }
 
-  const pendingMatch = context.match(/Pending now|Pendientes ahora: (\d+)/);
+  const pendingMatch = context.match(/(?:Pending now|Pendientes ahora): (\d+)/);
   if (pendingMatch && parseInt(pendingMatch[1]) > 0) {
     tips.push(`URGENT: ${pendingMatch[1]} pending orders unattended.`);
   }
@@ -399,12 +401,12 @@ function buildProactiveTips(context: string): string {
     tips.push('OPPORTUNITY: No active promotions — promos can increase sales 15-20%.');
   }
 
-  const ratingMatch = context.match(/Average rating|Rating promedio: ([\d.]+)/);
+  const ratingMatch = context.match(/(?:Average rating|Rating promedio): ([\d.]+)/);
   if (ratingMatch && parseFloat(ratingMatch[1]) < 4.0) {
     tips.push(`ATTENTION: Rating at ${ratingMatch[1]} — review comments to improve.`);
   }
 
-  const trialMatch = context.match(/Trial days left|Días de prueba restantes: (\d+)/);
+  const trialMatch = context.match(/(?:Trial days left|Días de prueba restantes): (\d+)/);
   if (trialMatch && parseInt(trialMatch[1]) <= 5) {
     tips.push(`NOTICE: Only ${trialMatch[1]} trial days left.`);
   }

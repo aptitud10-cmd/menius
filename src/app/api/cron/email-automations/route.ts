@@ -47,17 +47,19 @@ export async function GET(request: NextRequest) {
 
     for (const customer of newCustomers ?? []) {
       if ((customer.tags ?? []).includes('welcome_sent')) continue;
+      if ((customer.tags ?? []).includes('unsubscribed')) continue;
 
       const restaurant = await getRestaurant(customer.restaurant_id);
       if (!restaurant) continue;
 
       const en = restaurant.locale === 'en';
       const menuUrl = `${appUrl}/r/${restaurant.slug}`;
+      const unsubUrl = `${appUrl}/api/unsubscribe?id=${customer.id}`;
 
       const sent = await sendEmail({
         to: customer.email,
         subject: en ? `Welcome to ${restaurant.name}! 🎉` : `¡Bienvenido a ${restaurant.name}! 🎉`,
-        html: buildWelcomeEmail(customer.name || (en ? 'Customer' : 'Cliente'), restaurant.name, menuUrl, en),
+        html: buildWelcomeEmail(customer.name || (en ? 'Customer' : 'Cliente'), restaurant.name, menuUrl, unsubUrl, en),
       });
 
       if (sent) {
@@ -83,17 +85,19 @@ export async function GET(request: NextRequest) {
 
     for (const customer of inactiveCustomers ?? []) {
       if ((customer.tags ?? []).includes('reactivation_sent')) continue;
+      if ((customer.tags ?? []).includes('unsubscribed')) continue;
 
       const restaurant = await getRestaurant(customer.restaurant_id);
       if (!restaurant) continue;
 
       const en = restaurant.locale === 'en';
       const menuUrl = `${appUrl}/r/${restaurant.slug}`;
+      const unsubUrl = `${appUrl}/api/unsubscribe?id=${customer.id}`;
 
       const sent = await sendEmail({
         to: customer.email,
         subject: en ? `We miss you, ${customer.name || 'friend'}! 😢` : `Te extrañamos, ${customer.name || 'amigo'}! 😢`,
-        html: buildReactivationEmail(customer.name || (en ? 'Customer' : 'Cliente'), restaurant.name, menuUrl, en),
+        html: buildReactivationEmail(customer.name || (en ? 'Customer' : 'Cliente'), restaurant.name, menuUrl, unsubUrl, en),
       });
 
       if (sent) {
@@ -319,12 +323,15 @@ export async function GET(request: NextRequest) {
 
     const today = new Date();
     if (today.getDate() === 1) {
+      // Build idempotency tag for this specific month (e.g. "monthly_report_2026_03")
+      const reportMonthTag = `monthly_report_${today.getFullYear()}_${String(today.getMonth()).padStart(2, '0')}`;
+
       const monthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString();
       const monthEnd = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
 
       const { data: activeRests } = await supabase
         .from('restaurants')
-        .select('id, name, notification_email, slug, locale')
+        .select('id, name, notification_email, slug, locale, tags')
         .eq('is_active', true)
         .not('notification_email', 'is', null)
         .limit(200);
@@ -353,6 +360,9 @@ export async function GET(request: NextRequest) {
         for (const restaurant of activeRests) {
           if (!restaurant.notification_email) continue;
 
+          // Skip if already sent for this month (idempotency)
+          if ((restaurant.tags ?? []).includes(reportMonthTag)) continue;
+
           const en = restaurant.locale === 'en';
           const stats = ordersByRest.get(restaurant.id) ?? { count: 0, revenue: 0 };
           const newCustCount = customersByRest.get(restaurant.id) ?? 0;
@@ -366,8 +376,15 @@ export async function GET(request: NextRequest) {
             html: buildMonthlyReportEmail(restaurant.name, stats.count, newCustCount, stats.revenue, dashUrl, en),
           });
 
-          if (sent) results.monthly_report++;
-          else results.errors++;
+          if (sent) {
+            results.monthly_report++;
+            // Mark as sent for this month to prevent duplicate sends on cron retries
+            try {
+              await supabase.rpc('append_restaurant_tag', { p_restaurant_id: restaurant.id, p_tag: reportMonthTag });
+            } catch { /* non-blocking */ }
+          } else {
+            results.errors++;
+          }
         }
       }
     }
@@ -380,7 +397,16 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function buildWelcomeEmail(name: string, restaurantName: string, menuUrl: string, en = false): string {
+function buildUnsubscribeFooter(unsubUrl: string, restaurantName: string, en: boolean): string {
+  return `<p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:20px;">
+    ${en ? `Sent by ${restaurantName} via MENIUS` : `Enviado por ${restaurantName} a través de MENIUS`} ·
+    <a href="${unsubUrl}" style="color:#9ca3af;text-decoration:underline;">
+      ${en ? 'Unsubscribe' : 'Darme de baja'}
+    </a>
+  </p>`;
+}
+
+function buildWelcomeEmail(name: string, restaurantName: string, menuUrl: string, unsubUrl: string, en = false): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -398,15 +424,13 @@ function buildWelcomeEmail(name: string, restaurantName: string, menuUrl: string
         ${en ? 'View our menu' : 'Ver nuestro menú'}
       </a>
     </div>
-    <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:20px;">
-      ${en ? `Sent by ${restaurantName} via MENIUS` : `Enviado por ${restaurantName} a través de MENIUS`}
-    </p>
+    ${buildUnsubscribeFooter(unsubUrl, restaurantName, en)}
   </div>
 </body>
 </html>`;
 }
 
-function buildReactivationEmail(name: string, restaurantName: string, menuUrl: string, en = false): string {
+function buildReactivationEmail(name: string, restaurantName: string, menuUrl: string, unsubUrl: string, en = false): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -424,9 +448,7 @@ function buildReactivationEmail(name: string, restaurantName: string, menuUrl: s
         ${en ? 'Order again' : 'Pedir de nuevo'}
       </a>
     </div>
-    <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:20px;">
-      ${en ? `Sent by ${restaurantName} via MENIUS` : `Enviado por ${restaurantName} a través de MENIUS`}
-    </p>
+    ${buildUnsubscribeFooter(unsubUrl, restaurantName, en)}
   </div>
 </body>
 </html>`;

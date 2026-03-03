@@ -305,7 +305,23 @@ export async function POST(request: NextRequest) {
       p_address: delivery_address || '',
       p_order_total: total,
     }).then(({ error: custErr }) => {
-      if (custErr) logger.error('upsert_customer failed', { error: custErr.message });
+      if (custErr) { logger.error('upsert_customer failed', { error: custErr.message }); return; }
+      // Remove reactivation_sent tag now that the customer ordered again, so they can
+      // receive future reactivation emails if they become inactive again.
+      if (customer_email) {
+        adminDb
+          .from('customers')
+          .select('id, tags')
+          .eq('restaurant_id', restaurant_id)
+          .ilike('email', customer_email)
+          .maybeSingle()
+          .then(({ data: cust }) => {
+            if (cust && (cust.tags ?? []).includes('reactivation_sent')) {
+              const newTags = (cust.tags as string[]).filter((t) => t !== 'reactivation_sent');
+              adminDb.from('customers').update({ tags: newTags }).eq('id', cust.id);
+            }
+          });
+      }
     });
 
     // First order "wow" email — fire-and-forget to restaurant owner
