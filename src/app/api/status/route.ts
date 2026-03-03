@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 type ServiceStatus = 'operational' | 'degraded' | 'outage';
 
@@ -12,110 +13,145 @@ interface ServiceResult {
   latency: number;
 }
 
-/**
- * Probes a service URL. Rules:
- * - Any 2xx/3xx/4xx response → service is reachable (operational or degraded by latency)
- * - 5xx or network/timeout error → outage
- * - Env var missing → degraded (config issue, not a service outage)
- */
-async function probe(
-  fn: () => Promise<Response | 'unconfigured'>,
-  timeoutMs = 7000
-): Promise<{ status: ServiceStatus; latency: number }> {
-  const start = Date.now();
-  try {
-    const result = await Promise.race<Response | 'unconfigured'>([
-      fn(),
-      new Promise<Response | 'unconfigured'>((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), timeoutMs)
-      ),
-    ]);
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), ms)
+    ),
+  ]);
+}
 
-    const latency = Date.now() - start;
-
-    if (result === 'unconfigured') {
-      return { status: 'degraded', latency: 0 };
-    }
-
-    // 5xx = server error = outage
-    if (result.status >= 500) {
-      return { status: 'outage', latency };
-    }
-
-    // Any 2xx / 3xx / 4xx → service is responding
-    if (latency >= 3000) return { status: 'degraded', latency };
-    if (latency >= 1500) return { status: 'degraded', latency };
-    return { status: 'operational', latency };
-  } catch {
-    return { status: 'outage', latency: Date.now() - start };
-  }
+function toStatus(latency: number): ServiceStatus {
+  if (latency >= 3000) return 'degraded';
+  if (latency >= 1500) return 'degraded';
+  return 'operational';
 }
 
 export async function GET() {
-  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
   const stripeKey = process.env.STRIPE_SECRET_KEY ?? '';
   const resendKey = process.env.RESEND_API_KEY ?? '';
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app').replace(/\/$/, '');
 
+  // Single Supabase client — no cookies needed for health checks
+  const supabase = supabaseUrl && supabaseKey
+    ? createClient(supabaseUrl, supabaseKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      })
+    : null;
+
   const [database, auth, storage, stripe, email, menu] = await Promise.all([
 
-    // Supabase REST — any HTTP response = DB is reachable
-    probe(async () => {
-      if (!supabaseUrl || !supabaseKey) return 'unconfigured';
-      return fetch(`${supabaseUrl}/rest/v1/`, {
-        headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
-      });
-    }),
+    // DB — real lightweight query; RLS returns [] but no error if DB is up
+    (async (): Promise<{ status: ServiceStatus; latency: number }> => {
+      if (!supabase) return { status: 'degraded', latency: 0 };
+      const start = Date.now();
+      try {
+        await withTimeout(
+          supabase.from('restaurants').select('id').limit(1),
+          6000
+        );
+        const latency = Date.now() - start;
+        return { status: toStatus(latency), latency };
+      } catch {
+        return { status: 'outage', latency: Date.now() - start };
+      }
+    })(),
 
-    // Supabase Auth health endpoint (no auth required)
-    probe(async () => {
-      if (!supabaseUrl) return 'unconfigured';
-      return fetch(`${supabaseUrl}/auth/v1/health`);
-    }),
+    // Auth — getSession confirms GoTrue is reachable (returns null session, not an error)
+    (async (): Promise<{ status: ServiceStatus; latency: number }> => {
+      if (!supabase) return { status: 'degraded', latency: 0 };
+      const start = Date.now();
+      try {
+        const result = await withTimeout(supabase.auth.getSession(), 6000);
+        const latency = Date.now() - start;
+        if (result.error) return { status: 'outage', latency };
+        return { status: toStatus(latency), latency };
+      } catch {
+        return { status: 'outage', latency: Date.now() - start };
+      }
+    })(),
 
-    // Supabase Storage health endpoint
-    probe(async () => {
-      if (!supabaseUrl || !supabaseKey) return 'unconfigured';
-      return fetch(`${supabaseUrl}/storage/v1/health`, {
-        headers: { apikey: supabaseKey },
-      });
-    }),
+    // Storage — listBuckets confirms storage service is reachable
+    (async (): Promise<{ status: ServiceStatus; latency: number }> => {
+      if (!supabase) return { status: 'degraded', latency: 0 };
+      const start = Date.now();
+      try {
+        await withTimeout(supabase.storage.listBuckets(), 6000);
+        const latency = Date.now() - start;
+        return { status: toStatus(latency), latency };
+      } catch {
+        return { status: 'outage', latency: Date.now() - start };
+      }
+    })(),
 
-    // Stripe — any response (200 with valid key, 401 invalid) = Stripe is up
-    probe(async () => {
-      if (!stripeKey) return 'unconfigured';
-      return fetch('https://api.stripe.com/v1/balance', {
-        headers: { Authorization: `Bearer ${stripeKey}` },
-      });
-    }),
+    // Stripe — balance endpoint; any HTTP response = Stripe is reachable
+    (async (): Promise<{ status: ServiceStatus; latency: number }> => {
+      if (!stripeKey) return { status: 'degraded', latency: 0 };
+      const start = Date.now();
+      try {
+        const res = await withTimeout(
+          fetch('https://api.stripe.com/v1/balance', {
+            headers: { Authorization: `Bearer ${stripeKey}` },
+          }),
+          6000
+        );
+        const latency = Date.now() - start;
+        if (res.status >= 500) return { status: 'outage', latency };
+        return { status: toStatus(latency), latency };
+      } catch {
+        return { status: 'outage', latency: Date.now() - start };
+      }
+    })(),
 
-    // Resend — any response = Resend is up
-    probe(async () => {
-      if (!resendKey) return 'unconfigured';
-      return fetch('https://api.resend.com/domains', {
-        headers: { Authorization: `Bearer ${resendKey}` },
-      });
-    }),
+    // Resend — any response = service is reachable
+    (async (): Promise<{ status: ServiceStatus; latency: number }> => {
+      if (!resendKey) return { status: 'degraded', latency: 0 };
+      const start = Date.now();
+      try {
+        const res = await withTimeout(
+          fetch('https://api.resend.com/domains', {
+            headers: { Authorization: `Bearer ${resendKey}` },
+          }),
+          6000
+        );
+        const latency = Date.now() - start;
+        if (res.status >= 500) return { status: 'outage', latency };
+        return { status: toStatus(latency), latency };
+      } catch {
+        return { status: 'outage', latency: Date.now() - start };
+      }
+    })(),
 
-    // Menu digital — HEAD request to the public domain
-    probe(async () => {
-      if (!appUrl) return 'unconfigured';
-      return fetch(`${appUrl}/r/demo`, { method: 'HEAD' });
-    }),
+    // Menu digital — HEAD request to public demo page
+    (async (): Promise<{ status: ServiceStatus; latency: number }> => {
+      const start = Date.now();
+      try {
+        const res = await withTimeout(
+          fetch(`${appUrl}/r/demo`, { method: 'HEAD' }),
+          6000
+        );
+        const latency = Date.now() - start;
+        if (res.status >= 500) return { status: 'outage', latency };
+        return { status: toStatus(latency), latency };
+      } catch {
+        return { status: 'outage', latency: Date.now() - start };
+      }
+    })(),
   ]);
 
-  // API itself: if this route responded, the API is operational
   const api: { status: ServiceStatus; latency: number } = { status: 'operational', latency: 1 };
 
   const services: ServiceResult[] = [
-    { id: 'api',      name: 'API & Dashboard',            nameEn: 'API & Dashboard',         ...api },
-    { id: 'database', name: 'Base de datos',               nameEn: 'Database',                ...database },
-    { id: 'auth',     name: 'Autenticación',               nameEn: 'Authentication',          ...auth },
-    { id: 'storage',  name: 'Almacenamiento de imágenes',  nameEn: 'Image Storage',           ...storage },
-    { id: 'stripe',   name: 'Pagos (Stripe)',               nameEn: 'Payments (Stripe)',       ...stripe },
-    { id: 'email',    name: 'Notificaciones (Email)',       nameEn: 'Email Notifications',     ...email },
-    { id: 'menu',     name: 'Menú digital (QR)',            nameEn: 'Digital Menu (QR)',       ...menu },
+    { id: 'api',      name: 'API & Dashboard',           nameEn: 'API & Dashboard',        ...api },
+    { id: 'database', name: 'Base de datos',              nameEn: 'Database',               ...database },
+    { id: 'auth',     name: 'Autenticación',              nameEn: 'Authentication',         ...auth },
+    { id: 'storage',  name: 'Almacenamiento de imágenes', nameEn: 'Image Storage',          ...storage },
+    { id: 'stripe',   name: 'Pagos (Stripe)',              nameEn: 'Payments (Stripe)',      ...stripe },
+    { id: 'email',    name: 'Notificaciones (Email)',      nameEn: 'Email Notifications',   ...email },
+    { id: 'menu',     name: 'Menú digital (QR)',           nameEn: 'Digital Menu (QR)',      ...menu },
   ];
 
   return NextResponse.json({ services, checkedAt: new Date().toISOString() });
