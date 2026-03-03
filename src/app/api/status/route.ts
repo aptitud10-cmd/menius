@@ -50,7 +50,7 @@ export async function GET() {
       const start = Date.now();
       try {
         await withTimeout(
-          supabase.from('restaurants').select('id').limit(1),
+          Promise.resolve(supabase.from('restaurants').select('id').limit(1)),
           6000
         );
         const latency = Date.now() - start;
@@ -65,7 +65,7 @@ export async function GET() {
       if (!supabase) return { status: 'degraded', latency: 0 };
       const start = Date.now();
       try {
-        const result = await withTimeout(supabase.auth.getSession(), 6000);
+        const result = await withTimeout(Promise.resolve(supabase.auth.getSession()), 6000);
         const latency = Date.now() - start;
         if (result.error) return { status: 'outage', latency };
         return { status: toStatus(latency), latency };
@@ -79,7 +79,7 @@ export async function GET() {
       if (!supabase) return { status: 'degraded', latency: 0 };
       const start = Date.now();
       try {
-        await withTimeout(supabase.storage.listBuckets(), 6000);
+        await withTimeout(Promise.resolve(supabase.storage.listBuckets()), 6000);
         const latency = Date.now() - start;
         return { status: toStatus(latency), latency };
       } catch {
