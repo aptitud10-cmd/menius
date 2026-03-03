@@ -162,6 +162,58 @@ export function CheckoutSheet({
     }
   };
 
+  const buildOrderPayload = () => ({
+    restaurant_id: restaurant.id,
+    customer_name: customerName.trim(),
+    customer_phone: customerPhone.trim(),
+    customer_email: customerEmail.trim() || undefined,
+    notes: orderNotes.trim(),
+    order_type: orderType,
+    payment_method: paymentMethod,
+    delivery_address: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
+    promo_code: promoResult?.valid ? promoCode.trim() : undefined,
+    discount_amount: discount,
+    tip_amount: tipAmount > 0 ? tipAmount : undefined,
+    delivery_fee: deliveryFee > 0 ? deliveryFee : undefined,
+    items: items.map((item) => ({
+      product_id: item.product.id,
+      variant_id: item.variant?.id ?? null,
+      qty: item.qty,
+      unit_price:
+        Number(item.product.price) +
+        (item.variant?.price_delta ?? 0) +
+        item.extras.reduce((s, e) => s + Number(e.price), 0) +
+        (item.modifierSelections ?? []).reduce((s, ms) => s + ms.selectedOptions.reduce((ss, o) => ss + Number(o.price_delta), 0), 0),
+      line_total: item.lineTotal,
+      notes: item.notes,
+      extras: item.extras.map((e) => ({ extra_id: e.id, price: Number(e.price) })),
+      modifiers: (item.modifierSelections ?? []).flatMap((ms) =>
+        ms.selectedOptions.map((opt) => ({
+          group_id: ms.group.id,
+          group_name: ms.group.name,
+          option_id: opt.id,
+          option_name: opt.name,
+          price_delta: Number(opt.price_delta),
+        }))
+      ),
+    })),
+  });
+
+  const createOrder = async (): Promise<{ orderId: string; orderNumber: string } | { error: string }> => {
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildOrderPayload()),
+      });
+      const data = await res.json();
+      if (!res.ok) return { error: data.error || 'Error enviando orden' };
+      return { orderId: data.order_id, orderNumber: data.order_number };
+    } catch {
+      return { error: 'Error de conexión' };
+    }
+  };
+
   const handleSubmitOrder = async () => {
     const nameOk = validateField('customer_name', customerName);
     const phoneOk = validateField('customer_phone', customerPhone);
@@ -172,67 +224,22 @@ export function CheckoutSheet({
     setSubmitting(true);
     setOrderError('');
 
-    try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          restaurant_id: restaurant.id,
-          customer_name: customerName.trim(),
-          customer_phone: customerPhone.trim(),
-          customer_email: customerEmail.trim() || undefined,
-          notes: orderNotes.trim(),
-          order_type: orderType,
-          payment_method: paymentMethod,
-          delivery_address: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
-          promo_code: promoResult?.valid ? promoCode.trim() : undefined,
-          discount_amount: discount,
-          tip_amount: tipAmount > 0 ? tipAmount : undefined,
-          delivery_fee: deliveryFee > 0 ? deliveryFee : undefined,
-          items: items.map((item) => ({
-            product_id: item.product.id,
-            variant_id: item.variant?.id ?? null,
-            qty: item.qty,
-            unit_price:
-              Number(item.product.price) +
-              (item.variant?.price_delta ?? 0) +
-              item.extras.reduce((s, e) => s + Number(e.price), 0) +
-              (item.modifierSelections ?? []).reduce((s, ms) => s + ms.selectedOptions.reduce((ss, o) => ss + Number(o.price_delta), 0), 0),
-            line_total: item.lineTotal,
-            notes: item.notes,
-            extras: item.extras.map((e) => ({ extra_id: e.id, price: Number(e.price) })),
-            modifiers: (item.modifierSelections ?? []).flatMap((ms) =>
-              ms.selectedOptions.map((opt) => ({
-                group_id: ms.group.id,
-                group_name: ms.group.name,
-                option_id: opt.id,
-                option_name: opt.name,
-                price_delta: Number(opt.price_delta),
-              }))
-            ),
-          })),
-        }),
-      });
+    const result = await createOrder();
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setOrderError(data.error || 'Error enviando orden');
-        return;
-      }
-
-      setOrderNumber(data.order_number);
-      setOrderId(data.order_id);
-      saveLastOrder();
-      clearCart();
-      setStep('confirmation');
-      playSuccessChime();
-      setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
-    } catch {
-      setOrderError('Error de conexión');
-    } finally {
+    if ('error' in result) {
+      setOrderError(result.error);
       setSubmitting(false);
+      return;
     }
+
+    setOrderNumber(result.orderNumber);
+    setOrderId(result.orderId);
+    saveLastOrder();
+    clearCart();
+    setStep('confirmation');
+    playSuccessChime();
+    setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
+    setSubmitting(false);
   };
 
   const handlePayOnline = async () => {
@@ -489,7 +496,8 @@ export function CheckoutSheet({
           currency={restaurant.currency ?? 'MXN'}
           label={restaurant.name}
           disabled={submitting || items.length === 0 || !customerName.trim() || !customerPhone.trim()}
-          onSuccess={() => { saveLastOrder(); clearCart(); setOrderNumber('WALLET'); setStep('confirmation'); }}
+          onCreateOrder={createOrder}
+          onSuccess={(orderId, orderNumber) => { setOrderId(orderId); setOrderNumber(orderNumber); saveLastOrder(); clearCart(); setStep('confirmation'); }}
           onError={(msg) => setOrderError(msg)}
         />
       )}
