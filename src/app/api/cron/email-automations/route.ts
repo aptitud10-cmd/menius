@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/notifications/email';
 import { createLogger } from '@/lib/logger';
 
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const results = { welcome: 0, reactivation: 0, review_request: 0, platform_trial: 0, platform_setup: 0, platform_inactive: 0, onboarding_d1: 0, onboarding_d3: 0, onboarding_d7: 0, monthly_report: 0, errors: 0 };
 
   // Restaurant cache to avoid N+1 queries across all sections
