@@ -32,7 +32,7 @@ interface CheckoutPageClientProps {
   slug: string;
 }
 
-type CheckoutStep = 'form' | 'confirmation';
+type CheckoutStep = 'form' | 'payment' | 'confirmation';
 
 export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageClientProps) {
   const router = useRouter();
@@ -102,6 +102,12 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
 
   const [tipPercent, setTipPercent] = useState<number | null>(null);
   const [customTip, setCustomTip] = useState('');
+
+  // Demo payment simulation state
+  const [demoCardNum, setDemoCardNum] = useState('4242 4242 4242 4242');
+  const [demoExpiry, setDemoExpiry] = useState('12 / 28');
+  const [demoCVC, setDemoCVC] = useState('123');
+  const [demoPayProcessing, setDemoPayProcessing] = useState(false);
   const tipAmount = tipPercent !== null
     ? Math.round(cartTotal * tipPercent) / 100
     : (parseFloat(customTip) || 0);
@@ -209,12 +215,17 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
       if (!res.ok) { setOrderError(data.error || 'Error enviando orden'); return; }
       setOrderNumber(data.order_number);
       setOrderId(data.order_id);
-      saveLastOrder();
       // For online payments: redirect immediately to Stripe
       if (data.stripe_url) {
         window.location.href = data.stripe_url;
         return;
       }
+      // Demo restaurant + online payment → show simulated card payment step
+      if (restaurant.id.startsWith('demo') && paymentMethod === 'online') {
+        setStep('payment');
+        return;
+      }
+      saveLastOrder();
       // Save customer info for next visit
       try {
         if (rememberMe) {
@@ -247,6 +258,39 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
       setSubmitting(false);
     }
   };
+
+  const handleDemoPayment = useCallback(async () => {
+    setDemoPayProcessing(true);
+    // Simulate network processing delay
+    await new Promise((r) => setTimeout(r, 1800));
+    saveLastOrder();
+    try {
+      if (rememberMe) {
+        localStorage.setItem('menius_guest_info', JSON.stringify({
+          name: customerName.trim(),
+          phone: customerPhone.trim(),
+          email: customerEmail.trim(),
+        }));
+      } else {
+        localStorage.removeItem('menius_guest_info');
+      }
+    } catch {}
+    trackEvent('order_placed', {
+      restaurant_id: restaurant.id,
+      restaurant_slug: restaurant.slug,
+      order_number: orderNumber,
+      order_type: orderType,
+      payment_method: 'online',
+      item_count: items.length,
+      total: cartTotal,
+      currency: restaurant.currency,
+    });
+    clearCart();
+    setDemoPayProcessing(false);
+    setStep('confirmation');
+    playSuccessChime();
+    confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
+  }, [saveLastOrder, rememberMe, customerName, customerPhone, customerEmail, restaurant, orderNumber, orderType, items, cartTotal, clearCart, confettiTimer]);
 
   const handleCreateOrderForWallet = useCallback(async (): Promise<{ orderId: string; orderNumber: string } | { error: string }> => {
     if (!customerName.trim() || !customerPhone.trim()) {
@@ -382,6 +426,165 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
     );
   }
 
+  // ── Demo payment simulation ─────────────────────────────────────────────
+  if (step === 'payment') {
+    const formatCardNum = (v: string) => {
+      const digits = v.replace(/\D/g, '').slice(0, 16);
+      return digits.replace(/(.{4})/g, '$1 ').trim();
+    };
+    const formatExpiry = (v: string) => {
+      const digits = v.replace(/\D/g, '').slice(0, 4);
+      if (digits.length <= 2) return digits;
+      return `${digits.slice(0, 2)} / ${digits.slice(2)}`;
+    };
+
+    return (
+      <div className="min-h-[100dvh] bg-gray-50 flex flex-col">
+        {/* Header */}
+        <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between">
+          <button
+            onClick={() => setStep('form')}
+            className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">{locale === 'es' ? 'Volver' : 'Back'}</span>
+          </button>
+          <h1 className="text-base font-bold text-gray-900">{locale === 'es' ? 'Pago seguro' : 'Secure payment'}</h1>
+          <div className="flex items-center gap-1.5 text-gray-400">
+            <Lock className="w-3.5 h-3.5" />
+            <span className="text-xs font-medium">{locale === 'es' ? 'Seguro' : 'Secure'}</span>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-sm mx-auto px-5 py-6 space-y-5">
+
+            {/* Demo mode banner */}
+            <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200">
+              <span className="text-lg">🧪</span>
+              <div>
+                <p className="text-xs font-bold text-amber-800">{locale === 'es' ? 'MODO DEMO — Tarjeta de prueba' : 'DEMO MODE — Test card'}</p>
+                <p className="text-[11px] text-amber-600 mt-0.5">
+                  {locale === 'es' ? 'Los datos ya están pre-llenados. Ningún cargo real.' : 'Fields are pre-filled. No real charge.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Card visual */}
+            <div className="relative w-full h-44 rounded-2xl overflow-hidden select-none"
+              style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }}
+            >
+              {/* Chip */}
+              <div className="absolute top-6 left-6 w-10 h-7 rounded-md border border-yellow-400/40"
+                style={{ background: 'linear-gradient(135deg, #ffd700 0%, #b8960c 100%)' }}
+              />
+              {/* Card number on card */}
+              <div className="absolute top-[72px] left-6 right-6">
+                <p className="text-white/90 text-[17px] font-mono tracking-[0.18em]">
+                  {demoCardNum || '4242 4242 4242 4242'}
+                </p>
+              </div>
+              {/* Expiry + CVC row */}
+              <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end">
+                <div>
+                  <p className="text-white/40 text-[9px] uppercase tracking-wider mb-0.5">{locale === 'es' ? 'Válida hasta' : 'Valid thru'}</p>
+                  <p className="text-white/90 text-sm font-mono tracking-wider">{demoExpiry || '12 / 28'}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-white/40 text-[9px] uppercase tracking-wider mb-0.5">CVC</p>
+                  <p className="text-white/90 text-sm font-mono">{'·'.repeat((demoCVC || '123').length)}</p>
+                </div>
+                {/* Visa logo */}
+                <div className="absolute bottom-0 right-0">
+                  <span className="text-white font-extrabold text-xl italic tracking-tight opacity-80">VISA</span>
+                </div>
+              </div>
+              {/* Shimmer */}
+              <div className="absolute inset-0 rounded-2xl opacity-10"
+                style={{ background: 'radial-gradient(circle at 70% 30%, white 0%, transparent 60%)' }}
+              />
+            </div>
+
+            {/* Card form */}
+            <div className="bg-white rounded-2xl border-2 border-gray-200 p-5 space-y-4 shadow-sm">
+              {/* Card number */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                  {locale === 'es' ? 'Número de tarjeta' : 'Card number'}
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={demoCardNum}
+                  onChange={(e) => setDemoCardNum(formatCardNum(e.target.value))}
+                  placeholder="1234 5678 9012 3456"
+                  maxLength={19}
+                  className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-sm font-mono tracking-wider transition-colors bg-gray-50 focus:bg-white"
+                />
+              </div>
+              {/* Expiry + CVC */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                    {locale === 'es' ? 'Vencimiento' : 'Expiry'}
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={demoExpiry}
+                    onChange={(e) => setDemoExpiry(formatExpiry(e.target.value))}
+                    placeholder="MM / AA"
+                    maxLength={7}
+                    className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-sm font-mono tracking-wider transition-colors bg-gray-50 focus:bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">CVC</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={demoCVC}
+                    onChange={(e) => setDemoCVC(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    placeholder="123"
+                    maxLength={4}
+                    className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-200 focus:border-emerald-400 focus:outline-none text-sm font-mono tracking-wider transition-colors bg-gray-50 focus:bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Order total */}
+            <div className="flex items-center justify-between px-1">
+              <span className="text-sm text-gray-500">{locale === 'es' ? 'Total a pagar' : 'Total'}</span>
+              <span className="text-lg font-extrabold text-gray-900 tabular-nums">{fmtPrice(finalTotal)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Sticky pay button */}
+        <div className="sticky bottom-0 bg-white border-t-2 border-gray-200 px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+          <button
+            onClick={handleDemoPayment}
+            disabled={demoPayProcessing}
+            className="w-full py-5 rounded-2xl bg-emerald-500 text-white font-extrabold text-[17px] active:scale-[0.98] transition-all duration-150 disabled:opacity-80 shadow-[0_4px_20px_rgba(16,185,129,0.35)]"
+          >
+            {demoPayProcessing ? (
+              <span className="flex items-center justify-center gap-3">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                {locale === 'es' ? 'Procesando pago…' : 'Processing payment…'}
+              </span>
+            ) : (
+              `${locale === 'es' ? 'Pagar' : 'Pay'} ${fmtPrice(finalTotal)}`
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (step === 'confirmation') {
     return (
       <div className="min-h-[100dvh] bg-white flex flex-col">
@@ -413,19 +616,12 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
                 {orderError}
               </div>
             )}
-            {paymentMethod === 'online' && orderId && !paidViaWallet && (
-              restaurant.id.startsWith('demo') ? (
-                <div className="w-full py-3 rounded-xl bg-gray-100 text-center">
-                  <p className="text-sm font-semibold text-gray-500">{locale === 'es' ? 'Pago con tarjeta via Stripe' : 'Card payment via Stripe'}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{locale === 'es' ? 'Disponible en produccion' : 'Available in production'}</p>
-                </div>
-              ) : (
-                <button onClick={handlePayOnline} disabled={payLoading} className="w-full py-3.5 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors">
-                  {payLoading ? t.redirecting : t.payNow}
-                </button>
-              )
+            {paymentMethod === 'online' && orderId && !paidViaWallet && !restaurant.id.startsWith('demo') && (
+              <button onClick={handlePayOnline} disabled={payLoading} className="w-full py-3.5 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+                {payLoading ? t.redirecting : t.payNow}
+              </button>
             )}
-            {!restaurant.id.startsWith('demo') && orderNumber && orderNumber !== 'WALLET' && (
+            {orderNumber && orderNumber !== 'WALLET' && (
               <a href={`/r/${restaurant.slug}/orden/${orderNumber}`} className="block w-full py-3.5 rounded-xl bg-gray-900 text-white font-semibold text-sm text-center hover:bg-gray-800 transition-colors">
                 {t.trackOrder}
               </a>
