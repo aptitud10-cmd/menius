@@ -76,6 +76,7 @@ export function PushOptIn({ orderId }: PushOptInProps) {
   }, [orderId, loading]);
 
   if (state === 'unsupported' || state === 'denied') return null;
+  if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return null;
 
   if (state === 'subscribed') {
     return (

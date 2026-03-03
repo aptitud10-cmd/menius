@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import dynamic from 'next/dynamic';
@@ -26,13 +26,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function OrderTrackingPage({ params }: PageProps) {
-  const supabase = createClient();
+  const adminDb = createAdminClient();
 
-  const { data: restaurant } = await supabase
+  const { data: restaurant } = await adminDb
     .from('restaurants')
     .select('id, name, slug, currency')
     .eq('slug', params.slug)
-    .single();
+    .maybeSingle();
 
   if (!restaurant) notFound();
 

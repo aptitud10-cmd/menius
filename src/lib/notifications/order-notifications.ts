@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { sendWhatsApp, formatNewOrderWhatsApp, formatStatusUpdateWhatsApp } from './whatsapp';
 import { sendEmail, buildOrderConfirmationEmail, buildStatusUpdateEmail, buildOwnerNewOrderEmail } from './email';
 import { formatPrice } from '@/lib/utils';
@@ -25,9 +25,9 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
   const { orderNumber, restaurantId, customerName, customerEmail, customerPhone, orderType, total, items } = payload;
 
   try {
-    const supabase = createClient();
+    const adminDb = createAdminClient();
 
-    const { data: restaurant } = await supabase
+    const { data: restaurant } = await adminDb
       .from('restaurants')
       .select('name, slug, currency, locale, notification_whatsapp, notification_email, notifications_enabled')
       .eq('id', restaurantId)
@@ -119,9 +119,9 @@ export async function notifyStatusChange(params: {
   const { orderNumber, restaurantId, status, customerName, customerEmail, customerPhone } = params;
 
   try {
-    const supabase = createClient();
+    const adminDb = createAdminClient();
 
-    const { data: restaurant } = await supabase
+    const { data: restaurant } = await adminDb
       .from('restaurants')
       .select('name, slug, locale, notifications_enabled')
       .eq('id', restaurantId)

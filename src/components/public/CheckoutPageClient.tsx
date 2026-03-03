@@ -323,6 +323,11 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
             </p>
           )}
           <div className="w-full space-y-3 max-w-sm">
+            {orderError && (
+              <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600 text-center">
+                {orderError}
+              </div>
+            )}
             {paymentMethod === 'online' && orderId && (
               restaurant.id.startsWith('demo') ? (
                 <div className="w-full py-3 rounded-xl bg-gray-100 text-center">
