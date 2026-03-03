@@ -242,7 +242,7 @@ export function CustomersManager({ currency }: Props) {
                 className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors"
               >
                 <QrCode className="w-4 h-4" />
-                {t.tables_title ?? 'Ver QR de mesas'}
+                {t.nav_tables ?? 'Ver QR de mesas'}
               </Link>
             )}
           </div>

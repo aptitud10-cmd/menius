@@ -336,7 +336,7 @@ export function OrdersBoard({ initialOrders, restaurantId, currency, restaurantN
             className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors"
           >
             <QrCode className="w-4 h-4" />
-            {t.orders_viewQR ?? 'Ver QR de mesas'}
+            {t.nav_tables ?? 'Ver QR de mesas'}
           </Link>
         </div>
       ) : showHistory ? (

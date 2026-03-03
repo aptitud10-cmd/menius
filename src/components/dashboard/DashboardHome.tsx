@@ -250,7 +250,7 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
               className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
             >
               <QrCode className="w-3.5 h-3.5" />
-              {t.tables_title ?? 'Ver QR de mesas'}
+              {t.nav_tables ?? 'Ver QR de mesas'}
             </Link>
           </div>
         ) : (
