@@ -7,9 +7,6 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
   return (
     <section className="relative min-h-[100vh] min-h-[100dvh] flex items-center overflow-clip">
       <div className="hero-gradient" />
-      <div className="orb orb-purple w-[500px] h-[500px] top-[-10%] left-[10%] hidden md:block" />
-      <div className="orb orb-teal w-[400px] h-[400px] bottom-[10%] right-[5%] hidden md:block" />
-      <div className="orb orb-blue w-[350px] h-[350px] top-[40%] left-[50%] hidden md:block" />
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-6 w-full py-20 md:py-0">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
