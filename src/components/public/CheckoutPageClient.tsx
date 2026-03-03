@@ -47,8 +47,20 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const welcomeOrderType = useCartStore((s) => s.selectedOrderType);
 
   const [hasMounted, setHasMounted] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+
+  // Pre-fill customer info from localStorage on mount
   useEffect(() => {
     setHasMounted(true);
+    try {
+      const saved = localStorage.getItem('menius_guest_info');
+      if (saved) {
+        const { name, phone, email } = JSON.parse(saved);
+        if (name) setCustomerName(name);
+        if (phone) setCustomerPhone(phone);
+        if (email) setCustomerEmail(email);
+      }
+    } catch {}
     return () => { clearTimeout(confettiTimer.current); };
   }, []);
 
@@ -197,6 +209,18 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
       setOrderNumber(data.order_number);
       setOrderId(data.order_id);
       saveLastOrder();
+      // Save customer info for next visit
+      try {
+        if (rememberMe) {
+          localStorage.setItem('menius_guest_info', JSON.stringify({
+            name: customerName.trim(),
+            phone: customerPhone.trim(),
+            email: customerEmail.trim(),
+          }));
+        } else {
+          localStorage.removeItem('menius_guest_info');
+        }
+      } catch {}
       trackEvent('order_placed', {
         restaurant_id: restaurant.id,
         restaurant_slug: restaurant.slug,
@@ -530,6 +554,22 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
               <label className="block text-sm font-semibold text-gray-900 mb-2">{t.orderNotes} <span className="text-gray-400 font-normal text-xs">({t.optional})</span></label>
               <textarea value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)} placeholder={t.orderNotesPlaceholder} rows={2} className={cn(inputClass, 'resize-none')} />
             </div>
+            <button
+              type="button"
+              onClick={() => setRememberMe((v) => !v)}
+              className="flex items-center gap-3 w-full py-1 group"
+            >
+              <div className={cn('w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors', rememberMe ? 'bg-gray-900 border-gray-900' : 'border-gray-300 bg-white')}>
+                {rememberMe && (
+                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors text-left">
+                {locale === 'es' ? 'Recordar mis datos para la próxima vez' : 'Remember my info for next time'}
+              </span>
+            </button>
           </div>
 
           {/* Payment method */}
