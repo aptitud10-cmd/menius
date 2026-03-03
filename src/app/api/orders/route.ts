@@ -259,30 +259,30 @@ export async function POST(request: NextRequest) {
         extrasToInsert.push({ order_item_id: orderItemId, extra_id: ex.extra_id, price: ex.price });
       }
       for (const mod of (item.modifiers ?? [])) {
+        const gid = mod.group_id ?? '';
+        const oid = mod.option_id ?? '';
         modifiersToInsert.push({
           order_item_id: orderItemId,
-          group_id: mod.group_id.startsWith('__legacy') ? null : mod.group_id,
-          option_id: mod.option_id.startsWith('__legacy') ? null : mod.option_id,
-          group_name: mod.group_name,
-          option_name: mod.option_name,
-          price_delta: mod.price_delta,
+          group_id: (!gid || gid.startsWith('__legacy')) ? null : gid,
+          option_id: (!oid || oid.startsWith('__legacy')) ? null : oid,
+          group_name: mod.group_name ?? '',
+          option_name: mod.option_name ?? '',
+          price_delta: mod.price_delta ?? 0,
         });
       }
     });
 
     if (extrasToInsert.length > 0 || modifiersToInsert.length > 0) {
-      const insertJobs: Promise<any>[] = [];
-      if (extrasToInsert.length > 0) insertJobs.push(Promise.resolve(adminDb.from('order_item_extras').insert(extrasToInsert)));
-      if (modifiersToInsert.length > 0) insertJobs.push(Promise.resolve(adminDb.from('order_item_modifiers').insert(modifiersToInsert)));
-      const results = await Promise.all(insertJobs);
-      const extrasErr = results[0]?.error;
-      const modsErr = results[1]?.error ?? (extrasToInsert.length === 0 ? results[0]?.error : undefined);
-      const detailErr = extrasErr ?? modsErr;
-      if (detailErr) {
-        logger.error('order detail insert failed', { order_id: order.id, error: detailErr.message, code: detailErr.code });
-        const { error: rollbackErr } = await adminDb.from('orders').delete().eq('id', order.id);
-        if (rollbackErr) logger.error('rollback delete failed', { order_id: order.id, error: rollbackErr.message });
-        return NextResponse.json({ error: `Detail error: ${detailErr.message}` }, { status: 500 });
+      try {
+        const insertJobs: Promise<any>[] = [];
+        if (extrasToInsert.length > 0) insertJobs.push(Promise.resolve(adminDb.from('order_item_extras').insert(extrasToInsert)));
+        if (modifiersToInsert.length > 0) insertJobs.push(Promise.resolve(adminDb.from('order_item_modifiers').insert(modifiersToInsert)));
+        const results = await Promise.all(insertJobs);
+        for (const r of results) {
+          if (r?.error) logger.error('detail insert warning', { order_id: order.id, error: r.error.message, code: r.error.code });
+        }
+      } catch (detailCatch) {
+        logger.error('detail insert exception', { order_id: order.id, error: detailCatch instanceof Error ? detailCatch.message : String(detailCatch) });
       }
     }
 
