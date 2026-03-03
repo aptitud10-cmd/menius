@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { createLogger } from '@/lib/logger';
 
@@ -16,9 +16,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'order_number y restaurant_id requeridos' }, { status: 400 });
     }
 
-    const supabase = createClient();
+    const adminDb = createAdminClient();
 
-    const { data: order, error } = await supabase
+    const { data: order, error } = await adminDb
       .from('orders')
       .select(`
         id, order_number, status, customer_name, customer_phone, notes, total, created_at,
