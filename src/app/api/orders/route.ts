@@ -307,46 +307,44 @@ export async function POST(request: NextRequest) {
       if (custErr) logger.error('upsert_customer failed', { error: custErr.message });
     });
 
-    // Fetch product names for notification (non-blocking)
-    const notifProductIds = parsed.data.items.map((i) => i.product_id);
-    (async () => {
-      try {
-        const { data: products } = await supabase
-          .from('products')
-          .select('id, name')
-          .in('id', notifProductIds);
+    // Send notifications — awaited so Vercel doesn't freeze the process before emails are sent
+    try {
+      const notifProductIds = parsed.data.items.map((i) => i.product_id);
+      const { data: products } = await adminDb
+        .from('products')
+        .select('id, name')
+        .in('id', notifProductIds);
 
-        const productMap = new Map((products ?? []).map((p) => [p.id, p.name]));
-        const notifItems = parsed.data.items.map((i) => ({
-          name: productMap.get(i.product_id) ?? 'Producto',
-          qty: i.qty,
-          price: i.line_total,
-        }));
+      const productNameMap = new Map((products ?? []).map((p) => [p.id, p.name]));
+      const notifItems = parsed.data.items.map((i) => ({
+        name: productNameMap.get(i.product_id) ?? 'Producto',
+        qty: i.qty,
+        price: i.line_total,
+      }));
 
-        await notifyNewOrder({
-          orderId: order.id,
-          orderNumber: order.order_number,
-          restaurantId: restaurant_id,
-          restaurantData: {
-            name: restaurant.name,
-            slug: restaurant.slug,
-            currency: restaurant.currency,
-            locale: restaurant.locale,
-            notification_email: restaurant.notification_email,
-            notification_whatsapp: restaurant.notification_whatsapp,
-            notifications_enabled: restaurant.notifications_enabled,
-          },
-          customerName: parsed.data.customer_name,
-          customerEmail: customer_email || undefined,
-          customerPhone: parsed.data.customer_phone || undefined,
-          orderType: order_type || 'dine_in',
-          total,
-          items: notifItems,
-        });
-      } catch (err) {
-        logger.error('notifyNewOrder failed', { error: err instanceof Error ? err.message : String(err) });
-      }
-    })();
+      await notifyNewOrder({
+        orderId: order.id,
+        orderNumber: order.order_number,
+        restaurantId: restaurant_id,
+        restaurantData: {
+          name: restaurant.name,
+          slug: restaurant.slug,
+          currency: restaurant.currency,
+          locale: restaurant.locale,
+          notification_email: restaurant.notification_email,
+          notification_whatsapp: restaurant.notification_whatsapp,
+          notifications_enabled: restaurant.notifications_enabled,
+        },
+        customerName: parsed.data.customer_name,
+        customerEmail: customer_email || undefined,
+        customerPhone: parsed.data.customer_phone || undefined,
+        orderType: order_type || 'dine_in',
+        total,
+        items: notifItems,
+      });
+    } catch (err) {
+      logger.error('notifyNewOrder failed', { error: err instanceof Error ? err.message : String(err) });
+    }
 
     // For online payments: create Stripe Checkout session immediately
     let stripeUrl: string | null = null;
