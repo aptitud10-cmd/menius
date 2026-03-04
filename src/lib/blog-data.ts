@@ -1655,6 +1655,734 @@ Just a tablet or monitor in the kitchen with internet connection. Open the "Kitc
 A KDS is not a luxury — it's an operational necessity. It eliminates errors, speeds up the kitchen, and improves the customer experience. With MENIUS, the KDS is included in all plans and works from any device with a browser.
     `,
   },
+
+  // ── Post 14: Manejar reviews negativas ──────────────────────────────────
+  {
+    slug: 'como-manejar-reviews-negativas-restaurante',
+    title: 'Cómo responder reviews negativas en tu restaurante (y convertirlas en clientes fieles)',
+    description: 'Una mala reseña no tiene que destruir tu reputación. Aprende el método profesional para responder críticas, recuperar clientes insatisfechos y mejorar tu rating.',
+    category: 'Estrategia',
+    readTime: 6,
+    date: '2026-03-01',
+    author: 'MENIUS',
+    title_en: 'How to Handle Negative Reviews at Your Restaurant (and Turn Them into Loyal Customers)',
+    description_en: 'A bad review doesn\'t have to destroy your reputation. Learn the professional method to respond to criticism, recover unhappy customers, and improve your rating.',
+    category_en: 'Strategy',
+    content: `
+## La realidad de las reseñas negativas
+
+El 97% de los consumidores lee reviews antes de elegir un restaurante. Y un restaurante con solo reseñas positivas parece falso. Lo que importa no es solo el rating — es **cómo respondes**.
+
+Un estudio de Harvard Business School encontró que **una estrella más en Yelp aumenta los ingresos entre 5% y 9%**. Pero más revelador aún: los restaurantes que responden a reviews negativas de forma profesional mejoran su rating más rápido que los que las ignoran.
+
+## Los 5 errores más comunes al responder críticas
+
+**Error 1: Ponerse a la defensiva**
+> "Eso no es cierto, nuestro servicio es excelente."
+
+Esto destruye tu marca públicamente. Los lectores futuros ven que el restaurante no acepta retroalimentación.
+
+**Error 2: No responder**
+Ignorar una review negativa es como colgar el teléfono a un cliente insatisfecho. El 53% de los clientes espera respuesta en menos de 7 días.
+
+**Error 3: Respuesta genérica copiada**
+> "Gracias por tu comentario, lamentamos tu experiencia..."
+
+Si todas tus respuestas son idénticas, parecen automáticas. Los lectores lo notan.
+
+**Error 4: Ofrecer descuentos públicamente**
+Publicar "te damos 20% en tu próxima visita" invita a que otros dejen reviews negativas esperando el mismo trato.
+
+**Error 5: Prometer sin cumplir**
+Decir "lo arreglamos" sin cambiar nada en la operación genera más reviews negativas del mismo problema.
+
+## El método LQEA para responder reviews negativas
+
+### L — Leer completamente
+Lee la review 3 veces antes de responder. Identifica: ¿Es el servicio? ¿La comida? ¿El tiempo de espera? ¿Un empleado específico?
+
+### Q — Quédate con los hechos
+No te involucres emocionalmente. Si el cliente dice que tardaron 45 minutos, investiga si es verdad antes de responder.
+
+### E — Empatía primero
+Comienza siempre reconociendo la experiencia del cliente, aunque no estés 100% de acuerdo.
+
+### A — Acción concreta
+Menciona qué vas a hacer diferente. Sé específico. Y cumple.
+
+## La fórmula de respuesta perfecta (en 4 pasos)
+
+**Ejemplo de review negativa:**
+> "Estuve 35 minutos esperando mi orden y cuando llegó estaba fría. El mesero ni se disculpó. 2 estrellas."
+
+**Respuesta usando la fórmula:**
+
+> Hola [Nombre], gracias por tomarte el tiempo de escribirnos.
+>
+> Tienes razón — 35 minutos de espera y una orden fría no es el estándar que queremos para nadie. Entendemos la frustración, sobre todo cuando además no recibiste una disculpa del equipo.
+>
+> Esta semana tuvimos una situación inusual en cocina que afectó nuestros tiempos. Ya hablamos con el equipo sobre protocolos de comunicación con los clientes cuando hay demoras.
+>
+> Te gustaría que nos escribas a soporte@menius.app con tu nombre para poder compensarte en tu próxima visita. Queremos tener la oportunidad de mostrarte el servicio que realmente mereces.
+>
+> — El equipo de [Tu Restaurante]
+
+**Por qué funciona:**
+- Llama por nombre (personalizado)
+- Valida la experiencia sin ser defensivo
+- Explica sin excusar
+- Acción concreta ya tomada
+- Mueve la compensación a privado (evita incentivar reviews negativas)
+- Firma con identidad del restaurante
+
+## Cómo usar MENIUS para monitorear y responder reviews
+
+Desde tu dashboard de MENIUS puedes ver todas las reseñas de tus clientes en una sola pantalla. El sistema te muestra el rating promedio, el historial de comentarios y los datos de contacto del cliente para seguimiento directo.
+
+Puedes también preguntarle a **MENIUS AI**: *"¿Cuál es mi rating promedio esta semana?"* o *"¿Qué clientes dejaron comentarios negativos este mes?"* y te responde con datos reales al instante.
+
+## Las reviews negativas que sí debes eliminar
+
+Algunas reviews pueden reportarse a la plataforma para eliminación:
+- Spam o reviews de competencia (guarda evidencia)
+- Reviews de personas que nunca visitaron el lugar
+- Contenido ofensivo o discriminatorio
+- Reviews de empleados actuales o ex-empleados
+
+## Convierte críticas en sistemas de mejora
+
+Cada review negativa es datos gratuitos de investigación de mercado. Categoriza por semana:
+
+| Tipo de queja | Frecuencia | Acción |
+|---|---|---|
+| Tiempo de espera | Alta | Revisar proceso de cocina |
+| Temperatura de comida | Media | Revisar protocolo de delivery |
+| Actitud del personal | Baja | Sesión de capacitación |
+
+Cuando el mismo problema aparece 3+ veces, es una señal de sistema roto, no un cliente difícil.
+
+## Conclusión
+
+Una review negativa bien respondida puede ser **mejor marketing que ninguna review negativa**. Demuestra que escuchas, que te importa, y que mejoras. Eso construye más confianza que un rating perfecto.
+
+El objetivo no es el 5.0 — es ser el restaurante que mejor responde cuando algo sale mal.
+    `,
+    content_en: `
+## The Reality of Negative Reviews
+
+97% of consumers read reviews before choosing a restaurant. And a restaurant with only positive reviews seems fake. What matters isn't just the rating — it's **how you respond**.
+
+A Harvard Business School study found that **one more star on Yelp increases revenue by 5% to 9%**. But even more revealing: restaurants that respond to negative reviews professionally improve their rating faster than those that ignore them.
+
+## The 5 Most Common Mistakes When Responding to Criticism
+
+**Mistake 1: Getting defensive**
+> "That's not true, our service is excellent."
+
+This publicly destroys your brand. Future readers see that the restaurant doesn't accept feedback.
+
+**Mistake 2: Not responding**
+Ignoring a negative review is like hanging up on a dissatisfied customer. 53% of customers expect a response within 7 days.
+
+**Mistake 3: Copied generic response**
+If all your responses are identical, they seem automated. Readers notice.
+
+**Mistake 4: Publicly offering discounts**
+Posting "we'll give you 20% on your next visit" invites others to leave negative reviews hoping for the same treatment.
+
+**Mistake 5: Promising without following through**
+Saying "we'll fix it" without changing anything in operations generates more negative reviews about the same problem.
+
+## The HEAR Method for Responding to Negative Reviews
+
+### H — Hear it completely
+Read the review 3 times before responding. Identify: Is it the service? The food? The wait time? A specific employee?
+
+### E — Empathy first
+Always start by acknowledging the customer's experience, even if you don't 100% agree.
+
+### A — Act on facts
+Stay factual. If the customer says they waited 45 minutes, investigate if it's true before responding.
+
+### R — Real action
+Mention what you're going to do differently. Be specific. And follow through.
+
+## The Perfect Response Formula (4 Steps)
+
+**Example negative review:**
+> "I waited 35 minutes for my order and when it arrived it was cold. The waiter didn't even apologize. 2 stars."
+
+**Response using the formula:**
+
+> Hi [Name], thank you for taking the time to write to us.
+>
+> You're right — 35 minutes of waiting and a cold order is not the standard we want for anyone. We understand the frustration, especially when you didn't receive an apology from our team.
+>
+> This week we had an unusual situation in the kitchen that affected our timing. We've already spoken with our team about communication protocols with customers when there are delays.
+>
+> We'd love for you to write us at support@menius.app with your name so we can make it up to you on your next visit. We want the chance to show you the service you truly deserve.
+>
+> — The [Your Restaurant] Team
+
+## Using MENIUS to Monitor and Respond to Reviews
+
+From your MENIUS dashboard, you can see all your customer reviews in one screen. The system shows you the average rating, comment history, and customer contact information for direct follow-up.
+
+You can also ask **MENIUS AI**: *"What's my average rating this week?"* or *"Which customers left negative comments this month?"* and it responds with real data instantly.
+
+## Conclusion
+
+A well-responded negative review can be **better marketing than no negative reviews at all**. It shows you listen, you care, and you improve. That builds more trust than a perfect rating.
+
+The goal isn't 5.0 — it's being the restaurant that responds best when something goes wrong.
+    `,
+  },
+
+  // ── Post 15: Fotos con celular ────────────────────────────────────────────
+  {
+    slug: 'fotos-comida-celular-restaurante',
+    title: 'Cómo tomar fotos de comida profesionales con tu celular (sin fotógrafo)',
+    description: 'Aprende técnicas simples de fotografía gastronómica con smartphone: iluminación, ángulos, composición y edición gratuita para que tus platillos se vean irresistibles.',
+    category: 'Marketing',
+    readTime: 7,
+    date: '2026-03-03',
+    author: 'MENIUS',
+    title_en: 'How to Take Professional Food Photos with Your Phone (No Photographer Needed)',
+    description_en: 'Learn simple smartphone food photography techniques: lighting, angles, composition, and free editing so your dishes look irresistible.',
+    category_en: 'Marketing',
+    content: `
+## Por qué las fotos son tu herramienta de ventas más poderosa
+
+Los restaurantes que tienen fotos en todos sus productos venden **hasta un 30% más** que los que no las tienen. No porque la comida sea mejor — sino porque el cerebro humano toma decisiones de compra en 200 milisegundos, y una foto activa el apetito antes de que el cliente pueda pensar.
+
+La buena noticia: un iPhone o Android moderno puede tomar fotos de restaurante que compiten con equipos de $3,000 dólares. El secreto está en técnica, no en equipo.
+
+## El principio #1: La luz lo es todo
+
+**Luz natural = Tus mejores fotos gratuitas**
+
+Coloca el platillo cerca de una ventana con luz natural (no sol directo — hace sombras duras). La "hora dorada" (1 hora después del amanecer, 1 hora antes del atardecer) da una luz cálida perfecta para comida.
+
+**Evita el flash del celular a toda costa.** El flash frontal aplana la textura de la comida, crea reflejos y hace que los colores se vean lavados.
+
+**Si usas luz artificial:**
+- Luz blanca (5000K-6500K) para comida fresca, ensaladas, sushi
+- Luz cálida (2700K-3000K) para carnes, postres, cafés
+- Nunca mezcles temperaturas de color diferentes (hace que la comida se vea rara)
+
+**Truco profesional:** Un cartón blanco al lado opuesto de la ventana refleja la luz y elimina sombras duras. Cuesta $0.
+
+## Los 4 ángulos que funcionan según el platillo
+
+**Ángulo cenital (desde arriba, 90°)**
+→ Ideal para: pizzas, bowls, platillos con muchos ingredientes visibles, mesas completas
+→ El platillo muestra todo su contenido
+→ Pon el teléfono exactamente paralelo al suelo para evitar distorsión
+
+**Ángulo a 45° (diagonal)**
+→ Ideal para: hamburguesas, tacos, sándwiches, postres con altura
+→ Muestra tanto la parte superior como el lado
+→ El más natural, similar a como lo vería una persona sentada a la mesa
+
+**Ángulo lateral (90° del lado)**
+→ Ideal para: copas de bebida, cocteles, tartas con capas, anything con altura que quieres destacar
+→ Muestra la textura y capas internas
+
+**Ángulo a 30° (ligeramente elevado)**
+→ Ideal para: la mayoría de platillos en su contexto
+→ Muestra el ambiente del restaurante
+→ El más versátil
+
+## Composición: La regla de los tercios
+
+Activa la cuadrícula en tu cámara (Configuración → Cámara → Cuadrícula). Los cuatro puntos donde se cruzan las líneas son los puntos de mayor atención visual.
+
+**Coloca el elemento principal en uno de esos 4 puntos**, no en el centro exacto. Eso crea fotos más dinámicas e interesantes.
+
+**Elementos de composición que funcionan:**
+- Props relevantes (tenedor, servilleta, hierbas frescas)
+- Ingredientes del platillo alrededor (no encima)
+- Un vaso de agua o bebida de fondo, ligeramente desenfocado
+- La mano de alguien sosteniendo la bebida (toque humano)
+
+## Configuración de cámara para mejores resultados
+
+**En iPhone:** Modo Foto, toca el platillo para enfocar, desliza el sol hacia abajo para reducir exposición si está muy brillante. Para close-ups, usa 1x (no el zoom digital — pierde calidad).
+
+**En Android:** Similar — toca para enfocar, ajusta exposición manualmente. En Samsung, prueba el modo "Pro" para control total.
+
+**Para platillos pequeños:** Activa el modo "Macro" o acércate despacio hasta que la cámara enfoque automáticamente.
+
+## Edición gratuita en 5 minutos
+
+**Apps gratuitas que usan los profesionales:**
+
+**Snapseed (Google)** — gratuita, la más potente
+1. Herramientas → Ajustar imagen
+2. Sube el brillo +10 a +20
+3. Sube el contraste +15
+4. Sube la vibración (Ambiance) +20
+5. Sube la saturación +10 a +15
+6. Aplica un pequeño vignette para enfocar la atención
+
+**Lightroom Mobile (gratis sin suscripción)**
+- Presets gratuitos de "food photography" (busca en Pinterest)
+- Una aplicación de preset puede transformar la foto en 2 segundos
+
+**Lo que debes evitar editar:**
+- No sobresatures (la comida se ve artificial)
+- No aumentes demasiado la nitidez (crea ruido)
+- No uses filtros dramáticos de redes sociales
+
+## El fondo importa más de lo que crees
+
+Los mejores fondos para comida:
+- **Madera natural oscura** — Elegante, aplica a la mayoría de cocinas
+- **Mármol blanco** — Limpio, moderno, perfecto para pastelería y café
+- **Pizarrón negro** — Dramático, ideal para mariscos y carnes
+- **Mantel de lino** — Rústico y cálido, perfecto para comida artesanal
+
+Puedes comprar una lámina de vinilo fotográfico (en Mercado Libre o Amazon) por $15-30 USD que simula madera o mármol. Es lo que usan los fotógrafos de comida en sesiones de $500.
+
+## Cuándo usar IA en vez de fotografía real
+
+Si no tienes tiempo de fotografiar todo tu menú, MENIUS incluye **generación de fotos con IA (Google Gemini)**. Describes el platillo y la IA genera una imagen profesional en segundos.
+
+**Cuándo usar foto real:**
+- Platos estrella de tu menú
+- Redes sociales (autenticidad importa)
+- Menú físico
+
+**Cuándo usar IA:**
+- Productos nuevos que aún no están preparados para fotog.
+- Temporadas o variaciones de platillos
+- Complementar tu menú sin sesión fotográfica
+
+## El workflow completo: De platillo a menú en 10 minutos
+
+1. Prepara el platillo (limpia el plato, garnish fresco)
+2. Coloca junto a la ventana con luz natural
+3. Toma 5-10 fotos desde distintos ángulos
+4. Edita la mejor en Snapseed (3-5 minutos)
+5. Sube directamente desde el dashboard de MENIUS
+
+Resultado: una foto que aumenta la probabilidad de que ese platillo sea ordenado.
+
+## Conclusión
+
+No necesitas un fotógrafo profesional para tener un menú digital que venda. Necesitas luz natural, el ángulo correcto, y 5 minutos de edición. Con estas técnicas y el menú digital de MENIUS, tus platillos van a competir visualmente con los mejores restaurantes de tu ciudad.
+    `,
+    content_en: `
+## Why Photos Are Your Most Powerful Sales Tool
+
+Restaurants that have photos on all their products sell **up to 30% more** than those that don't. Not because the food is better — but because the human brain makes purchase decisions in 200 milliseconds, and a photo activates appetite before the customer can even think.
+
+The good news: a modern iPhone or Android can take restaurant photos that compete with $3,000 equipment. The secret is technique, not gear.
+
+## Principle #1: Light Is Everything
+
+**Natural light = Your best free photos**
+
+Place the dish near a window with natural light (not direct sun — it creates harsh shadows). The "golden hour" (1 hour after sunrise, 1 hour before sunset) gives a warm light perfect for food.
+
+**Avoid your phone's flash at all costs.** The front flash flattens food texture, creates reflections, and makes colors look washed out.
+
+## The 4 Angles That Work for Each Dish
+
+**Overhead (90°)** → Ideal for pizzas, bowls, dishes with many visible ingredients
+**45° angle** → Ideal for burgers, tacos, sandwiches, tall desserts
+**Side angle (90°)** → Ideal for drinks, layered cakes, anything with height
+**30° slightly elevated** → Ideal for most dishes, shows restaurant context
+
+## Free Editing in 5 Minutes
+
+Use **Snapseed** (free): Brightness +15, Contrast +15, Ambiance +20, Saturation +10.
+
+## Conclusion
+
+You don't need a professional photographer to have a digital menu that sells. You need natural light, the right angle, and 5 minutes of editing.
+    `,
+  },
+
+  // ── Post 16: Checklist apertura restaurante ───────────────────────────────
+  {
+    slug: 'checklist-apertura-restaurante-digital',
+    title: 'Checklist completo: Todo lo que necesitas para abrir tu restaurante con menú digital desde el día 1',
+    description: 'La lista definitiva de 47 puntos para lanzar tu restaurante correctamente: permisos, menú digital, pagos online, marketing inicial y primeras semanas de operación.',
+    category: 'Guías',
+    readTime: 9,
+    date: '2026-03-05',
+    author: 'MENIUS',
+    title_en: 'Complete Checklist: Everything You Need to Open Your Restaurant with a Digital Menu from Day 1',
+    description_en: 'The definitive 47-point list to launch your restaurant correctly: permits, digital menu, online payments, initial marketing, and first weeks of operation.',
+    category_en: 'Guides',
+    content: `
+## Por qué los primeros 90 días definen el éxito de tu restaurante
+
+El 60% de los restaurantes que cierran en el primer año lo hacen por problemas operativos, no por mala comida. La diferencia entre los que sobreviven y los que no suele estar en la preparación digital y tecnológica desde el día 1.
+
+Este checklist cubre todo lo que debes tener listo antes de abrir tus puertas — y las primeras semanas de operación.
+
+---
+
+## 📋 FASE 1: Legal y permisos (4-8 semanas antes)
+
+- [ ] Registro de negocio / constitución de empresa
+- [ ] RFC o número fiscal según tu país
+- [ ] Permiso de uso de suelo para giro de alimentos
+- [ ] Licencia de funcionamiento municipal
+- [ ] Permiso de COFEPRIS/Secretaría de Salud (o equivalente local)
+- [ ] Seguro de responsabilidad civil
+- [ ] Registro de marca si planeas escalar
+- [ ] Cuenta bancaria empresarial (necesaria para Stripe)
+- [ ] Contrato de arrendamiento firmado
+
+> **Truco:** Contrata a un gestor local para los permisos — cobra $200-500 USD pero te ahorra semanas de trámites.
+
+---
+
+## 🍽️ FASE 2: Menú y operación (2-4 semanas antes)
+
+### Menú físico y digital
+- [ ] Menú finalizado con al menos 15-30 productos para apertura
+- [ ] Precios calculados con margen de al menos 60-70% sobre costo
+- [ ] Categorías organizadas (máximo 6-8 para el lanzamiento)
+- [ ] Recetas estandarizadas escritas (misma sazón siempre)
+- [ ] Fotos de al menos los 10 productos más importantes
+
+### Configuración MENIUS (1-2 horas)
+- [ ] Cuenta creada en MENIUS (gratis, 14 días de prueba)
+- [ ] Nombre, logo y descripción del restaurante
+- [ ] Dirección completa configurada
+- [ ] Horarios de operación
+- [ ] Todos los productos con nombre, precio y descripción
+- [ ] Al menos 10 productos con foto (real o generada por IA)
+- [ ] Categorías configuradas y ordenadas
+- [ ] Tipos de orden habilitados (dine-in, pickup, delivery)
+- [ ] Métodos de pago (efectivo y/o Stripe)
+- [ ] QR de mesas generados e impresos
+- [ ] QR de prueba escaneado y pedido de prueba realizado ✓
+
+### Inventario inicial
+- [ ] Inventario inicial para primer mes calculado
+- [ ] Proveedores principales identificados con plan B
+- [ ] Par de proveedor para ingredientes críticos
+
+---
+
+## 💻 FASE 3: Tecnología y pagos (1 semana antes)
+
+- [ ] Cuenta Stripe creada y verificada (3-5 días hábiles)
+- [ ] Pagos online activados en MENIUS
+- [ ] Pedido de prueba con pago real realizado
+- [ ] Tablet o pantalla para KDS en cocina configurada
+- [ ] Tablet o dispositivo para el dashboard del encargado
+- [ ] WhatsApp Business configurado (para notificaciones de pedidos)
+- [ ] Router/internet con plan de respaldo (datos móviles si falla)
+- [ ] Impresora de tickets si la necesitas (opcional con KDS digital)
+
+---
+
+## 📣 FASE 4: Marketing de apertura (2 semanas antes)
+
+### Presencia digital básica
+- [ ] Google Business Profile creado y verificado (¡GRATIS y esencial!)
+- [ ] Fotos del lugar y menú subidas a Google Maps
+- [ ] Instagram creado (aunque sea básico)
+- [ ] WhatsApp Business configurado con horario y respuestas automáticas
+- [ ] Link del menú digital preparado para compartir
+
+### Materiales físicos
+- [ ] QR codes impresos con diseño del restaurante
+- [ ] Menú digital con QR en ventana o fachada
+- [ ] Tarjetas de presentación con link del menú
+- [ ] Flyers para zona cercana (radio de 5 cuadras)
+
+### Estrategia de apertura
+- [ ] Lista de 50-100 personas para invitar a pre-apertura (familia, amigos, redes)
+- [ ] Evento de pre-apertura o "soft opening" para probar operación
+- [ ] Oferta de apertura definida (ej: 15% de descuento primera semana)
+- [ ] Código de descuento creado en MENIUS para apertura
+- [ ] Plan para las primeras 10 reseñas de Google (pide a tus primeros clientes)
+
+---
+
+## 🚀 FASE 5: Primeras semanas de operación
+
+### Semana 1
+- [ ] Revisar MENIUS AI cada mañana: "¿Cómo estuvo ayer?"
+- [ ] Verificar que todos los pedidos están marcados correctamente
+- [ ] Responder a cualquier review en menos de 24 horas
+- [ ] Ajustar precios o productos según feedback inicial
+- [ ] Verificar tiempos promedio de preparación
+
+### Semana 2-4
+- [ ] Analizar productos más vendidos (ajustar inventario)
+- [ ] Identificar hora pico (ajustar staffing)
+- [ ] Primer reporte de ventas: comparar con proyección inicial
+- [ ] Crear primera promoción en MENIUS (promo de semana o fin de semana)
+- [ ] Publicar en redes al menos 3 veces por semana (fotos de platillos)
+
+### Mes 1
+- [ ] Revisar margen real vs proyectado
+- [ ] Agregar productos faltantes al menú digital
+- [ ] Completar fotos de todos los productos
+- [ ] Evaluar si activar delivery
+- [ ] Primer análisis de clientes frecuentes en CRM de MENIUS
+
+---
+
+## ❌ Los errores más costosos que cometen los restaurantes nuevos
+
+**Error #1: Abrir sin menú digital**
+Los clientes buscan tu menú en Google antes de ir. Si no aparece, pierdes reservaciones.
+
+**Error #2: No tener pagos online desde el día 1**
+Configura Stripe antes de abrir. El proceso toma 3-5 días hábiles — no esperes al último momento.
+
+**Error #3: Ignorar Google Business Profile**
+El 46% de todas las búsquedas en Google son locales. Si no estás en Google Maps con fotos y reseñas, eres invisible.
+
+**Error #4: Menú demasiado grande**
+Con 60 productos es difícil mantener calidad y controlar inventario. Empieza con 20-30 platillos estrella.
+
+**Error #5: No pedir reseñas activamente**
+Las primeras 10 reseñas en Google son las más importantes para tu posicionamiento. Pídelas a los primeros clientes directamente.
+
+---
+
+## Herramienta gratuita: MENIUS como centro de operaciones
+
+MENIUS reemplaza varias herramientas que los restaurantes nuevos suelen pagar por separado:
+
+| Herramienta | Costo mensual típico | Con MENIUS |
+|---|---|---|
+| Sistema de pedidos online | $50-200 | Incluido |
+| Menú digital con QR | $30-100 | Incluido |
+| KDS de cocina | $50-150 | Incluido |
+| CRM de clientes | $30-100 | Incluido |
+| Analytics de ventas | $20-80 | Incluido |
+| Asistente IA | $50-200 | Incluido |
+| **Total** | **$230-830/mes** | **$39-149/mes** |
+
+La prueba gratuita de 14 días es suficiente para tener todo tu restaurante configurado antes de abrir.
+
+## Conclusión
+
+Abrir un restaurante exitoso requiere preparación, no solo buena comida. Este checklist te asegura que no te falte nada el día de apertura. Guárdalo, compártelo con tu equipo, y márcalo punto por punto.
+
+El menú digital no es opcional en 2026 — es lo primero que buscan tus clientes cuando deciden dónde comer.
+    `,
+    content_en: `
+## Why the First 90 Days Define Your Restaurant's Success
+
+60% of restaurants that close in the first year do so due to operational problems, not bad food. The difference between those that survive and those that don't is usually in digital and technological preparation from day one.
+
+This checklist covers everything you need ready before opening your doors — and the first weeks of operation.
+
+## Phase 1: Legal & Permits (4-8 weeks before)
+- Business registration
+- Tax ID / EIN
+- Food service permit
+- Health department inspection
+- Business bank account (required for Stripe)
+
+## Phase 2: Menu & Operations (2-4 weeks before)
+- Finalized menu with 15-30 products for launch
+- MENIUS account set up (free 14-day trial)
+- All products with names, prices, descriptions, photos
+- QR codes printed and tested
+
+## Phase 3: Technology & Payments (1 week before)
+- Stripe account verified (3-5 business days)
+- Online payments enabled in MENIUS
+- KDS tablet set up in kitchen
+- WiFi with mobile data backup
+
+## Phase 4: Opening Marketing (2 weeks before)
+- Google Business Profile created and verified (FREE and essential!)
+- Instagram set up
+- Opening promotion code created in MENIUS
+- Plan for first 10 Google reviews
+
+## The Most Costly Mistakes New Restaurants Make
+
+1. Opening without a digital menu
+2. Not having online payments ready from day 1
+3. Ignoring Google Business Profile
+4. Menu too large (start with 20-30 star dishes)
+5. Not actively asking for reviews
+
+## Conclusion
+
+Opening a successful restaurant requires preparation, not just good food. This checklist ensures you don't miss anything on opening day.
+    `,
+  },
+
+  // ── Post 17: Fidelizar sin apps delivery ──────────────────────────────────
+  {
+    slug: 'fidelizar-clientes-restaurante-sin-apps-delivery',
+    title: 'Cómo fidelizar clientes de tu restaurante sin depender de apps de delivery',
+    description: 'Las apps de delivery se quedan con tus clientes. Aprende estrategias concretas para construir tu propia base de clientes fieles que ordenan directamente contigo.',
+    category: 'Estrategia',
+    readTime: 7,
+    date: '2026-03-07',
+    author: 'MENIUS',
+    title_en: 'How to Build Customer Loyalty at Your Restaurant Without Delivery Apps',
+    description_en: 'Delivery apps keep your customers. Learn concrete strategies to build your own loyal customer base that orders directly from you.',
+    category_en: 'Strategy',
+    content: `
+## El problema real con las apps de delivery: No son tus clientes
+
+Cuando alguien ordena a través de Rappi, Uber Eats o DiDi Food, ese cliente es de la plataforma, no tuyo. No tienes su email, no sabes su historial, no puedes contactarlo directamente. La próxima vez que quiera pedir de nuevo, la app le mostrará a tu competencia antes que a ti.
+
+Y encima, pagas 15-30% de comisión por ese cliente que nunca fue tuyo.
+
+La fidelización de clientes directos — los que ordenan directo a tu restaurante — es el activo más valioso que puedes construir. Un cliente fiel vale 5-10x más que un cliente nuevo, y adquirirlo cuesta 5x menos.
+
+## La primera barrera: Hacer que conozcan tu canal directo
+
+### Estrategia 1: El flyer dentro de cada pedido de delivery
+
+Cada pedido que sale a través de apps de delivery lleva un flyer dentro:
+
+> **"¡Ordena directo y ahorra!"**
+> Usa el código **DIRECTO10** en [tu enlace de menú]
+> y obtén 10% de descuento en tu próxima orden.
+
+Costo: $0.05 por flyer. ROI: Convierte clientes de apps de $7.50 comisión a clientes directos gratuitos.
+
+### Estrategia 2: QR en mesas para clientes dine-in
+
+Los clientes que comen en tu restaurante ya te eligieron. El QR en la mesa con tu menú digital es tu oportunidad de capturar su email para el futuro.
+
+Configura en MENIUS un campo de email opcional al ordenar, con un incentivo: "Deja tu email y recibe tus próximas ofertas y puntos de lealtad."
+
+### Estrategia 3: Google Maps como canal de adquisición directa
+
+Cuando alguien te busca en Google Maps y hace clic en "Ordenar", puedes configurar que vaya directamente a tu menú de MENIUS — no a una app de delivery. Así capturas el cliente directo desde el primer contacto.
+
+## La segunda barrera: Que vuelvan a ordenar directamente
+
+### Estrategia 4: El programa de lealtad simple
+
+No necesitas software complejo. Una tarjeta digital con "cada 10 pedidos directos, el siguiente con 20% de descuento" es suficiente para cambiar comportamiento.
+
+Con el CRM de MENIUS puedes ver cuántas veces ha ordenado cada cliente e identificar a los que están en el pedido 9 para enviarles un recordatorio.
+
+### Estrategia 5: Notificaciones de WhatsApp con descuentos exclusivos
+
+Para los clientes que te dieron su WhatsApp (a través del checkout), puedes enviar:
+
+- Ofertas del día (martes lentos → descuento martes)
+- Preventa de platillos nuevos ("primeros 20 en ordenar")
+- Cumpleaños (si tienes la fecha) con descuento personalizado
+
+**Importante:** MENIUS te permite ver el número de teléfono de cada cliente que ha ordenado. Puedes crear un grupo de difusión (no grupo) en WhatsApp Business para estas comunicaciones. Máximo 1 mensaje por semana para no molestar.
+
+### Estrategia 6: El "siguiente pedido" capturado en el momento
+
+Cuando el cliente ya está comiendo (dine-in) o acaba de recibir su delivery, es el momento con mayor satisfacción. Es el mejor momento para preguntar.
+
+Coloca un QR en la mesa o incluye un mensaje en la confirmación del pedido:
+
+> *"¿Te gustó? Agenda tu próximo pedido con 15% de descuento si ordenas antes del [fecha 7 días después]"*
+
+### Estrategia 7: Contenido en redes que dirige al menú directo
+
+Cada post de Instagram de un platillo debe tener en bio el link de tu menú directo. No el link de Rappi. El tuyo.
+
+Cuando alguien ve una foto de tus tacos a las 7pm con hambre y hace clic, quieres que llegue a **tu** carrito, no al carrito de la app que se lleva la comisión.
+
+## Cómo usar MENIUS para ejecutar esto
+
+### CRM integrado
+Desde el dashboard, puedes ver:
+- Todos tus clientes con historial de pedidos
+- Frecuencia de pedidos por cliente
+- Últimos pedidos y productos favoritos
+- Datos de contacto
+
+### Campañas de marketing
+Crea en MENIUS códigos de descuento con expiración para:
+- Clientes inactivos (no han ordenado en 30+ días)
+- Clientes frecuentes (recompensa)
+- Temporadas o eventos especiales
+
+### MENIUS AI para identificar oportunidades
+Pregúntale a MENIUS AI:
+- *"¿Cuáles son mis clientes que no han ordenado en 30 días?"*
+- *"¿Cuántos clientes han ordenado más de 3 veces?"*
+- *"¿A qué hora tengo menos pedidos los martes?"* (para saber cuándo ofrecer descuentos)
+
+## El cálculo financiero de fidelizar vs adquirir
+
+| Acción | Costo | Resultado |
+|---|---|---|
+| Cliente nuevo vía Rappi | 25% comisión = $5-15 por pedido | Cliente de la app, no tuyo |
+| Convertir a cliente directo | $0.50 flyer + 10% descuento | Cliente tuyo, 0% comisión futura |
+| Retener cliente fiel | Email o WhatsApp = $0 | 5-10x más pedidos a largo plazo |
+
+Un cliente que ordena 2 veces al mes durante 1 año, con ticket de $300 pesos, vale $7,200 pesos anuales. Pero solo si ordena directo — si ordena por app, tú recibes $5,400 y la app $1,800.
+
+## La transición gradual: No abandones las apps de un golpe
+
+Las apps de delivery siguen siendo útiles para **adquisición de nuevos clientes**. El error es quedarte ahí.
+
+El modelo que funciona:
+1. **Usa las apps para que te descubran**
+2. **Incluye siempre tu canal directo en cada pedido** (flyer, sticker, mensaje)
+3. **Ofrece incentivo para pasar al canal directo** (descuento, puntos, servicio mejor)
+4. **Mantén la experiencia directa superior** (respuesta más rápida, mayor personalización)
+
+Con el tiempo, el mix ideal es 70-80% pedidos directos, 20-30% apps de delivery para nuevos clientes.
+
+## Conclusión
+
+Fidelizar clientes no es complicado — es constante. Un flyer en cada pedido, un QR en cada mesa, un mensaje de WhatsApp al mes. Esas acciones pequeñas, repetidas consistentemente, construyen una base de clientes directos que nadie te puede quitar.
+
+Las apps de delivery son un canal de adquisición, no tu canal principal. Tu menú digital directo es tu activo más valioso.
+    `,
+    content_en: `
+## The Real Problem with Delivery Apps: They're Not Your Customers
+
+When someone orders through Rappi, Uber Eats, or DoorDash, that customer belongs to the platform, not you. You don't have their email, you don't know their history, you can't contact them directly.
+
+And on top of that, you pay 15-30% commission for a customer that was never yours.
+
+## Key Strategies to Build Direct Customer Loyalty
+
+### Strategy 1: Flyer Inside Every Delivery Order
+Include a flyer with a discount code for ordering directly next time. Cost: $0.05. ROI: Converts a $7.50 commission customer to a free direct customer.
+
+### Strategy 2: QR at Tables for Dine-In Customers
+Customers eating at your restaurant already chose you. Capture their email for future marketing through the QR-linked digital menu.
+
+### Strategy 3: Google Maps → Direct to Your Menu
+Configure Google Maps to link directly to your MENIUS menu, not a delivery app.
+
+### Strategy 4: Simple Loyalty Program
+Every 10 direct orders = 20% off the next one. Track this using MENIUS CRM.
+
+### Strategy 5: WhatsApp Promotions
+Send exclusive deals to customers who gave their phone number. Max 1 message/week.
+
+## The Financial Math
+
+A customer ordering 2x/month with a $30 average ticket is worth $720/year to you.
+- Via delivery app: you receive $540, app receives $180
+- Direct orders: you receive $720
+
+## The Gradual Transition
+
+1. Use apps to get discovered
+2. Always include your direct channel in every order (flyer, sticker)
+3. Offer incentive to switch to direct channel
+4. Keep the direct experience superior
+
+Target: 70-80% direct orders, 20-30% apps for new customer acquisition.
+    `,
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
