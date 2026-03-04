@@ -32,6 +32,11 @@ interface ReviewItem {
   created_at: string;
 }
 
+interface LimitedMode {
+  ordersToday: number;
+  dailyLimit: number;
+}
+
 interface MenuShellProps {
   restaurant: Restaurant;
   categories: Category[];
@@ -42,6 +47,7 @@ interface MenuShellProps {
   backUrl?: string;
   reviewStats?: ReviewStats | null;
   recentReviews?: ReviewItem[];
+  limitedMode?: LimitedMode | null;
 }
 
 interface CustomizationTarget {
@@ -94,6 +100,7 @@ export function MenuShell({
   backUrl,
   reviewStats,
   recentReviews,
+  limitedMode,
 }: MenuShellProps) {
   const router = useRouter();
   const defaultLocale = initialLocale;
@@ -488,8 +495,27 @@ export function MenuShell({
     </div>
   );
 
+  const ordersLeft = limitedMode ? Math.max(0, limitedMode.dailyLimit - limitedMode.ordersToday) : null;
+
   return (
     <div className="h-[100dvh] flex flex-col bg-white overflow-hidden overscroll-none touch-pan-y">
+      {/* Free tier banner */}
+      {limitedMode && (
+        <div className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium ${
+          ordersLeft === 0
+            ? 'bg-red-600 text-white'
+            : ordersLeft === 1
+            ? 'bg-amber-500 text-white'
+            : 'bg-amber-50 text-amber-800 border-b border-amber-200'
+        }`}>
+          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+          {ordersLeft === 0
+            ? 'Este menú alcanzó el límite de 3 pedidos gratuitos por hoy. Vuelve mañana.'
+            : `Plan gratuito · ${ordersLeft} de ${limitedMode.dailyLimit} pedido${ordersLeft !== 1 ? 's' : ''} disponible${ordersLeft !== 1 ? 's' : ''} hoy`}
+        </div>
+      )}
       {/* Fixed header */}
       <MenuHeader
         restaurant={restaurant}

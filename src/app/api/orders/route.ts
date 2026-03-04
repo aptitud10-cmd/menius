@@ -74,6 +74,58 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 });
     }
 
+    // Check subscription — enforce daily limit for expired/free-tier restaurants
+    try {
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('status, trial_end, current_period_end')
+        .eq('restaurant_id', restaurant_id)
+        .maybeSingle();
+
+      const now = new Date();
+      let isExpired = false;
+
+      if (!sub) {
+        const { data: rest } = await supabase.from('restaurants').select('created_at').eq('id', restaurant_id).maybeSingle();
+        if (rest) {
+          const graceEnds = new Date(new Date(rest.created_at).getTime() + 14 * 24 * 60 * 60 * 1000);
+          if (now > graceEnds) isExpired = true;
+        }
+      } else {
+        const { status } = sub;
+        if (status === 'active' || status === 'past_due') {
+          isExpired = false;
+        } else if (status === 'trialing') {
+          const trialOver = sub.trial_end
+            ? new Date(sub.trial_end) < now
+            : (sub.current_period_end ? new Date(sub.current_period_end) < now : false);
+          if (trialOver) isExpired = true;
+        } else {
+          const periodEnded = sub.current_period_end && new Date(sub.current_period_end) < now;
+          if (periodEnded) isExpired = true;
+        }
+      }
+
+      if (isExpired) {
+        const DAILY_LIMIT = 3;
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const { count } = await adminDb
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('restaurant_id', restaurant_id)
+          .gte('created_at', todayStart.toISOString());
+        if ((count ?? 0) >= DAILY_LIMIT) {
+          return NextResponse.json(
+            { error: 'Este restaurante alcanzó el límite de 3 pedidos gratuitos por hoy. Vuelve mañana o contacta al restaurante.' },
+            { status: 429 }
+          );
+        }
+      }
+    } catch (subErr) {
+      logger.warn('Subscription check failed during order creation — proceeding', { error: subErr });
+    }
+
     const productIds = parsed.data.items.map((i) => i.product_id);
 
     const [{ data: dbProducts }, { data: dbVariants }, { data: dbExtras }, { data: dbModGroups }] = await Promise.all([

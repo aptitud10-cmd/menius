@@ -14,6 +14,11 @@ export interface ReviewItem {
   created_at: string;
 }
 
+export interface LimitedMode {
+  ordersToday: number;
+  dailyLimit: number;
+}
+
 export interface MenuData {
   restaurant: Restaurant;
   categories: Category[];
@@ -24,6 +29,7 @@ export interface MenuData {
   reviewStats: ReviewStats | null;
   recentReviews: ReviewItem[];
   subscriptionExpired?: boolean;
+  limitedMode?: LimitedMode | null;
 }
 
 export async function fetchMenuData(slug: string): Promise<MenuData | null> {
@@ -68,7 +74,10 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
       .limit(50),
   ]);
 
+  const DAILY_FREE_LIMIT = 3;
   let subscriptionExpired = false;
+  let limitedMode: LimitedMode | null = null;
+
   try {
     const subscription = subResult;
     const now = new Date();
@@ -80,18 +89,29 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
     } else {
       const { status } = subscription;
       if (status === 'active' || status === 'past_due') {
-        // OK
+        // OK — full access
       } else if (status === 'trialing') {
         const trialOver = subscription.trial_end
           ? new Date(subscription.trial_end) < now
           : (subscription.current_period_end ? new Date(subscription.current_period_end) < now : false);
-        if (trialOver) {
-          subscriptionExpired = true;
-        }
+        if (trialOver) subscriptionExpired = true;
       } else {
         const periodEnded = subscription.current_period_end && new Date(subscription.current_period_end) < now;
         if (periodEnded) subscriptionExpired = true;
       }
+    }
+
+    // Instead of blocking the menu, switch to limited mode
+    if (subscriptionExpired) {
+      subscriptionExpired = false;
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const { count } = await supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('restaurant_id', restaurant.id)
+        .gte('created_at', todayStart.toISOString());
+      limitedMode = { ordersToday: count ?? 0, dailyLimit: DAILY_FREE_LIMIT };
     }
   } catch {
     console.error('[menu-data] Subscription check failed — showing menu', { restaurantId: restaurant.id });
@@ -146,5 +166,6 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
     reviewStats,
     recentReviews,
     subscriptionExpired,
+    limitedMode,
   };
 }

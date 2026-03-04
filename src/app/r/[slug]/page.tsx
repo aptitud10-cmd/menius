@@ -106,22 +106,6 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
   const data = await fetchMenuData(params.slug);
   if (!data) notFound();
 
-  if (data.subscriptionExpired) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
-            </svg>
-          </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Menu Temporarily Unavailable</h1>
-          <p className="text-gray-500 text-sm">This restaurant&apos;s menu is temporarily unavailable. Please try again later.</p>
-        </div>
-      </div>
-    );
-  }
-
   const tableName = searchParams.table ?? null;
 
   return (
@@ -136,6 +120,7 @@ export default async function PublicMenuPage({ params, searchParams }: PageProps
         availableLocales={data.availableLocales}
         reviewStats={data.reviewStats}
         recentReviews={data.recentReviews}
+        limitedMode={data.limitedMode ?? null}
       />
     </>
   );

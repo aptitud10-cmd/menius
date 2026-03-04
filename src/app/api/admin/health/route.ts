@@ -21,7 +21,6 @@ export async function GET() {
     const [
       { data: stuckOrders, count: stuckCount },
       { data: noProductRests },
-      { data: inactiveRests },
       { data: trialsExpiring },
       { data: cancelledSubs },
       { data: allSubs },
@@ -37,18 +36,12 @@ export async function GET() {
         .lt('created_at', h24ago)
         .limit(20),
 
-      // Restaurants with no active products
+      // All active restaurants (for empty menu + inactive checks)
       supabase
         .from('restaurants')
         .select('id, name, slug, created_at')
         .eq('is_active', true)
         .limit(200),
-
-      // Restaurants with no orders in last 30 days (but have products)
-      supabase
-        .from('orders')
-        .select('restaurant_id')
-        .gte('created_at', d30ago),
 
       // Trials expiring in next 7 days
       supabase
@@ -90,7 +83,7 @@ export async function GET() {
       // All active restaurants
       supabase
         .from('restaurants')
-        .select('id, name, slug')
+        .select('id, name, slug, created_at')
         .eq('is_active', true),
     ]);
 
@@ -103,11 +96,11 @@ export async function GET() {
       .in('restaurant_id', allRestIds);
 
     const restsWithProducts = new Set((productCounts ?? []).map(p => p.restaurant_id));
-    const emptyMenuRests = (noProductRests ?? []).filter(r => !restsWithProducts.has(r.id));
+    const emptyMenuRests = (allRestaurants ?? []).filter(r => !restsWithProducts.has(r.id));
 
-    // Restaurants inactive (no orders in 30d)
+    // Restaurants inactive (no orders in 30d) — built from allRestaurants, not inactiveRests
     const restsWithRecentOrders = new Set((recentOrders30d ?? []).map(o => o.restaurant_id));
-    const inactiveRestList = (inactiveRests ?? [])
+    const inactiveRestList = (allRestaurants ?? [])
       .filter(r => restsWithProducts.has(r.id) && !restsWithRecentOrders.has(r.id))
       .slice(0, 10);
 
