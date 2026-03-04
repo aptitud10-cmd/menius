@@ -54,11 +54,12 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    if (rest?.stripe_onboarding_complete && rest?.stripe_account_id) {
-      intentParams.transfer_data = { destination: rest.stripe_account_id };
-    }
+    // Direct charge on the connected account (merchant config).
+    // Stripe handles fees and losses — MENIUS collects 0% commission.
+    const connectedAccount = rest?.stripe_onboarding_complete ? rest?.stripe_account_id : undefined;
+    const requestOptions = connectedAccount ? { stripeAccount: connectedAccount } : undefined;
 
-    const paymentIntent = await stripe.paymentIntents.create(intentParams);
+    const paymentIntent = await stripe.paymentIntents.create(intentParams, requestOptions as any);
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });
   } catch (err: any) {

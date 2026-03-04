@@ -38,39 +38,31 @@ export async function POST(request: NextRequest) {
     let accountId = restaurant.stripe_account_id;
 
     if (!accountId) {
-      // V2 API: create a recipient connected account.
-      // - display_name / contact_email come from the restaurant data.
-      // - dashboard: 'express' → onboarding is hosted by Stripe.
-      // - defaults.responsibilities: platform (MENIUS) covers Stripe fees and losses.
-      // - configuration.recipient → enables stripe_transfers so the restaurant
-      //   can receive payouts from destination charges. No top-level `type` field.
+      // V2 API: merchant configuration.
+      // - dashboard: 'full' → restaurant gets a full Stripe Express dashboard.
+      // - fees_collector: 'stripe' → Stripe deducts its processing fees directly
+      //   from the restaurant's balance. MENIUS never touches the fee money.
+      // - losses_collector: 'stripe' → Stripe is responsible for chargebacks/fraud.
+      //   This lets MENIUS offer 0% commission with no liability for losses.
+      // - card_payments capability → restaurant can accept card payments directly.
       const account = await (stripe as any).v2.core.accounts.create({
         display_name: restaurant.name,
         contact_email: user.email,
         identity: {
-          // Country of legal establishment. Stripe will ask during onboarding
-          // if not pre-filled; defaulting to Mexico for MENIUS.
           country: 'mx',
         },
-        dashboard: 'express',
+        dashboard: 'full',
         defaults: {
           responsibilities: {
-            // For recipient accounts, 'application' is the only valid value.
-            // This means MENIUS (the platform) is the fees/losses collector.
-            // Stripe requires confirming this in Dashboard → Connect → Platform profile.
-            fees_collector: 'application',
-            losses_collector: 'application',
+            fees_collector: 'stripe',
+            losses_collector: 'stripe',
           },
         },
         configuration: {
-          recipient: {
+          merchant: {
             capabilities: {
-              stripe_balance: {
-                stripe_transfers: {
-                  // Request the stripe_transfers capability so the account
-                  // can receive destination-charge payouts.
-                  requested: true,
-                },
+              card_payments: {
+                requested: true,
               },
             },
           },
@@ -79,22 +71,19 @@ export async function POST(request: NextRequest) {
 
       accountId = account.id;
 
-      // Persist the new connected account ID against this restaurant row.
       await supabase
         .from('restaurants')
         .update({ stripe_account_id: accountId })
         .eq('id', restaurant.id);
     }
 
-    // V2 API: create a hosted onboarding link.
-    // use_case.type: 'account_onboarding' opens the full onboarding flow.
-    // configurations: ['recipient'] scopes it to the recipient capability.
+    // V2 account links — merchant configuration onboarding.
     const accountLink = await (stripe as any).v2.core.accountLinks.create({
       account: accountId,
       use_case: {
         type: 'account_onboarding',
         account_onboarding: {
-          configurations: ['recipient'],
+          configurations: ['merchant'],
           refresh_url: `${appUrl}/app/settings?stripe=refresh`,
           return_url: `${appUrl}/app/settings?stripe=complete&accountId=${accountId}`,
         },

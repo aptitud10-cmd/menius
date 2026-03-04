@@ -76,13 +76,13 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    if (connectedAccount) {
-      sessionParams.payment_intent_data = {
-        transfer_data: { destination: connectedAccount },
-      };
-    }
+    // Direct charge: create the Checkout Session on the connected account directly.
+    // With merchant config + fees_collector/losses_collector: 'stripe', the restaurant
+    // processes the payment themselves — Stripe handles fees and chargebacks.
+    // When no connected account is set up yet, the charge falls back to the platform account.
+    const requestOptions = connectedAccount ? { stripeAccount: connectedAccount } : undefined;
 
-    const session = await stripe.checkout.sessions.create(sessionParams);
+    const session = await stripe.checkout.sessions.create(sessionParams, requestOptions as any);
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {

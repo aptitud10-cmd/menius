@@ -72,9 +72,8 @@ export async function POST(request: NextRequest) {
         break;
       }
 
-      case 'v2.core.account[configuration.recipient].capability_status_updated': {
-        // The stripe_transfers capability status changed (e.g., active → inactive
-        // because of a new compliance requirement).
+      case 'v2.core.account[configuration.merchant].capability_status_updated': {
+        // The card_payments capability status changed on the merchant config.
         if (accountId) {
           await syncAccountStatus(accountId, stripe);
         }
@@ -101,12 +100,12 @@ export async function POST(request: NextRequest) {
 async function syncAccountStatus(stripeAccountId: string, stripe: any) {
   const account = await stripe.v2.core.accounts.retrieve(
     stripeAccountId,
-    { include: ['configuration.recipient', 'requirements'] }
+    { include: ['configuration.merchant', 'requirements'] }
   );
 
   const readyToReceivePayments =
-    account?.configuration?.recipient?.capabilities
-      ?.stripe_balance?.stripe_transfers?.status === 'active';
+    account?.configuration?.merchant?.capabilities
+      ?.card_payments?.status === 'active';
 
   const requirementsStatus =
     account?.requirements?.summary?.minimum_deadline?.status;
