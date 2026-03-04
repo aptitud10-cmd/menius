@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface Message {
@@ -20,6 +20,37 @@ function formatAIText(text: string) {
   });
 }
 
+// Memoized message bubble — prevents re-renders when only new messages are added
+const MessageItem = memo(function MessageItem({ msg }: { msg: Message }) {
+  return (
+    <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+      <div
+        className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed ${
+          msg.role === 'user'
+            ? 'bg-purple-600 text-white rounded-br-md'
+            : 'bg-white/[0.05] border border-white/[0.06] text-gray-300 rounded-bl-md'
+        }`}
+      >
+        {msg.role === 'assistant' ? (
+          <div className="whitespace-pre-wrap">
+            {msg.text.split('\n').map((line, i, arr) => (
+              <span key={i}>
+                {formatAIText(line)}
+                {i < arr.length - 1 && <br />}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span>{msg.text}</span>
+        )}
+        <div className={`text-[9px] mt-1.5 ${msg.role === 'user' ? 'text-purple-200/50' : 'text-gray-600'}`}>
+          {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        </div>
+      </div>
+    </div>
+  );
+});
+
 export function AIChatWidget() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -28,7 +59,6 @@ export function AIChatWidget() {
   const [showQuick, setShowQuick] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [historyLoaded, setHistoryLoaded] = useState(false);
   const { t } = useDashboardLocale();
 
   const quickQuestions = [t.chat_q1, t.chat_q2, t.chat_q3, t.chat_q4, t.chat_q5, t.chat_q6, t.chat_q7, t.chat_q8];
@@ -41,40 +71,20 @@ export function AIChatWidget() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
+  // Focus input when chat opens — no history loading (fresh start every time)
   useEffect(() => {
     if (open && inputRef.current) {
       setTimeout(() => inputRef.current?.focus(), 200);
     }
-    if (open && !historyLoaded) {
-      setHistoryLoaded(true);
-      fetch('/api/ai/chat/history')
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          if (data?.messages?.length > 0) {
-            const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-            const recent = data.messages.filter((m: { created_at: string }) => new Date(m.created_at).getTime() > cutoff);
-            if (recent.length > 0) {
-              setMessages(recent.slice(-10).map((m: { role: string; content: string; created_at: string }, i: number) => ({
-                id: `h-${i}`,
-                role: m.role as 'user' | 'assistant',
-                text: m.content,
-                timestamp: new Date(m.created_at),
-              })));
-              setShowQuick(false);
-            }
-          }
-        })
-        .catch(() => {});
-    }
-  }, [open, historyLoaded]);
+  }, [open]);
 
-  const handleNewConversation = () => {
+  const handleNewConversation = useCallback(() => {
     setMessages([]);
     setShowQuick(true);
     setInput('');
-  };
+  }, []);
 
-  const sendMessage = async (text: string) => {
+  const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || loading) return;
 
     const userMsg: Message = {
@@ -90,6 +100,7 @@ export function AIChatWidget() {
     setShowQuick(false);
 
     try {
+      // Keep last 8 for context, but cap stored messages at 30 (see render slice below)
       const history = messages.slice(-8).map(m => ({ role: m.role, text: m.text }));
 
       const res = await fetch('/api/ai/chat', {
@@ -121,20 +132,24 @@ export function AIChatWidget() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [loading, messages, t.chat_errorConnection]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     sendMessage(input);
-  };
+  }, [input, sendMessage]);
+
+  // Only render the last 30 messages to avoid long list freezes on mobile
+  const visibleMessages = messages.slice(-30);
 
   return (
     <>
+      {/* Launcher button */}
       <button
         onClick={() => setOpen(prev => !prev)}
-        className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-2xl shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-105 ${
+        className={`fixed bottom-4 right-4 z-50 w-14 h-14 rounded-2xl shadow-2xl flex items-center justify-center motion-reduce:transition-none transition-all duration-300 hover:scale-105 ${
           open
-            ? 'bg-white/10 backdrop-blur-xl border border-white/20 rotate-0'
+            ? 'bg-white/10 backdrop-blur-xl border border-white/20'
             : 'bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 shadow-purple-500/25'
         }`}
         aria-label={open ? 'Close assistant' : 'Open AI assistant'}
@@ -150,55 +165,71 @@ export function AIChatWidget() {
         )}
       </button>
 
+      {/* Chat panel
+          Desktop: 360px wide, 520px tall, anchored bottom-right
+          Mobile:  min(92vw, 360px) wide, min(70dvh, 520px) tall — leaves 30% visible behind
+      */}
       <div
-        className={`fixed bottom-24 right-6 z-50 w-[400px] max-w-[calc(100vw-2rem)] transition-all duration-300 origin-bottom-right ${
+        className={`fixed bottom-20 right-3 sm:right-4 z-50 motion-reduce:transition-none transition-all duration-300 origin-bottom-right ${
           open ? 'scale-100 opacity-100 pointer-events-auto' : 'scale-95 opacity-0 pointer-events-none'
         }`}
+        style={{
+          width: 'min(92vw, 360px)',
+          maxHeight: 'min(70dvh, 520px)',
+        }}
       >
-        <div className="bg-[#0c0c0c] border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/50 flex flex-col overflow-hidden" style={{ height: 'min(600px, calc(100vh - 160px))' }}>
-          {/* Header */}
-          <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.06] bg-gradient-to-r from-purple-500/[0.08] to-transparent flex-shrink-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <div
+          className="bg-[#0c0c0c] border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/50 flex flex-col overflow-hidden"
+          style={{
+            height: 'min(70dvh, 520px)',
+            paddingBottom: 'env(safe-area-inset-bottom)',
+          }}
+        >
+          {/* Header — sticky inside panel */}
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] bg-gradient-to-r from-purple-500/[0.08] to-transparent flex-shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
               </svg>
             </div>
-            <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-white">{t.chat_title}</h3>
-              <p className="text-[11px] text-gray-500">{t.chat_subtitle}</p>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-semibold text-white leading-tight">{t.chat_title}</h3>
+              <p className="text-[11px] text-gray-500 leading-tight">{t.chat_subtitle}</p>
             </div>
-            <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               {messages.length > 0 && (
                 <button
                   onClick={handleNewConversation}
-                  className="px-2.5 py-1 rounded-lg text-[10px] font-medium text-gray-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-all"
+                  className="px-2 py-1 rounded-lg text-[10px] font-medium text-gray-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-all"
                   title={t.chat_newConversation}
                 >
                   {t.chat_newConversation}
                 </button>
               )}
+              {/* Close button — white icon, 40px touch target for mobile */}
               <button
                 onClick={() => setOpen(false)}
-                className="w-7 h-7 rounded-lg hover:bg-white/[0.08] flex items-center justify-center transition-colors"
+                className="w-10 h-10 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center transition-colors"
+                aria-label="Cerrar chat"
               >
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
           </div>
 
-          {/* Messages area */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 scrollbar-hide">
+          {/* Messages area — internal scroll, won't block page body */}
+          <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-4 space-y-4 scrollbar-hide">
             {messages.length === 0 && (
-              <div className="text-center py-6">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/20 flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <div className="text-center py-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/10 border border-purple-500/20 flex items-center justify-center mx-auto mb-3">
+                  <svg className="w-7 h-7 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                   </svg>
                 </div>
                 <h4 className="text-white font-semibold text-sm mb-1">{t.chat_welcome}</h4>
-                <p className="text-gray-500 text-xs leading-relaxed max-w-[280px] mx-auto">
+                <p className="text-gray-500 text-xs leading-relaxed max-w-[260px] mx-auto">
                   {t.chat_welcomeDesc}
                 </p>
               </div>
@@ -221,35 +252,9 @@ export function AIChatWidget() {
               </div>
             )}
 
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed ${
-                    msg.role === 'user'
-                      ? 'bg-purple-600 text-white rounded-br-md'
-                      : 'bg-white/[0.05] border border-white/[0.06] text-gray-300 rounded-bl-md'
-                  }`}
-                >
-                  {msg.role === 'assistant' ? (
-                    <div className="whitespace-pre-wrap">
-                      {msg.text.split('\n').map((line, i) => (
-                        <span key={i}>
-                          {formatAIText(line)}
-                          {i < msg.text.split('\n').length - 1 && <br />}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span>{msg.text}</span>
-                  )}
-                  <div className={`text-[9px] mt-1.5 ${msg.role === 'user' ? 'text-purple-200/50' : 'text-gray-600'}`}>
-                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
-              </div>
+            {/* Render only last 30 messages */}
+            {visibleMessages.map((msg) => (
+              <MessageItem key={msg.id} msg={msg} />
             ))}
 
             {loading && (
@@ -267,8 +272,8 @@ export function AIChatWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input area */}
-          <div className="flex-shrink-0 border-t border-white/[0.06] px-4 py-3 bg-[#080808]">
+          {/* Input area — fixed at bottom of panel */}
+          <div className="flex-shrink-0 border-t border-white/[0.06] px-3 py-2.5 bg-[#080808]">
             <form onSubmit={handleSubmit} className="flex items-center gap-2">
               <input
                 ref={inputRef}
@@ -277,7 +282,7 @@ export function AIChatWidget() {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={t.chat_placeholder}
                 disabled={loading}
-                className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500/30 focus:border-purple-500/20 transition-all disabled:opacity-50"
+                className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-purple-500/30 focus:border-purple-500/20 transition-all disabled:opacity-50"
               />
               <button
                 type="submit"
@@ -289,7 +294,7 @@ export function AIChatWidget() {
                 </svg>
               </button>
             </form>
-            <p className="text-center text-[9px] text-gray-700 mt-2">
+            <p className="text-center text-[9px] text-gray-700 mt-1.5">
               {t.chat_disclaimer}
             </p>
           </div>

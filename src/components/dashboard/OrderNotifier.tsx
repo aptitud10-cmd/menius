@@ -140,7 +140,7 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
       {/* Sound toggle (above AI chat button) */}
       <button
         onClick={() => setSoundEnabled(!soundEnabled)}
-        className={`fixed bottom-[5.5rem] right-6 z-[70] w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 ${
+        className={`fixed bottom-[5.5rem] right-6 z-[70] w-14 h-14 rounded-full hidden sm:flex items-center justify-center transition-all duration-300 ${
           soundEnabled
             ? 'bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:bg-emerald-600 hover:shadow-[0_0_28px_rgba(16,185,129,0.5)]'
             : 'bg-white border border-gray-200 shadow-sm hover:bg-gray-50'
