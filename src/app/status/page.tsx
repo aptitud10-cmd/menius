@@ -5,15 +5,21 @@ import { LandingFooter } from '@/components/landing/LandingFooter';
 import type { LandingLocale } from '@/lib/landing-translations';
 import { StatusClient } from './StatusClient';
 
-export const metadata: Metadata = {
-  title: 'Estado del sistema — MENIUS',
-  description: 'Monitoreo en tiempo real de todos los servicios de MENIUS: API, base de datos, pagos, notificaciones y más.',
-  alternates: { canonical: '/status' },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const cookieStore = await cookies();
+  const locale = cookieStore.get('menius_locale')?.value ?? 'es';
+  return {
+    title: locale === 'en' ? 'System Status — MENIUS' : 'Estado del sistema — MENIUS',
+    description: locale === 'en'
+      ? 'Real-time monitoring of all MENIUS services: API, database, payments, notifications and more.'
+      : 'Monitoreo en tiempo real de todos los servicios de MENIUS: API, base de datos, pagos, notificaciones y más.',
+    alternates: { canonical: '/status' },
+  };
+}
 
 export default async function StatusPage() {
   const cookieStore = await cookies();
-  const locale = (cookieStore.get('locale')?.value ?? 'es') as LandingLocale;
+  const locale = (cookieStore.get('menius_locale')?.value ?? 'es') as LandingLocale;
 
   return (
     <>

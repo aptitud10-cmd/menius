@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { checkRateLimit } from '@/lib/rate-limit';
@@ -10,7 +10,6 @@ const logger = createLogger('ai-generate-image');
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
     const tenant = await getTenant();
     if (!tenant) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
@@ -126,7 +125,8 @@ Technical requirements:
     const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
     const fileName = `${tenant.userId}/ai-${Date.now()}.${ext}`;
 
-    const { error: uploadError } = await supabase.storage
+    const adminSupabase = createAdminClient();
+    const { error: uploadError } = await adminSupabase.storage
       .from('product-images')
       .upload(fileName, buffer, {
         contentType: mimeType,
@@ -138,7 +138,7 @@ Technical requirements:
       return NextResponse.json({ error: `Error guardando imagen: ${uploadError.message}` }, { status: 500 });
     }
 
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = adminSupabase.storage
       .from('product-images')
       .getPublicUrl(fileName);
 

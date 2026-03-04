@@ -1,133 +1,144 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 
-export const metadata: Metadata = {
-  title: 'Changelog — Novedades de MENIUS',
-  description: 'Todas las actualizaciones, mejoras y nuevas funciones de MENIUS. Así evoluciona tu plataforma de menú digital.',
-  alternates: { canonical: 'https://menius.app/changelog' },
-  robots: { index: true, follow: true },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const cookieStore = await cookies();
+  const locale = cookieStore.get('menius_locale')?.value ?? 'es';
+  return {
+    title: 'Changelog — MENIUS',
+    description: locale === 'en'
+      ? 'Every update, improvement and new feature in MENIUS. See how your platform evolves.'
+      : 'Cada actualización, mejora y nueva función de MENIUS. Mira cómo evoluciona tu plataforma.',
+    alternates: { canonical: 'https://menius.app/changelog' },
+    robots: { index: true, follow: true },
+  };
+}
 
-const releases = [
+type Locale = 'es' | 'en';
+
+interface Change { type: 'new' | 'improved' | 'fixed'; es: string; en: string; }
+interface Release {
+  version: string;
+  dateEs: string;
+  dateEn: string;
+  badgeEs: string;
+  badgeEn: string;
+  badgeColor: string;
+  highlightsEs: string[];
+  highlightsEn: string[];
+  changes: Change[];
+}
+
+const releases: Release[] = [
   {
     version: '2.5',
-    date: 'Marzo 2026',
-    badge: 'Nuevo',
+    dateEs: 'Marzo 2026',
+    dateEn: 'March 2026',
+    badgeEs: 'Nuevo',
+    badgeEn: 'New',
     badgeColor: 'bg-emerald-500',
-    highlights: ['Plan gratuito con 3 pedidos/día', 'SEO mejorado para menús públicos', 'Rendimiento 40% más rápido en carga de menú'],
+    highlightsEs: ['Plan gratuito con 3 pedidos/día', 'SEO mejorado para menús públicos', 'Rendimiento 40% más rápido'],
+    highlightsEn: ['Free plan with 3 orders/day', 'Improved SEO for public menus', '40% faster menu load'],
     changes: [
-      { type: 'new', text: 'Plan gratuito permanente: menús activos con hasta 3 pedidos por día sin suscripción.' },
-      { type: 'new', text: 'Banner informativo en menú muestra pedidos disponibles restantes del día.' },
-      { type: 'improved', text: 'Carga del menú público 40% más rápida: modifier groups ahora se cargan en paralelo con el resto del menú.' },
-      { type: 'improved', text: 'Apple Touch Icon en PNG generado dinámicamente para instalación correcta en iOS.' },
-      { type: 'improved', text: 'Estado abierto/cerrado del restaurante ahora visible en móvil (antes solo en desktop).' },
-      { type: 'improved', text: 'Botones del header del menú amplíados a 44px mínimo para mejor uso táctil.' },
-      { type: 'improved', text: 'OG image de menús públicos ahora usa la foto real del restaurante en lugar de SVG.' },
-      { type: 'fixed', text: 'Corrección de email de soporte unificado en todas las pantallas (soporte@menius.app).' },
-      { type: 'fixed', text: 'Error de TypeScript en /admin/health resuelto — el dashboard de salud de plataforma funciona correctamente.' },
+      { type: 'new', es: 'Plan gratuito permanente: menús activos con hasta 3 pedidos por día sin suscripción.', en: 'Permanent free plan: active menus with up to 3 orders per day, no subscription required.' },
+      { type: 'new', es: 'Banner informativo en menú muestra pedidos disponibles restantes del día.', en: 'Informational banner on the menu shows remaining orders available for the day.' },
+      { type: 'improved', es: 'Carga del menú público 40% más rápida: modifier groups ahora se cargan en paralelo.', en: 'Public menu loads 40% faster: modifier groups now load in parallel with the rest of the menu.' },
+      { type: 'improved', es: 'Apple Touch Icon en PNG generado dinámicamente para instalación correcta en iOS.', en: 'Apple Touch Icon dynamically generated as PNG for correct iOS home screen installation.' },
+      { type: 'improved', es: 'Estado abierto/cerrado del restaurante ahora visible en móvil.', en: 'Restaurant open/closed status is now visible on mobile (previously desktop-only).' },
+      { type: 'improved', es: 'Botones del header del menú ampliados a 44px mínimo para mejor uso táctil.', en: 'Menu header buttons enlarged to 44px minimum for better touch accessibility.' },
+      { type: 'fixed', es: 'Email de soporte unificado en todas las pantallas (soporte@menius.app).', en: 'Support email unified across all screens (soporte@menius.app).' },
+      { type: 'fixed', es: 'Error de TypeScript en /admin/health resuelto — el dashboard de salud funciona correctamente.', en: 'TypeScript error in /admin/health resolved — the health dashboard now works correctly.' },
     ],
   },
   {
     version: '2.4',
-    date: 'Febrero 2026',
-    badge: 'Estable',
+    dateEs: 'Febrero 2026',
+    dateEn: 'February 2026',
+    badgeEs: 'Estable',
+    badgeEn: 'Stable',
     badgeColor: 'bg-blue-500',
-    highlights: ['Dashboard de Salud de Plataforma', 'Demo checkout estilo Stripe', 'Límites de ordenes diarias'],
+    highlightsEs: ['Dashboard de Salud de Plataforma', 'Demo checkout estilo Stripe', 'Stripe Connect onboarding'],
+    highlightsEn: ['Platform Health Dashboard', 'Stripe-style demo checkout', 'Stripe Connect onboarding'],
     changes: [
-      { type: 'new', text: 'Admin: Dashboard de Salud de Plataforma en /admin/health — KPIs, alertas, MRR estimado.' },
-      { type: 'new', text: 'Demo checkout rediseñado visualmente idéntico a Stripe (datos de tarjeta pre-llenados para demostración).' },
-      { type: 'new', text: 'Status page pública mejorada: incluye 7 servicios con latencia real, idéntico a Stripe Status.' },
-      { type: 'new', text: 'Google Gemini AI integrado en status page para monitoreo de salud del servicio IA.' },
-      { type: 'improved', text: 'Stripe Connect: flujo de onboarding completo con UI en Configuración.' },
-      { type: 'improved', text: 'Webhook de pagos separado con secret propio (STRIPE_PAYMENTS_WEBHOOK_SECRET).' },
-      { type: 'improved', text: 'Cancelación de cuenta ahora cancela la suscripción de Stripe automáticamente.' },
-      { type: 'fixed', text: 'Billing webhook: cancel_at_period_end ya no marca la cuenta como cancelada prematuramente.' },
-      { type: 'fixed', text: 'Middleware: protección de rutas /admin verifica correctamente que el email sea admin.' },
-      { type: 'fixed', text: 'Respuestas de IA (social posts, AI copy) ahora parsean correctamente JSON envuelto en markdown.' },
+      { type: 'new', es: 'Admin: Dashboard de Salud de Plataforma en /admin/health — KPIs, alertas, MRR estimado.', en: 'Admin: Platform Health Dashboard at /admin/health — KPIs, alerts, estimated MRR.' },
+      { type: 'new', es: 'Demo checkout rediseñado visualmente idéntico a Stripe (datos pre-llenados para demostración).', en: 'Demo checkout visually redesigned, identical to Stripe (pre-filled data for demonstration).' },
+      { type: 'improved', es: 'Stripe Connect: flujo de onboarding completo con UI en Configuración.', en: 'Stripe Connect: complete onboarding flow with UI in Settings.' },
+      { type: 'improved', es: 'Webhook de pagos separado con secret propio (STRIPE_PAYMENTS_WEBHOOK_SECRET).', en: 'Payments webhook separated with its own secret (STRIPE_PAYMENTS_WEBHOOK_SECRET).' },
+      { type: 'fixed', es: 'Billing webhook: cancel_at_period_end ya no marca la cuenta como cancelada prematuramente.', en: 'Billing webhook: cancel_at_period_end no longer prematurely marks the account as cancelled.' },
     ],
   },
   {
     version: '2.3',
-    date: 'Febrero 2026',
-    badge: 'Estable',
+    dateEs: 'Febrero 2026',
+    dateEn: 'February 2026',
+    badgeEs: 'Estable',
+    badgeEn: 'Stable',
     badgeColor: 'bg-blue-500',
-    highlights: ['Mapa de delivery en tracking', 'Historial de pedidos por email', 'Horarios por categoría'],
+    highlightsEs: ['Mapa de delivery en tracking', 'Historial de pedidos por email', 'Horarios por categoría'],
+    highlightsEn: ['Delivery map in order tracking', 'Order history by email', 'Category availability schedules'],
     changes: [
-      { type: 'new', text: 'Mapa de entrega en tiempo real en la página de seguimiento de pedidos (react-leaflet + OpenStreetMap).' },
-      { type: 'new', text: 'Historial de pedidos: clientes pueden ver sus pedidos anteriores con solo su email (/r/[slug]/mis-pedidos).' },
-      { type: 'new', text: 'Categorías con horario: configura horarios de disponibilidad por categoría (desayunos 7-11am, etc.).' },
-      { type: 'new', text: 'Reordenar: botón "Volver a pedir" en historial recrea el carrito anterior automáticamente.' },
-      { type: 'improved', text: 'Header del menú: enlace directo a historial de pedidos con ícono de historial.' },
-      { type: 'fixed', text: 'Compatibilidad de react-leaflet con React 18 (downgrade a v4.2.1).' },
+      { type: 'new', es: 'Mapa de entrega en tiempo real en la página de seguimiento (react-leaflet + OpenStreetMap).', en: 'Real-time delivery map on the order tracking page (react-leaflet + OpenStreetMap).' },
+      { type: 'new', es: 'Historial de pedidos: clientes pueden ver sus pedidos anteriores con solo su email.', en: 'Order history: customers can view their past orders using just their email.' },
+      { type: 'new', es: 'Categorías con horario: configura horarios de disponibilidad por categoría.', en: 'Category schedules: configure availability hours per category (e.g., breakfast 7–11am).' },
+      { type: 'new', es: 'Reordenar: botón "Volver a pedir" en historial recrea el carrito anterior.', en: 'Reorder: "Order again" button in history recreates the previous cart automatically.' },
     ],
   },
   {
     version: '2.2',
-    date: 'Enero 2026',
-    badge: 'Estable',
+    dateEs: 'Enero 2026',
+    dateEn: 'January 2026',
+    badgeEs: 'Estable',
+    badgeEn: 'Stable',
     badgeColor: 'bg-blue-500',
-    highlights: ['Rate limiting en APIs', 'Unsubscribe de emails', 'Idempotencia en emails automáticos'],
+    highlightsEs: ['Rate limiting en APIs', 'Unsubscribe de emails', 'Idempotencia en emails automáticos'],
+    highlightsEn: ['API rate limiting', 'Email unsubscribe', 'Automated email idempotency'],
     changes: [
-      { type: 'new', text: 'Rate limiting en /api/orders/status para prevenir enumeración de pedidos.' },
-      { type: 'new', text: 'Endpoint /api/unsubscribe para desuscripción de emails con un clic.' },
-      { type: 'new', text: 'Tag "unsubscribed" en CRM para no enviar emails a clientes que se desuscribieron.' },
-      { type: 'improved', text: 'Idempotencia en emails automáticos: setup_email_sent y no_orders_email_sent previenen envíos duplicados.' },
-      { type: 'improved', text: 'Reporte mensual: idempotencia con tag monthly_report_YYYY_MM — nunca se envía dos veces el mismo mes.' },
-      { type: 'improved', text: 'Búsqueda en CRM: sanitización de caracteres especiales en filtros de PostgREST.' },
-      { type: 'fixed', text: 'Index de mes en reporte mensual corregido (getMonth() + 1).' },
-      { type: 'fixed', text: 'CartStore: reorder limpia el carrito antes de agregar items (antes duplicaba).' },
-    ],
-  },
-  {
-    version: '2.1',
-    date: 'Enero 2026',
-    badge: 'Estable',
-    badgeColor: 'bg-blue-500',
-    highlights: ['MENIUS AI mejorado', 'Open Graph dinámico', 'Seguridad en middleware'],
-    changes: [
-      { type: 'new', text: 'Open Graph image dinámico generado con next/og para mejor presencia en redes sociales.' },
-      { type: 'new', text: 'Metadata SEO completa en landing page: canonical absoluta, og:url, og:image.' },
-      { type: 'improved', text: 'MENIUS AI: regex de tips proactivos corregido para funcionar en inglés y español.' },
-      { type: 'improved', text: 'Middleware: try/catch en new URL(origin) previene crash con headers Origin inválidos.' },
-      { type: 'improved', text: 'getWebhookSecret() lanza error explícito si la variable no está configurada.' },
-      { type: 'improved', text: 'Checkout de Stripe: nombres de productos reales (no "Producto" genérico) en líneas de pedido.' },
-      { type: 'fixed', text: 'Auth pages (login, register): robots noindex para no indexar páginas privadas.' },
+      { type: 'new', es: 'Rate limiting en /api/orders/status para prevenir enumeración de pedidos.', en: 'Rate limiting on /api/orders/status to prevent order enumeration attacks.' },
+      { type: 'new', es: 'Endpoint /api/unsubscribe para desuscripción de emails con un clic.', en: 'Endpoint /api/unsubscribe for one-click email unsubscription.' },
+      { type: 'improved', es: 'Idempotencia en emails automáticos: previenen envíos duplicados.', en: 'Automated email idempotency: prevents duplicate sends using tracking tags.' },
+      { type: 'fixed', es: 'CartStore: reorder limpia el carrito antes de agregar items (antes duplicaba).', en: 'CartStore: reorder now clears the cart before adding items (previously duplicated them).' },
     ],
   },
   {
     version: '2.0',
-    date: 'Diciembre 2025',
-    badge: 'Mayor',
+    dateEs: 'Diciembre 2025',
+    dateEn: 'December 2025',
+    badgeEs: 'Mayor',
+    badgeEn: 'Major',
     badgeColor: 'bg-purple-500',
-    highlights: ['Lanzamiento de MENIUS 2.0', 'MENIUS AI', 'KDS de Cocina', 'Analytics avanzados'],
+    highlightsEs: ['Lanzamiento de MENIUS 2.0', 'MENIUS AI', 'KDS de Cocina', 'Analytics avanzados'],
+    highlightsEn: ['MENIUS 2.0 launch', 'MENIUS AI', 'Kitchen Display System', 'Advanced analytics'],
     changes: [
-      { type: 'new', text: 'MENIUS AI: asistente inteligente con Google Gemini integrado al dashboard, con datos reales de tu restaurante.' },
-      { type: 'new', text: 'Kitchen Display System (KDS): pantalla de cocina en tiempo real con Supabase Realtime.' },
-      { type: 'new', text: 'Analytics avanzados: métricas de ventas, clientes, productos y horas pico.' },
-      { type: 'new', text: 'CRM de clientes integrado con historial, tags y campañas de marketing.' },
-      { type: 'new', text: 'Modifier groups: opciones de personalización avanzada (ej: punto de cocción, nivel de picante).' },
-      { type: 'new', text: 'Multi-idioma: menú público en español e inglés con detección automática.' },
-      { type: 'new', text: 'Stripe Connect: restaurantes pueden conectar su cuenta de Stripe para recobrar pagos directamente.' },
-      { type: 'improved', text: 'MenuShell completamente rediseñado: 3 columnas en desktop, navegación por categorías, búsqueda, favoritos.' },
-      { type: 'improved', text: 'Checkout rediseñado: soporte completo para dine-in, pickup y delivery con validaciones.' },
+      { type: 'new', es: 'MENIUS AI: asistente inteligente con Google Gemini integrado al dashboard.', en: 'MENIUS AI: intelligent assistant powered by Google Gemini, integrated into the dashboard.' },
+      { type: 'new', es: 'Kitchen Display System (KDS): pantalla de cocina en tiempo real con Supabase Realtime.', en: 'Kitchen Display System (KDS): real-time kitchen screen powered by Supabase Realtime.' },
+      { type: 'new', es: 'Analytics avanzados: métricas de ventas, clientes, productos y horas pico.', en: 'Advanced analytics: sales metrics, customers, products, and peak hours.' },
+      { type: 'new', es: 'CRM de clientes integrado con historial, tags y campañas de marketing.', en: 'Built-in customer CRM with history, tags, and marketing campaigns.' },
+      { type: 'new', es: 'Multi-idioma: menú público en español e inglés con detección automática.', en: 'Multi-language: public menu in Spanish and English with automatic detection.' },
     ],
   },
 ];
 
-const typeStyles: Record<string, { label: string; color: string }> = {
-  new: { label: 'Nuevo', color: 'bg-emerald-100 text-emerald-700' },
-  improved: { label: 'Mejorado', color: 'bg-blue-100 text-blue-700' },
-  fixed: { label: 'Arreglado', color: 'bg-amber-100 text-amber-700' },
+const typeStyles: Record<string, { labelEs: string; labelEn: string; color: string }> = {
+  new: { labelEs: 'Nuevo', labelEn: 'New', color: 'bg-emerald-100 text-emerald-700' },
+  improved: { labelEs: 'Mejorado', labelEn: 'Improved', color: 'bg-blue-100 text-blue-700' },
+  fixed: { labelEs: 'Arreglado', labelEn: 'Fixed', color: 'bg-amber-100 text-amber-700' },
 };
 
-export default function ChangelogPage() {
+export default async function ChangelogPage() {
+  const cookieStore = await cookies();
+  const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as Locale;
+  const isEn = locale === 'en';
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       {/* Header */}
       <div className="border-b border-gray-800">
         <div className="max-w-3xl mx-auto px-4 py-6 flex items-center justify-between">
           <Link href="/" className="text-emerald-400 font-bold text-xl tracking-tight">MENIUS</Link>
-          <Link href="/app" className="text-sm text-gray-400 hover:text-white transition-colors">Dashboard →</Link>
+          <Link href="/app" className="text-sm text-gray-400 hover:text-white transition-colors">
+            {isEn ? 'Dashboard →' : 'Dashboard →'}
+          </Link>
         </div>
       </div>
 
@@ -136,19 +147,21 @@ export default function ChangelogPage() {
         <div className="mb-14">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs font-semibold text-emerald-400 tracking-wide uppercase">Siempre mejorando</span>
+            <span className="text-xs font-semibold text-emerald-400 tracking-wide uppercase">
+              {isEn ? 'Always improving' : 'Siempre mejorando'}
+            </span>
           </div>
           <h1 className="text-4xl font-bold text-white mb-4">Changelog</h1>
           <p className="text-gray-400 text-lg leading-relaxed">
-            Cada actualización que hacemos a MENIUS, documentada. Tu plataforma mejora cada semana.
+            {isEn
+              ? 'Every update we make to MENIUS, documented. Your platform improves every week.'
+              : 'Cada actualización que hacemos a MENIUS, documentada. Tu plataforma mejora cada semana.'}
           </p>
         </div>
 
         {/* Timeline */}
         <div className="relative">
-          {/* Vertical line */}
           <div className="absolute left-0 top-0 bottom-0 w-px bg-gray-800 ml-[11px]" />
-
           <div className="space-y-14">
             {releases.map((release) => (
               <div key={release.version} className="relative pl-8">
@@ -157,20 +170,21 @@ export default function ChangelogPage() {
                   <div className="w-2 h-2 rounded-full bg-white" />
                 </div>
 
-                {/* Content */}
                 <div>
                   {/* Version header */}
                   <div className="flex items-center gap-3 mb-1">
                     <span className="text-xl font-bold text-white">v{release.version}</span>
                     <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${release.badgeColor} text-white`}>
-                      {release.badge}
+                      {isEn ? release.badgeEn : release.badgeEs}
                     </span>
-                    <span className="text-sm text-gray-500">{release.date}</span>
+                    <span className="text-sm text-gray-500">
+                      {isEn ? release.dateEn : release.dateEs}
+                    </span>
                   </div>
 
                   {/* Highlights */}
                   <div className="flex flex-wrap gap-2 mb-5">
-                    {release.highlights.map((h) => (
+                    {(isEn ? release.highlightsEn : release.highlightsEs).map((h) => (
                       <span key={h} className="text-xs px-2.5 py-1 rounded-full bg-gray-800 text-gray-300 border border-gray-700">
                         {h}
                       </span>
@@ -184,9 +198,11 @@ export default function ChangelogPage() {
                       return (
                         <li key={i} className="flex items-start gap-3">
                           <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded mt-0.5 ${style.color}`}>
-                            {style.label}
+                            {isEn ? style.labelEn : style.labelEs}
                           </span>
-                          <span className="text-sm text-gray-300 leading-relaxed">{change.text}</span>
+                          <span className="text-sm text-gray-300 leading-relaxed">
+                            {isEn ? change.en : change.es}
+                          </span>
                         </li>
                       );
                     })}
@@ -199,12 +215,14 @@ export default function ChangelogPage() {
 
         {/* Footer CTA */}
         <div className="mt-20 pt-10 border-t border-gray-800 text-center">
-          <p className="text-gray-500 text-sm mb-4">¿Tienes sugerencias para el próximo release?</p>
+          <p className="text-gray-500 text-sm mb-4">
+            {isEn ? 'Have suggestions for the next release?' : '¿Tienes sugerencias para el próximo release?'}
+          </p>
           <a
             href="mailto:soporte@menius.app"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-600 transition-colors"
           >
-            Enviar sugerencia
+            {isEn ? 'Send a suggestion' : 'Enviar sugerencia'}
           </a>
         </div>
       </div>
