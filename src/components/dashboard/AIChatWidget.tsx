@@ -144,13 +144,13 @@ export function AIChatWidget() {
 
   return (
     <>
-      {/* Launcher button */}
+      {/* Launcher button — hidden on mobile when chat is open (header X is enough) */}
       <button
         onClick={() => setOpen(prev => !prev)}
-        className={`fixed bottom-4 right-4 z-50 w-14 h-14 rounded-2xl shadow-2xl flex items-center justify-center motion-reduce:transition-none transition-all duration-300 hover:scale-105 ${
+        className={`fixed bottom-4 right-4 z-50 w-14 h-14 rounded-2xl shadow-2xl items-center justify-center motion-reduce:transition-none transition-all duration-300 hover:scale-105 ${
           open
-            ? 'bg-white/10 backdrop-blur-xl border border-white/20'
-            : 'bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 shadow-purple-500/25'
+            ? 'hidden sm:flex bg-white/10 backdrop-blur-xl border border-white/20'
+            : 'flex bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 shadow-purple-500/25'
         }`}
         aria-label={open ? 'Close assistant' : 'Open AI assistant'}
       >
