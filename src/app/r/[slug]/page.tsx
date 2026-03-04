@@ -63,14 +63,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const data = await fetchMenuData(params.slug);
-  if (!data) return { title: 'Menú no encontrado | MENIUS' };
+  if (!data) return { title: 'Menú no encontrado | MENIUS', robots: { index: false, follow: false } };
 
   const { restaurant } = data;
   const isEn = data.locale === 'en';
   const title = `${restaurant.name} — ${isEn ? 'Digital Menu' : 'Menú Digital'} | MENIUS`;
   const description = restaurant.description ?? (isEn ? `Order online from ${restaurant.name}.` : `Pide online en ${restaurant.name}. Menú digital con MENIUS.`);
   const url = `${APP_URL}/r/${restaurant.slug}`;
-  const image = restaurant.cover_image_url || restaurant.logo_url || `${APP_URL}/icons/icon-512.svg`;
+  // Prefer cover image, then logo; fall back to the generated OG image (never use SVG for OG)
+  const image = restaurant.cover_image_url || restaurant.logo_url || `${APP_URL}/opengraph-image`;
 
   return {
     title,

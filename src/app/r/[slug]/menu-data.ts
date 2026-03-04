@@ -43,7 +43,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
 
   if (!restaurant) return null;
 
-  // Parallelize all data fetching: subscription, categories, products, auth, reviews
+  // Parallelize all data fetching: subscription, categories, products, auth, reviews, modifiers
   const [subResult, { data: categories }, { data: products }, { data: { user } }, { data: reviewRows }] = await Promise.all([
     Promise.resolve(
       supabase
@@ -60,7 +60,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
       .order('sort_order'),
     supabase
       .from('products')
-      .select('*, product_variants(*), product_extras(*)')
+      .select('*, product_variants(*), product_extras(*), modifier_groups(*, modifier_options(*))')
       .eq('restaurant_id', restaurant.id)
       .eq('is_active', true)
       .order('sort_order'),
@@ -117,26 +117,16 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
     console.error('[menu-data] Subscription check failed — showing menu', { restaurantId: restaurant.id });
   }
 
-  const productIds = (products ?? []).map((p: any) => p.id as string);
-  const { data: modifierGroups } = productIds.length > 0
-    ? await supabase.from('modifier_groups').select('*, modifier_options(*)').in('product_id', productIds).order('sort_order')
-    : { data: [] as any[] };
-
-  const groupsByProduct = new Map<string, any[]>();
-  for (const g of (modifierGroups ?? [])) {
-    const pid = g.product_id;
-    if (!groupsByProduct.has(pid)) groupsByProduct.set(pid, []);
-    groupsByProduct.get(pid)!.push({
-      ...g,
-      options: (g.modifier_options ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order),
-    });
-  }
-
   const mappedProducts = (products ?? []).map((p: any) => ({
     ...p,
     variants: p.product_variants ?? [],
     extras: p.product_extras ?? [],
-    modifier_groups: (groupsByProduct.get(p.id) ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order),
+    modifier_groups: ((p.modifier_groups ?? []) as any[])
+      .map((g: any) => ({
+        ...g,
+        options: ((g.modifier_options ?? []) as any[]).sort((a: any, b: any) => a.sort_order - b.sort_order),
+      }))
+      .sort((a: any, b: any) => a.sort_order - b.sort_order),
   }));
 
   let reviewStats: ReviewStats | null = null;

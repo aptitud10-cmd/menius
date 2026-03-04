@@ -77,7 +77,7 @@ export const MenuHeader = memo(function MenuHeader({
       <div className="max-w-[1440px] mx-auto px-4 lg:px-6 flex items-center gap-3 h-14">
         {/* Back button (demo/external) */}
         {backUrl && (
-          <Link href={backUrl} className="flex-shrink-0 p-1.5 -ml-1.5 rounded-lg active:bg-gray-100 transition-colors" aria-label="Back">
+          <Link href={backUrl} className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Back">
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </Link>
         )}
@@ -153,11 +153,11 @@ export const MenuHeader = memo(function MenuHeader({
           )}
 
           <span className={cn(
-            'hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold',
+            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold',
             open ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
           )}>
             <span className={cn('w-1.5 h-1.5 rounded-full', open ? 'bg-emerald-500' : 'bg-red-500')} />
-            {open ? openLabel : closedLabel}
+            <span className="hidden sm:inline">{open ? openLabel : closedLabel}</span>
           </span>
 
           {tableName && (
@@ -169,7 +169,7 @@ export const MenuHeader = memo(function MenuHeader({
           {/* My orders link */}
           <Link
             href={`/r/${restaurant.slug}/mis-pedidos`}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
             aria-label="Mis pedidos"
             title="Ver mis pedidos anteriores"
           >
@@ -177,7 +177,7 @@ export const MenuHeader = memo(function MenuHeader({
           </Link>
 
           {/* Mobile search toggle */}
-          <button onClick={onToggleSearch} className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Search">
+          <button onClick={onToggleSearch} className="md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors" aria-label="Search">
             <Search className="w-4 h-4 text-gray-500" />
           </button>
 

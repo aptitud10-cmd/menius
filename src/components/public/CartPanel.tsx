@@ -83,9 +83,9 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
                 {(item.variant || item.extras.length > 0 || (item.modifierSelections ?? []).length > 0) && (
                   <button
                     onClick={() => onEdit(idx)}
-                    className="flex items-center gap-1 text-[10px] text-emerald-600 hover:text-emerald-700 font-medium flex-shrink-0"
+                    className="flex items-center gap-1 text-[10px] text-emerald-600 hover:text-emerald-700 font-medium flex-shrink-0 min-h-[44px] px-1"
                   >
-                    <Pencil className="w-2.5 h-2.5" />
+                    <Pencil className="w-3 h-3" />
                     {t.edit}
                   </button>
                 )}
