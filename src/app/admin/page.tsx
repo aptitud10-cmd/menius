@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Store, ShoppingBag, Users, TrendingUp, Clock, AlertTriangle,
-  ExternalLink, Loader2, Shield, Megaphone, Sparkles,
+  ExternalLink, Loader2, Shield, Megaphone, Sparkles, Activity,
 } from 'lucide-react';
 
 interface AdminStats {
@@ -114,7 +114,10 @@ export default function AdminPage() {
             <p className="text-sm text-gray-500 mt-1">Panel de administración del SaaS</p>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/admin/social-generator" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-sm text-white font-medium transition-colors">
+            <Link href="/admin/health" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-sm text-white font-medium transition-colors">
+              <Activity className="w-4 h-4" /> Salud
+            </Link>
+            <Link href="/admin/social-generator" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-gray-400 hover:text-white transition-colors">
               <Sparkles className="w-4 h-4" /> Social AI
             </Link>
             <Link href="/admin/marketing" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-sm text-white font-medium transition-colors">
