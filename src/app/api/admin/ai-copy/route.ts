@@ -240,7 +240,7 @@ FORMATO JSON estricto (sin markdown):
 
     const geminiData = await res.json();
     const parts: Array<{ text?: string; thought?: boolean }> = geminiData?.candidates?.[0]?.content?.parts ?? [];
-    const rawText = parts.filter((p) => !p.thought).map((p) => p.text ?? '').join('') || parts[0]?.text ?? '';
+    const rawText = parts.filter((p) => !p.thought).map((p) => p.text ?? '').join('') || (parts[0]?.text ?? '');
 
     try {
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
