@@ -173,7 +173,8 @@ REGLAS GENERALES:
     const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 
     try {
-      const parsed = JSON.parse(rawText);
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
       return NextResponse.json({
         caption: parsed.caption ?? '',
         hashtags: parsed.hashtags ?? '',
