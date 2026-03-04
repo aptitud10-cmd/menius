@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { formatPrice, cn } from '@/lib/utils';
+import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { PushOptIn } from './PushOptIn';
 
 const DeliveryMap = dynamic(
   () => import('./DeliveryMap').then((m) => m.DeliveryMap),
@@ -21,8 +23,6 @@ const PAYMENT_LABELS: Record<string, { icon: typeof Banknote; label: string }> =
   cash: { icon: Banknote, label: 'Efectivo' },
   online: { icon: CreditCard, label: 'Pagado online' },
 };
-import { getSupabaseBrowser } from '@/lib/supabase/browser';
-import { PushOptIn } from './PushOptIn';
 
 interface OrderTrackerProps {
   restaurantId: string;
@@ -31,6 +31,7 @@ interface OrderTrackerProps {
   restaurantAddress?: string;
   orderNumber: string;
   currency?: string;
+  showPaidBanner?: boolean;
 }
 
 const STEPS = [
@@ -41,21 +42,28 @@ const STEPS = [
   { key: 'delivered', label: 'Entregado', icon: Package, description: 'Pedido entregado. ¡Buen provecho!', color: 'text-emerald-600', bg: 'bg-emerald-100' },
 ];
 
-export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, orderNumber, currency = 'MXN' }: OrderTrackerProps) {
+export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, orderNumber, currency = 'MXN', showPaidBanner = false }: OrderTrackerProps) {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [paidBannerVisible, setPaidBannerVisible] = useState(showPaidBanner);
 
   const fetchOrder = useCallback(async () => {
     try {
-      const res = await fetch(`/api/orders/status?order_number=${orderNumber}&restaurant_id=${restaurantId}`);
-      const data = await res.json();
+      const res = await fetch(`/api/orders/status?order_number=${encodeURIComponent(orderNumber)}&restaurant_id=${encodeURIComponent(restaurantId)}`);
       if (!res.ok) {
-        setError(data.error);
+        let msg = 'Orden no encontrada';
+        try { const d = await res.json(); msg = d?.error || msg; } catch {}
+        setError(msg);
         return;
       }
-      setOrder(data.order);
-      setError('');
+      const data = await res.json();
+      if (data?.order) {
+        setOrder(data.order);
+        setError('');
+      } else {
+        setError('Orden no encontrada');
+      }
     } catch {
       setError('Error de conexión');
     } finally {
@@ -104,6 +112,36 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   }
 
   if (error || !order) {
+    if (showPaidBanner) {
+      // Payment was confirmed but order can't be loaded yet — show confirmation
+      return (
+        <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center justify-center px-6 text-center">
+          <div className="max-w-sm w-full">
+            <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5">
+              <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+            </div>
+            <h1 className="text-2xl font-extrabold text-gray-900 mb-2">¡Pago recibido!</h1>
+            <p className="text-sm text-gray-500 mb-6">
+              Tu pago fue procesado exitosamente. El restaurante ha recibido tu pedido y lo está preparando.
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => { setLoading(true); setError(''); fetchOrder(); }}
+                className="w-full py-3.5 rounded-2xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700 transition-colors"
+              >
+                Ver estado del pedido
+              </button>
+              <Link
+                href={`/r/${restaurantSlug}`}
+                className="block w-full py-3.5 rounded-2xl bg-white border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
+              >
+                Volver al menú
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <OrderSuccessRedirect restaurantSlug={restaurantSlug} />
     );
@@ -136,6 +174,28 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       </header>
 
       <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+        {/* Payment confirmed banner */}
+        {paidBannerVisible && (
+          <div className="flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-emerald-50 border border-emerald-200">
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+              <CreditCard className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-emerald-800">¡Pago confirmado!</p>
+              <p className="text-xs text-emerald-600 mt-0.5">Tu pago fue procesado exitosamente. Si dejaste tu email, recibirás un comprobante.</p>
+            </div>
+            <button
+              onClick={() => setPaidBannerVisible(false)}
+              className="flex-shrink-0 p-1 text-emerald-400 hover:text-emerald-600 transition-colors"
+              aria-label="Cerrar"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* Status Hero */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           {isCancelled ? (

@@ -2,8 +2,11 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import { CheckCircle2 } from 'lucide-react';
 
 const OrderTracker = dynamic(() => import('@/components/public/OrderTracker').then(m => m.OrderTracker), {
+  ssr: false,
   loading: () => (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="animate-pulse text-center">
@@ -16,25 +19,58 @@ const OrderTracker = dynamic(() => import('@/components/public/OrderTracker').th
 
 interface PageProps {
   params: { slug: string; orderNumber: string };
+  searchParams: { paid?: string };
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   return {
-    title: `Order ${params.orderNumber} | MENIUS`,
-    description: 'Track your order status in real time',
+    title: `Pedido ${params.orderNumber} | MENIUS`,
+    description: 'Estado de tu pedido en tiempo real',
   };
 }
 
-export default async function OrderTrackingPage({ params }: PageProps) {
-  const adminDb = createAdminClient();
+export default async function OrderTrackingPage({ params, searchParams }: PageProps) {
+  const paidSuccess = searchParams.paid === 'true';
 
-  const { data: restaurant } = await adminDb
-    .from('restaurants')
-    .select('id, name, slug, currency, address')
-    .eq('slug', params.slug)
-    .maybeSingle();
+  let restaurant: { id: string; name: string; slug: string; currency: string | null; address: string | null } | null = null;
 
-  if (!restaurant) notFound();
+  try {
+    const adminDb = createAdminClient();
+    const { data } = await adminDb
+      .from('restaurants')
+      .select('id, name, slug, currency, address')
+      .eq('slug', params.slug)
+      .maybeSingle();
+    restaurant = data;
+  } catch {
+    // If DB fetch fails, fall through to show fallback for paid orders
+  }
+
+  if (!restaurant) {
+    // For paid orders show a helpful confirmation even if restaurant lookup fails
+    if (paidSuccess) {
+      return (
+        <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center justify-center px-6 text-center">
+          <div className="max-w-sm w-full">
+            <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5">
+              <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+            </div>
+            <h1 className="text-2xl font-extrabold text-gray-900 mb-2">¡Pago recibido!</h1>
+            <p className="text-sm text-gray-500 mb-6">
+              Tu pago fue procesado exitosamente. El restaurante ha recibido tu pedido.
+            </p>
+            <Link
+              href={`/r/${params.slug}`}
+              className="block w-full py-3.5 rounded-2xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-colors"
+            >
+              Volver al menú
+            </Link>
+          </div>
+        </div>
+      );
+    }
+    notFound();
+  }
 
   return (
     <OrderTracker
@@ -44,6 +80,7 @@ export default async function OrderTrackingPage({ params }: PageProps) {
       restaurantAddress={restaurant.address ?? undefined}
       orderNumber={params.orderNumber}
       currency={restaurant.currency ?? 'MXN'}
+      showPaidBanner={paidSuccess}
     />
   );
 }
