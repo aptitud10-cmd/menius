@@ -28,21 +28,45 @@ export async function GET() {
 
     const stripe = getStripe();
 
-    const account = await stripe.accounts.retrieve(restaurant.stripe_account_id);
-    const isComplete = account.charges_enabled && account.payouts_enabled;
+    // V2 API: retrieve the account with recipient config + requirements included.
+    // Always fetch live from the API — do not rely on the DB cache for status.
+    const account = await (stripe as any).v2.core.accounts.retrieve(
+      restaurant.stripe_account_id,
+      { include: ['configuration.recipient', 'requirements'] }
+    );
 
-    if (isComplete && !restaurant.stripe_onboarding_complete) {
+    // Active = stripe_transfers capability is active on the recipient config.
+    const readyToReceivePayments =
+      account?.configuration?.recipient?.capabilities
+        ?.stripe_balance?.stripe_transfers?.status === 'active';
+
+    // Onboarding is complete when there are no currently_due or past_due requirements.
+    const requirementsStatus =
+      account?.requirements?.summary?.minimum_deadline?.status;
+    const onboardingComplete =
+      requirementsStatus !== 'currently_due' && requirementsStatus !== 'past_due';
+
+    // Persist completion flag to avoid unnecessary API round-trips on page load.
+    if (onboardingComplete && readyToReceivePayments && !restaurant.stripe_onboarding_complete) {
       await supabase
         .from('restaurants')
         .update({ stripe_onboarding_complete: true })
         .eq('id', restaurant.id);
     }
 
+    // If previously marked complete but requirements have come back, clear the flag.
+    if ((!onboardingComplete || !readyToReceivePayments) && restaurant.stripe_onboarding_complete) {
+      await supabase
+        .from('restaurants')
+        .update({ stripe_onboarding_complete: false })
+        .eq('id', restaurant.id);
+    }
+
     return NextResponse.json({
       connected: true,
-      onboarding_complete: isComplete,
-      charges_enabled: account.charges_enabled,
-      payouts_enabled: account.payouts_enabled,
+      onboarding_complete: onboardingComplete && readyToReceivePayments,
+      ready_to_receive_payments: readyToReceivePayments,
+      requirements_status: requirementsStatus ?? null,
       account_id: restaurant.stripe_account_id,
     });
   } catch (err: any) {

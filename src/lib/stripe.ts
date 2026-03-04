@@ -21,3 +21,9 @@ export function getPaymentsWebhookSecret(): string {
   if (!secret) throw new Error('STRIPE_PAYMENTS_WEBHOOK_SECRET (or STRIPE_WEBHOOK_SECRET) is not set');
   return secret;
 }
+
+export function getConnectWebhookSecret(): string {
+  const secret = (process.env.STRIPE_CONNECT_WEBHOOK_SECRET ?? '').trim();
+  if (!secret) throw new Error('STRIPE_CONNECT_WEBHOOK_SECRET is not set');
+  return secret;
+}

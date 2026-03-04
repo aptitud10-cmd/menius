@@ -33,31 +33,71 @@ export async function POST(request: NextRequest) {
     }
 
     const stripe = getStripe();
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
     let accountId = restaurant.stripe_account_id;
 
     if (!accountId) {
-      const account = await stripe.accounts.create({
-        type: 'standard',
-        email: user.email,
-        business_profile: { name: restaurant.name },
-        metadata: { restaurant_id: restaurant.id },
+      // V2 API: create a recipient connected account.
+      // - display_name / contact_email come from the restaurant data.
+      // - dashboard: 'express' → onboarding is hosted by Stripe.
+      // - defaults.responsibilities: platform (MENIUS) covers Stripe fees and losses.
+      // - configuration.recipient → enables stripe_transfers so the restaurant
+      //   can receive payouts from destination charges. No top-level `type` field.
+      const account = await (stripe as any).v2.core.accounts.create({
+        display_name: restaurant.name,
+        contact_email: user.email,
+        identity: {
+          // Country of legal establishment. Stripe will ask during onboarding
+          // if not pre-filled; defaulting to Mexico for MENIUS.
+          country: 'mx',
+        },
+        dashboard: 'express',
+        defaults: {
+          responsibilities: {
+            // Platform is responsible for collecting Stripe's processing fees
+            // and covering any losses (chargebacks etc.).
+            fees_collector: 'application',
+            losses_collector: 'application',
+          },
+        },
+        configuration: {
+          recipient: {
+            capabilities: {
+              stripe_balance: {
+                stripe_transfers: {
+                  // Request the stripe_transfers capability so the account
+                  // can receive destination-charge payouts.
+                  requested: true,
+                },
+              },
+            },
+          },
+        },
       });
+
       accountId = account.id;
 
+      // Persist the new connected account ID against this restaurant row.
       await supabase
         .from('restaurants')
         .update({ stripe_account_id: accountId })
         .eq('id', restaurant.id);
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-
-    const accountLink = await stripe.accountLinks.create({
+    // V2 API: create a hosted onboarding link.
+    // use_case.type: 'account_onboarding' opens the full onboarding flow.
+    // configurations: ['recipient'] scopes it to the recipient capability.
+    const accountLink = await (stripe as any).v2.core.accountLinks.create({
       account: accountId,
-      refresh_url: `${appUrl}/app/settings?stripe=refresh`,
-      return_url: `${appUrl}/app/settings?stripe=complete`,
-      type: 'account_onboarding',
+      use_case: {
+        type: 'account_onboarding',
+        account_onboarding: {
+          configurations: ['recipient'],
+          refresh_url: `${appUrl}/app/settings?stripe=refresh`,
+          return_url: `${appUrl}/app/settings?stripe=complete&accountId=${accountId}`,
+        },
+      },
     });
 
     return NextResponse.json({ url: accountLink.url });
