@@ -17,7 +17,7 @@ export async function sendPushToOrder(orderId: string, payload: PushPayload) {
     const webpush = (await import('web-push')).default;
 
     webpush.setVapidDetails(
-      'mailto:soportemenius@gmail.com',
+      'mailto:soporte@menius.app',
       vapidPublic,
       vapidPrivate
     );
