@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, Copy, CheckCircle2, Loader2, Clock, Lightbulb, Image, Instagram, Facebook, Twitter, MessageCircle } from 'lucide-react';
+import { Sparkles, Copy, CheckCircle2, Loader2, Clock, Lightbulb, ImageIcon, Instagram, Facebook, Twitter, MessageCircle, Download, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
@@ -48,11 +48,67 @@ export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale 
   const [error, setError] = useState('');
   const [post, setPost] = useState<GeneratedPost | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [generatingImage, setGeneratingImage] = useState(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState('');
+
+  const handleGenerateImage = async () => {
+    if (!post?.imageIdea) return;
+    setGeneratingImage(true);
+    setImageError('');
+    setGeneratedImageUrl(null);
+    try {
+      const styleMap: Record<string, string> = {
+        instagram: 'vibrant',
+        facebook: 'professional',
+        twitter: 'professional',
+        whatsapp: 'vibrant',
+        tiktok: 'vibrant',
+      };
+      const res = await fetch('/api/ai/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: restaurantName,
+          description: post.imageIdea,
+          style: styleMap[platform] ?? 'vibrant',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t.social_imageError);
+      setGeneratedImageUrl(data.url);
+    } catch (err) {
+      setImageError(err instanceof Error ? err.message : t.social_imageError);
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
+  const handleDownloadImage = async () => {
+    if (!generatedImageUrl) return;
+    try {
+      const response = await fetch(generatedImageUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${restaurantName.replace(/\s+/g, '-').toLowerCase()}-post.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // fallback: open in new tab
+      window.open(generatedImageUrl, '_blank');
+    }
+  };
 
   const handleGenerate = async () => {
     setGenerating(true);
     setError('');
     setPost(null);
+    setGeneratedImageUrl(null);
+    setImageError('');
     try {
       const res = await fetch('/api/ai/social-post', {
         method: 'POST',
@@ -176,14 +232,63 @@ export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale 
             )}
           </div>
 
-          {/* Tips row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 mb-2">
-                <Image className="w-3.5 h-3.5" /> {t.social_imageIdea}
+          {/* Image generator card */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700">
+                <ImageIcon className="w-3.5 h-3.5" /> {t.social_imageIdea}
               </div>
-              <p className="text-xs text-amber-900 leading-relaxed">{post.imageIdea}</p>
+              {generatedImageUrl && (
+                <button
+                  onClick={handleDownloadImage}
+                  className="flex items-center gap-1 text-xs text-amber-700 hover:text-amber-900 font-medium"
+                >
+                  <Download className="w-3 h-3" /> {t.social_downloadImage}
+                </button>
+              )}
             </div>
+
+            <p className="text-xs text-amber-900 leading-relaxed">{post.imageIdea}</p>
+
+            {!generatedImageUrl && (
+              <button
+                onClick={handleGenerateImage}
+                disabled={generatingImage}
+                className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors disabled:opacity-60"
+              >
+                {generatingImage ? (
+                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t.social_generatingImage}</>
+                ) : (
+                  <><Wand2 className="w-3.5 h-3.5" /> {t.social_generateImage}</>
+                )}
+              </button>
+            )}
+
+            {imageError && (
+              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{imageError}</p>
+            )}
+
+            {generatedImageUrl && (
+              <div className="space-y-2">
+                <img
+                  src={generatedImageUrl}
+                  alt="AI generated post image"
+                  className="w-full rounded-lg object-cover"
+                  style={{ maxHeight: '300px' }}
+                />
+                <button
+                  onClick={() => { setGeneratedImageUrl(null); setImageError(''); }}
+                  disabled={generatingImage}
+                  className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-100 text-xs font-medium transition-colors disabled:opacity-60"
+                >
+                  <Wand2 className="w-3.5 h-3.5" /> {t.social_generateImage}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Tips row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
               <div className="flex items-center gap-1.5 text-xs font-medium text-blue-700 mb-2">
                 <Clock className="w-3.5 h-3.5" /> {t.social_bestTime}

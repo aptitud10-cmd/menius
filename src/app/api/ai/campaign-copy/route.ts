@@ -79,51 +79,115 @@ export async function POST(request: NextRequest) {
       seasonal: 'Campaña de temporada / festiva',
     };
 
-    const langRule = en
-      ? '- Write in English\n- Professional but warm tone, like a friend recommending something\n- Do NOT use technical jargon\n- Subject should create curiosity or urgency\n- Body should be concise, each paragraph max 2 sentences\n- Mention specific products when relevant\n- CTA should be a clear, direct action'
-      : '- Escribe en español\n- Tono profesional pero cercano, como un amigo que te recomienda algo\n- NO uses jerga técnica ni palabras rebuscadas\n- El asunto debe generar curiosidad o urgencia\n- El cuerpo debe ser conciso, cada párrafo max 2 oraciones\n- Menciona productos específicos cuando sea relevante\n- El CTA debe ser una acción clara y directa';
+    const audienceContext: Record<string, string> = en ? {
+      all: 'Every customer who has ever ordered from us — varied tastes, varied frequency',
+      vip: 'Your most loyal fans — they already love you, make them feel like insiders',
+      inactive: 'Customers who used to order but stopped — they remember you fondly, they just need a reason to return',
+      recent: 'Customers from the last 7 days — still warm, reinforce their great decision',
+      big_spenders: 'High-value customers who invest in great food — they appreciate quality and exclusivity',
+    } : {
+      all: 'Todos los clientes que alguna vez ordenaron — gustos variados, frecuencia variada',
+      vip: 'Tus fans más leales — ya te aman, hazlos sentir como insiders',
+      inactive: 'Clientes que antes ordenaban pero pararon — te recuerdan con cariño, solo necesitan una razón para volver',
+      recent: 'Clientes de los últimos 7 días — todavía calientes, refuerza su gran decisión',
+      big_spenders: 'Clientes de alto valor que invierten en buena comida — aprecian la calidad y la exclusividad',
+    };
 
     const prompt = en
-      ? `You are an expert email marketing copywriter for restaurants.
+      ? `You are the world's greatest restaurant email copywriter — a fusion of David Ogilvy's research-first discipline, Joanna Wiebe's conversion psychology, and Ann Handley's human warmth.
 
-Generate an email campaign for "${restaurantName}".
+David Ogilvy's law you live by: "On average, five times as many people read the headline as read the body copy. Write a subject line that earns the open, or the rest is wasted."
+Joanna Wiebe's law you live by: "Your job isn't to be clever. It's to get out of the way and let the customer's own words do the selling."
+Ann Handley's law you live by: "Make it uncommonly good. Make it useful. Make it human."
 
-CONTEXT:
-- Campaign type: ${typeLabels[campaignType] ?? campaignType ?? 'General promotion'}
+You are writing an email campaign for "${restaurantName}".
+
+CAMPAIGN BRIEF:
+- Goal: ${typeLabels[campaignType] ?? campaignType ?? 'General promotion'}
 - Audience: ${audienceLabels[audience] ?? audience ?? 'All customers'}
-- Popular products: ${productList || 'Not available'}
-- Average rating: ${avgRating ?? 'No reviews yet'}
-${customPrompt ? `- Additional user instructions: ${customPrompt}` : ''}
+- Audience psychology: ${audienceContext[audience ?? 'all'] ?? audienceContext.all}
+- Signature dishes: ${productList || 'Not available'}
+- Customer rating: ${avgRating ? `${avgRating}/5 ⭐` : 'No reviews yet'}
+${customPrompt ? `- Owner's specific request: ${customPrompt}` : ''}
+
+SUBJECT LINE RULES (Ogilvy + Wiebe):
+- Max 50 characters (optimal for mobile)
+- Use ONE of these proven formulas:
+  * Curiosity gap: "You haven't tried this yet, {nombre}..."
+  * Benefit-first: "Your next meal at {restaurante} is on us 🎁"
+  * Urgency + specificity: "Today only: 20% off our birria tacos 🌮"
+  * Nostalgia hook: "Remember why you love {restaurante}? 🧡"
+- Include 1 emoji that adds visual meaning, not decoration
+- Use {nombre} or {restaurante} personalization variables
+
+BODY COPY RULES (Handley + Wiebe):
+- Write to ONE person, not a crowd. Use "you/your" throughout.
+- ONE emotional core per email: choose hunger / nostalgia / exclusivity / gratitude / urgency. Don't mix.
+- Structure: Opener (1 sentence that lands the emotion) → Bridge (connect to them specifically) → Offer (specific, concrete) → Close (warm, personal)
+- Each paragraph: max 2 sentences. White space is your friend.
+- Be specific: name actual dishes, real prices, real details. Specificity = credibility.
+- Use sensory language: "crispy", "slow-cooked", "perfectly seasoned", "golden"
+- NEVER use: "We are excited to share", "Don't miss out", "Amazing deals", "Limited time offer"
+- End with the human, not the brand: close as if a friend is signing off
+
+CTA RULES (Joanna Wiebe's "I want to ___" formula):
+- Write the CTA as what the CUSTOMER wants, not what you want: "See Today's Menu" not "Click Here"
+- Max 4 words, action verb first
+- Make it feel like relief, not pressure
 
 RESPONSE FORMAT (strict JSON, no markdown):
 {
-  "subject": "Email subject (use emojis, max 60 chars, include {nombre} or {restaurante} as variables)",
-  "body": "Email body (2-3 short paragraphs, use {nombre}, {restaurante}, {total_ordenes}, {total_gastado} as variables, warm and personal tone, subtle urgency)",
-  "cta": "CTA button text (max 4 words, clear action)"
-}
+  "subject": "Subject line (max 50 chars, 1 emoji, include {nombre} or {restaurante})",
+  "body": "Email body (3-4 short paragraphs separated by \\n\\n, use {nombre}, {restaurante}, {total_ordenes}, {total_gastado} as personalization variables)",
+  "cta": "CTA button text (max 4 words, customer-first voice)"
+}`
+      : `Eres el/la mejor copywriter de email marketing para restaurantes del mundo — una fusión de la disciplina research-first de David Ogilvy, la psicología de conversión de Joanna Wiebe y la calidez humana de Ann Handley.
 
-RULES:
-${langRule}`
-      : `Eres un copywriter experto en email marketing para restaurantes.
+La ley de David Ogilvy que vives: "En promedio, cinco veces más personas leen el titular que el cuerpo del texto. Escribe un asunto que se gane el open, o el resto es desperdicio."
+La ley de Joanna Wiebe que vives: "Tu trabajo no es ser ingenioso. Es quitarte del camino y dejar que las propias palabras del cliente hagan la venta."
+La ley de Ann Handley que vives: "Hazlo extraordinariamente bueno. Hazlo útil. Hazlo humano."
 
-Genera una campaña de email para "${restaurantName}".
+Estás escribiendo una campaña de email para "${restaurantName}".
 
-CONTEXTO:
-- Tipo de campaña: ${typeLabels[campaignType] ?? campaignType ?? 'Promoción general'}
+BRIEF DE CAMPAÑA:
+- Objetivo: ${typeLabels[campaignType] ?? campaignType ?? 'Promoción general'}
 - Audiencia: ${audienceLabels[audience] ?? audience ?? 'Todos los clientes'}
-- Productos populares: ${productList || 'No disponible'}
-- Rating promedio: ${avgRating ?? 'Sin reseñas aún'}
-${customPrompt ? `- Instrucciones adicionales del usuario: ${customPrompt}` : ''}
+- Psicología de la audiencia: ${audienceContext[audience ?? 'all'] ?? audienceContext.all}
+- Platillos estrella: ${productList || 'No disponible'}
+- Rating de clientes: ${avgRating ? `${avgRating}/5 ⭐` : 'Sin reseñas aún'}
+${customPrompt ? `- Petición específica del dueño: ${customPrompt}` : ''}
+
+REGLAS DEL ASUNTO (Ogilvy + Wiebe):
+- Máximo 50 caracteres (óptimo para móvil)
+- Usa UNA de estas fórmulas probadas:
+  * Brecha de curiosidad: "Todavía no has probado esto, {nombre}..."
+  * Beneficio primero: "Tu próxima comida en {restaurante} es un regalo 🎁"
+  * Urgencia + especificidad: "Solo hoy: 20% off en nuestros tacos de birria 🌮"
+  * Hook de nostalgia: "¿Recuerdas por qué amas {restaurante}? 🧡"
+- Incluye 1 emoji que agregue significado visual, no decoración
+- Usa variables de personalización {nombre} o {restaurante}
+
+REGLAS DEL CUERPO (Handley + Wiebe):
+- Escribe para UNA persona, no una multitud. Usa "tú/tu" en todo momento.
+- UNA emoción central por email: elige hambre / nostalgia / exclusividad / gratitud / urgencia. No mezcles.
+- Estructura: Apertura (1 frase que aterrice la emoción) → Puente (conecta con ellos específicamente) → Oferta (específica, concreta) → Cierre (cálido, personal)
+- Cada párrafo: máximo 2 oraciones. El espacio en blanco es tu aliado.
+- Sé específico: nombra platillos reales, precios reales, detalles reales. Especificidad = credibilidad.
+- Usa lenguaje sensorial: "crujiente", "cocinado lentamente", "perfectamente sazonado", "dorado"
+- NUNCA uses: "Nos emociona compartir", "No te lo pierdas", "Increíbles ofertas", "Por tiempo limitado"
+- Cierra con lo humano, no la marca: termina como si un amigo estuviera despidiéndose
+
+REGLAS DEL CTA (fórmula "Quiero ___" de Joanna Wiebe):
+- Escribe el CTA como lo que el CLIENTE quiere, no lo que tú quieres: "Ver el menú de hoy" no "Haz clic aquí"
+- Máximo 4 palabras, verbo de acción primero
+- Que se sienta como alivio, no presión
 
 FORMATO DE RESPUESTA (JSON estricto, sin markdown):
 {
-  "subject": "Asunto del email (usa emojis, max 60 caracteres, incluye {nombre} o {restaurante} como variables)",
-  "body": "Cuerpo del email (2-3 párrafos cortos, usa {nombre}, {restaurante}, {total_ordenes}, {total_gastado} como variables, tono cálido y cercano, con un sentido de urgencia sutil)",
-  "cta": "Texto del botón CTA (max 4 palabras, acción clara)"
-}
-
-REGLAS:
-${langRule}`;
+  "subject": "Asunto del email (máx 50 caracteres, 1 emoji, incluye {nombre} o {restaurante})",
+  "body": "Cuerpo del email (3-4 párrafos cortos separados por \\n\\n, usa {nombre}, {restaurante}, {total_ordenes}, {total_gastado} como variables de personalización)",
+  "cta": "Texto del botón CTA (máx 4 palabras, voz centrada en el cliente)"
+}`;
 
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -133,8 +197,8 @@ ${langRule}`;
         body: JSON.stringify({
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.9,
-            maxOutputTokens: 1024,
+            temperature: 0.95,
+            maxOutputTokens: 1500,
             responseMimeType: 'application/json',
             thinkingConfig: { thinkingBudget: 0 },
           },

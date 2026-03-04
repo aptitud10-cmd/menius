@@ -50,18 +50,80 @@ export async function POST(request: NextRequest) {
       ? ((recentReviews ?? []).reduce((s, r) => s + r.rating, 0) / (recentReviews ?? []).length).toFixed(1)
       : null;
 
-    const platformRules: Record<string, string> = en ? {
-      instagram: `- Max 2200 chars but ideal 150-200\n- Use emojis strategically (don't overdo)\n- Include 15-20 relevant hashtags separated from main text\n- Visual and aspirational tone\n- Include a clear CTA (link in bio, swipe up, etc.)`,
-      facebook: `- Max 500 chars ideal\n- Conversational and community-driven tone\n- Include 3-5 hashtags max\n- Ask questions for engagement\n- Include direct menu link`,
-      twitter: `- Max 280 chars STRICT\n- Direct and punchy\n- 1-3 hashtags max\n- Include menu link if space allows`,
-      whatsapp: `- Short and direct broadcast/status message\n- Use emojis to separate sections\n- Include menu link\n- Informal and personal format`,
-      tiktok: `- Short catchy caption (max 150 chars)\n- Use trending food hashtags\n- Include a curiosity hook\n- Gen-Z friendly but professional tone`,
+    const platformDNA: Record<string, string> = en ? {
+      instagram: `INSTAGRAM DNA:
+- Hook rule: first sentence must stop the scroll — no brand name, no "we are proud". Start with emotion, curiosity, or a bold statement.
+- Ideal length: 150-220 chars for the caption body (short paragraphs, air between them)
+- Emojis: use 2-4 purposefully — one at the start, one mid-text, one near CTA
+- Storytelling structure: Hook → Context/Story → Emotion → CTA
+- CTA: "Link in bio 🔗" or "Order now at the link in our bio"
+- Hashtags (15-20): mix of niche (#ChilaquilesVerdes), mid (#ComidaMexicana), broad (#Foodie). Separate from caption with a line break.
+- Voice: aspirational, warm, behind-the-counter intimacy`,
+      facebook: `FACEBOOK DNA:
+- Hook: open with a question OR a bold statement that invites a response
+- Ideal length: 80-150 chars — Facebook rewards conversation, not monologues
+- Tone: neighborhood friends talking, not a brand announcement
+- End with a direct question to drive comments (e.g., "¿Cuál es tu favorita?")
+- Hashtags: 3-5 max, woven naturally
+- Include menu link directly in the post
+- Voice: community bulletin board — personal, local, inclusive`,
+      twitter: `TWITTER/X DNA:
+- STRICT 280 chars max — every word must earn its place
+- Hook = the whole tweet. No buildup.
+- Use one sharp observation, one bold claim, or one irresistible offer
+- 1-2 hashtags max (only if they add discovery value)
+- Menu link if space allows
+- Voice: witty, direct, zero corporate speak`,
+      whatsapp: `WHATSAPP DNA:
+- Broadcast message — feels like a personal text from a friend who owns a restaurant
+- Structure: one bold line → body (2-3 lines) → link → emoji sign-off
+- Use line breaks and emojis as visual separators
+- Max 3 paragraphs — people read this on mobile in 10 seconds
+- Voice: warm, exclusive ("just for our regulars"), personal
+- Include menu link`,
+      tiktok: `TIKTOK DNA:
+- Caption max 150 chars — it's a visual platform, caption supports the video
+- Hook: curiosity gap or bold food fact
+- 3-5 trending food hashtags (#FoodTok #ComidaTikTok)
+- Voice: Gen-Z authentic, zero polish, real talk
+- End with a controversial or opinionated statement to drive comments`,
     } : {
-      instagram: `- Máximo 2200 caracteres pero ideal 150-200\n- Usa emojis estratégicamente (no exageres)\n- Incluye 15-20 hashtags relevantes separados del texto principal\n- Tono visual y aspiracional\n- Incluye un CTA claro (link en bio, swipe up, etc.)`,
-      facebook: `- Máximo 500 caracteres ideal\n- Tono más conversacional y community-driven\n- Incluye 3-5 hashtags máximo\n- Haz preguntas para generar engagement\n- Incluye el link directo al menú`,
-      twitter: `- Máximo 280 caracteres ESTRICTO\n- Directo y punchy\n- 1-3 hashtags máximo\n- Incluye el link al menú si hay espacio`,
-      whatsapp: `- Mensaje corto y directo para broadcast/estado\n- Usa emojis para separar secciones\n- Incluye el link al menú\n- Formato informal y personal`,
-      tiktok: `- Caption corto y llamativo (máximo 150 caracteres)\n- Usa trending hashtags de comida\n- Incluye un hook que genere curiosidad\n- Tono Gen-Z friendly pero profesional`,
+      instagram: `ADN DE INSTAGRAM:
+- Regla del hook: la primera frase DETIENE el scroll — sin nombre del restaurante, sin "nos complace presentar". Empieza con emoción, curiosidad o una afirmación audaz.
+- Longitud ideal: 150-220 caracteres para el cuerpo (párrafos cortos, espacio entre ellos)
+- Emojis: usa 2-4 con propósito — uno al inicio, uno en el medio, uno cerca del CTA
+- Estructura narrativa: Hook → Contexto/Historia → Emoción → CTA
+- CTA: "Link en nuestra bio 🔗" o "Ordena ahora desde el link en bio"
+- Hashtags (15-20): mezcla de nicho (#ChilaquilesVerdes), medio (#ComidaMexicana), amplio (#Foodie). Sepáralos del caption con un salto de línea.
+- Voz: aspiracional, cálida, con intimidad de detrás del mostrador`,
+      facebook: `ADN DE FACEBOOK:
+- Hook: abre con una pregunta O una afirmación audaz que invite a responder
+- Longitud ideal: 80-150 caracteres — Facebook premia la conversación, no los monólogos
+- Tono: amigos del barrio hablando, no un anuncio de marca
+- Termina con una pregunta directa para generar comentarios (ej: "¿Cuál es tu favorita?")
+- Hashtags: 3-5 máximo, tejidos naturalmente
+- Incluye el link al menú directamente en el post
+- Voz: tablón de avisos del barrio — personal, local, inclusivo`,
+      twitter: `ADN DE TWITTER/X:
+- MÁXIMO 280 caracteres estrictos — cada palabra debe ganarse su lugar
+- El hook ES el tweet completo. Sin preámbulos.
+- Usa una observación aguda, una afirmación audaz o una oferta irresistible
+- 1-2 hashtags máximo (solo si agregan valor de descubrimiento)
+- Link al menú si hay espacio
+- Voz: ingenioso, directo, cero habla corporativa`,
+      whatsapp: `ADN DE WHATSAPP:
+- Mensaje de difusión — se siente como un texto personal de un amigo que tiene un restaurante
+- Estructura: una línea impactante → cuerpo (2-3 líneas) → link → despedida con emoji
+- Usa saltos de línea y emojis como separadores visuales
+- Máximo 3 párrafos — la gente lo lee en móvil en 10 segundos
+- Voz: cálida, exclusiva ("solo para nuestros clientes"), personal
+- Incluye el link al menú`,
+      tiktok: `ADN DE TIKTOK:
+- Caption máximo 150 caracteres — es plataforma visual, el caption apoya el video
+- Hook: brecha de curiosidad o dato audaz sobre la comida
+- 3-5 hashtags de tendencia alimentaria (#FoodTok #ComidaTikTok)
+- Voz: auténtico Gen-Z, cero pulido, habla real
+- Termina con una afirmación controversial u opinionada para generar comentarios`,
     };
 
     const typeLabels: Record<string, string> = en ? {
@@ -84,69 +146,85 @@ export async function POST(request: NextRequest) {
       story: 'Historia/anécdota del restaurante',
     };
 
+    const topReviewQuotes = (recentReviews ?? [])
+      .filter(r => r.comment && r.rating >= 4)
+      .slice(0, 2)
+      .map(r => `"${r.comment}" — ${r.customer_name || (en ? 'customer' : 'cliente')}`)
+      .join('\n');
+
     const prompt = en
-      ? `You are an expert social media community manager for restaurant marketing.
+      ? `You are the world's #1 restaurant social media content creator — a fusion of Gary Vaynerchuk's platform-native instinct and Ann Handley's storytelling mastery.
 
-Generate a post for "${restaurantName}" on ${platform ?? 'instagram'}.
+Gary Vaynerchuk's rule you live by: "The first line of every post is your entire marketing budget. If it doesn't stop the scroll, nothing else matters."
+Ann Handley's rule you live by: "Write to one person. Make them feel something. Then ask them to do something."
 
-CONTEXT:
-- Post type: ${typeLabels[postType] ?? postType ?? 'General post'}
-- Popular products: ${productList || 'Not available'}
-- Average rating: ${avgRating ?? 'No reviews'}
+You are creating a ${(platform ?? 'instagram').toUpperCase()} post for "${restaurantName}".
+
+RESTAURANT DATA (use this to make the post feel real and specific, not generic):
+- Post goal: ${typeLabels[postType] ?? postType ?? 'General post'}
+- Signature dishes: ${productList || 'Not available'}
+- Customer rating: ${avgRating ? `${avgRating}/5 ⭐` : 'No reviews yet'}
 - Menu link: ${menuUrl}
-${restaurant?.description ? `- Restaurant description: ${restaurant.description}` : ''}
-${customPrompt ? `- User instructions: ${customPrompt}` : ''}
+${restaurant?.description ? `- About the restaurant: ${restaurant.description}` : ''}
+${topReviewQuotes ? `- Real customer words (use their voice, not marketing speak):\n${topReviewQuotes}` : ''}
+${customPrompt ? `- Owner's specific request: ${customPrompt}` : ''}
 
-RULES FOR ${(platform ?? 'instagram').toUpperCase()}:
-${platformRules[platform] ?? platformRules.instagram}
+${platformDNA[platform ?? 'instagram'] ?? platformDNA.instagram}
+
+CONTENT EXCELLENCE RULES (non-negotiable):
+- HOOK FIRST: Line 1 must create an emotion — hunger, curiosity, nostalgia, FOMO, or delight. Never start with the restaurant name.
+- BE SPECIFIC: "Our crispy chilaquiles with tomatillo sauce" beats "our delicious food" every time.
+- ONE MESSAGE: Each post has ONE core emotion. Don't try to say everything.
+- AUTHENTIC VOICE: Write like the owner is texting their best customer — warm, real, zero corporate.
+- NEVER use: "We are pleased to announce", "Check out our...", "Don't miss out", "Limited time only"
+- USE instead: sensory language (sizzling, golden, tender, smoky), storytelling moments, community language
+
+IMAGE DESCRIPTION RULE: For imageIdea, write a cinematic, specific scene description that can be used to generate an AI photograph. Include: exact dish, plating style, lighting, background, and mood. Example: "Close-up of golden-brown carnitas tacos on a handmade corn tortilla, fresh cilantro and white onion on top, dim warm candlelight, dark rustic wood table, shallow depth of field, food photography style."
 
 RESPONSE FORMAT (strict JSON, no markdown):
 {
-  "caption": "The full post text/caption, ready to copy and paste",
-  "hashtags": "Hashtags separated by space (if applicable for the platform)",
-  "imageIdea": "Brief description of what image/photo would complement this post",
-  "bestTime": "Best time to publish this type of content (e.g. '12:00-13:00' or '18:00-20:00')",
-  "tip": "A brief professional tip to maximize this post's reach"
-}
+  "caption": "The complete post text, ready to copy-paste. Paragraphs separated by \\n\\n.",
+  "hashtags": "Hashtags space-separated (only if platform uses them)",
+  "imageIdea": "Cinematic AI image prompt: exact dish, plating, lighting, background, mood, photography style",
+  "bestTime": "Best day + time to post for maximum reach (e.g., 'Friday 12:00-13:00')",
+  "tip": "One sharp, specific insight to maximize this post's performance — not generic advice"
+}`
+      : `Eres el/la creador/a de contenido para restaurantes #1 del mundo en redes sociales — una fusión de la instancia plataforma-nativa de Gary Vaynerchuk y el dominio narrativo de Ann Handley.
 
-GENERAL RULES:
-- Write in English
-- Professional but warm and authentic tone
-- Mention specific products when natural
-- Do NOT use generic or cliché text
-- Adapt content to each social network's style
-- Content should drive engagement (likes, comments, shares)`
-      : `Eres un community manager experto en marketing gastronómico para redes sociales.
+La regla de Gary Vaynerchuk que vives: "La primera línea de cada post es todo tu presupuesto de marketing. Si no detiene el scroll, nada más importa."
+La regla de Ann Handley que vives: "Escribe para una persona. Hazla sentir algo. Luego pídele que haga algo."
 
-Genera un post para "${restaurantName}" en ${platform ?? 'instagram'}.
+Estás creando un post para ${(platform ?? 'instagram').toUpperCase()} de "${restaurantName}".
 
-CONTEXTO:
-- Tipo de post: ${typeLabels[postType] ?? postType ?? 'Post general'}
-- Productos populares: ${productList || 'No disponible'}
-- Rating promedio: ${avgRating ?? 'Sin reseñas'}
+DATOS DEL RESTAURANTE (úsalos para que el post se sienta real y específico, no genérico):
+- Objetivo del post: ${typeLabels[postType] ?? postType ?? 'Post general'}
+- Platillos estrella: ${productList || 'No disponible'}
+- Rating de clientes: ${avgRating ? `${avgRating}/5 ⭐` : 'Sin reseñas aún'}
 - Link al menú: ${menuUrl}
-${restaurant?.description ? `- Descripción del restaurante: ${restaurant.description}` : ''}
-${customPrompt ? `- Instrucciones del usuario: ${customPrompt}` : ''}
+${restaurant?.description ? `- Sobre el restaurante: ${restaurant.description}` : ''}
+${topReviewQuotes ? `- Palabras reales de clientes (usa su voz, no lenguaje de marketing):\n${topReviewQuotes}` : ''}
+${customPrompt ? `- Petición específica del dueño: ${customPrompt}` : ''}
 
-REGLAS PARA ${(platform ?? 'instagram').toUpperCase()}:
-${platformRules[platform] ?? platformRules.instagram}
+${platformDNA[platform ?? 'instagram'] ?? platformDNA.instagram}
+
+REGLAS DE EXCELENCIA DE CONTENIDO (no negociables):
+- HOOK PRIMERO: La línea 1 debe crear una emoción — hambre, curiosidad, nostalgia, FOMO o deleite. Nunca empieces con el nombre del restaurante.
+- SÉ ESPECÍFICO: "Nuestros chilaquiles crujientes con salsa de tomatillo" supera a "nuestra deliciosa comida" siempre.
+- UN MENSAJE: Cada post tiene UNA emoción central. No intentes decir todo.
+- VOZ AUTÉNTICA: Escribe como si el dueño le estuviera escribiendo un mensaje a su mejor cliente — cálido, real, cero corporativo.
+- NUNCA uses: "Nos complace anunciar", "Visítanos", "No te lo pierdas", "Por tiempo limitado"
+- USA en cambio: lenguaje sensorial (crujiente, dorado, tierno, ahumado), momentos narrativos, lenguaje de comunidad
+
+REGLA DE DESCRIPCIÓN DE IMAGEN: Para imageIdea, escribe una descripción cinematográfica y específica que pueda usarse para generar una fotografía con IA. Incluye: platillo exacto, estilo de presentación, iluminación, fondo y ambiente. Ejemplo: "Primer plano de tacos de carnitas doradas en tortilla de maíz hecha a mano, cilantro fresco y cebolla blanca encima, luz de vela cálida y tenue, mesa de madera rústica oscura, profundidad de campo superficial, estilo fotografía gastronómica profesional."
 
 FORMATO DE RESPUESTA (JSON estricto, sin markdown):
 {
-  "caption": "El texto/caption del post completo, listo para copiar y pegar",
-  "hashtags": "Los hashtags separados por espacio (si aplica para la plataforma)",
-  "imageIdea": "Descripción breve de qué imagen/foto acompañaría bien este post",
-  "bestTime": "Mejor hora para publicar este tipo de contenido (ej: '12:00-13:00' o '18:00-20:00')",
-  "tip": "Un tip profesional breve para maximizar el alcance de este post"
-}
-
-REGLAS GENERALES:
-- Escribe en español
-- Tono profesional pero cercano y auténtico
-- Menciona productos específicos cuando sea natural
-- NO uses texto genérico o cliché
-- Adapta el contenido al estilo de cada red social
-- El contenido debe generar engagement (likes, comentarios, compartidos)`;
+  "caption": "El texto completo del post, listo para copiar y pegar. Párrafos separados por \\n\\n.",
+  "hashtags": "Hashtags separados por espacio (solo si la plataforma los usa)",
+  "imageIdea": "Prompt cinematográfico para IA: platillo exacto, presentación, iluminación, fondo, ambiente, estilo fotográfico",
+  "bestTime": "Mejor día + hora para publicar con máximo alcance (ej: 'Viernes 12:00-13:00')",
+  "tip": "Un insight agudo y específico para maximizar el rendimiento de este post — no consejo genérico"
+}`;
 
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -156,7 +234,7 @@ REGLAS GENERALES:
         body: JSON.stringify({
           contents: [{ role: 'user', parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.95,
+            temperature: 1.0,
             maxOutputTokens: 2048,
             responseMimeType: 'application/json',
             thinkingConfig: { thinkingBudget: 0 },

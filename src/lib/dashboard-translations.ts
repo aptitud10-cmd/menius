@@ -798,6 +798,10 @@ export interface DashboardTranslations {
   social_copyAll: string;
   social_copied: string;
   social_imageIdea: string;
+  social_generateImage: string;
+  social_generatingImage: string;
+  social_downloadImage: string;
+  social_imageError: string;
   social_bestTime: string;
   social_proTip: string;
   social_regenerate: string;
@@ -1833,7 +1837,11 @@ const es: DashboardTranslations = {
   social_captionText: 'Caption / Texto',
   social_copyAll: 'Copiar todo',
   social_copied: 'Copiado',
-  social_imageIdea: 'Idea de imagen',
+  social_imageIdea: 'Imagen para el post',
+  social_generateImage: 'Generar imagen con IA',
+  social_generatingImage: 'Generando imagen...',
+  social_downloadImage: 'Descargar imagen',
+  social_imageError: 'No se pudo generar la imagen',
   social_bestTime: 'Mejor hora',
   social_proTip: 'Tip profesional',
   social_regenerate: 'Generar otra versión',
@@ -2869,7 +2877,11 @@ const en: DashboardTranslations = {
   social_captionText: 'Caption / Text',
   social_copyAll: 'Copy all',
   social_copied: 'Copied',
-  social_imageIdea: 'Image idea',
+  social_imageIdea: 'Post image',
+  social_generateImage: 'Generate image with AI',
+  social_generatingImage: 'Generating image...',
+  social_downloadImage: 'Download image',
+  social_imageError: 'Could not generate image',
   social_bestTime: 'Best time',
   social_proTip: 'Pro tip',
   social_regenerate: 'Generate another version',
