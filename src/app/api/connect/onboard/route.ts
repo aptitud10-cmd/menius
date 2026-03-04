@@ -55,10 +55,11 @@ export async function POST(request: NextRequest) {
         dashboard: 'express',
         defaults: {
           responsibilities: {
-            // Platform is responsible for collecting Stripe's processing fees
-            // and covering any losses (chargebacks etc.).
-            fees_collector: 'application',
-            losses_collector: 'application',
+            // Stripe handles fee collection and loss liability (chargebacks/fraud).
+            // This lets MENIUS offer 0% commission — restaurants pay only
+            // Stripe's standard processing fee directly to Stripe.
+            fees_collector: 'stripe',
+            losses_collector: 'stripe',
           },
         },
         configuration: {
