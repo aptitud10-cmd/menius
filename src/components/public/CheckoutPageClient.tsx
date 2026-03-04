@@ -694,7 +694,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
                 {payLoading ? t.redirecting : t.payNow}
               </button>
             )}
-            {orderNumber && orderNumber !== 'WALLET' && (
+            {orderNumber && orderNumber !== 'WALLET' && !restaurant.id.startsWith('demo') && (
               <a href={`/r/${restaurant.slug}/orden/${orderNumber}`} className="block w-full py-3.5 rounded-xl bg-gray-900 text-white font-semibold text-sm text-center hover:bg-gray-800 transition-colors">
                 {t.trackOrder}
               </a>
