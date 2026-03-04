@@ -107,6 +107,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const [demoCardNum, setDemoCardNum] = useState('4242 4242 4242 4242');
   const [demoExpiry, setDemoExpiry] = useState('12 / 28');
   const [demoCVC, setDemoCVC] = useState('123');
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const [demoPayProcessing, setDemoPayProcessing] = useState(false);
   const tipAmount = tipPercent !== null
     ? Math.round(cartTotal * tipPercent) / 100
@@ -463,7 +464,6 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
     );
 
     const restaurantInitial = restaurant.name.charAt(0).toUpperCase();
-    const [summaryOpen, setSummaryOpen] = useState(false);
 
     return (
       <div className="min-h-[100dvh] flex flex-col" style={{ backgroundColor: '#f6f9fc' }}>
