@@ -10,6 +10,7 @@ const logger = createLogger('ai-generate-image');
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = createClient();
     const tenant = await getTenant();
     if (!tenant) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
@@ -121,7 +122,6 @@ Technical requirements:
       );
     }
 
-    const supabase = createClient();
     const buffer = Buffer.from(imageBase64, 'base64');
     const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
     const fileName = `${tenant.userId}/ai-${Date.now()}.${ext}`;

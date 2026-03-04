@@ -118,7 +118,10 @@ Example output:
 
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
-      generationConfig: { maxOutputTokens: 65536 },
+      generationConfig: {
+        maxOutputTokens: 65536,
+        thinkingConfig: { thinkingBudget: 0 },
+      } as Parameters<typeof genAI.getGenerativeModel>[0]['generationConfig'],
     });
 
     const result = await model.generateContent([

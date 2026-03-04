@@ -159,6 +159,7 @@ REGLAS GENERALES:
             temperature: 0.95,
             maxOutputTokens: 2048,
             responseMimeType: 'application/json',
+            thinkingConfig: { thinkingBudget: 0 },
           },
         }),
       },
@@ -170,7 +171,10 @@ REGLAS GENERALES:
     }
 
     const geminiData = await res.json();
-    const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    const rawText = (geminiData?.candidates?.[0]?.content?.parts ?? [])
+      .filter((p: { thought?: boolean }) => !p.thought)
+      .map((p: { text?: string }) => p.text ?? '')
+      .join('') || '';
 
     try {
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);

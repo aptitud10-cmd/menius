@@ -495,6 +495,7 @@ export async function POST(request: NextRequest) {
             maxOutputTokens: 1500,
             temperature: 0.8,
             topP: 0.92,
+            thinkingConfig: { thinkingBudget: 0 },
           },
         }),
         signal: AbortSignal.timeout(20000),
@@ -508,7 +509,11 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await res.json();
-    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const reply = (data?.candidates?.[0]?.content?.parts ?? [])
+      .filter((p: { thought?: boolean }) => !p.thought)
+      .map((p: { text?: string }) => p.text ?? '')
+      .join('')
+      .trim();
 
     if (!reply) {
       return NextResponse.json({ error: 'No se obtuvo respuesta.' }, { status: 502 });
