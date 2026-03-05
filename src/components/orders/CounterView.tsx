@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useNotifications } from '@/hooks/use-notifications';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { updateOrderStatus, updateOrderETA } from '@/lib/actions/restaurant';
 import type { Order, OrderItem } from '@/types';
 import { cn } from '@/lib/utils';
@@ -33,31 +34,16 @@ const STATUS_PILL: Record<string, string> = {
   cancelled: 'bg-red-500/20 text-red-400 border border-red-500/20',
 };
 
-const STATUS_LABEL_ES: Record<string, string> = {
-  pending:   'NUEVO',
-  confirmed: 'CONFIRMADO',
-  preparing: 'PREPARANDO',
-  ready:     'LISTO',
-  delivered: 'ENTREGADO',
-  cancelled: 'CANCELADO',
+const NEXT_ACTION_STYLE: Record<string, { status: string; colorCls: string }> = {
+  confirmed: { status: 'preparing', colorCls: 'bg-purple-600 hover:bg-purple-500 shadow-purple-900/40' },
+  preparing: { status: 'ready',     colorCls: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/40' },
+  ready:     { status: 'delivered', colorCls: 'bg-gray-600 hover:bg-gray-500 shadow-gray-900/40' },
 };
 
 const TYPE_ICON: Record<string, React.ElementType> = {
   delivery: Truck,
   pickup:   Package,
   dine_in:  UtensilsCrossed,
-};
-
-const TYPE_LABEL: Record<string, string> = {
-  delivery: 'Delivery',
-  pickup:   'Pickup',
-  dine_in:  'Mesa',
-};
-
-const NEXT_ACTION: Record<string, { status: string; label: string; colorCls: string }> = {
-  confirmed: { status: 'preparing', label: 'EN PREPARACIÓN',  colorCls: 'bg-purple-600 hover:bg-purple-500 shadow-purple-900/40' },
-  preparing: { status: 'ready',     label: 'MARCAR LISTO',    colorCls: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/40' },
-  ready:     { status: 'delivered', label: 'ENTREGADO',       colorCls: 'bg-gray-600 hover:bg-gray-500 shadow-gray-900/40' },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -95,22 +81,23 @@ interface CounterViewProps {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function CounterView({ initialOrders, restaurantId, restaurantName, currency }: CounterViewProps) {
-  const [selectedId, setSelectedId]         = useState<string | null>(null);
-  const [selectedETA, setSelectedETA]       = useState<number>(15);
-  const [isUpdating, setIsUpdating]         = useState(false);
-  const [autoPrint, setAutoPrint]           = useState(false);
-  const [notifWA, setNotifWA]               = useState(true);
-  const [notifSMS, setNotifSMS]             = useState(true);
-  const [notifEmail, setNotifEmail]         = useState(true);
-  const [flashId, setFlashId]               = useState<string | null>(null);
-  const [, tick]                            = useState(0);
+  const { t } = useDashboardLocale();
+  const [selectedId, setSelectedId]   = useState<string | null>(null);
+  const [selectedETA, setSelectedETA] = useState<number>(15);
+  const [isUpdating, setIsUpdating]   = useState(false);
+  const [autoPrint, setAutoPrint]     = useState(false);
+  const [notifWA, setNotifWA]         = useState(true);
+  const [notifSMS, setNotifSMS]       = useState(true);
+  const [notifEmail, setNotifEmail]   = useState(true);
+  const [flashId, setFlashId]         = useState<string | null>(null);
+  const [, tick]                      = useState(0);
 
   const { playSound, soundEnabled, setSoundEnabled } = useNotifications({ defaultTitle: 'Counter — MENIUS' });
 
   // Refresh elapsed times every 30 s
   useEffect(() => {
-    const t = setInterval(() => tick(n => n + 1), 30_000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => tick(n => n + 1), 30_000);
+    return () => clearInterval(timer);
   }, []);
 
   const handleNewOrder = useCallback((order: Order) => {
@@ -168,7 +155,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
           </div>
           <div className="leading-none">
             <p className="text-white text-sm font-bold truncate max-w-[160px]">{restaurantName}</p>
-            <p className="text-gray-500 text-[10px] mt-0.5 uppercase tracking-widest">Counter View</p>
+            <p className="text-gray-500 text-[10px] mt-0.5 uppercase tracking-widest">{t.counter_title}</p>
           </div>
         </div>
 
@@ -183,7 +170,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
               pending.length > 0 ? 'bg-amber-400 animate-pulse' : 'bg-gray-700'
             )} />
             <span className="text-white text-lg font-bold leading-none">{pending.length}</span>
-            <span className="text-amber-400/80 text-xs font-medium">pendiente{pending.length !== 1 ? 's' : ''}</span>
+            <span className="text-amber-400/80 text-xs font-medium">{t.counter_pending}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className={cn(
@@ -191,7 +178,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
               progress.length > 0 ? 'bg-purple-400' : 'bg-gray-700'
             )} />
             <span className="text-white text-lg font-bold leading-none">{progress.length}</span>
-            <span className="text-purple-400/80 text-xs font-medium">en proceso</span>
+            <span className="text-purple-400/80 text-xs font-medium">{t.counter_inProgress}</span>
           </div>
         </div>
 
@@ -204,21 +191,21 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
             label="WA"
             active={notifWA}
             activeColor="bg-green-600"
-            title="WhatsApp al cliente"
+            title={t.counter_notifWA}
             onClick={() => setNotifWA(v => !v)}
           />
           <ToggleChip
             label="SMS"
             active={notifSMS}
             activeColor="bg-blue-600"
-            title="SMS al cliente"
+            title={t.counter_notifSMS}
             onClick={() => setNotifSMS(v => !v)}
           />
           <ToggleChip
             label="✉"
             active={notifEmail}
             activeColor="bg-purple-600"
-            title="Email al cliente"
+            title={t.counter_notifEmail}
             onClick={() => setNotifEmail(v => !v)}
           />
         </div>
@@ -226,7 +213,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
         {/* Auto-print */}
         <button
           onClick={() => setAutoPrint(v => !v)}
-          title="Auto-imprimir al aceptar"
+          title={t.counter_autoPrint}
           className={cn(
             'flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold border transition-all',
             autoPrint
@@ -235,13 +222,13 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
           )}
         >
           <Printer className="w-3.5 h-3.5" />
-          <span>Print</span>
+          <span>{t.counter_autoPrint}</span>
         </button>
 
         {/* Sound */}
         <button
           onClick={() => setSoundEnabled(!soundEnabled)}
-          title={soundEnabled ? 'Silenciar' : 'Activar sonido'}
+          title={t.counter_sound}
           className={cn(
             'w-8 h-8 rounded-lg border flex items-center justify-center transition-all',
             soundEnabled
@@ -265,7 +252,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
               <div className="h-9 px-4 bg-amber-500/10 border-b border-amber-500/20 flex items-center gap-2">
                 <Bell className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
                 <span className="text-amber-400 text-xs font-bold uppercase tracking-wider">
-                  {pending.length} Nueva{pending.length > 1 ? 's' : ''} Orden{pending.length > 1 ? 'es' : ''}
+                  {pending.length} {pending.length > 1 ? t.counter_newOrders : t.counter_newOrder}
                 </span>
               </div>
               <div className="divide-y divide-gray-800/50">
@@ -289,7 +276,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
               <div className="h-9 px-4 bg-gray-800/30 border-b border-gray-800/50 flex items-center gap-2 flex-none">
                 <ChefHat className="w-3.5 h-3.5 text-purple-400" />
                 <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">
-                  En proceso ({progress.length})
+                  {t.counter_inProgress} ({progress.length})
                 </span>
               </div>
               <div className="flex-1 overflow-y-auto divide-y divide-gray-800/50 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-800">
@@ -313,10 +300,8 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
               <div className="w-14 h-14 rounded-full bg-gray-900 flex items-center justify-center">
                 <CheckCircle2 className="w-7 h-7 text-emerald-600" />
               </div>
-              <p className="text-gray-400 text-sm font-medium text-center">Sin órdenes pendientes</p>
-              <p className="text-gray-700 text-xs text-center leading-relaxed">
-                Las órdenes aparecen aquí en tiempo real
-              </p>
+              <p className="text-gray-400 text-sm font-medium text-center">{t.counter_noOrders}</p>
+              <p className="text-gray-700 text-xs text-center leading-relaxed">{t.counter_noOrdersDesc}</p>
             </div>
           )}
 
@@ -324,7 +309,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
           <div className="flex-none h-9 border-t border-gray-800/50 flex items-center justify-center gap-1.5">
             <Zap className="w-3 h-3 text-emerald-600" />
             <span className="text-gray-700 text-[10px] font-semibold tracking-[0.2em] uppercase">
-              Powered by MENIUS
+              {t.counter_poweredBy}
             </span>
           </div>
         </aside>
@@ -353,6 +338,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
 // ─── Idle screen ─────────────────────────────────────────────────────────────
 
 function IdleScreen({ hasOrders }: { hasOrders: boolean }) {
+  const { t } = useDashboardLocale();
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-4 bg-gray-950 p-8">
       <div className="w-20 h-20 rounded-2xl bg-gray-900 border border-gray-800 flex items-center justify-center">
@@ -360,12 +346,10 @@ function IdleScreen({ hasOrders }: { hasOrders: boolean }) {
       </div>
       <div className="text-center space-y-1">
         <p className="text-gray-400 text-base font-semibold">
-          {hasOrders ? 'Selecciona una orden' : 'Esperando órdenes...'}
+          {hasOrders ? t.counter_selectOrder : t.counter_noOrders}
         </p>
         <p className="text-gray-700 text-sm">
-          {hasOrders
-            ? 'Toca una orden en el panel izquierdo para ver los detalles'
-            : 'Las órdenes llegan en tiempo real. Mantén el sonido activado.'}
+          {hasOrders ? t.counter_selectOrderDesc : t.counter_noOrdersDesc}
         </p>
       </div>
     </div>
@@ -379,9 +363,19 @@ function OrderCard({
 }: {
   order: Order; selected: boolean; isNew: boolean; currency: string; onClick: () => void;
 }) {
+  const { t } = useDashboardLocale();
   const mins      = elapsed(order.created_at);
   const itemCount = order.items?.reduce((s, i) => s + i.qty, 0) ?? 0;
   const TypeIcon  = TYPE_ICON[order.order_type ?? 'dine_in'] ?? UtensilsCrossed;
+
+  const statusLabels: Record<string, string> = {
+    pending:   t.counter_newOrder,
+    confirmed: t.kds_accept,
+    preparing: t.counter_preparing,
+    ready:     t.counter_markReady,
+    delivered: t.counter_deliver,
+    cancelled: t.kds_cancelled,
+  };
 
   return (
     <button
@@ -395,27 +389,23 @@ function OrderCard({
           : 'hover:bg-gray-900/60 border-l-[3px] border-transparent'
       )}
     >
-      {/* Pulsing ring for new orders */}
       {isNew && (
         <div className="absolute inset-0 border-l-[3px] border-amber-400 animate-pulse pointer-events-none" />
       )}
 
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          {/* Order number + status */}
           <div className="flex items-center gap-2 mb-1">
             <span className="text-white font-bold text-sm">#{order.order_number}</span>
             <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-md', STATUS_PILL[order.status])}>
-              {STATUS_LABEL_ES[order.status]}
+              {statusLabels[order.status] ?? order.status.toUpperCase()}
             </span>
           </div>
-          {/* Customer + items */}
           <p className="text-gray-500 text-xs truncate">
-            {order.customer_name || 'Invitado'} &middot; {itemCount} art.
+            {order.customer_name || t.kds_customer} &middot; {itemCount} {t.kds_product}
           </p>
         </div>
 
-        {/* Price + type + time */}
         <div className="flex-none flex flex-col items-end gap-1">
           <span className="text-white text-sm font-bold">
             {formatCurrency(order.total, currency)}
@@ -423,7 +413,7 @@ function OrderCard({
           <div className="flex items-center gap-1.5">
             <TypeIcon className="w-3 h-3 text-gray-600" />
             <span className={cn('text-[11px] font-semibold', elapsedColor(mins))}>
-              {mins}m
+              {mins}{t.counter_agoMin}
             </span>
           </div>
         </div>
@@ -444,11 +434,33 @@ function OrderDetail({
   isUpdating: boolean;
   onStatus: (id: string, status: string) => void;
 }) {
-  const mins      = elapsed(order.created_at);
-  const isPending = order.status === 'pending';
-  const TypeIcon  = TYPE_ICON[order.order_type ?? 'dine_in'] ?? UtensilsCrossed;
-  const nextAct   = NEXT_ACTION[order.status] ?? null;
+  const { t } = useDashboardLocale();
+  const mins       = elapsed(order.created_at);
+  const isPending  = order.status === 'pending';
+  const TypeIcon   = TYPE_ICON[order.order_type ?? 'dine_in'] ?? UtensilsCrossed;
   const isComplete = ['delivered', 'cancelled'].includes(order.status);
+
+  const typeLabels: Record<string, string> = {
+    delivery: t.counter_delivery,
+    pickup:   t.counter_pickup,
+    dine_in:  t.counter_dineIn,
+  };
+
+  const nextActionMap: Record<string, { status: string; label: string; colorCls: string }> = {
+    confirmed: { ...NEXT_ACTION_STYLE.confirmed, label: t.counter_preparing },
+    preparing: { ...NEXT_ACTION_STYLE.preparing, label: t.counter_markReady },
+    ready:     { ...NEXT_ACTION_STYLE.ready,     label: t.counter_deliver   },
+  };
+  const nextAct = nextActionMap[order.status] ?? null;
+
+  const statusLabels: Record<string, string> = {
+    pending:   t.counter_newOrder,
+    confirmed: t.kds_accept,
+    preparing: t.counter_preparing,
+    ready:     t.counter_markReady,
+    delivered: t.counter_deliver,
+    cancelled: t.kds_cancelled,
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -459,26 +471,25 @@ function OrderDetail({
         isPending ? 'bg-gradient-to-r from-amber-950/30 to-gray-900/50' : 'bg-gray-900/40'
       )}>
         <div className="flex items-center gap-4">
-          {/* Order meta */}
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-white text-2xl font-extrabold tracking-tight">
                 #{order.order_number}
               </h2>
               <span className={cn('text-xs font-bold px-2 py-0.5 rounded-md', STATUS_PILL[order.status])}>
-                {STATUS_LABEL_ES[order.status]}
+                {statusLabels[order.status] ?? order.status.toUpperCase()}
               </span>
               {isPending && (
                 <span className="flex items-center gap-1 text-amber-400 text-xs font-semibold animate-pulse">
                   <Bell className="w-3.5 h-3.5" />
-                  NUEVA ORDEN
+                  {t.counter_newOrder}
                 </span>
               )}
             </div>
             <div className="flex items-center gap-3 mt-1.5 text-sm text-gray-500">
               <span className="flex items-center gap-1">
                 <TypeIcon className="w-3.5 h-3.5" />
-                {TYPE_LABEL[order.order_type ?? 'dine_in']}
+                {typeLabels[order.order_type ?? 'dine_in']}
               </span>
               {order.payment_method && (
                 <>
@@ -487,14 +498,14 @@ function OrderDetail({
                     {order.payment_method === 'cash'
                       ? <DollarSign className="w-3.5 h-3.5" />
                       : <CreditCard className="w-3.5 h-3.5" />}
-                    {order.payment_method === 'cash' ? 'Efectivo' : 'En línea'}
+                    {order.payment_method === 'cash' ? t.counter_cash : t.counter_online}
                   </span>
                 </>
               )}
               <span className="text-gray-800">·</span>
               <span className={cn('flex items-center gap-1 font-medium', elapsedColor(mins))}>
                 <Timer className="w-3.5 h-3.5" />
-                Hace {mins} min
+                {mins} {t.counter_agoMin}
               </span>
             </div>
           </div>
@@ -507,7 +518,7 @@ function OrderDetail({
           </p>
           {order.items && (
             <p className="text-gray-600 text-xs mt-0.5">
-              {order.items.reduce((s, i) => s + i.qty, 0)} artículos
+              {order.items.reduce((s, i) => s + i.qty, 0)} {t.counter_orderItems}
             </p>
           )}
         </div>
@@ -519,7 +530,7 @@ function OrderDetail({
         {/* Items column */}
         <div className="flex-1 overflow-y-auto p-5 border-r border-gray-800/60 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-800 space-y-1">
           <p className="text-gray-600 text-[10px] font-bold uppercase tracking-widest mb-3">
-            Artículos del pedido
+            {t.counter_orderItems}
           </p>
           {(order.items ?? []).map((item, idx) => (
             <ItemRow key={item.id ?? idx} item={item} currency={currency} />
@@ -529,7 +540,7 @@ function OrderDetail({
           {order.notes && (
             <div className="mt-4 p-3 rounded-xl bg-amber-950/30 border border-amber-800/30">
               <p className="text-amber-400 text-[10px] font-bold uppercase tracking-widest mb-1.5">
-                Notas del cliente
+                {t.counter_notes}
               </p>
               <p className="text-amber-100/80 text-sm leading-relaxed">{order.notes}</p>
             </div>
@@ -539,7 +550,7 @@ function OrderDetail({
           {order.delivery_address && (
             <div className="mt-3 p-3 rounded-xl bg-gray-900 border border-gray-800">
               <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                <MapPin className="w-3 h-3" /> Dirección
+                <MapPin className="w-3 h-3" /> {t.counter_address}
               </p>
               <p className="text-gray-200 text-sm">{order.delivery_address}</p>
             </div>
@@ -552,7 +563,7 @@ function OrderDetail({
           {/* Customer info */}
           <section className="space-y-3">
             <p className="text-gray-600 text-[10px] font-bold uppercase tracking-widest">
-              Cliente
+              {t.counter_customer}
             </p>
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center flex-shrink-0">
@@ -562,7 +573,7 @@ function OrderDetail({
               </div>
               <div className="min-w-0">
                 <p className="text-white text-sm font-semibold truncate">
-                  {order.customer_name || 'Invitado'}
+                  {order.customer_name || t.kds_customer}
                 </p>
                 {order.customer_phone && (
                   <p className="text-gray-500 text-xs flex items-center gap-1 mt-0.5">
@@ -584,7 +595,7 @@ function OrderDetail({
             <section className="space-y-3">
               <p className="text-gray-600 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
                 <Clock className="w-3 h-3" />
-                Tiempo estimado
+                {t.counter_etaLabel}
               </p>
               <div className="grid grid-cols-4 gap-1.5">
                 {ETA_OPTIONS.map(eta => (
@@ -627,11 +638,11 @@ function OrderDetail({
                   )}
                 >
                   {isUpdating ? (
-                    <Spinner />
+                    <Spinner label={t.counter_accepting} />
                   ) : (
                     <>
                       <Check className="w-5 h-5" />
-                      ACEPTAR
+                      {t.counter_accept}
                     </>
                   )}
                 </button>
@@ -649,7 +660,7 @@ function OrderDetail({
                   )}
                 >
                   <XCircle className="w-4 h-4" />
-                  RECHAZAR ORDEN
+                  {t.counter_reject}
                 </button>
               </>
             ) : nextAct ? (
@@ -666,7 +677,7 @@ function OrderDetail({
                 )}
               >
                 {isUpdating ? (
-                  <Spinner />
+                  <Spinner label={t.counter_updating} />
                 ) : (
                   <>
                     <ChevronRight className="w-5 h-5" />
@@ -684,12 +695,12 @@ function OrderDetail({
                 {order.status === 'delivered' ? (
                   <>
                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    <span className="text-emerald-400 text-sm font-bold">Orden completada</span>
+                    <span className="text-emerald-400 text-sm font-bold">{t.counter_complete}</span>
                   </>
                 ) : (
                   <>
                     <XCircle className="w-4 h-4 text-red-500" />
-                    <span className="text-red-400 text-sm font-bold">Orden cancelada</span>
+                    <span className="text-red-400 text-sm font-bold">{t.kds_cancelled}</span>
                   </>
                 )}
               </div>
@@ -714,7 +725,7 @@ function ItemRow({ item, currency }: { item: OrderItem; currency: string }) {
       {/* Details */}
       <div className="flex-1 min-w-0">
         <p className="text-white text-sm font-semibold leading-tight">
-          {item.product?.name ?? 'Producto'}
+          {item.product?.name ?? '—'}
         </p>
         {item.variant && (
           <p className="text-gray-500 text-xs mt-0.5">› {item.variant.name}</p>
@@ -759,11 +770,11 @@ function ToggleChip({ label, active, activeColor, title, onClick }: {
 
 // ─── Spinner ─────────────────────────────────────────────────────────────────
 
-function Spinner() {
+function Spinner({ label }: { label: string }) {
   return (
     <span className="flex items-center gap-2">
       <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-      Actualizando...
+      {label}
     </span>
   );
 }
