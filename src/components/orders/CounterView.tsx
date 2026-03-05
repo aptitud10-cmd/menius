@@ -745,7 +745,7 @@ function OrderDetail({
               <div className="mt-1 rounded-xl border border-red-800/40 bg-red-950/20 p-3 space-y-2">
                 <p className="text-red-400 text-xs font-semibold flex items-center gap-1.5">
                   <Printer className="w-3.5 h-3.5 flex-none" />
-                  Impresora no conectada
+                  {t.counter_printerError}
                 </p>
                 <p className="text-red-500/60 text-[10px] leading-snug">{printJob.error}</p>
                 <button
@@ -753,7 +753,7 @@ function OrderDetail({
                   className="w-full h-8 rounded-lg bg-red-900/40 hover:bg-red-900/60 text-red-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  Reintentar impresión
+                  {t.counter_printerRetry}
                 </button>
               </div>
             ) : (
@@ -771,17 +771,17 @@ function OrderDetail({
                 {printJob?.state === 'printing' || printJob?.state === 'retrying' ? (
                   <>
                     <span className="w-3.5 h-3.5 border-2 border-gray-500/30 border-t-gray-400 rounded-full animate-spin" />
-                    Imprimiendo…
+                    {t.counter_printing}
                   </>
                 ) : printJob?.state === 'printed' ? (
                   <>
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    Impreso
+                    {t.counter_printed}
                   </>
                 ) : (
                   <>
                     <Printer className="w-3.5 h-3.5" />
-                    Imprimir orden
+                    {t.counter_printBtn}
                   </>
                 )}
               </button>

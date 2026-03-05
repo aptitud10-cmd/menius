@@ -65,6 +65,11 @@ export interface DashboardTranslations {
   counter_dineIn: string;
   counter_cash: string;
   counter_online: string;
+  counter_printBtn: string;
+  counter_printing: string;
+  counter_printed: string;
+  counter_printerError: string;
+  counter_printerRetry: string;
 
   // Home
   home_welcome: string;
@@ -1151,6 +1156,11 @@ const es: DashboardTranslations = {
   counter_dineIn: 'Mesa',
   counter_cash: 'Efectivo',
   counter_online: 'En línea',
+  counter_printBtn: 'Imprimir orden',
+  counter_printing: 'Imprimiendo…',
+  counter_printed: 'Impreso',
+  counter_printerError: 'Impresora no conectada',
+  counter_printerRetry: 'Reintentar impresión',
 
   // Home
   home_welcome: '¡Bienvenido!',
@@ -2237,6 +2247,11 @@ const en: DashboardTranslations = {
   counter_dineIn: 'Dine-in',
   counter_cash: 'Cash',
   counter_online: 'Online',
+  counter_printBtn: 'Print order',
+  counter_printing: 'Printing…',
+  counter_printed: 'Printed',
+  counter_printerError: 'Printer not connected',
+  counter_printerRetry: 'Retry print',
 
   // Home
   home_welcome: 'Welcome!',
