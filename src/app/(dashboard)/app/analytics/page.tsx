@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface AnalyticsData {
+  currency: string;
   summary: {
     totalOrders: number;
     totalRevenue: number;
@@ -52,8 +53,9 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-red-500',
 };
 
-function formatMoney(v: number) {
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(v);
+function formatMoney(v: number, currency = 'MXN') {
+  const locale = currency === 'USD' ? 'en-US' : currency === 'EUR' ? 'es-ES' : 'es-MX';
+  return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(v);
 }
 
 function formatDayLabel(dateStr: string) {
@@ -128,7 +130,8 @@ export default function AnalyticsPage() {
     );
   }
 
-  const { summary, comparison, salesByDay, hourlyDistribution, statusCount, topProducts } = data;
+  const { currency, summary, comparison, salesByDay, hourlyDistribution, statusCount, topProducts } = data;
+  const fmt = (v: number) => formatMoney(v, currency);
   const maxRevenue = Math.max(...salesByDay.map(d => d.revenue), 1);
   const maxHourly = Math.max(...hourlyDistribution, 1);
 
@@ -216,7 +219,7 @@ export default function AnalyticsPage() {
         <KPICard
           icon={<DollarSign className="w-4 h-4" />}
           label={t.analytics_income}
-          value={formatMoney(summary.totalRevenue)}
+          value={fmt(summary.totalRevenue)}
           change={comparison.revenueChange}
           color="emerald"
         />
@@ -230,7 +233,7 @@ export default function AnalyticsPage() {
         <KPICard
           icon={<TrendingUp className="w-4 h-4" />}
           label={t.analytics_avgTicket}
-          value={formatMoney(summary.avgTicket)}
+          value={fmt(summary.avgTicket)}
           change={comparison.ticketChange}
           color="violet"
         />
@@ -246,7 +249,7 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-3 gap-3">
         <MiniStat icon={<Clock className="w-3.5 h-3.5" />} label={t.analytics_peakHourLabel} value={summary.peakHour} />
         <MiniStat icon={<XCircle className="w-3.5 h-3.5" />} label={t.analytics_cancellationsLabel} value={String(summary.cancelledOrders)} />
-        <MiniStat icon={<Flame className="w-3.5 h-3.5" />} label={t.analytics_discountsLabel} value={formatMoney(summary.totalDiscount)} />
+        <MiniStat icon={<Flame className="w-3.5 h-3.5" />} label={t.analytics_discountsLabel} value={fmt(summary.totalDiscount)} />
       </div>
 
       {/* Sales Chart */}
@@ -269,7 +272,7 @@ export default function AnalyticsPage() {
                   <div className="hidden group-hover:block absolute -top-20 left-1/2 -translate-x-1/2 bg-gray-900 rounded-xl px-3.5 py-2.5 text-xs text-white z-10 whitespace-nowrap shadow-lg">
                     <p className="font-bold">{formatDayLabel(d.date)}</p>
                     <p className="text-gray-200">{d.orders} {t.analytics_ordersLegend}</p>
-                    <p className="text-emerald-400 font-semibold">{formatMoney(d.revenue)}</p>
+                    <p className="text-emerald-400 font-semibold">{fmt(d.revenue)}</p>
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
                   </div>
                   <div
@@ -364,7 +367,7 @@ export default function AnalyticsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <h4 className="text-sm text-gray-700 font-medium truncate">{p.name}</h4>
-                        <span className="text-sm text-gray-900 font-bold flex-shrink-0 ml-2">{formatMoney(p.revenue)}</span>
+                        <span className="text-sm text-gray-900 font-bold flex-shrink-0 ml-2">{fmt(p.revenue)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">

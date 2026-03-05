@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { createLogger } from '@/lib/logger';
 import { verifyAdmin } from '@/lib/auth/verify-admin';
+import { PLANS } from '@/lib/plans';
 
 const logger = createLogger('admin-health');
 
@@ -112,12 +113,10 @@ export async function GET() {
     const activeRests7d = new Set((recentOrders7d ?? []).map(o => o.restaurant_id)).size;
     const activeRests30d = new Set((recentOrders30d ?? []).map(o => o.restaurant_id)).size;
 
-    // MRR estimate from subscription plans
-    const PLAN_PRICES: Record<string, number> = {
-      starter: 29, basic: 29,
-      pro: 59,
-      business: 99, enterprise: 99,
-    };
+    // MRR estimate from subscription plans — uses live prices from plans config
+    const PLAN_PRICES: Record<string, number> = Object.fromEntries(
+      Object.values(PLANS).map(p => [p.id, p.price.monthly])
+    );
     const activeSubs = (allSubs ?? []).filter(s => s.status === 'active' || s.status === 'trialing');
     const mrrEstimate = activeSubs.reduce((s, sub) => s + (PLAN_PRICES[sub.plan_id] ?? 0), 0);
 

@@ -169,7 +169,7 @@ export async function reseedMyRestaurant() {
 
 // ---- Categories ----
 export async function createCategory(data: CategoryInput) {
-  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
   // Enforce plan category limit
@@ -194,13 +194,14 @@ export async function createCategory(data: CategoryInput) {
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/categories');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true, id: created?.id, name: created?.name };
 }
 
 async function getAuthenticatedRestaurant() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No autenticado' as const, supabase, restaurantId: '' };
+  if (!user) return { error: 'No autenticado' as const, supabase, restaurantId: '', restaurantSlug: '' };
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -208,13 +209,25 @@ async function getAuthenticatedRestaurant() {
     .eq('user_id', user.id)
     .maybeSingle();
 
-  if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' as const, supabase, restaurantId: '' };
+  if (!profile?.default_restaurant_id) return { error: 'Sin restaurante' as const, supabase, restaurantId: '', restaurantSlug: '' };
 
-  return { supabase, restaurantId: profile.default_restaurant_id, error: null };
+  const { data: rest } = await supabase
+    .from('restaurants')
+    .select('slug')
+    .eq('id', profile.default_restaurant_id)
+    .maybeSingle();
+
+  return { supabase, restaurantId: profile.default_restaurant_id, restaurantSlug: rest?.slug ?? '', error: null };
+}
+
+function revalidatePublicMenu(slug: string) {
+  if (!slug) return;
+  revalidatePath(`/r/${slug}`);
+  revalidatePath(`/r/${slug}/[table]`, 'layout');
 }
 
 export async function updateCategory(id: string, data: CategoryInput) {
-  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
   const payload: Record<string, unknown> = {
@@ -235,21 +248,23 @@ export async function updateCategory(id: string, data: CategoryInput) {
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/categories');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 
 export async function deleteCategory(id: string) {
-  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
   const { error } = await supabase.from('categories').delete().eq('id', id).eq('restaurant_id', restaurantId);
   if (error) return { error: error.message };
   revalidatePath('/app/menu/categories');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 
 export async function reorderCategories(orderedIds: string[]) {
-  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
   const updates = orderedIds.map((id, i) =>
@@ -257,11 +272,12 @@ export async function reorderCategories(orderedIds: string[]) {
   );
   await Promise.all(updates);
   revalidatePath('/app/menu/categories');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 
 export async function reorderProducts(orderedIds: string[]) {
-  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
   const updates = orderedIds.map((id, i) =>
@@ -269,12 +285,13 @@ export async function reorderProducts(orderedIds: string[]) {
   );
   await Promise.all(updates);
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 
 // ---- Products ----
 export async function createProduct(data: ProductInput & { image_url?: string }) {
-  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
   const [{ count: productCount }, { data: subRow }] = await Promise.all([
@@ -302,11 +319,12 @@ export async function createProduct(data: ProductInput & { image_url?: string })
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true, id: created?.id };
 }
 
 export async function updateProduct(id: string, data: Partial<ProductInput> & { image_url?: string }) {
-  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
   const sanitized = { ...data };
@@ -320,11 +338,12 @@ export async function updateProduct(id: string, data: Partial<ProductInput> & { 
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 
 export async function toggleProductStock(id: string, inStock: boolean) {
-  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
   const { error } = await supabase
@@ -335,23 +354,34 @@ export async function toggleProductStock(id: string, inStock: boolean) {
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 
 export async function deleteProduct(id: string) {
-  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
   const { error } = await supabase.from('products').delete().eq('id', id).eq('restaurant_id', restaurantId);
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 
 // ---- Variants ----
 export async function createVariant(productId: string, data: { name: string; price_delta: number; sort_order: number }) {
-  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
+
+  const { data: product } = await supabase
+    .from('products')
+    .select('id')
+    .eq('id', productId)
+    .eq('restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!product) return { error: 'No encontrado' };
+
   const { data: variant, error } = await supabase
     .from('product_variants')
     .insert({
@@ -365,12 +395,22 @@ export async function createVariant(productId: string, data: { name: string; pri
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true, variant };
 }
 
 export async function updateVariant(id: string, data: { name: string; price_delta: number; sort_order: number }) {
-  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
+
+  const { data: owned } = await supabase
+    .from('product_variants')
+    .select('id, products!inner(restaurant_id)')
+    .eq('id', id)
+    .eq('products.restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!owned) return { error: 'No encontrado' };
+
   const { error } = await supabase
     .from('product_variants')
     .update({
@@ -382,23 +422,42 @@ export async function updateVariant(id: string, data: { name: string; price_delt
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 
 export async function deleteVariant(id: string) {
-  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
+
+  const { data: owned } = await supabase
+    .from('product_variants')
+    .select('id, products!inner(restaurant_id)')
+    .eq('id', id)
+    .eq('products.restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!owned) return { error: 'No encontrado' };
 
   const { error } = await supabase.from('product_variants').delete().eq('id', id);
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 
 // ---- Extras ----
 export async function createExtra(productId: string, data: { name: string; price: number; sort_order: number }) {
-  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
+
+  const { data: product } = await supabase
+    .from('products')
+    .select('id')
+    .eq('id', productId)
+    .eq('restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!product) return { error: 'No encontrado' };
+
   const { data: extra, error } = await supabase
     .from('product_extras')
     .insert({
@@ -412,12 +471,22 @@ export async function createExtra(productId: string, data: { name: string; price
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true, extra };
 }
 
 export async function updateExtra(id: string, data: { name: string; price: number; sort_order: number }) {
-  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
+
+  const { data: owned } = await supabase
+    .from('product_extras')
+    .select('id, products!inner(restaurant_id)')
+    .eq('id', id)
+    .eq('products.restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!owned) return { error: 'No encontrado' };
+
   const { error } = await supabase
     .from('product_extras')
     .update({
@@ -429,23 +498,42 @@ export async function updateExtra(id: string, data: { name: string; price: numbe
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 
 export async function deleteExtra(id: string) {
-  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
+
+  const { data: owned } = await supabase
+    .from('product_extras')
+    .select('id, products!inner(restaurant_id)')
+    .eq('id', id)
+    .eq('products.restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!owned) return { error: 'No encontrado' };
 
   const { error } = await supabase.from('product_extras').delete().eq('id', id);
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 
 // ---- Modifier Groups ----
 export async function createModifierGroup(productId: string, data: { name: string; selection_type: 'single' | 'multi'; min_select: number; max_select: number; is_required: boolean; sort_order: number }) {
-  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
+
+  const { data: product } = await supabase
+    .from('products')
+    .select('id')
+    .eq('id', productId)
+    .eq('restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!product) return { error: 'No encontrado' };
+
   const { data: group, error } = await supabase
     .from('modifier_groups')
     .insert({
@@ -462,12 +550,22 @@ export async function createModifierGroup(productId: string, data: { name: strin
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true, group: { ...group, options: [] } };
 }
 
 export async function updateModifierGroup(id: string, data: { name: string; selection_type: 'single' | 'multi'; min_select: number; max_select: number; is_required: boolean; sort_order: number }) {
-  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
+
+  const { data: owned } = await supabase
+    .from('modifier_groups')
+    .select('id, products!inner(restaurant_id)')
+    .eq('id', id)
+    .eq('products.restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!owned) return { error: 'No encontrado' };
+
   const { error } = await supabase
     .from('modifier_groups')
     .update({
@@ -482,23 +580,42 @@ export async function updateModifierGroup(id: string, data: { name: string; sele
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 
 export async function deleteModifierGroup(id: string) {
-  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
+
+  const { data: owned } = await supabase
+    .from('modifier_groups')
+    .select('id, products!inner(restaurant_id)')
+    .eq('id', id)
+    .eq('products.restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!owned) return { error: 'No encontrado' };
 
   const { error } = await supabase.from('modifier_groups').delete().eq('id', id);
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 
 // ---- Modifier Options ----
 export async function createModifierOption(groupId: string, data: { name: string; price_delta: number; is_default: boolean; sort_order: number }) {
-  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
+
+  const { data: group } = await supabase
+    .from('modifier_groups')
+    .select('id, products!inner(restaurant_id)')
+    .eq('id', groupId)
+    .eq('products.restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!group) return { error: 'No encontrado' };
+
   const { data: option, error } = await supabase
     .from('modifier_options')
     .insert({
@@ -513,12 +630,22 @@ export async function createModifierOption(groupId: string, data: { name: string
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true, option };
 }
 
 export async function updateModifierOption(id: string, data: { name: string; price_delta: number; is_default: boolean; sort_order: number }) {
-  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
+
+  const { data: owned } = await supabase
+    .from('modifier_options')
+    .select('id, modifier_groups!inner(products!inner(restaurant_id))')
+    .eq('id', id)
+    .eq('modifier_groups.products.restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!owned) return { error: 'No encontrado' };
+
   const { error } = await supabase
     .from('modifier_options')
     .update({
@@ -531,16 +658,26 @@ export async function updateModifierOption(id: string, data: { name: string; pri
 
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 
 export async function deleteModifierOption(id: string) {
-  const { supabase, error: authErr } = await getAuthenticatedRestaurant();
+  const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
+
+  const { data: owned } = await supabase
+    .from('modifier_options')
+    .select('id, modifier_groups!inner(products!inner(restaurant_id))')
+    .eq('id', id)
+    .eq('modifier_groups.products.restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!owned) return { error: 'No encontrado' };
 
   const { error } = await supabase.from('modifier_options').delete().eq('id', id);
   if (error) return { error: error.message };
   revalidatePath('/app/menu/products');
+  revalidatePublicMenu(restaurantSlug);
   return { success: true };
 }
 

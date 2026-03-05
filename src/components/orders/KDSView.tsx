@@ -80,7 +80,7 @@ interface Undo { orderId: string; num: string; prev: OrderStatus; next: OrderSta
 /* ══════════════════════════════════════════════════════════════════════
    KDSView — Toast / Fresh KDS style
    ══════════════════════════════════════════════════════════════════════ */
-export function KDSView({ initialOrders, restaurantId, restaurantName, currency, restaurantPhone, restaurantAddress }: Props) {
+export function KDSView({ initialOrders, restaurantId, restaurantName, currency, restaurantPhone, restaurantAddress, restaurantSlug }: Props) {
   const { t } = useDashboardLocale();
   const [tab, setTab] = useState<Tab>('active');
   const [search, setSearch] = useState('');
@@ -164,9 +164,9 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       setTimeout(() => setNewIds(p => { const n = new Set(p); n.delete(o.id); return n; }), 8000);
       setOverlayCount(c => c + 1);
       setShowOverlay(true);
-      if (localStorage.getItem('kds-auto-confirm') === 'true' && o.status === 'pending') { localRef.current(o.id, { status: 'confirmed' }); updateOrderStatus(o.id, 'confirmed'); }
-      if (localStorage.getItem('menius-auto-print') === 'true') import('./OrderReceipt').then(({ quickPrintOrder }) => quickPrintOrder(o, restaurantName, restaurantPhone, restaurantAddress, currency));
-    }, [currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress]),
+      if (autoConfirm && o.status === 'pending') { localRef.current(o.id, { status: 'confirmed' }); updateOrderStatus(o.id, 'confirmed'); }
+      if (autoPrint) import('./OrderReceipt').then(({ quickPrintOrder }) => quickPrintOrder(o, restaurantName, restaurantPhone, restaurantAddress, currency));
+    }, [autoConfirm, autoPrint, currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress]),
   });
   localRef.current = updateOrderLocally;
 
@@ -226,7 +226,8 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   /* Keyboard shortcuts */
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       switch (e.key) {
         case ' ':
         case 'Enter': {

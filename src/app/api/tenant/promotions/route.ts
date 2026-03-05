@@ -66,6 +66,32 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PATCH(request: NextRequest) {
+  try {
+    const supabase = createClient();
+    const tenant = await getTenant();
+    if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+
+    const { id, is_active } = await request.json();
+    if (!id || typeof is_active !== 'boolean') {
+      return NextResponse.json({ error: 'id e is_active requeridos' }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from('promotions')
+      .update({ is_active })
+      .eq('id', id)
+      .eq('restaurant_id', tenant.restaurantId);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    logger.error('PATCH failed', { error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { route: '/api/tenant/promotions' });
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const supabase = createClient();

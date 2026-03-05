@@ -50,6 +50,14 @@ export async function GET(request: NextRequest) {
 
     const rid = tenant.restaurantId;
 
+    const { data: restaurantInfo } = await supabase
+      .from('restaurants')
+      .select('currency')
+      .eq('id', rid)
+      .maybeSingle();
+
+    const currency: string = restaurantInfo?.currency || 'MXN';
+
     const [currentRes, prevRes] = await Promise.all([
       supabase
         .from('orders')
@@ -132,6 +140,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
+    currency,
     period: { days, since: sinceISO },
     summary: {
       totalOrders,

@@ -99,6 +99,8 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const [paidViaWallet, setPaidViaWallet] = useState(false);
   const confirmRef = useRef<HTMLDivElement>(null);
   const confettiTimer = useRef<ReturnType<typeof setTimeout>>();
+  const submittingRef = useRef(false);
+  const walletSubmittingRef = useRef(false);
 
   const [tipPercent, setTipPercent] = useState<number | null>(null);
   const [customTip, setCustomTip] = useState('');
@@ -162,6 +164,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   };
 
   const handleSubmitOrder = async () => {
+    if (submittingRef.current) return;
     if (!customerName.trim() || !customerPhone.trim()) {
       setOrderError(locale === 'es' ? 'Nombre y teléfono son requeridos' : 'Name and phone required');
       return;
@@ -170,6 +173,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
       setOrderError(locale === 'es' ? 'Dirección de entrega requerida' : 'Delivery address required');
       return;
     }
+    submittingRef.current = true;
     setSubmitting(true);
     setOrderError('');
     try {
@@ -256,6 +260,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
     } catch {
       setOrderError('Error de conexión');
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };
@@ -294,12 +299,14 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   }, [saveLastOrder, rememberMe, customerName, customerPhone, customerEmail, restaurant, orderNumber, orderType, items, cartTotal, clearCart, confettiTimer]);
 
   const handleCreateOrderForWallet = useCallback(async (): Promise<{ orderId: string; orderNumber: string } | { error: string }> => {
+    if (walletSubmittingRef.current) return { error: 'Processing...' };
     if (!customerName.trim() || !customerPhone.trim()) {
       return { error: locale === 'es' ? 'Nombre y teléfono son requeridos' : 'Name and phone required' };
     }
     if (orderType === 'delivery' && !deliveryAddress.trim()) {
       return { error: locale === 'es' ? 'Dirección de entrega requerida' : 'Delivery address required' };
     }
+    walletSubmittingRef.current = true;
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
@@ -345,6 +352,8 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
       return { orderId: data.order_id, orderNumber: data.order_number };
     } catch {
       return { error: 'Error de conexión' };
+    } finally {
+      walletSubmittingRef.current = false;
     }
   }, [customerName, customerPhone, customerEmail, orderNotes, orderType, deliveryAddress, promoResult, promoCode, discount, tipAmount, items, restaurant.id, locale]);
 

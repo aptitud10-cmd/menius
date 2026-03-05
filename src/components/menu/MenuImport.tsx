@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 import { Camera, Loader2, Check, X, Sparkles, AlertTriangle, Plus, ChevronDown, ChevronRight, ImageIcon } from 'lucide-react';
 import { createCategory, createProduct, updateProduct, createVariant, createExtra, createModifierGroup, createModifierOption } from '@/lib/actions/restaurant';
 
@@ -398,8 +399,14 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
               </div>
 
               {preview && (
-                <div className="rounded-xl overflow-hidden border border-gray-200">
-                  <img src={preview} alt="Preview" className="w-full max-h-64 object-contain bg-gray-50" />
+                <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-gray-50" style={{ height: '16rem' }}>
+                  <Image
+                    src={preview}
+                    alt="Preview"
+                    fill
+                    className="object-contain"
+                    unoptimized
+                  />
                 </div>
               )}
 

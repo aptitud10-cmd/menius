@@ -82,12 +82,11 @@ export default function PromotionsPage() {
   };
 
   const toggleActive = async (promo: Promotion) => {
-    const { getSupabaseBrowser } = await import('@/lib/supabase/browser');
-    const supabase = getSupabaseBrowser();
-    await supabase
-      .from('promotions')
-      .update({ is_active: !promo.is_active })
-      .eq('id', promo.id);
+    await fetch('/api/tenant/promotions', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: promo.id, is_active: !promo.is_active }),
+    });
     fetchPromos();
   };
 

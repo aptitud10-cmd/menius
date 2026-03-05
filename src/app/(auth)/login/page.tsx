@@ -63,9 +63,10 @@ export default function LoginPage() {
               )}
 
               <div>
-                <label className="block text-[13px] font-medium text-gray-400 mb-2">{t.email}</label>
+                <label htmlFor="login-email" className="block text-[13px] font-medium text-gray-400 mb-2">{t.email}</label>
                 <div className={`relative rounded-xl transition-all duration-300 ${focused === 'email' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
                   <input
+                    id="login-email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -81,13 +82,14 @@ export default function LoginPage() {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-[13px] font-medium text-gray-400">{t.password}</label>
+                  <label htmlFor="login-password" className="text-[13px] font-medium text-gray-400">{t.password}</label>
                   <Link href="/forgot-password" className="text-[12px] text-gray-600 hover:text-emerald-400 transition-colors">
                     {t.forgotPassword}
                   </Link>
                 </div>
                 <div className={`relative rounded-xl transition-all duration-300 ${focused === 'password' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
                   <input
+                    id="login-password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}

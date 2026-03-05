@@ -4,8 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { updatePassword } from '@/lib/actions/auth';
+import { useLocale } from '@/providers/locale-provider';
+import { getLandingT } from '@/lib/landing-translations';
 
 export default function ResetPasswordPage() {
+  const locale = useLocale();
+  const t = getLandingT(locale).auth.resetPassword;
+
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -20,11 +25,11 @@ export default function ResetPasswordPage() {
     setError('');
 
     if (password.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres');
+      setError(t.minLength);
       return;
     }
     if (password !== confirm) {
-      setError('Las contraseñas no coinciden');
+      setError(t.mismatch);
       return;
     }
 
@@ -58,15 +63,13 @@ export default function ResetPasswordPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h2 className="text-lg font-bold text-white mb-2 font-heading">Contraseña actualizada</h2>
-              <p className="text-[13px] text-gray-400 mb-6 leading-relaxed">
-                Tu contraseña ha sido restablecida correctamente. Ya puedes iniciar sesión con tu nueva contraseña.
-              </p>
+              <h2 className="text-lg font-bold text-white mb-2 font-heading">{t.doneTitle}</h2>
+              <p className="text-[13px] text-gray-400 mb-6 leading-relaxed">{t.doneDesc}</p>
               <Link
                 href="/login"
                 className="inline-flex items-center justify-center w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-gray-100 transition-all duration-300"
               >
-                Iniciar sesión
+                {t.signIn}
               </Link>
             </div>
           </div>
@@ -85,7 +88,7 @@ export default function ResetPasswordPage() {
           <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
             <span className="text-white">MENIUS</span>
           </Link>
-          <p className="text-gray-500 text-[13px] mt-2.5 tracking-wide">Crea tu nueva contraseña</p>
+          <p className="text-gray-500 text-[13px] mt-2.5 tracking-wide">{t.subtitle}</p>
         </div>
 
         <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
@@ -103,25 +106,28 @@ export default function ResetPasswordPage() {
             )}
 
             <div>
-              <label className="block text-[13px] font-medium text-gray-400 mb-2">Nueva contraseña</label>
+              <label htmlFor="rp-password" className="block text-[13px] font-medium text-gray-400 mb-2">{t.newPassword}</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused === 'password'
                   ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
                   : ''
               }`}>
                 <input
+                  id="rp-password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => setFocused('password')}
                   onBlur={() => setFocused(null)}
                   className="w-full px-4 pr-12 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
-                  placeholder="Mínimo 8 caracteres"
+                  placeholder={t.newPasswordPlaceholder}
+                  autoComplete="new-password"
                   autoFocus
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-300 transition-colors"
                   tabIndex={-1}
                 >
@@ -131,24 +137,27 @@ export default function ResetPasswordPage() {
             </div>
 
             <div>
-              <label className="block text-[13px] font-medium text-gray-400 mb-2">Confirmar contraseña</label>
+              <label htmlFor="rp-confirm" className="block text-[13px] font-medium text-gray-400 mb-2">{t.confirmPassword}</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused === 'confirm'
                   ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
                   : ''
               }`}>
                 <input
+                  id="rp-confirm"
                   type={showConfirm ? 'text' : 'password'}
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   onFocus={() => setFocused('confirm')}
                   onBlur={() => setFocused(null)}
                   className="w-full px-4 pr-12 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
-                  placeholder="Repite la contraseña"
+                  placeholder={t.confirmPasswordPlaceholder}
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
+                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-300 transition-colors"
                   tabIndex={-1}
                 >
@@ -165,16 +174,16 @@ export default function ResetPasswordPage() {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                  Actualizando...
+                  {t.loading}
                 </span>
-              ) : 'Restablecer contraseña'}
+              ) : t.submit}
             </button>
           </form>
         </div>
 
         <div className="mt-8 text-center">
           <Link href="/login" className="inline-block text-[12px] text-gray-600 hover:text-gray-400 transition-colors">
-            ← Volver a iniciar sesión
+            {t.backToLogin}
           </Link>
         </div>
       </div>

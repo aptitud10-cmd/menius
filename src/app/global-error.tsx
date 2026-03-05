@@ -16,33 +16,46 @@ export default function GlobalError({
 
   return (
     <html lang="es">
-      <body className="bg-gray-50 text-gray-900 antialiased">
-        <div className="min-h-screen flex items-center justify-center p-6">
-          <div className="text-center max-w-md">
-            <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+      <body style={{ margin: 0, background: '#050505', color: '#f9fafb', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', position: 'relative', overflow: 'hidden' }}>
+          {/* Background glow */}
+          <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: 500, height: 500, background: 'rgba(239,68,68,0.05)', borderRadius: '50%', filter: 'blur(120px)', pointerEvents: 'none' }} />
+
+          <div style={{ position: 'relative', zIndex: 10, textAlign: 'center', maxWidth: 420 }}>
+            {/* Logo */}
+            <a href="/" style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.04em', color: '#fff', textDecoration: 'none', display: 'inline-block', marginBottom: 40 }}>
+              MENIUS
+            </a>
+
+            {/* Error icon */}
+            <div style={{ width: 64, height: 64, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+              <svg width="32" height="32" fill="none" stroke="#f87171" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold mb-2">Algo salio mal</h1>
-            <p className="text-gray-500 mb-6 text-sm">
-              Ocurrio un error inesperado. Nuestro equipo ha sido notificado.
-              {error.digest && (
-                <span className="block mt-2 text-xs text-gray-400 font-mono">
-                  Ref: {error.digest}
-                </span>
-              )}
+
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 8, letterSpacing: '-0.02em' }}>
+              Algo salió mal
+            </h1>
+            <p style={{ fontSize: 14, color: '#9ca3af', marginBottom: 6, lineHeight: 1.6 }}>
+              Ocurrió un error inesperado. Nuestro equipo ha sido notificado.
             </p>
-            <div className="flex gap-3 justify-center">
+            {error.digest && (
+              <p style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace', marginBottom: 28 }}>
+                Ref: {error.digest}
+              </p>
+            )}
+
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 28 }}>
               <button
                 onClick={() => reset()}
-                className="px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors"
+                style={{ padding: '10px 20px', background: '#fff', color: '#000', borderRadius: 12, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}
               >
                 Reintentar
               </button>
               <a
                 href="/"
-                className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
+                style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.04)', color: '#d1d5db', borderRadius: 12, fontSize: 14, fontWeight: 500, border: '1px solid rgba(255,255,255,0.08)', textDecoration: 'none' }}
               >
                 Ir al inicio
               </a>

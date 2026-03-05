@@ -96,7 +96,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <TrialBanner />
           </div>
 
-          <main className="flex-1 p-4 md:p-6 lg:p-8 max-w-6xl w-full mx-auto">
+          <main id="main-content" className="flex-1 p-4 md:p-6 lg:p-8 max-w-6xl w-full mx-auto">
             <Breadcrumbs />
             {children}
           </main>

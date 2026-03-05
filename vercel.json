@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/social-posts",
       "schedule": "0 9 * * 2,4,6"
+    },
+    {
+      "path": "/api/cron/health-alerts",
+      "schedule": "0 8 * * *"
     }
   ]
 }

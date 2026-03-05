@@ -487,11 +487,17 @@ export function MenuShell({
   );
 
   const mobileCategoryPills = (
-    <div ref={mobilePillsRef} className="lg:hidden py-3 px-4 flex gap-2.5 overflow-x-auto scrollbar-hide border-b-2 border-gray-200 bg-white sticky z-30" style={{ top: HEADER_HEIGHT }}>
-      {visibleCats.map((cat) => categoryPill(cat.id, tName(cat, locale, defaultLocale), activeCategory === cat.id && !showFavs && !activeDiet))}
-      {filterDivider}
-      {dietPills}
-      {favPill}
+    <div className="lg:hidden sticky z-30 bg-white border-b-2 border-gray-200" style={{ top: HEADER_HEIGHT }}>
+      <div ref={mobilePillsRef} className="py-3 px-4 flex gap-2.5 overflow-x-auto scrollbar-hide">
+        {visibleCats.map((cat) => categoryPill(cat.id, tName(cat, locale, defaultLocale), activeCategory === cat.id && !showFavs && !activeDiet))}
+        {filterDivider}
+        {dietPills}
+        {favPill}
+        {/* Spacer so last pill doesn't sit under the fade */}
+        <div className="w-8 flex-shrink-0" aria-hidden="true" />
+      </div>
+      {/* Right-side fade gradient indicating more content */}
+      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-white to-transparent" aria-hidden="true" />
     </div>
   );
 
@@ -565,7 +571,7 @@ export function MenuShell({
                 alt={restaurant.name}
                 fill
                 sizes="100vw"
-                className="object-cover"
+                className="object-cover animate-cover-zoom"
                 priority
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
@@ -1050,6 +1056,9 @@ export function MenuShell({
                   t={t}
                   onEdit={(idx) => { setOpen(false); handleEditCartItem(idx); }}
                   onCheckout={handleOpenCheckout}
+                  estimatedMinutes={restaurant.estimated_delivery_minutes ?? undefined}
+                  deliveryFee={restaurant.delivery_fee ?? undefined}
+                  locale={locale}
                 />
               </div>
             </motion.div>

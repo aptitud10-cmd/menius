@@ -64,7 +64,7 @@ export const useCartStore = create<CartState>()(
       setRestaurantId: (id) => {
         const current = get().restaurantId;
         if (current && current !== id) {
-          set({ items: [], restaurantId: id });
+          set({ items: [], restaurantId: id, tableName: null, selectedOrderType: null });
         } else {
           set({ restaurantId: id });
         }

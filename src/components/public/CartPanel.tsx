@@ -24,6 +24,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
   const clearCart = useCartStore((s) => s.clearCart);
   const cartTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
 
   if (items.length === 0) {
     return (
@@ -51,7 +52,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
       {/* Items — scrollable */}
       <div className="flex-1 overflow-y-auto overscroll-contain px-5 space-y-2 pb-3">
         {items.map((item, idx) => (
-          <div key={`${item.product.id}-${item.variant?.id ?? 'base'}`} className="flex gap-3 p-3 rounded-xl bg-gray-50 border-2 border-gray-200">
+          <div key={`${item.product.id}-${item.variant?.id ?? 'base'}-${idx}`} className="flex gap-3 p-3 rounded-xl bg-gray-50 border-2 border-gray-200">
             {/* Thumbnail */}
             {item.product.image_url ? (
               <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
@@ -60,8 +61,8 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
                   alt={item.product.name}
                   fill
                   sizes="56px"
-                  className="object-cover opacity-0 transition-opacity duration-300"
-                  onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
+                  className={`object-cover transition-opacity duration-300 ${loadedImages.has(`${item.product.id}-${idx}`) ? 'opacity-100' : 'opacity-0'}`}
+                  onLoad={() => setLoadedImages(prev => new Set([...prev, `${item.product.id}-${idx}`]))}
                 />
               </div>
             ) : (

@@ -56,7 +56,7 @@ export default function FaqPage() {
       <section className="relative pt-32 pb-16 md:pt-40 md:pb-20 overflow-hidden">
         <div className="section-glow section-glow-purple" />
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
-          <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-5">{pt.badge}</p>
+          <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-5">{pt.badge}</p>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white tracking-tight mb-5">{pt.title}</h1>
           <p className="text-gray-400 text-lg leading-relaxed max-w-xl mx-auto font-light">
             {totalQuestions}{pt.subtitleSuffix}

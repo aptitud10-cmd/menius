@@ -8,16 +8,19 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
     <section className="relative min-h-[100vh] min-h-[100dvh] flex items-center overflow-clip">
       <div className="hero-gradient" />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-6 w-full py-20 md:py-0">
+      <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-6 w-full pt-20 pb-6 md:py-0">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
 
           <div className="text-center lg:text-left">
             <div className="d-fade-up inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.04] mb-6 md:mb-8">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="w-2 h-2 rounded-full bg-[#05c8a7]" />
               <span className="text-sm text-gray-300 tracking-wide">{h.badge}</span>
             </div>
 
-            <h1 className="d-fade-up d-delay-1 text-[2.75rem] sm:text-[3.5rem] lg:text-[4.5rem] font-extrabold leading-tight tracking-[-0.04em] text-white">
+            <h1
+              className="d-fade-up d-delay-1 font-display font-extrabold leading-[1.06] tracking-[-0.03em] text-white"
+              style={{ fontSize: 'clamp(2.5rem, 5.5vw, 4.5rem)' }}
+            >
               {h.titleLine1}
               <span className="text-gradient-premium">{h.titleHighlight}</span>
             </h1>
@@ -29,20 +32,20 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
             <div className="d-fade-up d-delay-3 mt-8 md:mt-9 flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3.5">
               <Link
                 href="/signup"
-                className="group w-full sm:w-auto px-8 py-5 rounded-2xl bg-white text-black font-extrabold text-[17px] hover:bg-gray-100 active:scale-[0.98] transition-all text-center shadow-[0_4px_20px_rgba(255,255,255,0.15)]"
+                className="group w-full sm:w-auto px-8 py-5 rounded-2xl bg-white text-black font-extrabold text-[17px] hover:bg-gray-100 hover:shadow-[0_6px_24px_rgba(255,255,255,0.22)] active:scale-[0.97] active:shadow-none transition-[transform,box-shadow,background] duration-150 text-center shadow-[0_4px_20px_rgba(255,255,255,0.15)]"
               >
                 {h.ctaPrimary}
-                <span className="inline-block ml-1.5 group-hover:translate-x-0.5 transition-transform">&rarr;</span>
+                <span className="inline-block ml-1.5 group-hover:translate-x-1 transition-transform duration-200">&rarr;</span>
               </Link>
               <Link
                 href="/demo"
-                className="w-full sm:w-auto px-8 py-5 rounded-2xl border-2 border-white/15 text-gray-200 font-bold text-[17px] hover:text-white hover:border-white/25 hover:bg-white/[0.03] active:scale-[0.98] transition-all text-center"
+                className="w-full sm:w-auto px-8 py-5 rounded-2xl border-2 border-white/15 text-gray-200 font-bold text-[17px] hover:text-white hover:border-white/30 hover:bg-white/[0.04] active:scale-[0.97] transition-[transform,border-color,background,color] duration-150 text-center"
               >
                 {h.ctaSecondary}
               </Link>
             </div>
 
-            <div className="d-fade-up d-delay-4 mt-12 md:mt-14 flex items-center justify-center lg:justify-start gap-10 sm:gap-12">
+            <div className="d-fade-up d-delay-4 mt-12 md:mt-14 w-full flex items-center justify-center lg:justify-start gap-8 sm:gap-10">
               {h.stats.map((s) => (
                 <div key={s.label} className="text-center lg:text-left">
                   <p className="text-3xl sm:text-3xl font-semibold text-white tracking-tight">{s.value}</p>
@@ -64,14 +67,14 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
                       <path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.24 4.24 0 00-6 0zm-4-4l2 2a7.07 7.07 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z" />
                     </svg>
                     <div className="w-4 h-2 border border-white/40 rounded-sm">
-                      <div className="w-3 h-1.5 bg-emerald-400/70 rounded-[1px] m-[0.5px]" />
+                      <div className="w-3 h-1.5 bg-[#05c8a7]/70 rounded-[1px] m-[0.5px]" />
                     </div>
                   </div>
                 </div>
 
                 <div className="relative z-10 px-4 pb-4">
                   <div className="text-center mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/80 to-blue-500/80 mx-auto mb-1.5 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#05c8a7]/90 to-[#04a88c]/70 mx-auto mb-1.5 flex items-center justify-center shadow-lg shadow-[#05c8a7]/20">
                       <span className="text-white text-sm font-bold">M</span>
                     </div>
                     <p className="text-white text-[11px] font-semibold">{h.phone.restaurantName}</p>
@@ -99,7 +102,7 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
                         </div>
                         <div className="text-right flex-shrink-0">
                           <p className="text-white text-[10px] font-semibold">{item.price}</p>
-                          <span className="mt-0.5 inline-block px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[7px] font-semibold">+</span>
+                          <span className="mt-0.5 inline-block px-2 py-0.5 rounded-md bg-[#05c8a7]/20 text-[#05c8a7] text-[7px] font-semibold">+</span>
                         </div>
                       </div>
                     ))}
@@ -109,11 +112,11 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
                     <span className="text-black text-[10px] font-semibold">{h.phone.cartButton}</span>
                   </div>
 
-                  <div className="mt-2 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2">
-                    <svg className="w-3 h-3 text-emerald-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <div className="mt-2 p-2 rounded-lg bg-[#05c8a7]/10 border border-[#05c8a7]/20 flex items-center gap-2">
+                    <svg className="w-3 h-3 text-[#05c8a7] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
-                    <p className="text-emerald-400 text-[9px] font-medium">{h.phone.orderSent}</p>
+                    <p className="text-[#05c8a7] text-[9px] font-medium">{h.phone.orderSent}</p>
                   </div>
                 </div>
 

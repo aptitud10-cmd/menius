@@ -2,6 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens — single source of truth for brand color ──
+   Brand: #05c8a7 (turquoise-green). ALL color values in this file
+   derive from this one hex. Never hardcode rgba(16,185,129) (emerald-500)
+   or rgba(56,189,248) (sky) — those are Tailwind defaults, not the brand. */
+:root {
+  /* Brand */
+  --brand:           #05c8a7;
+  --brand-rgb:       5, 200, 167;
+
+  /* Brand transparent layers */
+  --brand-10:        rgba(5, 200, 167, 0.10);
+  --brand-12:        rgba(5, 200, 167, 0.12);
+  --brand-15:        rgba(5, 200, 167, 0.15);
+  --brand-20:        rgba(5, 200, 167, 0.20);
+  --brand-25:        rgba(5, 200, 167, 0.25);
+  --brand-30:        rgba(5, 200, 167, 0.30);
+  --brand-40:        rgba(5, 200, 167, 0.40);
+
+  /* Dark surface layers (landing) */
+  --surface-1:       rgba(255, 255, 255, 0.02);
+  --surface-2:       rgba(255, 255, 255, 0.03);
+  --surface-3:       rgba(255, 255, 255, 0.05);
+  --surface-4:       rgba(255, 255, 255, 0.06);
+
+  /* Border layers */
+  --border-1:        rgba(255, 255, 255, 0.06);
+  --border-2:        rgba(255, 255, 255, 0.08);
+  --border-3:        rgba(255, 255, 255, 0.12);
+
+  /* Animation timing */
+  --ease-spring:     cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out:        cubic-bezier(0.0, 0, 0.2, 1);
+  --dur-fast:        150ms;
+  --dur-base:        250ms;
+  --dur-slow:        400ms;
+  --dur-enter:       700ms;
+}
+
 /* ── Mobile-first foundation ── */
 html {
   scroll-behavior: smooth;
@@ -78,6 +116,22 @@ html, body {
   }
 }
 
+/* Instant tap response — eliminates 300ms delay on Android/older iOS.
+   `manipulation` allows scroll & zoom but removes the double-tap-to-zoom delay
+   that causes the interaction lag on buttons and links. */
+a, button, [role="button"], [role="tab"], [role="menuitem"],
+input[type="submit"], input[type="button"], input[type="reset"],
+label[for], summary {
+  touch-action: manipulation;
+}
+
+/* Remove iOS gray tap highlight — we use our own active:scale feedback instead.
+   Without this, iOS shows a gray overlay AND the scale animation simultaneously
+   which looks like a double-effect. */
+a, button, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* iOS input zoom prevention — inputs < 16px trigger zoom */
 @supports (-webkit-touch-callout: none) {
   input, select, textarea { font-size: max(16px, 1em); }
@@ -142,6 +196,25 @@ html, body {
 .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
 .animate-slide-in-right { animation: slideInRight 0.15s ease-out both; }
 
+/* Cover image entrance zoom (restaurant header)
+   Only animates transform — no opacity to prevent flash on iOS.
+   will-change promotes to GPU layer before animation starts (no jank on first frame). */
+@keyframes coverZoom {
+  from { transform: scale(1.06); }
+  to   { transform: scale(1); }
+}
+.animate-cover-zoom {
+  will-change: transform;
+  transform-origin: center;
+  animation: coverZoom 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Button physical press — shadow collapses to reinforce scale-down */
+.btn-press {
+  transition: transform 100ms ease-out, box-shadow 100ms ease-out, background-color 150ms ease;
+}
+.btn-press:active { transform: scale(0.97); box-shadow: none !important; }
+
 /* Staggered animations */
 .delay-100 { animation-delay: 100ms; }
 .delay-200 { animation-delay: 200ms; }
@@ -204,13 +277,13 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
 }
 
 /* Glow effects */
-.glow-brand { box-shadow: 0 0 40px rgba(5, 200, 167, 0.15), 0 0 80px rgba(5, 200, 167, 0.05); }
-.glow-brand-strong { box-shadow: 0 0 60px rgba(5, 200, 167, 0.25), 0 0 120px rgba(5, 200, 167, 0.1); }
+.glow-brand { box-shadow: 0 0 40px var(--brand-15), 0 0 80px var(--brand-10); }
+.glow-brand-strong { box-shadow: 0 0 60px var(--brand-25), 0 0 120px var(--brand-10); }
 
 /* Premium border gradient */
 .border-gradient {
-  background: linear-gradient(135deg, rgba(5,200,167,0.2), rgba(29,228,192,0.1), transparent);
-  border: 1px solid rgba(5,200,167,0.15);
+  background: linear-gradient(135deg, var(--brand-20), var(--brand-10), transparent);
+  border: 1px solid var(--brand-15);
 }
 
 /* Animated gradient background */
@@ -226,9 +299,9 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
 /* Mesh gradient */
 .mesh-gradient {
   background:
-    radial-gradient(ellipse at 20% 50%, rgba(5,200,167,0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(29,228,192,0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 60% 80%, rgba(144,255,229,0.06) 0%, transparent 50%);
+    radial-gradient(ellipse at 20% 50%, var(--brand-12) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, var(--brand-10) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, var(--brand-10) 0%, transparent 50%);
 }
 
 /* Noise texture overlay */
@@ -283,7 +356,7 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   bottom: 6px;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: #059669;
+  background: var(--brand);
 }
 
 /* Dashboard page heading */
@@ -326,13 +399,14 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   font-size: 0.875rem;
   font-weight: 500;
   color: #fff;
-  background: #059669;
+  background: var(--brand);
   border-radius: 0.5rem;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.1s ease;
   white-space: nowrap;
 }
-.dash-btn-primary:hover { background: #047857; }
-.dash-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.dash-btn-primary:hover { background: #04a88c; box-shadow: 0 2px 8px rgba(5, 200, 167, 0.25); }
+.dash-btn-primary:active { transform: scale(0.97); box-shadow: none; }
+.dash-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 .dash-btn-secondary {
   display: inline-flex;
@@ -345,10 +419,11 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
   white-space: nowrap;
 }
 .dash-btn-secondary:hover { background: #f9fafb; border-color: #d1d5db; }
+.dash-btn-secondary:active { transform: scale(0.97); }
 
 .dash-btn-danger {
   display: inline-flex;
@@ -361,10 +436,11 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   background: #fef2f2;
   border: 1px solid #fecaca;
   border-radius: 0.5rem;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, transform 0.1s ease;
   white-space: nowrap;
 }
 .dash-btn-danger:hover { background: #fee2e2; }
+.dash-btn-danger:active { transform: scale(0.97); }
 
 /* Inputs */
 .dash-input {
@@ -380,8 +456,8 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
 .dash-input::placeholder { color: #9ca3af; }
 .dash-input:focus {
   outline: none;
-  border-color: #059669;
-  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.08);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-10);
 }
 
 .dash-select {
@@ -397,8 +473,8 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
 }
 .dash-select:focus {
   outline: none;
-  border-color: #059669;
-  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.08);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-10);
 }
 
 /* Badges */
@@ -410,7 +486,7 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   font-weight: 500;
   border-radius: 9999px;
 }
-.dash-badge-active { background: #ecfdf5; color: #059669; }
+.dash-badge-active { background: rgba(5, 200, 167, 0.08); color: var(--brand); }
 .dash-badge-inactive { background: #f3f4f6; color: #6b7280; }
 .dash-badge-warning { background: #fffbeb; color: #d97706; }
 
@@ -459,22 +535,27 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.06);
 }
+/* conic-gradient rotation requires main-thread paint — desktop only */
 .card-glow::before {
   content: '';
   position: absolute;
   inset: -1px;
   border-radius: inherit;
   padding: 1px;
-  background: conic-gradient(from 0deg, transparent 60%, rgba(16,185,129,0.3) 80%, transparent 100%);
+  background: conic-gradient(from 0deg, transparent 60%, var(--brand-30) 80%, transparent 100%);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: borderGlow 6s linear infinite;
   pointer-events: none;
+}
+@media (min-width: 768px) {
+  .card-glow::before {
+    animation: borderGlow 6s linear infinite;
+  }
 }
 .line-gradient {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(16,185,129,0.3), transparent);
+  background: linear-gradient(90deg, transparent, var(--brand-30), transparent);
 }
 
 /* ─── PREMIUM DARK LANDING ─── */
@@ -483,20 +564,22 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
 .landing-bg {
   background: #050505;
   background-image:
-    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(16, 185, 129, 0.10) 0%, transparent 50%);
+    radial-gradient(ellipse 80% 50% at 50% 0%, var(--brand-10) 0%, transparent 50%);
 }
 
-/* Hero mesh gradient — rich colored orbs */
+/* Hero mesh gradient — single brand color, two intensities */
 .hero-gradient {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(600px circle at 30% 20%, rgba(16, 185, 129, 0.18) 0%, transparent 60%),
-    radial-gradient(500px circle at 70% 60%, rgba(16, 185, 129, 0.06) 0%, transparent 60%);
+    radial-gradient(600px circle at 30% 20%, var(--brand-15) 0%, transparent 60%),
+    radial-gradient(500px circle at 70% 60%, var(--brand-10) 0%, transparent 60%);
   pointer-events: none;
 }
 
-/* Animated gradient orb */
+/* Animated gradient orb — desktop only.
+   On mobile these are static blobs; disabling the loop saves battery
+   and prevents thermal throttling on low-end devices. */
 @keyframes orbFloat {
   0%, 100% { transform: translate(0, 0) scale(1); }
   33% { transform: translate(30px, -20px) scale(1.05); }
@@ -507,17 +590,22 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   border-radius: 50%;
   filter: blur(80px);
   pointer-events: none;
-  animation: orbFloat 12s ease-in-out infinite;
+}
+@media (min-width: 768px) {
+  .orb {
+    will-change: transform;
+    animation: orbFloat 12s ease-in-out infinite;
+  }
 }
 .orb-purple {
-  background: rgba(16, 185, 129, 0.30);
+  background: var(--brand-30);
 }
 .orb-teal {
-  background: rgba(56, 189, 248, 0.18);
+  background: var(--brand-15);
   animation-delay: -4s;
 }
 .orb-blue {
-  background: rgba(60, 120, 255, 0.18);
+  background: var(--brand-10);
   animation-delay: -8s;
 }
 
@@ -528,13 +616,13 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   pointer-events: none;
 }
 .section-glow-purple {
-  background: radial-gradient(ellipse 70% 50% at 20% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 70%);
+  background: radial-gradient(ellipse 70% 50% at 20% 50%, var(--brand-10) 0%, transparent 70%);
 }
 .section-glow-teal {
-  background: radial-gradient(ellipse 70% 50% at 80% 50%, rgba(16, 185, 129, 0.06) 0%, transparent 70%);
+  background: radial-gradient(ellipse 70% 50% at 80% 50%, var(--brand-10) 0%, transparent 70%);
 }
 .section-glow-blue {
-  background: radial-gradient(ellipse 60% 60% at 50% 30%, rgba(16, 185, 129, 0.06) 0%, transparent 70%);
+  background: radial-gradient(ellipse 60% 60% at 50% 30%, var(--brand-10) 0%, transparent 70%);
 }
 
 /* Premium card with gradient border */
@@ -542,7 +630,8 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   position: relative;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  transition: all 0.3s ease;
+  /* Explicit properties only — never use `transition: all` (watches every prop, expensive) */
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 .card-premium:hover {
   background: rgba(255, 255, 255, 0.05);
@@ -552,7 +641,7 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
 /* Card with colored gradient border */
 .card-gradient-border {
   position: relative;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-1);
   border: 1px solid transparent;
   background-clip: padding-box;
 }
@@ -562,7 +651,7 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   inset: -1px;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(56, 189, 248, 0.25), rgba(60, 120, 255, 0.3));
+  background: linear-gradient(135deg, var(--brand-25), var(--brand-15), transparent);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -576,37 +665,42 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
 
 /* Popular card glow */
 .card-popular-glow {
-  box-shadow: 0 0 40px rgba(16, 185, 129, 0.12);
-  border-color: rgba(16, 185, 129, 0.30);
+  box-shadow: 0 0 40px var(--brand-12);
+  border-color: var(--brand-30);
 }
 
-/* Noise texture overlay */
-.noise-overlay::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.01'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 9999;
+/* Noise texture overlay — desktop only.
+   position: fixed triggers a repaint on every scroll frame on iOS momentum scroll.
+   On mobile screens the noise is imperceptible at this opacity anyway. */
+@media (min-width: 768px) {
+  .noise-overlay::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.01'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
 }
 
 /* Gradient separator between sections */
 .separator-gradient {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.25), rgba(56, 189, 248, 0.15), transparent);
+  background: linear-gradient(90deg, transparent, var(--brand-25), transparent);
 }
 
 /* Premium button glow on hover */
 .btn-glow {
-  transition: all 0.3s ease;
+  /* box-shadow and background-color only — not `all` */
+  transition: box-shadow 0.25s ease, background-color 0.15s ease;
 }
 .btn-glow:hover {
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.12);
+  box-shadow: 0 0 20px var(--brand-12);
 }
 
-/* Text gradient — luxury feel */
+/* Text gradient — luxury feel. Single brand hue, 3 stops of lightness */
 .text-gradient-premium {
-  background: linear-gradient(135deg, #6ee7b7, #34d399, #2dd4bf);
+  background: linear-gradient(135deg, #7ef8e0, #05c8a7, #04a88c);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -703,7 +797,9 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   animation: bellShake 0.6s ease-in-out;
 }
 
-/* Animated shimmer on borders */
+/* Animated shimmer on borders — desktop only.
+   `background-position` animation requires main-thread repaint; skip on mobile
+   where the card is already highlighted by the card-popular-glow shadow. */
 @keyframes borderShimmer {
   0% { background-position: 0% 50%; }
   100% { background-position: 200% 50%; }
@@ -714,13 +810,17 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   inset: -1px;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.4), rgba(56, 189, 248, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, var(--brand-40), var(--brand-25), transparent);
   background-size: 200% 100%;
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: borderShimmer 4s linear infinite;
   pointer-events: none;
+}
+@media (min-width: 768px) {
+  .shimmer-border::before {
+    animation: borderShimmer 4s linear infinite;
+  }
 }
 
 /* KDS: full-screen new order overlay */
@@ -764,22 +864,22 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #34d399, #2dd4bf);
+  background: linear-gradient(135deg, #1de4c0, #05c8a7);
   cursor: pointer;
-  box-shadow: 0 0 24px rgba(16,185,129,0.35);
+  box-shadow: 0 0 24px var(--brand-30);
   border: 3px solid #050505;
   transition: box-shadow 0.2s ease;
 }
 .calc-slider::-webkit-slider-thumb:hover {
-  box-shadow: 0 0 32px rgba(16,185,129,0.5);
+  box-shadow: 0 0 32px var(--brand-40);
 }
 .calc-slider::-moz-range-thumb {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #34d399, #2dd4bf);
+  background: linear-gradient(135deg, #1de4c0, #05c8a7);
   cursor: pointer;
-  box-shadow: 0 0 24px rgba(16,185,129,0.35);
+  box-shadow: 0 0 24px var(--brand-30);
   border: 3px solid #050505;
 }
 .calc-slider::-moz-range-track {

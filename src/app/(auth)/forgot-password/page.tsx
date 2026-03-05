@@ -3,8 +3,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { requestPasswordReset } from '@/lib/actions/auth';
+import { useLocale } from '@/providers/locale-provider';
+import { getLandingT } from '@/lib/landing-translations';
 
 export default function ForgotPasswordPage() {
+  const locale = useLocale();
+  const t = getLandingT(locale).auth.forgotPassword;
+
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,7 +21,7 @@ export default function ForgotPasswordPage() {
     setError('');
 
     if (!email || !email.includes('@')) {
-      setError('Ingresa un email válido');
+      setError(t.invalidEmail);
       return;
     }
 
@@ -50,20 +55,20 @@ export default function ForgotPasswordPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                 </svg>
               </div>
-              <h2 className="text-lg font-bold text-white mb-2 font-heading">Revisa tu email</h2>
+              <h2 className="text-lg font-bold text-white mb-2 font-heading">{t.checkInboxTitle}</h2>
               <p className="text-[13px] text-gray-400 mb-5 leading-relaxed">
-                Si existe una cuenta con <span className="text-white font-medium">{email}</span>,
-                recibirás un enlace para restablecer tu contraseña.
+                {t.checkInboxDesc} <span className="text-white font-medium">{email}</span>,{' '}
+                {t.checkInboxDesc2}
               </p>
               <div className="separator-gradient" />
-              <p className="text-[11px] text-gray-600 mt-4">¿No lo ves? Revisa tu carpeta de spam.</p>
+              <p className="text-[11px] text-gray-600 mt-4">{t.spamNote}</p>
             </div>
           </div>
 
           <div className="mt-8 space-y-3">
             <p className="text-[13px] text-gray-500">
               <Link href="/login" className="text-white font-medium hover:text-emerald-400 transition-colors">
-                ← Volver a iniciar sesión
+                {t.backToLogin}
               </Link>
             </p>
           </div>
@@ -82,7 +87,7 @@ export default function ForgotPasswordPage() {
           <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
             <span className="text-white">MENIUS</span>
           </Link>
-          <p className="text-gray-500 text-[13px] mt-2.5 tracking-wide">Restablece tu contraseña</p>
+          <p className="text-gray-500 text-[13px] mt-2.5 tracking-wide">{t.subtitle}</p>
         </div>
 
         <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
@@ -99,25 +104,24 @@ export default function ForgotPasswordPage() {
               </div>
             )}
 
-            <p className="text-[13px] text-gray-400 leading-relaxed">
-              Ingresa el email de tu cuenta y te enviaremos un enlace para restablecer tu contraseña.
-            </p>
+            <p className="text-[13px] text-gray-400 leading-relaxed">{t.instructions}</p>
 
             <div>
-              <label className="block text-[13px] font-medium text-gray-400 mb-2">Email</label>
+              <label htmlFor="fp-email" className="block text-[13px] font-medium text-gray-400 mb-2">{t.emailLabel}</label>
               <div className={`relative rounded-xl transition-all duration-300 ${
                 focused
                   ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]'
                   : ''
               }`}>
                 <input
+                  id="fp-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onFocus={() => setFocused(true)}
                   onBlur={() => setFocused(false)}
                   className="w-full px-4 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
-                  placeholder="tu@email.com"
+                  placeholder={t.emailPlaceholder}
                   autoFocus
                 />
               </div>
@@ -131,22 +135,22 @@ export default function ForgotPasswordPage() {
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                  Enviando...
+                  {t.loading}
                 </span>
-              ) : 'Enviar enlace de restablecimiento'}
+              ) : t.submit}
             </button>
           </form>
         </div>
 
         <div className="mt-8 space-y-3 text-center">
           <p className="text-[13px] text-gray-500">
-            ¿Recordaste tu contraseña?{' '}
+            {t.rememberPassword}{' '}
             <Link href="/login" className="text-white font-medium hover:text-emerald-400 transition-colors">
-              Inicia sesión
+              {t.signIn}
             </Link>
           </p>
           <Link href="/" className="inline-block text-[12px] text-gray-600 hover:text-gray-400 transition-colors">
-            ← Volver al inicio
+            {t.backHome}
           </Link>
         </div>
       </div>

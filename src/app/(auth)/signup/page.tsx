@@ -113,9 +113,10 @@ export default function SignupPage() {
             )}
 
             <div>
-              <label className="block text-[13px] font-medium text-gray-400 mb-2">{t.fullName}</label>
+              <label htmlFor="signup-name" className="block text-[13px] font-medium text-gray-400 mb-2">{t.fullName}</label>
               <div className={`relative rounded-xl transition-all duration-300 ${focused === 'name' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
                 <input
+                  id="signup-name"
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
@@ -129,9 +130,10 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="block text-[13px] font-medium text-gray-400 mb-2">{t.email}</label>
+              <label htmlFor="signup-email" className="block text-[13px] font-medium text-gray-400 mb-2">{t.email}</label>
               <div className={`relative rounded-xl transition-all duration-300 ${focused === 'email' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
                 <input
+                  id="signup-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -145,9 +147,10 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="block text-[13px] font-medium text-gray-400 mb-2">{t.password}</label>
+              <label htmlFor="signup-password" className="block text-[13px] font-medium text-gray-400 mb-2">{t.password}</label>
               <div className={`relative rounded-xl transition-all duration-300 ${focused === 'password' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
                 <input
+                  id="signup-password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

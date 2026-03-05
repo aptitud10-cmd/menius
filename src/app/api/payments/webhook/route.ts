@@ -11,16 +11,24 @@ const logger = createLogger('payments-webhook');
 
 async function updateOrderPayment(orderId: string, status: 'paid' | 'failed', paymentIntent?: string) {
   const adminDb = createAdminClient();
-  const { error } = await adminDb
+  const { data, error } = await adminDb
     .from('orders')
     .update({
       payment_status: status,
       ...(paymentIntent ? { payment_intent_id: paymentIntent } : {}),
     })
-    .eq('id', orderId);
+    .eq('id', orderId)
+    .neq('payment_status', status)
+    .select('id')
+    .maybeSingle();
 
   if (error) {
     logger.error('Failed to update order payment status', { orderId, status, error: error.message });
+    return;
+  }
+
+  if (!data) {
+    logger.info('Order already in target payment status, skipping notifications', { orderId, status });
     return;
   }
 

@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { getPlanByStripePrice, getIntervalByStripePrice } from '@/lib/plans';
 import { createLogger } from '@/lib/logger';
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    const supabase = createClient();
+    const supabase = createAdminClient();
 
     // Idempotency: skip already-processed events
     const eventId = event.id;

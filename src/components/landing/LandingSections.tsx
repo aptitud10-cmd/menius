@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { getLandingT, type LandingLocale, type LandingT } from '@/lib/landing-translations';
+import { PLANS } from '@/lib/plans';
 
 /* ─── STATIC DATA ─── */
 
@@ -98,7 +99,7 @@ function FeatureTabs({ t }: { t: LandingT }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
         <div>
-          <h3 className="text-3xl md:text-4xl font-bold text-white leading-tight tracking-tight">
+          <h3 className="font-display text-3xl md:text-4xl font-bold text-white leading-tight tracking-[-0.025em]">
             {item.title}
           </h3>
           <p className="mt-4 md:mt-6 text-lg md:text-xl text-gray-200 md:text-gray-300 leading-relaxed font-light">
@@ -130,7 +131,7 @@ function FeatureTabs({ t }: { t: LandingT }) {
                   <p className="text-xs text-gray-500">MENIUS</p>
                 </div>
                 <div className="ml-auto flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-[#05c8a7] animate-pulse" />
                   <span className="text-[10px] text-gray-500">{ft.cardActive}</span>
                 </div>
               </div>
@@ -165,7 +166,7 @@ function SocialProof({ t }: { t: LandingT['socialProof'] }) {
     <section className="relative py-20 md:py-24 overflow-clip">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center d-fade-in">
-          <p className="text-sm text-emerald-400/80 font-medium mb-8 tracking-wide uppercase">{t.headline}</p>
+          <p className="text-sm text-[#05c8a7]/80 font-medium mb-8 tracking-wide uppercase">{t.headline}</p>
           <div className="flex items-center justify-center gap-8 md:gap-14 flex-wrap">
             {t.logos.map((name) => {
               const brandColor: Record<string, string> = {
@@ -227,7 +228,7 @@ function IntegrationsGrid({ t }: { t: LandingT['integrations'] }) {
 function SavingsCalculator({ t }: { t: LandingT['savings'] }) {
   const [revenue, setRevenue] = useState(15000);
   const commissionLoss = Math.round(revenue * 0.25);
-  const meniusCost = 79;
+  const meniusCost = PLANS.pro.price.monthly;
   const annualSavings = (commissionLoss - meniusCost) * 12;
 
   return (
@@ -259,47 +260,188 @@ function SavingsCalculator({ t }: { t: LandingT['savings'] }) {
           <p className="text-3xl md:text-4xl font-bold text-red-400">${commissionLoss.toLocaleString()}</p>
           <p className="text-sm text-gray-500 mt-1.5">{t.commissionsLabel}</p>
         </div>
-        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-6 text-center">
+        <div className="rounded-2xl border border-[#05c8a7]/20 bg-[#05c8a7]/[0.04] p-6 text-center">
           <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">{t.withMenius}</p>
-          <p className="text-3xl md:text-4xl font-bold text-emerald-400">${meniusCost}</p>
+          <p className="text-3xl md:text-4xl font-bold text-[#05c8a7]">${meniusCost}</p>
           <p className="text-sm text-gray-500 mt-1.5">{t.flatFeeLabel}</p>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/[0.06] to-blue-500/[0.04] p-6 md:p-8 text-center">
+      <div className="rounded-2xl border border-[#05c8a7]/20 bg-[#05c8a7]/[0.06] p-6 md:p-8 text-center">
         <p className="text-sm text-gray-400 mb-2 font-medium">{t.savingsLabel}</p>
         <p className="text-4xl md:text-6xl font-bold text-white tracking-tight">
           ${annualSavings.toLocaleString()}
         </p>
-        <p className="text-lg text-emerald-400 font-semibold mt-1">{t.perYear}</p>
+        <p className="text-lg text-[#05c8a7] font-semibold mt-1">{t.perYear}</p>
       </div>
     </div>
   );
 }
 
+function MidCta({ text, highlight, cta }: { text: string; highlight: string; cta: string }) {
+  return (
+    <div className="my-2 d-fade-up">
+      <Link
+        href="/signup"
+        className="group flex flex-col sm:flex-row items-center justify-between gap-4 px-7 py-5 rounded-2xl border border-white/[0.08] bg-[#05c8a7]/[0.06] hover:border-[#05c8a7]/30 hover:bg-[#05c8a7]/[0.10] transition-all duration-200"
+      >
+        <div className="text-center sm:text-left">
+          <span className="text-white font-semibold text-[15px]">{text}</span>
+          {' '}
+          <span className="text-gray-400 text-[15px]">{highlight}</span>
+        </div>
+        <span className="flex-shrink-0 px-5 py-2.5 rounded-xl bg-white text-black text-sm font-bold group-hover:bg-gray-100 group-hover:shadow-[0_4px_16px_rgba(255,255,255,0.15)] active:scale-[0.97] transition-all duration-150 whitespace-nowrap">
+          {cta}
+        </span>
+      </Link>
+    </div>
+  );
+}
+
+const PLAN_IDS = ['starter', 'pro', 'business'] as const;
+
+function PricingSection({ t }: { t: LandingT }) {
+  const [annual, setAnnual] = useState(false);
+  const tp = t.pricing;
+
+  return (
+    <>
+      <div className="text-center mb-10 md:mb-14 d-fade-up">
+        <p className="text-sm text-blue-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{tp.sectionLabel}</p>
+        <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
+          {tp.sectionTitle}
+        </h2>
+        <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl font-light">{tp.sectionDesc}</p>
+
+        {/* Billing toggle */}
+        <div className="mt-8 inline-flex items-center gap-1 p-1 rounded-xl bg-white/[0.06] border border-white/[0.08]">
+          <button
+            onClick={() => setAnnual(false)}
+            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+              !annual ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            {tp.billingMonthly}
+          </button>
+          <button
+            onClick={() => setAnnual(true)}
+            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${
+              annual ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            {tp.billingAnnual}
+            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full transition-colors duration-200 ${
+              annual ? 'bg-[#05c8a7] text-black' : 'bg-[#05c8a7]/20 text-[#05c8a7]'
+            }`}>
+              {tp.annualBadge}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div className="d-scale-in d-delay-2">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {tp.plans.map((plan, idx) => {
+            const isPopular = idx === 1;
+            const planConfig = PLANS[PLAN_IDS[idx]];
+            const monthlyPrice = planConfig.price.monthly;
+            const annualTotal = planConfig.price.annual;
+            const annualPerMonth = Math.floor(annualTotal / 12);
+            const displayPrice = annual ? annualPerMonth : monthlyPrice;
+
+            return (
+              <div
+                key={plan.name}
+                className={`relative rounded-2xl p-8 flex flex-col transition-all duration-300 ${
+                  isPopular
+                    ? 'card-popular-glow bg-white/[0.04] border border-[#05c8a7]/20 shimmer-border'
+                    : 'card-gradient-border bg-white/[0.02] rounded-2xl hover:bg-white/[0.04]'
+                }`}
+              >
+                {isPopular && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-5 py-1.5 bg-[#05c8a7] text-black text-[11px] font-semibold rounded-full uppercase tracking-wider shadow-lg shadow-[#05c8a7]/25">
+                    {tp.popularBadge}
+                  </span>
+                )}
+                <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
+                <p className="text-sm text-gray-400 mt-1.5">{plan.desc}</p>
+                <div className="mt-7 mb-1">
+                  <div className="flex items-end gap-1.5">
+                    <span className="text-5xl font-bold text-white tracking-tight transition-all duration-300">
+                      ${displayPrice}
+                    </span>
+                    <span className="text-sm text-gray-400 mb-1.5 leading-tight">
+                      {annual ? tp.annualPerMonth : tp.perMonth}
+                    </span>
+                  </div>
+                  {annual && (
+                    <p className="text-xs text-gray-500 mt-1 mb-0">
+                      ${monthlyPrice}<span className="line-through opacity-60">/mes</span>
+                      {' '}→{' '}
+                      <span className="text-[#05c8a7] font-semibold">${annualTotal}/año</span>
+                    </p>
+                  )}
+                </div>
+                <ul className="space-y-3.5 flex-1 mt-7 mb-0">
+                  {plan.features.map((feat) => (
+                    <li key={feat} className="flex items-start gap-3">
+                      <svg className="w-4 h-4 text-[#05c8a7]/60 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      <span className="text-sm text-gray-400 leading-snug">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={`/signup?plan=${plan.name.toLowerCase()}${annual ? '&billing=annual' : ''}`}
+                  className={`mt-8 block text-center py-4 rounded-xl font-bold text-base active:scale-[0.97] active:shadow-none transition-[transform,box-shadow,background-color,border-color] duration-150 ${
+                    isPopular
+                      ? 'bg-white text-black hover:bg-gray-100 hover:shadow-[0_4px_16px_rgba(255,255,255,0.18)] btn-glow shadow-lg shadow-white/5'
+                      : 'bg-white/[0.06] text-gray-300 border-2 border-white/[0.10] hover:text-white hover:bg-white/[0.1] hover:border-white/[0.18]'
+                  }`}
+                >
+                  {plan.cta}
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+
+        <Link
+          href="/setup-profesional"
+          className="mt-6 flex items-center justify-between p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all group"
+        >
+          <span className="text-sm text-gray-400">{tp.setupCtaPrefix} <strong className="text-gray-200">{tp.setupCtaBold}</strong> {tp.setupCtaSuffix}</span>
+          <svg className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+        </Link>
+      </div>
+    </>
+  );
+}
+
 function TestimonialsSection({ t }: { t: LandingT['testimonials'] }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5 max-w-5xl mx-auto">
-      {t.items.map((tm) => (
-        <div key={tm.name}>
-          <div className="card-premium rounded-2xl p-6 md:p-7 h-full flex flex-col">
-            <div className="flex gap-0.5 mb-4">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <svg key={s} className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              ))}
-            </div>
-            <p className="text-sm text-gray-300 leading-relaxed mb-5 flex-1">&ldquo;{tm.quote}&rdquo;</p>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-xs font-bold">{tm.initials}</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">{tm.name}</p>
-                <p className="text-xs text-gray-500">{tm.role}</p>
-              </div>
-            </div>
+    <div className="max-w-5xl mx-auto space-y-4 md:space-y-0 md:grid md:grid-cols-3 md:gap-5">
+      {t.items.map((item) => (
+        <div key={item.name} className="card-premium rounded-2xl p-6 md:p-7 flex flex-col gap-4">
+          {/* Big stat */}
+          <div className="flex items-start justify-between gap-3">
+            <span
+              className="font-extrabold tracking-tight text-white leading-none"
+              style={{ fontSize: 'clamp(2.2rem, 5vw, 3rem)' }}
+            >
+              {item.name}
+            </span>
+            <span className="text-2xl flex-shrink-0 mt-1" aria-hidden="true">{item.initials}</span>
+          </div>
+
+          {/* Explanation */}
+          <p className="text-sm text-gray-300 leading-relaxed flex-1">{item.quote}</p>
+
+          {/* Source attribution */}
+          <div className="flex items-center gap-2 pt-3 border-t border-white/[0.06]">
+            <svg className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span className="text-[11px] text-gray-600 leading-tight">{item.role}</span>
           </div>
         </div>
       ))}
@@ -325,8 +467,8 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
           <div className="text-center mb-8 d-fade-up">
-            <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.features.sectionLabel}</p>
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
+            <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.features.sectionLabel}</p>
+            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
               {t.features.sectionTitle}
             </h2>
             <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
@@ -349,7 +491,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
         <div className="relative z-10 max-w-6xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
             <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.integrations.sectionLabel}</p>
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
+            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
               {t.integrations.sectionTitle}
             </h2>
             <p className="text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
@@ -372,7 +514,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
         <div className="relative z-10 max-w-4xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
             <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.comparison.sectionLabel}</p>
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
+            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
               {t.comparison.sectionTitle}
             </h2>
             <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
@@ -387,7 +529,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
                   <p className="text-xs text-gray-500 uppercase tracking-wider font-medium mb-3">{row.feature}</p>
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-xs text-emerald-400 font-medium mb-1">{t.comparison.meniusHeader}</p>
+                      <p className="text-xs text-[#05c8a7] font-medium mb-1">{t.comparison.meniusHeader}</p>
                       <p className="text-base font-semibold text-white">{row.menius}</p>
                     </div>
                     <div className="text-right">
@@ -402,7 +544,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
             <div className="hidden md:block rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02]">
               <div className="grid grid-cols-3">
                 <div className="p-5 border-b border-white/[0.06]" />
-                <div className="p-5 text-center border-b border-white/[0.06] bg-emerald-500/[0.06]">
+                <div className="p-5 text-center border-b border-white/[0.06] bg-[#05c8a7]/[0.06]">
                   <span className="text-sm font-semibold text-white">{t.comparison.meniusHeader}</span>
                 </div>
                 <div className="p-5 text-center border-b border-white/[0.06]">
@@ -414,7 +556,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
                   <div className="px-6 py-4">
                     <p className="text-sm text-gray-400">{row.feature}</p>
                   </div>
-                  <div className="px-6 py-4 text-center bg-emerald-500/[0.03]">
+                  <div className="px-6 py-4 text-center bg-[#05c8a7]/[0.03]">
                     <p className="text-sm font-medium text-white">{row.menius}</p>
                   </div>
                   <div className="px-6 py-4 text-center">
@@ -427,6 +569,15 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
         </div>
       </section>
 
+      {/* ── Mid CTA: after Comparison ── */}
+      <div className="max-w-4xl mx-auto px-6 -mt-10 mb-6">
+        <MidCta
+          text={t.comparison.midCta.text}
+          highlight={t.comparison.midCta.highlight}
+          cta={t.comparison.midCta.cta}
+        />
+      </div>
+
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Savings Calculator ── */}
@@ -435,8 +586,8 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.savings.sectionLabel}</p>
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
+            <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.savings.sectionLabel}</p>
+            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
               {t.savings.sectionTitle}
             </h2>
             <p className="text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
@@ -450,77 +601,23 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
         </div>
       </section>
 
+      {/* ── Mid CTA: after Savings Calculator ── */}
+      <div className="max-w-4xl mx-auto px-6 -mt-10 mb-6">
+        <MidCta
+          text={t.savings.midCta.text}
+          highlight={t.savings.midCta.highlight}
+          cta={t.savings.midCta.cta}
+        />
+      </div>
+
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Pricing ── */}
       <section id="precios" className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-blue" />
-        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-emerald-600/20 blur-[100px] pointer-events-none" />
-
+        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-[#05c8a7]/15 blur-[100px] pointer-events-none" />
         <div className="relative z-10 max-w-5xl mx-auto px-6">
-          <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-blue-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.pricing.sectionLabel}</p>
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
-              {t.pricing.sectionTitle}
-            </h2>
-            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl font-light">{t.pricing.sectionDesc}</p>
-          </div>
-
-          <div className="d-scale-in d-delay-2">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {t.pricing.plans.map((plan, idx) => {
-                const isPopular = idx === 1;
-                return (
-                  <div
-                    key={plan.name}
-                    className={`relative rounded-2xl p-8 flex flex-col transition-all duration-300 ${
-                      isPopular
-                        ? 'card-popular-glow bg-white/[0.04] border border-emerald-500/20 shimmer-border'
-                        : 'card-gradient-border bg-white/[0.02] rounded-2xl hover:bg-white/[0.04]'
-                    }`}
-                  >
-                    {isPopular && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-5 py-1.5 bg-gradient-to-r from-emerald-500 to-blue-500 text-white text-[11px] font-semibold rounded-full uppercase tracking-wider shadow-lg shadow-emerald-500/25">
-                        {t.pricing.popularBadge}
-                      </span>
-                    )}
-                    <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
-                    <p className="text-sm text-gray-400 mt-1.5">{plan.desc}</p>
-                    <div className="mt-7 mb-8">
-                      <span className="text-5xl font-bold text-white tracking-tight">${plan.price}</span>
-                      <span className="text-sm text-gray-400 ml-1.5">{t.pricing.perMonth}</span>
-                    </div>
-                    <ul className="space-y-3.5 flex-1">
-                      {plan.features.map((feat) => (
-                        <li key={feat} className="flex items-start gap-3">
-                          <svg className="w-4 h-4 text-emerald-400/60 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                          <span className="text-sm text-gray-400 leading-snug">{feat}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <Link
-                      href={`/signup?plan=${plan.name.toLowerCase()}`}
-                      className={`mt-8 block text-center py-4 rounded-xl font-bold text-base active:scale-[0.98] transition-all duration-300 ${
-                        isPopular
-                          ? 'bg-white text-black hover:bg-gray-100 btn-glow shadow-lg shadow-white/5'
-                          : 'bg-white/[0.06] text-gray-300 border-2 border-white/[0.10] hover:text-white hover:bg-white/[0.1] hover:border-white/[0.18]'
-                      }`}
-                    >
-                      {plan.cta}
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
-
-            <Link
-              href="/setup-profesional"
-              className="mt-6 flex items-center justify-between p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all group"
-            >
-              <span className="text-sm text-gray-400">{t.pricing.setupCtaPrefix} <strong className="text-gray-200">{t.pricing.setupCtaBold}</strong> {t.pricing.setupCtaSuffix}</span>
-              <svg className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-            </Link>
-          </div>
+          <PricingSection t={t} />
         </div>
       </section>
 
@@ -532,8 +629,8 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
 
         <div className="relative z-10 max-w-4xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-emerald-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.howItWorks.sectionLabel}</p>
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
+            <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.howItWorks.sectionLabel}</p>
+            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
               {t.howItWorks.sectionTitle}
             </h2>
           </div>
@@ -542,8 +639,8 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
               {t.howItWorks.steps.map((item) => (
                 <div key={item.step} className="card-premium rounded-2xl p-6 md:p-8 flex gap-5">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-bold text-emerald-400">{item.step}</span>
+                  <div className="w-10 h-10 rounded-xl bg-[#05c8a7]/10 border border-[#05c8a7]/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-bold text-[#05c8a7]">{item.step}</span>
                   </div>
                   <div>
                     <p className="text-[15px] font-semibold text-white">{item.title}</p>
@@ -558,14 +655,14 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
 
       <div className="separator-gradient max-w-5xl mx-auto" />
 
-      {/* ── Testimonials ── */}
+      {/* ── Industry Insights (replaces fake testimonials) ── */}
       <section className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-teal" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
             <p className="text-sm text-amber-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.testimonials.sectionLabel}</p>
-            <h2 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight">
+            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
               {t.testimonials.sectionTitle}
             </h2>
           </div>
@@ -573,6 +670,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
           <div className="d-fade-up d-delay-2">
             <TestimonialsSection t={t.testimonials} />
           </div>
+
         </div>
       </section>
 
@@ -580,11 +678,11 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
 
       {/* ── Final CTA ── */}
       <section className="relative py-24 md:py-52 overflow-clip">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-gradient-to-br from-emerald-600/25 to-blue-600/20 blur-[100px] pointer-events-none" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-[#05c8a7]/20 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
           <div className="d-fade-up">
-            <h2 className="text-3xl md:text-5xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.05]">
+            <h2 className="font-display text-3xl md:text-5xl lg:text-7xl font-extrabold text-white tracking-[-0.03em] leading-[1.05]">
               {t.finalCta.line1}
               <br />
               <span className="text-gradient-premium">{t.finalCta.line2}</span>
@@ -595,13 +693,13 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
             <div className="mt-8 md:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 px-2 sm:px-0 d-fade-up d-delay-2">
               <Link
                 href="/signup"
-                className="w-full sm:w-auto px-10 py-5 rounded-2xl bg-white text-black font-extrabold text-[17px] sm:text-base hover:bg-gray-100 active:scale-[0.98] transition-all btn-glow shadow-[0_4px_20px_rgba(255,255,255,0.15)]"
+                className="w-full sm:w-auto px-10 py-5 rounded-2xl bg-white text-black font-extrabold text-[17px] sm:text-base hover:bg-gray-100 hover:shadow-[0_6px_24px_rgba(255,255,255,0.22)] active:scale-[0.97] active:shadow-none transition-[transform,box-shadow,background-color] duration-150 btn-glow shadow-[0_4px_20px_rgba(255,255,255,0.15)]"
               >
                 {t.finalCta.ctaPrimary} &rarr;
               </Link>
               <Link
                 href="/demo"
-                className="w-full sm:w-auto px-10 py-5 rounded-2xl border-2 border-white/15 text-gray-200 font-bold text-[17px] sm:text-base hover:text-white hover:border-white/25 active:scale-[0.98] transition-all"
+                className="w-full sm:w-auto px-10 py-5 rounded-2xl border-2 border-white/15 text-gray-200 font-bold text-[17px] sm:text-base hover:text-white hover:border-white/30 hover:bg-white/[0.04] active:scale-[0.97] transition-[transform,border-color,background,color] duration-150"
               >
                 {t.finalCta.ctaSecondary}
               </Link>

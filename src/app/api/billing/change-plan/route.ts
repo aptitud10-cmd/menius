@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       { context: 'update-subscription' },
     );
 
-    await supabase
+    const { error: dbError } = await supabase
       .from('subscriptions')
       .update({
         plan_id: planId,
@@ -77,6 +77,11 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq('restaurant_id', tenant.restaurantId);
+
+    if (dbError) {
+      logger.error('DB update failed after Stripe plan change', { error: dbError.message, planId, restaurantId: tenant.restaurantId });
+      captureError(new Error(dbError.message), { route: '/api/billing/change-plan', context: 'db-update' });
+    }
 
     logger.info('Plan changed successfully', { planId, interval });
 

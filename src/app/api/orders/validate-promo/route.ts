@@ -2,9 +2,19 @@ export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIP(request);
+    const { allowed } = await checkRateLimitAsync(`validate-promo:${ip}`, { limit: 10, windowSec: 60 });
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' },
+        { status: 429, headers: { 'Retry-After': '60', 'X-RateLimit-Remaining': '0' } }
+      );
+    }
+
     const { code, restaurant_id, order_total } = await request.json();
 
     if (!code || !restaurant_id) {

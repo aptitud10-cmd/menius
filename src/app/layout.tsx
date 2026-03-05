@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, DM_Sans } from 'next/font/google';
+import { Inter, DM_Sans, Bricolage_Grotesque } from 'next/font/google';
 import './globals.css';
 import { Suspense } from 'react';
+import { cookies } from 'next/headers';
 import CookieConsent from '@/components/CookieConsent';
 import CrispChat from '@/components/CrispChat';
 import { PostHogProvider } from '@/components/PostHogProvider';
@@ -17,6 +18,13 @@ const dmSans = DM_Sans({
   variable: '--font-dm-sans',
   display: 'swap',
   weight: ['400', '500', '600', '700'],
+});
+
+const bricolage = Bricolage_Grotesque({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+  weight: ['400', '500', '600', '700', '800'],
 });
 
 export const metadata: Metadata = {
@@ -44,6 +52,13 @@ export const metadata: Metadata = {
     description: 'Crea tu menú digital con QR y recibe pedidos en tiempo real.',
     images: ['/opengraph-image'],
   },
+  alternates: {
+    languages: {
+      'es': 'https://menius.app/',
+      'en': 'https://menius.app/',
+      'x-default': 'https://menius.app/',
+    },
+  },
   robots: {
     index: true,
     follow: true,
@@ -68,27 +83,44 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = cookies();
+  const locale = cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es';
+
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app';
+  const orgSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'MENIUS',
+    url: APP_URL,
+    logo: `${APP_URL}/icons/icon-512.svg`,
+    sameAs: [
+      process.env.NEXT_PUBLIC_SOCIAL_INSTAGRAM,
+      process.env.NEXT_PUBLIC_SOCIAL_TWITTER,
+      process.env.NEXT_PUBLIC_SOCIAL_LINKEDIN,
+      process.env.NEXT_PUBLIC_SOCIAL_FACEBOOK,
+    ].filter(Boolean),
+    description: locale === 'en'
+      ? 'The #1 digital QR menu platform for restaurants.'
+      : 'La plataforma #1 de menús digitales con QR para restaurantes.',
+  };
+
   return (
-    <html lang="es" className={`${inter.variable} ${dmSans.variable}`} suppressHydrationWarning>
+    <html lang={locale} className={`${inter.variable} ${dmSans.variable} ${bricolage.variable}`} suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="apple-touch-icon" href="/apple-icon" />
       </head>
       <body className="bg-black text-gray-900 antialiased font-sans">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:rounded-lg focus:bg-white focus:text-black focus:text-sm focus:font-semibold focus:shadow-lg"
+        >
+          Skip to main content
+        </a>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              '@context': 'https://schema.org',
-              '@type': 'Organization',
-              name: 'MENIUS',
-              url: 'https://menius.app',
-              logo: 'https://menius.app/icons/icon-512.svg',
-              sameAs: [],
-              description: 'La plataforma #1 de menús digitales con QR para restaurantes.',
-            }),
-          }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
         />
         <Suspense fallback={null}>
           <PostHogProvider>{children}</PostHogProvider>
