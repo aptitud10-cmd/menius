@@ -173,7 +173,7 @@ class PrinterServiceImpl {
   }
 
   getJobByOrder(orderId: string): PrintJob | undefined {
-    for (const job of this.jobs.values()) {
+    for (const job of Array.from(this.jobs.values())) {
       if (job.orderId === orderId) return job;
     }
     return undefined;
@@ -245,7 +245,7 @@ class PrinterServiceImpl {
   /** Remove jobs older than `maxAgeMs` (default 2 h). Call periodically if desired. */
   purgeOldJobs(maxAgeMs = 2 * 60 * 60 * 1000) {
     const cutoff = Date.now() - maxAgeMs;
-    for (const [id, job] of this.jobs) {
+    for (const [id, job] of Array.from(this.jobs)) {
       if (job.createdAt.getTime() < cutoff) this.jobs.delete(id);
     }
   }
