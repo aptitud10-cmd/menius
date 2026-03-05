@@ -9,6 +9,18 @@ import { cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import type { Restaurant } from '@/types';
 
+// Module-level cache: the session check runs once per page load across all header instances
+let _sessionCache: Promise<boolean> | null = null;
+function checkIsLoggedIn(): Promise<boolean> {
+  if (!_sessionCache) {
+    _sessionCache = getSupabaseBrowser()
+      .auth.getSession()
+      .then(({ data }) => !!data.session)
+      .catch(() => false);
+  }
+  return _sessionCache;
+}
+
 function isRestaurantOpen(hours?: Restaurant['operating_hours']): boolean {
   if (!hours || Object.keys(hours).length === 0) return true;
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -60,8 +72,8 @@ export const MenuHeader = memo(function MenuHeader({
 
   const [isOwner, setIsOwner] = useState(false);
   useEffect(() => {
-    getSupabaseBrowser().auth.getSession().then(({ data }) => {
-      if (data.session) setIsOwner(true);
+    checkIsLoggedIn().then((loggedIn) => {
+      if (loggedIn) setIsOwner(true);
     });
   }, []);
 

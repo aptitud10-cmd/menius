@@ -9,10 +9,10 @@ import { cn } from '@/lib/utils';
 import type { Product, ModifierGroup, ModifierOption, ModifierSelection } from '@/types';
 import type { Translations, Locale } from '@/lib/translations';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
-
-const DIETARY_TAGS_MAP = Object.fromEntries(DIETARY_TAGS.map((t) => [t.id, t]));
 import { tName, tDesc } from '@/lib/i18n';
 import { supabaseLoader, getBlurUrl } from '@/lib/image-loader';
+
+const DIETARY_TAGS_MAP = Object.fromEntries(DIETARY_TAGS.map((t) => [t.id, t]));
 
 interface CustomizationSheetProps {
   product: Product;

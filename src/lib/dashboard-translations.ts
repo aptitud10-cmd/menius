@@ -225,6 +225,12 @@ export interface DashboardTranslations {
   kds_connError: string;
   kds_msgSent: string;
   kds_msgsSent: string;
+  kds_newOrderTitle: string;
+  kds_newOrdersTitle: string;
+  kds_tapToView: string;
+  kds_busyMode: string;
+  kds_busyModeDesc: string;
+  kds_busyNormal: string;
 
   // Tables
   tables_newTable: string;
@@ -1265,6 +1271,12 @@ const es: DashboardTranslations = {
   kds_connError: 'Error de conexión',
   kds_msgSent: 'mensaje enviado',
   kds_msgsSent: 'mensajes enviados',
+  kds_newOrderTitle: 'Nueva Orden',
+  kds_newOrdersTitle: 'Nuevas Órdenes',
+  kds_tapToView: 'Toca para ver →',
+  kds_busyMode: 'Busy Mode',
+  kds_busyModeDesc: 'Agrega minutos extra de preparación sin detener los pedidos.',
+  kds_busyNormal: 'Normal (sin extra)',
 
   // Tables
   tables_newTable: 'Nueva mesa',
@@ -2305,6 +2317,12 @@ const en: DashboardTranslations = {
   kds_connError: 'Connection error',
   kds_msgSent: 'message sent',
   kds_msgsSent: 'messages sent',
+  kds_newOrderTitle: 'New Order',
+  kds_newOrdersTitle: 'New Orders',
+  kds_tapToView: 'Tap to view →',
+  kds_busyMode: 'Busy Mode',
+  kds_busyModeDesc: 'Add extra prep minutes without stopping incoming orders.',
+  kds_busyNormal: 'Normal (no extra)',
 
   // Tables
   tables_newTable: 'New table',

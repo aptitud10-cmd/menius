@@ -19,8 +19,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LandingPage() {
-  const cookieStore = cookies();
+export default async function LandingPage() {
+  const cookieStore = await cookies();
   const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as LandingLocale;
 
   return (

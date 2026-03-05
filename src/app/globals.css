@@ -723,14 +723,23 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   pointer-events: none;
 }
 
-/* KDS: new order flash */
-@keyframes kdsFlash {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
-  25% { box-shadow: 0 0 30px 4px rgba(16,185,129,0.5); }
-  50% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
-  75% { box-shadow: 0 0 30px 4px rgba(16,185,129,0.5); }
+/* KDS: full-screen new order overlay */
+@keyframes kdsOverlayIn {
+  0%  { opacity: 0; transform: scale(1.03); }
+  15% { opacity: 1; transform: scale(1); }
+  80% { opacity: 1; }
+  100%{ opacity: 0; }
 }
-.kds-flash { animation: kdsFlash 2s ease-in-out 3; }
+.kds-overlay-flash {
+  animation: kdsOverlayIn 3s ease forwards;
+}
+
+/* KDS: card slide-in when new */
+@keyframes kdsCardEnter {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+.kds-card-enter { animation: kdsCardEnter 0.35s ease; }
 
 /* KDS: late order pulse */
 @keyframes kdsLate {

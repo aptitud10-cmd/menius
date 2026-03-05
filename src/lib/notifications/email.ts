@@ -160,6 +160,70 @@ export function buildWelcomeEmail(params: {
 </html>`;
 }
 
+export function buildPaymentReceiptEmail(params: {
+  customerName: string;
+  orderNumber: string;
+  restaurantName: string;
+  total: string;
+  items: { name: string; qty: number; price: string }[];
+  trackingUrl: string;
+  locale?: string;
+}): string {
+  const { customerName, orderNumber, restaurantName, total, items, trackingUrl, locale } = params;
+  const en = locale === 'en';
+
+  const itemsHtml = items
+    .map(
+      (i) => `
+        <tr>
+          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:14px;color:#374151;">${i.qty}x ${i.name}</td>
+          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:14px;color:#374151;text-align:right;font-weight:600;">${i.price}</td>
+        </tr>
+      `
+    )
+    .join('');
+
+  return `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:520px;margin:0 auto;padding:40px 20px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <h1 style="font-size:24px;font-weight:800;color:#059669;margin:0;">MENIUS</h1>
+    </div>
+    <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+      <div style="background:linear-gradient(135deg,#059669,#047857);padding:32px 24px;text-align:center;">
+        <div style="font-size:40px;margin-bottom:8px;">✅</div>
+        <h2 style="color:#fff;font-size:20px;font-weight:700;margin:0 0 4px;">${en ? 'Payment confirmed!' : '¡Pago confirmado!'}</h2>
+        <p style="color:rgba(255,255,255,0.85);font-size:14px;margin:0;">${en ? 'Order' : 'Orden'} #${orderNumber}</p>
+      </div>
+      <div style="padding:24px;">
+        <p style="font-size:15px;color:#374151;margin:0 0 16px;">
+          ${en
+            ? `Hi <strong>${customerName}</strong>, your payment for <strong>${restaurantName}</strong> was confirmed. Here's your receipt.`
+            : `Hola <strong>${customerName}</strong>, tu pago en <strong>${restaurantName}</strong> fue confirmado. Aquí está tu comprobante.`}
+        </p>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+          ${itemsHtml}
+        </table>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-top:2px solid #f3f4f6;">
+          <span style="font-size:16px;font-weight:700;color:#111827;">Total ${en ? 'paid' : 'pagado'}</span>
+          <span style="font-size:20px;font-weight:800;color:#059669;">${total}</span>
+        </div>
+        <a href="${trackingUrl}" style="display:block;margin-top:24px;padding:14px;background:#059669;color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
+          ${en ? 'Track my order' : 'Seguir mi pedido'}
+        </a>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:12px;color:#9ca3af;margin-top:24px;">
+      ${en ? `Payment processed by <strong style="color:#059669;">MENIUS</strong> on behalf of ${restaurantName}` : `Pago procesado por <strong style="color:#059669;">MENIUS</strong> en nombre de ${restaurantName}`}
+    </p>
+  </div>
+</body>
+</html>`;
+}
+
 export function buildStatusUpdateEmail(params: {
   customerName: string;
   orderNumber: string;

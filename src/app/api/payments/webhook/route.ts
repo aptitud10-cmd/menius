@@ -1,16 +1,17 @@
 export const dynamic = 'force-dynamic';
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe, getPaymentsWebhookSecret } from '@/lib/stripe';
 import { captureError } from '@/lib/error-reporting';
+import { sendPaymentConfirmedNotifications } from '@/lib/notifications/order-notifications';
 
 const logger = createLogger('payments-webhook');
 
 async function updateOrderPayment(orderId: string, status: 'paid' | 'failed', paymentIntent?: string) {
-  const supabase = createClient();
-  const { error } = await supabase
+  const adminDb = createAdminClient();
+  const { error } = await adminDb
     .from('orders')
     .update({
       payment_status: status,
@@ -20,6 +21,14 @@ async function updateOrderPayment(orderId: string, status: 'paid' | 'failed', pa
 
   if (error) {
     logger.error('Failed to update order payment status', { orderId, status, error: error.message });
+    return;
+  }
+
+  // Send payment confirmed notifications (non-blocking)
+  if (status === 'paid') {
+    sendPaymentConfirmedNotifications(orderId).catch((err) => {
+      logger.error('sendPaymentConfirmedNotifications failed', { orderId, error: err?.message });
+    });
   }
 }
 
