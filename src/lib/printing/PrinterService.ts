@@ -30,18 +30,22 @@ function mapOrderToReceipt(
   currency: string,
 ): ReceiptData {
   const items: ReceiptLineItem[] = (order.items ?? []).map((item: OrderItem) => {
+    const raw = item as any;
     const modifiers: string[] = [];
 
     if (item.variant?.name) modifiers.push(item.variant.name);
-    if (item.order_item_extras) {
-      for (const ex of item.order_item_extras) {
-        if (ex.product_extras?.name) modifiers.push(ex.product_extras.name);
-      }
+
+    // extras — typed as item.extras or raw joined as order_item_extras
+    const extras: any[] = item.extras ?? raw.order_item_extras ?? [];
+    for (const ex of extras) {
+      const name = ex.extra?.name ?? ex.product_extras?.name;
+      if (name) modifiers.push(name);
     }
-    if (item.order_item_modifiers) {
-      for (const mod of item.order_item_modifiers) {
-        modifiers.push(mod.option_name);
-      }
+
+    // modifier groups (raw join from Supabase)
+    const mods: any[] = raw.order_item_modifiers ?? [];
+    for (const mod of mods) {
+      if (mod.option_name) modifiers.push(mod.option_name);
     }
 
     return {
