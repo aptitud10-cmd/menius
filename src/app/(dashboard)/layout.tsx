@@ -6,6 +6,7 @@ import { AIChatWidget } from '@/components/dashboard/AIChatWidget';
 import { Breadcrumbs } from '@/components/dashboard/Breadcrumbs';
 import { CommandPalette } from '@/components/dashboard/CommandPalette';
 import { OrderNotifier } from '@/components/dashboard/OrderNotifier';
+import { SidebarSoundButton } from '@/components/dashboard/SidebarSoundButton';
 import { IdentifyUser } from '@/components/dashboard/IdentifyUser';
 import { TrialBanner } from '@/components/dashboard/TrialBanner';
 import { DashToastProvider } from '@/components/dashboard/DashToast';
@@ -65,8 +66,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
           <TrialBanner />
 
-          {/* User profile */}
-          <div className="px-4 py-4 border-t border-gray-100">
+          {/* User profile + sound toggle */}
+          <div className="px-4 py-4 border-t border-gray-100 space-y-3">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
                 {initials}
@@ -76,6 +77,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 <p className="text-[11px] text-gray-400 truncate">{user?.email}</p>
               </div>
             </div>
+            <SidebarSoundButton />
           </div>
         </aside>
 
@@ -89,7 +91,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
               </div>
               <span className="text-sm font-bold tracking-tight text-gray-900">MENIUS</span>
             </Link>
-            <DashboardNav slug={restaurant?.slug ?? ''} mobile />
+            <div className="flex items-center gap-2">
+              <SidebarSoundButton mobile />
+              <DashboardNav slug={restaurant?.slug ?? ''} mobile />
+            </div>
           </header>
 
           <div className="md:hidden">

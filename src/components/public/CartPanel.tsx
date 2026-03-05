@@ -62,7 +62,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
                   fill
                   sizes="56px"
                   className={`object-cover transition-opacity duration-300 ${loadedImages.has(`${item.product.id}-${idx}`) ? 'opacity-100' : 'opacity-0'}`}
-                  onLoad={() => setLoadedImages(prev => new Set([...prev, `${item.product.id}-${idx}`]))}
+                  onLoad={() => setLoadedImages(prev => new Set([...Array.from(prev), `${item.product.id}-${idx}`]))}
                 />
               </div>
             ) : (

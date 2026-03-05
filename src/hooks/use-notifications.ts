@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSoundStore } from '@/store/sound';
 
 let audioCtx: AudioContext | null = null;
 
@@ -56,7 +57,8 @@ interface UseNotificationsOptions {
 
 export function useNotifications(opts: UseNotificationsOptions = {}) {
   const { defaultTitle = 'MENIUS' } = opts;
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const soundEnabled = useSoundStore((s) => s.soundEnabled);
+  const setSoundEnabled = useSoundStore((s) => s.setSoundEnabled);
   const [pendingCount, setPendingCount] = useState(0);
   const [hasPermission, setHasPermission] = useState(false);
   const originalTitleRef = useRef(defaultTitle);

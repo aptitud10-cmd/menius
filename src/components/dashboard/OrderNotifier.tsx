@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Bell, BellOff, X, ShoppingBag } from 'lucide-react';
+import { Bell, X, ShoppingBag } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { useNotifications } from '@/hooks/use-notifications';
 import { formatPrice } from '@/lib/utils';
@@ -24,8 +24,6 @@ interface OrderToast {
 export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
   const { t } = useDashboardLocale();
   const {
-    soundEnabled,
-    setSoundEnabled,
     hasPermission,
     requestPermission,
     notifyNewOrder,
@@ -33,7 +31,6 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
 
   const [toasts, setToasts] = useState<OrderToast[]>([]);
   const [showPermBanner, setShowPermBanner] = useState(false);
-  const [shaking, setShaking] = useState(false);
   const knownIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -42,15 +39,6 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
       return () => clearTimeout(timer);
     }
   }, []);
-
-  useEffect(() => {
-    if (!soundEnabled) return;
-    const interval = setInterval(() => {
-      setShaking(true);
-      setTimeout(() => setShaking(false), 700);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, [soundEnabled]);
 
   const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -136,23 +124,6 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
           </div>
         </div>
       )}
-
-      {/* Sound toggle (above AI chat button) */}
-      <button
-        onClick={() => setSoundEnabled(!soundEnabled)}
-        className={`fixed bottom-[5.5rem] right-6 z-[70] w-14 h-14 rounded-full hidden sm:flex items-center justify-center transition-all duration-300 ${
-          soundEnabled
-            ? 'bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:bg-emerald-600 hover:shadow-[0_0_28px_rgba(16,185,129,0.5)]'
-            : 'bg-white border border-gray-200 shadow-sm hover:bg-gray-50'
-        }`}
-        title={soundEnabled ? t.notif_mute : t.notif_unmute}
-      >
-        {soundEnabled ? (
-          <Bell className={`w-6 h-6 text-white ${shaking ? 'bell-shake' : ''}`} />
-        ) : (
-          <BellOff className="w-6 h-6 text-gray-400" />
-        )}
-      </button>
 
       {/* Order toasts */}
       <div className="fixed top-4 right-4 z-[80] flex flex-col gap-2 max-w-sm pointer-events-none">

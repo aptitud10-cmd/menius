@@ -3,6 +3,11 @@
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
+const MIN_W = 320;
+const MAX_W = 640;
+const MIN_H = 420;
+const MAX_H = 800;
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -57,7 +62,15 @@ export function AIChatWidget() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [showQuick, setShowQuick] = useState(true);
+  // Resize state — desktop only
+  const [panelW, setPanelW] = useState(360);
+  const [panelH, setPanelH] = useState(520);
+  const resizingRef = useRef(false);
+  const resizeStartRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastAiMsgRef = useRef<HTMLDivElement>(null);
+  const lastRoleRef = useRef<'user' | 'assistant' | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { t } = useDashboardLocale();
 
@@ -67,9 +80,37 @@ export function AIChatWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
+  // Scroll: user msg → bottom; AI msg → top of AI bubble
   useEffect(() => {
-    scrollToBottom();
+    if (lastRoleRef.current === 'assistant') {
+      setTimeout(() => {
+        lastAiMsgRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
+    } else if (lastRoleRef.current === 'user') {
+      scrollToBottom();
+    }
   }, [messages, scrollToBottom]);
+
+  // Resize mouse handlers — attached to window so drag outside the handle works
+  useEffect(() => {
+    function onMouseMove(e: MouseEvent) {
+      if (!resizingRef.current) return;
+      const dx = resizeStartRef.current.x - e.clientX;
+      const dy = resizeStartRef.current.y - e.clientY;
+      setPanelW(Math.min(MAX_W, Math.max(MIN_W, resizeStartRef.current.w + dx)));
+      setPanelH(Math.min(MAX_H, Math.max(MIN_H, resizeStartRef.current.h + dy)));
+    }
+    function onMouseUp() {
+      resizingRef.current = false;
+      document.body.style.userSelect = '';
+    }
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
 
   // Focus input when chat opens — no history loading (fresh start every time)
   useEffect(() => {
@@ -94,6 +135,7 @@ export function AIChatWidget() {
       timestamp: new Date(),
     };
 
+    lastRoleRef.current = 'user';
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
@@ -118,8 +160,10 @@ export function AIChatWidget() {
         timestamp: new Date(),
       };
 
+      lastRoleRef.current = 'assistant';
       setMessages(prev => [...prev, assistantMsg]);
     } catch {
+      lastRoleRef.current = 'assistant';
       setMessages(prev => [
         ...prev,
         {
@@ -149,7 +193,7 @@ export function AIChatWidget() {
         onClick={() => setOpen(prev => !prev)}
         className={`fixed bottom-4 right-4 z-50 w-14 h-14 rounded-2xl shadow-2xl items-center justify-center motion-reduce:transition-none transition-all duration-300 hover:scale-105 ${
           open
-            ? 'hidden sm:flex bg-white/10 backdrop-blur-xl border border-white/20'
+            ? 'hidden sm:flex bg-[#1a1a1a] border border-white/[0.15] hover:bg-[#252525]'
             : 'flex bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 shadow-purple-500/25'
         }`}
         aria-label={open ? 'Close assistant' : 'Open AI assistant'}
@@ -166,25 +210,37 @@ export function AIChatWidget() {
       </button>
 
       {/* Chat panel
-          Desktop: 360px wide, 520px tall, anchored bottom-right
-          Mobile:  min(92vw, 360px) wide, min(70dvh, 520px) tall — leaves 30% visible behind
+          Desktop: resizable (default 360×520), anchored bottom-right
+          Mobile:  min(92vw, 360px) wide, min(70dvh, 520px) tall
       */}
       <div
         className={`fixed bottom-20 right-3 sm:right-4 z-50 motion-reduce:transition-none transition-all duration-300 origin-bottom-right ${
           open ? 'scale-100 opacity-100 pointer-events-auto' : 'scale-95 opacity-0 pointer-events-none'
         }`}
         style={{
-          width: 'min(92vw, 360px)',
-          maxHeight: 'min(70dvh, 520px)',
+          // Mobile: fluid; Desktop: controlled by state
+          width: `min(92vw, ${panelW}px)`,
+          height: `min(70dvh, ${panelH}px)`,
         }}
       >
         <div
-          className="bg-[#0c0c0c] border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/50 flex flex-col overflow-hidden"
-          style={{
-            height: 'min(70dvh, 520px)',
-            paddingBottom: 'env(safe-area-inset-bottom)',
-          }}
+          className="relative bg-[#0c0c0c] border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/50 flex flex-col overflow-hidden h-full"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
+          {/* Resize handle — desktop only, top-left corner */}
+          <div
+            className="hidden sm:block absolute top-0 left-0 w-5 h-5 cursor-nw-resize z-10 group"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              resizingRef.current = true;
+              resizeStartRef.current = { x: e.clientX, y: e.clientY, w: panelW, h: panelH };
+              document.body.style.userSelect = 'none';
+            }}
+          >
+            <svg className="w-3 h-3 mt-1 ml-1 text-white/20 group-hover:text-white/50 transition-colors" viewBox="0 0 12 12" fill="none">
+              <path d="M1 11L11 1M1 6L6 1M6 11L11 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </div>
           {/* Header — sticky inside panel */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] bg-gradient-to-r from-purple-500/[0.08] to-transparent flex-shrink-0">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center flex-shrink-0">
@@ -253,9 +309,16 @@ export function AIChatWidget() {
             )}
 
             {/* Render only last 30 messages */}
-            {visibleMessages.map((msg) => (
-              <MessageItem key={msg.id} msg={msg} />
-            ))}
+            {visibleMessages.map((msg, idx) => {
+              const isLastAI =
+                msg.role === 'assistant' &&
+                !visibleMessages.slice(idx + 1).some((m) => m.role === 'assistant');
+              return (
+                <div key={msg.id} ref={isLastAI ? lastAiMsgRef : undefined}>
+                  <MessageItem msg={msg} />
+                </div>
+              );
+            })}
 
             {loading && (
               <div className="flex justify-start">
