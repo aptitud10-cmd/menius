@@ -66,7 +66,7 @@ function mapOrderToReceipt(
     paymentMethod: order.payment_method ?? undefined,
     deliveryAddress: order.delivery_address ?? undefined,
     items,
-    subtotal: order.subtotal ?? order.total,
+    subtotal: order.total,
     total: order.total,
     notes: order.notes ?? undefined,
     etaMinutes,
