@@ -1,0 +1,250 @@
+/**
+ * PrinterService — browser-only singleton.
+ *
+ * State machine per print job:
+ *
+ *   IDLE ──► PRINTING ──► PRINTED
+ *                │
+ *                └──► FAILED ──► RETRYING ──► PRINTED
+ *                                    │
+ *                                    └──► FAILED (max attempts)
+ *
+ * Usage:
+ *   PrinterService.printOrder(order, etaMinutes, restaurantName, currency);
+ *   PrinterService.subscribe(job => setJobState(job));
+ */
+
+import type { Order, OrderItem } from '@/types';
+import type { PrintJob, PrintState, ReceiptData, ReceiptLineItem } from './types';
+import { buildReceiptHTML } from './receipt-formatter';
+
+const MAX_ATTEMPTS = 3;
+const PRINT_TIMEOUT_MS = 25_000;
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function mapOrderToReceipt(
+  order: Order,
+  etaMinutes: number | undefined,
+  restaurantName: string,
+  currency: string,
+): ReceiptData {
+  const items: ReceiptLineItem[] = (order.items ?? []).map((item: OrderItem) => {
+    const modifiers: string[] = [];
+
+    if (item.variant?.name) modifiers.push(item.variant.name);
+    if (item.order_item_extras) {
+      for (const ex of item.order_item_extras) {
+        if (ex.product_extras?.name) modifiers.push(ex.product_extras.name);
+      }
+    }
+    if (item.order_item_modifiers) {
+      for (const mod of item.order_item_modifiers) {
+        modifiers.push(mod.option_name);
+      }
+    }
+
+    return {
+      qty: item.qty,
+      name: item.product?.name ?? 'Producto',
+      lineTotal: item.line_total ?? item.unit_price * item.qty,
+      modifiers,
+      notes: item.notes ?? undefined,
+    };
+  });
+
+  return {
+    restaurantName,
+    orderNumber: order.order_number ?? order.id.slice(-6).toUpperCase(),
+    customerName: order.customer_name ?? '',
+    customerPhone: order.customer_phone ?? undefined,
+    orderType: order.order_type ?? undefined,
+    paymentMethod: order.payment_method ?? undefined,
+    deliveryAddress: order.delivery_address ?? undefined,
+    items,
+    subtotal: order.subtotal ?? order.total,
+    total: order.total,
+    notes: order.notes ?? undefined,
+    etaMinutes,
+    currency,
+    timestamp: new Date(order.created_at),
+  };
+}
+
+function executePrint(html: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined') {
+      reject(new Error('Not in browser'));
+      return;
+    }
+
+    // Use a hidden iframe — no popup permission required.
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.top = '-9999px';
+    iframe.style.left = '-9999px';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const cleanup = () => {
+      try { document.body.removeChild(iframe); } catch { /* already removed */ }
+    };
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      // Timeout likely means the print dialog closed — treat as success.
+      resolve();
+    }, PRINT_TIMEOUT_MS);
+
+    iframe.onload = () => {
+      try {
+        const win = iframe.contentWindow;
+        if (!win) { clearTimeout(timeout); cleanup(); reject(new Error('iframe window unavailable')); return; }
+
+        win.onafterprint = () => {
+          clearTimeout(timeout);
+          cleanup();
+          resolve();
+        };
+
+        win.focus();
+        win.print();
+      } catch (err) {
+        clearTimeout(timeout);
+        cleanup();
+        reject(err);
+      }
+    };
+
+    const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+    if (!doc) {
+      cleanup();
+      reject(new Error('No iframe document'));
+      return;
+    }
+
+    doc.open();
+    doc.write(html);
+    doc.close();
+  });
+}
+
+// ─── PrinterService ──────────────────────────────────────────────────────────
+
+type Listener = (job: PrintJob) => void;
+
+class PrinterServiceImpl {
+  private jobs = new Map<string, PrintJob>();
+  private listeners = new Set<Listener>();
+
+  // ── Subscriptions ──
+
+  subscribe(fn: Listener): () => void {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
+  }
+
+  private notify(job: PrintJob) {
+    this.listeners.forEach((fn) => fn({ ...job }));
+  }
+
+  private transition(job: PrintJob, state: PrintState, error?: string): PrintJob {
+    const updated: PrintJob = {
+      ...job,
+      state,
+      error,
+      completedAt: ['printed', 'failed'].includes(state) ? new Date() : job.completedAt,
+    };
+    this.jobs.set(updated.id, updated);
+    this.notify(updated);
+    return updated;
+  }
+
+  // ── Main API ──
+
+  getJob(jobId: string): PrintJob | undefined {
+    return this.jobs.get(jobId);
+  }
+
+  getJobByOrder(orderId: string): PrintJob | undefined {
+    for (const job of this.jobs.values()) {
+      if (job.orderId === orderId) return job;
+    }
+    return undefined;
+  }
+
+  async printOrder(
+    order: Order,
+    etaMinutes: number | undefined,
+    restaurantName: string,
+    currency: string,
+  ): Promise<PrintJob> {
+    // Create job
+    const job: PrintJob = {
+      id: crypto.randomUUID(),
+      orderId: order.id,
+      orderNumber: order.order_number ?? order.id.slice(-6).toUpperCase(),
+      state: 'idle',
+      attempts: 0,
+      maxAttempts: MAX_ATTEMPTS,
+      createdAt: new Date(),
+    };
+    this.jobs.set(job.id, job);
+    this.notify(job);
+
+    return this._execute(job, order, etaMinutes, restaurantName, currency);
+  }
+
+  async retryJob(
+    jobId: string,
+    order: Order,
+    etaMinutes: number | undefined,
+    restaurantName: string,
+    currency: string,
+  ): Promise<PrintJob | null> {
+    const job = this.jobs.get(jobId);
+    if (!job || job.state !== 'failed') return null;
+    if (job.attempts >= job.maxAttempts) return job;
+
+    const retrying = this.transition(job, 'retrying');
+    return this._execute(retrying, order, etaMinutes, restaurantName, currency);
+  }
+
+  private async _execute(
+    job: PrintJob,
+    order: Order,
+    etaMinutes: number | undefined,
+    restaurantName: string,
+    currency: string,
+  ): Promise<PrintJob> {
+    // Transition → printing
+    let current = this.transition(job, 'printing');
+    current = { ...current, attempts: current.attempts + 1 };
+    this.jobs.set(current.id, current);
+    this.notify(current);
+
+    try {
+      const receiptData = mapOrderToReceipt(order, etaMinutes, restaurantName, currency);
+      const html = buildReceiptHTML(receiptData);
+      await executePrint(html);
+      return this.transition(current, 'printed');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown printer error';
+      return this.transition(current, 'failed', message);
+    }
+  }
+
+  // ── Housekeeping ──
+
+  /** Remove jobs older than `maxAgeMs` (default 2 h). Call periodically if desired. */
+  purgeOldJobs(maxAgeMs = 2 * 60 * 60 * 1000) {
+    const cutoff = Date.now() - maxAgeMs;
+    for (const [id, job] of this.jobs) {
+      if (job.createdAt.getTime() < cutoff) this.jobs.delete(id);
+    }
+  }
+}
+
+export const PrinterService = new PrinterServiceImpl();

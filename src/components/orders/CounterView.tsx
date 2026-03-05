@@ -18,6 +18,8 @@ import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useNotifications } from '@/hooks/use-notifications';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { updateOrderStatus, updateOrderETA } from '@/lib/actions/restaurant';
+import { PrinterService } from '@/lib/printing/PrinterService';
+import type { PrintState } from '@/lib/printing/types';
 import type { Order, OrderItem } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -92,6 +94,18 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const [flashId, setFlashId]         = useState<string | null>(null);
   const [, tick]                      = useState(0);
 
+  type PrintJobEntry = { jobId: string; state: PrintState; error?: string };
+  const [printJobs, setPrintJobs] = useState<Record<string, PrintJobEntry>>({});
+
+  useEffect(() => {
+    return PrinterService.subscribe((job) => {
+      setPrintJobs((prev) => ({
+        ...prev,
+        [job.orderId]: { jobId: job.id, state: job.state, error: job.error },
+      }));
+    });
+  }, []);
+
   const { playSound, soundEnabled, setSoundEnabled } = useNotifications({ defaultTitle: 'Counter — MENIUS' });
 
   // Refresh elapsed times every 30 s
@@ -114,6 +128,14 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const progress = active.filter(o => o.status !== 'pending');
   const selected = orders.find(o => o.id === selectedId) ?? null;
 
+  const handlePrint = useCallback((order: Order) => {
+    PrinterService.printOrder(order, selectedETA, restaurantName, currency).catch(() => {});
+  }, [selectedETA, restaurantName, currency]);
+
+  const handleRetryPrint = useCallback((jobId: string, order: Order) => {
+    PrinterService.retryJob(jobId, order, selectedETA, restaurantName, currency).catch(() => {});
+  }, [selectedETA, restaurantName, currency]);
+
   const handleStatus = useCallback(async (orderId: string, status: string) => {
     setIsUpdating(true);
     try {
@@ -124,11 +146,16 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
       if (!result?.error) {
         if (['confirmed', 'ready', 'delivered'].includes(status)) playSound('success');
         if (status === 'cancelled') setSelectedId(null);
+        // Auto-print on confirm
+        if (status === 'confirmed' && autoPrint) {
+          const orderToPrint = orders.find((o) => o.id === orderId);
+          if (orderToPrint) handlePrint(orderToPrint);
+        }
       }
     } finally {
       setIsUpdating(false);
     }
-  }, [playSound, selectedETA]);
+  }, [playSound, selectedETA, autoPrint, orders, handlePrint]);
 
   const isFlashing = flashId !== null;
 
@@ -324,6 +351,9 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
               onSelectETA={setSelectedETA}
               isUpdating={isUpdating}
               onStatus={handleStatus}
+              printJob={printJobs[selected.id]}
+              onPrint={() => handlePrint(selected)}
+              onRetryPrint={(jobId) => handleRetryPrint(jobId, selected)}
             />
           ) : (
             <IdleScreen hasOrders={active.length > 0} />
@@ -426,6 +456,7 @@ function OrderCard({
 
 function OrderDetail({
   order, currency, selectedETA, onSelectETA, isUpdating, onStatus,
+  printJob, onPrint, onRetryPrint,
 }: {
   order: Order;
   currency: string;
@@ -433,6 +464,9 @@ function OrderDetail({
   onSelectETA: (v: number) => void;
   isUpdating: boolean;
   onStatus: (id: string, status: string) => void;
+  printJob?: { jobId: string; state: PrintState; error?: string };
+  onPrint: () => void;
+  onRetryPrint: (jobId: string) => void;
 }) {
   const { t } = useDashboardLocale();
   const mins       = elapsed(order.created_at);
@@ -705,6 +739,53 @@ function OrderDetail({
                 )}
               </div>
             ) : null}
+
+            {/* ── PRINT BUTTON ── */}
+            {printJob?.state === 'failed' ? (
+              <div className="mt-1 rounded-xl border border-red-800/40 bg-red-950/20 p-3 space-y-2">
+                <p className="text-red-400 text-xs font-semibold flex items-center gap-1.5">
+                  <Printer className="w-3.5 h-3.5 flex-none" />
+                  Impresora no conectada
+                </p>
+                <p className="text-red-500/60 text-[10px] leading-snug">{printJob.error}</p>
+                <button
+                  onClick={() => onRetryPrint(printJob.jobId)}
+                  className="w-full h-8 rounded-lg bg-red-900/40 hover:bg-red-900/60 text-red-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  Reintentar impresión
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={onPrint}
+                disabled={printJob?.state === 'printing' || printJob?.state === 'retrying'}
+                className={cn(
+                  'w-full h-9 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all mt-1',
+                  printJob?.state === 'printed'
+                    ? 'bg-emerald-950/40 border border-emerald-800/30 text-emerald-400'
+                    : 'bg-gray-800/60 border border-gray-700/50 text-gray-400 hover:text-white hover:border-gray-600',
+                  (printJob?.state === 'printing' || printJob?.state === 'retrying') && 'opacity-60 cursor-not-allowed'
+                )}
+              >
+                {printJob?.state === 'printing' || printJob?.state === 'retrying' ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-gray-500/30 border-t-gray-400 rounded-full animate-spin" />
+                    Imprimiendo…
+                  </>
+                ) : printJob?.state === 'printed' ? (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Impreso
+                  </>
+                ) : (
+                  <>
+                    <Printer className="w-3.5 h-3.5" />
+                    Imprimir orden
+                  </>
+                )}
+              </button>
+            )}
           </section>
         </div>
       </div>

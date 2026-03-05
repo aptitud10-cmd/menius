@@ -887,3 +887,26 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   background: rgba(255,255,255,0.1);
   border-radius: 999px;
 }
+
+/* ── Thermal receipt print styles ────────────────────────────────────────────
+   Applied inside the hidden iframe used by PrinterService.
+   Also hides everything on the main page if window.print() is ever called
+   outside of the iframe context. */
+@media print {
+  /* Hide all main-page UI */
+  body > *:not(#menius-receipt-frame) {
+    display: none !important;
+  }
+
+  /* Receipt page settings */
+  @page {
+    size: 80mm auto;
+    margin: 4mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+}
