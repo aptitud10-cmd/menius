@@ -25,6 +25,46 @@ export interface DashboardTranslations {
   nav_dataPrivacy: string;
   nav_openMenu: string;
   nav_closeMenu: string;
+  nav_counter: string;
+
+  // Counter / Caja
+  counter_title: string;
+  counter_pending: string;
+  counter_inProgress: string;
+  counter_newOrder: string;
+  counter_newOrders: string;
+  counter_noOrders: string;
+  counter_noOrdersDesc: string;
+  counter_selectOrder: string;
+  counter_selectOrderDesc: string;
+  counter_accept: string;
+  counter_accepting: string;
+  counter_reject: string;
+  counter_rejecting: string;
+  counter_preparing: string;
+  counter_markReady: string;
+  counter_deliver: string;
+  counter_complete: string;
+  counter_updating: string;
+  counter_etaLabel: string;
+  counter_orderItems: string;
+  counter_customer: string;
+  counter_phone: string;
+  counter_email: string;
+  counter_notes: string;
+  counter_address: string;
+  counter_agoMin: string;
+  counter_poweredBy: string;
+  counter_autoPrint: string;
+  counter_sound: string;
+  counter_notifWA: string;
+  counter_notifSMS: string;
+  counter_notifEmail: string;
+  counter_delivery: string;
+  counter_pickup: string;
+  counter_dineIn: string;
+  counter_cash: string;
+  counter_online: string;
 
   // Home
   home_welcome: string;
@@ -1071,6 +1111,46 @@ const es: DashboardTranslations = {
   nav_dataPrivacy: 'Datos y Privacidad',
   nav_openMenu: 'Abrir menú',
   nav_closeMenu: 'Cerrar menú',
+  nav_counter: 'Caja / Counter',
+
+  // Counter / Caja
+  counter_title: 'Vista de Caja',
+  counter_pending: 'Pendiente',
+  counter_inProgress: 'En proceso',
+  counter_newOrder: 'NUEVA ORDEN',
+  counter_newOrders: 'NUEVAS ÓRDENES',
+  counter_noOrders: 'Sin órdenes pendientes',
+  counter_noOrdersDesc: 'Las órdenes aparecen aquí en tiempo real',
+  counter_selectOrder: 'Selecciona una orden',
+  counter_selectOrderDesc: 'Toca una orden en el panel izquierdo para ver los detalles',
+  counter_accept: 'ACEPTAR',
+  counter_accepting: 'Aceptando...',
+  counter_reject: 'RECHAZAR',
+  counter_rejecting: 'Rechazando...',
+  counter_preparing: 'EN PREPARACIÓN',
+  counter_markReady: 'MARCAR LISTO',
+  counter_deliver: 'ENTREGADO',
+  counter_complete: 'Orden completada',
+  counter_updating: 'Actualizando...',
+  counter_etaLabel: 'Tiempo estimado',
+  counter_orderItems: 'Artículos',
+  counter_customer: 'Cliente',
+  counter_phone: 'Teléfono',
+  counter_email: 'Email',
+  counter_notes: 'Notas',
+  counter_address: 'Dirección de entrega',
+  counter_agoMin: 'min',
+  counter_poweredBy: 'Powered by MENIUS',
+  counter_autoPrint: 'Auto-imprimir',
+  counter_sound: 'Sonido',
+  counter_notifWA: 'WhatsApp',
+  counter_notifSMS: 'SMS',
+  counter_notifEmail: 'Email',
+  counter_delivery: 'Delivery',
+  counter_pickup: 'Recoger',
+  counter_dineIn: 'Mesa',
+  counter_cash: 'Efectivo',
+  counter_online: 'En línea',
 
   // Home
   home_welcome: '¡Bienvenido!',
@@ -2117,6 +2197,46 @@ const en: DashboardTranslations = {
   nav_dataPrivacy: 'Data & Privacy',
   nav_openMenu: 'Open menu',
   nav_closeMenu: 'Close menu',
+  nav_counter: 'Counter / Caja',
+
+  // Counter / Caja
+  counter_title: 'Counter View',
+  counter_pending: 'Pending',
+  counter_inProgress: 'In Progress',
+  counter_newOrder: 'NEW ORDER',
+  counter_newOrders: 'NEW ORDERS',
+  counter_noOrders: 'No pending orders',
+  counter_noOrdersDesc: 'Orders appear here in real time',
+  counter_selectOrder: 'Select an order',
+  counter_selectOrderDesc: 'Tap an order on the left panel to see details',
+  counter_accept: 'ACCEPT',
+  counter_accepting: 'Accepting...',
+  counter_reject: 'REJECT',
+  counter_rejecting: 'Rejecting...',
+  counter_preparing: 'PREPARING',
+  counter_markReady: 'MARK READY',
+  counter_deliver: 'DELIVERED',
+  counter_complete: 'Order complete',
+  counter_updating: 'Updating...',
+  counter_etaLabel: 'Estimated Time',
+  counter_orderItems: 'Order Items',
+  counter_customer: 'Customer',
+  counter_phone: 'Phone',
+  counter_email: 'Email',
+  counter_notes: 'Notes',
+  counter_address: 'Delivery Address',
+  counter_agoMin: 'min',
+  counter_poweredBy: 'Powered by MENIUS',
+  counter_autoPrint: 'Auto-print',
+  counter_sound: 'Sound',
+  counter_notifWA: 'WhatsApp',
+  counter_notifSMS: 'SMS',
+  counter_notifEmail: 'Email',
+  counter_delivery: 'Delivery',
+  counter_pickup: 'Pickup',
+  counter_dineIn: 'Dine-in',
+  counter_cash: 'Cash',
+  counter_online: 'Online',
 
   // Home
   home_welcome: 'Welcome!',

@@ -846,3 +846,17 @@ export async function updateOrderStatus(orderId: string, status: string) {
   revalidatePath('/app/orders');
   return { success: true };
 }
+
+export async function updateOrderETA(orderId: string, etaMinutes: number) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { error } = await supabase
+    .from('orders')
+    .update({ estimated_ready_minutes: etaMinutes })
+    .eq('id', orderId)
+    .eq('restaurant_id', restaurantId);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}

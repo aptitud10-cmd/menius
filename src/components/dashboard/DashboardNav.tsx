@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   ClipboardList, Tag, ShoppingBag, QrCode, Settings, LogOut, Menu, X,
-  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star,
+  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star, Store,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,7 @@ function buildNavSections(t: DashboardTranslations) {
         { href: '/app', label: t.nav_home, icon: LayoutDashboard, exact: true },
         { href: '/app/orders', label: t.nav_orders, icon: ClipboardList },
         { href: '/kds', label: t.nav_kds, icon: Monitor },
+        { href: '/counter', label: t.nav_counter, icon: Store },
       ],
     },
     {
