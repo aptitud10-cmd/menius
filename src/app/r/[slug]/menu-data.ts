@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import type { Restaurant, Category, Product } from '@/types';
 
 export interface ReviewStats {
@@ -33,9 +34,12 @@ export interface MenuData {
 }
 
 export async function fetchMenuData(slug: string): Promise<MenuData | null> {
-  const supabase = createClient();
+  // Admin client bypasses RLS for public menu reads (server-side only, never exposed to client)
+  const db = createAdminClient();
+  // Regular client only needed for auth.getUser() to detect if viewer is the owner
+  const authClient = createClient();
 
-  const { data: restaurant } = await supabase
+  const { data: restaurant } = await db
     .from('restaurants')
     .select('id, name, slug, owner_user_id, timezone, currency, locale, available_locales, logo_url, cover_image_url, description, address, phone, email, website, custom_domain, operating_hours, notification_whatsapp, notification_email, notifications_enabled, order_types_enabled, payment_methods_enabled, estimated_delivery_minutes, delivery_fee, latitude, longitude, stripe_account_id, stripe_onboarding_complete, is_active, created_at')
     .eq('slug', slug)
@@ -46,26 +50,26 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
   // Parallelize all data fetching: subscription, categories, products, auth, reviews, modifiers
   const [subResult, { data: categories }, { data: products }, { data: { user } }, { data: reviewRows }] = await Promise.all([
     Promise.resolve(
-      supabase
+      db
         .from('subscriptions')
         .select('status, trial_end, current_period_end')
         .eq('restaurant_id', restaurant.id)
         .maybeSingle()
     ).then((r) => r.data).catch(() => null),
-    supabase
+    db
       .from('categories')
       .select('id, restaurant_id, name, image_url, sort_order, is_active, translations, created_at, available_from, available_to')
       .eq('restaurant_id', restaurant.id)
       .eq('is_active', true)
       .order('sort_order'),
-    supabase
+    db
       .from('products')
       .select('*, product_variants(*), product_extras(*), modifier_groups(*, modifier_options(*))')
       .eq('restaurant_id', restaurant.id)
       .eq('is_active', true)
       .order('sort_order'),
-    supabase.auth.getUser(),
-    supabase
+    authClient.auth.getUser(),
+    db
       .from('reviews')
       .select('id, customer_name, rating, comment, created_at')
       .eq('restaurant_id', restaurant.id)
@@ -106,7 +110,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
       subscriptionExpired = false;
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
-      const { count } = await supabase
+      const { count } = await db
         .from('orders')
         .select('id', { count: 'exact', head: true })
         .eq('restaurant_id', restaurant.id)
