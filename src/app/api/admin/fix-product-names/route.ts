@@ -6,39 +6,54 @@ export const dynamic = 'force-dynamic';
 async function runFix() {
   const db = createAdminClient();
 
-  // Fetch all products whose name starts with [Ejemplo]
+  // Fix products
   const { data: products, error: fetchError } = await db
     .from('products')
     .select('id, name')
-    .like('name', '[Ejemplo]%');
+    .ilike('name', '[ejemplo]%');
 
   if (fetchError) {
     return NextResponse.json({ error: fetchError.message }, { status: 500 });
   }
 
-  if (!products?.length) {
-    return NextResponse.json({ message: 'No products with [Ejemplo] found', fixed: 0 });
+  let fixedProducts = 0;
+  const productErrors: string[] = [];
+
+  if (products?.length) {
+    for (const p of products) {
+      const newName = p.name.replace(/^\[ejemplo\]\s*/i, '');
+      const { error } = await db.from('products').update({ name: newName }).eq('id', p.id);
+      if (error) productErrors.push(`product ${p.id}: ${error.message}`);
+      else fixedProducts++;
+    }
   }
 
-  // Strip "[Ejemplo] " prefix from each name
-  const updates = products.map((p) => ({
-    id: p.id,
-    name: p.name.replace(/^\[Ejemplo\]\s*/i, ''),
-  }));
+  // Fix categories too (just in case)
+  const { data: categories, error: catError } = await db
+    .from('categories')
+    .select('id, name')
+    .ilike('name', '[ejemplo]%');
 
-  let fixed = 0;
-  const errors: string[] = [];
+  let fixedCategories = 0;
+  const categoryErrors: string[] = [];
 
-  for (const u of updates) {
-    const { error } = await db
-      .from('products')
-      .update({ name: u.name })
-      .eq('id', u.id);
-    if (error) errors.push(`${u.id}: ${error.message}`);
-    else fixed++;
+  if (!catError && categories?.length) {
+    for (const c of categories) {
+      const newName = c.name.replace(/^\[ejemplo\]\s*/i, '');
+      const { error } = await db.from('categories').update({ name: newName }).eq('id', c.id);
+      if (error) categoryErrors.push(`category ${c.id}: ${error.message}`);
+      else fixedCategories++;
+    }
   }
 
-  return NextResponse.json({ fixed, total: products.length, errors });
+  return NextResponse.json({
+    ok: true,
+    fixedProducts,
+    totalProducts: products?.length ?? 0,
+    fixedCategories,
+    totalCategories: categories?.length ?? 0,
+    errors: [...productErrors, ...categoryErrors],
+  });
 }
 
 export async function GET() { return runFix(); }
