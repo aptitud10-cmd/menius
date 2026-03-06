@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Store, ShoppingBag, Users, TrendingUp, Clock, AlertTriangle,
-  ExternalLink, Loader2, Shield, Megaphone, Sparkles, Activity,
+  ExternalLink, Loader2, Shield, Megaphone, Sparkles, Activity, Wrench,
 } from 'lucide-react';
 
 interface AdminStats {
@@ -247,7 +247,7 @@ export default function AdminPage() {
                       </td>
                       <td className="px-5 py-3 text-right">
                         <a
-                          href={`/r/${r.slug}`}
+                          href={`/${r.slug}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-gray-600 hover:text-purple-400 transition-colors"
@@ -262,7 +262,54 @@ export default function AdminPage() {
             </table>
           </div>
         </div>
+      {/* Maintenance Tools */}
+      <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-6">
+        <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <Wrench className="w-4 h-4 text-amber-400" />
+          Mantenimiento
+        </h2>
+        <FixProductNamesButton />
       </div>
+    </div>
+  );
+}
+
+function FixProductNamesButton() {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [result, setResult] = useState<{ fixed: number; total: number } | null>(null);
+
+  const run = async () => {
+    setStatus('loading');
+    try {
+      const res = await fetch('/api/admin/fix-product-names', { method: 'POST' });
+      const data = await res.json();
+      setResult(data);
+      setStatus('done');
+    } catch {
+      setStatus('error');
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-4">
+      <div>
+        <p className="text-sm text-white font-medium">Quitar [Ejemplo] de nombres de productos</p>
+        <p className="text-xs text-gray-500 mt-0.5">Elimina el prefijo [Ejemplo] de todos los productos en todas las tiendas</p>
+        {status === 'done' && result && (
+          <p className="text-xs text-emerald-400 mt-1">✓ {result.fixed} productos corregidos de {result.total} encontrados</p>
+        )}
+        {status === 'error' && (
+          <p className="text-xs text-red-400 mt-1">Error al ejecutar. Intenta de nuevo.</p>
+        )}
+      </div>
+      <button
+        onClick={run}
+        disabled={status === 'loading' || status === 'done'}
+        className="shrink-0 px-4 py-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 text-sm font-medium hover:bg-amber-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+      >
+        {status === 'loading' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+        {status === 'done' ? '✓ Listo' : 'Ejecutar'}
+      </button>
     </div>
   );
 }

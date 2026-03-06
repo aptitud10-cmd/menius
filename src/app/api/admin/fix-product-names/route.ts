@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST() {
+async function runFix() {
   const db = createAdminClient();
 
   // Fetch all products whose name starts with [Ejemplo]
@@ -40,3 +40,6 @@ export async function POST() {
 
   return NextResponse.json({ fixed, total: products.length, errors });
 }
+
+export async function GET() { return runFix(); }
+export async function POST() { return runFix(); }
