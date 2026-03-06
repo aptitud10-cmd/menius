@@ -828,7 +828,7 @@ export async function seedRestaurant(
       seedTables.map((t) => ({
         restaurant_id: restaurantId,
         name: t.name,
-        qr_code_value: `${appUrl}/r/${restaurantSlug}?table=${encodeURIComponent(t.name)}`,
+        qr_code_value: `${appUrl}/${restaurantSlug}?table=${encodeURIComponent(t.name)}`,
       }))
     );
 

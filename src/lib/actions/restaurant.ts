@@ -59,14 +59,7 @@ export async function createRestaurant(data: CreateRestaurantInput) {
       .eq('id', restaurant.id);
   }
 
-  // Seed example data — runs before redirect (batch inserts, ~1-2s)
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-  try {
-    const { seedRestaurant } = await import('@/lib/seed-restaurant');
-    await seedRestaurant(supabase, restaurant.id, restaurant.slug, appUrl, locale);
-  } catch {
-    // Seed failure should not block onboarding
-  }
 
   // Welcome email to new restaurant owner
   if (user.email) {
@@ -77,7 +70,7 @@ export async function createRestaurant(data: CreateRestaurantInput) {
         ownerName: user.user_metadata?.full_name || data.name,
         restaurantName: data.name,
         dashboardUrl: `${appUrl}/app`,
-        menuUrl: `${appUrl}/r/${data.slug}`,
+        menuUrl: `${appUrl}/${data.slug}`,
         locale,
       });
       sendEmail({
@@ -112,7 +105,7 @@ export async function createRestaurant(data: CreateRestaurantInput) {
               <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Fecha</td><td style="padding:8px 0;font-size:14px;">${new Date().toLocaleString('es')}</td></tr>
             </table>
             <div style="margin-top:20px;">
-              <a href="${appUrl}/r/${data.slug}" style="display:inline-block;padding:10px 20px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Ver menú</a>
+              <a href="${appUrl}/${data.slug}" style="display:inline-block;padding:10px 20px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Ver menú</a>
               <a href="${appUrl}/admin" style="display:inline-block;padding:10px 20px;background:#059669;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;margin-left:8px;">Admin Panel</a>
             </div>
           </div>`,
@@ -163,7 +156,7 @@ export async function reseedMyRestaurant() {
   await seedRestaurant(supabase, restaurantId, restaurant.slug, appUrl, locale);
 
   revalidatePath('/app');
-  revalidatePath(`/r/${restaurant.slug}`);
+  revalidatePath(`/${restaurant.slug}`);
   return { success: true };
 }
 
@@ -222,8 +215,8 @@ async function getAuthenticatedRestaurant() {
 
 function revalidatePublicMenu(slug: string) {
   if (!slug) return;
-  revalidatePath(`/r/${slug}`);
-  revalidatePath(`/r/${slug}/[table]`, 'layout');
+  revalidatePath(`/${slug}`);
+  revalidatePath(`/${slug}/[table]`, 'layout');
 }
 
 export async function updateCategory(id: string, data: CategoryInput) {
@@ -705,7 +698,7 @@ export async function createTable(data: TableInput) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
   const tableName = sanitizeText(data.name, 50);
-  const qrValue = `${appUrl}/r/${restaurantRes.data.slug}?table=${encodeURIComponent(tableName)}`;
+  const qrValue = `${appUrl}/${restaurantRes.data.slug}?table=${encodeURIComponent(tableName)}`;
 
   const { error } = await supabase.from('tables').insert({
     restaurant_id: restaurantId,
@@ -732,7 +725,7 @@ export async function updateTable(id: string, newName: string) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
   const name = sanitizeText(newName, 50);
-  const qrValue = `${appUrl}/r/${restaurant.slug}?table=${encodeURIComponent(name)}`;
+  const qrValue = `${appUrl}/${restaurant.slug}?table=${encodeURIComponent(name)}`;
 
   const { error } = await supabase
     .from('tables')
@@ -825,7 +818,7 @@ export async function updateOrderStatus(orderId: string, status: string) {
       import('@/lib/notifications/push').then(({ sendPushToOrder }) => {
         sendPushToOrder(orderId, {
           ...msg,
-          url: slug ? `/r/${slug}/orden/${order.order_number}` : '/',
+          url: slug ? `/${slug}/orden/${order.order_number}` : '/',
         });
       }).catch(() => {});
     }
