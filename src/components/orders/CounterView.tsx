@@ -1,792 +1,541 @@
 'use client';
 
 /**
- * CounterView — Tablet-first, landscape order reception station.
- * Inspired by Uber Eats / DoorDash merchant apps.
- * Brand: emerald #059669 (active states) · purple #7c3aed (CTAs)
+ * CounterView — Restaurant delivery counter, Uber Eats / GrubHub style.
+ *
+ * Layout (single order card, full-screen tablet):
+ *
+ *  ┌──────────────────── GREEN HEADER ──────────────────┐
+ *  │  [×]  Kay A. • #AFB95   3 items  Delivery  [📞][✉] │
+ *  ├──────────────────────────────┬─────────────────────┤
+ *  │  ITEMS                       │  Ready time         │
+ *  │  1× Alpine Burger Deluxe     │                     │
+ *  │     - Well Done   $15.95     │     15 min          │
+ *  │  1× Apple Pie                │                     │
+ *  │     - A la mode    $6.95     │  [ Edit time ]      │
+ *  │  1× Assorted Soda            ├─────────────────────┤
+ *  │     - Sprite       $3.45     │  [Adjust order]     │
+ *  ├──────────────────────────────│                     │
+ *  │  Subtotal   $32.10           │  [  Accept   ]      │
+ *  │  Tax         $0.00           │                     │
+ *  └──────────────────────────────┴─────────────────────┘
+ *
+ *  Queue strip below: shows other pending orders.
  */
 
-import { useState, useCallback, useEffect } from 'react';
-import {
-  Bell, Printer, CheckCircle2, XCircle, Clock,
-  MapPin, Phone, Mail, Volume2, VolumeX,
-  ChevronRight, Package, Truck, UtensilsCrossed,
-  CreditCard, DollarSign, Timer, Check,
-  Zap, Store, ChefHat,
-} from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { X, Phone, Mail, ChevronRight, Edit2, Check, XCircle, Clock, Printer, Settings, Zap, ChefHat } from 'lucide-react';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
-import { useNotifications } from '@/hooks/use-notifications';
-import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { updateOrderStatus, updateOrderETA } from '@/lib/actions/restaurant';
+import { OrderStateMachine, type CounterStatus } from '@/lib/counter/OrderStateMachine';
+import { AutoAcceptService, type AutoAcceptConfig } from '@/lib/counter/AutoAcceptService';
 import { PrinterService } from '@/lib/printing/PrinterService';
-import type { PrintState } from '@/lib/printing/types';
 import type { Order, OrderItem } from '@/types';
 import { cn } from '@/lib/utils';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ─── Brand ───────────────────────────────────────────────────────────────────
 
-const ETA_OPTIONS = [5, 10, 15, 20, 30, 45, 60] as const;
-
-const STATUS_PILL: Record<string, string> = {
-  pending:   'bg-amber-500/20 text-amber-300 border border-amber-500/30',
-  confirmed: 'bg-blue-500/20 text-blue-300 border border-blue-500/30',
-  preparing: 'bg-purple-500/20 text-purple-300 border border-purple-500/30',
-  ready:     'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
-  delivered: 'bg-gray-500/20 text-gray-400 border border-gray-500/20',
-  cancelled: 'bg-red-500/20 text-red-400 border border-red-500/20',
-};
-
-const NEXT_ACTION_STYLE: Record<string, { status: string; colorCls: string }> = {
-  confirmed: { status: 'preparing', colorCls: 'bg-purple-600 hover:bg-purple-500 shadow-purple-900/40' },
-  preparing: { status: 'ready',     colorCls: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/40' },
-  ready:     { status: 'delivered', colorCls: 'bg-gray-600 hover:bg-gray-500 shadow-gray-900/40' },
-};
-
-const TYPE_ICON: Record<string, React.ElementType> = {
-  delivery: Truck,
-  pickup:   Package,
-  dine_in:  UtensilsCrossed,
-};
+const GREEN   = '#06C167';
+const GREEN_D = '#059254'; // darker green for hover
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function formatCurrency(amount: number, currency: string) {
+function fmt(amount: number, currency: string) {
   try {
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency', currency,
-      minimumFractionDigits: 2,
-    }).format(amount);
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amount);
   } catch {
     return `${currency} ${amount.toFixed(2)}`;
   }
 }
 
-function elapsed(createdAt: string) {
+function elapsed(createdAt: string): number {
   return Math.floor((Date.now() - new Date(createdAt).getTime()) / 60_000);
 }
 
-function elapsedColor(mins: number) {
-  if (mins >= 20) return 'text-red-400';
-  if (mins >= 10) return 'text-amber-400';
-  return 'text-gray-500';
+const ORDER_TYPES: Record<string, string> = {
+  delivery: 'Delivery',
+  pickup:   'Para recoger',
+  dine_in:  'En mesa',
+};
+
+const ETA_OPTS = [5, 10, 15, 20, 25, 30, 45, 60] as const;
+
+function playBeep() {
+  if (typeof window === 'undefined') return;
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.6);
+  } catch {/* AudioContext unavailable */}
 }
 
-// ─── Props ───────────────────────────────────────────────────────────────────
+// ─── CounterView ─────────────────────────────────────────────────────────────
 
 interface CounterViewProps {
   initialOrders: Order[];
-  restaurantId: string;
+  restaurantId:  string;
   restaurantName: string;
-  currency: string;
+  currency:      string;
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
-
 export function CounterView({ initialOrders, restaurantId, restaurantName, currency }: CounterViewProps) {
-  const { t } = useDashboardLocale();
-  const [selectedId, setSelectedId]   = useState<string | null>(null);
-  const [selectedETA, setSelectedETA] = useState<number>(15);
-  const [isUpdating, setIsUpdating]   = useState(false);
-  const [autoPrint, setAutoPrint]     = useState(false);
-  const [notifWA, setNotifWA]         = useState(true);
-  const [notifSMS, setNotifSMS]       = useState(true);
-  const [notifEmail, setNotifEmail]   = useState(true);
-  const [flashId, setFlashId]         = useState<string | null>(null);
-  const [, tick]                      = useState(0);
+  const [activeId, setActiveId]           = useState<string | null>(null);
+  const [eta, setEta]                     = useState(15);
+  const [editingEta, setEditingEta]       = useState(false);
+  const [isUpdating, setIsUpdating]       = useState(false);
+  const [autoConfig, setAutoConfig]       = useState<AutoAcceptConfig>(AutoAcceptService.config);
+  const [showSettings, setShowSettings]   = useState(false);
+  const [flashNew, setFlashNew]           = useState(false);
+  const [, tick]                          = useState(0);
+  const soundRef = useRef(true);
 
-  type PrintJobEntry = { jobId: string; state: PrintState; error?: string };
-  const [printJobs, setPrintJobs] = useState<Record<string, PrintJobEntry>>({});
-
+  // Refresh elapsed timers every 30 s
   useEffect(() => {
-    return PrinterService.subscribe((job) => {
-      setPrintJobs((prev) => ({
-        ...prev,
-        [job.orderId]: { jobId: job.id, state: job.state, error: job.error },
-      }));
-    });
+    const t = setInterval(() => tick(n => n + 1), 30_000);
+    return () => clearInterval(t);
   }, []);
 
-  const { playSound, soundEnabled, setSoundEnabled } = useNotifications({ defaultTitle: 'Counter — MENIUS' });
-
-  // Refresh elapsed times every 30 s
+  // Sync AutoAcceptService config changes
   useEffect(() => {
-    const timer = setInterval(() => tick(n => n + 1), 30_000);
-    return () => clearInterval(timer);
+    return AutoAcceptService.subscribe(setAutoConfig);
   }, []);
 
   const handleNewOrder = useCallback((order: Order) => {
-    playSound(order.order_type === 'delivery' ? 'urgent' : 'normal');
-    setFlashId(order.id);
-    setSelectedId(order.id);
-    setTimeout(() => setFlashId(null), 4_000);
-  }, [playSound]);
+    if (soundRef.current) playBeep();
+    setFlashNew(true);
+    setTimeout(() => setFlashNew(false), 3_000);
+    // Auto-open if no active order selected
+    setActiveId(prev => prev ?? order.id);
+  }, []);
 
   const { orders } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
-  const active   = orders.filter(o => !['delivered', 'cancelled'].includes(o.status));
-  const pending  = active.filter(o => o.status === 'pending');
-  const progress = active.filter(o => o.status !== 'pending');
-  const selected = orders.find(o => o.id === selectedId) ?? null;
+  // Pending (NEW) orders sorted oldest-first
+  const queue = orders
+    .filter(o => o.status === 'pending')
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-  const handlePrint = useCallback((order: Order) => {
-    PrinterService.printOrder(order, selectedETA, restaurantName, currency).catch(() => {});
-  }, [selectedETA, restaurantName, currency]);
+  // Active in-progress orders (not pending, not terminal)
+  const inProgress = orders.filter(o => ['confirmed', 'preparing', 'ready'].includes(o.status));
 
-  const handleRetryPrint = useCallback((jobId: string, order: Order) => {
-    PrinterService.retryJob(jobId, order, selectedETA, restaurantName, currency).catch(() => {});
-  }, [selectedETA, restaurantName, currency]);
+  // Show oldest pending first; fall back to in-progress
+  const displayed = activeId
+    ? (orders.find(o => o.id === activeId) ?? queue[0] ?? inProgress[0] ?? null)
+    : (queue[0] ?? inProgress[0] ?? null);
 
-  const handleStatus = useCallback(async (orderId: string, status: string) => {
+  // Auto-accept logic: run whenever queue changes
+  useEffect(() => {
+    const firstNew = queue[0];
+    if (!firstNew) return;
+    if (!AutoAcceptService.shouldAutoAccept(firstNew, orders)) return;
+
+    // Auto-accept
+    (async () => {
+      await updateOrderETA(firstNew.id, AutoAcceptService.config.defaultEtaMinutes).catch(() => {});
+      await updateOrderStatus(firstNew.id, 'confirmed').catch(() => {});
+      PrinterService.printOrder(firstNew, AutoAcceptService.config.defaultEtaMinutes, restaurantName, currency).catch(() => {});
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queue.map(o => o.id).join(',')]);
+
+  const handleAction = useCallback(async (order: Order, to: CounterStatus) => {
+    const sm = OrderStateMachine.create(order.status);
+    if (!sm.canTransition(to)) return;
+
     setIsUpdating(true);
     try {
-      if (status === 'confirmed') {
-        await updateOrderETA(orderId, selectedETA).catch(() => {});
+      if (to === 'ACCEPTED') {
+        await updateOrderETA(order.id, eta).catch(() => {});
       }
-      const result = await updateOrderStatus(orderId, status);
-      if (!result?.error) {
-        if (['confirmed', 'ready', 'delivered'].includes(status)) playSound('success');
-        if (status === 'cancelled') setSelectedId(null);
-        // Auto-print on confirm
-        if (status === 'confirmed' && autoPrint) {
-          const orderToPrint = orders.find((o) => o.id === orderId);
-          if (orderToPrint) handlePrint(orderToPrint);
-        }
+      await updateOrderStatus(order.id, OrderStateMachine.toDB(to));
+
+      if (to === 'ACCEPTED') {
+        PrinterService.printOrder(order, eta, restaurantName, currency).catch(() => {});
+      }
+
+      // If accepted/rejected, advance to next pending
+      if (to === 'ACCEPTED' || to === 'REJECTED') {
+        const remaining = queue.filter(o => o.id !== order.id);
+        setActiveId(remaining[0]?.id ?? null);
+        setEditingEta(false);
       }
     } finally {
       setIsUpdating(false);
     }
-  }, [playSound, selectedETA, autoPrint, orders, handlePrint]);
-
-  const isFlashing = flashId !== null;
+  }, [eta, queue, restaurantName, currency]);
 
   return (
-    <div className="relative h-screen w-screen bg-gray-950 flex flex-col overflow-hidden select-none">
+    <div className="min-h-screen w-full bg-[#F0F0F0] flex flex-col">
 
-      {/* ── NEW ORDER flash border ── */}
-      {isFlashing && (
-        <div
-          className="absolute inset-0 z-50 pointer-events-none"
-          style={{ boxShadow: 'inset 0 0 0 6px #059669' }}
-        >
-          <div className="absolute inset-0 bg-emerald-500/10 animate-pulse" />
+      {/* ── Top status bar ── */}
+      <div className="flex-none h-11 bg-white border-b border-[#E8E8E8] flex items-center justify-between px-5">
+        <div className="flex items-center gap-2">
+          <div
+            className="w-2 h-2 rounded-full"
+            style={{ background: GREEN }}
+          />
+          <span className="text-[#111111] text-xs font-semibold tracking-wide">{restaurantName}</span>
+          <span className="text-[#999999] text-xs">· Counter</span>
         </div>
+        <div className="flex items-center gap-3">
+          {queue.length > 0 && (
+            <span
+              className={cn(
+                'text-xs font-bold px-2.5 py-1 rounded-full',
+                flashNew ? 'animate-pulse' : ''
+              )}
+              style={{ background: GREEN + '22', color: GREEN }}
+            >
+              {queue.length} {queue.length === 1 ? 'nueva orden' : 'nuevas órdenes'}
+            </span>
+          )}
+          <button
+            onClick={() => setShowSettings(s => !s)}
+            className="text-[#999999] hover:text-[#111111] transition-colors"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Settings panel (slide-in) ── */}
+      {showSettings && (
+        <AutoAcceptPanel
+          config={autoConfig}
+          onClose={() => setShowSettings(false)}
+        />
       )}
 
-      {/* ── Top bar ── */}
-      <header className="flex-none h-14 bg-[#111827] border-b border-gray-800 flex items-center px-5 gap-4 z-10">
+      {/* ── Main content ── */}
+      <div className="flex-1 flex flex-col items-center justify-center p-4 gap-4">
 
-        {/* Brand */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center flex-shrink-0 shadow-lg shadow-emerald-900/40">
-            <Store className="w-4 h-4 text-white" />
-          </div>
-          <div className="leading-none">
-            <p className="text-white text-sm font-bold truncate max-w-[160px]">{restaurantName}</p>
-            <p className="text-gray-500 text-[10px] mt-0.5 uppercase tracking-widest">{t.counter_title}</p>
-          </div>
-        </div>
-
-        {/* Separator */}
-        <div className="w-px h-7 bg-gray-800 mx-1 flex-none" />
-
-        {/* Live counters */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className={cn(
-              'w-2 h-2 rounded-full flex-none',
-              pending.length > 0 ? 'bg-amber-400 animate-pulse' : 'bg-gray-700'
-            )} />
-            <span className="text-white text-lg font-bold leading-none">{pending.length}</span>
-            <span className="text-amber-400/80 text-xs font-medium">{t.counter_pending}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className={cn(
-              'w-2 h-2 rounded-full flex-none',
-              progress.length > 0 ? 'bg-purple-400' : 'bg-gray-700'
-            )} />
-            <span className="text-white text-lg font-bold leading-none">{progress.length}</span>
-            <span className="text-purple-400/80 text-xs font-medium">{t.counter_inProgress}</span>
-          </div>
-        </div>
-
-        {/* Spacer */}
-        <div className="flex-1" />
-
-        {/* Notification channel toggles */}
-        <div className="flex items-center gap-1 bg-gray-900 rounded-lg p-1 border border-gray-800">
-          <ToggleChip
-            label="WA"
-            active={notifWA}
-            activeColor="bg-green-600"
-            title={t.counter_notifWA}
-            onClick={() => setNotifWA(v => !v)}
+        {displayed ? (
+          <OrderCard
+            key={displayed.id}
+            order={displayed}
+            currency={currency}
+            eta={eta}
+            editingEta={editingEta}
+            isUpdating={isUpdating}
+            onSetEta={setEta}
+            onToggleEditEta={() => setEditingEta(e => !e)}
+            onAction={handleAction}
+            onDismiss={() => {
+              const next = queue.find(o => o.id !== displayed.id) ?? inProgress.find(o => o.id !== displayed.id);
+              setActiveId(next?.id ?? null);
+            }}
           />
-          <ToggleChip
-            label="SMS"
-            active={notifSMS}
-            activeColor="bg-blue-600"
-            title={t.counter_notifSMS}
-            onClick={() => setNotifSMS(v => !v)}
-          />
-          <ToggleChip
-            label="✉"
-            active={notifEmail}
-            activeColor="bg-purple-600"
-            title={t.counter_notifEmail}
-            onClick={() => setNotifEmail(v => !v)}
-          />
-        </div>
+        ) : (
+          <IdleState restaurantName={restaurantName} />
+        )}
 
-        {/* Auto-print */}
-        <button
-          onClick={() => setAutoPrint(v => !v)}
-          title={t.counter_autoPrint}
-          className={cn(
-            'flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold border transition-all',
-            autoPrint
-              ? 'bg-emerald-600 border-emerald-500 text-white shadow-sm shadow-emerald-900/40'
-              : 'bg-gray-900 border-gray-700 text-gray-500 hover:text-gray-300 hover:border-gray-600'
-          )}
-        >
-          <Printer className="w-3.5 h-3.5" />
-          <span>{t.counter_autoPrint}</span>
-        </button>
-
-        {/* Sound */}
-        <button
-          onClick={() => setSoundEnabled(!soundEnabled)}
-          title={t.counter_sound}
-          className={cn(
-            'w-8 h-8 rounded-lg border flex items-center justify-center transition-all',
-            soundEnabled
-              ? 'bg-gray-900 border-gray-700 text-gray-300 hover:text-white'
-              : 'bg-gray-900 border-gray-800 text-gray-700 hover:text-gray-500'
-          )}
-        >
-          {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-        </button>
-      </header>
-
-      {/* ── Main layout ── */}
-      <div className="flex-1 flex overflow-hidden">
-
-        {/* ──────────────── LEFT: Order Queue ──────────────── */}
-        <aside className="w-[320px] flex-none bg-[#0d1117] border-r border-gray-800/60 flex flex-col overflow-hidden">
-
-          {/* Pending section */}
-          {pending.length > 0 && (
-            <div className="flex-none">
-              <div className="h-9 px-4 bg-amber-500/10 border-b border-amber-500/20 flex items-center gap-2">
-                <Bell className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
-                <span className="text-amber-400 text-xs font-bold uppercase tracking-wider">
-                  {pending.length} {pending.length > 1 ? t.counter_newOrders : t.counter_newOrder}
-                </span>
-              </div>
-              <div className="divide-y divide-gray-800/50">
-                {pending.map(o => (
-                  <OrderCard
+        {/* ── Queue strip ── */}
+        {queue.length > 1 && (
+          <div className="w-full max-w-3xl">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">
+              En espera — {queue.length - 1} más
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {queue
+                .filter(o => o.id !== displayed?.id)
+                .map(o => (
+                  <QueueCard
                     key={o.id}
                     order={o}
-                    selected={selectedId === o.id}
-                    isNew={flashId === o.id}
                     currency={currency}
-                    onClick={() => setSelectedId(o.id)}
+                    onClick={() => setActiveId(o.id)}
                   />
                 ))}
-              </div>
             </div>
-          )}
-
-          {/* In-progress section */}
-          {progress.length > 0 && (
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="h-9 px-4 bg-gray-800/30 border-b border-gray-800/50 flex items-center gap-2 flex-none">
-                <ChefHat className="w-3.5 h-3.5 text-purple-400" />
-                <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">
-                  {t.counter_inProgress} ({progress.length})
-                </span>
-              </div>
-              <div className="flex-1 overflow-y-auto divide-y divide-gray-800/50 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-800">
-                {progress.map(o => (
-                  <OrderCard
-                    key={o.id}
-                    order={o}
-                    selected={selectedId === o.id}
-                    isNew={false}
-                    currency={currency}
-                    onClick={() => setSelectedId(o.id)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Empty */}
-          {active.length === 0 && (
-            <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 py-8">
-              <div className="w-14 h-14 rounded-full bg-gray-900 flex items-center justify-center">
-                <CheckCircle2 className="w-7 h-7 text-emerald-600" />
-              </div>
-              <p className="text-gray-400 text-sm font-medium text-center">{t.counter_noOrders}</p>
-              <p className="text-gray-700 text-xs text-center leading-relaxed">{t.counter_noOrdersDesc}</p>
-            </div>
-          )}
-
-          {/* MENIUS footer */}
-          <div className="flex-none h-9 border-t border-gray-800/50 flex items-center justify-center gap-1.5">
-            <Zap className="w-3 h-3 text-emerald-600" />
-            <span className="text-gray-700 text-[10px] font-semibold tracking-[0.2em] uppercase">
-              {t.counter_poweredBy}
-            </span>
           </div>
-        </aside>
+        )}
 
-        {/* ──────────────── RIGHT: Order Detail ──────────────── */}
-        <main className="flex-1 flex flex-col overflow-hidden">
-          {selected ? (
-            <OrderDetail
-              order={selected}
-              currency={currency}
-              selectedETA={selectedETA}
-              onSelectETA={setSelectedETA}
-              isUpdating={isUpdating}
-              onStatus={handleStatus}
-              printJob={printJobs[selected.id]}
-              onPrint={() => handlePrint(selected)}
-              onRetryPrint={(jobId) => handleRetryPrint(jobId, selected)}
-            />
-          ) : (
-            <IdleScreen hasOrders={active.length > 0} />
-          )}
-        </main>
-
+        {/* In-progress strip */}
+        {inProgress.length > 0 && (
+          <div className="w-full max-w-3xl">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">
+              En preparación — {inProgress.length}
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {inProgress.map(o => (
+                <QueueCard
+                  key={o.id}
+                  order={o}
+                  currency={currency}
+                  onClick={() => setActiveId(o.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// ─── Idle screen ─────────────────────────────────────────────────────────────
-
-function IdleScreen({ hasOrders }: { hasOrders: boolean }) {
-  const { t } = useDashboardLocale();
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-4 bg-gray-950 p-8">
-      <div className="w-20 h-20 rounded-2xl bg-gray-900 border border-gray-800 flex items-center justify-center">
-        <Store className="w-9 h-9 text-gray-700" />
-      </div>
-      <div className="text-center space-y-1">
-        <p className="text-gray-400 text-base font-semibold">
-          {hasOrders ? t.counter_selectOrder : t.counter_noOrders}
-        </p>
-        <p className="text-gray-700 text-sm">
-          {hasOrders ? t.counter_selectOrderDesc : t.counter_noOrdersDesc}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ─── OrderCard ───────────────────────────────────────────────────────────────
+// ─── OrderCard ────────────────────────────────────────────────────────────────
 
 function OrderCard({
-  order, selected, isNew, currency, onClick,
-}: {
-  order: Order; selected: boolean; isNew: boolean; currency: string; onClick: () => void;
-}) {
-  const { t } = useDashboardLocale();
-  const mins      = elapsed(order.created_at);
-  const itemCount = order.items?.reduce((s, i) => s + i.qty, 0) ?? 0;
-  const TypeIcon  = TYPE_ICON[order.order_type ?? 'dine_in'] ?? UtensilsCrossed;
-
-  const statusLabels: Record<string, string> = {
-    pending:   t.counter_newOrder,
-    confirmed: t.kds_accept,
-    preparing: t.counter_preparing,
-    ready:     t.counter_markReady,
-    delivered: t.counter_deliver,
-    cancelled: t.kds_cancelled,
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'w-full text-left px-4 py-3 transition-all duration-150 relative',
-        selected
-          ? 'bg-emerald-950/40 border-l-[3px] border-emerald-500'
-          : isNew
-          ? 'bg-amber-950/30 border-l-[3px] border-amber-500'
-          : 'hover:bg-gray-900/60 border-l-[3px] border-transparent'
-      )}
-    >
-      {isNew && (
-        <div className="absolute inset-0 border-l-[3px] border-amber-400 animate-pulse pointer-events-none" />
-      )}
-
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-white font-bold text-sm">#{order.order_number}</span>
-            <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded-md', STATUS_PILL[order.status])}>
-              {statusLabels[order.status] ?? order.status.toUpperCase()}
-            </span>
-          </div>
-          <p className="text-gray-500 text-xs truncate">
-            {order.customer_name || t.kds_customer} &middot; {itemCount} {t.kds_product}
-          </p>
-        </div>
-
-        <div className="flex-none flex flex-col items-end gap-1">
-          <span className="text-white text-sm font-bold">
-            {formatCurrency(order.total, currency)}
-          </span>
-          <div className="flex items-center gap-1.5">
-            <TypeIcon className="w-3 h-3 text-gray-600" />
-            <span className={cn('text-[11px] font-semibold', elapsedColor(mins))}>
-              {mins}{t.counter_agoMin}
-            </span>
-          </div>
-        </div>
-      </div>
-    </button>
-  );
-}
-
-// ─── OrderDetail ─────────────────────────────────────────────────────────────
-
-function OrderDetail({
-  order, currency, selectedETA, onSelectETA, isUpdating, onStatus,
-  printJob, onPrint, onRetryPrint,
+  order, currency, eta, editingEta, isUpdating,
+  onSetEta, onToggleEditEta, onAction, onDismiss,
 }: {
   order: Order;
   currency: string;
-  selectedETA: number;
-  onSelectETA: (v: number) => void;
+  eta: number;
+  editingEta: boolean;
   isUpdating: boolean;
-  onStatus: (id: string, status: string) => void;
-  printJob?: { jobId: string; state: PrintState; error?: string };
-  onPrint: () => void;
-  onRetryPrint: (jobId: string) => void;
+  onSetEta: (v: number) => void;
+  onToggleEditEta: () => void;
+  onAction: (order: Order, to: CounterStatus) => void;
+  onDismiss: () => void;
 }) {
-  const { t } = useDashboardLocale();
-  const mins       = elapsed(order.created_at);
+  const sm         = OrderStateMachine.create(order.status);
   const isPending  = order.status === 'pending';
-  const TypeIcon   = TYPE_ICON[order.order_type ?? 'dine_in'] ?? UtensilsCrossed;
-  const isComplete = ['delivered', 'cancelled'].includes(order.status);
+  const isComplete = sm.isTerminal;
+  const mins       = elapsed(order.created_at);
+  const totalQty   = (order.items ?? []).reduce((s, i) => s + i.qty, 0);
 
-  const typeLabels: Record<string, string> = {
-    delivery: t.counter_delivery,
-    pickup:   t.counter_pickup,
-    dine_in:  t.counter_dineIn,
-  };
+  const subtotal = (order.items ?? []).reduce(
+    (s, i) => s + (i.line_total ?? i.unit_price * i.qty),
+    0
+  );
 
-  const nextActionMap: Record<string, { status: string; label: string; colorCls: string }> = {
-    confirmed: { ...NEXT_ACTION_STYLE.confirmed, label: t.counter_preparing },
-    preparing: { ...NEXT_ACTION_STYLE.preparing, label: t.counter_markReady },
-    ready:     { ...NEXT_ACTION_STYLE.ready,     label: t.counter_deliver   },
-  };
-  const nextAct = nextActionMap[order.status] ?? null;
+  const typeLabel = ORDER_TYPES[order.order_type ?? 'dine_in'] ?? '';
 
-  const statusLabels: Record<string, string> = {
-    pending:   t.counter_newOrder,
-    confirmed: t.kds_accept,
-    preparing: t.counter_preparing,
-    ready:     t.counter_markReady,
-    delivered: t.counter_deliver,
-    cancelled: t.kds_cancelled,
+  // Next action for non-pending active orders
+  const nextAction: Record<string, { to: CounterStatus; label: string }> = {
+    confirmed: { to: 'PREPARING', label: 'Enviando a cocina' },
+    preparing: { to: 'READY',     label: 'Marcar listo' },
+    ready:     { to: 'COMPLETED', label: 'Entregado' },
   };
+  const next = nextAction[order.status];
 
   return (
-    <div className="flex flex-col h-full">
+    <div
+      className="w-full max-w-3xl bg-white rounded-2xl overflow-hidden shadow-xl"
+      style={{ boxShadow: '0 4px 32px rgba(0,0,0,0.12)' }}
+    >
+      {/* ── GREEN HEADER ── */}
+      <div
+        className="flex items-center justify-between px-5 py-3.5"
+        style={{ background: GREEN }}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <button
+            onClick={onDismiss}
+            className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center flex-none transition-colors"
+          >
+            <X className="w-4 h-4 text-white" />
+          </button>
 
-      {/* ── Order header bar ── */}
-      <div className={cn(
-        'flex-none px-6 py-4 border-b border-gray-800 flex items-center justify-between',
-        isPending ? 'bg-gradient-to-r from-amber-950/30 to-gray-900/50' : 'bg-gray-900/40'
-      )}>
-        <div className="flex items-center gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-white text-2xl font-extrabold tracking-tight">
-                #{order.order_number}
-              </h2>
-              <span className={cn('text-xs font-bold px-2 py-0.5 rounded-md', STATUS_PILL[order.status])}>
-                {statusLabels[order.status] ?? order.status.toUpperCase()}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-white font-extrabold text-lg leading-tight truncate max-w-[160px]">
+                {order.customer_name || 'Cliente'}
               </span>
-              {isPending && (
-                <span className="flex items-center gap-1 text-amber-400 text-xs font-semibold animate-pulse">
-                  <Bell className="w-3.5 h-3.5" />
-                  {t.counter_newOrder}
-                </span>
-              )}
+              <span className="text-white/70 font-light text-lg">•</span>
+              <span className="text-white font-bold text-base">#{order.order_number}</span>
             </div>
-            <div className="flex items-center gap-3 mt-1.5 text-sm text-gray-500">
+            <div className="flex items-center gap-2 text-white/80 text-xs mt-0.5">
+              <span>{totalQty} items</span>
+              {typeLabel && <><span>·</span><span>{typeLabel}</span></>}
+              <span>·</span>
               <span className="flex items-center gap-1">
-                <TypeIcon className="w-3.5 h-3.5" />
-                {typeLabels[order.order_type ?? 'dine_in']}
-              </span>
-              {order.payment_method && (
-                <>
-                  <span className="text-gray-800">·</span>
-                  <span className="flex items-center gap-1">
-                    {order.payment_method === 'cash'
-                      ? <DollarSign className="w-3.5 h-3.5" />
-                      : <CreditCard className="w-3.5 h-3.5" />}
-                    {order.payment_method === 'cash' ? t.counter_cash : t.counter_online}
-                  </span>
-                </>
-              )}
-              <span className="text-gray-800">·</span>
-              <span className={cn('flex items-center gap-1 font-medium', elapsedColor(mins))}>
-                <Timer className="w-3.5 h-3.5" />
-                {mins} {t.counter_agoMin}
+                <Clock className="w-3 h-3" />{mins} min
               </span>
             </div>
           </div>
         </div>
 
-        {/* Total */}
-        <div className="text-right">
-          <p className="text-white text-3xl font-black tracking-tight">
-            {formatCurrency(order.total, currency)}
-          </p>
-          {order.items && (
-            <p className="text-gray-600 text-xs mt-0.5">
-              {order.items.reduce((s, i) => s + i.qty, 0)} {t.counter_orderItems}
-            </p>
+        {/* Contact icons */}
+        <div className="flex items-center gap-2 flex-none">
+          {order.customer_phone && (
+            <a
+              href={`tel:${order.customer_phone}`}
+              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+            >
+              <Phone className="w-4 h-4 text-white" />
+            </a>
+          )}
+          {order.customer_email && (
+            <a
+              href={`mailto:${order.customer_email}`}
+              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+            >
+              <Mail className="w-4 h-4 text-white" />
+            </a>
+          )}
+          {/* Status badge for non-pending */}
+          {!isPending && (
+            <StatusBadge status={sm.status} />
           )}
         </div>
       </div>
 
-      {/* ── Scrollable body ── */}
-      <div className="flex-1 overflow-hidden flex">
+      {/* ── BODY ── */}
+      <div className="flex" style={{ minHeight: 320 }}>
 
-        {/* Items column */}
-        <div className="flex-1 overflow-y-auto p-5 border-r border-gray-800/60 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-gray-800 space-y-1">
-          <p className="text-gray-600 text-[10px] font-bold uppercase tracking-widest mb-3">
-            {t.counter_orderItems}
-          </p>
-          {(order.items ?? []).map((item, idx) => (
-            <ItemRow key={item.id ?? idx} item={item} currency={currency} />
-          ))}
+        {/* LEFT: items + pricing */}
+        <div className="flex-1 flex flex-col border-r border-[#E8E8E8]">
 
-          {/* Notes */}
-          {order.notes && (
-            <div className="mt-4 p-3 rounded-xl bg-amber-950/30 border border-amber-800/30">
-              <p className="text-amber-400 text-[10px] font-bold uppercase tracking-widest mb-1.5">
-                {t.counter_notes}
-              </p>
-              <p className="text-amber-100/80 text-sm leading-relaxed">{order.notes}</p>
+          {/* Items */}
+          <div className="flex-1 overflow-y-auto px-5 pt-4 pb-2">
+            {(order.items ?? []).map((item, idx) => (
+              <ItemRow key={item.id ?? idx} item={item} currency={currency} />
+            ))}
+
+            {order.notes && (
+              <div className="mt-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
+                <p className="text-amber-700 text-xs font-bold uppercase tracking-wide mb-1">Nota especial</p>
+                <p className="text-amber-800 text-sm leading-relaxed">{order.notes}</p>
+              </div>
+            )}
+
+            {order.delivery_address && (
+              <div className="mt-3 p-3 rounded-xl bg-gray-50 border border-gray-200">
+                <p className="text-gray-500 text-xs font-bold uppercase tracking-wide mb-1">Dirección</p>
+                <p className="text-gray-700 text-sm">{order.delivery_address}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Price summary */}
+          <div className="flex-none px-5 py-3 border-t border-[#E8E8E8] bg-[#FAFAFA]">
+            <div className="flex justify-between text-sm text-[#666666] mb-1">
+              <span>Subtotal</span>
+              <span>{fmt(subtotal, currency)}</span>
             </div>
-          )}
-
-          {/* Delivery address */}
-          {order.delivery_address && (
-            <div className="mt-3 p-3 rounded-xl bg-gray-900 border border-gray-800">
-              <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                <MapPin className="w-3 h-3" /> {t.counter_address}
-              </p>
-              <p className="text-gray-200 text-sm">{order.delivery_address}</p>
+            <div className="flex justify-between items-center">
+              <span className="text-[#111111] font-bold text-sm">Total</span>
+              <span className="text-[#111111] font-black text-xl">{fmt(order.total, currency)}</span>
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Action sidebar */}
-        <div className="w-[268px] flex-none flex flex-col p-5 gap-5 bg-gray-900/30">
+        {/* RIGHT: ETA + actions */}
+        <div className="w-[220px] flex-none flex flex-col">
 
-          {/* Customer info */}
-          <section className="space-y-3">
-            <p className="text-gray-600 text-[10px] font-bold uppercase tracking-widest">
-              {t.counter_customer}
+          {/* Ready time block */}
+          <div className="flex-1 flex flex-col items-center justify-center px-5 py-6 border-b border-[#E8E8E8]">
+            <p className="text-[#666666] text-xs font-bold uppercase tracking-widest mb-3">
+              Ready time
             </p>
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center flex-shrink-0">
-                <span className="text-sm font-bold text-gray-300">
-                  {(order.customer_name || 'G')[0].toUpperCase()}
-                </span>
-              </div>
-              <div className="min-w-0">
-                <p className="text-white text-sm font-semibold truncate">
-                  {order.customer_name || t.kds_customer}
-                </p>
-                {order.customer_phone && (
-                  <p className="text-gray-500 text-xs flex items-center gap-1 mt-0.5">
-                    <Phone className="w-3 h-3" />{order.customer_phone}
-                  </p>
-                )}
-              </div>
-            </div>
-            {order.customer_email && (
-              <p className="text-gray-600 text-xs flex items-center gap-1.5 pl-0.5">
-                <Mail className="w-3 h-3 flex-none" />
-                <span className="truncate">{order.customer_email}</span>
-              </p>
-            )}
-          </section>
+            <p className="font-black leading-none" style={{ fontSize: 72, color: '#111111' }}>
+              {isPending ? eta : mins}
+            </p>
+            <p className="text-[#666666] text-sm font-semibold mt-1">min</p>
 
-          {/* ETA picker — only when pending */}
-          {isPending && (
-            <section className="space-y-3">
-              <p className="text-gray-600 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                <Clock className="w-3 h-3" />
-                {t.counter_etaLabel}
-              </p>
-              <div className="grid grid-cols-4 gap-1.5">
-                {ETA_OPTIONS.map(eta => (
+            {/* ETA edit — only when pending */}
+            {isPending && (
+              <button
+                onClick={onToggleEditEta}
+                className="mt-3 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#E0E0E0] text-[#666666] hover:border-gray-400 hover:text-[#111111] transition-colors"
+              >
+                <Edit2 className="w-3 h-3" />
+                {editingEta ? 'Cerrar' : 'Editar'}
+              </button>
+            )}
+
+            {/* ETA chip grid */}
+            {isPending && editingEta && (
+              <div className="mt-3 grid grid-cols-4 gap-1.5 w-full">
+                {ETA_OPTS.map(v => (
                   <button
-                    key={eta}
-                    onClick={() => onSelectETA(eta)}
+                    key={v}
+                    onClick={() => { onSetEta(v); onToggleEditEta(); }}
                     className={cn(
-                      'py-2 rounded-lg text-xs font-bold transition-all border',
-                      selectedETA === eta
-                        ? 'bg-purple-700 border-purple-600 text-white shadow-sm shadow-purple-900/50'
-                        : 'bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-300'
+                      'py-1.5 rounded-lg text-xs font-bold border transition-all',
+                      eta === v
+                        ? 'text-white border-transparent'
+                        : 'bg-white border-[#E0E0E0] text-[#666666] hover:border-gray-400'
                     )}
+                    style={eta === v ? { background: GREEN, borderColor: GREEN } : {}}
                   >
-                    {eta}m
+                    {v}m
                   </button>
                 ))}
               </div>
-            </section>
-          )}
+            )}
+          </div>
 
-          {/* Spacer pushes buttons to bottom */}
-          <div className="flex-1" />
-
-          {/* ── Action buttons ── */}
-          <section className="space-y-2">
-            {isPending ? (
+          {/* Action buttons */}
+          <div className="flex-none p-4 space-y-2.5">
+            {isComplete ? (
+              <CompletedBadge status={sm.status} />
+            ) : isPending ? (
               <>
-                {/* ACCEPT */}
+                {/* Adjust order */}
                 <button
                   disabled={isUpdating}
-                  onClick={() => onStatus(order.id, 'confirmed')}
-                  className={cn(
-                    'w-full h-14 rounded-xl font-extrabold text-base text-white',
-                    'bg-gradient-to-br from-[#7c3aed] to-[#6d28d9]',
-                    'hover:from-[#8b5cf6] hover:to-[#7c3aed]',
-                    'shadow-lg shadow-purple-950/50',
-                    'flex items-center justify-center gap-2',
-                    'transition-all active:scale-[0.98]',
-                    isUpdating && 'opacity-60 cursor-not-allowed'
-                  )}
+                  className="w-full h-12 rounded-xl border-2 border-[#E0E0E0] bg-white text-[#111111] text-sm font-bold flex items-center justify-center gap-2 hover:border-gray-400 transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Adjust order
+                </button>
+
+                {/* Accept */}
+                <button
+                  disabled={isUpdating}
+                  onClick={() => onAction(order, 'ACCEPTED')}
+                  className="w-full h-14 rounded-xl text-white text-base font-extrabold flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
+                  style={{ background: isUpdating ? '#aaa' : GREEN }}
+                  onMouseEnter={e => { if (!isUpdating) (e.currentTarget as HTMLElement).style.background = GREEN_D; }}
+                  onMouseLeave={e => { if (!isUpdating) (e.currentTarget as HTMLElement).style.background = GREEN; }}
                 >
                   {isUpdating ? (
-                    <Spinner label={t.counter_accepting} />
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
-                    <>
-                      <Check className="w-5 h-5" />
-                      {t.counter_accept}
-                    </>
+                    <><Check className="w-5 h-5" /> Accept</>
                   )}
                 </button>
 
-                {/* REJECT */}
+                {/* Reject */}
                 <button
                   disabled={isUpdating}
-                  onClick={() => onStatus(order.id, 'cancelled')}
-                  className={cn(
-                    'w-full h-10 rounded-xl font-semibold text-sm text-red-400',
-                    'border border-red-900/40 hover:bg-red-950/30',
-                    'flex items-center justify-center gap-1.5',
-                    'transition-all',
-                    isUpdating && 'opacity-60 cursor-not-allowed'
-                  )}
+                  onClick={() => onAction(order, 'REJECTED')}
+                  className="w-full h-10 rounded-xl border border-red-200 bg-red-50 text-red-600 text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-red-100 transition-all active:scale-[0.98] disabled:opacity-50"
                 >
                   <XCircle className="w-4 h-4" />
-                  {t.counter_reject}
+                  Rechazar
                 </button>
               </>
-            ) : nextAct ? (
-              <button
-                disabled={isUpdating}
-                onClick={() => onStatus(order.id, nextAct.status)}
-                className={cn(
-                  'w-full h-14 rounded-xl font-extrabold text-base text-white',
-                  nextAct.colorCls,
-                  'shadow-lg',
-                  'flex items-center justify-center gap-2',
-                  'transition-all active:scale-[0.98]',
-                  isUpdating && 'opacity-60 cursor-not-allowed'
-                )}
-              >
-                {isUpdating ? (
-                  <Spinner label={t.counter_updating} />
-                ) : (
-                  <>
-                    <ChevronRight className="w-5 h-5" />
-                    {nextAct.label}
-                  </>
-                )}
-              </button>
-            ) : isComplete ? (
-              <div className={cn(
-                'w-full h-12 rounded-xl flex items-center justify-center gap-2',
-                order.status === 'delivered'
-                  ? 'bg-emerald-950/40 border border-emerald-800/30'
-                  : 'bg-red-950/30 border border-red-900/20'
-              )}>
-                {order.status === 'delivered' ? (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    <span className="text-emerald-400 text-sm font-bold">{t.counter_complete}</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="w-4 h-4 text-red-500" />
-                    <span className="text-red-400 text-sm font-bold">{t.kds_cancelled}</span>
-                  </>
-                )}
-              </div>
-            ) : null}
-
-            {/* ── PRINT BUTTON ── */}
-            {printJob?.state === 'failed' ? (
-              <div className="mt-1 rounded-xl border border-red-800/40 bg-red-950/20 p-3 space-y-2">
-                <p className="text-red-400 text-xs font-semibold flex items-center gap-1.5">
-                  <Printer className="w-3.5 h-3.5 flex-none" />
-                  {t.counter_printerError}
-                </p>
-                <p className="text-red-500/60 text-[10px] leading-snug">{printJob.error}</p>
+            ) : next ? (
+              <>
+                {/* Print */}
                 <button
-                  onClick={() => onRetryPrint(printJob.jobId)}
-                  className="w-full h-8 rounded-lg bg-red-900/40 hover:bg-red-900/60 text-red-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+                  onClick={() => PrinterService.printOrder(order, eta, order.customer_name ?? '', currency).catch(() => {})}
+                  className="w-full h-10 rounded-xl border border-[#E0E0E0] bg-white text-[#666666] text-xs font-semibold flex items-center justify-center gap-1.5 hover:border-gray-400 hover:text-[#111111] transition-all"
                 >
-                  <Printer className="w-3.5 h-3.5" />
-                  {t.counter_printerRetry}
+                  <Printer className="w-4 h-4" />
+                  Imprimir
                 </button>
-              </div>
-            ) : (
-              <button
-                onClick={onPrint}
-                disabled={printJob?.state === 'printing' || printJob?.state === 'retrying'}
-                className={cn(
-                  'w-full h-9 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all mt-1',
-                  printJob?.state === 'printed'
-                    ? 'bg-emerald-950/40 border border-emerald-800/30 text-emerald-400'
-                    : 'bg-gray-800/60 border border-gray-700/50 text-gray-400 hover:text-white hover:border-gray-600',
-                  (printJob?.state === 'printing' || printJob?.state === 'retrying') && 'opacity-60 cursor-not-allowed'
-                )}
-              >
-                {printJob?.state === 'printing' || printJob?.state === 'retrying' ? (
-                  <>
-                    <span className="w-3.5 h-3.5 border-2 border-gray-500/30 border-t-gray-400 rounded-full animate-spin" />
-                    {t.counter_printing}
-                  </>
-                ) : printJob?.state === 'printed' ? (
-                  <>
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    {t.counter_printed}
-                  </>
-                ) : (
-                  <>
-                    <Printer className="w-3.5 h-3.5" />
-                    {t.counter_printBtn}
-                  </>
-                )}
-              </button>
-            )}
-          </section>
+
+                {/* Next step */}
+                <button
+                  disabled={isUpdating}
+                  onClick={() => onAction(order, next.to)}
+                  className="w-full h-14 rounded-xl text-white text-sm font-extrabold flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.98] disabled:opacity-50"
+                  style={{ background: isUpdating ? '#aaa' : GREEN }}
+                  onMouseEnter={e => { if (!isUpdating) (e.currentTarget as HTMLElement).style.background = GREEN_D; }}
+                  onMouseLeave={e => { if (!isUpdating) (e.currentTarget as HTMLElement).style.background = GREEN; }}
+                >
+                  {isUpdating ? (
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <><ChevronRight className="w-5 h-5" />{next.label}</>
+                  )}
+                </button>
+              </>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
@@ -796,66 +545,242 @@ function OrderDetail({
 // ─── ItemRow ─────────────────────────────────────────────────────────────────
 
 function ItemRow({ item, currency }: { item: OrderItem; currency: string }) {
+  const raw = item as any;
+
+  const modifiers: string[] = [];
+  if (item.variant?.name) modifiers.push(item.variant.name);
+  const extras: any[] = item.extras ?? raw.order_item_extras ?? [];
+  for (const ex of extras) {
+    const n = ex.extra?.name ?? ex.product_extras?.name;
+    if (n) modifiers.push(n);
+  }
+  const mods: any[] = raw.order_item_modifiers ?? [];
+  for (const m of mods) {
+    if (m.option_name) modifiers.push(m.option_name);
+  }
+
   return (
-    <div className="flex items-start gap-3 py-2.5 border-b border-gray-800/40 last:border-0">
-      {/* Qty badge */}
-      <div className="w-7 h-7 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center flex-shrink-0">
-        <span className="text-xs font-extrabold text-white">{item.qty}</span>
-      </div>
+    <div className="flex items-start gap-3 py-3 border-b border-[#F0F0F0] last:border-0">
+      {/* Qty */}
+      <span className="flex-none text-sm font-black text-[#111111] min-w-[24px]">
+        {item.qty}×
+      </span>
 
       {/* Details */}
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-semibold leading-tight">
+        <p className="text-[#111111] text-sm font-semibold leading-tight">
           {item.product?.name ?? '—'}
         </p>
-        {item.variant && (
-          <p className="text-gray-500 text-xs mt-0.5">› {item.variant.name}</p>
-        )}
-        {((item as any).order_item_extras ?? []).map((ex: any, i: number) => (
-          <p key={i} className="text-gray-600 text-xs">+ {ex.product_extras?.name}</p>
-        ))}
-        {((item as any).order_item_modifiers ?? []).map((m: any, i: number) => (
-          <p key={i} className="text-gray-600 text-xs">• {m.option_name}</p>
+        {modifiers.map((m, i) => (
+          <p key={i} className="text-[#666666] text-xs mt-0.5 leading-snug">
+            — {m}
+          </p>
         ))}
         {item.notes && (
-          <p className="text-amber-400/70 text-xs mt-0.5 italic">{item.notes}</p>
+          <p className="text-amber-600 text-xs mt-0.5 italic">★ {item.notes}</p>
         )}
       </div>
 
-      {/* Line total */}
-      <span className="text-gray-300 text-sm font-bold flex-none">
-        {formatCurrency(item.line_total, currency)}
+      {/* Price */}
+      <span className="flex-none text-sm font-bold text-[#111111]">
+        {fmt(item.line_total ?? item.unit_price * item.qty, currency)}
       </span>
     </div>
   );
 }
 
-// ─── ToggleChip ───────────────────────────────────────────────────────────────
+// ─── QueueCard ───────────────────────────────────────────────────────────────
 
-function ToggleChip({ label, active, activeColor, title, onClick }: {
-  label: string; active: boolean; activeColor: string; title: string; onClick: () => void;
-}) {
+function QueueCard({ order, currency, onClick }: { order: Order; currency: string; onClick: () => void }) {
+  const mins  = elapsed(order.created_at);
+  const label = order.status === 'pending' ? 'Nueva' : ORDER_TYPES[order.order_type ?? 'dine_in'] ?? '';
+
   return (
     <button
       onClick={onClick}
-      title={title}
-      className={cn(
-        'px-2.5 py-1 rounded-md text-xs font-bold transition-all',
-        active ? `${activeColor} text-white` : 'text-gray-600 hover:text-gray-400'
-      )}
+      className="flex-none w-48 bg-white rounded-xl border-2 border-[#E8E8E8] hover:border-[#06C167] p-3 text-left transition-all active:scale-[0.97] shadow-sm"
     >
-      {label}
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[#111111] text-xs font-black">#{order.order_number}</span>
+        <span
+          className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+          style={{ background: '#06C16720', color: '#059254' }}
+        >
+          {label}
+        </span>
+      </div>
+      <p className="text-[#666666] text-xs truncate">{order.customer_name || 'Cliente'}</p>
+      <div className="flex items-center justify-between mt-1.5">
+        <span className="text-[#111111] text-sm font-bold">{fmt(order.total, currency)}</span>
+        <span className="text-[#999999] text-xs">{mins}m</span>
+      </div>
     </button>
   );
 }
 
-// ─── Spinner ─────────────────────────────────────────────────────────────────
+// ─── StatusBadge ─────────────────────────────────────────────────────────────
 
-function Spinner({ label }: { label: string }) {
+const STATUS_STYLE: Record<CounterStatus, { bg: string; text: string; label: string }> = {
+  NEW:       { bg: '#FFF7ED', text: '#C2410C', label: 'Nueva' },
+  ACCEPTED:  { bg: '#F0FDF4', text: '#166534', label: 'Aceptada' },
+  PREPARING: { bg: '#EFF6FF', text: '#1D4ED8', label: 'Preparando' },
+  READY:     { bg: '#F0FDF4', text: '#059669', label: 'Lista' },
+  COMPLETED: { bg: '#F9FAFB', text: '#6B7280', label: 'Completada' },
+  REJECTED:  { bg: '#FFF1F2', text: '#BE123C', label: 'Rechazada' },
+};
+
+function StatusBadge({ status }: { status: CounterStatus }) {
+  const s = STATUS_STYLE[status];
   return (
-    <span className="flex items-center gap-2">
-      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-      {label}
+    <span
+      className="text-xs font-bold px-3 py-1 rounded-full"
+      style={{ background: s.bg, color: s.text }}
+    >
+      {s.label}
     </span>
+  );
+}
+
+function CompletedBadge({ status }: { status: CounterStatus }) {
+  const s = STATUS_STYLE[status];
+  return (
+    <div
+      className="w-full h-12 rounded-xl flex items-center justify-center gap-2"
+      style={{ background: s.bg }}
+    >
+      {status === 'COMPLETED'
+        ? <><Check className="w-4 h-4" style={{ color: s.text }} /><span className="text-sm font-bold" style={{ color: s.text }}>Completada</span></>
+        : <><XCircle className="w-4 h-4" style={{ color: s.text }} /><span className="text-sm font-bold" style={{ color: s.text }}>Rechazada</span></>
+      }
+    </div>
+  );
+}
+
+// ─── IdleState ────────────────────────────────────────────────────────────────
+
+function IdleState({ restaurantName }: { restaurantName: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 gap-4">
+      <div
+        className="w-20 h-20 rounded-full flex items-center justify-center"
+        style={{ background: GREEN + '15' }}
+      >
+        <ChefHat className="w-10 h-10" style={{ color: GREEN }} />
+      </div>
+      <div className="text-center">
+        <p className="text-[#111111] text-xl font-extrabold">{restaurantName}</p>
+        <p className="text-[#666666] text-base mt-1">Esperando órdenes…</p>
+        <p className="text-[#999999] text-sm mt-0.5 flex items-center justify-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: GREEN }} />
+          Conectado en tiempo real
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── AutoAcceptPanel ──────────────────────────────────────────────────────────
+
+function AutoAcceptPanel({ config, onClose }: { config: AutoAcceptConfig; onClose: () => void }) {
+  const [local, setLocal] = useState(config);
+
+  const save = () => {
+    AutoAcceptService.update(local);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-end p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-80 overflow-hidden"
+        onClick={e => e.stopPropagation()}
+        style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.2)' }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#E8E8E8]">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4" style={{ color: GREEN }} />
+            <span className="text-[#111111] font-bold text-sm">Auto-Accept</span>
+          </div>
+          <button onClick={onClose} className="text-[#999999] hover:text-[#111111] transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Fields */}
+        <div className="px-5 py-4 space-y-4">
+          {/* Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[#111111] text-sm font-semibold">Activar auto-accept</p>
+              <p className="text-[#999999] text-xs">Acepta órdenes automáticamente</p>
+            </div>
+            <button
+              onClick={() => setLocal(p => ({ ...p, enabled: !p.enabled }))}
+              className="w-11 h-6 rounded-full flex items-center px-0.5 transition-colors"
+              style={{ background: local.enabled ? GREEN : '#E0E0E0' }}
+            >
+              <span
+                className="w-5 h-5 rounded-full bg-white shadow-sm transition-transform"
+                style={{ transform: local.enabled ? 'translateX(20px)' : 'translateX(0)' }}
+              />
+            </button>
+          </div>
+
+          {/* Max orders */}
+          <div>
+            <label className="text-[#111111] text-xs font-semibold block mb-1.5">
+              Máx. órdenes simultáneas
+            </label>
+            <input
+              type="number"
+              value={local.maxConcurrentOrders}
+              min={1} max={50}
+              onChange={e => setLocal(p => ({ ...p, maxConcurrentOrders: Number(e.target.value) }))}
+              className="w-full h-10 border border-[#E0E0E0] rounded-lg px-3 text-sm text-[#111111] focus:outline-none focus:border-[#06C167]"
+            />
+          </div>
+
+          {/* Min value */}
+          <div>
+            <label className="text-[#111111] text-xs font-semibold block mb-1.5">
+              Valor mínimo de orden
+            </label>
+            <input
+              type="number"
+              value={local.minOrderValue}
+              min={0}
+              onChange={e => setLocal(p => ({ ...p, minOrderValue: Number(e.target.value) }))}
+              className="w-full h-10 border border-[#E0E0E0] rounded-lg px-3 text-sm text-[#111111] focus:outline-none focus:border-[#06C167]"
+            />
+          </div>
+
+          {/* Default ETA */}
+          <div>
+            <label className="text-[#111111] text-xs font-semibold block mb-1.5">
+              ETA por defecto (minutos)
+            </label>
+            <input
+              type="number"
+              value={local.defaultEtaMinutes}
+              min={1} max={120}
+              onChange={e => setLocal(p => ({ ...p, defaultEtaMinutes: Number(e.target.value) }))}
+              className="w-full h-10 border border-[#E0E0E0] rounded-lg px-3 text-sm text-[#111111] focus:outline-none focus:border-[#06C167]"
+            />
+          </div>
+        </div>
+
+        {/* Save */}
+        <div className="px-5 pb-5">
+          <button
+            onClick={save}
+            className="w-full h-11 rounded-xl text-white text-sm font-bold transition-all active:scale-[0.98]"
+            style={{ background: GREEN }}
+          >
+            Guardar configuración
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
