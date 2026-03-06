@@ -39,13 +39,16 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
   // Regular client only needed for auth.getUser() to detect if viewer is the owner
   const authClient = createClient();
 
-  const { data: restaurant } = await db
+  const { data: restaurant, error: restaurantError } = await db
     .from('restaurants')
     .select('id, name, slug, owner_user_id, timezone, currency, locale, available_locales, logo_url, cover_image_url, description, address, phone, email, website, custom_domain, operating_hours, notification_whatsapp, notification_email, notifications_enabled, order_types_enabled, payment_methods_enabled, estimated_delivery_minutes, delivery_fee, latitude, longitude, stripe_account_id, stripe_onboarding_complete, is_active, created_at')
     .eq('slug', slug)
     .single();
 
-  if (!restaurant) return null;
+  if (restaurantError || !restaurant) {
+    console.error('[menu-data] Restaurant not found', { slug, error: restaurantError?.message, code: restaurantError?.code });
+    return null;
+  }
 
   // Parallelize all data fetching: subscription, categories, products, auth, reviews, modifiers
   const [subResult, { data: categories }, { data: products }, { data: { user } }, { data: reviewRows }] = await Promise.all([

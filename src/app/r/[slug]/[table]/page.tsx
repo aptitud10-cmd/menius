@@ -57,7 +57,10 @@ export default async function TableMenuPage({ params }: PageProps) {
         products={data.products}
         tableName={tableName}
         locale={data.locale}
+        availableLocales={data.availableLocales}
         reviewStats={data.reviewStats}
+        recentReviews={data.recentReviews}
+        limitedMode={data.limitedMode ?? null}
       />
     </>
   );

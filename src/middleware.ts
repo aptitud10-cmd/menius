@@ -73,7 +73,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  const isDashboard = path.startsWith('/app') || path.startsWith('/kds');
+  const isDashboard = path.startsWith('/app') || path.startsWith('/kds') || path.startsWith('/counter');
   const isAdmin = path.startsWith('/admin');
   const isOnboarding = path.startsWith('/onboarding');
   const isAuthPage = path === '/login' || path === '/signup';
@@ -219,7 +219,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/app/:path*', '/kds/:path*', '/onboarding/:path*', '/login', '/signup', '/auth/callback', '/admin', '/admin/:path*',
+    '/app/:path*', '/kds/:path*', '/counter', '/onboarding/:path*', '/login', '/signup', '/auth/callback', '/admin', '/admin/:path*',
     '/((?!_next/static|_next/image|favicon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
   ],
 };
