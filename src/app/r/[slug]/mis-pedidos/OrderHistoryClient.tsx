@@ -107,7 +107,7 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
       {/* Header */}
       <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
         <Link
-          href={`/r/${restaurantSlug}`}
+          href={`/${restaurantSlug}`}
           className="p-2 -ml-1 rounded-xl hover:bg-gray-100 transition-colors text-gray-500"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -165,7 +165,7 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
                 No encontramos pedidos con ese email en {restaurantName}.
               </p>
               <Link
-                href={`/r/${restaurantSlug}`}
+                href={`/${restaurantSlug}`}
                 className="mt-4 inline-block px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
               >
                 Hacer un pedido
@@ -189,7 +189,7 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                       <div>
                         <Link
-                          href={`/r/${restaurantSlug}/orden/${order.order_number}`}
+                          href={`/${restaurantSlug}/orden/${order.order_number}`}
                           className="text-sm font-bold text-gray-900 hover:text-emerald-600 transition-colors"
                         >
                           #{order.order_number}

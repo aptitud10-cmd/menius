@@ -4,7 +4,7 @@ import { demoRestaurant } from '@/lib/demo-data';
 import { grillHouseRestaurant } from '@/lib/demo-data-en';
 import { CheckoutPageClient } from '@/components/public/CheckoutPageClient';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 const DEMO_RESTAURANTS: Record<string, { restaurant: typeof demoRestaurant; locale: 'es' | 'en' }> = {
   demo: { restaurant: demoRestaurant, locale: 'es' },

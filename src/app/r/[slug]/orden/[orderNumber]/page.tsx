@@ -60,7 +60,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
               Tu pago fue procesado exitosamente. El restaurante ha recibido tu pedido.
             </p>
             <Link
-              href={`/r/${params.slug}`}
+              href={`/${params.slug}`}
               className="block w-full py-3.5 rounded-2xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-colors"
             >
               Volver al menú

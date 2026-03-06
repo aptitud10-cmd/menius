@@ -15,13 +15,12 @@ export default function OrderTrackingError({
   const searchParams = useSearchParams();
   const paid = searchParams.get('paid') === 'true';
 
-  // Extract slug from URL path: /r/[slug]/orden/...
+  // Extract slug from URL path: /[slug]/orden/[orderNumber]
   const [slug, setSlug] = useState('');
   useEffect(() => {
     const parts = window.location.pathname.split('/');
-    // /r/[slug]/orden/[orderNumber]
-    const idx = parts.indexOf('r');
-    if (idx !== -1 && parts[idx + 1]) setSlug(parts[idx + 1]);
+    const idx = parts.indexOf('orden');
+    if (idx > 0 && parts[idx - 1]) setSlug(parts[idx - 1]);
   }, []);
 
   if (paid) {
@@ -59,7 +58,7 @@ export default function OrderTrackingError({
 
             {slug && (
               <Link
-                href={`/r/${slug}`}
+                href={`/${slug}`}
                 className="block w-full py-3.5 rounded-2xl bg-white border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
               >
                 <span className="flex items-center justify-center gap-2">
@@ -95,7 +94,7 @@ export default function OrderTrackingError({
         </button>
         {slug && (
           <Link
-            href={`/r/${slug}`}
+            href={`/${slug}`}
             className="px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-colors"
           >
             Volver al menú

@@ -1,5 +1,5 @@
 import { ImageResponse } from 'next/og';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { demoRestaurant } from '@/lib/demo-data';
 import { grillHouseRestaurant } from '@/lib/demo-data-en';
 
@@ -20,7 +20,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
 
   if (!demo) {
     try {
-      const supabase = createClient();
+      const supabase = createAdminClient();
       const { data } = await supabase
         .from('restaurants')
         .select('name, description')
