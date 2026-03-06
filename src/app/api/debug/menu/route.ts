@@ -12,25 +12,37 @@ export async function GET(request: Request) {
   try {
     const db = createAdminClient();
 
-    // Step 1: basic restaurant query (same as fetchMenuData)
-    const { data: restaurant, error: restaurantError } = await db
+    // Step 1a: simple query (basic columns)
+    const { data: restaurantSimple, error: simpleError } = await db
       .from('restaurants')
-      .select('id, name, slug, owner_user_id, is_active, locale, created_at')
+      .select('id, name, slug, is_active')
       .eq('slug', slug)
       .single();
 
-    steps.step1_restaurant = restaurant ?? null;
-    steps.step1_error = restaurantError ? { message: restaurantError.message, code: restaurantError.code } : null;
+    steps.step1a_simple = restaurantSimple ?? null;
+    steps.step1a_error = simpleError ? { message: simpleError.message, code: simpleError.code } : null;
 
-    if (restaurantError || !restaurant) {
-      return NextResponse.json({ ok: false, steps, reason: 'restaurant not found' });
+    // Step 1b: FULL query — same exact SELECT as fetchMenuData (this is the real test)
+    const { data: restaurant, error: restaurantError } = await db
+      .from('restaurants')
+      .select('id, name, slug, owner_user_id, timezone, currency, locale, available_locales, logo_url, cover_image_url, description, address, phone, email, website, custom_domain, operating_hours, notification_whatsapp, notification_email, notifications_enabled, order_types_enabled, payment_methods_enabled, estimated_delivery_minutes, delivery_fee, latitude, longitude, stripe_account_id, stripe_onboarding_complete, is_active, created_at')
+      .eq('slug', slug)
+      .single();
+
+    steps.step1b_full_query = restaurant ? 'OK' : null;
+    steps.step1b_error = restaurantError ? { message: restaurantError.message, code: restaurantError.code } : null;
+
+    if (simpleError || !restaurantSimple) {
+      return NextResponse.json({ ok: false, steps, reason: 'restaurant not found even with simple query' });
     }
+
+    const rid = restaurantSimple.id;
 
     // Step 2: categories
     const { data: categories, error: catError } = await db
       .from('categories')
       .select('id, name, is_active')
-      .eq('restaurant_id', restaurant.id)
+      .eq('restaurant_id', rid)
       .eq('is_active', true)
       .limit(5);
 
@@ -41,7 +53,7 @@ export async function GET(request: Request) {
     const { data: products, error: prodError } = await db
       .from('products')
       .select('id, name, is_active')
-      .eq('restaurant_id', restaurant.id)
+      .eq('restaurant_id', rid)
       .eq('is_active', true)
       .limit(5);
 
@@ -52,7 +64,7 @@ export async function GET(request: Request) {
     const { data: reviews, error: revError } = await db
       .from('reviews')
       .select('id')
-      .eq('restaurant_id', restaurant.id)
+      .eq('restaurant_id', rid)
       .limit(1);
 
     steps.step4_reviews_ok = !revError;
@@ -62,7 +74,7 @@ export async function GET(request: Request) {
     const { data: sub, error: subError } = await db
       .from('subscriptions')
       .select('status')
-      .eq('restaurant_id', restaurant.id)
+      .eq('restaurant_id', rid)
       .maybeSingle();
 
     steps.step5_subscription = sub ?? null;
@@ -71,7 +83,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       ok: true,
       slug,
-      restaurant: { id: restaurant.id, name: restaurant.name, is_active: restaurant.is_active },
+      restaurant: { id: restaurantSimple.id, name: restaurantSimple.name, is_active: restaurantSimple.is_active },
       steps,
     });
   } catch (e: unknown) {

@@ -39,7 +39,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
 
     const { data: restaurant, error: restaurantError } = await db
       .from('restaurants')
-      .select('id, name, slug, owner_user_id, timezone, currency, locale, available_locales, logo_url, cover_image_url, description, address, phone, email, website, custom_domain, operating_hours, notification_whatsapp, notification_email, notifications_enabled, order_types_enabled, payment_methods_enabled, estimated_delivery_minutes, delivery_fee, latitude, longitude, stripe_account_id, stripe_onboarding_complete, is_active, created_at')
+      .select('*')
       .eq('slug', slug)
       .single();
 
