@@ -567,7 +567,7 @@ function OrderHistorySaver({ order, restaurantSlug, restaurantName }: { order: a
       {showHistory && (
         <div className="space-y-2 mt-1">
           {history.map((h: any) => (
-            <Link key={h.id} href={`/r/${restaurantSlug}/orden/${h.number}`}
+            <Link key={h.id} href={`/${restaurantSlug}/orden/${h.number}`}
               className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
               <div>
                 <p className="text-sm font-medium">#{h.number}</p>
