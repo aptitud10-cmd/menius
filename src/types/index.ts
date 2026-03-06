@@ -159,6 +159,7 @@ export interface Order {
   delivery_address?: string;
   created_at: string;
   updated_at?: string;
+  estimated_ready_minutes?: number;
   // joined
   items?: OrderItem[];
   table?: Table;

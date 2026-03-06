@@ -77,6 +77,46 @@ function playBeep() {
   } catch {/* AudioContext unavailable */}
 }
 
+function playUrgentBeep() {
+  if (typeof window === 'undefined') return;
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    [440, 480, 440].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'square';
+      const t = ctx.currentTime + i * 0.18;
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+      osc.start(t);
+      osc.stop(t + 0.15);
+    });
+  } catch {/* AudioContext unavailable */}
+}
+
+function requestPushPermission() {
+  if (typeof window === 'undefined') return;
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function sendPushNotification(title: string, body: string) {
+  if (typeof window === 'undefined') return;
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  try {
+    new Notification(title, { body, icon: '/favicon.ico', tag: 'menius-order' });
+  } catch {/* notification failed */}
+}
+
+// Minutes elapsed since SLA breach threshold
+const SLA_WARN_MINS = 3;
+
 // ─── CounterView ─────────────────────────────────────────────────────────────
 
 interface CounterViewProps {
@@ -95,13 +135,17 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const [showSettings, setShowSettings]   = useState(false);
   const [flashNew, setFlashNew]           = useState(false);
   const [, tick]                          = useState(0);
-  const soundRef = useRef(true);
+  const soundRef    = useRef(true);
+  const urgentRef   = useRef<Set<string>>(new Set());
 
-  // Refresh elapsed timers every 30 s
+  // Tick every second for countdown + SLA timer
   useEffect(() => {
-    const t = setInterval(() => tick(n => n + 1), 30_000);
+    const t = setInterval(() => tick(n => n + 1), 1_000);
     return () => clearInterval(t);
   }, []);
+
+  // Request browser push permission on first render
+  useEffect(() => { requestPushPermission(); }, []);
 
   // Sync AutoAcceptService config changes
   useEffect(() => {
@@ -110,11 +154,15 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
 
   const handleNewOrder = useCallback((order: Order) => {
     if (soundRef.current) playBeep();
+    sendPushNotification(
+      'Nueva orden · ' + restaurantName,
+      `${order.customer_name || 'Cliente'} · #${order.order_number}`
+    );
     setFlashNew(true);
     setTimeout(() => setFlashNew(false), 3_000);
     // Auto-open if no active order selected
     setActiveId(prev => prev ?? order.id);
-  }, []);
+  }, [restaurantName]);
 
   const { orders } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
@@ -130,6 +178,21 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const displayed = activeId
     ? (orders.find(o => o.id === activeId) ?? queue[0] ?? inProgress[0] ?? null)
     : (queue[0] ?? inProgress[0] ?? null);
+
+  // SLA: beep again when a pending order crosses the warn threshold
+  useEffect(() => {
+    queue.forEach(o => {
+      const mins = elapsed(o.created_at);
+      if (mins >= SLA_WARN_MINS && !urgentRef.current.has(o.id)) {
+        urgentRef.current.add(o.id);
+        playUrgentBeep();
+        sendPushNotification(
+          '⚠️ Orden sin atender · ' + restaurantName,
+          `#${o.order_number} lleva más de ${SLA_WARN_MINS} min esperando`
+        );
+      }
+    });
+  });
 
   // Auto-accept logic: run whenever queue changes
   useEffect(() => {
@@ -225,6 +288,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
             eta={eta}
             editingEta={editingEta}
             isUpdating={isUpdating}
+            isUrgent={displayed.status === 'pending' && elapsed(displayed.created_at) >= SLA_WARN_MINS}
             onSetEta={setEta}
             onToggleEditEta={() => setEditingEta(e => !e)}
             onAction={handleAction}
@@ -251,6 +315,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
                     key={o.id}
                     order={o}
                     currency={currency}
+                    isUrgent={elapsed(o.created_at) >= SLA_WARN_MINS}
                     onClick={() => setActiveId(o.id)}
                   />
                 ))}
@@ -270,6 +335,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
                   key={o.id}
                   order={o}
                   currency={currency}
+                  isUrgent={false}
                   onClick={() => setActiveId(o.id)}
                 />
               ))}
@@ -284,7 +350,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
 // ─── OrderCard ────────────────────────────────────────────────────────────────
 
 function OrderCard({
-  order, currency, eta, editingEta, isUpdating,
+  order, currency, eta, editingEta, isUpdating, isUrgent,
   onSetEta, onToggleEditEta, onAction, onDismiss,
 }: {
   order: Order;
@@ -292,6 +358,7 @@ function OrderCard({
   eta: number;
   editingEta: boolean;
   isUpdating: boolean;
+  isUrgent: boolean;
   onSetEta: (v: number) => void;
   onToggleEditEta: () => void;
   onAction: (order: Order, to: CounterStatus) => void;
@@ -302,6 +369,12 @@ function OrderCard({
   const isComplete = sm.isTerminal;
   const mins       = elapsed(order.created_at);
   const totalQty   = (order.items ?? []).reduce((s, i) => s + i.qty, 0);
+
+  // Countdown for accepted/preparing orders
+  const etaMins     = order.estimated_ready_minutes;
+  const countdown   = etaMins != null ? etaMins - mins : null;
+  const isLate      = countdown !== null && countdown <= 0;
+  const headerColor = isPending && isUrgent ? '#EF4444' : GREEN;
 
   const subtotal = (order.items ?? []).reduce(
     (s, i) => s + (i.line_total ?? i.unit_price * i.qty),
@@ -323,10 +396,13 @@ function OrderCard({
       className="w-full max-w-3xl bg-white rounded-2xl overflow-hidden shadow-xl"
       style={{ boxShadow: '0 4px 32px rgba(0,0,0,0.12)' }}
     >
-      {/* ── GREEN HEADER ── */}
+      {/* ── HEADER ── */}
       <div
-        className="flex items-center justify-between px-5 py-3.5"
-        style={{ background: GREEN }}
+        className={cn(
+          'flex items-center justify-between px-5 py-3.5 transition-colors duration-500',
+          isPending && isUrgent ? 'animate-pulse' : ''
+        )}
+        style={{ background: headerColor }}
       >
         <div className="flex items-center gap-3 min-w-0">
           <button
@@ -351,6 +427,11 @@ function OrderCard({
               <span className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />{mins} min
               </span>
+              {isPending && isUrgent && (
+                <span className="bg-white/25 text-white font-bold px-1.5 py-0.5 rounded-full text-[10px] uppercase tracking-wide">
+                  ¡Urgente!
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -425,44 +506,81 @@ function OrderCard({
 
           {/* Ready time block */}
           <div className="flex-1 flex flex-col items-center justify-center px-5 py-6 border-b border-[#E8E8E8]">
-            <p className="text-[#666666] text-xs font-bold uppercase tracking-widest mb-3">
-              Ready time
-            </p>
-            <p className="font-black leading-none" style={{ fontSize: 72, color: '#111111' }}>
-              {isPending ? eta : mins}
-            </p>
-            <p className="text-[#666666] text-sm font-semibold mt-1">min</p>
+            {isPending ? (
+              <>
+                <p className="text-[#666666] text-xs font-bold uppercase tracking-widest mb-3">
+                  Ready time
+                </p>
+                <p className="font-black leading-none" style={{ fontSize: 72, color: '#111111' }}>
+                  {eta}
+                </p>
+                <p className="text-[#666666] text-sm font-semibold mt-1">min</p>
 
-            {/* ETA edit — only when pending */}
-            {isPending && (
-              <button
-                onClick={onToggleEditEta}
-                className="mt-3 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#E0E0E0] text-[#666666] hover:border-gray-400 hover:text-[#111111] transition-colors"
-              >
-                <Edit2 className="w-3 h-3" />
-                {editingEta ? 'Cerrar' : 'Editar'}
-              </button>
-            )}
+                {/* ETA edit */}
+                <button
+                  onClick={onToggleEditEta}
+                  className="mt-3 flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#E0E0E0] text-[#666666] hover:border-gray-400 hover:text-[#111111] transition-colors"
+                >
+                  <Edit2 className="w-3 h-3" />
+                  {editingEta ? 'Cerrar' : 'Editar'}
+                </button>
 
-            {/* ETA chip grid */}
-            {isPending && editingEta && (
-              <div className="mt-3 grid grid-cols-4 gap-1.5 w-full">
-                {ETA_OPTS.map(v => (
-                  <button
-                    key={v}
-                    onClick={() => { onSetEta(v); onToggleEditEta(); }}
-                    className={cn(
-                      'py-1.5 rounded-lg text-xs font-bold border transition-all',
-                      eta === v
-                        ? 'text-white border-transparent'
-                        : 'bg-white border-[#E0E0E0] text-[#666666] hover:border-gray-400'
-                    )}
-                    style={eta === v ? { background: GREEN, borderColor: GREEN } : {}}
-                  >
-                    {v}m
-                  </button>
-                ))}
-              </div>
+                {/* ETA chip grid */}
+                {editingEta && (
+                  <div className="mt-3 grid grid-cols-4 gap-1.5 w-full">
+                    {ETA_OPTS.map(v => (
+                      <button
+                        key={v}
+                        onClick={() => { onSetEta(v); onToggleEditEta(); }}
+                        className={cn(
+                          'py-1.5 rounded-lg text-xs font-bold border transition-all',
+                          eta === v
+                            ? 'text-white border-transparent'
+                            : 'bg-white border-[#E0E0E0] text-[#666666] hover:border-gray-400'
+                        )}
+                        style={eta === v ? { background: GREEN, borderColor: GREEN } : {}}
+                      >
+                        {v}m
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : countdown !== null ? (
+              /* ETA countdown for accepted/preparing orders */
+              <>
+                <p className="text-[#666666] text-xs font-bold uppercase tracking-widest mb-3">
+                  {isLate ? 'Atrasado' : 'Tiempo restante'}
+                </p>
+                <p
+                  className="font-black leading-none"
+                  style={{ fontSize: 72, color: isLate ? '#EF4444' : '#111111' }}
+                >
+                  {isLate ? '0' : countdown}
+                </p>
+                <p
+                  className="text-sm font-semibold mt-1"
+                  style={{ color: isLate ? '#EF4444' : '#666666' }}
+                >
+                  {isLate ? '¡TARDE!' : 'min'}
+                </p>
+                {isLate && (
+                  <span className="mt-2 text-[10px] font-bold text-red-400 animate-pulse">
+                    {Math.abs(countdown)} min de retraso
+                  </span>
+                )}
+              </>
+            ) : (
+              /* Fallback: elapsed time */
+              <>
+                <p className="text-[#666666] text-xs font-bold uppercase tracking-widest mb-3">
+                  Tiempo activo
+                </p>
+                <p className="font-black leading-none" style={{ fontSize: 72, color: '#111111' }}>
+                  {mins}
+                </p>
+                <p className="text-[#666666] text-sm font-semibold mt-1">min</p>
+              </>
             )}
           </div>
 
@@ -591,28 +709,36 @@ function ItemRow({ item, currency }: { item: OrderItem; currency: string }) {
 
 // ─── QueueCard ───────────────────────────────────────────────────────────────
 
-function QueueCard({ order, currency, onClick }: { order: Order; currency: string; onClick: () => void }) {
+function QueueCard({ order, currency, isUrgent, onClick }: { order: Order; currency: string; isUrgent: boolean; onClick: () => void }) {
   const mins  = elapsed(order.created_at);
   const label = order.status === 'pending' ? 'Nueva' : ORDER_TYPES[order.order_type ?? 'dine_in'] ?? '';
 
   return (
     <button
       onClick={onClick}
-      className="flex-none w-48 bg-white rounded-xl border-2 border-[#E8E8E8] hover:border-[#06C167] p-3 text-left transition-all active:scale-[0.97] shadow-sm"
+      className={cn(
+        'flex-none w-48 bg-white rounded-xl border-2 p-3 text-left transition-all active:scale-[0.97] shadow-sm',
+        isUrgent
+          ? 'border-red-400 hover:border-red-500 animate-pulse'
+          : 'border-[#E8E8E8] hover:border-[#06C167]'
+      )}
     >
       <div className="flex items-center justify-between mb-1">
         <span className="text-[#111111] text-xs font-black">#{order.order_number}</span>
         <span
           className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-          style={{ background: '#06C16720', color: '#059254' }}
+          style={isUrgent
+            ? { background: '#FEE2E2', color: '#EF4444' }
+            : { background: '#06C16720', color: '#059254' }
+          }
         >
-          {label}
+          {isUrgent ? '¡Urgente!' : label}
         </span>
       </div>
       <p className="text-[#666666] text-xs truncate">{order.customer_name || 'Cliente'}</p>
       <div className="flex items-center justify-between mt-1.5">
         <span className="text-[#111111] text-sm font-bold">{fmt(order.total, currency)}</span>
-        <span className="text-[#999999] text-xs">{mins}m</span>
+        <span className={cn('text-xs', isUrgent ? 'text-red-500 font-bold' : 'text-[#999999]')}>{mins}m</span>
       </div>
     </button>
   );
@@ -768,6 +894,21 @@ function AutoAcceptPanel({ config, onClose }: { config: AutoAcceptConfig; onClos
               className="w-full h-10 border border-[#E0E0E0] rounded-lg px-3 text-sm text-[#111111] focus:outline-none focus:border-[#06C167]"
             />
           </div>
+        </div>
+
+        {/* Push notifications */}
+        <div className="px-5 pb-3">
+          <p className="text-[#111111] text-xs font-semibold mb-1.5">Notificaciones del navegador</p>
+          <button
+            onClick={requestPushPermission}
+            className="w-full h-9 rounded-lg border border-[#E0E0E0] bg-[#FAFAFA] text-[#666666] text-xs font-semibold hover:border-gray-400 hover:text-[#111111] transition-all"
+          >
+            {typeof window !== 'undefined' && 'Notification' in window
+              ? Notification.permission === 'granted'
+                ? '✓ Notificaciones activadas'
+                : 'Activar notificaciones'
+              : 'No disponible en este navegador'}
+          </button>
         </div>
 
         {/* Save */}
