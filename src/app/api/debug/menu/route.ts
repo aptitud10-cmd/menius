@@ -38,27 +38,29 @@ export async function GET(request: Request) {
 
     const rid = restaurantSimple.id;
 
-    // Step 2: categories
+    // Step 2: categories with sort_order (same as fetchMenuData)
     const { data: categories, error: catError } = await db
       .from('categories')
-      .select('id, name, is_active')
+      .select('*')
       .eq('restaurant_id', rid)
       .eq('is_active', true)
-      .limit(5);
+      .order('sort_order');
 
     steps.step2_categories_count = categories?.length ?? 0;
     steps.step2_error = catError ? catError.message : null;
+    steps.step2_columns = categories?.[0] ? Object.keys(categories[0]) : [];
 
-    // Step 3: products
+    // Step 3: products with sort_order (same as fetchMenuData)
     const { data: products, error: prodError } = await db
       .from('products')
-      .select('id, name, is_active')
+      .select('*')
       .eq('restaurant_id', rid)
       .eq('is_active', true)
-      .limit(5);
+      .order('sort_order');
 
     steps.step3_products_count = products?.length ?? 0;
     steps.step3_error = prodError ? prodError.message : null;
+    steps.step3_columns = products?.[0] ? Object.keys(products[0]) : [];
 
     // Step 4: reviews table (check if it exists)
     const { data: reviews, error: revError } = await db
