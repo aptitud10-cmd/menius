@@ -1,0 +1,30 @@
+{
+  "id": "/counter",
+  "name": "MENIUS Counter",
+  "short_name": "Counter",
+  "description": "Panel de recepción de órdenes para restaurantes.",
+  "start_url": "/counter",
+  "display": "standalone",
+  "background_color": "#F2F2F2",
+  "theme_color": "#06C167",
+  "orientation": "any",
+  "scope": "/",
+  "categories": ["food", "business"],
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "/icons/icon-72.svg",  "sizes": "72x72",   "type": "image/svg+xml" },
+    { "src": "/icons/icon-96.svg",  "sizes": "96x96",   "type": "image/svg+xml" },
+    { "src": "/icons/icon-144.svg", "sizes": "144x144", "type": "image/svg+xml" },
+    { "src": "/icons/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "/icons/icon-384.svg", "sizes": "384x384", "type": "image/svg+xml" },
+    { "src": "/icons/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "KDS — Cocina",
+      "short_name": "KDS",
+      "url": "/kds",
+      "icons": [{ "src": "/icons/icon-96.svg", "sizes": "96x96" }]
+    }
+  ]
+}

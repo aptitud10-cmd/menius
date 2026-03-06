@@ -53,15 +53,21 @@
       "icons": [{ "src": "/icons/icon-96.svg", "sizes": "96x96" }]
     },
     {
-      "name": "Pedidos",
-      "short_name": "Pedidos",
-      "url": "/app/orders",
+      "name": "Counter",
+      "short_name": "Counter",
+      "url": "/counter",
       "icons": [{ "src": "/icons/icon-96.svg", "sizes": "96x96" }]
     },
     {
-      "name": "Menú",
-      "short_name": "Menú",
-      "url": "/app/menu/products",
+      "name": "KDS — Cocina",
+      "short_name": "KDS",
+      "url": "/kds",
+      "icons": [{ "src": "/icons/icon-96.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Pedidos",
+      "short_name": "Pedidos",
+      "url": "/app/orders",
       "icons": [{ "src": "/icons/icon-96.svg", "sizes": "96x96" }]
     }
   ]

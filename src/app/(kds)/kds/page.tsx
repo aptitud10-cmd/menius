@@ -24,8 +24,9 @@ export default async function KDSFullscreenPage() {
         )
       `)
       .eq('restaurant_id', restaurantId)
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
       .order('created_at', { ascending: false })
-      .limit(300),
+      .limit(200),
   ]);
 
   const mappedOrders = (orders ?? []).map((o: any) => ({
