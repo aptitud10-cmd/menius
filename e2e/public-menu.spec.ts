@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Public Menu — Demo Restaurant', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/r/demo');
+    await page.goto('/demo');
     await page.waitForLoadState('networkidle');
   });
 

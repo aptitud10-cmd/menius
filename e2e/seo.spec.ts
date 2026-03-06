@@ -20,7 +20,7 @@ test.describe('SEO & Meta Tags', () => {
   });
 
   test('demo menu has structured data (JSON-LD)', async ({ page }) => {
-    await page.goto('/r/demo');
+    await page.goto('/demo');
     const jsonLd = await page.locator('script[type="application/ld+json"]').textContent();
     expect(jsonLd).toBeTruthy();
 
@@ -30,7 +30,7 @@ test.describe('SEO & Meta Tags', () => {
   });
 
   test('demo menu has OG image', async ({ page }) => {
-    await page.goto('/r/demo');
+    await page.goto('/demo');
     const ogImage = await page.locator('meta[property="og:image"]').getAttribute('content');
     expect(ogImage).toBeTruthy();
     expect(ogImage).toContain('unsplash');

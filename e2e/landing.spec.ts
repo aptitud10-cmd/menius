@@ -38,10 +38,11 @@ test.describe('Landing Page', () => {
     await expect(page.locator('text=Carlos Ramírez').first()).toBeVisible();
   });
 
-  test('demo link navigates to /r/demo', async ({ page }) => {
+  test('demo link navigates to /demo', async ({ page }) => {
     await page.getByRole('link', { name: /demo en español/i }).first().click();
-    await page.waitForURL(/\/r\/demo/);
-    await expect(page).toHaveURL(/\/r\/demo/);
+    // /r/demo redirects permanently to /demo
+    await page.waitForURL(/\/demo/);
+    await expect(page).toHaveURL(/\/demo/);
   });
 
   test('has correct meta title', async ({ page }) => {
