@@ -64,13 +64,13 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
       ).then((r) => r.data, () => null),
       db
         .from('categories')
-        .select('id, restaurant_id, name, image_url, sort_order, is_active, translations, created_at, available_from, available_to')
+        .select('*')
         .eq('restaurant_id', restaurant.id)
         .eq('is_active', true)
         .order('sort_order'),
       db
         .from('products')
-        .select('*, product_variants(*), product_extras(*), modifier_groups(*, modifier_options(*))')
+        .select('*')
         .eq('restaurant_id', restaurant.id)
         .eq('is_active', true)
         .order('sort_order'),
