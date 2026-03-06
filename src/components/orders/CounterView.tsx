@@ -179,6 +179,11 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
         setActiveId(remaining[0]?.id ?? null);
         setEditingEta(false);
       }
+      // Auto-open WhatsApp when order marked READY and customer has phone
+      if (to === 'READY' && order.customer_phone) {
+        const msg = `Hola ${order.customer_name || 'cliente'}, tu orden #${order.order_number} está lista ✅ Puedes pasar a recogerla.`;
+        window.open(waLink(order.customer_phone, msg), '_blank');
+      }
     } finally {
       setIsUpdating(false);
     }
@@ -491,12 +496,36 @@ function OrderCard({
           </div>
 
           {/* Price summary */}
-          <div className="flex-none px-5 py-3 border-t border-[#EEEEEE] bg-[#FAFAFA]">
-            <div className="flex justify-between text-sm text-[#888888] mb-1">
+          <div className="flex-none px-5 py-3 border-t border-[#EEEEEE] bg-[#FAFAFA] space-y-1">
+            <div className="flex justify-between text-sm text-[#888888]">
               <span>Subtotal</span>
               <span>{fmt(subtotal, currency)}</span>
             </div>
-            <div className="flex justify-between items-center">
+            {(order.tax_amount ?? 0) > 0 && (
+              <div className="flex justify-between text-sm text-[#888888]">
+                <span>Impuestos</span>
+                <span>{fmt(order.tax_amount!, currency)}</span>
+              </div>
+            )}
+            {(order.delivery_fee ?? 0) > 0 && (
+              <div className="flex justify-between text-sm text-[#888888]">
+                <span>Envío</span>
+                <span>{fmt(order.delivery_fee!, currency)}</span>
+              </div>
+            )}
+            {(order.tip_amount ?? 0) > 0 && (
+              <div className="flex justify-between text-sm text-[#888888]">
+                <span>Propina</span>
+                <span>{fmt(order.tip_amount!, currency)}</span>
+              </div>
+            )}
+            {(order.discount_amount ?? 0) > 0 && (
+              <div className="flex justify-between text-sm" style={{ color: GREEN }}>
+                <span>Descuento</span>
+                <span>−{fmt(order.discount_amount!, currency)}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center pt-1 border-t border-[#E8E8E8]">
               <span className="text-[#111111] font-bold text-sm">Total</span>
               <span className="text-[#111111] font-black text-2xl">{fmt(order.total, currency)}</span>
             </div>

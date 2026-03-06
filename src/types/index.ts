@@ -154,6 +154,10 @@ export interface Order {
   customer_phone?: string;
   notes: string;
   total: number;
+  tax_amount?: number;
+  tip_amount?: number;
+  delivery_fee?: number;
+  discount_amount?: number;
   order_type?: OrderType;
   payment_method?: PaymentMethod;
   delivery_address?: string;
