@@ -1,4 +1,4 @@
-import { redirect, RedirectType } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 
 interface PageProps {
   params: { slug: string };
@@ -10,5 +10,5 @@ export default function LegacyMenuRedirect({ params, searchParams }: PageProps) 
   if (searchParams.table) qs.set('table', searchParams.table);
   if (searchParams.v) qs.set('v', searchParams.v);
   const query = qs.toString();
-  redirect(`/${params.slug}${query ? `?${query}` : ''}`, RedirectType.permanent);
+  permanentRedirect(`/${params.slug}${query ? `?${query}` : ''}`);
 }

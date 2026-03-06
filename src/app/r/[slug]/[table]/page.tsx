@@ -1,9 +1,9 @@
-import { redirect, RedirectType } from 'next/navigation';
+import { permanentRedirect } from 'next/navigation';
 
 interface PageProps {
   params: { slug: string; table: string };
 }
 
 export default function LegacyTableMenuRedirect({ params }: PageProps) {
-  redirect(`/${params.slug}?table=${params.table}`, RedirectType.permanent);
+  permanentRedirect(`/${params.slug}?table=${params.table}`);
 }
