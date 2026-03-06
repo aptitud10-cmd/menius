@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { Restaurant, Category, Product } from '@/types';
 
@@ -37,8 +36,6 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
   try {
     // Admin client bypasses RLS for public menu reads (server-side only, never exposed to client)
     const db = createAdminClient();
-    // Regular client only needed for auth.getUser() to detect if viewer is the owner
-    const authClient = createClient();
 
     const { data: restaurant, error: restaurantError } = await db
       .from('restaurants')
@@ -51,12 +48,11 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
       return null;
     }
 
-    // Parallelize all data fetching: subscription, categories, products, auth, reviews
+    // Parallelize all data fetching: subscription, categories, products, reviews
     const [
       subData,
       { data: categories },
       { data: products },
-      { data: authData },
       { data: reviewRows },
     ] = await Promise.all([
       Promise.resolve(
@@ -78,7 +74,6 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
         .eq('restaurant_id', restaurant.id)
         .eq('is_active', true)
         .order('sort_order'),
-      authClient.auth.getUser(),
       db
         .from('reviews')
         .select('id, customer_name, rating, comment, created_at')
@@ -87,8 +82,6 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
         .order('created_at', { ascending: false })
         .limit(50),
     ] as const);
-
-    const user = (authData as { user: { id: string } | null } | null)?.user ?? null;
 
     const DAILY_FREE_LIMIT = 3;
     let subscriptionExpired = false;
@@ -167,7 +160,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
       restaurant: restaurant as unknown as Restaurant,
       categories: (categories ?? []) as unknown as Category[],
       products: mappedProducts as unknown as Product[],
-      isOwner: !!user && user.id === restaurant.owner_user_id,
+      isOwner: false,
       locale: (restaurant.locale ?? 'es') as 'es' | 'en',
       availableLocales: (restaurant as any).available_locales ?? [(restaurant as any).locale ?? 'es'],
       reviewStats,
