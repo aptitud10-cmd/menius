@@ -49,7 +49,7 @@ const nextConfig = {
       {
         source: '/r/(.*)',
         headers: [
-          { key: 'Cache-Control', value: 'public, s-maxage=60, stale-while-revalidate=60' },
+          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },
         ],
       },
       {
