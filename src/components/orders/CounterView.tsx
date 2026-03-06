@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { X, MessageCircle, Mail, ChevronRight, Edit2, Check, XCircle, Clock, Printer, Settings, Zap, ChefHat, Bell } from 'lucide-react';
+import { X, MessageCircle, Mail, AtSign, ChevronRight, Edit2, Check, XCircle, Clock, Printer, Settings, Zap, ChefHat, Bell } from 'lucide-react';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { updateOrderStatus, updateOrderETA } from '@/lib/actions/restaurant';
 import { OrderStateMachine, type CounterStatus } from '@/lib/counter/OrderStateMachine';
@@ -425,7 +425,7 @@ function OrderCard({
 
         {/* Contact + status */}
         <div className="flex items-center gap-2 flex-none">
-          {/* WhatsApp — abre chat sin salir del counter */}
+          {/* WhatsApp */}
           {order.customer_phone && (
             <a href={waLink(order.customer_phone, `Hola ${order.customer_name || ''}`)}
               target="_blank" rel="noopener noreferrer"
@@ -434,13 +434,21 @@ function OrderCard({
               <MessageCircle className="w-4 h-4 text-white" />
             </a>
           )}
+          {/* SMS */}
+          {order.customer_phone && (
+            <a href={`sms:${order.customer_phone}?body=${encodeURIComponent(`Hola ${order.customer_name || 'cliente'}, tu orden #${order.order_number} está lista ✅`)}`}
+              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+              title="SMS">
+              <Mail className="w-4 h-4 text-white" />
+            </a>
+          )}
           {/* Email */}
-          {order.customer_email && (
+          {order.customer_email && !order.customer_phone && (
             <a href={`mailto:${order.customer_email}`}
               target="_blank" rel="noopener noreferrer"
               className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
               title="Email">
-              <Mail className="w-4 h-4 text-white" />
+              <AtSign className="w-4 h-4 text-white" />
             </a>
           )}
           {!isPending && <StatusBadge status={sm.status} />}
@@ -466,7 +474,17 @@ function OrderCard({
 
             {order.delivery_address && (
               <div className="mt-3 p-3 rounded-xl bg-gray-50 border border-gray-200">
-                <p className="text-gray-500 text-[11px] font-bold uppercase tracking-wide mb-1">Dirección de entrega</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-gray-500 text-[11px] font-bold uppercase tracking-wide">Dirección de entrega</p>
+                  <a
+                    href={`https://maps.google.com/?q=${encodeURIComponent(order.delivery_address)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="text-[11px] font-bold underline"
+                    style={{ color: GREEN }}
+                  >
+                    Ver mapa →
+                  </a>
+                </div>
                 <p className="text-gray-700 text-sm">{order.delivery_address}</p>
               </div>
             )}
