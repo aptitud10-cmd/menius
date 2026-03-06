@@ -271,6 +271,7 @@ export default function AdminPage() {
         <FixProductNamesButton />
       </div>
     </div>
+  </div>
   );
 }
 
