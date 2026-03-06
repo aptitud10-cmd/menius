@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
 
     const [{ data: dbProducts }, { data: dbVariants }, { data: dbExtras }, { data: dbModGroups }] = await Promise.all([
       supabase.from('products').select('id, price, in_stock').in('id', productIds).eq('restaurant_id', restaurant_id),
-      supabase.from('product_variants').select('id, product_id, price_delta').in('product_id', productIds),
+      supabase.from('product_variants').select('id, product_id, price_delta, sort_order').in('product_id', productIds).order('sort_order', { ascending: true }),
       supabase.from('product_extras').select('id, product_id, price').in('product_id', productIds),
       supabase.from('modifier_groups').select('id, product_id, name, is_required, min_select, max_select').in('product_id', productIds),
     ]);
@@ -145,6 +145,11 @@ export async function POST(request: NextRequest) {
     const extraMap = new Map((dbExtras ?? []).map((e) => [e.id, e]));
     const modOptionMap = new Map((dbModOptions ?? []).map((o) => [o.id, o]));
     const productsRequiringVariant = new Set((dbVariants ?? []).map((v) => v.product_id));
+    // First variant per product (sort_order ASC) — used as fallback when client sends no variant_id
+    const firstVariantByProduct = new Map<string, { id: string; price_delta: number }>();
+    for (const v of dbVariants ?? []) {
+      if (!firstVariantByProduct.has(v.product_id)) firstVariantByProduct.set(v.product_id, v);
+    }
 
     const modGroupsByProduct = new Map<string, typeof dbModGroups>();
     for (const g of dbModGroups ?? []) {
@@ -161,11 +166,12 @@ export async function POST(request: NextRequest) {
       if (dbProduct.in_stock === false) {
         return NextResponse.json({ error: 'Uno de los productos está agotado.' }, { status: 400 });
       }
+      // If product requires a variant but client sent none, auto-assign the first (base) variant
       if (productsRequiringVariant.has(item.product_id) && !item.variant_id) {
-        return NextResponse.json(
-          { error: 'Selecciona una variante para todos los productos que lo requieran.' },
-          { status: 400 }
-        );
+        const fallback = firstVariantByProduct.get(item.product_id);
+        if (fallback) {
+          (item as Record<string, unknown>).variant_id = fallback.id;
+        }
       }
 
       let expectedUnitPrice = Number(dbProduct.price);
