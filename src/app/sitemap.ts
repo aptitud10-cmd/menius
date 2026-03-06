@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { blogPosts } from '@/lib/blog-data';
 import type { MetadataRoute } from 'next';
 
@@ -16,8 +16,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${APP_URL}/privacy`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${APP_URL}/terms`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${APP_URL}/cookies`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
-    { url: `${APP_URL}/r/demo`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${APP_URL}/r/the-grill-house`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
+    // Demo menus use clean URLs
+    { url: `${APP_URL}/demo`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${APP_URL}/the-grill-house`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
   ];
 
   const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({
@@ -28,8 +29,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   try {
-    const supabase = createClient();
-    const { data: restaurants } = await supabase
+    // Use admin client — sitemap runs without a request context, no cookies available
+    const db = createAdminClient();
+    const { data: restaurants } = await db
       .from('restaurants')
       .select('slug, created_at')
       .eq('is_active', true)
@@ -37,7 +39,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .limit(5000);
 
     const restaurantPages: MetadataRoute.Sitemap = (restaurants ?? []).map((r) => ({
-      url: `${APP_URL}/r/${r.slug}`,
+      url: `${APP_URL}/${r.slug}`,
       lastModified: new Date(r.created_at),
       changeFrequency: 'daily' as const,
       priority: 0.9,
