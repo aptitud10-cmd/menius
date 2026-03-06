@@ -59,13 +59,13 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
       { data: authData },
       { data: reviewRows },
     ] = await Promise.all([
-      db
-        .from('subscriptions')
-        .select('status, trial_end, current_period_end')
-        .eq('restaurant_id', restaurant.id)
-        .maybeSingle()
-        .then((r) => r.data)
-        .catch(() => null),
+      Promise.resolve(
+        db
+          .from('subscriptions')
+          .select('status, trial_end, current_period_end')
+          .eq('restaurant_id', restaurant.id)
+          .maybeSingle()
+      ).then((r) => r.data, () => null),
       db
         .from('categories')
         .select('id, restaurant_id, name, image_url, sort_order, is_active, translations, created_at, available_from, available_to')
