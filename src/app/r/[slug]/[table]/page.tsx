@@ -1,68 +1,9 @@
-import { notFound } from 'next/navigation';
-import type { Metadata } from 'next';
-import { fetchMenuData } from '../menu-data';
-import { MenuShell } from '@/components/public/MenuShell';
-import { JsonLdScript } from '@/components/public/JsonLdScript';
-
-export const dynamic = 'force-dynamic';
+import { redirect } from 'next/navigation';
 
 interface PageProps {
   params: { slug: string; table: string };
 }
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const data = await fetchMenuData(params.slug);
-  if (!data) return { title: 'Menú no encontrado | MENIUS' };
-
-  const { restaurant } = data;
-  const tableName = decodeURIComponent(params.table);
-  const isEn = data.locale === 'en';
-  const title = `${restaurant.name} — ${tableName} | MENIUS`;
-  const description = restaurant.description ?? (isEn ? `Order online from ${restaurant.name}.` : `Pide online en ${restaurant.name}.`);
-  const url = `${APP_URL}/r/${params.slug}/${params.table}`;
-  const image = restaurant.cover_image_url || restaurant.logo_url || `${APP_URL}/icons/icon-512.svg`;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      url,
-      siteName: 'MENIUS',
-      type: 'website',
-      images: [{ url: image, width: 1200, height: 630, alt: restaurant.name }],
-      locale: isEn ? 'en_US' : 'es_MX',
-    },
-    twitter: { card: 'summary_large_image', title: restaurant.name, description, images: [image] },
-    alternates: { canonical: `${APP_URL}/r/${params.slug}` },
-    robots: { index: true, follow: true },
-  };
+export default function LegacyTableMenuRedirect({ params }: PageProps) {
+  redirect(`/${params.slug}?table=${params.table}`);
 }
-
-export default async function TableMenuPage({ params }: PageProps) {
-  const data = await fetchMenuData(params.slug);
-  if (!data) notFound();
-
-  const tableName = decodeURIComponent(params.table);
-
-  return (
-    <>
-      <JsonLdScript restaurant={data.restaurant} slug={params.slug} categories={data.categories} products={data.products} reviewStats={data.reviewStats} />
-      <MenuShell
-        restaurant={data.restaurant}
-        categories={data.categories}
-        products={data.products}
-        tableName={tableName}
-        locale={data.locale}
-        availableLocales={data.availableLocales}
-        reviewStats={data.reviewStats}
-        recentReviews={data.recentReviews}
-        limitedMode={data.limitedMode ?? null}
-      />
-    </>
-  );
-}
-
