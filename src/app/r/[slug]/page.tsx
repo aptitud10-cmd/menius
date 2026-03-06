@@ -6,7 +6,7 @@ import { demoRestaurant, demoCategories, demoProducts } from '@/lib/demo-data';
 import { grillHouseRestaurant, grillHouseCategories, grillHouseProducts } from '@/lib/demo-data-en';
 import { JsonLdScript } from '@/components/public/JsonLdScript';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: { slug: string };

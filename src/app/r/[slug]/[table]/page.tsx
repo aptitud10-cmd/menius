@@ -4,7 +4,7 @@ import { fetchMenuData } from '../menu-data';
 import { MenuShell } from '@/components/public/MenuShell';
 import { JsonLdScript } from '@/components/public/JsonLdScript';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: { slug: string; table: string };
