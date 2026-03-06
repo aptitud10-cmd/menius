@@ -61,6 +61,14 @@ export async function createRestaurant(data: CreateRestaurantInput) {
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
+  // Seed example data so the menu is not empty on first visit
+  try {
+    const { seedRestaurant } = await import('@/lib/seed-restaurant');
+    await seedRestaurant(supabase, restaurant.id, restaurant.slug, appUrl, locale);
+  } catch {
+    // Seed failure should not block onboarding
+  }
+
   // Welcome email to new restaurant owner
   if (user.email) {
     try {
