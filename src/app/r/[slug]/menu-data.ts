@@ -70,7 +70,15 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
         .order('sort_order', { ascending: true }),
       db
         .from('products')
-        .select('*')
+        .select(`
+          *,
+          product_variants ( id, name, price_delta, sort_order ),
+          product_extras   ( id, name, price, sort_order ),
+          modifier_groups  (
+            id, name, is_required, min_select, max_select, sort_order,
+            modifier_options ( id, name, price_delta, sort_order )
+          )
+        `)
         .eq('restaurant_id', restaurant.id)
         .eq('is_active', true)
         .order('sort_order', { ascending: true }),
@@ -128,8 +136,8 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
 
     const mappedProducts = ((products ?? []) as any[]).map((p: any) => ({
       ...p,
-      variants: p.product_variants ?? [],
-      extras: p.product_extras ?? [],
+      variants: ((p.product_variants ?? []) as any[]).sort((a: any, b: any) => a.sort_order - b.sort_order),
+      extras:   ((p.product_extras   ?? []) as any[]).sort((a: any, b: any) => a.sort_order - b.sort_order),
       modifier_groups: ((p.modifier_groups ?? []) as any[])
         .map((g: any) => ({
           ...g,
