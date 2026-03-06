@@ -66,12 +66,14 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
         .from('categories')
         .select('*')
         .eq('restaurant_id', restaurant.id)
-        .eq('is_active', true),
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true }),
       db
         .from('products')
         .select('*')
         .eq('restaurant_id', restaurant.id)
-        .eq('is_active', true),
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true }),
       db
         .from('reviews')
         .select('id, customer_name, rating, comment, created_at')
