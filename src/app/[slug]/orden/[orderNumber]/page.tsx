@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -76,7 +76,9 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
         </div>
       );
     }
-    notFound();
+    // Use redirect instead of notFound() to avoid Next.js 14 bug where notFound()
+    // is incorrectly caught by error.tsx instead of not-found.tsx in async Server Components
+    redirect(`/${params.slug}`);
   }
 
   return (

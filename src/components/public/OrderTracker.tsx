@@ -132,7 +132,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 Ver estado del pedido
               </button>
               <Link
-                href={`/r/${restaurantSlug}`}
+                href={`/${restaurantSlug}`}
                 className="block w-full py-3.5 rounded-2xl bg-white border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
               >
                 Volver al menú
@@ -142,8 +142,33 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         </div>
       );
     }
+    // Order not found or fetch error — show retry UI instead of silently redirecting
     return (
-      <OrderSuccessRedirect restaurantSlug={restaurantSlug} />
+      <div className="min-h-[100dvh] bg-white flex flex-col items-center justify-center px-6 text-center">
+        <div className="max-w-sm w-full">
+          <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4">
+            <Clock className="w-8 h-8 text-amber-500" />
+          </div>
+          <h1 className="text-xl font-bold text-gray-900 mb-2">No se pudo cargar el pedido</h1>
+          <p className="text-sm text-gray-500 mb-6 max-w-xs mx-auto">
+            Hubo un problema al obtener el estado de tu pedido. Puede que tarde unos segundos en estar disponible.
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={() => { setLoading(true); setError(''); fetchOrder(); }}
+              className="w-full py-3.5 rounded-2xl bg-gray-900 text-white font-bold text-sm hover:bg-gray-800 transition-colors"
+            >
+              Intentar de nuevo
+            </button>
+            <Link
+              href={`/${restaurantSlug}`}
+              className="block w-full py-3.5 rounded-2xl bg-white border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
+            >
+              Volver al menú
+            </Link>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -158,7 +183,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href={`/r/${restaurantSlug}`} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+            <Link href={`/${restaurantSlug}`} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </Link>
             <div>
@@ -362,7 +387,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 image_url: item.products?.image_url,
               }));
               localStorage.setItem('menius-reorder', JSON.stringify(reorderItems));
-              window.location.href = `/r/${restaurantSlug}?reorder=1`;
+              window.location.href = `/${restaurantSlug}?reorder=1`;
             }}
             className="block w-full py-3.5 rounded-xl bg-emerald-600 text-white text-center font-bold text-sm hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20"
           >
@@ -372,7 +397,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
         {/* Back to menu */}
         <Link
-          href={`/r/${restaurantSlug}`}
+          href={`/${restaurantSlug}`}
           className="block w-full py-3 rounded-xl bg-white border border-gray-200 text-center font-semibold text-sm text-gray-700 hover:bg-gray-50 transition-colors"
         >
           Volver al menú
@@ -380,7 +405,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
         {/* My orders history link */}
         <Link
-          href={`/r/${restaurantSlug}/mis-pedidos`}
+          href={`/${restaurantSlug}/mis-pedidos`}
           className="block w-full py-2.5 text-center text-xs text-gray-400 hover:text-emerald-600 transition-colors"
         >
           Ver todos mis pedidos anteriores →
@@ -454,7 +479,7 @@ function OrderSuccessRedirect({ restaurantSlug }: { restaurantSlug: string }) {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      router.push(`/r/${restaurantSlug}`);
+      router.push(`/${restaurantSlug}`);
     }, 3000);
     return () => clearTimeout(timer);
   }, [router, restaurantSlug]);
@@ -520,8 +545,8 @@ function OrderSuccessRedirect({ restaurantSlug }: { restaurantSlug: string }) {
         <h2 className="text-lg font-bold text-gray-900 mb-1">Tu pedido fue procesado exitosamente</h2>
         <p className="text-sm text-gray-500 mb-6 animate-pulse">Regresando al menú...</p>
         <Link
-          href={`/r/${restaurantSlug}`}
-          className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 transition-colors"
+          href={`/${restaurantSlug}`}
+              className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 transition-colors"
         >
           Ir al menú
         </Link>
