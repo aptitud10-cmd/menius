@@ -43,6 +43,8 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const cartTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
   const clearCart = useCartStore((s) => s.clearCart);
   const saveLastOrder = useCartStore((s) => s.saveLastOrder);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const updateQty = useCartStore((s) => s.updateQty);
   const tableName = useCartStore((s) => s.tableName);
   const welcomeOrderType = useCartStore((s) => s.selectedOrderType);
 
@@ -796,8 +798,8 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
                 {items.reduce((s, i) => s + i.qty, 0)} {locale === 'es' ? 'items' : 'items'}
               </span>
             </div>
-            {items.map((item) => (
-              <div key={`${item.product.id}-${item.variant?.id ?? 'base'}`} className="flex gap-3 items-start">
+            {items.map((item, idx) => (
+              <div key={`${item.product.id}-${item.variant?.id ?? 'base'}-${idx}`} className="flex gap-3 items-start">
                 {item.product.image_url && (
                   <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                     <Image
@@ -813,7 +815,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between gap-2">
                     <span className="text-[15px] text-gray-800 font-medium truncate">
-                      {item.qty}x {item.product.name}
+                      {item.product.name}
                       {item.variant ? ` (${item.variant.name})` : ''}
                     </span>
                     <span className="font-semibold text-gray-900 flex-shrink-0 tabular-nums text-[15px]">{fmtPrice(item.lineTotal)}</span>
@@ -823,6 +825,23 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
                       {(item.modifierSelections ?? []).flatMap(ms => ms.selectedOptions.map(o => o.name)).join(', ')}
                     </p>
                   )}
+                  <div className="flex items-center gap-2 mt-2">
+                    <button
+                      onClick={() => updateQty(idx, item.qty - 1)}
+                      className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors text-lg leading-none"
+                      aria-label="Reducir cantidad"
+                    >
+                      −
+                    </button>
+                    <span className="text-sm font-semibold text-gray-900 w-4 text-center tabular-nums">{item.qty}</span>
+                    <button
+                      onClick={() => updateQty(idx, item.qty + 1)}
+                      className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 transition-colors text-lg leading-none"
+                      aria-label="Aumentar cantidad"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
