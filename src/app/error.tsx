@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import * as Sentry from '@sentry/nextjs';
 
@@ -11,8 +11,11 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [isEs, setIsEs] = useState(true);
+
   useEffect(() => {
     Sentry.captureException(error);
+    setIsEs(!navigator.language.toLowerCase().startsWith('en'));
   }, [error]);
 
   return (
@@ -31,10 +34,12 @@ export default function Error({
         </div>
 
         <h1 className="text-2xl font-bold text-white mb-3 font-display tracking-tight">
-          Algo salió mal
+          {isEs ? 'Algo salió mal' : 'Something went wrong'}
         </h1>
         <p className="text-gray-400 text-sm leading-relaxed mb-2">
-          Ocurrió un error inesperado. Nuestro equipo ha sido notificado automáticamente.
+          {isEs
+            ? 'Ocurrió un error inesperado. Nuestro equipo ha sido notificado automáticamente.'
+            : 'An unexpected error occurred. Our team has been automatically notified.'}
         </p>
         {error.digest && (
           <p className="text-xs text-gray-600 font-mono mb-8">Ref: {error.digest}</p>
@@ -46,13 +51,13 @@ export default function Error({
             onClick={() => reset()}
             className="px-5 py-2.5 bg-white text-black rounded-xl text-sm font-semibold hover:bg-gray-100 transition-colors"
           >
-            Reintentar
+            {isEs ? 'Reintentar' : 'Try again'}
           </button>
           <Link
             href="/"
             className="px-5 py-2.5 border border-white/[0.1] bg-white/[0.04] text-gray-300 rounded-xl text-sm font-medium hover:bg-white/[0.08] hover:text-white transition-colors"
           >
-            Ir al inicio
+            {isEs ? 'Ir al inicio' : 'Go home'}
           </Link>
         </div>
       </div>

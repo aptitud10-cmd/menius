@@ -35,10 +35,11 @@ export default function GlobalError({
             </div>
 
             <h1 style={{ fontSize: 22, fontWeight: 700, color: '#fff', marginBottom: 8, letterSpacing: '-0.02em' }}>
-              Algo salió mal
+              Algo salió mal · Something went wrong
             </h1>
             <p style={{ fontSize: 14, color: '#9ca3af', marginBottom: 6, lineHeight: 1.6 }}>
-              Ocurrió un error inesperado. Nuestro equipo ha sido notificado.
+              Ocurrió un error inesperado. Nuestro equipo ha sido notificado.<br />
+              An unexpected error occurred. Our team has been notified.
             </p>
             {error.digest && (
               <p style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace', marginBottom: 28 }}>
@@ -51,13 +52,13 @@ export default function GlobalError({
                 onClick={() => reset()}
                 style={{ padding: '10px 20px', background: '#fff', color: '#000', borderRadius: 12, fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}
               >
-                Reintentar
+                Reintentar · Try again
               </button>
               <a
                 href="/"
                 style={{ padding: '10px 20px', background: 'rgba(255,255,255,0.04)', color: '#d1d5db', borderRadius: 12, fontSize: 14, fontWeight: 500, border: '1px solid rgba(255,255,255,0.08)', textDecoration: 'none' }}
               >
-                Ir al inicio
+                Ir al inicio · Go home
               </a>
             </div>
           </div>

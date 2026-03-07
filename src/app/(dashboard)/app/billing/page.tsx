@@ -177,7 +177,10 @@ export default function BillingPage() {
         setUsage(usageData);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setLoading(false);
+        setError(t.billing_connectionError);
+      });
   }, []);
 
   const handlePlanSelect = useCallback(
@@ -428,16 +431,6 @@ export default function BillingPage() {
                   >
                     <ExternalLink className="w-4 h-4" />
                     {actionLoading === 'portal' ? t.billing_redirecting : t.billing_manageSubscription}
-                  </button>
-                )}
-                {sub.stripe_subscription_id && (
-                  <button
-                    onClick={handlePortal}
-                    disabled={actionLoading !== null}
-                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 transition-all shadow-sm"
-                  >
-                    <CreditCard className="w-4 h-4" />
-                    {actionLoading === 'portal' ? t.billing_redirecting : t.billing_updatePayment}
                   </button>
                 )}
                 {isTrialing && (
