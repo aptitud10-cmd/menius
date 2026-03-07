@@ -739,8 +739,8 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
                   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
                   const msg = encodeURIComponent(
                     locale === 'es'
-                      ? `¡Acabo de pedir en ${restaurant.name}! 🍽️\nPide aquí: ${appUrl}/${restaurant.slug}`
-                      : `I just ordered at ${restaurant.name}! 🍽️\nOrder here: ${appUrl}/${restaurant.slug}`
+                      ? `hambre mode: ON 😤🍽️\nPedí en *${restaurant.name}* — ¿alguien más quiere algo?\n👇 Pide aquí: ${appUrl}/${restaurant.slug}`
+                      : `hunger mode: ON 😤🍽️\nJust ordered at *${restaurant.name}* — anyone else want something?\n👇 Order here: ${appUrl}/${restaurant.slug}`
                   );
                   window.location.href = `whatsapp://send?text=${msg}`;
                   setTimeout(() => {
