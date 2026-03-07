@@ -774,7 +774,9 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
           <ArrowLeft className="w-5 h-5" />
           <span className="text-sm font-medium">{t.backToMenu}</span>
         </button>
-        <h1 className="text-base font-bold text-gray-900">{t.checkout}</h1>
+        <h1 className="text-base font-bold text-gray-900">
+          {locale === 'es' ? 'Pagar' : 'Pay'} {fmtPrice(finalTotal)}
+        </h1>
         <div className="flex items-center gap-1.5 text-gray-400">
           <Lock className="w-3.5 h-3.5" />
           <span className="text-xs font-medium">{locale === 'es' ? 'Seguro' : 'Secure'}</span>
@@ -787,7 +789,13 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
 
           {/* Order summary */}
           <div className="bg-white rounded-2xl p-5 space-y-3 border-2 border-gray-200 shadow-sm">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t.myOrder}</p>
+            <div className="flex items-center gap-2 mb-3">
+              <ShoppingCart className="w-4 h-4 text-gray-500" />
+              <p className="text-sm font-semibold text-gray-900">{t.myOrder}</p>
+              <span className="ml-auto text-xs font-medium text-gray-400">
+                {items.reduce((s, i) => s + i.qty, 0)} {locale === 'es' ? 'items' : 'items'}
+              </span>
+            </div>
             {items.map((item) => (
               <div key={`${item.product.id}-${item.variant?.id ?? 'base'}`} className="flex gap-3 items-start">
                 {item.product.image_url && (
