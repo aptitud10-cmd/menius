@@ -43,10 +43,14 @@ export async function GET(request: NextRequest) {
       created_at,
       order_items (
         id,
-        product_name,
-        variant_name,
-        quantity,
-        unit_price
+        product_id,
+        variant_id,
+        qty,
+        unit_price,
+        line_total,
+        notes,
+        products ( id, name, price, image_url, dietary_tags ),
+        product_variants ( id, name, price_delta )
       )
     `)
     .eq('restaurant_id', restaurantId)
@@ -58,5 +62,51 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ orders: orders ?? [] });
+  // Normalize to a clean shape expected by the client
+  const normalized = (orders ?? []).map((o: any) => ({
+    id: o.id,
+    order_number: o.order_number,
+    status: o.status,
+    order_type: o.order_type,
+    payment_method: o.payment_method,
+    total: o.total,
+    created_at: o.created_at,
+    order_items: (o.order_items ?? []).map((item: any) => ({
+      id: item.id,
+      product_id: item.product_id,
+      variant_id: item.variant_id ?? null,
+      product_name: item.products?.name ?? 'Producto',
+      variant_name: item.product_variants?.name ?? null,
+      quantity: item.qty,
+      unit_price: item.unit_price,
+      // Full product data for re-adding to cart
+      product: item.products
+        ? {
+            id: item.product_id,
+            name: item.products.name,
+            price: item.products.price,
+            image_url: item.products.image_url ?? null,
+            dietary_tags: item.products.dietary_tags ?? [],
+            restaurant_id: restaurantId,
+            category_id: '',
+            description: '',
+            is_active: true,
+            sort_order: 0,
+            created_at: '',
+            variants: [],
+            extras: [],
+            modifier_groups: [],
+          }
+        : null,
+      variant: item.product_variants
+        ? {
+            id: item.variant_id,
+            name: item.product_variants.name,
+            price_delta: item.product_variants.price_delta ?? 0,
+          }
+        : null,
+    })),
+  }));
+
+  return NextResponse.json({ orders: normalized });
 }

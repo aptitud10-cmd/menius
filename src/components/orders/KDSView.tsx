@@ -10,7 +10,7 @@ import {
   Undo2, AlertTriangle, User, MapPin, History, LogOut,
   Hash, MessageSquare, PhoneCall, Send, Loader2,
 } from 'lucide-react';
-import { updateOrderStatus } from '@/lib/actions/restaurant';
+import { updateOrderStatus, updateOrderETA } from '@/lib/actions/restaurant';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -48,16 +48,20 @@ const DIET_BADGE: Record<string, { label: string; cls: string }> = {
   dairy_free: { label: '🥛 LÁCTEOS', cls: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
 };
 
-/* ── Urgency: returns header color based on elapsed minutes ── */
-function urgency(createdAt: string) {
+/* ── Urgency: returns header color based on elapsed minutes.
+   busyExtra shifts thresholds forward so tickets stay green longer when busy. ── */
+function urgency(createdAt: string, busyExtra = 0) {
   const sec = Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 1000));
   const m = Math.floor(sec / 60), s = sec % 60;
   const timer = m >= 60
     ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}:${String(s).padStart(2, '0')}`
     : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 
-  if (m < 7)  return { timer, header: '#06c167', late: false };
-  if (m < 15) return { timer, header: '#f59e0b', late: false };
+  const greenThreshold = 7 + busyExtra;
+  const amberThreshold = 15 + busyExtra;
+
+  if (m < greenThreshold)  return { timer, header: '#06c167', late: false };
+  if (m < amberThreshold) return { timer, header: '#f59e0b', late: false };
   return { timer, header: '#dc2626', late: true };
 }
 
@@ -164,9 +168,15 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       setTimeout(() => setNewIds(p => { const n = new Set(p); n.delete(o.id); return n; }), 8000);
       setOverlayCount(c => c + 1);
       setShowOverlay(true);
-      if (autoConfirm && o.status === 'pending') { localRef.current(o.id, { status: 'confirmed' }); updateOrderStatus(o.id, 'confirmed'); }
+      const isPaused = pausedUntil && Date.now() < pausedUntil;
+      if (autoConfirm && !isPaused && o.status === 'pending') {
+        localRef.current(o.id, { status: 'confirmed' });
+        updateOrderStatus(o.id, 'confirmed');
+        // Busy Mode: extend default ETA by the busy extra minutes
+        if (busyExtra > 0) updateOrderETA(o.id, 15 + busyExtra);
+      }
       if (autoPrint) import('./OrderReceipt').then(({ quickPrintOrder }) => quickPrintOrder(o, restaurantName, restaurantPhone, restaurantAddress, currency));
-    }, [autoConfirm, autoPrint, currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress]),
+    }, [autoConfirm, autoPrint, busyExtra, pausedUntil, currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress]),
   });
   localRef.current = updateOrderLocally;
 
@@ -376,7 +386,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
               {active.map((o, idx) => (
                 <div key={o.id} style={{ gridColumn: (o.items?.reduce((s: number, i: any) => s + i.qty, 0) ?? 0) >= 8 ? 'span 2' : undefined }}
                   onClick={() => setSelectedIdx(idx)}>
-                  <Ticket order={o} currency={currency} isNew={newIds.has(o.id)} isExpanded={expanded.has(o.id)} isSelected={idx === selectedIdx}
+                  <Ticket order={o} currency={currency} busyExtra={busyExtra} isNew={newIds.has(o.id)} isExpanded={expanded.has(o.id)} isSelected={idx === selectedIdx}
                     onBump={() => { const n = NEXT[o.status]; if (n) bump(o.id, n); }}
                     onCancel={() => bump(o.id, 'cancelled')} onPrint={() => setPrintOrder(o)}
                     onExpand={() => toggleExp(o.id)} onOOS={markOOS}
@@ -519,8 +529,8 @@ function NewOrderOverlay({ count, onDismiss }: { count: number; onDismiss: () =>
    TICKET — Toast/Fresh KDS style card
    Full-color header (green → yellow → red) + items-focused body + bump
    ══════════════════════════════════════════════════════════════════════ */
-function Ticket({ order, currency, isNew, isExpanded, isSelected, onBump, onCancel, onPrint, onExpand, onOOS, onSMS }: {
-  order: Order; currency: string; isNew: boolean; isExpanded: boolean; isSelected: boolean;
+function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected, onBump, onCancel, onPrint, onExpand, onOOS, onSMS }: {
+  order: Order; currency: string; busyExtra?: number; isNew: boolean; isExpanded: boolean; isSelected: boolean;
   onBump: () => void; onCancel: () => void; onPrint: () => void; onExpand: () => void;
   onOOS: (pid: string) => void; onSMS: () => void;
 }) {
@@ -529,7 +539,7 @@ function Ticket({ order, currency, isNew, isExpanded, isSelected, onBump, onCanc
   const typeLabel: Record<string, string> = { dine_in: t.kds_table, pickup: t.kds_pickup, delivery: t.kds_delivery };
   const payLabel: Record<string, string> = { cash: t.kds_cash, online: t.kds_online };
   const dietLabel: Record<string, string> = { spicy: `🌶️ ${t.kds_spicy}`, dairy_free: `🥛 ${t.kds_dairyFree}` };
-  const u = urgency(order.created_at);
+  const u = urgency(order.created_at, busyExtra);
   const bmp = BUMP[order.status];
   const nxt = NEXT[order.status];
   const tm = TYPE_META[order.order_type ?? ''];

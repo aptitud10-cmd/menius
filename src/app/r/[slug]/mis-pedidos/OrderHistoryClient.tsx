@@ -8,10 +8,14 @@ import { formatPrice } from '@/lib/utils';
 
 interface OrderItem {
   id: string;
+  product_id: string;
+  variant_id: string | null;
   product_name: string;
   variant_name: string | null;
   quantity: number;
   unit_price: number;
+  product: any | null;
+  variant: any | null;
 }
 
 interface Order {
@@ -78,24 +82,8 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
 
   const handleReorder = (order: Order) => {
     for (const item of order.order_items) {
-      // Build a minimal product object to re-add to cart
-      const fakeProduct = {
-        id: `history-${item.id}`,
-        restaurant_id: restaurantId,
-        category_id: '',
-        name: item.product_name,
-        description: '',
-        price: item.unit_price,
-        image_url: null,
-        is_active: true,
-        sort_order: 0,
-        created_at: '',
-        dietary_tags: [],
-        variants: [],
-        extras: [],
-        modifier_groups: [],
-      };
-      addItem(fakeProduct as any, null, [], item.quantity, '');
+      if (!item.product) continue; // skip if product data not available
+      addItem(item.product, item.variant ?? null, [], item.quantity, '');
     }
     setReorderedId(order.id);
     setOpen(true);
