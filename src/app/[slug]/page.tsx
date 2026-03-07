@@ -27,7 +27,7 @@ const DEMO_SLUGS: Record<string, {
   products: typeof demoProducts;
   locale: 'es' | 'en';
 }> = {
-  demo: {
+  'la-casa-del-sabor': {
     restaurant: demoRestaurant,
     categories: demoCategories,
     products: demoProducts,

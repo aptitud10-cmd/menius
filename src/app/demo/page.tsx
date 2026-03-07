@@ -19,7 +19,7 @@ const t = {
     subtitle: 'Elige un restaurante de ejemplo para ver cómo funciona la plataforma completa — menú, carrito, checkout y seguimiento.',
     cards: [
       {
-        slug: 'demo',
+        slug: 'la-casa-del-sabor',
         name: 'La Casa del Sabor',
         flag: '🇪🇸',
         lang: 'Español',
@@ -47,7 +47,7 @@ const t = {
     subtitle: 'Choose a sample restaurant to see the full platform — menu, cart, checkout & order tracking.',
     cards: [
       {
-        slug: 'demo',
+        slug: 'la-casa-del-sabor',
         name: 'La Casa del Sabor',
         flag: '🇪🇸',
         lang: 'Español',
@@ -115,7 +115,7 @@ export default function DemoSelectorPage() {
             {s.cards.map((card) => (
               <Link
                 key={card.slug}
-                href={`/r/${card.slug}`}
+                href={`/${card.slug}`}
                 className="group relative rounded-2xl overflow-hidden text-left transition-all duration-300 hover:scale-[1.02]"
                 style={{
                   background: 'rgba(16,185,129,0.03)',
