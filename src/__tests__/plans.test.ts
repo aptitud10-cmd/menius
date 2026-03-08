@@ -73,8 +73,30 @@ describe('PLANS structure', () => {
     }
   });
 
-  it('business plan has unlimited products', () => {
+  it('starter plan limits are correct', () => {
+    expect(PLANS.starter.limits.maxTables).toBe(15);
+    expect(PLANS.starter.limits.maxUsers).toBe(2);
+    expect(PLANS.starter.limits.maxProducts).toBe(-1);
+    expect(PLANS.starter.limits.maxCategories).toBe(-1);
+  });
+
+  it('pro plan limits are correct', () => {
+    expect(PLANS.pro.limits.maxTables).toBe(50);
+    expect(PLANS.pro.limits.maxUsers).toBe(5);
+    expect(PLANS.pro.limits.maxProducts).toBe(-1);
+  });
+
+  it('business plan has fully unlimited limits', () => {
     expect(PLANS.business.limits.maxProducts).toBe(-1);
+    expect(PLANS.business.limits.maxTables).toBe(-1);
+    expect(PLANS.business.limits.maxUsers).toBe(-1);
+    expect(PLANS.business.limits.maxCategories).toBe(-1);
+  });
+
+  it('pro plan is marked as popular', () => {
+    expect(PLANS.pro.popular).toBe(true);
+    expect(PLANS.starter.popular).toBeFalsy();
+    expect(PLANS.business.popular).toBeFalsy();
   });
 });
 
