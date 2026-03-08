@@ -5,6 +5,7 @@ import {
   MessageCircle, Clock, Check, XCircle, Printer, Pause, Bell,
   Phone, Search, X, MoreHorizontal, Utensils, ShoppingBag, Truck,
   History, MapPin, User, ChevronRight, AlertTriangle, CheckCircle,
+  FlaskConical, Loader2,
 } from 'lucide-react';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { updateOrderStatus, updateOrderETA } from '@/lib/actions/restaurant';
@@ -60,8 +61,17 @@ function waLink(phone: string, message: string) {
 
 // ─── Audio ───────────────────────────────────────────────────────────────────
 
+function isSoundMuted(): boolean {
+  try {
+    const stored = localStorage.getItem('menius-sound');
+    if (!stored) return false;
+    const parsed = JSON.parse(stored);
+    return parsed?.state?.soundEnabled === false;
+  } catch { return false; }
+}
+
 function playBeep() {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || isSoundMuted()) return;
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     const osc = ctx.createOscillator();
@@ -75,7 +85,7 @@ function playBeep() {
 }
 
 function playUrgentBeep() {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || isSoundMuted()) return;
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     [440, 480, 440].forEach((freq, i) => {
@@ -125,6 +135,8 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const [showPause, setShowPause] = useState(false);
   const [pauseOpt, setPauseOpt] = useState(30);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testToast, setTestToast] = useState<string | null>(null);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
   const [splashOrder, setSplashOrder] = useState<Order | null>(null);
@@ -276,6 +288,26 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
     setShowPause(false);
   };
 
+  const handleTestOrder = useCallback(async () => {
+    setIsSendingTest(true);
+    setTestToast(null);
+    try {
+      const res = await fetch('/api/test-order', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        setTestToast(data.error ?? 'Error al crear pedido de prueba');
+      } else {
+        setTestToast(`✓ Pedido #${data.order_number} enviado`);
+        setActiveTab('new');
+      }
+    } catch {
+      setTestToast('Error de conexión');
+    } finally {
+      setIsSendingTest(false);
+      setTimeout(() => setTestToast(null), 4_000);
+    }
+  }, []);
+
   const selectedOrder = activeTab !== 'history'
     ? orders.find(o => o.id === selectedId) ?? null
     : null;
@@ -344,8 +376,26 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
             title="Pausar órdenes"
             className={cn('w-9 h-9 rounded-xl flex items-center justify-center transition-colors', isPaused ? 'bg-red-100 text-red-500' : 'bg-[#F5F5F5] text-[#888] hover:bg-[#E8E8E8]')}
           ><Pause className="w-4 h-4" /></button>
+          <button
+            onClick={handleTestOrder}
+            disabled={isSendingTest}
+            title="Enviar pedido de prueba"
+            className="flex items-center gap-1.5 px-3 h-9 rounded-xl bg-[#F5F5F5] text-[#888] hover:bg-[#E8E8E8] text-xs font-semibold transition-colors disabled:opacity-50"
+          >
+            {isSendingTest
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <FlaskConical className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">Prueba</span>
+          </button>
         </div>
       </header>
+
+      {/* ── Test toast ── */}
+      {testToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl bg-[#111] text-white text-sm font-semibold shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+          {testToast}
+        </div>
+      )}
 
       {/* ══ MASTER-DETAIL ══ */}
       <div className="flex-1 flex overflow-hidden">
