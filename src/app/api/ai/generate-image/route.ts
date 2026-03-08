@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('ai-generate-image');
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    const { allowed } = checkRateLimit(`ai:${tenant.userId}`, { limit: 20, windowSec: 3600 });
+    const { allowed } = await checkRateLimitAsync(`ai:${tenant.userId}`, { limit: 20, windowSec: 3600 });
     if (!allowed) {
       return NextResponse.json(
         { error: 'Límite de generaciones alcanzado. Intenta en 1 hora.' },

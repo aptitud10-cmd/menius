@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { verifyAdmin } from '@/lib/auth/verify-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,5 +57,14 @@ async function runFix() {
   });
 }
 
-export async function GET() { return runFix(); }
-export async function POST() { return runFix(); }
+export async function GET() {
+  const admin = await verifyAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  return runFix();
+}
+
+export async function POST() {
+  const admin = await verifyAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  return runFix();
+}

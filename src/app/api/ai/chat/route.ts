@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { getPlan } from '@/lib/plans';
 import { createLogger } from '@/lib/logger';
 
@@ -459,7 +459,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    const { allowed } = checkRateLimit(`ai-chat:${tenant.userId}`, { limit: 60, windowSec: 3600 });
+    const { allowed } = await checkRateLimitAsync(`ai-chat:${tenant.userId}`, { limit: 60, windowSec: 3600 });
     if (!allowed) {
       return NextResponse.json(
         { error: 'Has alcanzado el límite de mensajes. Intenta en unos minutos.' },

@@ -3,7 +3,15 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 
+function isProduction() {
+  return process.env.NODE_ENV === 'production' && !process.env.ALLOW_DEBUG_ROUTES;
+}
+
 export async function GET(request: Request) {
+  if (isProduction()) {
+    return NextResponse.json({ error: 'Not available in production' }, { status: 403 });
+  }
+
   const { searchParams } = new URL(request.url);
   const slug = searchParams.get('slug') ?? 'los-paisas';
 

@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('ai-import-menu');
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    const { allowed } = checkRateLimit(`ocr:${tenant.userId}`, { limit: 10, windowSec: 3600 });
+    const { allowed } = await checkRateLimitAsync(`ocr:${tenant.userId}`, { limit: 10, windowSec: 3600 });
     if (!allowed) {
       return NextResponse.json(
         { error: 'Límite alcanzado. Intenta en 1 hora.' },
