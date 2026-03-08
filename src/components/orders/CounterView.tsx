@@ -137,6 +137,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const [isUpdating, setIsUpdating] = useState(false);
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [testToast, setTestToast] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
   const [splashOrder, setSplashOrder] = useState<Order | null>(null);
@@ -152,6 +153,35 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
 
   useEffect(() => { requestPushPermission(); }, []);
   useEffect(() => { return AutoAcceptService.subscribe(() => {}); }, []);
+
+  // Wake Lock — keep tablet screen always on
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('wakeLock' in navigator)) return;
+    let lock: any = null;
+    const acquire = async () => {
+      try { lock = await (navigator as any).wakeLock.request('screen'); } catch { /* permission denied */ }
+    };
+    acquire();
+    const onVisible = () => { if (document.visibilityState === 'visible') acquire(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      lock?.release().catch(() => {});
+    };
+  }, []);
+
+  // Connection status
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+    const onOnline = () => setIsOnline(true);
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  }, []);
 
   const handleNewOrder = useCallback((order: Order) => {
     playBeep();
@@ -389,6 +419,14 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
           </button>
         </div>
       </header>
+
+      {/* ── Offline banner ── */}
+      {!isOnline && (
+        <div className="flex-none bg-red-500 text-white text-xs font-bold py-2 px-4 flex items-center justify-center gap-2 z-20">
+          <span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block" />
+          Sin conexión — los nuevos pedidos no llegarán hasta recuperar internet
+        </div>
+      )}
 
       {/* ── Test toast ── */}
       {testToast && (
@@ -1024,15 +1062,27 @@ function DetailPanel({
 
 function ItemRow({ item, currency }: { item: OrderItem; currency: string }) {
   const raw = item as any;
-  const modifiers: string[] = [];
-  if (item.variant?.name) modifiers.push(item.variant.name);
-  const extras: any[] = item.extras ?? raw.order_item_extras ?? [];
-  for (const ex of extras) {
-    const n = ex.extra?.name ?? ex.product_extras?.name;
-    if (n) modifiers.push(n);
+
+  // Variant
+  const variantName = item.variant?.name ?? null;
+
+  // Extras with price
+  const rawExtras: any[] = item.extras ?? raw.order_item_extras ?? [];
+  const extras: Array<{ name: string; price: number }> = rawExtras
+    .map((ex: any) => ({ name: ex.extra?.name ?? ex.product_extras?.name ?? null, price: Number(ex.price ?? 0) }))
+    .filter((ex: any) => ex.name);
+
+  // Modifier options grouped by group_name
+  const rawMods: any[] = raw.order_item_modifiers ?? [];
+  const modGroups = new Map<string, Array<{ option: string; delta: number }>>();
+  for (const m of rawMods) {
+    if (!m.option_name) continue;
+    const grp = m.group_name ?? 'Opciones';
+    if (!modGroups.has(grp)) modGroups.set(grp, []);
+    modGroups.get(grp)!.push({ option: m.option_name, delta: Number(m.price_delta ?? 0) });
   }
-  const mods: any[] = raw.order_item_modifiers ?? [];
-  for (const m of mods) { if (m.option_name) modifiers.push(m.option_name); }
+
+  const hasCustomization = variantName || extras.length > 0 || modGroups.size > 0;
 
   return (
     <div className="flex items-start gap-3 py-3.5">
@@ -1041,8 +1091,36 @@ function ItemRow({ item, currency }: { item: OrderItem; currency: string }) {
       </span>
       <div className="flex-1 min-w-0">
         <p className="text-[#111] text-sm font-bold leading-tight">{item.product?.name ?? '—'}</p>
-        {modifiers.map((m, i) => <p key={i} className="text-[#888] text-xs mt-0.5">— {m}</p>)}
-        {item.notes && <p className="text-amber-600 text-xs mt-0.5 italic">★ {item.notes}</p>}
+
+        {hasCustomization && (
+          <div className="mt-1 space-y-0.5">
+            {/* Variant */}
+            {variantName && (
+              <p className="text-[#666] text-xs">↳ {variantName}</p>
+            )}
+            {/* Modifier groups */}
+            {Array.from(modGroups.entries()).map(([grpName, options]) => (
+              <div key={grpName}>
+                <p className="text-[#AAAAAA] text-[10px] uppercase font-bold tracking-wide mt-1">{grpName}</p>
+                {options.map((opt, i) => (
+                  <p key={i} className="text-[#666] text-xs flex justify-between">
+                    <span>• {opt.option}</span>
+                    {opt.delta > 0 && <span className="text-[#888]">+{fmt(opt.delta, currency)}</span>}
+                  </p>
+                ))}
+              </div>
+            ))}
+            {/* Extras */}
+            {extras.map((ex, i) => (
+              <p key={i} className="text-[#666] text-xs flex justify-between">
+                <span>+ {ex.name}</span>
+                {ex.price > 0 && <span className="text-[#888]">+{fmt(ex.price, currency)}</span>}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {item.notes && <p className="text-amber-600 text-xs mt-1 italic font-medium">★ {item.notes}</p>}
       </div>
       <span className="flex-none text-sm font-bold text-[#111]">
         {fmt(item.line_total ?? item.unit_price * item.qty, currency)}
