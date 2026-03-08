@@ -278,6 +278,27 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                   </span>
                 ))}
               </div>
+
+              {/* ETA — shown when restaurant sets a preparation time */}
+              {order.estimated_ready_minutes && ['confirmed', 'preparing'].includes(order.status) && (() => {
+                const confirmedAt = order.updated_at ? new Date(order.updated_at) : new Date(order.created_at);
+                const etaTime = new Date(confirmedAt.getTime() + order.estimated_ready_minutes * 60_000);
+                const etaStr = etaTime.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+                const minsLeft = Math.max(0, Math.round((etaTime.getTime() - Date.now()) / 60_000));
+                return (
+                  <div className="mt-4 flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-50 border border-brand-200">
+                    <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center flex-shrink-0">
+                      <Clock className="w-5 h-5 text-brand-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-brand-700 uppercase tracking-wide">Tiempo estimado</p>
+                      <p className="text-base font-black text-brand-800">
+                        {minsLeft > 0 ? `~${minsLeft} min · lista a las ${etaStr}` : `Lista a las ${etaStr}`}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>

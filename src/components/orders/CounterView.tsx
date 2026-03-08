@@ -70,17 +70,39 @@ function isSoundMuted(): boolean {
   } catch { return false; }
 }
 
+/**
+ * Plays /public/sounds/new-order.mp3 if it exists,
+ * otherwise falls back to a synthesized 3-note chime (similar to Uber Eats).
+ */
 function playBeep() {
   if (typeof window === 'undefined' || isSoundMuted()) return;
+
+  // Try the real sound file first
+  const audio = new Audio('/sounds/new-order.mp3');
+  audio.volume = 0.8;
+  audio.play().catch(() => {
+    // File missing or browser blocked autoplay — fall back to synthesized chime
+    playChimeSynth();
+  });
+}
+
+/** 3-note descending chime (Do-Sol-Mi), pleasant restaurant notification sound */
+function playChimeSynth() {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = 880; osc.type = 'sine';
-    gain.gain.setValueAtTime(0.4, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.6);
+    // Notes: C5 (523 Hz), G4 (392 Hz), E4 (330 Hz)
+    [523, 392, 330].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + i * 0.22;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.5, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+      osc.start(t); osc.stop(t + 0.6);
+    });
   } catch { /* unavailable */ }
 }
 
@@ -88,15 +110,16 @@ function playUrgentBeep() {
   if (typeof window === 'undefined' || isSoundMuted()) return;
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    [440, 480, 440].forEach((freq, i) => {
+    // Rapid triple pulse — more urgent than the chime
+    [660, 660, 660].forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
       osc.frequency.value = freq; osc.type = 'square';
-      const t = ctx.currentTime + i * 0.18;
-      gain.gain.setValueAtTime(0.3, t);
+      const t = ctx.currentTime + i * 0.2;
+      gain.gain.setValueAtTime(0.35, t);
       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-      osc.start(t); osc.stop(t + 0.15);
+      osc.start(t); osc.stop(t + 0.18);
     });
   } catch { /* unavailable */ }
 }
@@ -140,7 +163,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const [isOnline, setIsOnline] = useState(true);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
-  const [splashOrder, setSplashOrder] = useState<Order | null>(null);
+  const [splashQueue, setSplashQueue] = useState<Order[]>([]);
   const [historySearch, setHistorySearch] = useState('');
   const [, tick] = useState(0);
   const urgentRef = useRef<Set<string>>(new Set());
@@ -186,7 +209,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const handleNewOrder = useCallback((order: Order) => {
     playBeep();
     sendPush('🔔 Nueva orden · ' + restaurantName, `${order.customer_name || 'Cliente'} · #${order.order_number} · ${fmt(order.total, currency)}`);
-    setSplashOrder(order);
+    setSplashQueue(q => [...q, order]);
   }, [restaurantName, currency]);
 
   const { orders } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
@@ -353,15 +376,17 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   return (
     <div className="h-screen w-full bg-[#F2F2F2] flex flex-col overflow-hidden select-none">
 
-      {/* ── New order splash ── */}
-      {splashOrder && (
+      {/* ── New order splash (queue — shows one at a time) ── */}
+      {splashQueue.length > 0 && (
         <NewOrderSplash
-          order={splashOrder}
+          order={splashQueue[0]}
           currency={currency}
+          queueCount={splashQueue.length}
           onReview={() => {
-            setSplashOrder(null);
+            const current = splashQueue[0];
+            setSplashQueue(q => q.slice(1));
             setActiveTab('new');
-            setSelectedId(splashOrder.id);
+            setSelectedId(current.id);
           }}
         />
       )}
@@ -1203,7 +1228,7 @@ function HistoryDetailPanel({ order, currency, restaurantName }: { order: Order;
 // NewOrderSplash — full screen green flash (identical to Uber Eats)
 // ══════════════════════════════════════════════════════════════════════════════
 
-function NewOrderSplash({ order, currency, onReview }: { order: Order; currency: string; onReview: () => void }) {
+function NewOrderSplash({ order, currency, queueCount, onReview }: { order: Order; currency: string; queueCount: number; onReview: () => void }) {
   const totalQty = (order.items ?? []).reduce((s, i) => s + i.qty, 0);
   const typeLabels: Record<string, string> = { dine_in: 'En mesa', pickup: 'Para recoger', delivery: 'Delivery' };
 
@@ -1221,7 +1246,14 @@ function NewOrderSplash({ order, currency, onReview }: { order: Order; currency:
       <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mb-6 animate-bounce">
         <Bell className="w-10 h-10 text-white" />
       </div>
-      <p className="text-white/80 text-lg font-bold uppercase tracking-widest mb-2">Nueva orden</p>
+      <div className="flex items-center gap-3 mb-2">
+        <p className="text-white/80 text-lg font-bold uppercase tracking-widest">Nueva orden</p>
+        {queueCount > 1 && (
+          <span className="bg-white/25 text-white text-sm font-black px-3 py-1 rounded-full">
+            +{queueCount - 1} más
+          </span>
+        )}
+      </div>
       <p className="text-white font-black mb-1 text-center" style={{ fontSize: 52, lineHeight: 1.1 }}>
         {order.customer_name || 'Cliente'}
       </p>
@@ -1234,7 +1266,7 @@ function NewOrderSplash({ order, currency, onReview }: { order: Order; currency:
       <button onClick={onReview}
         className="mt-10 h-16 px-12 rounded-2xl bg-white font-extrabold text-xl flex items-center gap-3 shadow-xl active:scale-[0.97] transition-transform"
         style={{ color: GREEN }}>
-        Ver orden <ChevronRight className="w-6 h-6" />
+        {queueCount > 1 ? `Ver orden (${queueCount - 1} más)` : 'Ver orden'} <ChevronRight className="w-6 h-6" />
       </button>
       <p className="text-white/50 text-xs mt-5">Toca en cualquier parte para continuar</p>
     </div>
