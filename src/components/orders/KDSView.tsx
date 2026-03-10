@@ -18,10 +18,9 @@ import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { OrderReceipt } from './OrderReceipt';
 import type { Order, OrderStatus } from '@/types';
 
-/* ── Status flow ── */
-const NEXT: Record<string, OrderStatus> = { pending: 'confirmed', confirmed: 'preparing', preparing: 'ready', ready: 'delivered' };
+/* ── Status flow ── KDS starts from confirmed (pending is handled by Counter) */
+const NEXT: Record<string, OrderStatus> = { confirmed: 'preparing', preparing: 'ready', ready: 'delivered' };
 const BUMP: Record<string, { label: string }> = {
-  pending:   { label: 'ACEPTAR'  },
   confirmed: { label: 'PREPARAR' },
   preparing: { label: 'LISTA'    },
   ready:     { label: 'ENTREGAR' },
@@ -182,7 +181,8 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
 
   /* Derived lists */
   const active = useMemo(() => {
-    let r = orders.filter(o => !['delivered', 'cancelled'].includes(o.status) && (Date.now() - new Date(o.created_at).getTime()) / 60000 <= AUTO_ARCHIVE_MIN);
+    // KDS only shows confirmed+ orders; pending orders must be accepted by Counter first
+    let r = orders.filter(o => !['pending', 'delivered', 'cancelled'].includes(o.status) && (Date.now() - new Date(o.created_at).getTime()) / 60000 <= AUTO_ARCHIVE_MIN);
     if (filter !== 'all') r = r.filter(o => o.order_type === filter);
     if (search.trim()) { const q = search.toLowerCase(); r = r.filter(o => o.order_number?.toLowerCase().includes(q) || o.customer_name?.toLowerCase().includes(q) || o.customer_phone?.includes(q)); }
     return r;
@@ -194,7 +194,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     return r;
   }, [orders, search]);
 
-  const pending = orders.filter(o => o.status === 'pending').length;
+  const pendingInCounter = orders.filter(o => o.status === 'pending').length;
   const today = orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString() && o.status !== 'cancelled');
   const todayTotal = today.reduce((s, o) => s + Number(o.total), 0);
   const avgTime = useMemo(() => {
@@ -203,7 +203,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     const avg = done.reduce((s, o) => s + (new Date(o.updated_at ?? o.created_at).getTime() - new Date(o.created_at).getTime()), 0) / done.length / 60000;
     return Math.round(avg);
   }, [today]);
-  useEffect(() => { updateTabTitle(pending); }, [pending, updateTabTitle]);
+  useEffect(() => { updateTabTitle(active.length); }, [active.length, updateTabTitle]);
 
   /* Actions */
   const bump = useCallback((id: string, next: OrderStatus) => {
@@ -309,8 +309,10 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
           {clock.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </span>
 
-        {pending > 0 && (
-          <span className="px-2 py-0.5 rounded-full bg-amber-500 text-black text-xs font-black animate-pulse">{pending}</span>
+        {pendingInCounter > 0 && (
+          <span className="px-2 py-0.5 rounded-full bg-gray-600 text-gray-200 text-xs font-bold" title="Órdenes esperando en Counter">
+            {pendingInCounter} en counter
+          </span>
         )}
         {busyExtra > 0 && (
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-white text-xs font-bold" style={{ backgroundColor: '#06c167' }}>
@@ -535,7 +537,7 @@ function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected,
   onOOS: (pid: string) => void; onSMS: () => void;
 }) {
   const { t } = useDashboardLocale();
-  const bumpLabel: Record<string, string> = { pending: t.kds_accept, confirmed: t.kds_prepare, preparing: t.kds_markReady, ready: t.kds_deliver };
+  const bumpLabel: Record<string, string> = { confirmed: t.kds_prepare, preparing: t.kds_markReady, ready: t.kds_deliver };
   const typeLabel: Record<string, string> = { dine_in: t.kds_table, pickup: t.kds_pickup, delivery: t.kds_delivery };
   const payLabel: Record<string, string> = { cash: t.kds_cash, online: t.kds_online };
   const dietLabel: Record<string, string> = { spicy: `🌶️ ${t.kds_spicy}`, dairy_free: `🥛 ${t.kds_dairyFree}` };
@@ -672,7 +674,7 @@ function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected,
           <button
             onClick={onBump}
             className="flex-1 py-5 rounded-xl text-white font-black text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.97] touch-manipulation tracking-wide"
-            style={{ backgroundColor: order.status === 'pending' ? '#06c167' : order.status === 'confirmed' ? '#3b82f6' : order.status === 'preparing' ? '#7c3aed' : '#06c167' }}
+            style={{ backgroundColor: order.status === 'confirmed' ? '#3b82f6' : order.status === 'preparing' ? '#7c3aed' : '#06c167' }}
           >
             {bumpLabel[order.status] ?? bmp.label} <ArrowRight className="w-5 h-5" />
           </button>

@@ -131,6 +131,11 @@ export function WalletButton({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Suppress unhandled rejection when Stripe fails to load (e.g. CSP, 503)
+  useEffect(() => {
+    if (stripePromise) stripePromise.catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (prRef.current) {
       prRef.current.update({
