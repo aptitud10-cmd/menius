@@ -163,6 +163,8 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const [isOnline, setIsOnline] = useState(true);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [kitchenToast, setKitchenToast] = useState<string | null>(null);
   const [splashQueue, setSplashQueue] = useState<Order[]>([]);
   const [historySearch, setHistorySearch] = useState('');
   const [, tick] = useState(0);
@@ -289,6 +291,14 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
       setShowMoreMenu(false);
       setActiveTab('cooking');
       setSelectedId(order.id);
+      // WhatsApp to customer with ETA
+      if (order.customer_phone) {
+        const msg = `Hola ${order.customer_name || 'cliente'} 👋 Tu orden #${order.order_number} fue confirmada ✅ Estará lista en aprox. ${effectiveEta} minutos.`;
+        window.open(`https://wa.me/${order.customer_phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+      }
+      // Kitchen confirmation toast
+      setKitchenToast(`#${order.order_number} → Cocina (${effectiveEta} min)`);
+      setTimeout(() => setKitchenToast(null), 3000);
     } finally { setIsUpdating(false); }
   }, [eta, busyExtra, restaurantName, currency]);
 
@@ -298,8 +308,14 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
     setShowRejectConfirm(false);
     try {
       await updateOrderStatus(order.id, 'cancelled');
+      // WhatsApp to customer with rejection reason
+      if (order.customer_phone && rejectReason) {
+        const msg = `Hola ${order.customer_name || 'cliente'}, lamentablemente no podemos procesar tu orden #${order.order_number}. Motivo: ${rejectReason}. Disculpa los inconvenientes.`;
+        window.open(`https://wa.me/${order.customer_phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+      }
+      setRejectReason('');
     } finally { setIsUpdating(false); }
-  }, []);
+  }, [rejectReason]);
 
   const handleMarkReady = useCallback(async (order: Order) => {
     setIsUpdating(true);
@@ -348,7 +364,8 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
       const res = await fetch('/api/test-order', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) {
-        setTestToast(data.error ?? 'Error al crear pedido de prueba');
+        const msg = data.error ?? 'Error al crear pedido de prueba';
+        setTestToast(msg.includes('productos') ? '⚠ Sin productos en stock — agrega productos primero' : `✗ ${msg}`);
       } else {
         setTestToast(`✓ Pedido #${data.order_number} enviado`);
         setActiveTab('new');
@@ -460,6 +477,13 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
         </div>
       )}
 
+      {/* ── Kitchen confirmation toast ── */}
+      {kitchenToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl text-white text-sm font-bold shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-200" style={{ background: '#06C167' }}>
+          <span>🍳</span> {kitchenToast}
+        </div>
+      )}
+
       {/* ══ MASTER-DETAIL ══ */}
       <div className="flex-1 flex overflow-hidden">
 
@@ -546,15 +570,17 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
               isUpdating={isUpdating}
               showMoreMenu={showMoreMenu}
               showRejectConfirm={showRejectConfirm}
+              onRejectReason={rejectReason}
+              onSetRejectReason={setRejectReason}
               onSetEta={setEta}
               onAccept={handleAccept}
               onReject={handleReject}
               onMarkReady={handleMarkReady}
               onDeliver={handleDeliver}
               onCancelCooking={handleCancelCooking}
-              onToggleMoreMenu={() => { setShowMoreMenu(s => !s); setShowRejectConfirm(false); }}
+              onToggleMoreMenu={() => { setShowMoreMenu(s => !s); setShowRejectConfirm(false); setRejectReason(''); }}
               onShowRejectConfirm={() => setShowRejectConfirm(true)}
-              onCloseMoreMenu={() => { setShowMoreMenu(false); setShowRejectConfirm(false); }}
+              onCloseMoreMenu={() => { setShowMoreMenu(false); setShowRejectConfirm(false); setRejectReason(''); }}
               onPrint={() => PrinterService.printOrder(selectedOrder, selectedOrder.estimated_ready_minutes ?? eta, restaurantName, currency).catch(() => {})}
             />
           ) : (
@@ -756,13 +782,14 @@ function HistoryListRow({ order, currency, selected, onClick }: {
 
 function DetailPanel({
   order, currency, restaurantName, tab, eta, busyExtra, isUpdating,
-  showMoreMenu, showRejectConfirm,
+  showMoreMenu, showRejectConfirm, onRejectReason, onSetRejectReason,
   onSetEta, onAccept, onReject, onMarkReady, onDeliver, onCancelCooking,
   onToggleMoreMenu, onShowRejectConfirm, onCloseMoreMenu, onPrint,
 }: {
   order: Order; currency: string; restaurantName: string; tab: Tab;
   eta: number; busyExtra: number; isUpdating: boolean;
   showMoreMenu: boolean; showRejectConfirm: boolean;
+  onRejectReason: string; onSetRejectReason: (r: string) => void;
   onSetEta: (v: number) => void;
   onAccept: (o: Order) => void;
   onReject: (o: Order) => void;
@@ -869,7 +896,15 @@ function DetailPanel({
               {tab === 'new' && showRejectConfirm && (
                 <div className="p-4">
                   <p className="text-sm font-bold text-[#111] mb-1">¿Rechazar #{order.order_number}?</p>
-                  <p className="text-xs text-[#888] mb-3">El cliente será notificado.</p>
+                  <p className="text-xs text-[#888] mb-3">Elige el motivo — se enviará por WhatsApp si el cliente tiene teléfono.</p>
+                  <div className="space-y-1.5 mb-3">
+                    {['Sin stock de productos', 'Restaurante cerrado', 'Demasiada demanda', 'Dirección fuera de zona', 'Otro'].map(r => (
+                      <label key={r} className={cn('flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer text-xs transition-colors', onRejectReason === r ? 'border-red-400 bg-red-50 text-red-700' : 'border-[#EEE] text-[#555] hover:border-[#CCC]')}>
+                        <input type="radio" name="reject-reason" checked={onRejectReason === r} onChange={() => onSetRejectReason(r)} className="accent-red-500" />
+                        {r}
+                      </label>
+                    ))}
+                  </div>
                   <div className="flex gap-2">
                     <button onClick={onCloseMoreMenu} className="flex-1 py-2 rounded-lg text-xs text-[#888] border border-[#E8E8E8]">Cancelar</button>
                     <button onClick={() => onReject(order)} disabled={isUpdating}

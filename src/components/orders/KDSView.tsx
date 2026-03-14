@@ -103,7 +103,6 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
 
   /* Persisted settings */
   const ls = (k: string, def: boolean) => typeof window !== 'undefined' ? localStorage.getItem(k) !== (def ? 'false' : 'true') : def;
-  const [autoConfirm, setAutoConfirm] = useState(() => typeof window !== 'undefined' && localStorage.getItem('kds-auto-confirm') === 'true');
   const [autoPrint, setAutoPrint] = useState(() => typeof window !== 'undefined' && localStorage.getItem('menius-auto-print') === 'true');
   const [smsEnabled, setSmsEnabled] = useState(() => ls('kds-sms-enabled', true));
   const [pausedUntil, setPausedUntil] = useState<number | null>(() => {
@@ -167,15 +166,8 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       setTimeout(() => setNewIds(p => { const n = new Set(p); n.delete(o.id); return n; }), 8000);
       setOverlayCount(c => c + 1);
       setShowOverlay(true);
-      const isPaused = pausedUntil && Date.now() < pausedUntil;
-      if (autoConfirm && !isPaused && o.status === 'pending') {
-        localRef.current(o.id, { status: 'confirmed' });
-        updateOrderStatus(o.id, 'confirmed');
-        // Busy Mode: extend default ETA by the busy extra minutes
-        if (busyExtra > 0) updateOrderETA(o.id, 15 + busyExtra);
-      }
       if (autoPrint) import('./OrderReceipt').then(({ quickPrintOrder }) => quickPrintOrder(o, restaurantName, restaurantPhone, restaurantAddress, currency));
-    }, [autoConfirm, autoPrint, busyExtra, pausedUntil, currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress]),
+    }, [autoPrint, currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress]),
   });
   localRef.current = updateOrderLocally;
 
@@ -310,9 +302,13 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
         </span>
 
         {pendingInCounter > 0 && (
-          <span className="px-2 py-0.5 rounded-full bg-gray-600 text-gray-200 text-xs font-bold" title="Órdenes esperando en Counter">
-            {pendingInCounter} en counter
-          </span>
+          <a
+            href="/counter"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse hover:bg-red-700 transition-colors"
+            title="Hay órdenes nuevas esperando en Counter"
+          >
+            🔔 {pendingInCounter} en Counter
+          </a>
         )}
         {busyExtra > 0 && (
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-white text-xs font-bold" style={{ backgroundColor: '#06c167' }}>
@@ -330,7 +326,6 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
 
         {/* Controls */}
         <div className="flex items-center gap-0.5">
-          <Ctrl on={autoConfirm} onClick={() => tog('kds-auto-confirm', setAutoConfirm, !autoConfirm)} icon={CheckCircle} title={t.kds_autoConfirm} />
           <Ctrl on={autoPrint} onClick={() => tog('menius-auto-print', setAutoPrint, !autoPrint)} icon={Printer} title={t.kds_autoPrint} />
           <Ctrl on={soundEnabled} onClick={() => setSoundEnabled(!soundEnabled)} icon={soundEnabled ? Volume2 : VolumeX} title={t.kds_sound} />
           <Ctrl on={smsEnabled} onClick={() => tog('kds-sms-enabled', setSmsEnabled, !smsEnabled)} icon={MessageSquare} title="SMS" />
