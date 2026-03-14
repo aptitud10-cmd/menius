@@ -131,8 +131,9 @@ export default function CreateRestaurantPage() {
     setProductLoading(true);
     await createProduct({
       name: productName.trim(),
+      description: '',
       price,
-      ...(createdCategoryId ? { category_id: createdCategoryId } : {}),
+      category_id: createdCategoryId ?? '',
       is_active: true,
     });
     setProductLoading(false);
