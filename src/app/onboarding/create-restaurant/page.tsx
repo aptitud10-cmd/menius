@@ -134,7 +134,6 @@ export default function CreateRestaurantPage() {
       price,
       ...(createdCategoryId ? { category_id: createdCategoryId } : {}),
       is_active: true,
-      sort_order: 0,
     });
     setProductLoading(false);
     router.push('/app');
