@@ -166,6 +166,9 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const [rejectReason, setRejectReason] = useState('');
   const [kitchenToast, setKitchenToast] = useState<string | null>(null);
   const [splashQueue, setSplashQueue] = useState<Order[]>([]);
+  const [autoPrint, setAutoPrint] = useState(() =>
+    typeof window !== 'undefined' && localStorage.getItem('counter-auto-print') === 'true'
+  );
   const [historySearch, setHistorySearch] = useState('');
   const [, tick] = useState(0);
   const urgentRef = useRef<Set<string>>(new Set());
@@ -287,7 +290,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
     try {
       await updateOrderETA(order.id, effectiveEta);
       await updateOrderStatus(order.id, 'confirmed');
-      PrinterService.printOrder(order, effectiveEta, restaurantName, currency).catch(() => {});
+      if (autoPrint) PrinterService.printOrder(order, effectiveEta, restaurantName, currency).catch(() => {});
       setShowMoreMenu(false);
       setActiveTab('cooking');
       setSelectedId(order.id);
@@ -300,7 +303,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
       setKitchenToast(`#${order.order_number} → Cocina (${effectiveEta} min)`);
       setTimeout(() => setKitchenToast(null), 3000);
     } finally { setIsUpdating(false); }
-  }, [eta, busyExtra, restaurantName, currency]);
+  }, [eta, busyExtra, restaurantName, currency, autoPrint]);
 
   const handleReject = useCallback(async (order: Order) => {
     setIsUpdating(true);
@@ -437,6 +440,15 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
               +{busyExtra}min
             </span>
           )}
+          <button
+            onClick={() => {
+              const next = !autoPrint;
+              setAutoPrint(next);
+              localStorage.setItem('counter-auto-print', String(next));
+            }}
+            title={autoPrint ? 'Auto-impresión ON — click para desactivar' : 'Auto-impresión OFF — click para activar'}
+            className={cn('w-9 h-9 rounded-xl flex items-center justify-center transition-colors', autoPrint ? 'bg-[#111] text-white' : 'bg-[#F5F5F5] text-[#888] hover:bg-[#E8E8E8]')}
+          ><Printer className="w-4 h-4" /></button>
           <button
             onClick={() => setShowBusy(true)}
             title="Modo ocupado"

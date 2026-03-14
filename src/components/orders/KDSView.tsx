@@ -100,6 +100,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   const [overlayCount, setOverlayCount] = useState(0);
   const [busyExtra, setBusyExtra] = useState(0);
   const [showBusy, setShowBusy] = useState(false);
+  const [groupByItem, setGroupByItem] = useState(false);
 
   /* Persisted settings */
   const ls = (k: string, def: boolean) => typeof window !== 'undefined' ? localStorage.getItem(k) !== (def ? 'false' : 'true') : def;
@@ -185,6 +186,36 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     if (search.trim()) { const q = search.toLowerCase(); r = r.filter(o => o.order_number?.toLowerCase().includes(q) || o.customer_name?.toLowerCase().includes(q)); }
     return r;
   }, [orders, search]);
+
+  // ── Item-grouped view ──
+  interface GroupedItem {
+    productName: string;
+    totalQty: number;
+    entries: Array<{ orderNumber: string; qty: number; notes: string | null; modifiers: string[] }>;
+  }
+  const groupedItems = useMemo((): GroupedItem[] => {
+    if (!groupByItem) return [];
+    const map = new Map<string, GroupedItem>();
+    for (const order of active) {
+      for (const item of (order.items ?? []) as any[]) {
+        const name: string = item.product?.name ?? 'Producto';
+        const existing = map.get(name) ?? { productName: name, totalQty: 0, entries: [] };
+        const mods: string[] = [];
+        if (item.variant?.name) mods.push(item.variant.name);
+        for (const ex of item.extras ?? item.order_item_extras ?? []) {
+          const n = ex.extra?.name ?? ex.product_extras?.name;
+          if (n) mods.push(n);
+        }
+        for (const m of item.order_item_modifiers ?? []) {
+          if (m.option_name) mods.push(m.option_name);
+        }
+        existing.totalQty += item.qty;
+        existing.entries.push({ orderNumber: order.order_number, qty: item.qty, notes: item.notes ?? null, modifiers: mods });
+        map.set(name, existing);
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.totalQty - a.totalQty);
+  }, [active, groupByItem]);
 
   const pendingInCounter = orders.filter(o => o.status === 'pending').length;
   const today = orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString() && o.status !== 'cancelled');
@@ -326,6 +357,13 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
 
         {/* Controls */}
         <div className="flex items-center gap-0.5">
+          <button
+            onClick={() => setGroupByItem(v => !v)}
+            title={groupByItem ? 'Vista por ítem (activa) — click para ver por orden' : 'Ver agrupado por ítem'}
+            className={cn('p-2.5 rounded-lg transition-colors touch-manipulation text-xs font-black flex items-center gap-1', groupByItem ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800')}
+          >
+            <Hash className="w-4 h-4" />
+          </button>
           <Ctrl on={autoPrint} onClick={() => tog('menius-auto-print', setAutoPrint, !autoPrint)} icon={Printer} title={t.kds_autoPrint} />
           <Ctrl on={soundEnabled} onClick={() => setSoundEnabled(!soundEnabled)} icon={soundEnabled ? Volume2 : VolumeX} title={t.kds_sound} />
           <Ctrl on={smsEnabled} onClick={() => tog('kds-sms-enabled', setSmsEnabled, !smsEnabled)} icon={MessageSquare} title="SMS" />
@@ -377,6 +415,38 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
               <Package className="w-14 h-14 mb-2 text-gray-700" />
               <p className="text-base font-semibold text-gray-500">{t.kds_empty}</p>
               <p className="text-xs mt-1">{t.kds_emptyDesc}</p>
+            </div>
+          ) : groupByItem ? (
+            /* ── Item-grouped view ── */
+            <div className="grid gap-3 max-w-5xl mx-auto" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+              {groupedItems.map(group => (
+                <div key={group.productName} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 bg-gray-900">
+                    <span className="text-white font-black text-base truncate">{group.productName}</span>
+                    <span className="flex-shrink-0 ml-2 w-9 h-9 rounded-full bg-emerald-500 text-white font-black text-lg flex items-center justify-center">
+                      {group.totalQty}
+                    </span>
+                  </div>
+                  <div className="divide-y divide-gray-100">
+                    {group.entries.map((e, i) => (
+                      <div key={i} className="flex items-start gap-3 px-4 py-2.5">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gray-100 text-gray-700 text-xs font-black flex items-center justify-center mt-0.5">
+                          {e.qty}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs font-bold text-gray-700">#{e.orderNumber}</span>
+                          {e.modifiers.length > 0 && (
+                            <p className="text-[11px] text-gray-400 truncate">{e.modifiers.join(', ')}</p>
+                          )}
+                          {e.notes && (
+                            <p className="text-[11px] text-amber-600 font-medium italic truncate">★ {e.notes}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
