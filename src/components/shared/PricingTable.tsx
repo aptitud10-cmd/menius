@@ -100,7 +100,7 @@ export function PricingTable({ onSelect, currentPlan, loading, compact }: Pricin
                 {/* Badges */}
                 {isPopular && (
                   <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-[11px] font-bold rounded-full uppercase tracking-wider shadow-md">
-                    {locale === 'en' ? 'Most popular' : 'Mas popular'}
+                    {locale === 'en' ? 'Most popular' : 'Más popular'}
                   </span>
                 )}
                 {isCurrent && (

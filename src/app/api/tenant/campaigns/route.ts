@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-    const menuUrl = `${appUrl}/r/${restaurant.slug}`;
+    const menuUrl = `${appUrl}/${restaurant.slug}`;
 
     const html = buildCampaignEmail({
       restaurantName: restaurant.name,

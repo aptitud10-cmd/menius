@@ -16,8 +16,10 @@ export function generateStaticParams() {
   return blogPosts.map((post) => ({ slug: post.slug }));
 }
 
-export function generateMetadata({ params }: PageProps): Metadata {
-  const post = getLocalizedBlogPost(params.slug, 'es');
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const cookieStore = await cookies();
+  const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as LandingLocale;
+  const post = getLocalizedBlogPost(params.slug, locale);
   if (!post) return { title: 'Artículo no encontrado' };
 
   const url = `/blog/${post.slug}`;
@@ -62,8 +64,8 @@ function getUiText(locale: string) {
   };
 }
 
-export default function BlogPostPage({ params }: PageProps) {
-  const cookieStore = cookies();
+export default async function BlogPostPage({ params }: PageProps) {
+  const cookieStore = await cookies();
   const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as LandingLocale;
   const post = getLocalizedBlogPost(params.slug, locale);
   if (!post) notFound();

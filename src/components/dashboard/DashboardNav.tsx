@@ -113,7 +113,7 @@ export function DashboardNav({ slug, mobile }: DashboardNavProps) {
 
       <div className="mt-5 pt-4 border-t border-gray-100 flex flex-col gap-0.5">
         <Link
-          href={`/r/${slug}`}
+          href={`/${slug}`}
           target="_blank"
           onClick={() => setOpen(false)}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"

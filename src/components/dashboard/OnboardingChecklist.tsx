@@ -95,7 +95,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
       title: t.onboarding_firstOrder,
       description: t.onboarding_firstOrderDesc,
       completed: steps.hasOrders,
-      href: `/r/${restaurantSlug}`,
+      href: `/${restaurantSlug}`,
       icon: <ShoppingBag className="w-4 h-4" />,
       external: true,
     },

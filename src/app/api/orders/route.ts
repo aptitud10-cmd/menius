@@ -487,8 +487,8 @@ export async function POST(request: NextRequest) {
         const sessionParams: any = {
           line_items: lineItems,
           mode: 'payment',
-          success_url: `${appUrl}/r/${restaurant.slug}/orden/${order.order_number}?paid=true`,
-          cancel_url: `${appUrl}/r/${restaurant.slug}/orden/${order.order_number}?paid=false`,
+          success_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=true`,
+          cancel_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=false`,
           metadata: { order_id: order.id, order_number: order.order_number },
         };
         if (connectedAccount) {

@@ -140,7 +140,7 @@ export function EmailCampaigns({ restaurantName, menuSlug, restaurantLocale, tot
           subject: subject.trim(),
           message: message.trim(),
           ctaText: ctaText.trim() || (en ? 'View menu' : 'Ver menú'),
-          ctaUrl: `${appUrl}/r/${menuSlug}`,
+          ctaUrl: `${appUrl}/${menuSlug}`,
           filter,
         }),
       });

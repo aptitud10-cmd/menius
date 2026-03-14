@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { MenuShell } from '@/components/public/MenuShell';
-import { fetchMenuData } from '@/app/r/[slug]/menu-data';
+import { fetchMenuData } from './menu-data';
 import { demoRestaurant, demoCategories, demoProducts } from '@/lib/demo-data';
 import { grillHouseRestaurant, grillHouseCategories, grillHouseProducts } from '@/lib/demo-data-en';
 import { JsonLdScript } from '@/components/public/JsonLdScript';

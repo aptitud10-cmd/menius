@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { OrderHistoryClient } from '@/app/r/[slug]/mis-pedidos/OrderHistoryClient';
+import { OrderHistoryClient } from './OrderHistoryClient';
 
 interface PageProps {
   params: { slug: string };

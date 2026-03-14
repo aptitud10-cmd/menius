@@ -53,7 +53,7 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
     const currency = restaurant.currency ?? 'MXN';
     const totalFormatted = formatPrice(total, currency);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-    const trackingUrl = `${appUrl}/r/${restaurant.slug}/orden/${orderNumber}`;
+    const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}`;
 
     const notificationsOn = restaurant.notifications_enabled !== false;
 
@@ -146,7 +146,7 @@ export async function notifyStatusChange(params: {
 
     const rLocale = restaurant.locale ?? 'es';
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-    const trackingUrl = `${appUrl}/r/${restaurant.slug}/orden/${orderNumber}`;
+    const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}`;
 
     if (customerEmail) {
       const html = buildStatusUpdateEmail({
@@ -205,7 +205,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
   const locale = restaurant.locale ?? 'es';
   const en = locale === 'en';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-  const trackingUrl = `${appUrl}/r/${restaurant.slug}/orden/${order.order_number}`;
+  const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}`;
   const totalFormatted = formatPrice(Number(order.total), currency);
 
   const emailItems = ((order as any).order_items ?? []).map((item: any) => ({

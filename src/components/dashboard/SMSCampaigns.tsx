@@ -91,7 +91,7 @@ export function SMSCampaigns({ restaurantName, menuSlug, restaurantLocale, total
         body: JSON.stringify({
           message: message.trim(),
           filter,
-          menuUrl: `${window.location.origin}/r/${menuSlug}`,
+          menuUrl: `${window.location.origin}/${menuSlug}`,
         }),
       });
       const data = await res.json();

@@ -95,7 +95,7 @@ export async function middleware(request: NextRequest) {
         .maybeSingle();
       if (restaurant?.slug) {
         const url = request.nextUrl.clone();
-        url.pathname = `/r/${restaurant.slug}${path === '/' ? '' : path}`;
+        url.pathname = `/${restaurant.slug}${path === '/' ? '' : path}`;
         return NextResponse.rewrite(url);
       }
     }

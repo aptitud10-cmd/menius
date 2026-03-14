@@ -133,7 +133,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
   };
 
   const appUrl = typeof window !== 'undefined' ? window.location.origin : '';
-  const publicUrl = `${appUrl}/r/${initialData.slug}`;
+  const publicUrl = `${appUrl}/${initialData.slug}`;
 
   const handleChange = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));

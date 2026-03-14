@@ -78,7 +78,7 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
         <div className="flex items-center gap-2">
           <ShareMenuButton slug={restaurant.slug} name={restaurant.name} />
           <Link
-            href={`/r/${restaurant.slug}`}
+            href={`/${restaurant.slug}`}
             target="_blank"
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-600 text-sm font-medium hover:bg-emerald-50 transition-colors border border-emerald-200"
           >
@@ -468,7 +468,7 @@ function EmptyRestaurantCTA({ restaurantSlug }: { restaurantSlug: string }) {
             {t.home_viewMyProducts}
           </Link>
           <Link
-            href={`/r/${restaurantSlug}`}
+            href={`/${restaurantSlug}`}
             target="_blank"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
           >
@@ -741,7 +741,7 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
   const { t } = useDashboardLocale();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const menuUrl = typeof window !== 'undefined' ? `${window.location.origin}/r/${slug}` : `/r/${slug}`;
+  const menuUrl = typeof window !== 'undefined' ? `${window.location.origin}/${slug}` : `/${slug}`;
 
   const copyLink = async () => {
     try {

@@ -121,7 +121,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const deliveryFee = (orderType === 'delivery' && restaurant.delivery_fee) ? restaurant.delivery_fee : 0;
   const finalTotal = Math.max(0, cartTotal - discount + deliveryFee + tipAmount);
 
-  const goBack = useCallback(() => router.push(`/r/${slug}`), [router, slug]);
+  const goBack = useCallback(() => router.push(`/${slug}`), [router, slug]);
 
   const validateField = useCallback((name: string, value: string) => {
     let error = '';

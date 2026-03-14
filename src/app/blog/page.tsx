@@ -30,8 +30,8 @@ function getPageText(locale: LandingLocale) {
   };
 }
 
-export default function BlogPage() {
-  const cookieStore = cookies();
+export default async function BlogPage() {
+  const cookieStore = await cookies();
   const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as LandingLocale;
   const pt = getPageText(locale);
   const posts = getLocalizedBlogPosts(locale);

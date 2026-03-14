@@ -16,7 +16,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${APP_URL}/privacy`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${APP_URL}/terms`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${APP_URL}/cookies`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
-    // Demo menus use clean URLs
     { url: `${APP_URL}/demo`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${APP_URL}/la-casa-del-sabor`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${APP_URL}/the-grill-house`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
@@ -30,7 +29,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   try {
-    // Use admin client — sitemap runs without a request context, no cookies available
     const db = createAdminClient();
     const { data: restaurants } = await db
       .from('restaurants')

@@ -123,7 +123,7 @@ export async function createRestaurant(data: CreateRestaurantInput) {
     }
   }
 
-  redirect('/app');
+  return { success: true as const, slug: restaurant.slug, restaurantId: restaurant.id };
 }
 
 // ---- Re-seed ----

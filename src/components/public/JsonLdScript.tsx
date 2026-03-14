@@ -11,7 +11,7 @@ export function JsonLdScript({
   products?: any[];
   reviewStats?: { average: number; total: number } | null;
 }) {
-  const url = `${APP_URL}/r/${slug}`;
+  const url = `${APP_URL}/${slug}`;
   const currency = restaurant.currency ?? 'MXN';
 
   const paymentMap: Record<string, string> = {

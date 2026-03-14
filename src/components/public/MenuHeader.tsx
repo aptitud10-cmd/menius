@@ -180,7 +180,7 @@ export const MenuHeader = memo(function MenuHeader({
 
           {/* My orders link */}
           <Link
-            href={`/r/${restaurant.slug}/mis-pedidos`}
+            href={`/${restaurant.slug}/mis-pedidos`}
             className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
             aria-label="Mis pedidos"
             title="Ver mis pedidos anteriores"

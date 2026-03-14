@@ -151,7 +151,7 @@ export function MenuShell({
     setHasMounted(true);
     setRestaurantId(restaurant.id);
     setTableName(tableName);
-    router.prefetch(`/r/${restaurant.slug}/checkout`);
+    router.prefetch(`/${restaurant.slug}/checkout`);
 
     // If returning customer has items in cart, show a brief "resume cart" toast
     const stored = useCartStore.getState();
@@ -288,7 +288,7 @@ export function MenuShell({
     setOpen(false);
 
     requestAnimationFrame(() => {
-      router.push(`/r/${restaurant.slug}/checkout`);
+      router.push(`/${restaurant.slug}/checkout`);
     });
   }, [router, restaurant.slug, restaurant.id, rawCartCount, rawCartTotal, setOpen]);
 

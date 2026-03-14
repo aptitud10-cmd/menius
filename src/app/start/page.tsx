@@ -209,8 +209,8 @@ const colorMap: Record<string, { bg: string; text: string; border: string; badge
   teal: { bg: 'bg-teal-500/10', text: 'text-teal-400', border: 'border-teal-500/20', badge: 'bg-teal-500' },
 };
 
-export default function StartPage() {
-  const cookieStore = cookies();
+export default async function StartPage() {
+  const cookieStore = await cookies();
   const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as Locale;
   const isEn = locale === 'en';
 

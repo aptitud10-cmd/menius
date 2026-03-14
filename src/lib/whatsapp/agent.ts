@@ -144,7 +144,7 @@ export async function handleIncomingMessage({ from, text, name }: IncomingMessag
 
   session.lastActivity = Date.now();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-  const menuUrl = `${appUrl}/r/${session.slug}`;
+  const menuUrl = `${appUrl}/${session.slug}`;
   const isEn = session.locale === 'en';
   const intent = detectIntent(text);
 

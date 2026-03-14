@@ -294,7 +294,7 @@ export default function AdminHealthPage() {
                     <span className="text-gray-600 text-xs ml-3 shrink-0">
                       {new Date(r.created_at).toLocaleDateString('es', { day: 'numeric', month: 'short' })}
                     </span>
-                    <a href={`/r/${r.slug}`} target="_blank" rel="noopener noreferrer"
+                    <a href={`/${r.slug}`} target="_blank" rel="noopener noreferrer"
                       className="ml-3 text-[10px] text-purple-400 hover:text-purple-300 underline shrink-0">
                       ver
                     </a>
@@ -321,7 +321,7 @@ export default function AdminHealthPage() {
                       <p className="text-white text-xs font-medium truncate">{r.name}</p>
                       <p className="text-gray-600 text-xs">/{r.slug}</p>
                     </div>
-                    <a href={`/r/${r.slug}`} target="_blank" rel="noopener noreferrer"
+                    <a href={`/${r.slug}`} target="_blank" rel="noopener noreferrer"
                       className="ml-3 text-[10px] text-purple-400 hover:text-purple-300 underline shrink-0">
                       ver
                     </a>

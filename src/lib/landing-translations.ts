@@ -291,8 +291,8 @@ const es = {
     ],
   },
   testimonials: {
-    sectionLabel: 'Por qué importa',
-    sectionTitle: 'El problema que resolvemos',
+    sectionLabel: 'La industria en números',
+    sectionTitle: 'El mercado que estás dejando ir',
     items: [
       {
         name: '25–35%',
@@ -635,8 +635,8 @@ const en: LandingT = {
     ],
   },
   testimonials: {
-    sectionLabel: 'Why it matters',
-    sectionTitle: 'The problem we solve',
+    sectionLabel: 'Industry by the numbers',
+    sectionTitle: 'The market you\'re missing out on',
     items: [
       {
         name: '25–35%',

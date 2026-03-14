@@ -427,7 +427,7 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
   const [copied, setCopied] = useState(false);
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-  const menuUrl = `${appUrl}/r/${slug}`;
+  const menuUrl = `${appUrl}/${slug}`;
 
   useEffect(() => {
     if (!qrContainerRef.current || !menuUrl) return;

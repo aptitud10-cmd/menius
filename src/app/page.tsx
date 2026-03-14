@@ -20,6 +20,13 @@ export const metadata: Metadata = {
     url: APP_URL,
     title: 'MENIUS — Menús digitales inteligentes para restaurantes',
     description: 'Crea tu menú digital con QR, recibe pedidos en tiempo real, y gestiona tu restaurante desde un solo lugar.',
+    images: [{ url: `${APP_URL}/opengraph-image`, width: 1200, height: 630, alt: 'MENIUS — Menú digital para restaurantes' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MENIUS — Menús digitales inteligentes para restaurantes',
+    description: 'Crea tu menú digital con QR, recibe pedidos en tiempo real, y gestiona tu restaurante desde un solo lugar.',
+    images: [`${APP_URL}/opengraph-image`],
   },
 };
 

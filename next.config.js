@@ -48,7 +48,7 @@ const nextConfig = {
         ],
       },
       {
-        source: '/r/(.*)',
+        source: '/:slug((?!app|api|auth|admin|blog|_next|favicon|robots|sitemap|sw\\.js|icons|images|manifest|offline|privacy|terms|cookies|faq|changelog|status|start|onboarding|setup-profesional|demo|login|signup|kds|counter|monitoring).*)',
         headers: [
           { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },
         ],

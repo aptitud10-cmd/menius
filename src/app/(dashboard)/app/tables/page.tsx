@@ -23,7 +23,7 @@ export default async function TablesPage() {
 
   for (const table of tables) {
     if (table.qr_code_value && !table.qr_code_value.startsWith(appUrl)) {
-      const correctUrl = `${appUrl}/r/${slug}?table=${encodeURIComponent(table.name)}`;
+      const correctUrl = `${appUrl}/${slug}?table=${encodeURIComponent(table.name)}`;
       await supabase.from('tables').update({ qr_code_value: correctUrl }).eq('id', table.id);
       table.qr_code_value = correctUrl;
     }

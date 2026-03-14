@@ -108,7 +108,7 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{ context:
 === ${en ? 'RESTAURANT' : 'RESTAURANTE'} ===
 ${en ? 'Name' : 'Nombre'}: ${restaurant?.name ?? 'N/A'}
 Slug: ${restaurant?.slug ?? 'N/A'}
-${en ? 'Menu URL' : 'URL del menú'}: menius.app/r/${restaurant?.slug ?? ''}
+${en ? 'Menu URL' : 'URL del menú'}: menius.app/${restaurant?.slug ?? ''}
 ${en ? 'Currency' : 'Moneda'}: ${restaurant?.currency ?? 'USD'}
 ${en ? 'Language' : 'Idioma'}: ${locale}
 ${en ? 'Address' : 'Dirección'}: ${restaurant?.address || na}

@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     const restaurantName = restaurant?.name ?? (en ? 'My Restaurant' : 'Mi Restaurante');
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-    const menuUrl = `${appUrl}/r/${restaurant?.slug ?? ''}`;
+    const menuUrl = `${appUrl}/${restaurant?.slug ?? ''}`;
     const productList = (topProducts ?? []).map((p) => `${p.name} ($${p.price})`).join(', ');
     const avgRating = (recentReviews ?? []).length > 0
       ? ((recentReviews ?? []).reduce((s, r) => s + r.rating, 0) / (recentReviews ?? []).length).toFixed(1)

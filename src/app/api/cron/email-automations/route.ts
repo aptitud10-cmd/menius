@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       if (!restaurant) continue;
 
       const en = restaurant.locale === 'en';
-      const menuUrl = `${appUrl}/r/${restaurant.slug}`;
+      const menuUrl = `${appUrl}/${restaurant.slug}`;
       const unsubUrl = `${appUrl}/api/unsubscribe?id=${customer.id}`;
 
       const sent = await sendEmail({
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
       if (!restaurant) continue;
 
       const en = restaurant.locale === 'en';
-      const menuUrl = `${appUrl}/r/${restaurant.slug}`;
+      const menuUrl = `${appUrl}/${restaurant.slug}`;
       const unsubUrl = `${appUrl}/api/unsubscribe?id=${customer.id}`;
 
       const sent = await sendEmail({
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
       if (!restaurant) continue;
 
       const en = restaurant.locale === 'en';
-      const menuUrl = `${appUrl}/r/${restaurant.slug}`;
+      const menuUrl = `${appUrl}/${restaurant.slug}`;
 
       const sent = await sendEmail({
         to: order.customer_email,
@@ -263,7 +263,7 @@ export async function GET(request: NextRequest) {
           subject: en
             ? `📊 Tips to get your first order at ${restaurant.name}`
             : `📊 Tips para recibir tu primer pedido en ${restaurant.name}`,
-          html: buildNoOrdersEmail(restaurant.name, `${appUrl}/r/${restaurant.slug}`, tipsUrl, en),
+          html: buildNoOrdersEmail(restaurant.name, `${appUrl}/${restaurant.slug}`, tipsUrl, en),
         });
 
         if (sent) {
@@ -314,7 +314,7 @@ export async function GET(request: NextRequest) {
 
         const en = restaurant.locale === 'en';
         const dashUrl = `${appUrl}/app`;
-        const menuUrl = `${appUrl}/r/${restaurant.slug}`;
+        const menuUrl = `${appUrl}/${restaurant.slug}`;
 
         const sent = await sendEmail({
           to: restaurant.notification_email,
@@ -698,3 +698,5 @@ function buildNoOrdersEmail(restaurantName: string, menuUrl: string, dashUrl: st
 </body>
 </html>`;
 }
+
+

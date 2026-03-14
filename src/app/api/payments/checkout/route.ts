@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
       payment_method_options: {
         oxxo: { expires_after_days: 3 },
       },
-      success_url: `${appUrl}/r/${slug}/orden/${order.order_number}?paid=true`,
-      cancel_url: `${appUrl}/r/${slug}/orden/${order.order_number}?paid=false`,
+      success_url: `${appUrl}/${slug}/orden/${order.order_number}?paid=true`,
+      cancel_url: `${appUrl}/${slug}/orden/${order.order_number}?paid=false`,
       metadata: {
         order_id: order.id,
         order_number: order.order_number,
