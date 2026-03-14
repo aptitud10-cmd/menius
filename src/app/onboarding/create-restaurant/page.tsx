@@ -132,7 +132,7 @@ export default function CreateRestaurantPage() {
     await createProduct({
       name: productName.trim(),
       price,
-      category_id: createdCategoryId ?? undefined,
+      ...(createdCategoryId ? { category_id: createdCategoryId } : {}),
       is_active: true,
       sort_order: 0,
     });
