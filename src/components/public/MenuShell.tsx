@@ -410,14 +410,22 @@ export function MenuShell({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [showSearch, customization, isOpen, setOpen]);
 
-  // Auto-scroll pill bar to show active pill
+  // Auto-scroll pill bar to show active pill — use scrollLeft directly to avoid
+  // scrollIntoView accidentally scrolling parent/body containers horizontally.
   useEffect(() => {
     if (!activeCategory) return;
     const container = mobilePillsRef.current ?? catScrollRef.current;
     if (!container) return;
     const pill = container.querySelector(`[data-pill-id="${activeCategory}"]`) as HTMLElement;
     if (pill) {
-      pill.scrollIntoView({ inline: 'center', behavior: 'smooth', block: 'nearest' });
+      const containerRect = container.getBoundingClientRect();
+      const pillRect = pill.getBoundingClientRect();
+      const targetLeft =
+        container.scrollLeft +
+        pillRect.left -
+        containerRect.left -
+        (containerRect.width - pillRect.width) / 2;
+      container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
     }
   }, [activeCategory]);
 
