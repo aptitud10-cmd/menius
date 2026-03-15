@@ -31,9 +31,10 @@ export function useRealtimeOrders({
       .from('orders')
       .select(`
         *,
+        table:tables ( name ),
         order_items (
           id, qty, unit_price, line_total, notes,
-          product:products ( name, image_url ),
+          product:products ( id, name, image_url, dietary_tags ),
           variant:product_variants ( name ),
           order_item_extras ( price, product_extras ( name ) ),
           order_item_modifiers ( group_name, option_name, price_delta )

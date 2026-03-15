@@ -304,7 +304,22 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     return () => window.removeEventListener('keydown', handler);
   }, [active, selectedIdx, bump, orders, recall]);
 
-  const markOOS = async (pid: string) => { try { await fetch('/api/products/stock', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ product_id: pid, in_stock: false }) }); } catch {} };
+  const [oosToast, setOosToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const markOOS = async (pid: string) => {
+    try {
+      const res = await fetch('/api/products/stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: pid, in_stock: false }),
+      });
+      const ok = res.ok;
+      setOosToast({ msg: ok ? 'Producto marcado sin stock' : 'Error al actualizar stock', ok });
+      setTimeout(() => setOosToast(null), 3000);
+    } catch {
+      setOosToast({ msg: 'Error de conexión al actualizar stock', ok: false });
+      setTimeout(() => setOosToast(null), 3000);
+    }
+  };
 
   const toggleExp = (id: string) => setExpanded(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
@@ -494,6 +509,13 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
           <span className="text-red-400 font-bold">📴 {offlineQueue.current.length} {t.kds_queued}</span>
         )}
       </div>
+
+      {/* OOS toast */}
+      {oosToast && (
+        <div className={cn('fixed bottom-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-xs font-bold shadow-2xl animate-in slide-in-from-bottom', oosToast.ok ? 'bg-emerald-600' : 'bg-red-600')}>
+          {oosToast.ok ? '✅' : '⚠️'} {oosToast.msg}
+        </div>
+      )}
 
       {/* Undo */}
       {undo && (

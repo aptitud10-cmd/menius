@@ -165,6 +165,8 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const [showRejectConfirm, setShowRejectConfirm] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [kitchenToast, setKitchenToast] = useState<string | null>(null);
+  const [errorToast, setErrorToast] = useState<string | null>(null);
+  const showError = (msg: string) => { setErrorToast(msg); setTimeout(() => setErrorToast(null), 4000); };
   const [splashQueue, setSplashQueue] = useState<Order[]>([]);
   const [autoPrint, setAutoPrint] = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('counter-auto-print') === 'true'
@@ -401,20 +403,22 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
     setIsUpdating(true);
     const effectiveEta = eta + busyExtra;
     try {
-      await updateOrderETA(order.id, effectiveEta);
-      await updateOrderStatus(order.id, 'confirmed');
+      const etaRes = await updateOrderETA(order.id, effectiveEta);
+      if (etaRes?.error) { showError(`Error al actualizar ETA: ${etaRes.error}`); return; }
+      const res = await updateOrderStatus(order.id, 'confirmed');
+      if (res?.error) { showError(`Error al confirmar: ${res.error}`); return; }
       if (autoPrint) PrinterService.printOrder(order, effectiveEta, restaurantName, currency).catch(() => {});
       setShowMoreMenu(false);
       setActiveTab('cooking');
       setSelectedId(order.id);
-      // WhatsApp to customer with ETA
       if (order.customer_phone) {
         const msg = `Hola ${order.customer_name || 'cliente'} 👋 Tu orden #${order.order_number} fue confirmada ✅ Estará lista en aprox. ${effectiveEta} minutos.`;
         window.open(`https://wa.me/${order.customer_phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
       }
-      // Kitchen confirmation toast
       setKitchenToast(`#${order.order_number} → Cocina (${effectiveEta} min)`);
       setTimeout(() => setKitchenToast(null), 3000);
+    } catch (e) {
+      showError('Error inesperado al confirmar la orden');
     } finally { setIsUpdating(false); }
   }, [eta, busyExtra, restaurantName, currency, autoPrint]);
 
@@ -423,35 +427,43 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
     setShowMoreMenu(false);
     setShowRejectConfirm(false);
     try {
-      await updateOrderStatus(order.id, 'cancelled');
-      // WhatsApp to customer with rejection reason
+      const res = await updateOrderStatus(order.id, 'cancelled');
+      if (res?.error) { showError(`Error al rechazar: ${res.error}`); return; }
       if (order.customer_phone && rejectReason) {
         const msg = `Hola ${order.customer_name || 'cliente'}, lamentablemente no podemos procesar tu orden #${order.order_number}. Motivo: ${rejectReason}. Disculpa los inconvenientes.`;
         window.open(`https://wa.me/${order.customer_phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
       }
       setRejectReason('');
+    } catch {
+      showError('Error inesperado al rechazar la orden');
     } finally { setIsUpdating(false); }
   }, [rejectReason]);
 
   const handleMarkReady = useCallback(async (order: Order) => {
     setIsUpdating(true);
     try {
-      await updateOrderStatus(order.id, 'ready');
+      const res = await updateOrderStatus(order.id, 'ready');
+      if (res?.error) { showError(`Error al marcar como lista: ${res.error}`); return; }
       setActiveTab('ready');
       setSelectedId(order.id);
       if (order.customer_phone) {
         const msg = `Hola ${order.customer_name || 'cliente'}, tu orden #${order.order_number} está lista ✅ Puedes pasar a recogerla.`;
         window.open(waLink(order.customer_phone, msg), '_blank');
       }
+    } catch {
+      showError('Error inesperado al marcar como lista');
     } finally { setIsUpdating(false); }
   }, []);
 
   const handleDeliver = useCallback(async (order: Order) => {
     setIsUpdating(true);
     try {
-      await updateOrderStatus(order.id, 'delivered');
+      const res = await updateOrderStatus(order.id, 'delivered');
+      if (res?.error) { showError(`Error al marcar como entregada: ${res.error}`); return; }
       setActiveTab('history');
       setSelectedId(null);
+    } catch {
+      showError('Error inesperado al marcar como entregada');
     } finally { setIsUpdating(false); }
   }, []);
 
@@ -459,7 +471,10 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
     setIsUpdating(true);
     setShowMoreMenu(false);
     try {
-      await updateOrderStatus(order.id, 'cancelled');
+      const res = await updateOrderStatus(order.id, 'cancelled');
+      if (res?.error) { showError(`Error al cancelar: ${res.error}`); return; }
+    } catch {
+      showError('Error inesperado al cancelar la orden');
     } finally { setIsUpdating(false); }
   }, []);
 
@@ -614,6 +629,13 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
       {kitchenToast && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl text-white text-sm font-bold shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-200" style={{ background: '#06C167' }}>
           <span>🍳</span> {kitchenToast}
+        </div>
+      )}
+
+      {/* ── Error toast ── */}
+      {errorToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl text-white text-sm font-bold shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-200 bg-red-600 max-w-sm text-center">
+          <span>⚠️</span> {errorToast}
         </div>
       )}
 

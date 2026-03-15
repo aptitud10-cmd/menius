@@ -28,10 +28,9 @@ export default async function CounterPage() {
         )
       `)
       .eq('restaurant_id', restaurantId)
-      .not('status', 'in', '("delivered","cancelled")')
       .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
       .order('created_at', { ascending: false })
-      .limit(100),
+      .limit(150),
   ]);
 
   const mappedOrders = (orders ?? []).map((o: any) => ({
