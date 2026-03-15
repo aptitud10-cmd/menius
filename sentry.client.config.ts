@@ -10,6 +10,8 @@ if (dsn) {
     // Performance: capture 20% of transactions in production, 100% in dev
     tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.2 : 1.0,
 
+    tracePropagationTargets: ['localhost', /^https:\/\/menius\.app/],
+
     // Session Replay: capture all sessions that had an error, 5% of normal sessions
     replaysSessionSampleRate: 0.05,
     replaysOnErrorSampleRate: 1.0,
@@ -22,13 +24,7 @@ if (dsn) {
         // Don't record payment or auth pages
         networkDetailAllowUrls: [window.location.origin],
       }),
-      Sentry.browserTracingIntegration({
-        // Track these routes with full performance data
-        tracePropagationTargets: [
-          'localhost',
-          /^https:\/\/menius\.app/,
-        ],
-      }),
+      Sentry.browserTracingIntegration(),
     ],
 
     // Filter out known noisy errors
