@@ -127,12 +127,12 @@ export async function GET() {
       }
     })(),
 
-    // Menu digital — HEAD request to public demo page
+    // Menu digital — HEAD request to public demo slug (new route)
     (async (): Promise<{ status: ServiceStatus; latency: number }> => {
       const start = Date.now();
       try {
         const res = await withTimeout(
-          fetch(`${appUrl}/r/demo`, { method: 'HEAD' }),
+          fetch(`${appUrl}/la-casa-del-sabor`, { method: 'HEAD' }),
           6000
         );
         const latency = Date.now() - start;

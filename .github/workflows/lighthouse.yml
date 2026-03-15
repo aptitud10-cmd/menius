@@ -1,0 +1,43 @@
+name: Lighthouse CI
+
+on:
+  deployment_status:
+
+jobs:
+  lighthouse:
+    name: Lighthouse Performance Audit
+    runs-on: ubuntu-latest
+    if: github.event.deployment_status.state == 'success'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli
+
+      - name: Run Lighthouse CI
+        run: |
+          lhci autorun \
+            --collect.url="${{ github.event.deployment_status.target_url }}" \
+            --collect.url="${{ github.event.deployment_status.target_url }}/la-casa-del-sabor" \
+            --collect.url="${{ github.event.deployment_status.target_url }}/login" \
+            --assert.preset=lighthouse:recommended \
+            --assert.assertions.performance=["error",{"minScore":0.7}] \
+            --assert.assertions.accessibility=["error",{"minScore":0.8}] \
+            --assert.assertions.best-practices=["error",{"minScore":0.8}] \
+            --assert.assertions.seo=["error",{"minScore":0.9}] \
+            --upload.target=temporary-public-storage
+        continue-on-error: true
+
+      - name: Save Lighthouse report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-report
+          path: .lighthouseci/
+          retention-days: 14
