@@ -115,18 +115,10 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
         const { status } = subscription;
         if (status === 'active' || status === 'past_due') {
           // full access
-        } else if (status === 'trialing') {
-          const trialOver = subscription.trial_end
-            ? new Date(subscription.trial_end) < now
-            : subscription.current_period_end
-              ? new Date(subscription.current_period_end) < now
-              : false;
-          if (trialOver) subscriptionExpired = true;
+        } else if (subscription.trial_end && new Date(subscription.trial_end) > now) {
+          // trial_end in future → full access (covers 'trialing' + manual admin extensions)
         } else {
-          const periodEnded =
-            subscription.current_period_end &&
-            new Date(subscription.current_period_end) < now;
-          if (periodEnded) subscriptionExpired = true;
+          subscriptionExpired = true;
         }
       }
 

@@ -183,9 +183,8 @@ export default async function DashboardPage() {
       return now > grace;
     }
     if (sub.status === 'active' || sub.status === 'past_due') return false;
-    if (sub.status === 'trialing') {
-      return sub.trial_end ? new Date(sub.trial_end) < now : false;
-    }
+    // trial_end in future → full access (covers trialing + manual admin extensions)
+    if (sub.trial_end && new Date(sub.trial_end) > now) return false;
     return true;
   })();
   if (isExpired) {

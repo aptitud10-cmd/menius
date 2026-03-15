@@ -172,6 +172,10 @@ export function MenuShell({
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const CATEGORY_PREVIEW = 8;
+  // Large-catalog mode: 60+ products → one category at a time (like Uber Eats)
+  const LARGE_CATALOG_THRESHOLD = 60;
+  const isLargeCatalog = products.length >= LARGE_CATALOG_THRESHOLD;
+  const [activeCatFilter, setActiveCatFilter] = useState<string | null>(null);
   const toggleExpandCategory = useCallback((catId: string) => {
     setExpandedCategories((prev) => {
       const next = new Set(prev);
@@ -213,17 +217,21 @@ export function MenuShell({
       return;
     }
 
+    if (isLargeCatalog) {
+      // Large catalog: filter to show only the selected category, reset scroll
+      setActiveCatFilter(catId);
+      mainRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+      return;
+    }
+
     const section = sectionRefs.current.get(catId);
     if (section && mainRef.current) {
       isScrollingRef.current = true;
-      // offsetTop here is relative to the scroll container's inner content,
-      // so subtract the same trigger line we use in scroll-spy so the
-      // selected pill stays highlighted after the scroll settles.
       const offset = section.offsetTop - 120;
       mainRef.current.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
       setTimeout(() => { isScrollingRef.current = false; }, 900);
     }
-  }, []);
+  }, [isLargeCatalog]);
 
   const handleProductSelect = useCallback((product: Product) => {
     setCustomization({ product, editIndex: null });
@@ -369,6 +377,14 @@ export function MenuShell({
     return [...popularGroup, ...regular];
   }, [categories, filteredProducts, isCategoryAvailableNow, popularProducts, locale, restaurant.id]);
 
+  // In large-catalog mode, show only the active-filtered category (or all if none selected)
+  const displayedGroups = useMemo(() => {
+    if (isLargeCatalog && activeCatFilter) {
+      return itemsByCategory.filter((g) => g.category.id === activeCatFilter);
+    }
+    return itemsByCategory;
+  }, [isLargeCatalog, activeCatFilter, itemsByCategory]);
+
   // Search results
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return null;
@@ -378,12 +394,10 @@ export function MenuShell({
     );
   }, [searchQuery, products]);
 
-  // Scroll-spy: Uber Eats / react-use-scrollspy pattern.
-  // Listen to scroll events on the container and use getBoundingClientRect()
-  // to find the LAST section whose top edge has passed the trigger line.
+  // Scroll-spy: disabled for large-catalog mode (one-category-at-a-time, no scroll needed)
   useEffect(() => {
     const main = mainRef.current;
-    if (!main || itemsByCategory.length === 0) return;
+    if (!main || itemsByCategory.length === 0 || isLargeCatalog) return;
 
     setActiveCategory(itemsByCategory[0].category.id);
 
@@ -546,7 +560,28 @@ export function MenuShell({
   const mobileCategoryPills = (
     <div className="lg:hidden sticky z-30 bg-white border-b border-gray-200" style={{ top: HEADER_HEIGHT }}>
       <div ref={mobilePillsRef} className="py-2 px-3 flex gap-2 overflow-x-auto scrollbar-hide">
-        {visibleCats.map((cat) => categoryPill(cat.id, tName(cat, locale, defaultLocale), activeCategory === cat.id && !showFavs && !activeDiet))}
+        {/* Large catalog: "Todos" pill to show all categories */}
+        {isLargeCatalog && (
+          <button
+            data-pill-id="__all__"
+            onClick={() => { setActiveCatFilter(null); setActiveCategory(null); mainRef.current?.scrollTo({ top: 0, behavior: 'instant' }); }}
+            className={cn(
+              'flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 whitespace-nowrap',
+              !activeCatFilter && !showFavs && !activeDiet
+                ? 'bg-gray-800 text-white shadow-md'
+                : 'bg-gray-100 text-gray-700 active:bg-gray-200'
+            )}
+          >
+            {locale === 'en' ? 'All' : 'Todos'}
+          </button>
+        )}
+        {visibleCats.map((cat) => categoryPill(
+          cat.id,
+          tName(cat, locale, defaultLocale),
+          isLargeCatalog
+            ? activeCatFilter === cat.id && !showFavs && !activeDiet
+            : activeCategory === cat.id && !showFavs && !activeDiet
+        ))}
         {filterDivider}
         {dietPills}
         {favPill}
@@ -608,7 +643,7 @@ export function MenuShell({
           <CategorySidebar
             categories={categories}
             products={products}
-            activeCategory={activeCategory}
+            activeCategory={isLargeCatalog ? (activeCatFilter ?? null) : activeCategory}
             onSelect={handleCategorySelect}
             allLabel={t.allCategories}
             locale={locale}
@@ -829,7 +864,7 @@ export function MenuShell({
             </div>
           ) : (
             <div className="space-y-12">
-              {itemsByCategory.map(({ category, items, available }) => {
+              {displayedGroups.map(({ category, items, available }) => {
                 const isPopular = category.id === POPULAR_ID;
                 const isLocked = !available;
                 return (
