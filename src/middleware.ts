@@ -186,18 +186,14 @@ export async function middleware(request: NextRequest) {
         }
       } else {
         const { status } = subscription;
-        const trialEnded = subscription.trial_end
-          ? new Date(subscription.trial_end) < now
-          : (subscription.current_period_end ? new Date(subscription.current_period_end) < now : false);
-        const periodEnded = subscription.current_period_end && new Date(subscription.current_period_end) < now;
+        // trial_end in future → full access (covers 'trialing' + manual admin extensions)
+        const trialStillValid = subscription.trial_end && new Date(subscription.trial_end) > now;
 
         if (status === 'active' || status === 'past_due') {
           // allow
-        } else if (status === 'trialing' && trialEnded) {
-          return NextResponse.redirect(new URL('/app/subscription-expired', request.url));
-        } else if (status === 'trialing') {
-          // still in valid trial — allow
-        } else if (periodEnded) {
+        } else if (trialStillValid) {
+          // allow — trial or admin-extended access
+        } else {
           return NextResponse.redirect(new URL('/app/subscription-expired', request.url));
         }
       }
