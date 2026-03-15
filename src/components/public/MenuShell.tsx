@@ -55,6 +55,8 @@ interface CustomizationTarget {
   editIndex: number | null;
 }
 
+const POPULAR_ID = '__popular__';
+
 // Renders children only when the section scrolls near the viewport.
 // Once rendered, stays rendered (one-way latch) to avoid thrashing.
 // The wrapping <section> with sectionRef is unaffected — scroll-spy works normally.
@@ -315,15 +317,38 @@ export function MenuShell({
     return nowMins >= fromH * 60 + fromM && nowMins <= toH * 60 + toM;
   }, []);
 
+  const popularProducts = useMemo(
+    () => filteredProducts.filter((p) => p.is_featured && p.in_stock !== false),
+    [filteredProducts],
+  );
+
   const itemsByCategory = useMemo(() => {
-    return categories
+    const regular = categories
       .map((cat) => ({
         category: cat,
         items: filteredProducts.filter((p) => p.category_id === cat.id),
         available: isCategoryAvailableNow(cat),
       }))
-      .filter((g) => g.items.length > 0 && g.available); // hide out-of-schedule categories
-  }, [categories, filteredProducts, isCategoryAvailableNow]);
+      .filter((g) => g.items.length > 0);
+
+    const popularGroup = popularProducts.length > 0
+      ? [{
+          category: {
+            id: POPULAR_ID,
+            restaurant_id: restaurant.id,
+            name: locale === 'en' ? 'Popular items' : 'Populares',
+            sort_order: -1,
+            is_active: true,
+            translations: {},
+            created_at: '',
+          } as Category,
+          items: popularProducts,
+          available: true,
+        }]
+      : [];
+
+    return [...popularGroup, ...regular];
+  }, [categories, filteredProducts, isCategoryAvailableNow, popularProducts, locale, restaurant.id]);
 
   // Search results
   const searchResults = useMemo(() => {
@@ -439,12 +464,17 @@ export function MenuShell({
       data-pill-id={id}
       onClick={() => handleCategorySelect(id)}
       className={cn(
-        'flex-shrink-0 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap',
-        isActive
-          ? 'bg-emerald-500 text-white shadow-md'
-          : 'bg-gray-100 text-gray-700 active:bg-gray-200'
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap',
+        id === POPULAR_ID
+          ? isActive
+            ? 'bg-amber-500 text-white shadow-md'
+            : 'bg-amber-50 text-amber-700 active:bg-amber-100'
+          : isActive
+            ? 'bg-emerald-500 text-white shadow-md'
+            : 'bg-gray-100 text-gray-700 active:bg-gray-200'
       )}
     >
+      {id === POPULAR_ID && <span className="text-xs leading-none">🔥</span>}
       {label}
     </button>
   );
@@ -781,44 +811,73 @@ export function MenuShell({
             </div>
           ) : (
             <div className="space-y-12">
-              {itemsByCategory.map(({ category, items }) => (
-                <section
-                  key={category.id}
-                  data-cat-id={category.id}
-                  ref={(el) => {
-                    if (el) sectionRefs.current.set(category.id, el);
-                    else sectionRefs.current.delete(category.id);
-                  }}
-                >
-                  <div className="flex items-center gap-3 mb-5">
-                    <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">
-                      {tName(category, locale, defaultLocale)}
-                    </h2>
-                    <span className="text-[11px] font-semibold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md tabular-nums">
-                      {items.length}
-                    </span>
-                    <div className="flex-1 h-px bg-gradient-to-r from-gray-100 to-transparent" />
-                  </div>
-                  <LazyProductGrid itemCount={items.length}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                      {items.map((product) => (
-                        <ProductCard
-                          key={product.id}
-                          product={product}
-                          onSelect={handleProductSelect}
-                          onQuickAdd={handleQuickAdd}
-                          fmtPrice={fmtPrice}
-                          addLabel={t.addToCart}
-                          customizeLabel={t.customize}
-                          popularLabel={t.popular}
-                          locale={locale}
-                          defaultLocale={defaultLocale}
-                        />
-                      ))}
+              {itemsByCategory.map(({ category, items, available }) => {
+                const isPopular = category.id === POPULAR_ID;
+                const isLocked = !available;
+                return (
+                  <section
+                    key={category.id}
+                    data-cat-id={category.id}
+                    ref={(el) => {
+                      if (el) sectionRefs.current.set(category.id, el);
+                      else sectionRefs.current.delete(category.id);
+                    }}
+                  >
+                    <div className="flex items-center gap-3 mb-5">
+                      {isPopular && <span className="text-xl leading-none">🔥</span>}
+                      <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">
+                        {isPopular
+                          ? (locale === 'en' ? 'Popular items' : 'Populares')
+                          : tName(category, locale, defaultLocale)}
+                      </h2>
+                      {isLocked && category.available_from && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full">
+                          <Clock className="w-3 h-3" />
+                          {category.available_from} – {category.available_to}
+                        </span>
+                      )}
+                      {!isLocked && (
+                        <span className="text-[11px] font-semibold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md tabular-nums">
+                          {items.length}
+                        </span>
+                      )}
+                      <div className="flex-1 h-px bg-gradient-to-r from-gray-100 to-transparent" />
                     </div>
-                  </LazyProductGrid>
-                </section>
-              ))}
+                    <div className={cn('relative', isLocked && 'pointer-events-none')}>
+                      {isLocked && (
+                        <div className="absolute inset-0 z-10 rounded-2xl bg-white/70 backdrop-blur-[2px] flex items-center justify-center">
+                          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm">
+                            <Clock className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm font-semibold text-gray-500">
+                              {locale === 'en'
+                                ? `Available ${category.available_from} – ${category.available_to}`
+                                : `Disponible ${category.available_from} – ${category.available_to}`}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      <LazyProductGrid itemCount={items.length}>
+                        <div className={cn('grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4', isLocked && 'opacity-40')}>
+                          {items.map((product) => (
+                            <ProductCard
+                              key={product.id}
+                              product={product}
+                              onSelect={handleProductSelect}
+                              onQuickAdd={handleQuickAdd}
+                              fmtPrice={fmtPrice}
+                              addLabel={t.addToCart}
+                              customizeLabel={t.customize}
+                              popularLabel={t.popular}
+                              locale={locale}
+                              defaultLocale={defaultLocale}
+                            />
+                          ))}
+                        </div>
+                      </LazyProductGrid>
+                    </div>
+                  </section>
+                );
+              })}
             </div>
           )}
           {/* Recent reviews */}
@@ -1027,38 +1086,42 @@ export function MenuShell({
         </div>
       )}
 
-      {/* ── Mobile: Cart Drawer ── */}
+      {/* ── Mobile: Cart Bottom Sheet ── */}
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
             <motion.div
               className="absolute inset-0 bg-black/40"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
+              transition={{ duration: 0.18 }}
               onClick={() => setOpen(false)}
             />
             <motion.div
-              className="absolute inset-y-0 right-0 w-full sm:w-[440px] bg-white flex flex-col shadow-2xl"
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 350 }}
+              className="relative bg-white rounded-t-3xl shadow-2xl flex flex-col"
+              style={{ maxHeight: '88dvh' }}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 32, stiffness: 380 }}
             >
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
-                <button onClick={() => setOpen(false)} className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors">
-                  <ChevronLeft className="w-5 h-5" />
-                  <span className="text-sm font-medium">{t.backToMenu}</span>
-                </button>
-                <div className="flex items-center gap-3">
-                  <h2 className="text-base font-bold text-gray-900">{t.yourCart}</h2>
-                  <button onClick={() => setOpen(false)} className="p-2 -mr-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Close">
-                    <X className="w-5 h-5 text-gray-500" />
-                  </button>
-                </div>
+              {/* Drag handle */}
+              <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+                <div className="w-10 h-1 rounded-full bg-gray-200" />
               </div>
-              <div className="flex-1 overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
+                <h2 className="text-base font-bold text-gray-900">{t.yourCart}</h2>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="p-2 -mr-2 rounded-xl active:bg-gray-100 transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-hidden min-h-0">
                 <CartPanel
                   fmtPrice={fmtPrice}
                   t={t}
@@ -1069,6 +1132,7 @@ export function MenuShell({
                   locale={locale}
                 />
               </div>
+              <div className="pb-[env(safe-area-inset-bottom)] flex-shrink-0" />
             </motion.div>
           </div>
         )}
