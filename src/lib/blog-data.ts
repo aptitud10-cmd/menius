@@ -2747,9 +2747,7 @@ Está diseñado para funcionar en una tablet, iPad o cualquier pantalla que teng
 
 En MENIUS, el flujo de pedidos funciona así:
 
-```
-Cliente hace pedido → Counter lo recibe → Counter lo acepta → Cocina lo recibe en KDS
-```
+> Cliente hace pedido → Counter lo recibe → Counter lo acepta → Cocina lo recibe en KDS
 
 El Counter es el punto de control. El equipo de atención decide qué llega a cocina y cuándo. Esto evita:
 - Que cocina prepare pedidos aún no confirmados
@@ -2854,9 +2852,7 @@ A dedicated screen for your cashier or front-of-house team. Runs on any tablet, 
 
 ## The Correct Flow: Counter First, Kitchen Second
 
-```
-Customer places order → Counter receives it → Counter accepts it → Kitchen receives it on KDS
-```
+> Customer places order → Counter receives it → Counter accepts it → Kitchen receives it on KDS
 
 The Counter is the control point. The team decides what reaches the kitchen and when.
 
