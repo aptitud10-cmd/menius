@@ -82,8 +82,8 @@ const LazyProductGrid = memo(function LazyProductGrid({
     return () => obs.disconnect();
   }, [visible]);
 
-  // Estimated height: ~190px per card on mobile (1-col). Prevents layout jump.
-  const estimatedHeight = `${itemCount * 190}px`;
+  // Estimated height: ~190px per card row on mobile (2-col grid). Prevents layout jump.
+  const estimatedHeight = `${Math.ceil(itemCount / 2) * 190}px`;
 
   return (
     <div ref={ref} style={!visible ? { minHeight: estimatedHeight } : undefined}>
@@ -170,6 +170,15 @@ export function MenuShell({
   const cartTotal = hasMounted ? rawCartTotal : 0;
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const CATEGORY_PREVIEW = 8;
+  const toggleExpandCategory = useCallback((catId: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(catId)) next.delete(catId); else next.add(catId);
+      return next;
+    });
+  }, []);
   const [showFavs, setShowFavs] = useState(false);
   const favIds = useFavoritesStore((s) => s.ids);
   const [activeDiet, setActiveDiet] = useState<DietaryTag | null>(null);
@@ -474,7 +483,7 @@ export function MenuShell({
       data-pill-id={id}
       onClick={() => handleCategorySelect(id)}
       className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap',
+        'flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 whitespace-nowrap',
         id === POPULAR_ID
           ? isActive
             ? 'bg-amber-500 text-white shadow-md'
@@ -497,7 +506,7 @@ export function MenuShell({
       data-pill-id="__favs__"
       onClick={() => { setShowFavs(!showFavs); if (!showFavs) setActiveCategory(null); }}
       className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap',
+        'flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 whitespace-nowrap',
         showFavs
           ? 'bg-red-500 text-white shadow-md'
           : 'bg-gray-100 text-gray-700 active:bg-gray-200'
@@ -519,7 +528,7 @@ export function MenuShell({
         if (next) setActiveCategory(null);
       }}
       className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1 px-4 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap',
+        'flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 whitespace-nowrap',
         activeDiet === dt.id
           ? 'bg-emerald-500 text-white shadow-md'
           : 'bg-gray-100 text-gray-700 active:bg-gray-200'
@@ -535,8 +544,8 @@ export function MenuShell({
   );
 
   const mobileCategoryPills = (
-    <div className="lg:hidden sticky z-30 bg-white border-b-2 border-gray-200" style={{ top: HEADER_HEIGHT }}>
-      <div ref={mobilePillsRef} className="py-3 px-4 flex gap-2.5 overflow-x-auto scrollbar-hide">
+    <div className="lg:hidden sticky z-30 bg-white border-b border-gray-200" style={{ top: HEADER_HEIGHT }}>
+      <div ref={mobilePillsRef} className="py-2 px-3 flex gap-2 overflow-x-auto scrollbar-hide">
         {visibleCats.map((cat) => categoryPill(cat.id, tName(cat, locale, defaultLocale), activeCategory === cat.id && !showFavs && !activeDiet))}
         {filterDivider}
         {dietPills}
@@ -553,23 +562,6 @@ export function MenuShell({
 
   return (
     <div className="h-[100dvh] flex flex-col bg-white overflow-hidden overscroll-none touch-pan-y">
-      {/* Free tier banner */}
-      {limitedMode && (
-        <div className={`flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium ${
-          ordersLeft === 0
-            ? 'bg-red-600 text-white'
-            : ordersLeft === 1
-            ? 'bg-amber-500 text-white'
-            : 'bg-amber-50 text-amber-800 border-b border-amber-200'
-        }`}>
-          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-          </svg>
-          {ordersLeft === 0
-            ? 'Este menú alcanzó el límite de 3 pedidos gratuitos por hoy. Vuelve mañana.'
-            : `Plan gratuito · ${ordersLeft} de ${limitedMode.dailyLimit} pedido${ordersLeft !== 1 ? 's' : ''} disponible${ordersLeft !== 1 ? 's' : ''} hoy`}
-        </div>
-      )}
       {/* Fixed header */}
       <MenuHeader
         restaurant={restaurant}
@@ -590,6 +582,22 @@ export function MenuShell({
       {/* Mobile category pills — scrolls with content on mobile */}
       <div className="lg:hidden flex-shrink-0">
         {mobileCategoryPills}
+        {/* Search hint for large catalogs (30+ products) */}
+        {!showSearch && !searchQuery && products.length >= 30 && (
+          <button
+            onClick={() => setShowSearch(true)}
+            className="w-full flex items-center gap-2 px-4 py-2 bg-gray-50 border-b border-gray-100 text-left"
+          >
+            <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            <span className="text-[12px] text-gray-400">
+              {locale === 'en'
+                ? `Search among ${products.length} items...`
+                : `Busca entre ${products.length} platillos...`}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* ── 3-Column Layout — fills remaining viewport ── */}
@@ -613,7 +621,7 @@ export function MenuShell({
 
           {/* Cover image banner */}
           {restaurant.cover_image_url && (
-            <div className="relative w-full h-40 sm:h-48 lg:h-56 bg-gray-100 overflow-hidden">
+            <div className="relative w-full h-28 sm:h-36 lg:h-56 bg-gray-100 overflow-hidden">
               <Image
                 src={restaurant.cover_image_url}
                 alt={restaurant.name}
@@ -754,7 +762,7 @@ export function MenuShell({
                   <p className="font-medium">{t.noResults}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
                   {searchResults.map((product) => (
                     <ProductCard
                       key={product.id}
@@ -791,7 +799,7 @@ export function MenuShell({
                   <p className="text-sm mt-1">{locale === 'es' ? 'Toca el ♥ en un producto para guardarlo' : 'Tap ♥ on a product to save it'}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
                   {products.filter((p) => favIds.includes(p.id)).map((product) => (
                     <ProductCard
                       key={product.id}
@@ -866,24 +874,42 @@ export function MenuShell({
                           </div>
                         </div>
                       )}
-                      <LazyProductGrid itemCount={items.length}>
-                        <div className={cn('grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4', isLocked && 'opacity-40')}>
-                          {items.map((product) => (
-                            <ProductCard
-                              key={product.id}
-                              product={product}
-                              onSelect={handleProductSelect}
-                              onQuickAdd={handleQuickAdd}
-                              fmtPrice={fmtPrice}
-                              addLabel={t.addToCart}
-                              customizeLabel={t.customize}
-                              popularLabel={t.popular}
-                              locale={locale}
-                              defaultLocale={defaultLocale}
-                            />
-                          ))}
-                        </div>
-                      </LazyProductGrid>
+                      {(() => {
+                        const isExpanded = expandedCategories.has(category.id);
+                        const hasMore = items.length > CATEGORY_PREVIEW;
+                        const visibleItems = hasMore && !isExpanded ? items.slice(0, CATEGORY_PREVIEW) : items;
+                        const remaining = items.length - CATEGORY_PREVIEW;
+                        return (
+                          <LazyProductGrid itemCount={visibleItems.length}>
+                            <div className={cn('grid grid-cols-2 xl:grid-cols-3 gap-3', isLocked && 'opacity-40')}>
+                              {visibleItems.map((product) => (
+                                <ProductCard
+                                  key={product.id}
+                                  product={product}
+                                  onSelect={handleProductSelect}
+                                  onQuickAdd={handleQuickAdd}
+                                  fmtPrice={fmtPrice}
+                                  addLabel={t.addToCart}
+                                  customizeLabel={t.customize}
+                                  popularLabel={t.popular}
+                                  locale={locale}
+                                  defaultLocale={defaultLocale}
+                                />
+                              ))}
+                            </div>
+                            {hasMore && (
+                              <button
+                                onClick={() => toggleExpandCategory(category.id)}
+                                className="mt-3 w-full py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:border-emerald-300 hover:text-emerald-700 transition-colors duration-200"
+                              >
+                                {isExpanded
+                                  ? (locale === 'en' ? 'Show less' : 'Ver menos')
+                                  : (locale === 'en' ? `See ${remaining} more` : `Ver ${remaining} más`)}
+                              </button>
+                            )}
+                          </LazyProductGrid>
+                        );
+                      })()}
                     </div>
                   </section>
                 );
@@ -1073,7 +1099,23 @@ export function MenuShell({
       </div>
 
       {/* ── Mobile: Bottom cart bar ── */}
-      {cartCount > 0 && (
+      {ordersLeft === 0 ? (
+        /* Limit reached — generic "paused" bar, no mention of billing */
+        <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden pointer-events-none pb-[env(safe-area-inset-bottom)]">
+          <div className="p-4 pt-8 bg-gradient-to-t from-white via-white/95 to-transparent">
+            <div className="max-w-lg mx-auto pointer-events-auto">
+              <div className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-gray-100 text-gray-500 text-sm font-semibold">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                {locale === 'en'
+                  ? 'Not accepting orders right now. Come back tomorrow.'
+                  : 'No aceptamos pedidos por el momento. Vuelve mañana.'}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : cartCount > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden pointer-events-none pb-[env(safe-area-inset-bottom)]">
           <div className="p-4 pt-8 bg-gradient-to-t from-white via-white/95 to-transparent">
             <div className="max-w-lg mx-auto pointer-events-auto">

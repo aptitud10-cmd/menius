@@ -38,6 +38,8 @@ const es: FaqCategory[] = [
       { q: '¿Cómo funcionan los códigos QR?', a: 'MENIUS genera un código QR único para cada mesa de tu restaurante. Los imprimes y los colocas en las mesas. Cuando un cliente escanea el QR, ve tu menú con la mesa ya seleccionada automáticamente. También puedes compartir un enlace directo para pedidos de pickup o delivery.' },
       { q: '¿Puedo personalizar el diseño de mi menú?', a: 'Tu menú se genera automáticamente con un diseño profesional y optimizado para móvil. Incluye el nombre de tu restaurante, logo, categorías con navegación, fotos de productos, precios, y un carrito de compras integrado. Todo responsivo y rápido.' },
       { q: '¿Puedo conectar un dominio personalizado?', a: 'Sí. En los planes Pro y Business puedes conectar tu propio dominio (ej: menu.turestaurante.com) para que tus clientes accedan al menú con tu marca. La configuración es sencilla y viene con certificado SSL incluido.' },
+      { q: '¿Puedo marcar mis productos con etiquetas dietéticas?', a: 'Sí. Puedes agregar etiquetas como 🌱 Vegetariano, 🌿 Vegano, 🌾 Sin Gluten, 🌶️ Picante y más a cada producto. Estas etiquetas aparecen visualmente en las tarjetas del menú y tus clientes pueden filtrar por ellas para encontrar rápidamente lo que se adapta a su dieta.' },
+      { q: '¿Puedo configurar horarios de disponibilidad por categoría?', a: 'Sí. Cada categoría puede tener su propio horario de disponibilidad. Por ejemplo, "Desayunos" disponible de 7am a 11am, y "Comidas" de 12pm a 5pm. Fuera del horario establecido, la categoría se muestra como bloqueada en el menú pero sigue visible, evitando confusión en los clientes.' },
     ],
   },
   {
@@ -52,6 +54,7 @@ const es: FaqCategory[] = [
       { q: '¿Puedo pausar la recepción de pedidos?', a: 'Sí. Desde el dashboard puedes desactivar temporalmente la recepción de pedidos (por ejemplo, cuando tu cocina está saturada o fuera de horario). Tus clientes verán un aviso de que el restaurante no está aceptando pedidos en ese momento.' },
       { q: '¿El dashboard incluye analytics y reportes?', a: 'Sí. El dashboard incluye métricas de pedidos, productos más vendidos, ingresos por período, hora pico, ticket promedio, y datos de rendimiento. Además, puedes preguntarle a MENIUS AI directamente: "¿Cuánto vendí esta semana?" y te responde con datos reales al instante.' },
       { q: '¿Qué pasa si hay un problema con un pedido?', a: 'Desde el dashboard puedes ver los detalles completos de cada pedido, las notas del cliente, y cambiar el estado manualmente. Si necesitas contactar al cliente, puedes ver su nombre y los datos que proporcionó al hacer el pedido.' },
+      { q: '¿Mis clientes pueden ver el historial de sus pedidos?', a: 'Sí. Los clientes pueden consultar su historial ingresando el email con el que hicieron sus pedidos. Verán todas sus órdenes anteriores con estado, productos y precios, y tendrán la opción de volver a ordenar los mismos productos con un solo clic.' },
     ],
   },
   {
@@ -104,7 +107,41 @@ const es: FaqCategory[] = [
       { q: '¿Qué es la Cocina KDS?', a: 'KDS (Kitchen Display System) es una pantalla dedicada para la cocina de tu restaurante. Muestra los pedidos en tiempo real con todos los detalles: productos, variantes, extras, notas del cliente, y datos de contacto. El equipo de cocina puede marcar pedidos como "preparando" y "listo" directamente desde la pantalla.' },
       { q: '¿Puedo usar MENIUS como app en mi celular?', a: 'Sí. MENIUS es una Progressive Web App (PWA). Puedes "instalarla" en tu celular desde el navegador sin pasar por la App Store ni Google Play. Funciona como una app nativa con acceso rápido desde tu pantalla de inicio.' },
       { q: '¿Puedo gestionar múltiples ubicaciones?', a: 'Sí. El Plan Business permite gestionar varias sucursales desde una sola cuenta. Cada ubicación tiene su propio menú, QR, configuración y pedidos, pero puedes supervisar todo desde un dashboard centralizado.' },
-      { q: '¿Qué tecnologías usa MENIUS?', a: 'MENIUS está construido con tecnología de última generación: Next.js 14 (React) para el frontend, Supabase (PostgreSQL) para la base de datos con actualizaciones en tiempo real, Stripe para pagos seguros, Google Gemini para IA y generación de imágenes, y Resend para emails transaccionales. Todo alojado en Vercel para máxima velocidad global.' },
+      { q: '¿Qué tecnologías usa MENIUS?', a: 'MENIUS está construido con tecnología de última generación: Next.js (React) para el frontend, Supabase (PostgreSQL) para la base de datos con actualizaciones en tiempo real, Stripe para pagos seguros, Google Gemini para IA y generación de imágenes, y Resend para emails transaccionales. Todo alojado en Vercel para máxima velocidad global.' },
+    ],
+  },
+  {
+    id: 'marketing',
+    title: 'Marketing y Automatizaciones',
+    icon: '📣',
+    questions: [
+      { q: '¿MENIUS tiene herramientas de marketing integradas?', a: 'Sí. MENIUS incluye un Marketing Hub completo con 4 módulos: Campañas de Email (newsletters y promociones), Redes Sociales con generador de posts con IA para Instagram, Facebook y TikTok, Campañas de SMS, y Automatizaciones con 9 secuencias preconfiguradas basadas en el comportamiento del cliente.' },
+      { q: '¿Puedo enviar emails a mis clientes desde MENIUS?', a: 'Sí. El módulo de Campañas de Email te permite crear y enviar boletines, promociones y anuncios a toda tu base de clientes o segmentos específicos. Los emails tienen diseño profesional con tu marca. Puedes ver estadísticas de apertura y clics desde el dashboard.' },
+      { q: '¿Qué son las Automatizaciones?', a: 'Son secuencias de emails que se activan automáticamente según el comportamiento de tus clientes. MENIUS incluye 9 automatizaciones preconfiguradas: bienvenida al cliente nuevo, reactivación de clientes inactivos, reconocimiento de clientes VIP, recordatorio de trial, entre otras. Solo las activas y trabajan solas 24/7.' },
+      { q: '¿Puedo enviar SMS a mis clientes?', a: 'Sí. El módulo de Campañas SMS permite enviar mensajes de texto directamente a los celulares de tus clientes registrados. Ideal para promociones del día, happy hours, eventos especiales o comunicados urgentes. Requiere integración con Twilio desde la sección de Configuración.' },
+      { q: '¿MENIUS puede generar posts para redes sociales con IA?', a: 'Sí. El generador de Social Media usa inteligencia artificial para crear captions optimizados para Instagram, Facebook y TikTok basados en tus productos o el contexto que le das. Sugiere hashtags relevantes y el mejor momento para publicar según tu audiencia.' },
+    ],
+  },
+  {
+    id: 'operaciones',
+    title: 'Operaciones y Equipo',
+    icon: '🏪',
+    questions: [
+      { q: '¿Qué es el Counter y cómo funciona?', a: 'El Counter es una pantalla dedicada para el equipo de atención o caja. Desde aquí puedes ver todos los pedidos entrantes en tiempo real, aceptarlos, cambiar su estado, e imprimir tickets automáticamente al aceptar una orden. Los pedidos llegan primero al Counter y desde ahí se envían opcionalmente a la cocina KDS.' },
+      { q: '¿Puedo crear pedidos manualmente desde el Counter?', a: 'Sí. El Counter incluye una función "Nueva Orden Manual" que funciona como un punto de venta (POS). Seleccionas productos del menú, ajustas cantidades, defines el tipo de orden (dine-in, pickup o delivery), y registras nombre del cliente, teléfono y notas. Ideal para pedidos por teléfono o en persona.' },
+      { q: '¿MENIUS tiene control de inventario?', a: 'Sí. Desde el dashboard (Menú > Inventario) puedes activar el control de stock por producto. Defines la cantidad disponible y un umbral de alerta de stock bajo. Al realizarse un pedido, el stock se descuenta automáticamente. También puedes marcar productos como agotados con un toggle en tiempo real.' },
+      { q: '¿Puedo tener diferentes roles para mi equipo?', a: 'Sí. MENIUS tiene un sistema de roles con 4 niveles: Administrador (acceso total), Gerente (todo excepto facturación), Staff (pedidos y menú) y Cocina (solo vista KDS). Cada miembro del equipo accede exactamente a lo que necesita según su función.' },
+    ],
+  },
+  {
+    id: 'fidelizacion',
+    title: 'Fidelización y API',
+    icon: '🎁',
+    questions: [
+      { q: '¿MENIUS tiene programa de puntos o lealtad?', a: 'Sí. El módulo de Lealtad (disponible en planes Pro y Business) permite configurar un sistema de puntos por compra. Defines cuántos puntos se acumulan por peso/dólar gastado, el mínimo para canjear, y puedes ajustar los puntos de cada cliente directamente desde tu dashboard.' },
+      { q: '¿Puedo conectar MENIUS con mis propias aplicaciones?', a: 'Sí. El Plan Business incluye acceso a la API de MENIUS con API Keys. Puedes generar llaves de acceso seguras desde Configuración > API Keys y usarlas para integrar tus propios sistemas, aplicaciones o herramientas externas con tu menú y datos de pedidos.' },
+      { q: '¿MENIUS soporta múltiples sucursales?', a: 'Sí. El Plan Business incluye gestión de sucursales. Puedes crear múltiples ubicaciones bajo el mismo negocio, cada una con su propio menú, URL, QR, configuración y pedidos independientes. Todas se gestionan desde una sola cuenta en un dashboard centralizado.' },
+      { q: '¿Cómo funciona el CRM de clientes?', a: 'El CRM registra automáticamente a cada cliente que hace un pedido. Puedes ver su historial completo, frecuencia de visitas, gasto total, y el sistema asigna etiquetas automáticas (Nuevo, Frecuente, VIP) según su comportamiento. Desde el CRM puedes contactarlos por WhatsApp o email con un clic.' },
     ],
   },
   {
@@ -159,6 +196,8 @@ const en: FaqCategory[] = [
       { q: 'How do QR codes work?', a: 'MENIUS generates a unique QR code for each table in your restaurant. You print them and place them on the tables. When a customer scans the QR, they see your menu with the table already selected automatically. You can also share a direct link for pickup or delivery orders.' },
       { q: 'Can I customize the design of my menu?', a: 'Your menu is automatically generated with a professional, mobile-optimized design. It includes your restaurant name, logo, categories with navigation, product photos, prices, and an integrated shopping cart. Everything is responsive and fast.' },
       { q: 'Can I connect a custom domain?', a: 'Yes. On Pro and Business plans you can connect your own domain (e.g., menu.yourrestaurant.com) so your customers access the menu under your brand. Setup is simple and comes with an included SSL certificate.' },
+      { q: 'Can I label products with dietary tags?', a: 'Yes. You can add dietary tags like 🌱 Vegetarian, 🌿 Vegan, 🌾 Gluten-Free, 🌶️ Spicy, and more to each product. These tags appear visually on menu cards and customers can filter by them to quickly find options that match their dietary needs.' },
+      { q: 'Can I set availability schedules per category?', a: 'Yes. Each category can have its own availability schedule. For example, "Breakfast" available from 7am to 11am, and "Lunch" from 12pm to 5pm. Outside the set hours, the category appears locked on the menu but remains visible, avoiding customer confusion.' },
     ],
   },
   {
@@ -173,6 +212,7 @@ const en: FaqCategory[] = [
       { q: 'Can I pause order reception?', a: 'Yes. From the dashboard you can temporarily disable order reception (for example, when your kitchen is overwhelmed or outside business hours). Your customers will see a notice that the restaurant is not accepting orders at the moment.' },
       { q: 'Does the dashboard include analytics and reports?', a: 'Yes. The dashboard includes order metrics, best-selling products, revenue by period, peak hours, average ticket, and performance data. Plus, you can ask MENIUS AI directly: "How much did I sell this week?" and it responds with real data instantly.' },
       { q: 'What happens if there\'s a problem with an order?', a: 'From the dashboard you can see the complete details of each order, customer notes, and manually change the status. If you need to contact the customer, you can see their name and the information they provided when placing the order.' },
+      { q: 'Can customers view their order history?', a: 'Yes. Customers can look up their order history by entering the email they used to place orders. They\'ll see all previous orders with status, products, and prices, along with the option to reorder the same items with a single click.' },
     ],
   },
   {
@@ -225,7 +265,41 @@ const en: FaqCategory[] = [
       { q: 'What is Kitchen KDS?', a: 'KDS (Kitchen Display System) is a dedicated screen for your restaurant\'s kitchen. It displays orders in real time with all details: products, variants, extras, customer notes, and contact information. The kitchen team can mark orders as "preparing" and "ready" directly from the screen.' },
       { q: 'Can I use MENIUS as an app on my phone?', a: 'Yes. MENIUS is a Progressive Web App (PWA). You can "install" it on your phone from the browser without going through the App Store or Google Play. It works like a native app with quick access from your home screen.' },
       { q: 'Can I manage multiple locations?', a: 'Yes. The Business Plan allows you to manage multiple branches from a single account. Each location has its own menu, QR codes, settings, and orders, but you can oversee everything from a centralized dashboard.' },
-      { q: 'What technologies does MENIUS use?', a: 'MENIUS is built with cutting-edge technology: Next.js 14 (React) for the frontend, Supabase (PostgreSQL) for the database with real-time updates, Stripe for secure payments, Google Gemini for AI and image generation, and Resend for transactional emails. All hosted on Vercel for maximum global speed.' },
+      { q: 'What technologies does MENIUS use?', a: 'MENIUS is built with cutting-edge technology: Next.js (React) for the frontend, Supabase (PostgreSQL) for the database with real-time updates, Stripe for secure payments, Google Gemini for AI and image generation, and Resend for transactional emails. All hosted on Vercel for maximum global speed.' },
+    ],
+  },
+  {
+    id: 'marketing',
+    title: 'Marketing & Automations',
+    icon: '📣',
+    questions: [
+      { q: 'Does MENIUS have built-in marketing tools?', a: 'Yes. MENIUS includes a full Marketing Hub with 4 modules: Email Campaigns (newsletters and promotions), Social Media with AI post generator for Instagram, Facebook, and TikTok, SMS Campaigns, and Automations with 9 pre-built sequences based on customer behavior.' },
+      { q: 'Can I send emails to my customers from MENIUS?', a: 'Yes. The Email Campaigns module lets you create and send newsletters, promotions, and announcements to your entire customer base or specific segments. Emails feature professional branded designs and you can track open rates and clicks from your dashboard.' },
+      { q: 'What are Automations?', a: 'Automations are email sequences that trigger automatically based on your customers\' behavior. MENIUS includes 9 pre-built automations: new customer welcome, inactive customer reactivation, VIP customer recognition, trial reminder, and more. Just activate them and they work 24/7 on their own.' },
+      { q: 'Can I send SMS messages to my customers?', a: 'Yes. The SMS Campaigns module lets you send text messages directly to your registered customers\' phones. Ideal for daily specials, happy hours, special events, or urgent announcements. Requires Twilio integration from your Settings section.' },
+      { q: 'Can MENIUS generate social media posts with AI?', a: 'Yes. The Social Media generator uses AI to create optimized captions for Instagram, Facebook, and TikTok based on your products or any context you provide. It suggests relevant hashtags and the best time to post based on your audience.' },
+    ],
+  },
+  {
+    id: 'operaciones',
+    title: 'Operations & Team',
+    icon: '🏪',
+    questions: [
+      { q: 'What is the Counter and how does it work?', a: 'The Counter is a dedicated screen for your front-of-house or cashier team. From here you can see all incoming orders in real time, accept them, update their status, and auto-print tickets when accepting an order. Orders arrive at the Counter first and are then optionally sent to the kitchen KDS.' },
+      { q: 'Can I create orders manually from the Counter?', a: 'Yes. The Counter includes a "New Manual Order" feature that works like a Point of Sale (POS). You select products from the menu, adjust quantities, define the order type (dine-in, pickup, or delivery), and record the customer\'s name, phone number, and notes. Ideal for phone or walk-in orders.' },
+      { q: 'Does MENIUS have inventory control?', a: 'Yes. From the dashboard (Menu > Inventory) you can enable stock tracking per product. Set the available quantity and a low-stock alert threshold. When an order is placed, stock is automatically decremented. You can also mark products as sold out with a real-time toggle.' },
+      { q: 'Can I set different roles for my team?', a: 'Yes. MENIUS has a role system with 4 levels: Administrator (full access), Manager (everything except billing), Staff (orders and menu), and Kitchen (KDS view only). Each team member accesses exactly what they need for their role.' },
+    ],
+  },
+  {
+    id: 'fidelizacion',
+    title: 'Loyalty & API',
+    icon: '🎁',
+    questions: [
+      { q: 'Does MENIUS have a loyalty or points program?', a: 'Yes. The Loyalty module (available on Pro and Business plans) lets you set up a points-per-purchase system. Define how many points customers earn per dollar spent, the minimum to redeem, and you can manually adjust any customer\'s points directly from your dashboard.' },
+      { q: 'Can I connect MENIUS to my own applications?', a: 'Yes. The Business Plan includes access to the MENIUS API with API Keys. You can generate secure access keys from Settings > API Keys and use them to integrate your own systems, applications, or custom tools with your menu and order data.' },
+      { q: 'Does MENIUS support multiple locations?', a: 'Yes. The Business Plan includes branch management. You can create multiple locations under the same business, each with its own menu, URL, QR codes, settings, and independent orders. All managed from a single centralized dashboard account.' },
+      { q: 'How does the customer CRM work?', a: 'The CRM automatically records every customer who places an order. You can see their full history, visit frequency, total spend, and the system automatically assigns tags (New, Frequent, VIP) based on their behavior. From the CRM you can contact them via WhatsApp or email with one click.' },
     ],
   },
   {

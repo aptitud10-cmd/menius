@@ -171,6 +171,27 @@ export default async function DashboardPage() {
 
   const analytics = { chartData, hourlyData, topProducts, orderTypeCounts };
 
+  // Determine free tier status (expired trial / no active subscription)
+  const DAILY_FREE_LIMIT = 3;
+  let freeTier: { ordersToday: number; dailyLimit: number } | null = null;
+  const sub = subRes.data;
+  const now = new Date();
+  const isExpired = (() => {
+    if (!sub) {
+      const grace = new Date(restaurant.created_at);
+      grace.setDate(grace.getDate() + 14);
+      return now > grace;
+    }
+    if (sub.status === 'active' || sub.status === 'past_due') return false;
+    if (sub.status === 'trialing') {
+      return sub.trial_end ? new Date(sub.trial_end) < now : false;
+    }
+    return true;
+  })();
+  if (isExpired) {
+    freeTier = { ordersToday: todaysOrders.filter((o) => o.status !== 'cancelled').length, dailyLimit: DAILY_FREE_LIMIT };
+  }
+
   const hasOpenDay = (() => {
     const hours = restaurant.operating_hours;
     if (!hours || typeof hours !== 'object') return false;
@@ -195,6 +216,7 @@ export default async function DashboardPage() {
       subscription={subRes.data ?? null}
       onboarding={onboarding}
       analytics={analytics}
+      freeTier={freeTier}
     />
   );
 }

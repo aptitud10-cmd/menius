@@ -291,7 +291,7 @@ DASHBOARD GUIDE (step-by-step for each section):
   • **Operating Hours**: Set open/close times for each day of the week. Toggle "Closed" for days off. Toggle "24 hours" for non-stop operation.
   • **Notifications**: Master toggle to enable/disable all notifications. When enabled, configure: WhatsApp number (for order alerts) and email address (for order alerts). Both channels receive new order alerts, status changes, etc.
 
-- **Billing**: Current plan name and status (active, trialing, past_due, cancelled). Usage meter showing products, tables, etc. vs plan limits. Choose plan: Starter ($39/mo), Pro ($66/mo), Business ($124/mo) — monthly or annual billing (save ~15% with annual). Upgrade or downgrade directly — changes apply immediately, prorated. Invoice history with status (paid, pending, failed) and download links. "Manage subscription" button opens Stripe portal for payment method, cancel, etc.
+- **Billing**: Current plan name and status (active, trialing, past_due, cancelled). Usage meter showing products, tables, etc. vs plan limits. Choose plan: Starter ($39/mo), Pro ($79/mo), Business ($149/mo) — monthly billing. Annual billing saves ~17%: Starter ($32/mo), Pro ($66/mo), Business ($124/mo). Upgrade or downgrade directly — changes apply immediately, prorated. Invoice history with status (paid, pending, failed) and download links. "Manage subscription" button opens Stripe portal for payment method, cancel, etc.
 
 - **Data & Privacy**: Export all your data as JSON file (menu, orders, customers, settings). Delete account permanently (type "ELIMINAR" to confirm). All data is erased irreversibly.
 

@@ -2,11 +2,12 @@
 
 import { memo, useState, useCallback } from 'react';
 import Image from 'next/image';
-import { Plus, Check, UtensilsCrossed, ChevronRight, Heart, Ban } from 'lucide-react';
+import { Plus, Check, Minus, UtensilsCrossed, ChevronRight, Heart, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { useFavoritesStore } from '@/store/favoritesStore';
+import { useCartStore } from '@/store/cartStore';
 import { tName, tDesc } from '@/lib/i18n';
 import { supabaseLoader, getBlurUrl } from '@/lib/image-loader';
 
@@ -48,6 +49,16 @@ export const ProductCard = memo(function ProductCard({
   const isFav = useFavoritesStore((s) => s.ids.includes(product.id));
   const toggleFav = useFavoritesStore((s) => s.toggle);
 
+  // Cart quantity tracking for inline stepper (no-modifier products only)
+  const cartItems = useCartStore((s) => s.items);
+  const updateQty = useCartStore((s) => s.updateQty);
+  const cartQty = !hasModifiers
+    ? cartItems.filter((i) => i.product.id === product.id).reduce((s, i) => s + i.qty, 0)
+    : 0;
+  const cartIndex = !hasModifiers
+    ? cartItems.findIndex((i) => i.product.id === product.id)
+    : -1;
+
   const haptic = () => { try { navigator?.vibrate?.([25, 15, 10]); } catch {} };
 
   const handleClick = () => {
@@ -67,123 +78,142 @@ export const ProductCard = memo(function ProductCard({
     handleClick();
   }, [handleClick]);
 
+  const handleDecrement = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    haptic();
+    if (cartIndex >= 0) updateQty(cartIndex, cartQty - 1);
+  }, [cartIndex, cartQty, updateQty]);
+
+  const handleIncrement = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    haptic();
+    if (cartIndex >= 0) {
+      updateQty(cartIndex, cartQty + 1);
+    } else {
+      onQuickAdd(product);
+    }
+  }, [cartIndex, cartQty, updateQty, onQuickAdd, product]);
+
   const showImage = product.image_url && !imgError;
 
   return (
     <>
-      {/* ── Mobile: horizontal compact card ── */}
+      {/* ── Mobile: vertical 2-column card (Uber Eats style) ── */}
       <div
         onClick={handleClick}
         className={cn(
-          'lg:hidden flex gap-3 p-3.5 bg-white rounded-2xl border-2 border-gray-200 transition-all duration-150',
-          outOfStock ? 'opacity-70 cursor-default' : 'cursor-pointer active:bg-gray-50/80 active:scale-[0.98]'
+          'lg:hidden flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden transition-all duration-150',
+          outOfStock ? 'opacity-70 cursor-default' : 'cursor-pointer active:scale-[0.97]'
         )}
       >
-        <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-          <div>
-            <div className="flex items-center gap-1.5">
-              {outOfStock && (
-                <span className="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full leading-none">{locale === 'en' ? 'Sold out' : 'Agotado'}</span>
-              )}
-              {!outOfStock && product.is_featured && (
-                <span className="text-xs">🔥</span>
-              )}
-              {!outOfStock && product.is_new && (
-                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full leading-none">NEW</span>
-              )}
-              <h3 className={cn('font-bold text-[15px] line-clamp-2 leading-tight', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
-                {displayName}
-              </h3>
+        {/* Image */}
+        <div className="relative w-full aspect-[4/3] bg-gray-100 flex-shrink-0 overflow-hidden">
+          {showImage ? (
+            <>
+              {!imgLoaded && <div className="absolute inset-0 bg-gray-100 animate-pulse" />}
+              <Image
+                src={product.image_url}
+                alt={imgAlt}
+                fill
+                sizes="(max-width: 640px) 50vw, 33vw"
+                loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
+                placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
+                blurDataURL={getBlurUrl(product.image_url)}
+                className={cn('object-cover transition-opacity duration-300', imgLoaded ? 'opacity-100' : 'opacity-0', outOfStock && 'grayscale')}
+                onLoad={() => setImgLoaded(true)}
+                onError={() => setImgError(true)}
+              />
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gray-50">
+              <UtensilsCrossed className="w-7 h-7 text-gray-200" />
             </div>
-            {displayDesc && (
-              <p className="text-[13px] text-gray-500 line-clamp-2 mt-1 leading-snug">{displayDesc}</p>
-            )}
-            {(product.dietary_tags?.length ?? 0) > 0 && (
-              <div className="flex items-center gap-1 mt-1.5 flex-wrap">
-                {product.dietary_tags!.slice(0, 3).map((tagId) => {
-                  const tag = DIETARY_TAGS.find((t) => t.id === tagId);
-                  if (!tag) return null;
-                  return (
-                    <span key={tagId} className="inline-flex items-center gap-0.5 text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded-full">
-                      {tag.emoji}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-            {hasModifiers && (
-              <span className="inline-flex items-center gap-0.5 text-[11px] text-gray-400 font-medium mt-1.5">
-                {customizeLabel}
-                <ChevronRight className="w-3 h-3" />
+          )}
+
+          {outOfStock && (
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
+              <span className="px-2 py-1 rounded-full bg-black/60 text-white text-[10px] font-bold">
+                {locale === 'en' ? 'Sold out' : 'Agotado'}
               </span>
-            )}
-          </div>
-          <div className="flex items-center justify-between mt-2">
-            <span className={cn('text-base font-extrabold tabular-nums', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
+            </div>
+          )}
+          {!outOfStock && product.is_featured && (
+            <span className="absolute top-2 left-2 text-sm leading-none">🔥</span>
+          )}
+          {!outOfStock && product.is_new && (
+            <span className="absolute top-2 left-2 text-[10px] font-bold text-white bg-blue-500 px-1.5 py-0.5 rounded-full leading-none">NEW</span>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
+            className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-sm"
+            aria-label="Favorite"
+          >
+            <Heart className={cn('w-3.5 h-3.5 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-2.5 flex flex-col flex-1">
+          <h3 className={cn('font-bold text-[13px] line-clamp-2 leading-tight', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
+            {displayName}
+          </h3>
+          {hasModifiers && !outOfStock && (
+            <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 font-medium mt-0.5">
+              {customizeLabel}
+              <ChevronRight className="w-2.5 h-2.5" />
+            </span>
+          )}
+          {(product.dietary_tags?.length ?? 0) > 0 && (
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
+              {product.dietary_tags!.slice(0, 3).map((tagId) => {
+                const tag = DIETARY_TAGS.find((t) => t.id === tagId);
+                if (!tag) return null;
+                return <span key={tagId} className="text-[11px]">{tag.emoji}</span>;
+              })}
+            </div>
+          )}
+          <div className="flex items-center justify-between mt-auto pt-2">
+            <span className={cn('text-[13px] font-extrabold tabular-nums leading-none', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
               {fmtPrice(Number(product.price))}
             </span>
             {outOfStock ? (
-              <div className="flex items-center justify-center w-11 h-11 rounded-full bg-gray-100">
-                <Ban className="w-4.5 h-4.5 text-gray-300" />
+              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <Ban className="w-3.5 h-3.5 text-gray-300" />
+              </div>
+            ) : !hasModifiers && cartQty > 0 ? (
+              /* Inline stepper: [-] N [+] */
+              <div className="flex items-center gap-0 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={handleDecrement}
+                  className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center active:scale-90 transition-transform"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="w-6 text-center text-[13px] font-extrabold tabular-nums text-emerald-600">
+                  {cartQty}
+                </span>
+                <button
+                  onClick={handleIncrement}
+                  className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center active:scale-90 transition-transform"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
               </div>
             ) : (
               <button
                 onClick={handleAddClick}
                 className={cn(
-                  'flex items-center justify-center w-11 h-11 rounded-full transition-all duration-300 active:scale-90 shadow-sm',
+                  'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 flex-shrink-0 shadow-sm',
                   justAdded
                     ? 'bg-emerald-600 text-white scale-110'
                     : 'bg-emerald-500 text-white'
                 )}
               >
-                <span className={cn('transition-transform duration-300', justAdded && 'scale-110')}>
-                  {justAdded ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                </span>
+                {justAdded ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
               </button>
             )}
           </div>
         </div>
-
-        {showImage ? (
-          <div className="relative w-[100px] h-[100px] rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
-            {!imgLoaded && (
-              <div className="absolute inset-0 bg-gray-100 animate-pulse" />
-            )}
-            <Image
-              src={product.image_url}
-              alt={imgAlt}
-              fill
-              sizes="100px"
-              loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
-              placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
-              blurDataURL={getBlurUrl(product.image_url)}
-              className={cn('object-cover transition-opacity duration-300', imgLoaded ? 'opacity-100' : 'opacity-0', outOfStock && 'grayscale')}
-              onLoad={() => setImgLoaded(true)}
-              onError={() => setImgError(true)}
-            />
-            {outOfStock && (
-              <div className="absolute inset-0 bg-white/40" />
-            )}
-            <button
-              onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
-              className="absolute top-1.5 right-1.5 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center"
-              aria-label="Favorite"
-            >
-              <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
-            </button>
-          </div>
-        ) : (
-          <div className="relative w-[100px] h-[100px] rounded-xl bg-gray-50 flex items-center justify-center flex-shrink-0">
-            <UtensilsCrossed className="w-6 h-6 text-gray-200" />
-            <button
-              onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
-              className="absolute top-1.5 right-1.5 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center"
-              aria-label="Favorite"
-            >
-              <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
-            </button>
-          </div>
-        )}
       </div>
 
       {/* ── Desktop: landscape card (wider than tall) ── */}
@@ -307,6 +337,25 @@ export const ProductCard = memo(function ProductCard({
               <span className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-400 cursor-default">
                 {locale === 'en' ? 'Unavailable' : 'No disponible'}
               </span>
+            ) : !hasModifiers && cartQty > 0 ? (
+              /* Inline stepper: [-] N [+] */
+              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={handleDecrement}
+                  className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 active:scale-90 transition-all"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="w-7 text-center text-sm font-extrabold tabular-nums text-emerald-600">
+                  {cartQty}
+                </span>
+                <button
+                  onClick={handleIncrement}
+                  className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 active:scale-90 transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
             ) : (
               <button
                 onClick={handleAddClick}

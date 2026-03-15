@@ -50,9 +50,10 @@ interface DashboardHomeProps {
     hasOrders: boolean;
   };
   analytics?: AnalyticsData;
+  freeTier?: { ordersToday: number; dailyLimit: number } | null;
 }
 
-export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrders, subscription, onboarding, analytics }: DashboardHomeProps) {
+export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrders, subscription, onboarding, analytics, freeTier }: DashboardHomeProps) {
   const { t } = useDashboardLocale();
   const salesDelta = stats.salesYesterday > 0
     ? ((stats.salesToday - stats.salesYesterday) / stats.salesYesterday) * 100
@@ -132,6 +133,48 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
           >
             <CreditCard className="w-4 h-4" />
             {t.home_viewPlans}
+          </Link>
+        </div>
+      )}
+
+      {/* Free tier banner — owner only, never shown to customers */}
+      {freeTier && (
+        <div className={cn(
+          'rounded-2xl p-4 flex items-center justify-between gap-4 border',
+          freeTier.ordersToday >= freeTier.dailyLimit
+            ? 'bg-red-500/[0.06] border-red-500/[0.15]'
+            : freeTier.ordersToday >= freeTier.dailyLimit - 1
+            ? 'bg-amber-50 border-amber-200'
+            : 'bg-gray-50 border-gray-200'
+        )}>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={cn(
+              'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
+              freeTier.ordersToday >= freeTier.dailyLimit ? 'bg-red-500/[0.15]' : 'bg-amber-100'
+            )}>
+              {freeTier.ordersToday >= freeTier.dailyLimit
+                ? <AlertTriangle className="w-5 h-5 text-red-400" />
+                : <Clock className="w-5 h-5 text-amber-600" />
+              }
+            </div>
+            <div className="min-w-0">
+              <p className={cn('font-semibold text-sm', freeTier.ordersToday >= freeTier.dailyLimit ? 'text-red-700' : 'text-gray-800')}>
+                {freeTier.ordersToday >= freeTier.dailyLimit
+                  ? 'Límite diario alcanzado — tu menú no acepta más pedidos hoy'
+                  : `Plan gratuito · ${freeTier.dailyLimit - freeTier.ordersToday} de ${freeTier.dailyLimit} pedido${freeTier.dailyLimit - freeTier.ordersToday !== 1 ? 's' : ''} disponible${freeTier.dailyLimit - freeTier.ordersToday !== 1 ? 's' : ''} hoy`
+                }
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Suscríbete para recibir pedidos ilimitados y eliminar este límite.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/app/billing"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors flex-shrink-0"
+          >
+            <CreditCard className="w-4 h-4" />
+            Ver planes
           </Link>
         </div>
       )}

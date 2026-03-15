@@ -2383,6 +2383,505 @@ A customer ordering 2x/month with a $30 average ticket is worth $720/year to you
 Target: 70-80% direct orders, 20-30% apps for new customer acquisition.
     `,
   },
+  {
+    slug: 'marketing-hub-automatizaciones-restaurante',
+    title: 'Marketing Hub: Cómo automatizar el marketing de tu restaurante sin ser experto',
+    description: 'Descubre cómo usar campañas de email, SMS, generador de posts con IA y las 9 automatizaciones preconfiguradas de MENIUS para atraer y retener clientes en piloto automático.',
+    category: 'Marketing',
+    readTime: 7,
+    date: '2026-03-08',
+    author: 'MENIUS',
+    title_en: 'Marketing Hub: How to Automate Your Restaurant Marketing Without Being an Expert',
+    description_en: 'Discover how to use email campaigns, SMS, AI post generator, and the 9 pre-built automations in MENIUS to attract and retain customers on autopilot.',
+    category_en: 'Marketing',
+    content: `
+## El problema del marketing en restaurantes
+
+La mayoría de los dueños de restaurantes saben que deberían hacer marketing. Pero entre abrir, cerrar, manejar el equipo y gestionar pedidos, el marketing siempre queda para "después".
+
+El resultado: clientes que vienen una vez y nunca regresan. Sin seguimiento. Sin fidelización. Sin recuperación de clientes perdidos.
+
+La buena noticia: con las herramientas correctas, el marketing puede funcionar **solo**.
+
+## ¿Qué es el Marketing Hub de MENIUS?
+
+El Marketing Hub es un panel centralizado dentro de tu dashboard de MENIUS que agrupa todas las herramientas de comunicación con tus clientes en un solo lugar. Cuatro módulos principales:
+
+1. **Campañas de Email** — Newsletters y promociones
+2. **Redes Sociales** — Generador de posts con IA
+3. **Campañas SMS** — Mensajes directos al celular
+4. **Automatizaciones** — Secuencias que trabajan solas
+
+## Módulo 1: Campañas de Email
+
+El email marketing tiene el ROI más alto de cualquier canal digital: **$42 por cada $1 invertido** (según Litmus, 2024).
+
+### ¿Qué puedes enviar?
+- Newsletter semanal con platillos nuevos o especiales del día
+- Promoción de temporada (verano, navidad, día de la madre)
+- Anuncio de nuevo horario o nueva sucursal
+- Cupón de cumpleaños personalizado
+
+### Cómo funciona en MENIUS
+
+1. Ve a **Marketing > Campañas de Email** en tu dashboard
+2. Elige a quién enviar: todos los clientes, o segmentos (frecuentes, VIP, nuevos)
+3. Escribe el asunto y el contenido
+4. Elige la fecha y hora de envío
+5. Revisa las estadísticas: aperturas, clics, conversiones
+
+> **Tip profesional:** Los emails con nombre del cliente en el asunto tienen un 26% más de tasa de apertura. MENIUS personaliza automáticamente el saludo.
+
+## Módulo 2: Generador de Posts con IA para Redes Sociales
+
+Publicar en Instagram, Facebook y TikTok de forma consistente es difícil. Con el generador de MENIUS AI, en 10 segundos tienes un caption optimizado listo para publicar.
+
+### Cómo usarlo
+
+1. Ve a **Marketing > Redes Sociales**
+2. Elige la plataforma (Instagram, Facebook, TikTok)
+3. Describe qué quieres promocionar: "Lunes de hamburguesas a mitad de precio"
+4. La IA genera el caption con emojis, hashtags y call-to-action
+5. Copia y publica
+
+### Ejemplos de lo que genera
+
+**Instagram:**
+*"🍔 ¡Lunes de burguer! Hoy y solo hoy: todas nuestras hamburguesas a mitad de precio. Ordena desde tu celular 👇 [enlace] #restaurante #oferta #hamburguesas"*
+
+**TikTok:**
+*"¿Quién más necesita una hamburguesa los lunes? 🤤 Tenemos la oferta que buscabas... link en bio 🔗"*
+
+## Módulo 3: Campañas SMS
+
+El SMS tiene la tasa de apertura más alta de cualquier canal: **98%** en los primeros 3 minutos.
+
+### Cuándo usar SMS (no email)
+- Promoción de solo 24 horas ("Happy hour hoy de 5-7pm")
+- Último aviso de oferta que termina hoy
+- Cierre por emergencia o cambio de horario
+- Evento especial esta noche
+
+### Cómo funciona
+Requiere conectar tu cuenta de Twilio desde **Configuración > Integraciones**. Una vez conectado, puedes enviar mensajes a toda tu base de clientes o a segmentos específicos.
+
+> **Importante:** Incluye siempre la opción de darse de baja. MENIUS agrega automáticamente "Responde STOP para no recibir mensajes" al final de cada SMS.
+
+## Módulo 4: Las 9 Automatizaciones (el verdadero oro)
+
+Aquí es donde la magia ocurre. Las automatizaciones son secuencias de emails que se activan solas según el comportamiento del cliente. **Configúralas una vez y funcionan para siempre.**
+
+### Las 9 automatizaciones disponibles en MENIUS
+
+| # | Nombre | Trigger | Objetivo |
+|---|---|---|---|
+| 1 | Bienvenida | Cliente hace primer pedido | Presentar el restaurante, pedir reseña |
+| 2 | Segundo pedido | 3 días sin volver | Invitar a regresar con oferta |
+| 3 | Reactivación | 30 días sin pedido | Recuperar cliente perdido |
+| 4 | Reconocimiento VIP | Cliente supera X pedidos | Fidelizar y hacer sentir especial |
+| 5 | Recordatorio trial | 7 días antes de vencer | Solo para ti como dueño del restaurante |
+| 6 | Cumpleaños | Día del cumpleaños del cliente | Cupón especial |
+| 7 | Encuesta post-pedido | 2 horas después de entregar | Obtener reseña en Google |
+| 8 | Carrito abandonado | Cliente no completó checkout | Recuperar venta perdida |
+| 9 | Cliente frecuente | Cada 10 pedidos | Recompensar lealtad |
+
+### Cómo activarlas
+
+1. Ve a **Marketing > Automatizaciones**
+2. Haz clic en la automatización que quieres activar
+3. Revisa el mensaje predeterminado (puedes personalizarlo)
+4. Activa el toggle
+5. Listo — trabaja sola
+
+## Resultados reales
+
+Los restaurantes que usan automatizaciones reportan:
+- **+23% de retención de clientes** en los primeros 3 meses
+- **+18% de ticket promedio** por upsell en emails de seguimiento
+- **-40% de tiempo** dedicado a marketing manual
+
+## Plan de acción: tu semana 1 con Marketing Hub
+
+**Día 1:** Activa las 3 automatizaciones más importantes: Bienvenida, Reactivación y VIP.
+
+**Día 2:** Crea tu primer post con el generador de IA y publícalo en Instagram.
+
+**Día 3:** Diseña tu primera campaña de email con la promoción de la semana.
+
+**Día 5:** Revisa las métricas: aperturas, clics, conversiones.
+
+**Semana 2 en adelante:** Las automatizaciones ya trabajan solas. Solo ajusta y optimiza.
+
+## Conclusión
+
+El marketing efectivo no requiere ser experto en publicidad ni invertir horas cada semana. Con el Marketing Hub de MENIUS, puedes tener un sistema completo de comunicación con tus clientes funcionando en menos de un día.
+
+La diferencia entre los restaurantes que crecen y los que no, muchas veces está en una cosa: **seguimiento**. Los clientes que sienten que los recuerdas, regresan.
+    `,
+    content_en: `
+## The Marketing Problem in Restaurants
+
+Most restaurant owners know they should be doing marketing. But between opening, closing, managing the team, and handling orders, marketing always gets pushed to "later."
+
+The result: customers who come once and never return. No follow-up. No loyalty. No win-back.
+
+The good news: with the right tools, marketing can work **on its own**.
+
+## What is the MENIUS Marketing Hub?
+
+The Marketing Hub is a centralized panel inside your MENIUS dashboard that brings all customer communication tools into one place. Four main modules:
+
+1. **Email Campaigns** — Newsletters and promotions
+2. **Social Media** — AI post generator
+3. **SMS Campaigns** — Direct messages to phones
+4. **Automations** — Sequences that run themselves
+
+## Module 1: Email Campaigns
+
+Email marketing has the highest ROI of any digital channel: **$42 for every $1 spent** (Litmus, 2024).
+
+### What can you send?
+- Weekly newsletter with new dishes or daily specials
+- Seasonal promotions (summer, holidays, Mother's Day)
+- New hours or new location announcement
+- Personalized birthday coupon
+
+## Module 2: AI Social Media Post Generator
+
+Posting consistently on Instagram, Facebook, and TikTok is hard. With MENIUS AI's generator, in 10 seconds you have an optimized caption ready to publish.
+
+## Module 3: SMS Campaigns
+
+SMS has the highest open rate of any channel: **98% within the first 3 minutes**.
+
+## Module 4: The 9 Automations (the real gold)
+
+Automations are email sequences that trigger automatically based on customer behavior. **Set them up once and they work forever.**
+
+The 9 available automations: Welcome, Second visit nudge, Reactivation (30-day lapse), VIP recognition, Trial reminder, Birthday coupon, Post-order survey, Abandoned cart, and Frequent customer reward.
+
+Restaurants using automations report:
+- **+23% customer retention** in the first 3 months
+- **+18% higher average ticket** through email upsells
+- **-40% less time** spent on manual marketing
+    `,
+  },
+  {
+    slug: 'programa-lealtad-puntos-restaurante',
+    title: 'Cómo crear un programa de lealtad para tu restaurante (sin tarjetas físicas)',
+    description: 'Un programa de puntos bien diseñado puede aumentar la frecuencia de visita hasta un 30%. Aprende cómo configurarlo en minutos con MENIUS y por qué es más efectivo que los descuentos.',
+    category: 'Estrategia',
+    readTime: 6,
+    date: '2026-03-10',
+    author: 'MENIUS',
+    title_en: 'How to Create a Loyalty Program for Your Restaurant (Without Physical Cards)',
+    description_en: 'A well-designed points program can increase visit frequency by up to 30%. Learn how to set it up in minutes with MENIUS and why it\'s more effective than discounts.',
+    category_en: 'Strategy',
+    content: `
+## ¿Por qué los programas de lealtad funcionan?
+
+Retener a un cliente existente cuesta **5 veces menos** que adquirir uno nuevo. Y un cliente fiel gasta en promedio **67% más** que uno nuevo.
+
+Sin embargo, la mayoría de los restaurantes solo compiten por precio con descuentos. El problema: los descuentos enseñan a los clientes a esperar promociones. La lealtad enseña a los clientes a volver porque les gusta tu restaurante.
+
+Un programa de puntos bien diseñado logra algo diferente: **convierte visitas en hábito**.
+
+## ¿Qué es el Módulo de Lealtad de MENIUS?
+
+Es un sistema de puntos por compra que puedes configurar directamente desde tu dashboard. Sin tarjetas físicas, sin apps separadas, sin complicaciones.
+
+### Cómo funciona
+
+1. El cliente hace un pedido por $200 pesos
+2. Si configuraste 1 punto por cada $10, gana 20 puntos
+3. Al acumular 100 puntos, puede canjear un beneficio (tú defines cuál)
+4. El cliente ve sus puntos en su perfil
+
+### Lo que tú configuras
+- **Puntos por peso/dólar gastado** — Ej: 1 punto cada $10
+- **Puntos mínimos para canjear** — Ej: 100 puntos = $50 de descuento
+- **Ajuste manual de puntos** — Para corregir errores o dar bonos especiales
+
+## Por qué los puntos son mejores que los descuentos
+
+| Descuentos | Puntos de Lealtad |
+|---|---|
+| Reducen margen hoy | No afectan el margen de la visita actual |
+| Atraen cazadores de ofertas | Atraen clientes fieles |
+| No construyen hábito | Construyen razón para regresar |
+| Cualquier competidor puede igualar | Es tu programa, tu beneficio |
+| El cliente se va cuando termina la oferta | El cliente regresa por sus puntos |
+
+## Configuración paso a paso
+
+### Paso 1: Accede al módulo
+Ve a tu dashboard > **Lealtad** en el menú lateral.
+
+*Nota: Si ves un mensaje de migración pendiente, deberás aplicar el SQL de `migration-loyalty.sql` en tu base de datos Supabase antes de continuar.*
+
+### Paso 2: Define la tasa de puntos
+Ejemplo recomendado para un restaurante con ticket promedio de $150:
+- 1 punto por cada $10 gastados
+- Ticket de $150 = 15 puntos por visita
+- Meta: 100 puntos = 10 visitas para poder canjear
+
+Esto crea el ciclo perfecto: el cliente necesita volver ~10 veces para obtener un beneficio.
+
+### Paso 3: Define el beneficio
+¿Qué recibe el cliente al canjear?
+- Descuento en su próxima orden ($50 en tu próxima compra)
+- Producto gratis (postre, bebida)
+- Acceso a menú VIP o precio especial
+
+> **Tip:** El beneficio no necesita ser costoso para ser valorado. Los clientes valoran el reconocimiento más que el valor monetario.
+
+### Paso 4: Comunícalo
+Una vez configurado:
+1. Menciona el programa en tu menú digital
+2. El equipo de Counter lo menciona al momento de la entrega
+3. Usa el Marketing Hub para enviar un email anunciando el programa
+4. Crea un post en Instagram con el generador de IA de MENIUS
+
+## Gestión de clientes y puntos
+
+Desde la sección **Lealtad** en tu dashboard puedes:
+- Ver todos los clientes con su saldo de puntos
+- Buscar un cliente específico por nombre o email
+- Ajustar puntos manualmente (+/-)
+- Ver el historial de transacciones de cada cliente
+
+Esta flexibilidad es importante para casos reales: cliente que tuvo un problema con su pedido, cliente fiel que quieres reconocer, evento especial donde das puntos dobles.
+
+## Combinando lealtad con automatizaciones
+
+El verdadero poder está en combinar el módulo de Lealtad con las Automatizaciones del Marketing Hub:
+
+1. **Automatización VIP:** Cuando un cliente llega a 500 puntos, envíale un email especial reconociéndolo como VIP
+2. **Automatización Reactivación:** Si un cliente con muchos puntos no ha pedido en 30 días, recuérdale que tiene puntos por usar
+3. **Email mensual:** Envía a cada cliente su saldo actual de puntos ("Tienes 85 puntos — ¡casi llegas!")
+
+## Resultados esperados
+
+Los programas de lealtad bien implementados reportan:
+- **Aumento del 30% en frecuencia de visita** (Harvard Business Review)
+- **Clientes del programa gastan 12-18% más** por visita que clientes sin programa
+- **Reducción del 20% en tasa de abandono** de clientes frecuentes
+
+## El error más común
+
+El mayor error al lanzar un programa de lealtad: no comunicarlo. Configuras el sistema pero no se lo dices a tus clientes.
+
+Solución simple:
+1. Email de lanzamiento a toda tu base de clientes
+2. Mención en el menú digital ("¡Acumula puntos con cada pedido!")
+3. El equipo lo menciona verbalmente al entregar órdenes
+
+El programa trabaja solo — pero primero tienes que conseguir que el cliente se entere.
+    `,
+    content_en: `
+## Why Loyalty Programs Work
+
+Retaining an existing customer costs **5x less** than acquiring a new one. And a loyal customer spends on average **67% more** than a new one.
+
+Points programs achieve something different from discounts: they **turn visits into habit**.
+
+## What is the MENIUS Loyalty Module?
+
+A points-per-purchase system you configure directly from your dashboard. No physical cards, no separate apps, no complications.
+
+### What you configure
+- **Points per dollar spent** — e.g., 1 point per $1
+- **Minimum points to redeem** — e.g., 100 points = $5 discount
+- **Manual point adjustment** — For corrections or special bonuses
+
+## Why Points Beat Discounts
+
+Discounts attract deal-hunters who leave when the offer ends. Points attract loyal customers who return to use their accumulated rewards — building habit and emotional connection with your restaurant.
+
+## Setup in 4 Steps
+
+1. Go to your dashboard > **Loyalty** in the sidebar
+2. Set your points rate (e.g., 1 point per $10 spent)
+3. Define the redemption benefit (discount, free item, VIP access)
+4. Announce it: email to customers + social media post with MENIUS AI generator
+
+## Expected Results
+
+- **30% increase in visit frequency** (Harvard Business Review)
+- **Loyalty members spend 12-18% more** per visit than non-members
+- **20% reduction in churn** among frequent customers
+    `,
+  },
+  {
+    slug: 'counter-pos-pedidos-manuales-restaurante',
+    title: 'Counter MENIUS: el punto de venta que necesita tu restaurante (sin hardware costoso)',
+    description: 'Descubre cómo el Counter de MENIUS funciona como un POS completo para pedidos presenciales, llamadas telefónicas y control de flujo entre caja y cocina. Sin tablets especiales, sin software adicional.',
+    category: 'Operación',
+    readTime: 5,
+    date: '2026-03-12',
+    author: 'MENIUS',
+    title_en: 'MENIUS Counter: The Point of Sale Your Restaurant Needs (Without Expensive Hardware)',
+    description_en: 'Discover how the MENIUS Counter works as a full POS for in-person orders, phone calls, and flow control between cashier and kitchen — no special tablets, no additional software.',
+    category_en: 'Operations',
+    content: `
+## El problema del flujo de pedidos en restaurantes
+
+En muchos restaurantes, el proceso es así:
+1. El cliente hace un pedido por QR
+2. El pedido llega directo a cocina
+3. La caja no sabe qué pasó
+4. El cliente paga pero cocina ya hizo el plato equivocado
+5. Caos
+
+O peor: el cliente llama por teléfono, alguien anota en papel, ese papel se pierde, el pedido no llega a cocina.
+
+El Counter de MENIUS resuelve ambos problemas.
+
+## ¿Qué es el Counter?
+
+El Counter es una pantalla dedicada para el equipo de caja o atención al cliente. Accedes desde tu dashboard en la sección **Counter**.
+
+Está diseñado para funcionar en una tablet, iPad o cualquier pantalla que tengas en tu mostrador. No necesitas hardware especializado.
+
+## Flujo correcto: Counter primero, cocina después
+
+En MENIUS, el flujo de pedidos funciona así:
+
+```
+Cliente hace pedido → Counter lo recibe → Counter lo acepta → Cocina lo recibe en KDS
+```
+
+El Counter es el punto de control. El equipo de atención decide qué llega a cocina y cuándo. Esto evita:
+- Que cocina prepare pedidos aún no confirmados
+- Que pedidos con error lleguen a cocina
+- Confusión entre pedidos online y pedidos en persona
+
+### Acciones desde el Counter
+
+Al recibir un pedido, el equipo puede:
+- **Aceptar** → El pedido avanza a cocina (KDS)
+- **Cambiar estado** → Preparando, Listo, Entregado
+- **Imprimir ticket** → Automáticamente al aceptar (si tienes impresora)
+- **Ver detalles** → Productos, notas, datos del cliente
+- **Contactar al cliente** → WhatsApp directo
+
+## Nueva Orden Manual: tu POS integrado
+
+Esta es la función más poderosa del Counter: crear pedidos desde cero, sin que el cliente pase por el menú digital.
+
+### ¿Cuándo usas órdenes manuales?
+
+1. **Pedido por teléfono** — El cliente llama y dicta su pedido
+2. **Pedido en persona** — El cliente está en el mostrador
+3. **Pedido de empleado** — Un miembro del equipo quiere ordenar
+4. **Corrección de pedido** — Recrear un pedido con error
+
+### Cómo crear una orden manual
+
+1. En el Counter, haz clic en **"Nueva Orden"**
+2. Se abre el panel de POS
+3. **Busca productos** — escribe el nombre o desplázate por el catálogo
+4. **Ajusta cantidades** con los botones + y −
+5. Define el **tipo de orden**: dine-in, pickup o delivery
+6. Agrega **nombre del cliente**, teléfono y notas opcionales
+7. Haz clic en **"Crear Orden"**
+
+El pedido aparece en el tablero del Counter y en el KDS de cocina exactamente igual que si lo hubiera hecho el cliente desde su celular.
+
+### Ventajas vs. anotar en papel
+
+| Papel | Orden Manual MENIUS |
+|---|---|
+| Puede perderse | Queda registrado digitalmente |
+| Cocina no lo ve en tiempo real | Aparece en KDS al instante |
+| No hay historial | Queda en tu dashboard para analytics |
+| Sin total calculado | Calcula el total automáticamente |
+| No cuenta en reportes | Suma a tus ventas del día |
+
+## Integración con KDS de Cocina
+
+El Kitchen Display System (KDS) es la pantalla de cocina. Muestra todos los pedidos que han sido aceptados por el Counter.
+
+La pantalla muestra:
+- Número de pedido y mesa/tipo
+- Lista de productos con variantes y extras
+- Notas del cliente
+- Tiempo transcurrido desde que llegó el pedido
+
+El equipo de cocina marca los pedidos como **Preparando** y luego **Listo**. El Counter recibe la notificación y puede informar al cliente.
+
+## Impresión automática de tickets
+
+Si tienes una impresora térmica conectada, MENIUS puede imprimir automáticamente el ticket al aceptar un pedido.
+
+Para activarlo:
+1. Ve al Counter
+2. Haz clic en el ícono de configuración (⚙️)
+3. Activa **"Auto-imprimir al aceptar"**
+
+La impresión usa el sistema de impresión del navegador, compatible con cualquier impresora térmica que tengas configurada en tu red local.
+
+## El Counter en la práctica: un día típico
+
+**8:00 am** — El equipo abre el Counter en la tablet del mostrador.
+
+**8:15 am** — Llega el primer pedido online. El Counter lo muestra con sonido de alerta. El cajero lo revisa y lo acepta. Cocina lo recibe en KDS.
+
+**9:30 am** — Un cliente llama pidiendo 2 tacos y un café. El cajero abre "Nueva Orden", selecciona los productos, escribe el nombre y crea el pedido. Cocina lo recibe igual que cualquier otro pedido.
+
+**1:00 pm** — Hora pico: 8 pedidos simultáneos. El Counter los muestra todos ordenados por tiempo. El equipo los gestiona sin papel ni confusión.
+
+**6:00 pm** — Cierre. Los reportes del día muestran todas las ventas: digitales y manuales, con totales correctos.
+
+## Conclusión
+
+El Counter no es solo una pantalla de gestión de pedidos. Es el sistema nervioso central de tu operación: recibe, filtra, envía a cocina y registra todo.
+
+Con órdenes manuales, ningún pedido se pierde. Con el flujo Counter → KDS, cocina siempre trabaja con información actualizada. Con la impresión automática, el proceso es más rápido y profesional.
+
+Todo sin hardware adicional, sin software separado, sin capacitación complicada. Solo tu computadora o tablet, y MENIUS.
+    `,
+    content_en: `
+## The Order Flow Problem in Restaurants
+
+In many restaurants, phone orders get written on paper, that paper gets lost, and the order never reaches the kitchen. Or online orders go directly to the kitchen bypassing the cashier, causing payment confusion.
+
+The MENIUS Counter solves both problems.
+
+## What is the Counter?
+
+A dedicated screen for your cashier or front-of-house team. Runs on any tablet, iPad, or screen you already have — no specialized hardware needed.
+
+## The Correct Flow: Counter First, Kitchen Second
+
+```
+Customer places order → Counter receives it → Counter accepts it → Kitchen receives it on KDS
+```
+
+The Counter is the control point. The team decides what reaches the kitchen and when.
+
+## New Manual Order: Your Integrated POS
+
+Create orders from scratch without the customer using the digital menu:
+- **Phone orders** — Customer calls and dictates their order
+- **Walk-in orders** — Customer is at the counter
+- **Staff orders** — Team member wants to order
+
+### How to create a manual order
+1. Click **"New Order"** in the Counter
+2. Search products by name or browse the catalog
+3. Adjust quantities with + and − buttons
+4. Set the order type: dine-in, pickup, or delivery
+5. Add customer name, phone, and notes
+6. Click **"Create Order"**
+
+The order appears in the Counter board and on the kitchen KDS exactly like a digital order — and it counts in your daily sales analytics.
+
+## Conclusion
+
+The Counter is the central nervous system of your operation: it receives, filters, sends to kitchen, and records everything. With manual orders, no order gets lost. With auto-print, the process is faster and more professional.
+    `,
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
