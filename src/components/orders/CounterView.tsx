@@ -8,7 +8,7 @@ import {
   FlaskConical, Loader2,
 } from 'lucide-react';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
-import { updateOrderStatus, updateOrderETA } from '@/lib/actions/restaurant';
+import { updateOrderStatus, updateOrderETA, assignDriver } from '@/lib/actions/restaurant';
 import { AutoAcceptService } from '@/lib/counter/AutoAcceptService';
 import { PrinterService } from '@/lib/printing/PrinterService';
 import type { Order, OrderItem } from '@/types';
@@ -169,6 +169,11 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const [autoPrint, setAutoPrint] = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('counter-auto-print') === 'true'
   );
+  const [showDriverModal, setShowDriverModal] = useState(false);
+  const [driverOrderId, setDriverOrderId] = useState<string | null>(null);
+  const [driverName, setDriverName] = useState('');
+  const [driverPhone, setDriverPhone] = useState('');
+  const [isAssigningDriver, setIsAssigningDriver] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
   const [, tick] = useState(0);
   const urgentRef = useRef<Set<string>>(new Set());
@@ -282,6 +287,30 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newOrders.map(o => o.id).join(',')]);
+
+  // ── Driver assignment ──
+  const openDriverModal = useCallback((order: Order) => {
+    setDriverOrderId(order.id);
+    setDriverName((order as any).driver_name ?? '');
+    setDriverPhone((order as any).driver_phone ?? '');
+    setShowDriverModal(true);
+  }, []);
+
+  const handleAssignDriver = useCallback(async (deliveryAddress?: string) => {
+    if (!driverOrderId) return;
+    setIsAssigningDriver(true);
+    try {
+      await assignDriver(driverOrderId, driverName, driverPhone);
+      // WhatsApp to driver with address
+      if (driverPhone && deliveryAddress) {
+        const msg = `Hola ${driverName || 'repartidor'} 🛵 Tienes una entrega:\n📍 ${deliveryAddress}\nAcude al restaurante para recoger el pedido.`;
+        window.open(`https://wa.me/${driverPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+      }
+      setShowDriverModal(false);
+    } finally {
+      setIsAssigningDriver(false);
+    }
+  }, [driverOrderId, driverName, driverPhone]);
 
   // ── Actions ──
   const handleAccept = useCallback(async (order: Order) => {
@@ -594,6 +623,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
               onShowRejectConfirm={() => setShowRejectConfirm(true)}
               onCloseMoreMenu={() => { setShowMoreMenu(false); setShowRejectConfirm(false); setRejectReason(''); }}
               onPrint={() => PrinterService.printOrder(selectedOrder, selectedOrder.estimated_ready_minutes ?? eta, restaurantName, currency).catch(() => {})}
+              onAssignDriver={() => openDriverModal(selectedOrder)}
             />
           ) : (
             <IdlePanel
@@ -653,6 +683,58 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
             <div className="flex gap-2">
               <button onClick={() => setShowPause(false)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">Cancelar</button>
               <button onClick={doPause} className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold">Pausar</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Driver modal ── */}
+      {showDriverModal && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setShowDriverModal(false)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-xs mx-auto bg-white rounded-2xl z-50 p-5 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-[#111]">🛵 Asignar repartidor</h2>
+              <button onClick={() => setShowDriverModal(false)} className="p-1 text-[#AAAAAA] hover:text-[#111]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3 mb-5">
+              <div>
+                <label className="text-xs font-semibold text-[#888] mb-1 block">Nombre</label>
+                <input
+                  value={driverName}
+                  onChange={e => setDriverName(e.target.value)}
+                  placeholder="Ej. Juan López"
+                  className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#888] mb-1 block">Teléfono (WhatsApp)</label>
+                <input
+                  value={driverPhone}
+                  onChange={e => setDriverPhone(e.target.value)}
+                  placeholder="+52 55 1234 5678"
+                  type="tel"
+                  className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] transition-colors"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setShowDriverModal(false)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  const order = orders.find(o => o.id === driverOrderId);
+                  handleAssignDriver(order?.delivery_address ?? undefined);
+                }}
+                disabled={isAssigningDriver || !driverName.trim()}
+                className="flex-1 py-3 rounded-xl text-white text-sm font-bold disabled:opacity-50 transition-colors"
+                style={{ background: GREEN }}
+              >
+                {isAssigningDriver ? 'Guardando…' : driverPhone ? '📲 Asignar + WhatsApp' : 'Asignar'}
+              </button>
             </div>
           </div>
         </>
@@ -796,7 +878,7 @@ function DetailPanel({
   order, currency, restaurantName, tab, eta, busyExtra, isUpdating,
   showMoreMenu, showRejectConfirm, onRejectReason, onSetRejectReason,
   onSetEta, onAccept, onReject, onMarkReady, onDeliver, onCancelCooking,
-  onToggleMoreMenu, onShowRejectConfirm, onCloseMoreMenu, onPrint,
+  onToggleMoreMenu, onShowRejectConfirm, onCloseMoreMenu, onPrint, onAssignDriver,
 }: {
   order: Order; currency: string; restaurantName: string; tab: Tab;
   eta: number; busyExtra: number; isUpdating: boolean;
@@ -812,6 +894,7 @@ function DetailPanel({
   onShowRejectConfirm: () => void;
   onCloseMoreMenu: () => void;
   onPrint: () => void;
+  onAssignDriver: () => void;
 }) {
   const [, tick] = useState(0);
   useEffect(() => {
@@ -1022,18 +1105,43 @@ function DetailPanel({
               </div>
             )}
 
-            {/* Delivery address */}
-            {order.delivery_address && (
-              <div className="mx-5 mb-4 mt-2 flex items-start gap-2 bg-[#F5F5F5] rounded-xl px-3 py-2.5">
-                <MapPin className="w-3.5 h-3.5 text-[#888] flex-shrink-0 mt-0.5" />
-                <div>
-                  <a href={`https://maps.google.com/?q=${encodeURIComponent(order.delivery_address)}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="text-[11px] font-bold underline" style={{ color: GREEN }}>
-                    Ver en mapa →
-                  </a>
-                  <p className="text-xs text-[#555] mt-0.5">{order.delivery_address}</p>
-                </div>
+            {/* Delivery address + driver */}
+            {order.order_type === 'delivery' && (
+              <div className="mx-5 mb-4 mt-2 space-y-2">
+                {order.delivery_address && (
+                  <div className="flex items-start gap-2 bg-[#F5F5F5] rounded-xl px-3 py-2.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#888] flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <a href={`https://maps.google.com/?q=${encodeURIComponent(order.delivery_address)}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="text-[11px] font-bold underline" style={{ color: GREEN }}>
+                        Ver en mapa →
+                      </a>
+                      <p className="text-xs text-[#555] mt-0.5 break-words">{order.delivery_address}</p>
+                    </div>
+                  </div>
+                )}
+                {/* Driver badge / assign button */}
+                {(order as any).driver_name ? (
+                  <button
+                    onClick={onAssignDriver}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-[#06C167]/30 bg-[#06C167]/5 hover:bg-[#06C167]/10 transition-colors text-left"
+                  >
+                    <span className="text-base">🛵</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-[#06C167]">Repartidor asignado</p>
+                      <p className="text-xs text-[#555] truncate">{(order as any).driver_name}{(order as any).driver_phone ? ` · ${(order as any).driver_phone}` : ''}</p>
+                    </div>
+                    <span className="text-[10px] text-[#888]">Editar</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={onAssignDriver}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border-2 border-dashed border-[#DDDDDD] text-[#888] hover:border-[#06C167] hover:text-[#06C167] transition-colors text-sm font-semibold"
+                  >
+                    🛵 Asignar repartidor
+                  </button>
+                )}
               </div>
             )}
 

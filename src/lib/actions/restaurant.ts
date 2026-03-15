@@ -861,3 +861,25 @@ export async function updateOrderETA(orderId: string, etaMinutes: number) {
   if (error) return { error: error.message };
   return { success: true };
 }
+
+export async function assignDriver(
+  orderId: string,
+  driverName: string,
+  driverPhone: string,
+) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { error } = await supabase
+    .from('orders')
+    .update({
+      driver_name: driverName.trim() || null,
+      driver_phone: driverPhone.trim() || null,
+      driver_assigned_at: driverName.trim() ? new Date().toISOString() : null,
+    })
+    .eq('id', orderId)
+    .eq('restaurant_id', restaurantId);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
