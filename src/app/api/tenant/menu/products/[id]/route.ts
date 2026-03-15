@@ -4,9 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 
-const ALLOWED_PATCH_FIELDS = new Set([
-  'in_stock', 'stock_qty', 'low_stock_threshold', 'track_inventory',
-]);
+const ALLOWED_PATCH_FIELDS = ['in_stock', 'stock_qty', 'low_stock_threshold', 'track_inventory'];
 
 export async function PATCH(
   req: NextRequest,
