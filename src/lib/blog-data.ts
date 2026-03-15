@@ -2617,7 +2617,7 @@ Es un sistema de puntos por compra que puedes configurar directamente desde tu d
 ### Paso 1: Accede al módulo
 Ve a tu dashboard > **Lealtad** en el menú lateral.
 
-*Nota: Si ves un mensaje de migración pendiente, deberás aplicar el SQL de `migration-loyalty.sql` en tu base de datos Supabase antes de continuar.*
+*Nota: Si ves un mensaje de migración pendiente, deberás aplicar el SQL de migration-loyalty.sql en tu base de datos Supabase antes de continuar.*
 
 ### Paso 2: Define la tasa de puntos
 Ejemplo recomendado para un restaurante con ticket promedio de $150:
