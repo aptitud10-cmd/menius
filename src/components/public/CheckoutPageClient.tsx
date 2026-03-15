@@ -135,7 +135,8 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
         else if (!/^\+?[\d\s()-]{7,}$/.test(value)) error = 'Teléfono no válido';
         break;
       case 'customer_email':
-        if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = 'Email no válido';
+        if (!value.trim()) error = locale === 'es' ? 'El email es obligatorio para recibir tu confirmación' : 'Email is required to receive your confirmation';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = locale === 'es' ? 'Email no válido' : 'Invalid email';
         break;
       case 'delivery_address':
         if (orderType === 'delivery' && !value.trim()) error = 'La dirección es obligatoria para delivery';
@@ -169,6 +170,11 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
     if (submittingRef.current) return;
     if (!customerName.trim() || !customerPhone.trim()) {
       setOrderError(locale === 'es' ? 'Nombre y teléfono son requeridos' : 'Name and phone required');
+      return;
+    }
+    if (!customerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
+      setOrderError(locale === 'es' ? 'Email requerido para recibir tu confirmación de pedido' : 'Email required to receive your order confirmation');
+      validateField('customer_email', customerEmail);
       return;
     }
     if (orderType === 'delivery' && !deliveryAddress.trim()) {
@@ -304,6 +310,9 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
     if (walletSubmittingRef.current) return { error: 'Processing...' };
     if (!customerName.trim() || !customerPhone.trim()) {
       return { error: locale === 'es' ? 'Nombre y teléfono son requeridos' : 'Name and phone required' };
+    }
+    if (!customerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
+      return { error: locale === 'es' ? 'Email requerido para recibir tu confirmación de pedido' : 'Email required to receive your order confirmation' };
     }
     if (orderType === 'delivery' && !deliveryAddress.trim()) {
       return { error: locale === 'es' ? 'Dirección de entrega requerida' : 'Delivery address required' };
@@ -946,7 +955,10 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
               )}
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">{t.yourEmail} <span className="text-gray-400 font-normal text-xs">({t.optional})</span></label>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                {t.yourEmail}
+                <span className="text-red-500 ml-0.5">*</span>
+              </label>
               <input
                 type="email"
                 value={customerEmail}
@@ -954,9 +966,14 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
                 onBlur={(e) => validateField('customer_email', e.target.value)}
                 placeholder={t.yourEmailPlaceholder}
                 className={cn(inputClass, fieldErrors.customer_email ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : '')}
+                required
               />
-              {fieldErrors.customer_email && (
+              {fieldErrors.customer_email ? (
                 <p className="text-xs text-red-500 mt-1">{fieldErrors.customer_email}</p>
+              ) : (
+                <p className="text-xs text-gray-400 mt-1">
+                  {locale === 'es' ? 'Te enviaremos la confirmación y actualizaciones de tu pedido.' : 'We\'ll send you order confirmation and updates.'}
+                </p>
               )}
             </div>
             <div>
