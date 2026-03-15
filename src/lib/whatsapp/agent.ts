@@ -1,4 +1,5 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { Redis } from '@upstash/redis';
 import { sendWhatsApp } from '@/lib/notifications/whatsapp';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -23,8 +24,48 @@ interface ConversationSession {
   lastActivity: number;
 }
 
-const sessions = new Map<string, ConversationSession>();
-const SESSION_TTL = 30 * 60 * 1000;
+// Sessions are stored in Redis when available, falling back to in-process Map
+// for local dev. Redis is required in multi-instance Vercel deployments.
+const SESSION_TTL_SECONDS = 30 * 60;
+const localSessions = new Map<string, ConversationSession>();
+
+let redis: Redis | null = null;
+function getRedis(): Redis | null {
+  if (redis) return redis;
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
+  try {
+    redis = new Redis({ url, token });
+    return redis;
+  } catch {
+    return null;
+  }
+}
+
+async function getSession(from: string): Promise<ConversationSession | null> {
+  const r = getRedis();
+  if (r) {
+    try {
+      const data = await r.get<ConversationSession>(`wa:session:${from}`);
+      return data ?? null;
+    } catch {
+      return localSessions.get(from) ?? null;
+    }
+  }
+  return localSessions.get(from) ?? null;
+}
+
+async function setSession(from: string, session: ConversationSession): Promise<void> {
+  const r = getRedis();
+  if (r) {
+    try {
+      await r.set(`wa:session:${from}`, session, { ex: SESSION_TTL_SECONDS });
+      return;
+    } catch { /* fall through */ }
+  }
+  localSessions.set(from, session);
+}
 
 async function findRestaurantByPhone(phone: string) {
   const supabase = getAdminClient();
@@ -119,9 +160,9 @@ async function generateAIResponse(
 }
 
 export async function handleIncomingMessage({ from, text, name }: IncomingMessage) {
-  let session = sessions.get(from);
+  let session = await getSession(from);
 
-  if (!session || Date.now() - session.lastActivity > SESSION_TTL) {
+  if (!session) {
     const restaurant = await findRestaurantByPhone(from);
     if (!restaurant) {
       await sendWhatsApp({
@@ -139,10 +180,10 @@ export async function handleIncomingMessage({ from, text, name }: IncomingMessag
       currency: restaurant.currency ?? 'USD',
       lastActivity: Date.now(),
     };
-    sessions.set(from, session);
   }
 
   session.lastActivity = Date.now();
+  await setSession(from, session);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
   const menuUrl = `${appUrl}/${session.slug}`;
   const isEn = session.locale === 'en';

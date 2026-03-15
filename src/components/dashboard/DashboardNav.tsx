@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   ClipboardList, Tag, ShoppingBag, QrCode, Settings, LogOut, Menu, X,
-  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star, Store,
+  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star, Store, Boxes, Key, Gift, Building2,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -28,6 +28,7 @@ function buildNavSections(t: DashboardTranslations) {
       items: [
         { href: '/app/menu/categories', label: t.nav_categories, icon: Tag },
         { href: '/app/menu/products', label: t.nav_products, icon: ShoppingBag },
+        { href: '/app/menu/inventory', label: 'Inventario', icon: Boxes },
         { href: '/app/media', label: t.nav_gallery, icon: Image },
       ],
     },
@@ -38,6 +39,7 @@ function buildNavSections(t: DashboardTranslations) {
         { href: '/app/customers', label: t.nav_customers, icon: Contact2 },
         { href: '/app/reviews', label: t.nav_reviews, icon: Star },
         { href: '/app/promotions', label: t.nav_promotions, icon: Ticket },
+        { href: '/app/loyalty', label: 'Lealtad', icon: Gift },
         { href: '/app/staff', label: t.nav_staff, icon: Users },
       ],
     },
@@ -46,8 +48,10 @@ function buildNavSections(t: DashboardTranslations) {
       items: [
         { href: '/app/analytics', label: t.nav_analytics, icon: BarChart3 },
         { href: '/app/marketing', label: t.nav_marketing, icon: Megaphone },
+        { href: '/app/branches', label: 'Sucursales', icon: Building2 },
         { href: '/app/billing', label: t.nav_billing, icon: CreditCard },
         { href: '/app/settings', label: t.nav_settings, icon: Settings },
+        { href: '/app/settings/api-keys', label: 'API Keys', icon: Key },
         { href: '/app/settings/data', label: t.nav_dataPrivacy, icon: Shield },
       ],
     },

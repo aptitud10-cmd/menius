@@ -27,7 +27,9 @@ interface AnalyticsData {
   };
   salesByDay: { date: string; orders: number; revenue: number }[];
   hourlyDistribution: number[];
+  weeklyHeatmap?: number[][];
   statusCount: Record<string, number>;
+  orderTypeCount?: Record<string, number>;
   topProducts: { name: string; qty: number; revenue: number }[];
 }
 
@@ -130,10 +132,11 @@ export default function AnalyticsPage() {
     );
   }
 
-  const { currency, summary, comparison, salesByDay, hourlyDistribution, statusCount, topProducts } = data;
+  const { currency, summary, comparison, salesByDay, hourlyDistribution, weeklyHeatmap, statusCount, orderTypeCount, topProducts } = data;
   const fmt = (v: number) => formatMoney(v, currency);
   const maxRevenue = Math.max(...salesByDay.map(d => d.revenue), 1);
   const maxHourly = Math.max(...hourlyDistribution, 1);
+  const maxHeatmap = weeklyHeatmap ? Math.max(...weeklyHeatmap.flatMap(r => r), 1) : 1;
 
   return (
     <div className="space-y-6">
@@ -289,31 +292,138 @@ export default function AnalyticsPage() {
         )}
       </div>
 
-      {/* Hourly Distribution */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <h2 className="font-semibold text-sm mb-4 text-gray-900">{t.analytics_hourlyDist}</h2>
-        <div className="flex items-end gap-px h-32">
-          {hourlyDistribution.map((count, hour) => {
-            const height = Math.max((count / maxHourly) * 100, 2);
-            const isPeak = count === maxHourly && count > 0;
-            return (
-              <div key={hour} className="flex-1 flex flex-col items-center gap-1 group relative">
-                <div className="hidden group-hover:block absolute -top-14 left-1/2 -translate-x-1/2 bg-gray-900 rounded-lg px-2.5 py-1.5 text-xs text-white z-10 whitespace-nowrap shadow-lg">
-                  <p>{hour.toString().padStart(2, '0')}:00 — {count} {t.analytics_ordersLegend}</p>
+      {/* Hourly Heatmap */}
+      {weeklyHeatmap ? (
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <h2 className="font-semibold text-sm mb-1 text-gray-900">Heatmap de órdenes</h2>
+          <p className="text-xs text-gray-400 mb-4">Intensidad por día de semana y hora</p>
+          <div className="overflow-x-auto">
+            <div className="min-w-[520px]">
+              {/* Hour labels */}
+              <div className="flex mb-1 pl-8">
+                {Array.from({ length: 24 }, (_, h) => (
+                  <div key={h} className="flex-1 text-center text-[9px] text-gray-400">
+                    {h % 4 === 0 ? `${h}h` : ''}
+                  </div>
+                ))}
+              </div>
+              {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, dow) => (
+                <div key={dow} className="flex items-center gap-1 mb-0.5">
+                  <span className="text-[10px] text-gray-400 w-7 flex-shrink-0 text-right pr-1">{day}</span>
+                  <div className="flex flex-1 gap-px">
+                    {weeklyHeatmap[dow].map((count, hour) => {
+                      const intensity = count === 0 ? 0 : 0.15 + (count / maxHeatmap) * 0.85;
+                      return (
+                        <div
+                          key={hour}
+                          title={`${day} ${hour.toString().padStart(2, '0')}:00 — ${count} órdenes`}
+                          className="flex-1 h-5 rounded-sm cursor-default transition-opacity"
+                          style={{ backgroundColor: count === 0 ? '#F3F4F6' : `rgba(16,185,129,${intensity})` }}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
-                <div
-                  className={cn(
-                    'w-full rounded-t transition-all duration-300 cursor-pointer',
-                    isPeak ? 'bg-amber-400 hover:bg-amber-300' : 'bg-violet-400/60 hover:bg-violet-400'
-                  )}
-                  style={{ height: `${height}%` }}
-                />
-                {hour % 3 === 0 && (
-                  <span className="text-[9px] text-gray-500">{hour.toString().padStart(2, '0')}</span>
-                )}
+              ))}
+              <div className="flex items-center justify-end gap-2 mt-2">
+                <span className="text-[10px] text-gray-400">Menos</span>
+                {[0.1, 0.3, 0.5, 0.75, 1].map((i) => (
+                  <div key={i} className="w-4 h-4 rounded-sm" style={{ backgroundColor: `rgba(16,185,129,${i})` }} />
+                ))}
+                <span className="text-[10px] text-gray-400">Más</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <h2 className="font-semibold text-sm mb-4 text-gray-900">{t.analytics_hourlyDist}</h2>
+          <div className="flex items-end gap-px h-32">
+            {hourlyDistribution.map((count, hour) => {
+              const height = Math.max((count / maxHourly) * 100, 2);
+              const isPeak = count === maxHourly && count > 0;
+              return (
+                <div key={hour} className="flex-1 flex flex-col items-center gap-1 group relative">
+                  <div className="hidden group-hover:block absolute -top-14 left-1/2 -translate-x-1/2 bg-gray-900 rounded-lg px-2.5 py-1.5 text-xs text-white z-10 whitespace-nowrap shadow-lg">
+                    <p>{hour.toString().padStart(2, '0')}:00 — {count} {t.analytics_ordersLegend}</p>
+                  </div>
+                  <div
+                    className={cn('w-full rounded-t transition-all duration-300 cursor-pointer', isPeak ? 'bg-amber-400 hover:bg-amber-300' : 'bg-violet-400/60 hover:bg-violet-400')}
+                    style={{ height: `${height}%` }}
+                  />
+                  {hour % 3 === 0 && <span className="text-[9px] text-gray-500">{hour.toString().padStart(2, '0')}</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Conversion funnel + Order types */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Conversion Funnel */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <h2 className="font-semibold text-sm mb-4 text-gray-900">Embudo de conversión</h2>
+          {(() => {
+            const total = summary.totalOrders;
+            const confirmed = total - (statusCount.pending ?? 0);
+            const preparing = confirmed - (statusCount.confirmed ?? 0);
+            const completed = summary.completedOrders;
+            const steps = [
+              { label: 'Recibidas', count: total, color: '#6366f1' },
+              { label: 'Aceptadas', count: confirmed, color: '#3b82f6' },
+              { label: 'En cocina', count: preparing, color: '#f59e0b' },
+              { label: 'Completadas', count: completed, color: '#10b981' },
+            ];
+            const max = Math.max(total, 1);
+            return (
+              <div className="space-y-3">
+                {steps.map((s, i) => (
+                  <div key={s.label}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600 font-medium">{s.label}</span>
+                      <span className="font-bold text-gray-900 tabular-nums">
+                        {s.count} <span className="text-xs text-gray-400 font-normal">({total > 0 ? ((s.count / total) * 100).toFixed(0) : 0}%)</span>
+                      </span>
+                    </div>
+                    <div className="h-7 bg-gray-50 rounded-lg overflow-hidden relative">
+                      <div
+                        className="h-full rounded-lg transition-all duration-700 flex items-center justify-end pr-2"
+                        style={{ width: `${(s.count / max) * 100}%`, backgroundColor: s.color, opacity: 0.85 - i * 0.05 }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             );
-          })}
+          })()}
+        </div>
+
+        {/* Order Types */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <h2 className="font-semibold text-sm mb-4 text-gray-900">Tipo de orden</h2>
+          {orderTypeCount && Object.keys(orderTypeCount).length > 0 ? (
+            <div className="space-y-3">
+              {Object.entries(orderTypeCount).sort((a, b) => b[1] - a[1]).map(([type, count]) => {
+                const pct = summary.totalOrders > 0 ? (count / summary.totalOrders) * 100 : 0;
+                const labels: Record<string, string> = { dine_in: '🍽️ Mesa', pickup: '🛍️ Para llevar', delivery: '🛵 Delivery' };
+                const colors: Record<string, string> = { dine_in: 'bg-violet-500', pickup: 'bg-blue-500', delivery: 'bg-amber-500' };
+                return (
+                  <div key={type}>
+                    <div className="flex justify-between text-sm mb-1.5">
+                      <span className="text-gray-500 font-medium">{labels[type] ?? type}</span>
+                      <span className="font-semibold text-gray-900">{count} <span className="text-gray-400 font-normal">({pct.toFixed(0)}%)</span></span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className={cn('h-full rounded-full transition-all duration-500', colors[type] ?? 'bg-gray-400')} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-8">Sin datos</p>
+          )}
         </div>
       </div>
 

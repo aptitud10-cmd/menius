@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     const [currentRes, prevRes] = await Promise.all([
       supabase
         .from('orders')
-        .select('id, total, status, created_at, discount_amount')
+        .select('id, total, status, created_at, discount_amount, order_type')
         .eq('restaurant_id', rid)
         .gte('created_at', sinceISO)
         .lte('created_at', endISO)
@@ -112,13 +112,26 @@ export async function GET(request: NextRequest) {
     }
 
     const hourlyDistribution: number[] = new Array(24).fill(0);
+    // weeklyHeatmap[dayOfWeek 0=Sun][hour] = count
+    const weeklyHeatmap: number[][] = Array.from({ length: 7 }, () => new Array(24).fill(0));
     for (const o of allOrders) {
-      const hour = new Date(o.created_at).getHours();
+      const d = new Date(o.created_at);
+      const hour = d.getHours();
+      const dow = d.getDay();
       hourlyDistribution[hour]++;
+      weeklyHeatmap[dow][hour]++;
     }
 
     const peakHour = hourlyDistribution.indexOf(Math.max(...hourlyDistribution));
     const peakHourLabel = `${peakHour.toString().padStart(2, '0')}:00 - ${((peakHour + 1) % 24).toString().padStart(2, '0')}:00`;
+
+    // Order type breakdown
+    const orderTypeCount: Record<string, number> = {};
+    for (const o of allOrders) {
+      const ot = (o as any).order_type ?? 'unknown';
+      orderTypeCount[ot] = (orderTypeCount[ot] || 0) + 1;
+    }
+
 
     const orderIds = allOrders.map(o => o.id);
     let topProducts: { name: string; qty: number; revenue: number }[] = [];
@@ -140,28 +153,30 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-    currency,
-    period: { days, since: sinceISO },
-    summary: {
-      totalOrders,
-      totalRevenue,
-      avgTicket,
-      totalDiscount,
-      completedOrders: completedOrders.length,
-      cancelledOrders,
-      conversionRate,
-      peakHour: peakHourLabel,
-    },
-    comparison: {
-      revenueChange: pctChange(totalRevenue, prevRevenue),
-      ordersChange: pctChange(totalOrders, prevTotalOrders),
-      ticketChange: pctChange(avgTicket, prevAvgTicket),
-    },
-    salesByDay: Object.values(salesByDay).sort((a, b) => a.date.localeCompare(b.date)),
-    hourlyDistribution,
-    statusCount,
-    topProducts,
-  });
+      currency,
+      period: { days, since: sinceISO },
+      summary: {
+        totalOrders,
+        totalRevenue,
+        avgTicket,
+        totalDiscount,
+        completedOrders: completedOrders.length,
+        cancelledOrders,
+        conversionRate,
+        peakHour: peakHourLabel,
+      },
+      comparison: {
+        revenueChange: pctChange(totalRevenue, prevRevenue),
+        ordersChange: pctChange(totalOrders, prevTotalOrders),
+        ticketChange: pctChange(avgTicket, prevAvgTicket),
+      },
+      salesByDay: Object.values(salesByDay).sort((a, b) => a.date.localeCompare(b.date)),
+      hourlyDistribution,
+      weeklyHeatmap,
+      statusCount,
+      orderTypeCount,
+      topProducts,
+    });
   } catch (err) {
     logger.error('GET failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });

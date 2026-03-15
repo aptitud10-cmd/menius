@@ -2,10 +2,11 @@
 
 import Image from 'next/image';
 import { useState } from 'react';
-import { Minus, Plus, Pencil, Trash2, ShoppingCart, Clock } from 'lucide-react';
+import { Minus, Plus, Pencil, Trash2, ShoppingCart, Clock, Check } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import type { Translations } from '@/lib/translations';
+import type { Product } from '@/types';
 
 interface CartPanelProps {
   fmtPrice: (n: number) => string;
@@ -15,9 +16,11 @@ interface CartPanelProps {
   estimatedMinutes?: number;
   deliveryFee?: number;
   locale?: string;
+  suggestedProducts?: Product[];
+  onSuggestAdd?: (product: Product) => void;
 }
 
-export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, deliveryFee, locale = 'es' }: CartPanelProps) {
+export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, deliveryFee, locale = 'es', suggestedProducts, onSuggestAdd }: CartPanelProps) {
   const items = useCartStore((s) => s.items);
   const updateQty = useCartStore((s) => s.updateQty);
   const removeItem = useCartStore((s) => s.removeItem);
@@ -25,6 +28,7 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
   const cartTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
+  const [justAddedId, setJustAddedId] = useState<string | null>(null);
 
   if (items.length === 0) {
     return (
@@ -142,6 +146,50 @@ export function CartPanel({ fmtPrice, t, onEdit, onCheckout, estimatedMinutes, d
           </div>
         ))}
       </div>
+
+      {/* Upsell — "También te puede gustar" */}
+      {suggestedProducts && suggestedProducts.length > 0 && (
+        <div className="flex-shrink-0 border-t border-gray-100 pt-3 pb-1">
+          <p className="px-5 text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+            {locale === 'en' ? 'You may also like' : 'También te puede gustar'}
+          </p>
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide px-5 pb-2">
+            {suggestedProducts.slice(0, 5).map((p) => {
+              const added = justAddedId === p.id;
+              return (
+                <div key={p.id} className="flex-shrink-0 w-[120px] bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
+                  {p.image_url && (
+                    <div className="relative w-full h-[72px] bg-gray-100">
+                      <Image src={p.image_url} alt={p.name} fill sizes="120px" className="object-cover" />
+                    </div>
+                  )}
+                  <div className="p-2">
+                    <p className="text-[11px] font-semibold text-gray-800 line-clamp-2 leading-tight">{p.name}</p>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <span className="text-[11px] font-bold text-gray-900 tabular-nums">{fmtPrice(Number(p.price))}</span>
+                      <button
+                        onClick={() => {
+                          if (onSuggestAdd) {
+                            onSuggestAdd(p);
+                            setJustAddedId(p.id);
+                            setTimeout(() => setJustAddedId(null), 1200);
+                          }
+                        }}
+                        className={cn(
+                          'w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90',
+                          added ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-600'
+                        )}
+                      >
+                        {added ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="border-t-2 border-gray-200 px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] flex-shrink-0 space-y-3">

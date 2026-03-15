@@ -322,6 +322,16 @@ export function MenuShell({
     [filteredProducts],
   );
 
+  // Suggested upsell: featured products not already in the cart, max 5
+  const cartProductIds = useCartStore((s) => new Set(s.items.map((i) => i.product.id)));
+  const suggestedProducts = useMemo(
+    () => products
+      .filter((p) => p.is_featured && p.in_stock !== false && !cartProductIds.has(p.id))
+      .slice(0, 5),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [products, cartProductIds],
+  );
+
   const itemsByCategory = useMemo(() => {
     const regular = categories
       .map((cat) => ({
@@ -1056,6 +1066,8 @@ export function MenuShell({
             estimatedMinutes={restaurant.estimated_delivery_minutes ?? undefined}
             deliveryFee={restaurant.delivery_fee ?? undefined}
             locale={locale}
+            suggestedProducts={suggestedProducts}
+            onSuggestAdd={handleQuickAdd}
           />
         </aside>
       </div>
@@ -1130,6 +1142,8 @@ export function MenuShell({
                   estimatedMinutes={restaurant.estimated_delivery_minutes ?? undefined}
                   deliveryFee={restaurant.delivery_fee ?? undefined}
                   locale={locale}
+                  suggestedProducts={suggestedProducts}
+                  onSuggestAdd={handleQuickAdd}
                 />
               </div>
               <div className="pb-[env(safe-area-inset-bottom)] flex-shrink-0" />

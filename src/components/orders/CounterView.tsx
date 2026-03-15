@@ -5,7 +5,7 @@ import {
   MessageCircle, Clock, Check, XCircle, Printer, Pause, Bell,
   Phone, Search, X, MoreHorizontal, Utensils, ShoppingBag, Truck,
   History, MapPin, User, ChevronRight, AlertTriangle, CheckCircle,
-  FlaskConical, Loader2,
+  FlaskConical, Loader2, Plus, Minus, ClipboardList,
 } from 'lucide-react';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import { updateOrderStatus, updateOrderETA, assignDriver } from '@/lib/actions/restaurant';
@@ -177,6 +177,90 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const [historySearch, setHistorySearch] = useState('');
   const [, tick] = useState(0);
   const urgentRef = useRef<Set<string>>(new Set());
+
+  // ── Manual/POS Order ──
+  const [showManualOrder, setShowManualOrder] = useState(false);
+  const [manualProducts, setManualProducts] = useState<Array<{ id: string; name: string; price: number; in_stock: boolean }>>([]);
+  const [manualItems, setManualItems] = useState<Array<{ productId: string; name: string; price: number; qty: number }>>([]);
+  const [manualCustomerName, setManualCustomerName] = useState('');
+  const [manualPhone, setManualPhone] = useState('');
+  const [manualNotes, setManualNotes] = useState('');
+  const [manualOrderType, setManualOrderType] = useState<'dine_in' | 'pickup' | 'delivery'>('pickup');
+  const [manualSubmitting, setManualSubmitting] = useState(false);
+  const [manualError, setManualError] = useState('');
+  const [manualProductSearch, setManualProductSearch] = useState('');
+
+  const fetchManualProducts = useCallback(async () => {
+    try {
+      const res = await fetch('/api/products/stock');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data.products)) setManualProducts(data.products);
+    } catch { /* silent */ }
+  }, []);
+
+  const manualTotal = manualItems.reduce((s, i) => s + i.price * i.qty, 0);
+
+  const addManualItem = (product: { id: string; name: string; price: number }) => {
+    setManualItems(prev => {
+      const existing = prev.find(i => i.productId === product.id);
+      if (existing) {
+        return prev.map(i => i.productId === product.id ? { ...i, qty: i.qty + 1 } : i);
+      }
+      return [...prev, { productId: product.id, name: product.name, price: product.price, qty: 1 }];
+    });
+  };
+
+  const removeManualItem = (productId: string) => {
+    setManualItems(prev => {
+      const existing = prev.find(i => i.productId === productId);
+      if (!existing) return prev;
+      if (existing.qty <= 1) return prev.filter(i => i.productId !== productId);
+      return prev.map(i => i.productId === productId ? { ...i, qty: i.qty - 1 } : i);
+    });
+  };
+
+  const handleManualOrderSubmit = useCallback(async () => {
+    if (manualItems.length === 0) { setManualError('Agrega al menos un producto'); return; }
+    if (!manualCustomerName.trim()) { setManualError('Nombre del cliente requerido'); return; }
+    setManualSubmitting(true);
+    setManualError('');
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id: restaurantId,
+          customer_name: manualCustomerName.trim(),
+          customer_phone: manualPhone.trim() || undefined,
+          notes: manualNotes.trim() || undefined,
+          order_type: manualOrderType,
+          payment_method: 'cash',
+          items: manualItems.map(i => ({
+            product_id: i.productId,
+            qty: i.qty,
+            unit_price: i.price,
+            line_total: i.price * i.qty,
+            notes: '',
+            extras: [],
+            modifiers: [],
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setManualError(data.error || 'Error creando orden'); return; }
+      setShowManualOrder(false);
+      setManualItems([]);
+      setManualCustomerName('');
+      setManualPhone('');
+      setManualNotes('');
+      setActiveTab('new');
+    } catch {
+      setManualError('Error de conexión');
+    } finally {
+      setManualSubmitting(false);
+    }
+  }, [manualItems, manualCustomerName, manualPhone, manualNotes, manualOrderType, restaurantId]);
 
   // Tick every second for live timers
   useEffect(() => {
@@ -500,6 +584,14 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
               : <FlaskConical className="w-3.5 h-3.5" />}
             <span className="hidden sm:inline">Prueba</span>
           </button>
+          <button
+            onClick={() => { setShowManualOrder(true); fetchManualProducts(); }}
+            title="Nueva orden manual (POS / teléfono)"
+            className="flex items-center gap-1.5 px-3 h-9 rounded-xl bg-[#111] text-white text-xs font-bold transition-colors hover:bg-[#333]"
+          >
+            <ClipboardList className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Nueva orden</span>
+          </button>
         </div>
       </header>
 
@@ -689,6 +781,144 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
       )}
 
       {/* ── Driver modal ── */}
+      {/* ── Manual Order Modal ── */}
+      {showManualOrder && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowManualOrder(false)} />
+          <div className="fixed inset-x-0 bottom-0 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:top-1/2 sm:-translate-y-1/2 max-w-lg w-full bg-white rounded-t-2xl sm:rounded-2xl z-50 shadow-2xl flex flex-col max-h-[90dvh]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#E8E8E8] flex-shrink-0">
+              <h2 className="text-base font-bold text-[#111]">📋 Nueva orden manual</h2>
+              <button onClick={() => setShowManualOrder(false)} className="p-1 text-[#AAAAAA] hover:text-[#111]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+              {/* Order type */}
+              <div>
+                <label className="text-xs font-bold text-[#888] uppercase tracking-wide mb-2 block">Tipo de orden</label>
+                <div className="flex gap-2">
+                  {(['pickup', 'dine_in', 'delivery'] as const).map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setManualOrderType(t)}
+                      className={cn('flex-1 py-2 rounded-xl text-xs font-bold border-2 transition-all', manualOrderType === t ? 'border-[#111] bg-[#111] text-white' : 'border-[#E8E8E8] text-[#888]')}
+                    >
+                      {t === 'pickup' ? 'Para llevar' : t === 'dine_in' ? 'Mesa' : 'Delivery'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Customer */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-[#888] uppercase tracking-wide block">Cliente</label>
+                <input
+                  value={manualCustomerName}
+                  onChange={e => setManualCustomerName(e.target.value)}
+                  placeholder="Nombre del cliente *"
+                  className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm focus:outline-none focus:border-[#111] transition-colors"
+                />
+                <input
+                  value={manualPhone}
+                  onChange={e => setManualPhone(e.target.value)}
+                  placeholder="Teléfono (opcional)"
+                  type="tel"
+                  className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm focus:outline-none focus:border-[#111] transition-colors"
+                />
+              </div>
+
+              {/* Products */}
+              <div>
+                <label className="text-xs font-bold text-[#888] uppercase tracking-wide mb-2 block">Productos</label>
+                <input
+                  value={manualProductSearch}
+                  onChange={e => setManualProductSearch(e.target.value)}
+                  placeholder="Buscar producto..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#E8E8E8] text-sm mb-2 focus:outline-none focus:border-[#111]"
+                />
+                <div className="max-h-[200px] overflow-y-auto space-y-1 rounded-xl border border-[#E8E8E8]">
+                  {manualProducts.length === 0 ? (
+                    <div className="text-center text-xs text-[#AAAAAA] py-6">Cargando productos…</div>
+                  ) : (
+                    manualProducts
+                      .filter(p => p.in_stock && (!manualProductSearch || p.name.toLowerCase().includes(manualProductSearch.toLowerCase())))
+                      .map(p => {
+                        const inCart = manualItems.find(i => i.productId === p.id);
+                        return (
+                          <div key={p.id} className="flex items-center justify-between px-3 py-2 hover:bg-[#F5F5F5] transition-colors">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-[#111] truncate">{p.name}</p>
+                              <p className="text-xs text-[#888]">{fmt(p.price, currency)}</p>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {inCart && (
+                                <>
+                                  <button onClick={() => removeManualItem(p.id)} className="w-7 h-7 rounded-full bg-[#F5F5F5] flex items-center justify-center hover:bg-[#E8E8E8]">
+                                    <Minus className="w-3.5 h-3.5 text-[#555]" />
+                                  </button>
+                                  <span className="text-sm font-bold text-[#111] w-5 text-center tabular-nums">{inCart.qty}</span>
+                                </>
+                              )}
+                              <button onClick={() => addManualItem(p)} className="w-7 h-7 rounded-full flex items-center justify-center transition-colors" style={{ background: GREEN }}>
+                                <Plus className="w-3.5 h-3.5 text-white" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+              </div>
+
+              {/* Cart summary */}
+              {manualItems.length > 0 && (
+                <div className="bg-[#F5F5F5] rounded-xl p-3 space-y-1">
+                  <p className="text-xs font-bold text-[#888] uppercase tracking-wide mb-2">Resumen</p>
+                  {manualItems.map(i => (
+                    <div key={i.productId} className="flex justify-between text-sm">
+                      <span className="text-[#555]">{i.qty}× {i.name}</span>
+                      <span className="font-semibold text-[#111] tabular-nums">{fmt(i.price * i.qty, currency)}</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-[#E8E8E8] pt-1 mt-1 flex justify-between font-bold text-base">
+                    <span>Total</span>
+                    <span className="tabular-nums">{fmt(manualTotal, currency)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              <textarea
+                value={manualNotes}
+                onChange={e => setManualNotes(e.target.value)}
+                placeholder="Notas (opcional)"
+                rows={2}
+                className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm resize-none focus:outline-none focus:border-[#111]"
+              />
+
+              {manualError && (
+                <p className="text-xs text-red-500 font-semibold">{manualError}</p>
+              )}
+            </div>
+
+            <div className="px-5 py-4 border-t border-[#E8E8E8] flex-shrink-0 flex gap-2">
+              <button onClick={() => setShowManualOrder(false)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">
+                Cancelar
+              </button>
+              <button
+                onClick={handleManualOrderSubmit}
+                disabled={manualSubmitting || manualItems.length === 0 || !manualCustomerName.trim()}
+                className="flex-1 py-3 rounded-xl text-white text-sm font-bold disabled:opacity-40 transition-colors"
+                style={{ background: GREEN }}
+              >
+                {manualSubmitting ? 'Enviando…' : `Crear orden · ${fmt(manualTotal, currency)}`}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       {showDriverModal && (
         <>
           <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setShowDriverModal(false)} />

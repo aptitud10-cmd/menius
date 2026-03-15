@@ -4,6 +4,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 
+export async function GET() {
+  try {
+    const tenant = await getTenant();
+    if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+
+    const supabase = createClient();
+    const { data: products, error } = await supabase
+      .from('products')
+      .select('id, name, price, in_stock, category_id, is_active')
+      .eq('restaurant_id', tenant.restaurantId)
+      .eq('is_active', true)
+      .order('name');
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ products: products ?? [] });
+  } catch {
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const tenant = await getTenant();
