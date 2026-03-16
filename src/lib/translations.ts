@@ -119,6 +119,21 @@ export interface Translations {
   dineInDesc: string;
   pickupDesc: string;
   deliveryDesc: string;
+  // Cart — dynamic strings
+  reorderLastOrder: string;
+  tapToRemove: string;
+  youMayAlsoLike: string;
+  peopleAlsoOrder: string;
+  freeDelivery: string;
+  // Product sheet
+  maxReached: string;
+  added: string;
+  updateItem: string;
+  editItem: string;
+  // Product card
+  soldOut: string;
+  unavailable: string;
+  addedShort: string;
 }
 
 const es: Translations = {
@@ -213,6 +228,18 @@ const es: Translations = {
   dineInDesc: 'Pide desde tu mesa',
   pickupDesc: 'Ordena y recoge en persona',
   deliveryDesc: 'Recibe en tu dirección',
+  reorderLastOrder: 'Repetir último pedido',
+  tapToRemove: 'Toca − de nuevo para eliminar',
+  youMayAlsoLike: 'También te puede gustar',
+  peopleAlsoOrder: 'También piden con esto',
+  freeDelivery: 'Gratis',
+  maxReached: 'Máximo alcanzado',
+  added: '✓ Agregado',
+  updateItem: 'Actualizar',
+  editItem: 'Editar producto',
+  soldOut: 'Agotado',
+  unavailable: 'No disponible',
+  addedShort: 'Listo',
 };
 
 const en: Translations = {
@@ -307,6 +334,18 @@ const en: Translations = {
   dineInDesc: 'Order from your table',
   pickupDesc: 'Order ahead and pick up',
   deliveryDesc: 'Get it delivered to you',
+  reorderLastOrder: 'Reorder last order',
+  tapToRemove: 'Tap − again to remove',
+  youMayAlsoLike: 'You may also like',
+  peopleAlsoOrder: 'People also order',
+  freeDelivery: 'Free',
+  maxReached: 'Max reached',
+  added: '✓ Added',
+  updateItem: 'Update',
+  editItem: 'Edit item',
+  soldOut: 'Sold out',
+  unavailable: 'Unavailable',
+  addedShort: 'Added',
 };
 
 const translations: Record<string, Translations> = { es, en };

@@ -2,7 +2,7 @@
 
 import { memo, useState, useCallback } from 'react';
 import Image from 'next/image';
-import { Plus, Check, Minus, UtensilsCrossed, ChevronRight, Heart, Ban } from 'lucide-react';
+import { Plus, Check, UtensilsCrossed, ChevronRight, Heart, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
@@ -19,6 +19,9 @@ interface ProductCardProps {
   addLabel: string;
   customizeLabel: string;
   popularLabel: string;
+  soldOutLabel?: string;
+  unavailableLabel?: string;
+  addedShortLabel?: string;
   locale?: string;
   defaultLocale?: string;
 }
@@ -31,9 +34,16 @@ export const ProductCard = memo(function ProductCard({
   addLabel,
   customizeLabel,
   popularLabel,
+  soldOutLabel,
+  unavailableLabel,
+  addedShortLabel,
   locale = 'es',
   defaultLocale = 'es',
 }: ProductCardProps) {
+  const isEn = locale === 'en';
+  const labelSoldOut = soldOutLabel ?? (isEn ? 'Sold out' : 'Agotado');
+  const labelUnavailable = unavailableLabel ?? (isEn ? 'Unavailable' : 'No disponible');
+  const labelAdded = addedShortLabel ?? (isEn ? 'Added' : 'Listo');
   const hasVariants = (product.variants?.length ?? 0) > 0;
   const hasExtras = (product.extras?.length ?? 0) > 0;
   const hasModifierGroups = (product.modifier_groups?.length ?? 0) > 0;
@@ -41,27 +51,32 @@ export const ProductCard = memo(function ProductCard({
   const outOfStock = product.in_stock === false;
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
 
   const displayName = tName(product, locale, defaultLocale);
   const displayDesc = tDesc(product, locale, defaultLocale);
   const imgAlt = displayDesc ? `${displayName} - ${displayDesc.slice(0, 80)}` : displayName;
-  const [justAdded, setJustAdded] = useState(false);
+
   const isFav = useFavoritesStore((s) => s.ids.includes(product.id));
   const toggleFav = useFavoritesStore((s) => s.toggle);
 
-  // Cart quantity tracking for inline stepper (no-modifier products only)
+  // Cart quantity badge — total across all cart entries for this product
   const cartItems = useCartStore((s) => s.items);
-  const updateQty = useCartStore((s) => s.updateQty);
-  const cartQty = !hasModifiers
-    ? cartItems.filter((i) => i.product.id === product.id).reduce((s, i) => s + i.qty, 0)
-    : 0;
-  const cartIndex = !hasModifiers
-    ? cartItems.findIndex((i) => i.product.id === product.id)
-    : -1;
+  const cartQty = cartItems
+    .filter((i) => i.product.id === product.id)
+    .reduce((s, i) => s + i.qty, 0);
 
   const haptic = () => { try { navigator?.vibrate?.([25, 15, 10]); } catch {} };
 
-  const handleClick = () => {
+  // Tapping anywhere on the card always opens the detail sheet
+  const handleCardClick = useCallback(() => {
+    if (outOfStock) return;
+    onSelect(product);
+  }, [outOfStock, onSelect, product]);
+
+  // The + button: quick-add for simple, open sheet for complex
+  const handleAddClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
     if (outOfStock) return;
     if (hasModifiers) {
       onSelect(product);
@@ -71,36 +86,15 @@ export const ProductCard = memo(function ProductCard({
       setJustAdded(true);
       setTimeout(() => setJustAdded(false), 1200);
     }
-  };
-
-  const handleAddClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    handleClick();
-  }, [handleClick]);
-
-  const handleDecrement = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    haptic();
-    if (cartIndex >= 0) updateQty(cartIndex, cartQty - 1);
-  }, [cartIndex, cartQty, updateQty]);
-
-  const handleIncrement = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    haptic();
-    if (cartIndex >= 0) {
-      updateQty(cartIndex, cartQty + 1);
-    } else {
-      onQuickAdd(product);
-    }
-  }, [cartIndex, cartQty, updateQty, onQuickAdd, product]);
+  }, [outOfStock, hasModifiers, onSelect, onQuickAdd, product]);
 
   const showImage = product.image_url && !imgError;
 
   return (
     <>
-      {/* ── Mobile: vertical 2-column card (Uber Eats style) ── */}
+      {/* ── Mobile: vertical 2-column card ── */}
       <div
-        onClick={handleClick}
+        onClick={handleCardClick}
         className={cn(
           'lg:hidden flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden transition-all duration-150',
           outOfStock ? 'opacity-70 cursor-default' : 'cursor-pointer active:scale-[0.97]'
@@ -133,7 +127,7 @@ export const ProductCard = memo(function ProductCard({
           {outOfStock && (
             <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
               <span className="px-2 py-1 rounded-full bg-black/60 text-white text-[10px] font-bold">
-                {locale === 'en' ? 'Sold out' : 'Agotado'}
+                {labelSoldOut}
               </span>
             </div>
           )}
@@ -143,6 +137,14 @@ export const ProductCard = memo(function ProductCard({
           {!outOfStock && product.is_new && (
             <span className="absolute top-2 left-2 text-[10px] font-bold text-white bg-blue-500 px-1.5 py-0.5 rounded-full leading-none">NEW</span>
           )}
+
+          {/* Quantity badge — bottom-left of image */}
+          {!outOfStock && cartQty > 0 && (
+            <span className="absolute bottom-2 left-2 min-w-[22px] h-[22px] px-1.5 rounded-full bg-emerald-500 text-white text-[11px] font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none">
+              {cartQty}
+            </span>
+          )}
+
           <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
             className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-sm"
@@ -180,25 +182,6 @@ export const ProductCard = memo(function ProductCard({
               <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
                 <Ban className="w-3.5 h-3.5 text-gray-300" />
               </div>
-            ) : !hasModifiers && cartQty > 0 ? (
-              /* Inline stepper: [-] N [+] */
-              <div className="flex items-center gap-0 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                <button
-                  onClick={handleDecrement}
-                  className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center active:scale-90 transition-transform"
-                >
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-                <span className="w-6 text-center text-[13px] font-extrabold tabular-nums text-emerald-600">
-                  {cartQty}
-                </span>
-                <button
-                  onClick={handleIncrement}
-                  className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center active:scale-90 transition-transform"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </div>
             ) : (
               <button
                 onClick={handleAddClick}
@@ -216,9 +199,9 @@ export const ProductCard = memo(function ProductCard({
         </div>
       </div>
 
-      {/* ── Desktop: landscape card (wider than tall) ── */}
+      {/* ── Desktop: landscape card ── */}
       <div
-        onClick={handleClick}
+        onClick={handleCardClick}
         className={cn(
           'hidden lg:block group relative bg-white rounded-2xl border border-gray-100 overflow-hidden transition-[transform,box-shadow] duration-300 ease-out',
           outOfStock
@@ -228,9 +211,7 @@ export const ProductCard = memo(function ProductCard({
       >
         {showImage ? (
           <div className="relative w-full aspect-[16/9] bg-gray-100 overflow-hidden">
-            {!imgLoaded && (
-              <div className="absolute inset-0 bg-gray-100 animate-pulse" />
-            )}
+            {!imgLoaded && <div className="absolute inset-0 bg-gray-100 animate-pulse" />}
             <Image
               src={product.image_url}
               alt={imgAlt}
@@ -245,7 +226,7 @@ export const ProductCard = memo(function ProductCard({
             />
             {outOfStock && (
               <div className="absolute inset-0 bg-white/40 flex items-center justify-center">
-                <span className="px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-bold">{locale === 'en' ? 'Sold out' : 'Agotado'}</span>
+                <span className="px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-bold">{labelSoldOut}</span>
               </div>
             )}
             {!outOfStock && product.is_featured && (
@@ -258,6 +239,14 @@ export const ProductCard = memo(function ProductCard({
                 NEW
               </span>
             )}
+
+            {/* Quantity badge — bottom-left of image */}
+            {!outOfStock && cartQty > 0 && (
+              <span className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-emerald-500 text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none">
+                {cartQty}
+              </span>
+            )}
+
             <button
               onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
               className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200"
@@ -271,7 +260,7 @@ export const ProductCard = memo(function ProductCard({
             <UtensilsCrossed className="w-10 h-10 text-gray-200" />
             {outOfStock && (
               <div className="absolute inset-0 bg-white/40 flex items-center justify-center">
-                <span className="px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-bold">{locale === 'en' ? 'Sold out' : 'Agotado'}</span>
+                <span className="px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-bold">{labelSoldOut}</span>
               </div>
             )}
             {!outOfStock && product.is_featured && (
@@ -282,6 +271,11 @@ export const ProductCard = memo(function ProductCard({
             {!outOfStock && !product.is_featured && product.is_new && (
               <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold">
                 NEW
+              </span>
+            )}
+            {!outOfStock && cartQty > 0 && (
+              <span className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-emerald-500 text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none">
+                {cartQty}
               </span>
             )}
             <button
@@ -298,7 +292,6 @@ export const ProductCard = memo(function ProductCard({
           <h3 className={cn('font-bold text-base line-clamp-2 leading-snug', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
             {displayName}
           </h3>
-
           {displayDesc && (
             <p className="text-sm text-gray-500 line-clamp-2 mt-1.5 leading-relaxed">{displayDesc}</p>
           )}
@@ -324,7 +317,7 @@ export const ProductCard = memo(function ProductCard({
               </span>
               {outOfStock ? (
                 <span className="inline-flex items-center gap-1 text-xs text-red-500 font-semibold">
-                  <Ban className="w-3 h-3" /> {locale === 'en' ? 'Sold out' : 'Agotado'}
+                  <Ban className="w-3 h-3" /> {labelSoldOut}
                 </span>
               ) : hasModifiers ? (
                 <span className="inline-flex items-center gap-0.5 text-xs text-emerald-600 font-medium">
@@ -335,27 +328,8 @@ export const ProductCard = memo(function ProductCard({
             </div>
             {outOfStock ? (
               <span className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-400 cursor-default">
-                {locale === 'en' ? 'Unavailable' : 'No disponible'}
+                {labelUnavailable}
               </span>
-            ) : !hasModifiers && cartQty > 0 ? (
-              /* Inline stepper: [-] N [+] */
-              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                <button
-                  onClick={handleDecrement}
-                  className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 active:scale-90 transition-all"
-                >
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-                <span className="w-7 text-center text-sm font-extrabold tabular-nums text-emerald-600">
-                  {cartQty}
-                </span>
-                <button
-                  onClick={handleIncrement}
-                  className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center hover:bg-emerald-600 active:scale-90 transition-all"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </div>
             ) : (
               <button
                 onClick={handleAddClick}
@@ -367,7 +341,7 @@ export const ProductCard = memo(function ProductCard({
                 )}
               >
                 {justAdded ? (
-                  <><Check className="w-3.5 h-3.5" /> {locale === 'en' ? 'Added' : 'Listo'}</>
+                  <><Check className="w-3.5 h-3.5" /> {labelAdded}</>
                 ) : (
                   <><Plus className="w-3.5 h-3.5" /> {addLabel}</>
                 )}

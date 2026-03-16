@@ -222,6 +222,7 @@ export interface ModifierSelection {
 }
 
 export interface CartItem {
+  uid?: string;
   product: Product;
   variant: ProductVariant | null;
   extras: ProductExtra[];

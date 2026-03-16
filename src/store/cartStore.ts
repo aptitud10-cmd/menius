@@ -75,8 +75,9 @@ export const useCartStore = create<CartState>()(
 
       addItem: (product, variant, extras, qty, notes, modifierSelections = []) => {
         const lineTotal = calcLineTotal(product, variant, extras, qty, modifierSelections);
+        const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
         set((state) => ({
-          items: [...state.items, { product, variant, extras, modifierSelections, qty, notes, lineTotal }],
+          items: [...state.items, { uid, product, variant, extras, modifierSelections, qty, notes, lineTotal }],
         }));
       },
 
@@ -85,6 +86,7 @@ export const useCartStore = create<CartState>()(
           const items = [...state.items];
           if (index < 0 || index >= items.length) return state;
           items[index] = {
+            uid: items[index].uid ?? `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             product,
             variant,
             extras,
@@ -150,7 +152,8 @@ export const useCartStore = create<CartState>()(
             ? product.variants?.find((v) => v.id === saved.variantId) ?? null
             : null;
           const lineTotal = calcLineTotal(product, variant, [], saved.qty);
-          newItems.push({ product, variant, extras: [], modifierSelections: [], qty: saved.qty, notes: '', lineTotal });
+          const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+          newItems.push({ uid, product, variant, extras: [], modifierSelections: [], qty: saved.qty, notes: '', lineTotal });
         }
         set({ items: newItems });
         return newItems.length;

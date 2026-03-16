@@ -122,9 +122,20 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
       )}
 
       {/* Table-specific QRs */}
-      <div className="flex items-center gap-3 mb-4 mt-8">
-        <QrCode className="w-4 h-4 text-gray-500" />
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">{t.tables_qrPerTable}</h2>
+      <div className="flex items-center justify-between gap-3 mb-4 mt-8">
+        <div className="flex items-center gap-3">
+          <QrCode className="w-4 h-4 text-gray-500" />
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">{t.tables_qrPerTable}</h2>
+        </div>
+        {tables.length > 1 && (
+          <button
+            onClick={() => handlePrintAll(tables, restaurantName ?? '')}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-100 transition-colors"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            {t.tables_printAll}
+          </button>
+        )}
       </div>
 
       {tables.length === 0 ? (
@@ -155,6 +166,72 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
       )}
     </div>
   );
+}
+
+// ── Print helpers ────────────────────────────────────────────────────────────
+
+function buildPrintHtml(cards: Array<{ dataUrl: string; tableName: string; url: string }>, restaurantName: string) {
+  const isEn = typeof document !== 'undefined' && document.documentElement.lang === 'en';
+  const scanLabel = isEn ? 'Scan to order' : 'Escanea para ordenar';
+  const items = cards.map(({ dataUrl, tableName, url }) => `
+    <div class="card">
+      <img src="${dataUrl}" alt="${tableName}" />
+      <p class="url">${url}</p>
+    </div>
+  `).join('');
+  return `<!DOCTYPE html>
+<html lang="${isEn ? 'en' : 'es'}">
+<head>
+  <meta charset="utf-8" />
+  <title>QR — ${restaurantName}</title>
+  <style>
+    @page { size: A4; margin: 12mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #fff; color: #111827; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    .header { text-align: center; padding-bottom: 10mm; border-bottom: 1px solid #e5e7eb; margin-bottom: 8mm; }
+    .header h1 { font-size: 18pt; font-weight: 700; }
+    .header p { font-size: 10pt; color: #6b7280; margin-top: 3mm; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6mm; }
+    .card { border: 1px solid #e5e7eb; border-radius: 8mm; padding: 5mm; text-align: center; page-break-inside: avoid; }
+    .card img { width: 100%; max-width: 60mm; height: auto; }
+    .url { font-size: 7pt; color: #9ca3af; margin-top: 3mm; word-break: break-all; }
+    .footer { text-align: center; margin-top: 8mm; font-size: 8pt; color: #d1d5db; border-top: 1px solid #f3f4f6; padding-top: 4mm; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${restaurantName}</h1>
+    <p>${scanLabel}</p>
+  </div>
+  <div class="grid">${items}</div>
+  <div class="footer">menius.app</div>
+</body>
+</html>`;
+}
+
+async function handlePrintAll(tables: Table[], restaurantName: string) {
+  const { generateBrandedCard } = await import('@/lib/styled-qr');
+  const isEn = typeof document !== 'undefined' && document.documentElement.lang === 'en';
+  const scanLabel = isEn ? 'Scan to order' : 'Escanea para ordenar';
+
+  const cards = await Promise.all(
+    tables.map(async (table) => {
+      const canvas = await generateBrandedCard(
+        table.qr_code_value ?? '#',
+        table.name,
+        restaurantName,
+        scanLabel,
+      );
+      return { dataUrl: canvas.toDataURL('image/png'), tableName: table.name, url: table.qr_code_value ?? '' };
+    }),
+  );
+
+  const win = window.open('', '_blank');
+  if (!win) return;
+  win.document.write(buildPrintHtml(cards, restaurantName));
+  win.document.close();
+  win.onload = () => { win.focus(); win.print(); };
 }
 
 function QRTableCard({ table, onDelete, onEdit, onStatusChange, onCapacityChange, restaurantName }: {
@@ -230,17 +307,12 @@ function QRTableCard({ table, onDelete, onEdit, onStatusChange, onCapacityChange
     const dataUrl = brandedCanvasRef.current.toDataURL('image/png');
     const win = window.open('', '_blank');
     if (!win) return;
-    win.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head><title>QR - ${table.name}</title><style>@page{size:auto;margin:10mm;}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}img{max-width:100%!important;width:100%!important;}}</style></head>
-        <body style="display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;padding:20px;background:#fff;">
-          <img src="${dataUrl}" style="width:100%;max-width:500px;" />
-        </body>
-      </html>
-    `);
+    win.document.write(buildPrintHtml(
+      [{ dataUrl, tableName: table.name, url: table.qr_code_value ?? '' }],
+      restaurantName ?? '',
+    ));
     win.document.close();
-    win.onload = () => { win.print(); };
+    win.onload = () => { win.focus(); win.print(); };
   };
 
   return (
@@ -426,7 +498,7 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
   const [qrReady, setQrReady] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app').replace(/\/$/, '');
   const menuUrl = `${appUrl}/${slug}`;
 
   useEffect(() => {
@@ -483,17 +555,12 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
     const dataUrl = brandedCanvasRef.current.toDataURL('image/png');
     const win = window.open('', '_blank');
     if (!win) return;
-    win.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head><title>QR — ${name}</title><style>@page{size:auto;margin:10mm;}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}img{max-width:100%!important;width:100%!important;}}</style></head>
-        <body style="display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;padding:20px;background:#fff;">
-          <img src="${dataUrl}" style="width:100%;max-width:500px;" />
-        </body>
-      </html>
-    `);
+    win.document.write(buildPrintHtml(
+      [{ dataUrl, tableName: name, url: menuUrl }],
+      name,
+    ));
     win.document.close();
-    win.onload = () => { win.print(); };
+    win.onload = () => { win.focus(); win.print(); };
   };
 
   return (

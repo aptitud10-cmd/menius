@@ -18,7 +18,7 @@ const RESERVED_PATHS = new Set([
 
 interface PageProps {
   params: { slug: string };
-  searchParams: { table?: string; v?: string };
+  searchParams: { table?: string };
 }
 
 const DEMO_SLUGS: Record<string, {
@@ -54,10 +54,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const title = `${r.name} — Menú Digital | MENIUS`;
     const description = r.description ?? `Pide online en ${r.name}`;
     const url = `${APP_URL}/${params.slug}`;
-    const image = (r as any).cover_image_url || `${APP_URL}/icons/icon-512.svg`;
+    const image = r.cover_image_url || `${APP_URL}/icons/icon-512.svg`;
     return {
       title,
       description,
+      manifest: `/${params.slug}/manifest.webmanifest`,
+      icons: { apple: image },
+      appleWebApp: { title: r.name, statusBarStyle: 'default', capable: true },
       openGraph: { title, description, url, siteName: 'MENIUS', type: 'website', images: [{ url: image, width: 1200, height: 630, alt: r.name }], locale: demoConfig.locale === 'es' ? 'es_MX' : 'en_US' },
       twitter: { card: 'summary_large_image', title: r.name, description, images: [image] },
       alternates: { canonical: url },
@@ -72,11 +75,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const title = `${restaurant.name} — ${isEn ? 'Digital Menu' : 'Menú Digital'} | MENIUS`;
   const description = restaurant.description ?? (isEn ? `Order online from ${restaurant.name}.` : `Pide online en ${restaurant.name}. Menú digital con MENIUS.`);
   const url = `${APP_URL}/${restaurant.slug}`;
-  const image = (restaurant as any).cover_image_url || (restaurant as any).logo_url || `${APP_URL}/opengraph-image`;
+  const image = restaurant.cover_image_url || restaurant.logo_url || `${APP_URL}/opengraph-image`;
+  const logoUrl = restaurant.logo_url ?? undefined;
 
   return {
     title,
     description,
+    manifest: `/${restaurant.slug}/manifest.webmanifest`,
+    icons: { apple: logoUrl || '/icons/icon-192.svg' },
+    appleWebApp: {
+      title: restaurant.name,
+      statusBarStyle: 'default',
+      capable: true,
+    },
     openGraph: { title, description, url, siteName: 'MENIUS', type: 'website', images: [{ url: image, width: 1200, height: 630, alt: restaurant.name }], locale: isEn ? 'en_US' : 'es_MX' },
     twitter: { card: 'summary_large_image', title: restaurant.name, description, images: [image] },
     alternates: { canonical: url },

@@ -1019,7 +1019,7 @@ Los pedidos online representan una porción creciente de los ingresos de restaur
 Regístrate en la plataforma (gratis, sin tarjeta de crédito) y proporciona:
 
 - Nombre de tu restaurante
-- Tu URL personalizada (ej: menius.app/r/tu-restaurante)
+- Tu URL personalizada (ej: menius.app/tu-restaurante)
 - Moneda y zona horaria
 
 Al crear tu restaurante, se genera automáticamente un menú de ejemplo para que veas cómo funciona.
@@ -1117,7 +1117,7 @@ Online orders represent a growing portion of restaurant revenue. Whether for din
 Sign up on the platform (free, no credit card) and provide:
 
 - Your restaurant name
-- Your custom URL (e.g., menius.app/r/your-restaurant)
+- Your custom URL (e.g., menius.app/your-restaurant)
 - Currency and timezone
 
 When creating your restaurant, a sample menu is automatically generated so you can see how it works.

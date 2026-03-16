@@ -279,7 +279,7 @@ DASHBOARD GUIDE (step-by-step for each section):
 - **Settings** (all fields):
   • **Logo**: Upload restaurant logo (square image, drag or click to upload)
   • **Banner/Cover image**: Upload a cover photo for your public menu page
-  • **Public URL**: Your menu link (menius.app/r/your-slug). Share this with customers.
+  • **Public URL**: Your menu link (menius.app/your-slug). Share this with customers.
   • **Custom Domain** (Pro+ plans): Connect your own domain (e.g. menu.myrestaurant.com). Steps: 1) Enter domain in Settings > Custom Domain. 2) Go to your DNS provider (GoDaddy, Namecheap, Cloudflare, etc.) and add a CNAME record pointing to cname.vercel-dns.com. 3) Come back and click "Verify". DNS propagation can take up to 48 hours.
   • **Basic Info**: Restaurant name, slug (URL), description, phone, email, website, address (with autocomplete)
   • **Location**: Latitude and longitude coordinates (auto-filled from address or enter manually)

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { X, Minus, Plus, Check, ArrowLeft, Leaf } from 'lucide-react';
-import { motion, useMotionValue, useTransform, useDragControls, type PanInfo } from 'framer-motion';
+import { X, Minus, Plus, Check, ArrowLeft } from 'lucide-react';
+import { motion, AnimatePresence, useMotionValue, useTransform, useDragControls, type PanInfo } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import type { Product, ModifierGroup, ModifierOption, ModifierSelection } from '@/types';
@@ -23,6 +23,8 @@ interface CustomizationSheetProps {
   t: Translations;
   locale: Locale;
   defaultLocale?: string;
+  suggestedProducts?: Product[];
+  onSuggestAdd?: (product: Product) => void;
 }
 
 export function CustomizationSheet({
@@ -34,6 +36,8 @@ export function CustomizationSheet({
   t,
   locale,
   defaultLocale = 'es',
+  suggestedProducts,
+  onSuggestAdd,
 }: CustomizationSheetProps) {
   const displayName = tName(product, locale, defaultLocale);
   const displayDesc = tDesc(product, locale, defaultLocale);
@@ -55,7 +59,7 @@ export function CustomizationSheet({
       legacyGroups.push({
         id: '__legacy_variants',
         product_id: product.id,
-        name: locale === 'es' ? 'Variante' : 'Variant',
+        name: t.variant,
         selection_type: 'single',
         min_select: 1,
         max_select: 1,
@@ -139,6 +143,7 @@ export function CustomizationSheet({
   const [qty, setQty] = useState(editItem?.qty ?? 1);
   const [notes, setNotes] = useState(editItem?.notes ?? '');
   const [added, setAdded] = useState(false);
+  const [justAddedSuggestId, setJustAddedSuggestId] = useState<string | null>(null);
   const dragControls = useDragControls();
 
   const scrollY = useMotionValue(0);
@@ -146,17 +151,16 @@ export function CustomizationSheet({
   const imageScale = useTransform(scrollY, [0, 300], [1, 1.15]);
   const imageOpacity = useTransform(scrollY, [0, 250], [1, 0.3]);
 
-  // Validation
-  const validationErrors: string[] = [];
+  // Validation — use Set to ensure each group name appears at most once
+  const validationErrorSet = new Set<string>();
   for (const g of activeGroups) {
     const selected = selections[g.id] ?? [];
-    if (g.is_required && selected.length < Math.max(1, g.min_select)) {
-      validationErrors.push(g.name);
-    }
-    if (g.selection_type === 'multi' && g.min_select > 0 && selected.length < g.min_select) {
-      validationErrors.push(g.name);
+    const minRequired = Math.max(g.is_required ? 1 : 0, g.min_select);
+    if (minRequired > 0 && selected.length < minRequired) {
+      validationErrorSet.add(g.name);
     }
   }
+  const validationErrors = Array.from(validationErrorSet);
   const isValid = validationErrors.length === 0;
 
   // Price calculation
@@ -228,7 +232,9 @@ export function CustomizationSheet({
       onAddToCart?.(displayName);
     }
     setAdded(true);
-    setTimeout(onClose, 400);
+    // If there are suggestions to show, give them time to be seen; otherwise close fast
+    const hasSuggestions = (suggestedProducts?.length ?? 0) > 0 && !isEditing;
+    setTimeout(onClose, hasSuggestions ? 2000 : 400);
   };
 
   const getRuleLabel = (g: ModifierGroup) => {
@@ -316,7 +322,7 @@ export function CustomizationSheet({
               </span>
               {atMax && (
                 <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
-                  {locale === 'es' ? 'Maximo alcanzado' : 'Max reached'}
+                  {t.maxReached}
                 </span>
               )}
             </div>
@@ -389,40 +395,109 @@ export function CustomizationSheet({
     </div>
   );
 
+  const hasSuggestionsToShow = added && !isEditing && (suggestedProducts?.length ?? 0) > 0;
+
   const sheetFooter = (
-    <div className="border-t border-gray-100 px-5 py-4 flex-shrink-0 bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <div className="flex items-center gap-3">
-        <div className="flex items-center bg-gray-100 rounded-xl">
-          <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-11 h-11 flex items-center justify-center rounded-l-xl active:bg-gray-200 transition-colors">
-            <Minus className="w-4 h-4 text-gray-600" />
-          </button>
-          <span className="w-10 text-center font-bold text-base tabular-nums">{qty}</span>
-          <button onClick={() => setQty(qty + 1)} className="w-11 h-11 flex items-center justify-center rounded-r-xl active:bg-gray-200 transition-colors">
-            <Plus className="w-4 h-4 text-gray-600" />
-          </button>
-        </div>
-        <button
-          onClick={handleSubmit}
-          disabled={!isValid || added}
-          className={cn(
-            'flex-1 h-12 rounded-2xl font-bold text-[15px] transition-all duration-200',
-            added
-              ? 'bg-emerald-500 text-white'
-              : !isValid
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                : 'bg-emerald-500 text-white active:scale-[0.98] shadow-sm hover:bg-emerald-600'
-          )}
-        >
-          {added
-            ? (locale === 'es' ? '✓ Agregado' : '✓ Added')
-            : !isValid
-              ? (locale === 'es' ? `Selecciona: ${validationErrors.join(', ')}` : `Select: ${validationErrors.join(', ')}`)
-              : isEditing
-                ? (locale === 'es' ? `Actualizar · ${fmtPrice(unitPrice * qty)}` : `Update · ${fmtPrice(unitPrice * qty)}`)
-                : `${t.add} · ${fmtPrice(unitPrice * qty)}`
-          }
-        </button>
-      </div>
+    <div className="border-t border-gray-100 flex-shrink-0 bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <AnimatePresence mode="wait">
+        {hasSuggestionsToShow ? (
+          /* Post-add suggestions strip */
+          <motion.div
+            key="suggestions"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2 }}
+            className="px-5 pt-3 pb-4"
+          >
+            <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2.5">
+              {t.peopleAlsoOrder}
+            </p>
+            <div
+              className="flex gap-2.5 overflow-x-auto scrollbar-hide"
+              style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+            >
+              {(suggestedProducts ?? []).slice(0, 5).map((p) => {
+                const isAdded = justAddedSuggestId === p.id;
+                return (
+                  <div
+                    key={p.id}
+                    className="flex-shrink-0 w-[120px] bg-gray-50 rounded-xl overflow-hidden border border-gray-100"
+                  >
+                    {p.image_url && (
+                      <div className="relative w-full h-[72px] bg-gray-100">
+                        <Image src={p.image_url} alt={p.name} fill sizes="120px" className="object-cover" />
+                      </div>
+                    )}
+                    <div className="p-2">
+                      <p className="text-[10px] font-semibold text-gray-800 line-clamp-2 leading-tight mb-1.5">{p.name}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-gray-900 tabular-nums">{fmtPrice(Number(p.price))}</span>
+                        <button
+                          onClick={() => {
+                            if (onSuggestAdd) {
+                              onSuggestAdd(p);
+                              setJustAddedSuggestId(p.id);
+                              setTimeout(() => setJustAddedSuggestId(null), 1200);
+                            }
+                          }}
+                          className={cn(
+                            'w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 flex-shrink-0',
+                            isAdded ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-600'
+                          )}
+                        >
+                          {isAdded ? <Check className="w-2.5 h-2.5" /> : <Plus className="w-2.5 h-2.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        ) : (
+          /* Normal qty + add button */
+          <motion.div
+            key="add"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="px-5 py-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex items-center bg-gray-100 rounded-xl">
+                <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-11 h-11 flex items-center justify-center rounded-l-xl active:bg-gray-200 transition-colors">
+                  <Minus className="w-4 h-4 text-gray-600" />
+                </button>
+                <span className="w-10 text-center font-bold text-base tabular-nums">{qty}</span>
+                <button onClick={() => setQty(qty + 1)} className="w-11 h-11 flex items-center justify-center rounded-r-xl active:bg-gray-200 transition-colors">
+                  <Plus className="w-4 h-4 text-gray-600" />
+                </button>
+              </div>
+              <button
+                onClick={handleSubmit}
+                disabled={!isValid || added}
+                className={cn(
+                  'flex-1 h-12 rounded-2xl font-bold text-[15px] transition-all duration-200',
+                  added
+                    ? 'bg-emerald-500 text-white'
+                    : !isValid
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-emerald-500 text-white active:scale-[0.98] shadow-sm hover:bg-emerald-600'
+                )}
+              >
+                {added
+                  ? t.added
+                  : !isValid
+                    ? `${locale === 'es' ? 'Selecciona' : 'Select'}: ${validationErrors.join(', ')}`
+                    : isEditing
+                      ? `${t.updateItem} · ${fmtPrice(unitPrice * qty)}`
+                      : `${t.add} · ${fmtPrice(unitPrice * qty)}`
+                }
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 
@@ -452,9 +527,7 @@ export function CustomizationSheet({
             </button>
             <div className="min-w-0">
               <h2 className="text-base font-bold text-gray-900 truncate">
-                {isEditing
-                  ? (locale === 'es' ? 'Editar producto' : 'Edit item')
-                  : displayName}
+                {isEditing ? t.editItem : displayName}
               </h2>
               <p className="text-xs text-gray-400 font-medium tabular-nums">
                 {fmtPrice(Number(product.price))}
@@ -501,14 +574,10 @@ export function CustomizationSheet({
           <div className="flex items-center gap-2 min-w-0">
             <button onClick={onClose} className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg active:bg-gray-100 transition-colors flex-shrink-0">
               <ArrowLeft className="w-5 h-5 text-gray-700" />
-              <span className="text-sm font-medium text-gray-500">
-                {locale === 'es' ? 'Menu' : 'Menu'}
-              </span>
+              <span className="text-sm font-medium text-gray-500">Menu</span>
             </button>
             <h2 className="text-base font-bold text-gray-900 truncate">
-              {isEditing
-                ? (locale === 'es' ? 'Editar producto' : 'Edit item')
-                : displayName}
+              {isEditing ? t.editItem : displayName}
             </h2>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg active:bg-gray-100 transition-colors flex-shrink-0">

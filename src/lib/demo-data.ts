@@ -15,7 +15,7 @@ const CAT_TORTAS = 'demo-cat-tortas';
 export const demoRestaurant: Restaurant = {
   id: RID,
   name: 'La Casa del Sabor',
-  slug: 'demo',
+  slug: 'la-casa-del-sabor',
   owner_user_id: 'demo-owner',
   timezone: 'America/Mexico_City',
   currency: 'USD',

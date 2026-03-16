@@ -304,6 +304,7 @@ export interface DashboardTranslations {
   tables_openMenu: string;
   tables_scanToView: string;
   tables_orderFromPhone: string;
+  tables_printAll: string;
 
   // Products
   products_new: string;
@@ -1395,6 +1396,7 @@ const es: DashboardTranslations = {
   tables_openMenu: 'Abrir menú',
   tables_scanToView: 'Escanea el código para ver el menú',
   tables_orderFromPhone: 'Pide y paga desde tu celular',
+  tables_printAll: 'Imprimir todas',
 
   // Products
   products_new: 'Nuevo producto',
@@ -2486,6 +2488,7 @@ const en: DashboardTranslations = {
   tables_openMenu: 'Open menu',
   tables_scanToView: 'Scan the code to view the menu',
   tables_orderFromPhone: 'Order and pay from your phone',
+  tables_printAll: 'Print all',
 
   // Products
   products_new: 'New product',

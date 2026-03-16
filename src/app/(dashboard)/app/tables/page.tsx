@@ -17,16 +17,24 @@ export default async function TablesPage() {
       .maybeSingle(),
   ]);
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app').replace(/\/$/, '');
   const slug = restaurantRes.data?.slug ?? '';
   const tables = tablesRes.data ?? [];
 
-  for (const table of tables) {
-    if (table.qr_code_value && !table.qr_code_value.startsWith(appUrl)) {
-      const correctUrl = `${appUrl}/${slug}?table=${encodeURIComponent(table.name)}`;
-      await supabase.from('tables').update({ qr_code_value: correctUrl }).eq('id', table.id);
-      table.qr_code_value = correctUrl;
-    }
+  // Repair any QR code URLs that use the old /r/ prefix, have double slashes,
+  // or point to a different domain — always ensure the canonical format.
+  const badTables = tables.filter((table) => {
+    const expected = `${appUrl}/${slug}?table=`;
+    return table.qr_code_value && !table.qr_code_value.startsWith(expected);
+  });
+  if (badTables.length > 0) {
+    await Promise.all(
+      badTables.map((table) => {
+        const correctUrl = `${appUrl}/${slug}?table=${encodeURIComponent(table.name)}`;
+        table.qr_code_value = correctUrl;
+        return supabase.from('tables').update({ qr_code_value: correctUrl }).eq('id', table.id);
+      }),
+    );
   }
 
   return (

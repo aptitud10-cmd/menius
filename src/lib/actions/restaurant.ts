@@ -704,7 +704,7 @@ export async function createTable(data: TableInput) {
     return { error: `Tu plan ${plan.name} permite hasta ${plan.limits.maxTables} mesas. Actualiza tu plan para agregar más.` };
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app').replace(/\/$/, '');
   const tableName = sanitizeText(data.name, 50);
   const qrValue = `${appUrl}/${restaurantRes.data.slug}?table=${encodeURIComponent(tableName)}`;
 
@@ -731,7 +731,7 @@ export async function updateTable(id: string, newName: string) {
 
   if (!restaurant?.slug) return { error: 'Restaurante no encontrado' };
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app').replace(/\/$/, '');
   const name = sanitizeText(newName, 50);
   const qrValue = `${appUrl}/${restaurant.slug}?table=${encodeURIComponent(name)}`;
 

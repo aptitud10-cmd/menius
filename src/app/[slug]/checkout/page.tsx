@@ -7,7 +7,7 @@ import { CheckoutPageClient } from '@/components/public/CheckoutPageClient';
 export const dynamic = 'force-dynamic';
 
 const DEMO_RESTAURANTS: Record<string, { restaurant: typeof demoRestaurant; locale: 'es' | 'en' }> = {
-  demo: { restaurant: demoRestaurant, locale: 'es' },
+  'la-casa-del-sabor': { restaurant: demoRestaurant, locale: 'es' },
   'the-grill-house': { restaurant: grillHouseRestaurant, locale: 'en' },
 };
 
