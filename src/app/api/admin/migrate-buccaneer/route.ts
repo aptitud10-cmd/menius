@@ -41,7 +41,7 @@ export async function GET() {
     const byName = (name: string) => allCats.find(c => c.name === name)?.id;
 
     // ── Helper: move products from sourceIds → targetId ────
-    async function moveProducts(targetId: string, sourceNames: string[]) {
+    const moveProducts = async (targetId: string, sourceNames: string[]) => {
       const sourceIds = sourceNames.map(n => byName(n)).filter(Boolean) as string[];
       if (sourceIds.length === 0) return;
       const { error } = await supabase
@@ -50,10 +50,10 @@ export async function GET() {
         .eq('restaurant_id', rid)
         .in('category_id', sourceIds);
       if (error) throw new Error(`moveProducts failed: ${error.message}`);
-    }
+    };
 
     // ── Helper: delete categories by name ──────────────────
-    async function deleteCats(names: string[]) {
+    const deleteCats = async (names: string[]) => {
       const ids = names.map(n => byName(n)).filter(Boolean) as string[];
       if (ids.length === 0) return;
       const { error } = await supabase
@@ -61,10 +61,10 @@ export async function GET() {
         .delete()
         .in('id', ids);
       if (error) throw new Error(`deleteCats failed: ${error.message}`);
-    }
+    };
 
     // ── Helper: rename + reorder a category ───────────────
-    async function renameCat(oldName: string, newName: string, sortOrder: number) {
+    const renameCat = async (oldName: string, newName: string, sortOrder: number) => {
       const id = byName(oldName);
       if (!id) throw new Error(`Category "${oldName}" not found`);
       const { error } = await supabase
@@ -72,10 +72,10 @@ export async function GET() {
         .update({ name: newName, sort_order: sortOrder })
         .eq('id', id);
       if (error) throw new Error(`renameCat "${oldName}" → "${newName}" failed: ${error.message}`);
-    }
+    };
 
     // ── Helper: update sort_order only ────────────────────
-    async function reorderCat(name: string, sortOrder: number) {
+    const reorderCat = async (name: string, sortOrder: number) => {
       const id = byName(name);
       if (!id) { log.push(`⚠️  Category "${name}" not found, skipping`); return; }
       const { error } = await supabase
@@ -83,7 +83,7 @@ export async function GET() {
         .update({ sort_order: sortOrder })
         .eq('id', id);
       if (error) throw new Error(`reorderCat "${name}" failed: ${error.message}`);
-    }
+    };
 
     // ══════════════════════════════════════════════════════
     // 1. BREAKFAST — keep Omelettes, merge 8 others into it
