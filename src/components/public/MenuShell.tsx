@@ -171,19 +171,11 @@ export function MenuShell({
   const cartTotal = hasMounted ? rawCartTotal : 0;
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-  const CATEGORY_PREVIEW = 8;
+  const CATEGORY_PREVIEW = 8; // kept for potential future use
   // Large-catalog mode: 60+ products → one category at a time (like Uber Eats)
   const LARGE_CATALOG_THRESHOLD = 60;
   const isLargeCatalog = products.length >= LARGE_CATALOG_THRESHOLD;
   const [activeCatFilter, setActiveCatFilter] = useState<string | null>(null);
-  const toggleExpandCategory = useCallback((catId: string) => {
-    setExpandedCategories((prev) => {
-      const next = new Set(prev);
-      if (next.has(catId)) next.delete(catId); else next.add(catId);
-      return next;
-    });
-  }, []);
   const [showFavs, setShowFavs] = useState(false);
   const favIds = useFavoritesStore((s) => s.ids);
   const [activeDiet, setActiveDiet] = useState<DietaryTag | null>(null);
@@ -917,17 +909,10 @@ export function MenuShell({
                         </div>
                       )}
                       {(() => {
-                        // In large-catalog mode the user already filtered to one category,
-                        // so show all items without pagination. For normal menus keep the
-                        // 8-item preview so long categories don't overwhelm the page.
-                        const isExpanded = expandedCategories.has(category.id);
-                        const hasMore = !isLargeCatalog && items.length > CATEGORY_PREVIEW;
-                        const visibleItems = hasMore && !isExpanded ? items.slice(0, CATEGORY_PREVIEW) : items;
-                        const remaining = items.length - CATEGORY_PREVIEW;
                         return (
-                          <LazyProductGrid itemCount={visibleItems.length}>
+                          <LazyProductGrid itemCount={items.length}>
                             <div className={cn('grid grid-cols-2 xl:grid-cols-3 gap-3', isLocked && 'opacity-40')}>
-                              {visibleItems.map((product) => (
+                              {items.map((product) => (
                                 <ProductCard
                                   key={product.id}
                                   product={product}
@@ -945,16 +930,6 @@ export function MenuShell({
                                 />
                               ))}
                             </div>
-                            {hasMore && (
-                              <button
-                                onClick={() => toggleExpandCategory(category.id)}
-                                className="mt-3 w-full py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:border-emerald-300 hover:text-emerald-700 transition-colors duration-200"
-                              >
-                                {isExpanded
-                                  ? (locale === 'en' ? 'Show less' : 'Ver menos')
-                                  : (locale === 'en' ? `See ${remaining} more` : `Ver ${remaining} más`)}
-                              </button>
-                            )}
                           </LazyProductGrid>
                         );
                       })()}
