@@ -157,7 +157,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const [pausedUntil, setPausedUntil] = useState<number | null>(null);
   const [showPause, setShowPause] = useState(false);
   const [pauseOpt, setPauseOpt] = useState(30);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [testToast, setTestToast] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(true);
@@ -177,6 +177,9 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const [driverPhone, setDriverPhone] = useState('');
   const [isAssigningDriver, setIsAssigningDriver] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
+  const [waAction, setWaAction] = useState<{ url: string; label: string } | null>(null);
+  const [isLoadingManualProducts, setIsLoadingManualProducts] = useState(false);
+  const [manualProductsError, setManualProductsError] = useState('');
   const [, tick] = useState(0);
   const urgentRef = useRef<Set<string>>(new Set());
 
@@ -193,12 +196,21 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const [manualProductSearch, setManualProductSearch] = useState('');
 
   const fetchManualProducts = useCallback(async () => {
+    setIsLoadingManualProducts(true);
+    setManualProductsError('');
     try {
       const res = await fetch('/api/products/stock');
-      if (!res.ok) return;
+      if (!res.ok) { setManualProductsError('Error al cargar productos. Intenta de nuevo.'); return; }
       const data = await res.json();
-      if (Array.isArray(data.products)) setManualProducts(data.products);
-    } catch { /* silent */ }
+      if (Array.isArray(data.products)) {
+        setManualProducts(data.products);
+        if (data.products.length === 0) setManualProductsError('No hay productos activos en el menú.');
+      }
+    } catch {
+      setManualProductsError('Sin conexión. Verifica tu red e intenta de nuevo.');
+    } finally {
+      setIsLoadingManualProducts(false);
+    }
   }, []);
 
   const manualTotal = manualItems.reduce((s, i) => s + i.price * i.qty, 0);
@@ -385,14 +397,23 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
   const handleAssignDriver = useCallback(async (deliveryAddress?: string) => {
     if (!driverOrderId) return;
     setIsAssigningDriver(true);
+    // Build WA URL synchronously before any await (browser popup policy)
+    const waUrl = driverPhone && deliveryAddress
+      ? `https://wa.me/${driverPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${driverName || 'repartidor'} 🛵 Tienes una entrega:\n📍 ${deliveryAddress}\nAcude al restaurante para recoger el pedido.`)}`
+      : null;
     try {
-      await assignDriver(driverOrderId, driverName, driverPhone);
-      // WhatsApp to driver with address
-      if (driverPhone && deliveryAddress) {
-        const msg = `Hola ${driverName || 'repartidor'} 🛵 Tienes una entrega:\n📍 ${deliveryAddress}\nAcude al restaurante para recoger el pedido.`;
-        window.open(`https://wa.me/${driverPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+      const result = await assignDriver(driverOrderId, driverName, driverPhone);
+      if (result?.error) {
+        showError(`Error al asignar repartidor: ${result.error}`);
+        return;
+      }
+      if (waUrl) {
+        setWaAction({ url: waUrl, label: `Enviar dirección a ${driverName || 'repartidor'}` });
+        setTimeout(() => setWaAction(null), 12_000);
       }
       setShowDriverModal(false);
+    } catch {
+      showError('Error inesperado al asignar repartidor');
     } finally {
       setIsAssigningDriver(false);
     }
@@ -400,8 +421,12 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
 
   // ── Actions ──
   const handleAccept = useCallback(async (order: Order) => {
-    setIsUpdating(true);
+    setUpdatingId(order.id);
     const effectiveEta = eta + busyExtra;
+    // Build WA URL synchronously before any await (browser popup policy)
+    const waUrl = order.customer_phone
+      ? `https://wa.me/${order.customer_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${order.customer_name || 'cliente'} 👋 Tu orden #${order.order_number} fue confirmada ✅ Estará lista en aprox. ${effectiveEta} minutos.`)}`
+      : null;
     try {
       const etaRes = await updateOrderETA(order.id, effectiveEta);
       if (etaRes?.error) { showError(`Error al actualizar ETA: ${etaRes.error}`); return; }
@@ -411,52 +436,53 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
       setShowMoreMenu(false);
       setActiveTab('cooking');
       setSelectedId(order.id);
-      if (order.customer_phone) {
-        const msg = `Hola ${order.customer_name || 'cliente'} 👋 Tu orden #${order.order_number} fue confirmada ✅ Estará lista en aprox. ${effectiveEta} minutos.`;
-        window.open(`https://wa.me/${order.customer_phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+      if (waUrl) {
+        setWaAction({ url: waUrl, label: `Avisar a ${order.customer_name || 'cliente'} por WhatsApp` });
+        setTimeout(() => setWaAction(null), 12_000);
       }
       setKitchenToast(`#${order.order_number} → Cocina (${effectiveEta} min)`);
       setTimeout(() => setKitchenToast(null), 3000);
-    } catch (e) {
+    } catch {
       showError('Error inesperado al confirmar la orden');
-    } finally { setIsUpdating(false); }
+    } finally { setUpdatingId(null); }
   }, [eta, busyExtra, restaurantName, currency, autoPrint]);
 
   const handleReject = useCallback(async (order: Order) => {
-    setIsUpdating(true);
+    setUpdatingId(order.id);
     setShowMoreMenu(false);
     setShowRejectConfirm(false);
+    // Build WA URL synchronously before any await (browser popup policy)
+    const waUrl = order.customer_phone && rejectReason
+      ? `https://wa.me/${order.customer_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${order.customer_name || 'cliente'}, lamentablemente no podemos procesar tu orden #${order.order_number}. Motivo: ${rejectReason}. Disculpa los inconvenientes.`)}`
+      : null;
     try {
       const res = await updateOrderStatus(order.id, 'cancelled');
       if (res?.error) { showError(`Error al rechazar: ${res.error}`); return; }
-      if (order.customer_phone && rejectReason) {
-        const msg = `Hola ${order.customer_name || 'cliente'}, lamentablemente no podemos procesar tu orden #${order.order_number}. Motivo: ${rejectReason}. Disculpa los inconvenientes.`;
-        window.open(`https://wa.me/${order.customer_phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+      if (waUrl) {
+        setWaAction({ url: waUrl, label: `Notificar rechazo a ${order.customer_name || 'cliente'}` });
+        setTimeout(() => setWaAction(null), 12_000);
       }
       setRejectReason('');
     } catch {
       showError('Error inesperado al rechazar la orden');
-    } finally { setIsUpdating(false); }
+    } finally { setUpdatingId(null); }
   }, [rejectReason]);
 
   const handleMarkReady = useCallback(async (order: Order) => {
-    setIsUpdating(true);
+    setUpdatingId(order.id);
     try {
       const res = await updateOrderStatus(order.id, 'ready');
       if (res?.error) { showError(`Error al marcar como lista: ${res.error}`); return; }
       setActiveTab('ready');
       setSelectedId(order.id);
-      if (order.customer_phone) {
-        const msg = `Hola ${order.customer_name || 'cliente'}, tu orden #${order.order_number} está lista ✅ Puedes pasar a recogerla.`;
-        window.open(waLink(order.customer_phone, msg), '_blank');
-      }
+      // WA link shown in ready-tab panel as <a> — no window.open needed
     } catch {
       showError('Error inesperado al marcar como lista');
-    } finally { setIsUpdating(false); }
+    } finally { setUpdatingId(null); }
   }, []);
 
   const handleDeliver = useCallback(async (order: Order) => {
-    setIsUpdating(true);
+    setUpdatingId(order.id);
     try {
       const res = await updateOrderStatus(order.id, 'delivered');
       if (res?.error) { showError(`Error al marcar como entregada: ${res.error}`); return; }
@@ -464,18 +490,18 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
       setSelectedId(null);
     } catch {
       showError('Error inesperado al marcar como entregada');
-    } finally { setIsUpdating(false); }
+    } finally { setUpdatingId(null); }
   }, []);
 
   const handleCancelCooking = useCallback(async (order: Order) => {
-    setIsUpdating(true);
+    setUpdatingId(order.id);
     setShowMoreMenu(false);
     try {
       const res = await updateOrderStatus(order.id, 'cancelled');
       if (res?.error) { showError(`Error al cancelar: ${res.error}`); return; }
     } catch {
       showError('Error inesperado al cancelar la orden');
-    } finally { setIsUpdating(false); }
+    } finally { setUpdatingId(null); }
   }, []);
 
   const doPause = () => {
@@ -639,6 +665,22 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
         </div>
       )}
 
+      {/* ── WhatsApp action toast ── */}
+      {waAction && (
+        <div className="fixed bottom-20 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200"
+          style={{ background: '#25D366', maxWidth: 320 }}>
+          <MessageCircle className="w-5 h-5 text-white flex-shrink-0" />
+          <a href={waAction.url} target="_blank" rel="noopener noreferrer"
+            onClick={() => setWaAction(null)}
+            className="flex-1 text-white text-sm font-bold underline-offset-2 hover:underline">
+            {waAction.label}
+          </a>
+          <button onClick={() => setWaAction(null)} className="text-white/70 hover:text-white ml-1">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* ══ MASTER-DETAIL ══ */}
       <div className="flex-1 flex overflow-hidden">
 
@@ -722,7 +764,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
               tab={activeTab}
               eta={eta}
               busyExtra={busyExtra}
-              isUpdating={isUpdating}
+              isUpdating={updatingId === selectedOrder.id}
               showMoreMenu={showMoreMenu}
               showRejectConfirm={showRejectConfirm}
               onRejectReason={rejectReason}
@@ -860,8 +902,18 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
                   className="w-full px-4 py-2.5 rounded-xl border border-[#E8E8E8] text-sm mb-2 focus:outline-none focus:border-[#111]"
                 />
                 <div className="max-h-[200px] overflow-y-auto space-y-1 rounded-xl border border-[#E8E8E8]">
-                  {manualProducts.length === 0 ? (
-                    <div className="text-center text-xs text-[#AAAAAA] py-6">Cargando productos…</div>
+                  {isLoadingManualProducts ? (
+                    <div className="flex items-center justify-center gap-2 py-6 text-[#AAAAAA]">
+                      <span className="w-4 h-4 border-2 border-[#DDDDDD] border-t-[#AAAAAA] rounded-full animate-spin" />
+                      <span className="text-xs">Cargando productos…</span>
+                    </div>
+                  ) : manualProductsError ? (
+                    <div className="text-center py-5 px-3">
+                      <p className="text-xs text-red-500 font-semibold mb-2">{manualProductsError}</p>
+                      <button onClick={fetchManualProducts} className="text-xs text-[#06C167] font-bold underline">Reintentar</button>
+                    </div>
+                  ) : manualProducts.length === 0 ? (
+                    <div className="text-center text-xs text-[#AAAAAA] py-6">Sin productos disponibles.</div>
                   ) : (
                     manualProducts
                       .filter(p => p.in_stock && (!manualProductSearch || p.name.toLowerCase().includes(manualProductSearch.toLowerCase())))
@@ -1038,12 +1090,7 @@ const TYPE_ICON: Record<string, typeof Utensils> = {
 function OrderListRow({ order, currency, tab, selected, isUrgent, onClick }: {
   order: Order; currency: string; tab: Tab; selected: boolean; isUrgent: boolean; onClick: () => void;
 }) {
-  const [, tick] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => tick(n => n + 1), 1_000);
-    return () => clearInterval(t);
-  }, []);
-
+  // No local setInterval needed — parent ticks every second, driving re-renders.
   const TypeIcon = TYPE_ICON[order.order_type ?? 'dine_in'] ?? Utensils;
   const mins = elapsedMins(order.created_at);
   const secs = elapsedSecs(order.created_at);
@@ -1148,12 +1195,7 @@ function DetailPanel({
   onPrint: () => void;
   onAssignDriver: () => void;
 }) {
-  const [, tick] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => tick(n => n + 1), 1_000);
-    return () => clearInterval(t);
-  }, []);
-
+  // No local setInterval needed — parent ticks every second, driving re-renders.
   const secs = elapsedSecs(order.created_at);
   const mins = elapsedMins(order.created_at);
   const etaMins = order.estimated_ready_minutes;
@@ -1423,6 +1465,17 @@ function DetailPanel({
                 <span className="text-sm font-bold text-[#111]">Total</span>
                 <span className="text-2xl font-black text-[#111]">{fmt(Number(order.total), currency)}</span>
               </div>
+              {order.payment_method && (
+                <div className="flex items-center gap-1.5 pt-1">
+                  <span className="text-[10px] text-[#AAAAAA] uppercase tracking-wide font-semibold">Pago:</span>
+                  <span className="text-[11px] font-bold text-[#555] capitalize">
+                    {order.payment_method === 'cash' ? '💵 Efectivo' :
+                     order.payment_method === 'online' ? '💳 En línea' :
+                     order.payment_method === 'wallet' ? '📱 Wallet' :
+                     order.payment_method}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
