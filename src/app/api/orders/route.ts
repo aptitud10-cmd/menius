@@ -25,6 +25,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Idempotency key — prevent duplicate orders on network retry
+    const idempotencyKey = request.headers.get('Idempotency-Key')?.trim() || null;
+    if (idempotencyKey) {
+      const adminDb = createAdminClient();
+      const { data: existing } = await adminDb
+        .from('orders')
+        .select('id, order_number, total, status')
+        .eq('idempotency_key', idempotencyKey)
+        .maybeSingle();
+      if (existing) {
+        return NextResponse.json(
+          { order_id: existing.id, order_number: existing.order_number, total: existing.total, idempotent: true },
+          { status: 200 }
+        );
+      }
+    }
+
     const body = await request.json();
 
     // Sanitize all user-facing text inputs
@@ -225,17 +242,12 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const tolerance = 0.02;
-      if (Math.abs(item.unit_price - expectedUnitPrice) > tolerance) {
-        logger.warn('Price mismatch', { product: item.product_id, sent: item.unit_price, expected: expectedUnitPrice });
-        item.unit_price = expectedUnitPrice;
-        item.line_total = expectedUnitPrice * item.qty;
+      // Always assign server-calculated price — never trust the client value
+      if (item.unit_price !== 0 && Math.abs(item.unit_price - expectedUnitPrice) > 0.02) {
+        logger.warn('Price mismatch (client vs server)', { product: item.product_id, sent: item.unit_price, expected: expectedUnitPrice });
       }
-
-      const expectedLineTotal = item.unit_price * item.qty;
-      if (Math.abs(item.line_total - expectedLineTotal) > tolerance) {
-        item.line_total = expectedLineTotal;
-      }
+      item.unit_price = expectedUnitPrice;
+      item.line_total = expectedUnitPrice * item.qty;
     }
 
     const { data: orderNum } = await supabase.rpc('generate_order_number', { rest_id: restaurant_id });
@@ -280,6 +292,7 @@ export async function POST(request: NextRequest) {
       delivery_address: delivery_address || null,
       promo_code: promo_code || '',
       discount_amount: discountAmt,
+      idempotency_key: idempotencyKey || null,
     };
     if (tipAmt > 0) orderInsert.tip_amount = tipAmt;
     if (deliveryFeeAmt > 0) orderInsert.delivery_fee = deliveryFeeAmt;

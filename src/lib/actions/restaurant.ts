@@ -776,21 +776,38 @@ export async function deleteTable(id: string) {
 }
 
 // ---- Orders ----
+// Valid state transitions — enforced server-side
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  pending:   ['confirmed', 'cancelled'],
+  confirmed: ['preparing', 'cancelled'],
+  preparing: ['ready', 'cancelled'],
+  ready:     ['delivered', 'cancelled'],
+  delivered: [],
+  cancelled: [],
+};
+
 export async function updateOrderStatus(orderId: string, status: string, cancellationReason?: string) {
   const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
-  const validStatuses = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled'];
+  const validStatuses = Object.keys(VALID_TRANSITIONS);
   if (!validStatuses.includes(status)) return { error: 'Estado inválido' };
 
   const { data: order } = await supabase
     .from('orders')
-    .select('id, order_number, restaurant_id, customer_name, customer_email, customer_phone, restaurants ( slug, name )')
+    .select('id, status, order_number, restaurant_id, customer_name, customer_email, customer_phone, restaurants ( slug, name )')
     .eq('id', orderId)
     .eq('restaurant_id', restaurantId)
     .maybeSingle();
 
   if (!order) return { error: 'Orden no encontrada' };
+
+  // Enforce valid state transitions
+  const currentStatus = order.status as string;
+  const allowed = VALID_TRANSITIONS[currentStatus] ?? [];
+  if (!allowed.includes(status)) {
+    return { error: `Transición inválida: ${currentStatus} → ${status}` };
+  }
 
   const updatePayload: Record<string, unknown> = { status };
   if (status === 'cancelled' && cancellationReason) {
@@ -804,6 +821,13 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
     .eq('restaurant_id', restaurantId);
 
   if (error) return { error: error.message };
+
+  // Log the transition to order_status_history (non-blocking)
+  supabase
+    .from('order_status_history')
+    .insert({ order_id: orderId, from_status: currentStatus, to_status: status, note: cancellationReason ?? null })
+    .then(() => {})
+    .catch(() => {}); // Graceful — table may not exist yet
 
   if (['confirmed', 'preparing', 'ready', 'delivered', 'cancelled'].includes(status)) {
     import('@/lib/notifications/order-notifications').then(({ notifyStatusChange }) => {

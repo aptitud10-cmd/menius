@@ -70,19 +70,20 @@ export const publicOrderSchema = z.object({
     product_id: z.string().uuid(),
     variant_id: uuidOrNull,
     qty: z.number().min(1).max(99, 'Cantidad máxima por producto: 99'),
-    unit_price: z.number(),
-    line_total: z.number(),
+    // unit_price and line_total are optional — server always recalculates from DB
+    unit_price: z.number().optional().default(0),
+    line_total: z.number().optional().default(0),
     notes: z.string().default(''),
     extras: z.array(z.object({
       extra_id: z.string().uuid(),
-      price: z.number(),
+      price: z.number().optional().default(0), // server recalculates from DB
     })).default([]),
     modifiers: z.array(z.object({
       group_id: z.string(),
       group_name: z.string(),
       option_id: z.string(),
       option_name: z.string(),
-      price_delta: z.number(),
+      price_delta: z.number().optional().default(0), // server recalculates from DB
     })).default([]),
   })).min(1, 'Agrega al menos un producto').max(50, 'Máximo 50 productos por orden'),
 });
