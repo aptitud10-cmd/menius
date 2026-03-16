@@ -19,6 +19,7 @@ import { CategorySidebar } from './CategorySidebar';
 import { ProductCard } from './ProductCard';
 import { CartPanel } from './CartPanel';
 import { CustomizationSheet } from './CustomizationSheet';
+import { InstallBanner } from './InstallBanner';
 interface ReviewStats {
   average: number;
   total: number;
@@ -808,6 +809,9 @@ export function MenuShell({
                       addLabel={t.addToCart}
                       customizeLabel={t.customize}
                       popularLabel={t.popular}
+                      soldOutLabel={t.soldOut}
+                      unavailableLabel={t.unavailable}
+                      addedShortLabel={t.addedShort}
                       locale={locale}
                       defaultLocale={defaultLocale}
                     />
@@ -845,6 +849,9 @@ export function MenuShell({
                       addLabel={t.addToCart}
                       customizeLabel={t.customize}
                       popularLabel={t.popular}
+                      soldOutLabel={t.soldOut}
+                      unavailableLabel={t.unavailable}
+                      addedShortLabel={t.addedShort}
                       locale={locale}
                       defaultLocale={defaultLocale}
                     />
@@ -910,8 +917,11 @@ export function MenuShell({
                         </div>
                       )}
                       {(() => {
+                        // In large-catalog mode the user already filtered to one category,
+                        // so show all items without pagination. For normal menus keep the
+                        // 8-item preview so long categories don't overwhelm the page.
                         const isExpanded = expandedCategories.has(category.id);
-                        const hasMore = items.length > CATEGORY_PREVIEW;
+                        const hasMore = !isLargeCatalog && items.length > CATEGORY_PREVIEW;
                         const visibleItems = hasMore && !isExpanded ? items.slice(0, CATEGORY_PREVIEW) : items;
                         const remaining = items.length - CATEGORY_PREVIEW;
                         return (
@@ -927,6 +937,9 @@ export function MenuShell({
                                   addLabel={t.addToCart}
                                   customizeLabel={t.customize}
                                   popularLabel={t.popular}
+                                  soldOutLabel={t.soldOut}
+                                  unavailableLabel={t.unavailable}
+                                  addedShortLabel={t.addedShort}
                                   locale={locale}
                                   defaultLocale={defaultLocale}
                                 />
@@ -1129,6 +1142,8 @@ export function MenuShell({
             locale={locale}
             suggestedProducts={suggestedProducts}
             onSuggestAdd={handleQuickAdd}
+            lastOrder={lastOrder?.restaurantId === restaurant.id ? lastOrder : null}
+            onReorder={handleReorder}
           />
         </aside>
       </div>
@@ -1221,6 +1236,8 @@ export function MenuShell({
                   locale={locale}
                   suggestedProducts={suggestedProducts}
                   onSuggestAdd={handleQuickAdd}
+                  lastOrder={lastOrder?.restaurantId === restaurant.id ? lastOrder : null}
+                  onReorder={() => { handleReorder(); setOpen(false); }}
                 />
               </div>
               <div className="pb-[env(safe-area-inset-bottom)] flex-shrink-0" />
@@ -1241,6 +1258,8 @@ export function MenuShell({
             t={t}
             locale={locale}
             defaultLocale={defaultLocale}
+            suggestedProducts={suggestedProducts}
+            onSuggestAdd={handleQuickAdd}
           />
         )}
       </AnimatePresence>
@@ -1364,6 +1383,14 @@ export function MenuShell({
           </button>
         </div>
       )}
+
+      {/* ── PWA Install Banner ── */}
+      <InstallBanner
+        restaurantName={restaurant.name}
+        slug={restaurant.slug}
+        logoUrl={(restaurant as any).logo_url ?? null}
+        locale={locale}
+      />
 
       {/* ── Language Switcher (floating pill) ── */}
       {hasMultiLang && (
