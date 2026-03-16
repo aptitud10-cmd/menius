@@ -776,10 +776,12 @@ export async function deleteTable(id: string) {
 }
 
 // ---- Orders ----
-// Valid state transitions — enforced server-side
+// Valid state transitions — enforced server-side.
+// confirmed → ready is allowed (Counter skips 'preparing' in its UI flow).
+// confirmed → preparing is kept for future KDS/kitchen display use.
 const VALID_TRANSITIONS: Record<string, string[]> = {
   pending:   ['confirmed', 'cancelled'],
-  confirmed: ['preparing', 'cancelled'],
+  confirmed: ['preparing', 'ready', 'cancelled'],
   preparing: ['ready', 'cancelled'],
   ready:     ['delivered', 'cancelled'],
   delivered: [],
