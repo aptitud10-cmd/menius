@@ -8,7 +8,7 @@ import {
   FlaskConical, Loader2, Plus, Minus, ClipboardList,
 } from 'lucide-react';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
-import { updateOrderStatus, updateOrderETA, assignDriver } from '@/lib/actions/restaurant';
+import { updateOrderStatus, updateOrderETA, assignDriver, setPauseOrders } from '@/lib/actions/restaurant';
 import { AutoAcceptService } from '@/lib/counter/AutoAcceptService';
 import { PrinterService } from '@/lib/printing/PrinterService';
 import type { Order, OrderItem } from '@/types';
@@ -456,7 +456,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
       ? `https://wa.me/${order.customer_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${order.customer_name || 'cliente'}, lamentablemente no podemos procesar tu orden #${order.order_number}. Motivo: ${rejectReason}. Disculpa los inconvenientes.`)}`
       : null;
     try {
-      const res = await updateOrderStatus(order.id, 'cancelled');
+      const res = await updateOrderStatus(order.id, 'cancelled', rejectReason || undefined);
       if (res?.error) { showError(`Error al rechazar: ${res.error}`); return; }
       if (waUrl) {
         setWaAction({ url: waUrl, label: `Notificar rechazo a ${order.customer_name || 'cliente'}` });
@@ -493,26 +493,44 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
     } finally { setUpdatingId(null); }
   }, []);
 
-  const handleCancelCooking = useCallback(async (order: Order) => {
+  const handleAdjustEta = useCallback(async (order: Order, newEta: number) => {
+    setUpdatingId(order.id);
+    try {
+      const res = await updateOrderETA(order.id, newEta);
+      if (res?.error) { showError(`Error al ajustar ETA: ${res.error}`); return; }
+    } catch {
+      showError('Error inesperado al ajustar ETA');
+    } finally { setUpdatingId(null); }
+  }, []);
+
+  const handleCancelCooking = useCallback(async (order: Order, reason?: string) => {
     setUpdatingId(order.id);
     setShowMoreMenu(false);
     try {
-      const res = await updateOrderStatus(order.id, 'cancelled');
+      const res = await updateOrderStatus(order.id, 'cancelled', reason);
       if (res?.error) { showError(`Error al cancelar: ${res.error}`); return; }
     } catch {
       showError('Error inesperado al cancelar la orden');
     } finally { setUpdatingId(null); }
   }, []);
 
-  const doPause = () => {
+  const doPause = useCallback(async () => {
     let ms = pauseOpt * 60_000;
     if (pauseOpt === 9999) {
       const n = new Date();
       ms = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1).getTime() - n.getTime();
     }
-    setPausedUntil(Date.now() + ms);
+    const until = Date.now() + ms;
+    setPausedUntil(until);
     setShowPause(false);
-  };
+    // Sync to DB so the API also rejects new orders
+    await setPauseOrders(new Date(until).toISOString()).catch(() => {});
+  }, [pauseOpt]);
+
+  const doUnpause = useCallback(async () => {
+    setPausedUntil(null);
+    await setPauseOrders(null).catch(() => {});
+  }, []);
 
   const handleTestOrder = useCallback(async () => {
     setIsSendingTest(true);
@@ -586,7 +604,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
           {isPaused && (
             <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-600 text-[11px] font-bold animate-pulse">
               <Pause className="w-3 h-3" /> {pauseLeftMins}m
-              <button onClick={() => setPausedUntil(null)} className="ml-0.5 hover:text-red-800 font-black leading-none">×</button>
+              <button onClick={doUnpause} className="ml-0.5 hover:text-red-800 font-black leading-none">×</button>
             </span>
           )}
           {busyExtra > 0 && (
@@ -770,6 +788,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
               onRejectReason={rejectReason}
               onSetRejectReason={setRejectReason}
               onSetEta={setEta}
+              onAdjustEta={handleAdjustEta}
               onAccept={handleAccept}
               onReject={handleReject}
               onMarkReady={handleMarkReady}
@@ -1176,7 +1195,7 @@ function HistoryListRow({ order, currency, selected, onClick }: {
 function DetailPanel({
   order, currency, restaurantName, tab, eta, busyExtra, isUpdating,
   showMoreMenu, showRejectConfirm, onRejectReason, onSetRejectReason,
-  onSetEta, onAccept, onReject, onMarkReady, onDeliver, onCancelCooking,
+  onSetEta, onAdjustEta, onAccept, onReject, onMarkReady, onDeliver, onCancelCooking,
   onToggleMoreMenu, onShowRejectConfirm, onCloseMoreMenu, onPrint, onAssignDriver,
 }: {
   order: Order; currency: string; restaurantName: string; tab: Tab;
@@ -1184,11 +1203,12 @@ function DetailPanel({
   showMoreMenu: boolean; showRejectConfirm: boolean;
   onRejectReason: string; onSetRejectReason: (r: string) => void;
   onSetEta: (v: number) => void;
+  onAdjustEta: (o: Order, newEta: number) => void;
   onAccept: (o: Order) => void;
   onReject: (o: Order) => void;
   onMarkReady: (o: Order) => void;
   onDeliver: (o: Order) => void;
-  onCancelCooking: (o: Order) => void;
+  onCancelCooking: (o: Order, reason?: string) => void;
   onToggleMoreMenu: () => void;
   onShowRejectConfirm: () => void;
   onCloseMoreMenu: () => void;
@@ -1340,17 +1360,48 @@ function DetailPanel({
         <div className="p-5 space-y-4">
 
           {/* Timer — only for cooking tab */}
-          {tab === 'cooking' && countdownSecs !== null && (
-            <div className={cn('rounded-2xl p-5 text-center border-2', isLate ? 'bg-red-50 border-red-200' : 'bg-white border-[#E8E8E8]')}>
-              <p className={cn('text-[11px] font-bold uppercase tracking-widest mb-2', isLate ? 'text-red-500' : 'text-[#AAAAAA]')}>
-                {isLate ? '¡Atrasado!' : 'Tiempo restante'}
-              </p>
-              <p className={cn('font-black tabular-nums leading-none', isLate ? 'text-red-500' : 'text-[#111]')} style={{ fontSize: 64 }}>
-                {isLate ? '−' : ''}{fmtMM(countdownSecs)}
-              </p>
-              <p className={cn('text-sm font-semibold mt-1', isLate ? 'text-red-400' : 'text-[#888]')}>
-                {isLate ? 'min de retraso' : 'min restantes'}
-              </p>
+          {tab === 'cooking' && (
+            <div className={cn('rounded-2xl border-2 overflow-hidden', isLate ? 'bg-red-50 border-red-200' : 'bg-white border-[#E8E8E8]')}>
+              {countdownSecs !== null ? (
+                <div className="p-5 text-center">
+                  <p className={cn('text-[11px] font-bold uppercase tracking-widest mb-2', isLate ? 'text-red-500' : 'text-[#AAAAAA]')}>
+                    {isLate ? '¡Atrasado!' : 'Tiempo restante'}
+                  </p>
+                  <p className={cn('font-black tabular-nums leading-none', isLate ? 'text-red-500' : 'text-[#111]')} style={{ fontSize: 64 }}>
+                    {isLate ? '−' : ''}{fmtMM(countdownSecs)}
+                  </p>
+                  <p className={cn('text-sm font-semibold mt-1', isLate ? 'text-red-400' : 'text-[#888]')}>
+                    {isLate ? 'min de retraso' : 'min restantes'}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-4 text-center">
+                  <p className="text-[11px] font-bold text-[#AAAAAA] uppercase tracking-widest">En preparación</p>
+                </div>
+              )}
+              {/* ETA adjustment buttons */}
+              <div className="border-t border-[#F0F0F0] px-4 py-2.5 flex items-center justify-between gap-2 bg-[#FAFAFA]">
+                <span className="text-[11px] text-[#888] font-semibold">Ajustar ETA</span>
+                <div className="flex items-center gap-1">
+                  {[-10, -5, +5, +10].map(delta => {
+                    const current = etaMins ?? effectiveEta;
+                    const newVal = Math.max(1, current + delta);
+                    return (
+                      <button
+                        key={delta}
+                        onClick={() => onAdjustEta(order, newVal)}
+                        disabled={isUpdating}
+                        className={cn(
+                          'px-2.5 py-1.5 rounded-lg text-xs font-black border transition-all active:scale-95 disabled:opacity-40',
+                          delta < 0 ? 'border-red-200 text-red-500 bg-red-50 hover:bg-red-100' : 'border-green-200 text-green-600 bg-green-50 hover:bg-green-100'
+                        )}
+                      >
+                        {delta > 0 ? '+' : ''}{delta}m
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
 

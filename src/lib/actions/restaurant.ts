@@ -776,7 +776,7 @@ export async function deleteTable(id: string) {
 }
 
 // ---- Orders ----
-export async function updateOrderStatus(orderId: string, status: string) {
+export async function updateOrderStatus(orderId: string, status: string, cancellationReason?: string) {
   const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
@@ -792,9 +792,14 @@ export async function updateOrderStatus(orderId: string, status: string) {
 
   if (!order) return { error: 'Orden no encontrada' };
 
+  const updatePayload: Record<string, unknown> = { status };
+  if (status === 'cancelled' && cancellationReason) {
+    updatePayload.cancellation_reason = cancellationReason;
+  }
+
   const { error } = await supabase
     .from('orders')
-    .update({ status })
+    .update(updatePayload)
     .eq('id', orderId)
     .eq('restaurant_id', restaurantId);
 
@@ -857,6 +862,19 @@ export async function updateOrderETA(orderId: string, etaMinutes: number) {
     .update({ estimated_ready_minutes: etaMinutes })
     .eq('id', orderId)
     .eq('restaurant_id', restaurantId);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function setPauseOrders(pausedUntil: string | null) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { error } = await supabase
+    .from('restaurants')
+    .update({ orders_paused_until: pausedUntil })
+    .eq('id', restaurantId);
 
   if (error) return { error: error.message };
   return { success: true };

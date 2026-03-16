@@ -66,12 +66,21 @@ export async function POST(request: NextRequest) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled')
+      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until')
       .eq('id', restaurant_id)
       .maybeSingle();
 
     if (!restaurant) {
       return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 });
+    }
+
+    // Pause guard — if the restaurant paused orders, reject new ones
+    const pausedUntil = (restaurant as any).orders_paused_until;
+    if (pausedUntil && new Date(pausedUntil) > new Date()) {
+      return NextResponse.json(
+        { error: 'El restaurante no está aceptando órdenes en este momento. Intenta más tarde.' },
+        { status: 503 }
+      );
     }
 
     // Check subscription — enforce daily limit for expired/free-tier restaurants
