@@ -1364,7 +1364,7 @@ export function MenuShell({
         restaurantName={restaurant.name}
         slug={restaurant.slug}
         logoUrl={(restaurant as any).logo_url ?? null}
-        locale={locale}
+        locale={locale === 'en' ? 'en' : 'es'}
       />
 
       {/* ── Language Switcher (floating pill) ── */}
