@@ -824,12 +824,14 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
 
   if (error) return { error: error.message };
 
-  // Log the transition to order_status_history (non-blocking)
-  supabase
-    .from('order_status_history')
-    .insert({ order_id: orderId, from_status: currentStatus, to_status: status, note: cancellationReason ?? null })
-    .then(() => {})
-    .catch(() => {}); // Graceful — table may not exist yet
+  // Log the transition to order_status_history (non-blocking, graceful)
+  void (async () => {
+    try {
+      await supabase
+        .from('order_status_history')
+        .insert({ order_id: orderId, from_status: currentStatus, to_status: status, note: cancellationReason ?? null });
+    } catch { /* table may not exist yet — safe to ignore */ }
+  })();
 
   if (['confirmed', 'preparing', 'ready', 'delivered', 'cancelled'].includes(status)) {
     import('@/lib/notifications/order-notifications').then(({ notifyStatusChange }) => {
