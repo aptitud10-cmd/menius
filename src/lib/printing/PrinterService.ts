@@ -16,7 +16,8 @@
 
 import type { Order, OrderItem } from '@/types';
 import type { PrintJob, PrintState, ReceiptData, ReceiptLineItem } from './types';
-import { buildReceiptHTML } from './receipt-formatter';
+import { buildReceiptHTML, buildKitchenHTML } from './receipt-formatter';
+import { PrinterConfig } from './PrinterConfig';
 
 const MAX_ATTEMPTS = 3;
 const PRINT_TIMEOUT_MS = 25_000;
@@ -236,8 +237,12 @@ class PrinterServiceImpl {
 
     try {
       const receiptData = mapOrderToReceipt(order, etaMinutes, restaurantName, currency, locale);
-      const html = buildReceiptHTML(receiptData);
-      await executePrint(html);
+      const cfg = PrinterConfig.config;
+      // Print receipt and/or kitchen ticket based on device config
+      if (cfg.receiptEnabled) await executePrint(buildReceiptHTML(receiptData));
+      if (cfg.kitchenEnabled) await executePrint(buildKitchenHTML(receiptData));
+      // If both disabled, fall back to receipt to avoid silent no-print
+      if (!cfg.receiptEnabled && !cfg.kitchenEnabled) await executePrint(buildReceiptHTML(receiptData));
       return this.transition(current, 'printed');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown printer error';

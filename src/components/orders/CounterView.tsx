@@ -13,6 +13,7 @@ import {
 } from '@/lib/actions/restaurant';
 import { AutoAcceptService } from '@/lib/counter/AutoAcceptService';
 import { PrinterService } from '@/lib/printing/PrinterService';
+import { fetchSuggestedEta, clampEta } from '@/lib/utils/eta';
 import type { Order, OrderItem } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -118,7 +119,7 @@ function getT(locale?: string) {
 
 const GREEN = '#06C167';
 const SLA_WARN_MINS = 5;
-type Tab = 'new' | 'prep' | 'ready' | 'history';
+type Tab = 'new' | 'prep' | 'ready' | 'scheduled' | 'history';
 type Locale = 'es' | 'en';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -284,6 +285,8 @@ interface CounterViewProps {
   restaurantName: string;
   currency: string;
   locale?: Locale;
+  restaurantLat?: number | null;
+  restaurantLng?: number | null;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -292,6 +295,7 @@ interface CounterViewProps {
 
 export function CounterView({
   initialOrders, restaurantId, restaurantName, currency, locale = 'es',
+  restaurantLat, restaurantLng,
 }: CounterViewProps) {
   const t = getT(locale);
 
@@ -339,6 +343,7 @@ export function CounterView({
   // ── Order actions state ──
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [eta, setEta] = useState(15);
+  const [suggestedEta, setSuggestedEta] = useState<number | null>(null);
   const [busyExtra, setBusyExtra] = useState(0);
 
   // ── Pause state ──
@@ -359,6 +364,7 @@ export function CounterView({
   const [driverName, setDriverName] = useState('');
   const [driverPhone, setDriverPhone] = useState('');
   const [assigningDriver, setAssigningDriver] = useState(false);
+  const [driverPool, setDriverPool] = useState<{ id: string; name: string; phone: string }[]>([]);
 
   // ── Toasts ──
   const [errorToast, setErrorToast] = useState<string | null>(null);
@@ -433,6 +439,14 @@ export function CounterView({
   // Auto-accept subscription
   useEffect(() => { return AutoAcceptService.subscribe(() => {}); }, []);
 
+  // Load driver pool
+  useEffect(() => {
+    fetch('/api/tenant/drivers')
+      .then(r => r.json())
+      .then(d => { if (d.drivers) setDriverPool(d.drivers.filter((dr: any) => dr.is_active)); })
+      .catch(() => {});
+  }, []);
+
   // ── New order handler ──
   const handleNewOrder = useCallback((order: Order) => {
     playNewOrderSound();
@@ -446,8 +460,13 @@ export function CounterView({
   const { orders } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
   // ── Derived lists ──
+  const scheduledOrders = useMemo(() =>
+    orders.filter(o => o.status === 'pending' && o.scheduled_for)
+      .sort((a, b) => new Date(a.scheduled_for!).getTime() - new Date(b.scheduled_for!).getTime()),
+    [orders]);
+
   const newOrders = useMemo(() =>
-    orders.filter(o => o.status === 'pending')
+    orders.filter(o => o.status === 'pending' && !o.scheduled_for)
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
     [orders]);
 
@@ -480,8 +499,9 @@ export function CounterView({
     if (activeTab === 'new') return newOrders;
     if (activeTab === 'prep') return prepOrders;
     if (activeTab === 'ready') return readyOrders;
+    if (activeTab === 'scheduled') return scheduledOrders;
     return historyOrders;
-  }, [activeTab, newOrders, prepOrders, readyOrders, historyOrders]);
+  }, [activeTab, newOrders, prepOrders, readyOrders, scheduledOrders, historyOrders]);
 
   // Auto-select first order when tab changes or list changes
   useEffect(() => {
@@ -521,6 +541,18 @@ export function CounterView({
 
   // ── Derived ──
   const selectedOrder = orders.find(o => o.id === selectedId) ?? null;
+
+  // Dynamic ETA suggestion for delivery orders (must be after selectedOrder is defined)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setSuggestedEta(null);
+    if (!selectedOrder || selectedOrder.order_type !== 'delivery') return;
+    if (!restaurantLat || !restaurantLng || !selectedOrder.delivery_address) return;
+    fetchSuggestedEta(restaurantLat, restaurantLng, selectedOrder.delivery_address)
+      .then(mins => { if (mins) setSuggestedEta(clampEta(mins)); })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedOrder?.id, restaurantLat, restaurantLng]);
   const isPaused = !!pausedUntil && Date.now() < pausedUntil;
   const pauseLeftMins = pausedUntil ? Math.max(0, Math.ceil((pausedUntil - Date.now()) / 60_000)) : 0;
   const effectiveEta = eta + busyExtra;
@@ -612,19 +644,25 @@ export function CounterView({
   const handleAssignDriver = useCallback(async () => {
     if (!driverModal) return;
     setAssigningDriver(true);
-    const waUrl = driverPhone && driverModal.address
-      ? `https://wa.me/${driverPhone.replace(/\D/g, '')}?text=${encodeURIComponent(
-          t.en
-            ? `Hi ${driverName || 'driver'} 🛵 You have a delivery:\n📍 ${driverModal.address}\nCome to the restaurant to pick up the order.`
-            : `Hola ${driverName || 'repartidor'} 🛵 Tienes una entrega:\n📍 ${driverModal.address}\nAcude al restaurante para recoger el pedido.`
-        )}`
-      : null;
     try {
       const res = await assignDriver(driverModal.orderId, driverName, driverPhone);
       if (res?.error) { showError(res.error); return; }
       setDriverModal(null);
       setDriverName(''); setDriverPhone('');
-      if (waUrl) window.open(waUrl, '_blank', 'noopener');
+
+      // Send WhatsApp message with address + tracking link to driver
+      if (driverPhone) {
+        const trackInfo = (res as any).trackingUrl
+          ? (t.en ? `\n🗺️ Tracking link: ${(res as any).trackingUrl}` : `\n🗺️ Link de rastreo: ${(res as any).trackingUrl}`)
+          : '';
+        const msg = t.en
+          ? `Hi ${driverName || 'driver'} 🛵 You have a delivery:\n📍 ${driverModal.address ?? ''}${trackInfo}\nCome to the restaurant to pick up the order.`
+          : `Hola ${driverName || 'repartidor'} 🛵 Tienes una entrega:\n📍 ${driverModal.address ?? ''}${trackInfo}\nAcude al restaurante para recoger el pedido.`;
+        window.open(
+          `https://wa.me/${driverPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`,
+          '_blank', 'noopener'
+        );
+      }
     } catch {
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setAssigningDriver(false); }
@@ -761,6 +799,12 @@ export function CounterView({
             badgeColor={GREEN} onClick={() => changeTab('ready')}
           />
           <TabBtn
+            label={t.en ? 'Sched.' : 'Program.'} count={scheduledOrders.length || null}
+            active={activeTab === 'scheduled'} urgent={false}
+            badgeColor="#8B5CF6" onClick={() => changeTab('scheduled')}
+            icon={<Clock className="w-3.5 h-3.5" />}
+          />
+          <TabBtn
             label={t.tabHistory} count={null}
             active={activeTab === 'history'} urgent={false}
             badgeColor="#9CA3AF" onClick={() => changeTab('history')}
@@ -889,6 +933,7 @@ export function CounterView({
               tab={activeTab}
               eta={eta}
               busyExtra={busyExtra}
+              suggestedEta={suggestedEta}
               isUpdating={updatingId === selectedOrder.id}
               t={t}
               onBack={() => setShowDetailMobile(false)}
@@ -920,13 +965,16 @@ export function CounterView({
                 {activeTab === 'new' && <Bell className="w-12 h-12 text-[#DDDDDD]" />}
                 {activeTab === 'prep' && <Clock className="w-12 h-12 text-[#DDDDDD]" />}
                 {activeTab === 'ready' && <CheckCircle className="w-12 h-12 text-[#DDDDDD]" />}
+                {activeTab === 'scheduled' && <Clock className="w-12 h-12 text-purple-200" />}
                 {activeTab === 'history' && <History className="w-12 h-12 text-[#DDDDDD]" />}
               </div>
               <div>
                 <p className="text-[#888] text-xl font-bold">
                   {activeTab === 'new' ? t.waitingOrders :
                    activeTab === 'prep' ? t.noPrepping :
-                   activeTab === 'ready' ? t.noReady : t.selectOrder}
+                   activeTab === 'ready' ? t.noReady :
+                   activeTab === 'scheduled' ? (t.en ? 'No scheduled orders' : 'Sin órdenes programadas') :
+                   t.selectOrder}
                 </p>
                 {activeTab === 'new' && (
                   <p className="text-[#BBBBBB] text-sm mt-1 flex items-center justify-center gap-2">
@@ -1080,6 +1128,27 @@ export function CounterView({
               <h2 className="text-base font-bold text-[#111]">🛵 {t.assignDriver}</h2>
               <button onClick={() => setDriverModal(null)} className="p-1 text-[#AAAAAA] hover:text-[#111]"><X className="w-5 h-5" /></button>
             </div>
+            {/* Driver pool quick-select */}
+            {driverPool.length > 0 && (
+              <div className="mb-3">
+                <p className="text-xs text-[#888] mb-2">{t.en ? 'Select from your team:' : 'Elige de tu equipo:'}</p>
+                <div className="flex flex-wrap gap-2">
+                  {driverPool.map(d => (
+                    <button key={d.id}
+                      onClick={() => { setDriverName(d.name); setDriverPhone(d.phone); }}
+                      className={cn(
+                        'px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors',
+                        driverName === d.name
+                          ? 'border-[#06C167] bg-[#06C167]/10 text-[#06C167]'
+                          : 'border-[#E8E8E8] text-[#555] hover:border-[#06C167]'
+                      )}
+                    >
+                      {d.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="space-y-3 mb-5">
               <input
                 value={driverName}
@@ -1218,6 +1287,11 @@ function OrderRow({
             <div className={cn('text-xs font-black tabular-nums', isLate ? 'text-red-500' : 'text-[#06C167]')}>
               {isLate ? '−' : ''}{fmtCountdown(countdownSecs)}
             </div>
+          ) : tab === 'scheduled' && order.scheduled_for ? (
+            <div className="text-[10px] font-bold text-purple-500 text-right">
+              {new Date(order.scheduled_for).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              <div className="text-[9px] text-purple-300">{new Date(order.scheduled_for).toLocaleDateString([], { month: 'short', day: 'numeric' })}</div>
+            </div>
           ) : (
             <div className={cn('text-xs font-semibold tabular-nums', isUrgent ? 'text-red-500' : 'text-[#AAAAAA]')}>
               {mins}m
@@ -1301,12 +1375,12 @@ function EmptyState({ tab, t }: { tab: Tab; t: ReturnType<typeof getT> }) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 function OrderDetail({
-  order, currency, restaurantName, tab, eta, busyExtra, isUpdating, t,
+  order, currency, restaurantName, tab, eta, busyExtra, suggestedEta, isUpdating, t,
   onBack, onSetEta, onAdjustEta, onAccept, onMarkReady, onDeliver,
   onCancelRequest, onPrint, onAssignDriver,
 }: {
   order: Order; currency: string; restaurantName: string; tab: Tab;
-  eta: number; busyExtra: number; isUpdating: boolean;
+  eta: number; busyExtra: number; suggestedEta?: number | null; isUpdating: boolean;
   t: ReturnType<typeof getT>;
   onBack: () => void;
   onSetEta: (v: number) => void;
@@ -1459,7 +1533,18 @@ function OrderDetail({
           {/* ETA selector (new tab only) */}
           {tab === 'new' && (
             <div className="bg-white rounded-2xl p-5 border-2 border-[#E8E8E8]">
-              <p className="text-[11px] font-bold text-[#AAAAAA] uppercase tracking-widest mb-3">{t.eta}</p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[11px] font-bold text-[#AAAAAA] uppercase tracking-widest">{t.eta}</p>
+                {suggestedEta && (
+                  <button
+                    onClick={() => onSetEta(suggestedEta)}
+                    className="flex items-center gap-1 text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full hover:bg-blue-100 transition-colors"
+                  >
+                    <MapPin className="w-2.5 h-2.5" />
+                    {t.en ? `~${suggestedEta} min suggested` : `~${suggestedEta} min sugerido`}
+                  </button>
+                )}
+              </div>
               <div className="flex items-center justify-center gap-4">
                 <button
                   onClick={() => onSetEta(Math.max(5, eta - 5))}
@@ -1527,17 +1612,27 @@ function OrderDetail({
                   </div>
                 )}
                 {(order as any).driver_name ? (
-                  <button onClick={onAssignDriver} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-[#06C167]/30 bg-[#06C167]/5 hover:bg-[#06C167]/10 transition-colors text-left">
-                    <span className="text-base">🛵</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[#06C167]">{t.driver}</p>
-                      <p className="text-xs text-[#555] truncate">
-                        {(order as any).driver_name}
-                        {(order as any).driver_phone ? ` · ${(order as any).driver_phone}` : ''}
-                      </p>
-                    </div>
-                    <span className="text-[10px] text-[#888]">{t.editDriver}</span>
-                  </button>
+                  <>
+                    <button onClick={onAssignDriver} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-[#06C167]/30 bg-[#06C167]/5 hover:bg-[#06C167]/10 transition-colors text-left">
+                      <span className="text-base">🛵</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-[#06C167]">{t.driver}</p>
+                        <p className="text-xs text-[#555] truncate">
+                          {(order as any).driver_name}
+                          {(order as any).driver_phone ? ` · ${(order as any).driver_phone}` : ''}
+                        </p>
+                      </div>
+                      <span className="text-[10px] text-[#888]">{t.editDriver}</span>
+                    </button>
+                    {(order as any).delivery_photo_url && (
+                      <div className="mt-2">
+                        <p className="text-[10px] font-bold text-[#888] uppercase tracking-wider mb-1">📷 {t.en ? 'Delivery proof' : 'Foto de entrega'}</p>
+                        <a href={(order as any).delivery_photo_url} target="_blank" rel="noopener noreferrer">
+                          <img src={(order as any).delivery_photo_url} alt="Delivery proof" className="w-full rounded-xl object-cover max-h-36 border border-[#E8E8E8]" />
+                        </a>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <button onClick={onAssignDriver} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border-2 border-dashed border-[#DDDDDD] text-[#888] hover:border-[#06C167] hover:text-[#06C167] transition-colors text-sm font-semibold">
                     🛵 {t.assignDriver}

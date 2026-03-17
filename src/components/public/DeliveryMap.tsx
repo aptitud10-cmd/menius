@@ -12,6 +12,8 @@ interface DeliveryMapProps {
   restaurantAddress: string;
   deliveryAddress?: string | null;
   restaurantName: string;
+  driverLat?: number | null;
+  driverLng?: number | null;
 }
 
 async function geocode(address: string): Promise<Coords | null> {
@@ -59,10 +61,11 @@ function MapFallback({ restaurantAddress, deliveryAddress, restaurantName }: Del
   );
 }
 
-function LeafletMap({ restaurantCoords, deliveryCoords, restaurantName }: {
+function LeafletMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoords }: {
   restaurantCoords: Coords;
   deliveryCoords: Coords | null;
   restaurantName: string;
+  driverCoords: Coords | null;
 }) {
   const [MapComponents, setMapComponents] = useState<any>(null);
 
@@ -137,7 +140,14 @@ function LeafletMap({ restaurantCoords, deliveryCoords, restaurantName }: {
         {/* Delivery address pin */}
         {deliveryCoords && (
           <Marker position={[deliveryCoords.lat, deliveryCoords.lon]}>
-            <Popup>Tu dirección de entrega</Popup>
+            <Popup>Delivery address</Popup>
+          </Marker>
+        )}
+
+        {/* Driver pin */}
+        {driverCoords && (
+          <Marker position={[driverCoords.lat, driverCoords.lon]}>
+            <Popup>🛵 Driver</Popup>
           </Marker>
         )}
 
@@ -150,10 +160,14 @@ function LeafletMap({ restaurantCoords, deliveryCoords, restaurantName }: {
   );
 }
 
-export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName }: DeliveryMapProps) {
+export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName, driverLat, driverLng }: DeliveryMapProps) {
   const [restaurantCoords, setRestaurantCoords] = useState<Coords | null>(null);
   const [deliveryCoords, setDeliveryCoords] = useState<Coords | null>(null);
   const [geocodingDone, setGeocodingDone] = useState(false);
+
+  const driverCoords: Coords | null = (driverLat != null && driverLng != null)
+    ? { lat: driverLat, lon: driverLng }
+    : null;
 
   useEffect(() => {
     if (!restaurantAddress) return;
@@ -190,6 +204,7 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
         restaurantCoords={restaurantCoords}
         deliveryCoords={deliveryCoords}
         restaurantName={restaurantName}
+        driverCoords={driverCoords}
       />
       {/* Google Maps fallback link */}
       <a

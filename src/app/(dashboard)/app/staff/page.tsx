@@ -1,8 +1,145 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Users, Plus, Trash2, Loader2, Mail, Shield, ChefHat, UserCheck, UserX, UserPlus } from 'lucide-react';
+import { Users, Plus, Trash2, Loader2, Mail, Shield, ChefHat, UserCheck, UserX, UserPlus, Bike, Phone, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
+
+interface Driver {
+  id: string;
+  name: string;
+  phone: string;
+  is_active: boolean;
+}
+
+function DriversSection({ t }: { t: any }) {
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const en = t.nav_home === 'Home';
+
+  const fetch_ = useCallback(async () => {
+    setLoading(true);
+    const res = await fetch('/api/tenant/drivers');
+    const data = await res.json();
+    setDrivers(data.drivers ?? []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetch_(); }, [fetch_]);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    await fetch('/api/tenant/drivers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone }),
+    });
+    setName(''); setPhone(''); setShowForm(false); setSaving(false);
+    fetch_();
+  };
+
+  const toggle = async (d: Driver) => {
+    await fetch('/api/tenant/drivers', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: d.id, is_active: !d.is_active }),
+    });
+    fetch_();
+  };
+
+  const del = async (id: string) => {
+    if (!confirm(en ? 'Delete this driver?' : '¿Eliminar este repartidor?')) return;
+    await fetch('/api/tenant/drivers', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    fetch_();
+  };
+
+  return (
+    <div className="mt-10">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Bike className="w-6 h-6 text-emerald-500" />
+          <h2 className="text-lg font-bold text-gray-900">{en ? 'Delivery Drivers' : 'Repartidores'}</h2>
+        </div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition text-sm"
+        >
+          <Plus className="w-4 h-4" />
+          {en ? 'Add driver' : 'Agregar repartidor'}
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleAdd} className="bg-white border border-gray-200 rounded-xl p-4 mb-4 flex gap-3 flex-wrap items-end">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">{en ? 'Name' : 'Nombre'}</label>
+            <input value={name} onChange={e => setName(e.target.value)} required
+              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" placeholder={en ? 'John Doe' : 'Juan Pérez'} />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">{en ? 'Phone' : 'Teléfono'}</label>
+            <input value={phone} onChange={e => setPhone(e.target.value)}
+              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" placeholder="+1 555 123 4567" />
+          </div>
+          <button type="submit" disabled={saving}
+            className="flex items-center gap-1 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold disabled:opacity-50">
+            {saving && <Loader2 className="w-3 h-3 animate-spin" />}
+            {en ? 'Save' : 'Guardar'}
+          </button>
+          <button type="button" onClick={() => setShowForm(false)} className="px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm">{en ? 'Cancel' : 'Cancelar'}</button>
+        </form>
+      )}
+
+      {loading ? (
+        <div className="py-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+      ) : drivers.length === 0 ? (
+        <div className="text-center py-10 text-gray-500">
+          <Bike className="w-10 h-10 mx-auto mb-2 opacity-30" />
+          <p className="text-sm">{en ? 'No drivers yet. Add your first driver.' : 'No hay repartidores. Agrega el primero.'}</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {drivers.map(d => (
+            <div key={d.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-700 font-bold text-sm">
+                  {d.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900 text-sm">{d.name}</p>
+                  {d.phone && (
+                    <div className="flex items-center gap-1 text-gray-500 text-xs">
+                      <Phone className="w-3 h-3" />{d.phone}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-medium ${d.is_active ? 'text-emerald-600' : 'text-gray-400'}`}>
+                  {d.is_active ? (en ? 'Active' : 'Activo') : (en ? 'Inactive' : 'Inactivo')}
+                </span>
+                <button onClick={() => toggle(d)} className="p-1 hover:bg-gray-100 rounded-lg transition">
+                  {d.is_active ? <ToggleRight className="w-5 h-5 text-emerald-500" /> : <ToggleLeft className="w-5 h-5 text-gray-400" />}
+                </button>
+                <button onClick={() => del(d.id)} className="p-1 hover:bg-red-50 text-gray-400 hover:text-red-400 rounded-lg transition">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface StaffMember {
   id: string;
@@ -99,7 +236,7 @@ export default function StaffPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Users className="w-7 h-7 text-blue-500" />
@@ -235,6 +372,8 @@ export default function StaffPage() {
           })}
         </div>
       )}
+
+      <DriversSection t={t} />
     </div>
   );
 }

@@ -92,6 +92,10 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
   const [promoError, setPromoError] = useState('');
   const [promoResult, setPromoResult] = useState<{ valid: boolean; discount: number; description?: string } | null>(null);
 
+  // Pre-order / scheduled
+  const [scheduledFor, setScheduledFor] = useState('');
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [orderError, setOrderError] = useState('');
@@ -200,6 +204,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
           promo_code: promoResult?.valid ? promoCode.trim() : undefined,
           discount_amount: discount,
           tip_amount: tipAmount > 0 ? tipAmount : undefined,
+          scheduled_for: scheduleEnabled && scheduledFor ? scheduledFor : undefined,
           items: items.map((item) => ({
             product_id: item.product.id,
             variant_id: item.variant?.id ?? null,
@@ -980,6 +985,36 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
               <label className="block text-sm font-semibold text-gray-900 mb-2">{t.orderNotes} <span className="text-gray-400 font-normal text-xs">({t.optional})</span></label>
               <textarea value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)} placeholder={t.orderNotesPlaceholder} rows={2} className={cn(inputClass, 'resize-none')} />
             </div>
+
+            {/* Schedule for later */}
+            <div className="border border-dashed border-gray-200 rounded-2xl p-4 space-y-3">
+              <button
+                type="button"
+                onClick={() => setScheduleEnabled(v => !v)}
+                className="flex items-center gap-3 w-full group"
+              >
+                <div className={cn('w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors', scheduleEnabled ? 'bg-gray-900 border-gray-900' : 'border-gray-300 bg-white')}>
+                  {scheduleEnabled && (
+                    <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </div>
+                <span className="text-sm font-semibold text-gray-900">
+                  {locale === 'en' ? 'Schedule for later' : 'Programar para después'}
+                </span>
+              </button>
+              {scheduleEnabled && (
+                <input
+                  type="datetime-local"
+                  value={scheduledFor}
+                  onChange={e => setScheduledFor(e.target.value)}
+                  min={new Date(Date.now() + 10 * 60_000).toISOString().slice(0, 16)}
+                  className={cn(inputClass)}
+                />
+              )}
+            </div>
+
             <button
               type="button"
               onClick={() => setRememberMe((v) => !v)}

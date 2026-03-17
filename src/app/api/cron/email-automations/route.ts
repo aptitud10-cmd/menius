@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
     const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
     const { data: deliveredOrders } = await supabase
       .from('orders')
-      .select('id, customer_name, customer_email, restaurant_id')
+      .select('id, order_number, customer_name, customer_email, restaurant_id')
       .eq('status', 'delivered')
       .not('customer_email', 'is', null)
       .neq('customer_email', '')
@@ -134,12 +134,13 @@ export async function GET(request: NextRequest) {
       if (!restaurant) continue;
 
       const en = restaurant.locale === 'en';
-      const menuUrl = `${appUrl}/${restaurant.slug}`;
+      // Link directly to the order tracker page so the review form is visible immediately
+      const reviewUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}`;
 
       const sent = await sendEmail({
         to: order.customer_email,
         subject: en ? `How was your order at ${restaurant.name}? ⭐` : `¿Cómo estuvo tu pedido en ${restaurant.name}? ⭐`,
-        html: buildReviewRequestEmail(order.customer_name || (en ? 'Customer' : 'Cliente'), restaurant.name, menuUrl, en),
+        html: buildReviewRequestEmail(order.customer_name || (en ? 'Customer' : 'Cliente'), restaurant.name, reviewUrl, en),
       });
 
       if (sent) results.review_request++;

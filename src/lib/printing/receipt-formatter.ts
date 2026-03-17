@@ -333,3 +333,63 @@ export function buildReceiptText(data: ReceiptData): string {
 
   return lines.join('\n');
 }
+
+// ─── Kitchen ticket (items only, no prices) ──────────────────────────────────
+
+export function buildKitchenHTML(data: ReceiptData): string {
+  const { restaurantName, orderNumber, orderType, items, notes, etaMinutes, locale } = data;
+  const L = getLabels(locale);
+  const htmlLang = isEn(locale) ? 'en' : 'es';
+  const typeLabel = formatOrderType(orderType, locale);
+
+  const itemsHTML = items.map(item => {
+    const name = item.name.length > 30 ? item.name.slice(0, 27) + '...' : item.name;
+    return `
+      <div class="item">
+        <span class="qty">${item.qty}x</span>
+        <div class="name">
+          <strong>${name}</strong>
+          ${item.modifiers.map(m => `<div class="mod">— ${m}</div>`).join('')}
+          ${item.notes ? `<div class="note">★ ${item.notes}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  return `<!DOCTYPE html>
+<html lang="${htmlLang}">
+<head>
+  <meta charset="UTF-8" />
+  <title>KITCHEN #${orderNumber}</title>
+  <style>
+    @page { size: 80mm auto; margin: 4mm 4mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Courier New', Courier, monospace; font-size: 12px; line-height: 1.5; width: 72mm; }
+    .center { text-align: center; }
+    .bold { font-weight: bold; }
+    .divider { border-top: 2px dashed #000; margin: 6px 0; }
+    .order-num { font-size: 28px; font-weight: 900; text-align: center; letter-spacing: 2px; margin: 6px 0; }
+    .tag { font-size: 11px; text-align: center; text-transform: uppercase; letter-spacing: 1px; }
+    .item { display: flex; gap: 6px; padding: 4px 0; border-bottom: 1px dotted #ccc; }
+    .qty { font-size: 14px; font-weight: 900; min-width: 22px; }
+    .name { flex: 1; }
+    .name strong { font-size: 13px; }
+    .mod { font-size: 10px; color: #444; padding-left: 8px; }
+    .note { font-size: 10px; color: #222; padding-left: 8px; font-style: italic; font-weight: bold; }
+    .eta { font-size: 16px; font-weight: bold; text-align: center; margin: 8px 0; }
+    .notes-box { border: 2px solid #000; padding: 5px 8px; margin: 6px 0; font-size: 11px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="center bold" style="font-size:13px;">${restaurantName.toUpperCase()}</div>
+  <div class="tag">${isEn(locale) ? 'KITCHEN TICKET' : 'TICKET DE COCINA'}</div>
+  <div class="divider"></div>
+  <div class="order-num">#${orderNumber}</div>
+  ${typeLabel ? `<div class="tag">${typeLabel.toUpperCase()}</div>` : ''}
+  <div class="divider"></div>
+  ${itemsHTML}
+  <div class="divider"></div>
+  ${notes ? `<div class="notes-box">⚠️ ${notes}</div>` : ''}
+  ${etaMinutes ? `<div class="eta">⏱ ${etaMinutes} min</div>` : ''}
+</body>
+</html>`;
+}

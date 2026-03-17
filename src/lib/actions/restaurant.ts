@@ -916,16 +916,32 @@ export async function assignDriver(
   const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
+  // Generate a unique tracking token for this delivery
+  const token = driverName.trim()
+    ? `${orderId.slice(0, 8)}-${Math.random().toString(36).slice(2, 10)}`
+    : null;
+
   const { error } = await supabase
     .from('orders')
     .update({
       driver_name: driverName.trim() || null,
       driver_phone: driverPhone.trim() || null,
       driver_assigned_at: driverName.trim() ? new Date().toISOString() : null,
+      driver_tracking_token: token,
+      // Reset GPS on new assignment
+      driver_lat: null,
+      driver_lng: null,
+      driver_updated_at: null,
     })
     .eq('id', orderId)
     .eq('restaurant_id', restaurantId);
 
   if (error) return { error: error.message };
-  return { success: true };
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app';
+  return {
+    success: true,
+    trackingToken: token,
+    trackingUrl: token ? `${appUrl}/driver/track/${token}` : null,
+  };
 }

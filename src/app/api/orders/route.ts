@@ -281,6 +281,15 @@ export async function POST(request: NextRequest) {
 
     const total = Math.max(0, subtotal - discountAmt + tipAmt + deliveryFeeAmt);
 
+    // scheduled_for: parse ISO string from body, validate, reject if in the past
+    let scheduledFor: string | null = null;
+    if (body.scheduled_for) {
+      const sf = new Date(body.scheduled_for);
+      if (!isNaN(sf.getTime()) && sf.getTime() > Date.now() + 5 * 60_000) {
+        scheduledFor = sf.toISOString();
+      }
+    }
+
     const orderInsert: Record<string, any> = {
       restaurant_id,
       order_number: orderNumber,
@@ -296,6 +305,7 @@ export async function POST(request: NextRequest) {
       promo_code: promo_code || '',
       discount_amount: discountAmt,
       idempotency_key: idempotencyKey || null,
+      scheduled_for: scheduledFor,
     };
     if (tipAmt > 0) orderInsert.tip_amount = tipAmt;
     if (deliveryFeeAmt > 0) orderInsert.delivery_fee = deliveryFeeAmt;

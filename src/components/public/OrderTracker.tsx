@@ -422,7 +422,25 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               restaurantAddress={restaurantAddress}
               deliveryAddress={order.delivery_address}
               restaurantName={restaurantName}
+              driverLat={(order as any).driver_lat ?? null}
+              driverLng={(order as any).driver_lng ?? null}
             />
+          </div>
+        )}
+
+        {/* Delivery proof photo */}
+        {isComplete && (order as any).delivery_photo_url && (
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
+              {t.en ? 'Delivery photo' : 'Foto de entrega'}
+            </p>
+            <a href={(order as any).delivery_photo_url} target="_blank" rel="noopener noreferrer">
+              <img
+                src={(order as any).delivery_photo_url}
+                alt="Delivery proof"
+                className="w-full rounded-2xl object-cover border border-gray-100 shadow-sm max-h-56"
+              />
+            </a>
           </div>
         )}
 
