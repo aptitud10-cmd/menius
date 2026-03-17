@@ -28,6 +28,7 @@ function mapOrderToReceipt(
   etaMinutes: number | undefined,
   restaurantName: string,
   currency: string,
+  locale?: string,
 ): ReceiptData {
   const items: ReceiptLineItem[] = (order.items ?? []).map((item: OrderItem) => {
     const raw = item as any;
@@ -72,6 +73,7 @@ function mapOrderToReceipt(
     etaMinutes,
     currency,
     timestamp: new Date(order.created_at),
+    locale,
   };
 }
 
@@ -184,6 +186,7 @@ class PrinterServiceImpl {
     etaMinutes: number | undefined,
     restaurantName: string,
     currency: string,
+    locale?: string,
   ): Promise<PrintJob> {
     // Create job
     const job: PrintJob = {
@@ -198,7 +201,7 @@ class PrinterServiceImpl {
     this.jobs.set(job.id, job);
     this.notify(job);
 
-    return this._execute(job, order, etaMinutes, restaurantName, currency);
+    return this._execute(job, order, etaMinutes, restaurantName, currency, locale);
   }
 
   async retryJob(
@@ -207,13 +210,14 @@ class PrinterServiceImpl {
     etaMinutes: number | undefined,
     restaurantName: string,
     currency: string,
+    locale?: string,
   ): Promise<PrintJob | null> {
     const job = this.jobs.get(jobId);
     if (!job || job.state !== 'failed') return null;
     if (job.attempts >= job.maxAttempts) return job;
 
     const retrying = this.transition(job, 'retrying');
-    return this._execute(retrying, order, etaMinutes, restaurantName, currency);
+    return this._execute(retrying, order, etaMinutes, restaurantName, currency, locale);
   }
 
   private async _execute(
@@ -222,6 +226,7 @@ class PrinterServiceImpl {
     etaMinutes: number | undefined,
     restaurantName: string,
     currency: string,
+    locale?: string,
   ): Promise<PrintJob> {
     // Transition → printing
     let current = this.transition(job, 'printing');
@@ -230,7 +235,7 @@ class PrinterServiceImpl {
     this.notify(current);
 
     try {
-      const receiptData = mapOrderToReceipt(order, etaMinutes, restaurantName, currency);
+      const receiptData = mapOrderToReceipt(order, etaMinutes, restaurantName, currency, locale);
       const html = buildReceiptHTML(receiptData);
       await executePrint(html);
       return this.transition(current, 'printed');

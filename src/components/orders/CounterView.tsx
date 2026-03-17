@@ -154,12 +154,13 @@ function waLink(phone: string, msg: string) {
 
 // ─── Audio ────────────────────────────────────────────────────────────────────
 
+// Pre-authorized audio element — set during the unlock tap so the browser
+// allows playback even when triggered by setInterval (not a user gesture).
+let _newOrderAudio: HTMLAudioElement | null = null;
+
 function playNewOrderSound() {
   if (typeof window === 'undefined') return;
-  const audio = new Audio('/sounds/new-order.mp3');
-  audio.volume = 0.85;
-  audio.play().catch(() => {
-    // Fallback: synthesized chime
+  const synthFallback = () => {
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       [523, 659, 784].forEach((freq, i) => {
@@ -175,7 +176,18 @@ function playNewOrderSound() {
         osc.start(t); osc.stop(t + 0.55);
       });
     } catch { /* unavailable */ }
-  });
+  };
+
+  if (_newOrderAudio) {
+    // Reuse the pre-authorized element — reset to start so it always plays fully
+    _newOrderAudio.currentTime = 0;
+    _newOrderAudio.play().catch(synthFallback);
+  } else {
+    // Fallback before unlock (should not happen in practice)
+    const audio = new Audio('/sounds/new-order.mp3');
+    audio.volume = 0.85;
+    audio.play().catch(synthFallback);
+  }
 }
 
 function playUrgentSound() {
@@ -240,7 +252,7 @@ export function CounterView({
   const [audioUnlocked, setAudioUnlocked] = useState(false);
 
   const unlockAudio = useCallback(() => {
-    // Play a silent buffer to unlock the AudioContext permanently
+    // Unlock the Web Audio API context with a silent buffer
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
       const buf = ctx.createBuffer(1, 1, 22050);
@@ -249,10 +261,22 @@ export function CounterView({
       src.connect(ctx.destination);
       src.start(0);
     } catch { /* ignore */ }
-    // Also pre-load and play the MP3 silently to unlock it
+
+    // Pre-authorize the MP3 element during the user-gesture tap.
+    // After this the browser allows .play() from timers / intervals.
     const audio = new Audio('/sounds/new-order.mp3');
-    audio.volume = 0;
-    audio.play().catch(() => {});
+    audio.volume = 0.85;
+    audio.play()
+      .then(() => {
+        // Let it play the first chime, then keep the ref for future repeats
+        _newOrderAudio = audio;
+      })
+      .catch(() => {
+        // Even if it fails here, store the ref so later attempts use it
+        audio.volume = 0.85;
+        _newOrderAudio = audio;
+      });
+
     setAudioUnlocked(true);
   }, []);
 
@@ -437,7 +461,7 @@ export function CounterView({
     (async () => {
       await updateOrderETA(firstNew.id, effectiveEta).catch(() => {});
       await updateOrderStatus(firstNew.id, 'confirmed').catch(() => {});
-      PrinterService.printOrder(firstNew, effectiveEta, restaurantName, currency).catch(() => {});
+      PrinterService.printOrder(firstNew, effectiveEta, restaurantName, currency, locale).catch(() => {});
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newOrders.map(o => o.id).join(',')]);
@@ -464,7 +488,7 @@ export function CounterView({
       if (etaRes?.error) { showError(etaRes.error); return; }
       const res = await updateOrderStatus(order.id, 'confirmed');
       if (res?.error) { showError(res.error); return; }
-      if (autoPrint) PrinterService.printOrder(order, eff, restaurantName, currency).catch(() => {});
+      if (autoPrint) PrinterService.printOrder(order, eff, restaurantName, currency, locale).catch(() => {});
       setActiveTab('prep');
       setSelectedId(order.id);
       setShowDetailMobile(true);
@@ -779,7 +803,7 @@ export function CounterView({
                 setCancelReason('');
               }}
               onPrint={() => PrinterService.printOrder(
-                selectedOrder, selectedOrder.estimated_ready_minutes ?? effectiveEta, restaurantName, currency
+                selectedOrder, selectedOrder.estimated_ready_minutes ?? effectiveEta, restaurantName, currency, locale
               ).catch(() => {})}
               onAssignDriver={() => {
                 setDriverModal({

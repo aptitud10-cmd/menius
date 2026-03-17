@@ -17,9 +17,34 @@ function divider(char = '-', width = LINE_WIDTH): string {
   return char.repeat(width);
 }
 
-function formatCurrency(amount: number, currency: string): string {
+// ─── i18n labels ─────────────────────────────────────────────────────────────
+
+function isEn(locale?: string) {
+  return locale?.startsWith('en') ?? false;
+}
+
+function getLabels(locale?: string) {
+  const en = isEn(locale);
+  return {
+    order:    en ? 'ORDER'         : 'ORDEN',
+    customer: en ? 'Customer'      : 'Cliente',
+    guest:    en ? 'Guest'         : 'Invitado',
+    phone:    en ? 'Phone'         : 'Tel',
+    type:     en ? 'Type'          : 'Tipo',
+    payment:  en ? 'Payment'       : 'Pago',
+    address:  en ? 'Address'       : 'Dir',
+    date:     en ? 'Date'          : 'Fecha',
+    total:    en ? 'TOTAL'         : 'TOTAL',
+    notes:    en ? 'Customer notes': 'Notas del cliente',
+    eta:      en ? 'Ready in'      : 'Lista en',
+    thanks:   en ? 'Thank you for your order!' : '¡Gracias por su pedido!',
+  };
+}
+
+function formatCurrency(amount: number, currency: string, locale?: string): string {
+  const intlLocale = isEn(locale) ? 'en-US' : 'es-MX';
   try {
-    return new Intl.NumberFormat('es-MX', {
+    return new Intl.NumberFormat(intlLocale, {
       style: 'currency',
       currency,
       minimumFractionDigits: 2,
@@ -29,33 +54,40 @@ function formatCurrency(amount: number, currency: string): string {
   }
 }
 
-function formatDate(date: Date): string {
-  return date.toLocaleString('es-MX', {
+function formatDate(date: Date, locale?: string): string {
+  const intlLocale = isEn(locale) ? 'en-US' : 'es-MX';
+  return date.toLocaleString(intlLocale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false,
+    hour12: isEn(locale),
   });
 }
 
-function formatOrderType(type?: string): string {
-  const map: Record<string, string> = {
-    delivery: 'Delivery',
-    pickup: 'Para recoger',
-    dine_in: 'En mesa',
+function formatOrderType(type?: string, locale?: string): string {
+  const en = isEn(locale);
+  const map: Record<string, { es: string; en: string }> = {
+    delivery: { es: 'Delivery',       en: 'Delivery' },
+    pickup:   { es: 'Para recoger',   en: 'Pickup' },
+    dine_in:  { es: 'En mesa',        en: 'Dine-in' },
   };
-  return type ? (map[type] ?? type) : '';
+  if (!type) return '';
+  const entry = map[type];
+  if (!entry) return type;
+  return en ? entry.en : entry.es;
 }
 
-function formatPayment(method?: string): string {
+function formatPayment(method?: string, locale?: string): string {
   if (!method) return '';
-  return method === 'cash' ? 'Efectivo' : 'En línea';
+  const en = isEn(locale);
+  if (method === 'cash') return en ? 'Cash' : 'Efectivo';
+  return en ? 'Online' : 'En línea';
 }
 
-function renderItem(item: ReceiptLineItem, currency: string): string {
-  const price = formatCurrency(item.lineTotal, currency);
+function renderItem(item: ReceiptLineItem, currency: string, locale?: string): string {
+  const price = formatCurrency(item.lineTotal, currency, locale);
   const nameTruncated = item.name.length > 28 ? item.name.slice(0, 25) + '...' : item.name;
   const lines: string[] = [pad(`${item.qty}x ${nameTruncated}`, price)];
 
@@ -85,11 +117,15 @@ export function buildReceiptHTML(data: ReceiptData): string {
     etaMinutes,
     currency,
     timestamp,
+    locale,
   } = data;
+
+  const L = getLabels(locale);
+  const htmlLang = isEn(locale) ? 'en' : 'es';
 
   const itemsHTML = items
     .map((item) => {
-      const price = formatCurrency(item.lineTotal, currency);
+      const price = formatCurrency(item.lineTotal, currency, locale);
       const name =
         item.name.length > 26 ? item.name.slice(0, 23) + '...' : item.name;
       return `
@@ -105,14 +141,14 @@ export function buildReceiptHTML(data: ReceiptData): string {
     })
     .join('');
 
-  const typeLabel = formatOrderType(orderType);
-  const payLabel = formatPayment(paymentMethod);
+  const typeLabel = formatOrderType(orderType, locale);
+  const payLabel = formatPayment(paymentMethod, locale);
 
   return `<!DOCTYPE html>
-<html lang="es">
+<html lang="${htmlLang}">
 <head>
   <meta charset="UTF-8" />
-  <title>Orden #${orderNumber}</title>
+  <title>${L.order} #${orderNumber}</title>
   <style>
     @page {
       size: 80mm auto;
@@ -196,20 +232,20 @@ export function buildReceiptHTML(data: ReceiptData): string {
 
   <!-- ORDER META -->
   <div class="meta-row">
-    <span class="bold">ORDEN:</span>
+    <span class="bold">${L.order}:</span>
     <span class="large">#${orderNumber}</span>
   </div>
   <div class="meta-row">
-    <span>Cliente:</span>
-    <span class="bold">${customerName || 'Invitado'}</span>
+    <span>${L.customer}:</span>
+    <span class="bold">${customerName || L.guest}</span>
   </div>
-  ${customerPhone ? `<div class="meta-row"><span>Tel:</span><span>${customerPhone}</span></div>` : ''}
-  ${typeLabel ? `<div class="meta-row"><span>Tipo:</span><span>${typeLabel}</span></div>` : ''}
-  ${payLabel ? `<div class="meta-row"><span>Pago:</span><span>${payLabel}</span></div>` : ''}
-  ${deliveryAddress ? `<div class="meta-row"><span>Dir:</span><span style="text-align:right;max-width:55mm;">${deliveryAddress}</span></div>` : ''}
+  ${customerPhone ? `<div class="meta-row"><span>${L.phone}:</span><span>${customerPhone}</span></div>` : ''}
+  ${typeLabel ? `<div class="meta-row"><span>${L.type}:</span><span>${typeLabel}</span></div>` : ''}
+  ${payLabel ? `<div class="meta-row"><span>${L.payment}:</span><span>${payLabel}</span></div>` : ''}
+  ${deliveryAddress ? `<div class="meta-row"><span>${L.address}:</span><span style="text-align:right;max-width:55mm;">${deliveryAddress}</span></div>` : ''}
   <div class="meta-row">
-    <span>Fecha:</span>
-    <span>${formatDate(timestamp)}</span>
+    <span>${L.date}:</span>
+    <span>${formatDate(timestamp, locale)}</span>
   </div>
 
   <div class="divider"></div>
@@ -226,26 +262,26 @@ export function buildReceiptHTML(data: ReceiptData): string {
   <!-- TOTALS -->
   <table class="totals">
     <tr class="total-row">
-      <td class="label">TOTAL</td>
-      <td class="value">${formatCurrency(total, currency)}</td>
+      <td class="label">${L.total}</td>
+      <td class="value">${formatCurrency(total, currency, locale)}</td>
     </tr>
   </table>
 
   ${notes ? `
   <div class="divider"></div>
   <div class="notes-box">
-    <div class="notes-label">Notas del cliente</div>
+    <div class="notes-label">${L.notes}</div>
     <div>${notes}</div>
   </div>` : ''}
 
   <div class="divider"></div>
 
   <!-- ETA -->
-  ${etaMinutes ? `<div class="eta">⏱ Lista en: ${etaMinutes} min</div>` : ''}
+  ${etaMinutes ? `<div class="eta">⏱ ${L.eta}: ${etaMinutes} min</div>` : ''}
 
   <!-- FOOTER -->
   <div class="footer">
-    ¡Gracias por su pedido!<br/>
+    ${L.thanks}<br/>
     Powered by MENIUS
   </div>
 
@@ -258,39 +294,40 @@ export function buildReceiptHTML(data: ReceiptData): string {
 // ─── Plain text receipt (fallback / logging) ─────────────────────────────────
 
 export function buildReceiptText(data: ReceiptData): string {
+  const L = getLabels(data.locale);
   const lines: string[] = [
     divider('='),
     center(data.restaurantName.toUpperCase()),
     divider('='),
-    pad('Orden:', `#${data.orderNumber}`),
-    pad('Cliente:', data.customerName || 'Invitado'),
+    pad(`${L.order}:`, `#${data.orderNumber}`),
+    pad(`${L.customer}:`, data.customerName || L.guest),
   ];
 
-  if (data.customerPhone) lines.push(pad('Tel:', data.customerPhone));
-  if (data.orderType) lines.push(pad('Tipo:', formatOrderType(data.orderType)));
-  if (data.paymentMethod) lines.push(pad('Pago:', formatPayment(data.paymentMethod)));
-  lines.push(pad('Fecha:', formatDate(data.timestamp)));
+  if (data.customerPhone) lines.push(pad(`${L.phone}:`, data.customerPhone));
+  if (data.orderType) lines.push(pad(`${L.type}:`, formatOrderType(data.orderType, data.locale)));
+  if (data.paymentMethod) lines.push(pad(`${L.payment}:`, formatPayment(data.paymentMethod, data.locale)));
+  lines.push(pad(`${L.date}:`, formatDate(data.timestamp, data.locale)));
 
   lines.push(divider());
 
   for (const item of data.items) {
-    lines.push(renderItem(item, data.currency));
+    lines.push(renderItem(item, data.currency, data.locale));
   }
 
   lines.push(divider());
-  lines.push(pad('TOTAL:', formatCurrency(data.total, data.currency)));
+  lines.push(pad(`${L.total}:`, formatCurrency(data.total, data.currency, data.locale)));
   lines.push(divider());
 
   if (data.notes) {
-    lines.push('Notas: ' + data.notes);
+    lines.push(`${L.notes}: ` + data.notes);
     lines.push(divider());
   }
 
   if (data.etaMinutes) {
-    lines.push(center(`⏱ Lista en: ${data.etaMinutes} min`));
+    lines.push(center(`⏱ ${L.eta}: ${data.etaMinutes} min`));
   }
 
-  lines.push(center('¡Gracias por su pedido!'));
+  lines.push(center(L.thanks));
   lines.push(center('Powered by MENIUS'));
   lines.push(divider('='));
 

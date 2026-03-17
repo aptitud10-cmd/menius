@@ -44,4 +44,5 @@ export interface ReceiptData {
   etaMinutes?: number;
   currency: string;
   timestamp: Date;
+  locale?: string;
 }
