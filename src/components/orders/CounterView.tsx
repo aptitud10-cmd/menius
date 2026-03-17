@@ -29,7 +29,8 @@ function getT(locale?: string) {
     tabHistory:  en ? 'History'          : 'Historial',
     // Splash / new order
     newOrder:    en ? 'New order'        : 'Nueva orden',
-    tapAnywhere: en ? 'Tap anywhere to continue' : 'Toca en cualquier parte',
+    tapAnywhere: en ? 'Tap to view · auto-accepting in' : 'Toca para ver · auto-aceptando en',
+    autoAccepting: en ? 'Auto-accepting…' : 'Aceptando automáticamente…',
     viewOrder:   en ? 'View order'       : 'Ver orden',
     items:       (n: number) => en ? `${n} item${n !== 1 ? 's' : ''}` : `${n} ${n === 1 ? 'producto' : 'productos'}`,
     // Order types
@@ -682,6 +683,7 @@ export function CounterView({
           order={splashQueue[0]}
           currency={currency}
           queueCount={splashQueue.length}
+          eta={effectiveEta}
           t={t}
           onView={() => {
             const current = splashQueue[0];
@@ -689,6 +691,11 @@ export function CounterView({
             changeTab('new');
             setSelectedId(current.id);
             setShowDetailMobile(true);
+          }}
+          onAutoAccept={() => {
+            const current = splashQueue[0];
+            setSplashQueue(q => q.slice(1));
+            handleAccept(current);
           }}
         />
       )}
@@ -1689,19 +1696,34 @@ function SidebarSection({
 // NewOrderSplash — full screen flash identical to Uber Eats
 // ══════════════════════════════════════════════════════════════════════════════
 
+const SPLASH_SECS = 30; // seconds before auto-accept
+const RING_SIZE = 72;
+const RING_R = 30;
+const RING_CIRC = 2 * Math.PI * RING_R;
+
 function NewOrderSplash({
-  order, currency, queueCount, t, onView,
+  order, currency, queueCount, eta, t, onView, onAutoAccept,
 }: {
-  order: Order; currency: string; queueCount: number;
-  t: ReturnType<typeof getT>; onView: () => void;
+  order: Order; currency: string; queueCount: number; eta: number;
+  t: ReturnType<typeof getT>; onView: () => void; onAutoAccept: () => void;
 }) {
   const totalQty = (order.items ?? []).reduce((s, i) => s + i.qty, 0);
+  const [secsLeft, setSecsLeft] = useState(SPLASH_SECS);
+  const autoAcceptFired = useRef(false);
 
-  // Auto-dismiss after 8 seconds
+  // Countdown tick
   useEffect(() => {
-    const timer = setTimeout(onView, 8_000);
-    return () => clearTimeout(timer);
-  }, [onView]);
+    const id = setInterval(() => setSecsLeft(s => s - 1), 1_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Fire auto-accept when countdown hits 0
+  useEffect(() => {
+    if (secsLeft <= 0 && !autoAcceptFired.current) {
+      autoAcceptFired.current = true;
+      onAutoAccept();
+    }
+  }, [secsLeft, onAutoAccept]);
 
   // Repeat sound every 3 seconds until dismissed — identical to Uber Eats
   useEffect(() => {
@@ -1709,14 +1731,32 @@ function NewOrderSplash({
     return () => clearInterval(id);
   }, []);
 
+  const progress = Math.max(0, secsLeft / SPLASH_SECS);
+  const dash = RING_CIRC * progress;
+
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer"
       style={{ background: GREEN }}
       onClick={onView}
     >
-      <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mb-6 animate-bounce">
-        <Bell className="w-10 h-10 text-white" />
+      {/* Countdown ring */}
+      <div className="relative mb-6" style={{ width: RING_SIZE, height: RING_SIZE }}>
+        <svg width={RING_SIZE} height={RING_SIZE} style={{ transform: 'rotate(-90deg)' }}>
+          {/* Track */}
+          <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R}
+            fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="5" />
+          {/* Progress */}
+          <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R}
+            fill="none" stroke="white" strokeWidth="5"
+            strokeDasharray={`${dash} ${RING_CIRC}`}
+            strokeLinecap="round"
+            style={{ transition: 'stroke-dasharray 1s linear' }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-white font-black text-2xl">{secsLeft}</span>
+        </div>
       </div>
 
       <div className="flex items-center gap-3 mb-2">
@@ -1753,7 +1793,9 @@ function NewOrderSplash({
         <ChevronRight className="w-6 h-6" />
       </button>
 
-      <p className="text-white/50 text-xs mt-5">{t.tapAnywhere}</p>
+      <p className="text-white/50 text-xs mt-5">
+        {t.tapAnywhere} {secsLeft}s
+      </p>
     </div>
   );
 }
