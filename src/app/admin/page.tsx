@@ -268,7 +268,12 @@ export default function AdminPage() {
           <Wrench className="w-4 h-4 text-amber-400" />
           Mantenimiento
         </h2>
-        <FixProductNamesButton />
+        <div className="space-y-4">
+          <FixProductNamesButton />
+          <div className="border-t border-white/[0.06] pt-4">
+            <EmailTestButton />
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -311,6 +316,59 @@ function FixProductNamesButton() {
         {status === 'loading' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
         {status === 'done' ? '✓ Listo' : 'Ejecutar'}
       </button>
+    </div>
+  );
+}
+
+function EmailTestButton() {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [email, setEmail] = useState('aptitud10@gmail.com');
+  const [result, setResult] = useState<any>(null);
+
+  const run = async () => {
+    setStatus('loading');
+    setResult(null);
+    try {
+      const res = await fetch('/api/admin/test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: email }),
+      });
+      const data = await res.json();
+      setResult(data);
+      setStatus(data.ok ? 'done' : 'error');
+    } catch (e) {
+      setResult({ error: String(e) });
+      setStatus('error');
+    }
+  };
+
+  return (
+    <div>
+      <p className="text-sm text-white font-medium mb-0.5">Prueba de email (Resend)</p>
+      <p className="text-xs text-gray-500 mb-3">Envía un email de prueba para verificar que Resend está configurado correctamente</p>
+      <div className="flex items-center gap-2 mb-3">
+        <input
+          type="email"
+          value={email}
+          onChange={e => { setEmail(e.target.value); setStatus('idle'); setResult(null); }}
+          placeholder="correo@ejemplo.com"
+          className="flex-1 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none focus:border-purple-500/50"
+        />
+        <button
+          onClick={run}
+          disabled={status === 'loading'}
+          className="shrink-0 px-4 py-2 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20 text-sm font-medium hover:bg-purple-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          {status === 'loading' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+          Enviar prueba
+        </button>
+      </div>
+      {result && (
+        <pre className="text-xs p-3 rounded-xl bg-black/40 border border-white/[0.06] text-gray-300 overflow-x-auto whitespace-pre-wrap">
+          {JSON.stringify(result, null, 2)}
+        </pre>
+      )}
     </div>
   );
 }
