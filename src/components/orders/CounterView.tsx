@@ -154,9 +154,10 @@ function waLink(phone: string, msg: string) {
 
 // ─── Audio ────────────────────────────────────────────────────────────────────
 
-// Pre-authorized audio element — set during the unlock tap so the browser
-// allows playback even when triggered by setInterval (not a user gesture).
+// Pre-authorized audio elements — set during the unlock tap so the browser
+// allows playback even when triggered by timers (not a user gesture).
 let _newOrderAudio: HTMLAudioElement | null = null;
+let _acceptedAudio: HTMLAudioElement | null = null;
 
 function playNewOrderSound() {
   if (typeof window === 'undefined') return;
@@ -187,6 +188,18 @@ function playNewOrderSound() {
     const audio = new Audio('/sounds/new-order.mp3');
     audio.volume = 0.85;
     audio.play().catch(synthFallback);
+  }
+}
+
+function playAcceptSound() {
+  if (typeof window === 'undefined') return;
+  if (_acceptedAudio) {
+    _acceptedAudio.currentTime = 0;
+    _acceptedAudio.play().catch(() => {});
+  } else {
+    const audio = new Audio('/sounds/order-accepted.mp3');
+    audio.volume = 0.85;
+    audio.play().catch(() => {});
   }
 }
 
@@ -262,20 +275,19 @@ export function CounterView({
       src.start(0);
     } catch { /* ignore */ }
 
-    // Pre-authorize the MP3 element during the user-gesture tap.
-    // After this the browser allows .play() from timers / intervals.
-    const audio = new Audio('/sounds/new-order.mp3');
-    audio.volume = 0.85;
-    audio.play()
-      .then(() => {
-        // Let it play the first chime, then keep the ref for future repeats
-        _newOrderAudio = audio;
-      })
-      .catch(() => {
-        // Even if it fails here, store the ref so later attempts use it
-        audio.volume = 0.85;
-        _newOrderAudio = audio;
-      });
+    // Pre-authorize both MP3 elements during the user-gesture tap.
+    // After this the browser allows .play() from timers / callbacks.
+    const newOrderAudio = new Audio('/sounds/new-order.mp3');
+    newOrderAudio.volume = 0.85;
+    newOrderAudio.play()
+      .then(() => { _newOrderAudio = newOrderAudio; })
+      .catch(() => { newOrderAudio.volume = 0.85; _newOrderAudio = newOrderAudio; });
+
+    const acceptedAudio = new Audio('/sounds/order-accepted.mp3');
+    acceptedAudio.volume = 0.85;
+    acceptedAudio.play()
+      .then(() => { acceptedAudio.pause(); acceptedAudio.currentTime = 0; _acceptedAudio = acceptedAudio; })
+      .catch(() => { _acceptedAudio = acceptedAudio; });
 
     setAudioUnlocked(true);
   }, []);
@@ -488,6 +500,7 @@ export function CounterView({
       if (etaRes?.error) { showError(etaRes.error); return; }
       const res = await updateOrderStatus(order.id, 'confirmed');
       if (res?.error) { showError(res.error); return; }
+      playAcceptSound();
       if (autoPrint) PrinterService.printOrder(order, eff, restaurantName, currency, locale).catch(() => {});
       setActiveTab('prep');
       setSelectedId(order.id);
