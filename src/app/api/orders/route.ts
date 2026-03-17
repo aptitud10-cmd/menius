@@ -462,7 +462,6 @@ export async function POST(request: NextRequest) {
         customerPhone: parsed.data.customer_phone || undefined,
         orderType: order_type || 'dine_in',
         paymentMethod: parsed.data.payment_method || undefined,
-        tableNumber: parsed.data.table_number || null,
         notes: parsed.data.notes || null,
         total,
         items: notifItems,
