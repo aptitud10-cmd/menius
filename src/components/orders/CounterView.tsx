@@ -1631,10 +1631,17 @@ function NewOrderSplash({
 }) {
   const totalQty = (order.items ?? []).reduce((s, i) => s + i.qty, 0);
 
+  // Auto-dismiss after 8 seconds
   useEffect(() => {
     const timer = setTimeout(onView, 8_000);
     return () => clearTimeout(timer);
   }, [onView]);
+
+  // Repeat sound every 3 seconds until dismissed — identical to Uber Eats
+  useEffect(() => {
+    const id = setInterval(playNewOrderSound, 3_000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div
