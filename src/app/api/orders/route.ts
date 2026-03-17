@@ -121,11 +121,11 @@ export async function POST(request: NextRequest) {
         const { status } = sub;
         if (status === 'active' || status === 'past_due') {
           isExpired = false;
-        } else if (status === 'trialing') {
-          const trialOver = sub.trial_end
-            ? new Date(sub.trial_end) < now
-            : (sub.current_period_end ? new Date(sub.current_period_end) < now : false);
-          if (trialOver) isExpired = true;
+        } else if (sub.trial_end && new Date(sub.trial_end) > now) {
+          // trial_end in the future → full access regardless of status label
+          isExpired = false;
+        } else if (status === 'trialing' || status === 'trial') {
+          isExpired = true;
         } else {
           const periodEnded = sub.current_period_end && new Date(sub.current_period_end) < now;
           if (periodEnded) isExpired = true;
