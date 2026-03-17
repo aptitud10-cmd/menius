@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendWhatsApp, formatNewOrderWhatsApp, formatStatusUpdateWhatsApp } from './whatsapp';
-import { sendEmail, buildOrderConfirmationEmail, buildStatusUpdateEmail, buildOwnerNewOrderEmail, buildPaymentReceiptEmail } from './email';
+import { sendEmail, buildOrderConfirmationEmail, buildStatusUpdateEmail, buildOwnerNewOrderEmail, buildPaymentReceiptEmail, type OrderEmailItem } from './email';
 import { formatPrice } from '@/lib/utils';
 
 interface RestaurantNotificationData {
@@ -22,8 +22,56 @@ interface OrderNotificationPayload {
   customerEmail?: string;
   customerPhone?: string;
   orderType?: string;
+  paymentMethod?: string;
+  tableNumber?: string | null;
+  notes?: string | null;
   total: number;
-  items: { name: string; qty: number; price: number }[];
+  items: { name: string; qty: number; price: number; variant?: string; modifiers?: string[]; extras?: string[]; notes?: string }[];
+}
+
+/** Fetch rich order items (with variants, modifiers, extras) from the DB. */
+async function fetchRichItems(orderId: string, currency: string): Promise<OrderEmailItem[]> {
+  try {
+    const adminDb = createAdminClient();
+    const { data: rows } = await adminDb
+      .from('order_items')
+      .select(`
+        qty, unit_price, line_total, notes,
+        products ( name ),
+        product_variants ( name ),
+        order_item_extras ( price, product_extras ( name ) ),
+        order_item_modifiers ( group_name, option_name, price_delta )
+      `)
+      .eq('order_id', orderId);
+
+    if (!rows) return [];
+
+    return rows.map((row: any) => {
+      const modifiers: string[] = (row.order_item_modifiers ?? []).map(
+        (m: any) => `${m.group_name}: ${m.option_name}`
+      );
+      const extras: string[] = (row.order_item_extras ?? [])
+        .filter((e: any) => e.product_extras?.name)
+        .map((e: any) => {
+          const extraPrice = Number(e.price);
+          return extraPrice > 0
+            ? `${e.product_extras.name} (+${formatPrice(extraPrice, currency)})`
+            : e.product_extras.name;
+        });
+
+      return {
+        name: row.products?.name ?? 'Item',
+        qty: row.qty,
+        price: formatPrice(Number(row.line_total), currency),
+        variant: row.product_variants?.name ?? undefined,
+        modifiers: modifiers.length ? modifiers : undefined,
+        extras: extras.length ? extras : undefined,
+        notes: row.notes ?? undefined,
+      };
+    });
+  } catch {
+    return [];
+  }
 }
 
 /**
@@ -33,7 +81,7 @@ interface OrderNotificationPayload {
  * Non-blocking — errors are logged but don't affect the order flow.
  */
 export async function notifyNewOrder(payload: OrderNotificationPayload) {
-  const { orderNumber, restaurantId, restaurantData, customerName, customerEmail, customerPhone, orderType, total, items } = payload;
+  const { orderId, orderNumber, restaurantId, restaurantData, customerName, customerEmail, customerPhone, orderType, paymentMethod, tableNumber, notes, total, items } = payload;
 
   try {
     let restaurant = restaurantData ?? null;
@@ -54,40 +102,53 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
     const totalFormatted = formatPrice(total, currency);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
     const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}`;
-
+    const locale = restaurant.locale ?? 'es';
+    const en = locale === 'en';
     const notificationsOn = restaurant.notifications_enabled !== false;
 
+    // Fetch rich items (with variants/modifiers/extras) if orderId available
+    const richItems: OrderEmailItem[] = orderId
+      ? await fetchRichItems(orderId, currency)
+      : items.map(i => ({
+          name: i.name,
+          qty: i.qty,
+          price: formatPrice(i.price, currency),
+          variant: i.variant,
+          modifiers: i.modifiers,
+          extras: i.extras,
+          notes: i.notes,
+        }));
+
+    // WhatsApp alert to restaurant
     if (notificationsOn && restaurant.notification_whatsapp) {
-      const itemsSummary = items.map((i) => `• ${i.qty}x ${i.name} — ${formatPrice(i.price, currency)}`).join('\n');
+      const itemsSummary = (richItems.length ? richItems : items.map(i => ({ name: i.name, qty: i.qty, price: formatPrice(i.price, currency) })))
+        .map((i) => `• ${i.qty}x ${i.name} — ${i.price}`)
+        .join('\n');
       const text = formatNewOrderWhatsApp(orderNumber, customerName, totalFormatted, itemsSummary);
       sendWhatsApp({ to: restaurant.notification_whatsapp, text }).catch(() => {});
     }
 
-    const emailItems = items.map((i) => ({
-      name: i.name,
-      qty: i.qty,
-      price: formatPrice(i.price, currency),
-    }));
-
-    // Email to customer
-    const locale = restaurant.locale ?? 'es';
-    const en = locale === 'en';
-
     const emailJobs: Promise<boolean>[] = [];
 
+    // Confirmation email to customer
     if (notificationsOn && customerEmail) {
       const html = buildOrderConfirmationEmail({
         customerName,
         orderNumber,
         restaurantName: restaurant.name,
         total: totalFormatted,
-        items: emailItems,
+        items: richItems,
         trackingUrl,
+        orderType,
+        paymentMethod,
+        tableNumber,
+        notes,
         locale,
       });
 
       emailJobs.push(sendEmail({
         to: customerEmail,
+        from: `${restaurant.name} <noreply@menius.app>`,
         subject: en
           ? `Order #${orderNumber} confirmed — ${restaurant.name}`
           : `Pedido #${orderNumber} confirmado — ${restaurant.name}`,
@@ -95,15 +156,19 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
       }));
     }
 
+    // New order alert to restaurant owner
     if (notificationsOn && restaurant.notification_email) {
       const ownerHtml = buildOwnerNewOrderEmail({
         orderNumber,
+        restaurantName: restaurant.name,
         customerName,
         customerPhone,
         orderType: orderType ?? 'dine_in',
         total: totalFormatted,
-        items: emailItems,
+        items: richItems,
         dashboardUrl: `${appUrl}/app/orders`,
+        notes,
+        tableNumber,
         locale,
       });
 
@@ -168,6 +233,7 @@ export async function notifyStatusChange(params: {
 
       jobs.push(sendEmail({
         to: customerEmail,
+        from: `${restaurant.name} <noreply@menius.app>`,
         subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale),
         html,
       }));
@@ -220,11 +286,14 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
   const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}`;
   const totalFormatted = formatPrice(Number(order.total), currency);
 
-  const emailItems = ((order as any).order_items ?? []).map((item: any) => ({
-    name: item.products?.name ?? 'Producto',
+  // Use rich items fetched in query
+  const emailItems: OrderEmailItem[] = ((order as any).order_items ?? []).map((item: any) => ({
+    name: item.products?.name ?? 'Item',
     qty: item.qty,
     price: formatPrice(Number(item.line_total), currency),
   }));
+
+  const jobs: Promise<boolean>[] = [];
 
   // Receipt to customer
   if (order.customer_email) {
@@ -238,37 +307,39 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
       locale,
     });
 
-    sendEmail({
+    jobs.push(sendEmail({
       to: order.customer_email,
+      from: `${restaurant.name} <noreply@menius.app>`,
       subject: en
         ? `✅ Payment confirmed — Order #${order.order_number} at ${restaurant.name}`
         : `✅ Pago confirmado — Pedido #${order.order_number} en ${restaurant.name}`,
       html,
-    }).catch(() => {});
+    }));
   }
 
   // Notification to restaurant owner
   if (restaurant.notification_email) {
-    sendEmail({
+    const ownerHtml = buildOwnerNewOrderEmail({
+      orderNumber: order.order_number,
+      restaurantName: restaurant.name,
+      customerName: order.customer_name,
+      orderType: 'dine_in',
+      total: totalFormatted,
+      items: emailItems,
+      dashboardUrl: `${appUrl}/app/orders`,
+      locale,
+    });
+    jobs.push(sendEmail({
       to: restaurant.notification_email,
       subject: en
         ? `💳 Payment confirmed — Order #${order.order_number} — ${totalFormatted}`
         : `💳 Pago confirmado — Pedido #${order.order_number} — ${totalFormatted}`,
-      html: `
-        <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px;">
-          <h2 style="color:#059669;margin:0 0 16px;">💳 ${en ? 'Payment confirmed' : 'Pago confirmado'}</h2>
-          <table style="width:100%;border-collapse:collapse;font-size:14px;">
-            <tr><td style="padding:6px 0;color:#6b7280;width:120px;">${en ? 'Order' : 'Pedido'}</td><td style="padding:6px 0;font-weight:600;">#${order.order_number}</td></tr>
-            <tr><td style="padding:6px 0;color:#6b7280;">${en ? 'Customer' : 'Cliente'}</td><td style="padding:6px 0;">${order.customer_name}</td></tr>
-            <tr><td style="padding:6px 0;color:#6b7280;">Total</td><td style="padding:6px 0;font-weight:700;color:#059669;">${totalFormatted}</td></tr>
-          </table>
-          <a href="${trackingUrl}" style="display:inline-block;margin-top:20px;padding:12px 24px;background:#059669;color:#fff;border-radius:10px;font-weight:600;font-size:14px;text-decoration:none;">
-            ${en ? 'View order' : 'Ver pedido'}
-          </a>
-          <p style="font-size:11px;color:#d1d5db;margin-top:24px;">MENIUS — ${restaurant.name}</p>
-        </div>
-      `,
-    }).catch(() => {});
+      html: ownerHtml,
+    }));
+  }
+
+  if (jobs.length > 0) {
+    await Promise.all(jobs).catch(() => {});
   }
 }
 
