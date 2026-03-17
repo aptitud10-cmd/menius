@@ -24,21 +24,21 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   return {
-    title: `Pedido ${params.orderNumber} | MENIUS`,
-    description: 'Estado de tu pedido en tiempo real',
+    title: `Order ${params.orderNumber} | MENIUS`,
+    description: 'Track your order in real time',
   };
 }
 
 export default async function OrderTrackingPage({ params, searchParams }: PageProps) {
   const paidSuccess = searchParams.paid === 'true';
 
-  let restaurant: { id: string; name: string; slug: string; currency: string | null; address: string | null } | null = null;
+  let restaurant: { id: string; name: string; slug: string; currency: string | null; address: string | null; locale: string | null } | null = null;
 
   try {
     const adminDb = createAdminClient();
     const { data } = await adminDb
       .from('restaurants')
-      .select('*')
+      .select('id, name, slug, currency, locale, address')
       .eq('slug', params.slug)
       .maybeSingle();
     if (data) {
@@ -48,11 +48,14 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
         slug: data.slug,
         currency: (data as any).currency ?? null,
         address: (data as any).address ?? null,
+        locale: (data as any).locale ?? null,
       };
     }
   } catch {
     // If DB fetch fails, fall through to show fallback for paid orders
   }
+
+  const en = restaurant?.locale === 'en';
 
   if (!restaurant) {
     if (paidSuccess) {
@@ -62,22 +65,24 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
             <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5">
               <CheckCircle2 className="w-10 h-10 text-emerald-600" />
             </div>
-            <h1 className="text-2xl font-extrabold text-gray-900 mb-2">¡Pago recibido!</h1>
+            <h1 className="text-2xl font-extrabold text-gray-900 mb-2">
+              {en ? 'Payment received!' : '¡Pago recibido!'}
+            </h1>
             <p className="text-sm text-gray-500 mb-6">
-              Tu pago fue procesado exitosamente. El restaurante ha recibido tu pedido.
+              {en
+                ? 'Your payment was processed successfully. The restaurant has received your order.'
+                : 'Tu pago fue procesado exitosamente. El restaurante ha recibido tu pedido.'}
             </p>
             <Link
               href={`/${params.slug}`}
               className="block w-full py-3.5 rounded-2xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-colors"
             >
-              Volver al menú
+              {en ? 'Back to menu' : 'Volver al menú'}
             </Link>
           </div>
         </div>
       );
     }
-    // Use redirect instead of notFound() to avoid Next.js 14 bug where notFound()
-    // is incorrectly caught by error.tsx instead of not-found.tsx in async Server Components
     redirect(`/${params.slug}`);
   }
 
@@ -89,6 +94,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
       restaurantAddress={restaurant.address ?? undefined}
       orderNumber={params.orderNumber}
       currency={restaurant.currency ?? 'MXN'}
+      locale={restaurant.locale ?? 'es'}
       showPaidBanner={paidSuccess}
     />
   );
