@@ -26,6 +26,9 @@ export interface DashboardTranslations {
   nav_openMenu: string;
   nav_closeMenu: string;
   nav_counter: string;
+  nav_inventory: string;
+  nav_loyalty: string;
+  nav_branches: string;
 
   // Counter / Caja
   counter_title: string;
@@ -1118,6 +1121,9 @@ const es: DashboardTranslations = {
   nav_openMenu: 'Abrir menú',
   nav_closeMenu: 'Cerrar menú',
   nav_counter: 'Caja / Counter',
+  nav_inventory: 'Inventario',
+  nav_loyalty: 'Lealtad',
+  nav_branches: 'Sucursales',
 
   // Counter / Caja
   counter_title: 'Vista de Caja',
@@ -2210,6 +2216,9 @@ const en: DashboardTranslations = {
   nav_openMenu: 'Open menu',
   nav_closeMenu: 'Close menu',
   nav_counter: 'Counter / Caja',
+  nav_inventory: 'Inventory',
+  nav_loyalty: 'Loyalty',
+  nav_branches: 'Branches',
 
   // Counter / Caja
   counter_title: 'Counter View',
