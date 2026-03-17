@@ -73,6 +73,8 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
     const locale = restaurant.locale ?? 'es';
     const en = locale === 'en';
 
+    const emailJobs: Promise<boolean>[] = [];
+
     if (notificationsOn && customerEmail) {
       const html = buildOrderConfirmationEmail({
         customerName,
@@ -84,13 +86,13 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
         locale,
       });
 
-      sendEmail({
+      emailJobs.push(sendEmail({
         to: customerEmail,
         subject: en
           ? `Order #${orderNumber} confirmed — ${restaurant.name}`
           : `Pedido #${orderNumber} confirmado — ${restaurant.name}`,
         html,
-      }).catch(() => {});
+      }));
     }
 
     if (notificationsOn && restaurant.notification_email) {
@@ -105,13 +107,17 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
         locale,
       });
 
-      sendEmail({
+      emailJobs.push(sendEmail({
         to: restaurant.notification_email,
         subject: en
           ? `🔔 New order #${orderNumber} — ${customerName} — ${totalFormatted}`
           : `🔔 Nuevo pedido #${orderNumber} — ${customerName} — ${totalFormatted}`,
         html: ownerHtml,
-      }).catch(() => {});
+      }));
+    }
+
+    if (emailJobs.length > 0) {
+      await Promise.all(emailJobs).catch(() => {});
     }
   } catch (err) {
     console.error('[Notifications] Error sending new order notifications:', err);
@@ -148,6 +154,8 @@ export async function notifyStatusChange(params: {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
     const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}`;
 
+    const jobs: Promise<any>[] = [];
+
     if (customerEmail) {
       const html = buildStatusUpdateEmail({
         customerName,
@@ -158,16 +166,20 @@ export async function notifyStatusChange(params: {
         locale: rLocale,
       });
 
-      sendEmail({
+      jobs.push(sendEmail({
         to: customerEmail,
         subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale),
         html,
-      }).catch(() => {});
+      }));
     }
 
     if (customerPhone) {
       const text = formatStatusUpdateWhatsApp(orderNumber, status, restaurant.name);
       sendWhatsApp({ to: customerPhone, text }).catch(() => {});
+    }
+
+    if (jobs.length > 0) {
+      await Promise.all(jobs).catch(() => {});
     }
   } catch (err) {
     console.error('[Notifications] Error sending status update:', err);
