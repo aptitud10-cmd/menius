@@ -1161,9 +1161,8 @@ function OrderDetail({
 
   // Header bg color
   const headerBg =
-    isUrgent ? '#EF4444' :
     tab === 'ready' ? GREEN :
-    tab === 'prep' && isLate ? '#EF4444' :
+    isUrgent ? '#EF4444' :
     '#111111';
 
   const waReadyMsg = order.customer_phone
@@ -1177,7 +1176,7 @@ function OrderDetail({
 
       {/* ── Detail Header ── */}
       <div
-        className={cn('flex-none px-5 py-4 transition-colors duration-300', isUrgent ? 'animate-pulse' : '')}
+        className="flex-none px-5 py-4 transition-colors duration-300"
         style={{ background: headerBg }}
       >
         {/* Back button (mobile) + order info */}
@@ -1252,47 +1251,37 @@ function OrderDetail({
       <div className="flex-1 overflow-y-auto">
         <div className="p-5 space-y-4">
 
-          {/* Countdown timer (prep tab only) */}
+          {/* ETA bar (prep tab only) — compact, no giant clock */}
           {tab === 'prep' && (
-            <div className={cn('rounded-2xl border-2 overflow-hidden', isLate ? 'bg-red-50 border-red-200' : 'bg-white border-[#E8E8E8]')}>
-              {countdownSecs !== null ? (
-                <div className="p-5 text-center">
-                  <p className={cn('text-[11px] font-bold uppercase tracking-widest mb-2', isLate ? 'text-red-500' : 'text-[#AAAAAA]')}>
-                    {isLate ? t.overdue : t.timeLeft}
-                  </p>
-                  <p className={cn('font-black tabular-nums leading-none', isLate ? 'text-red-500' : 'text-[#111]')} style={{ fontSize: 64 }}>
-                    {isLate ? '−' : ''}{fmtCountdown(countdownSecs)}
-                  </p>
-                </div>
-              ) : (
-                <div className="p-4 text-center">
-                  <p className="text-[11px] font-bold text-[#AAAAAA] uppercase tracking-widest">{t.preparing}</p>
-                </div>
-              )}
-              {/* ETA adjust */}
-              <div className="border-t border-[#F0F0F0] px-4 py-2.5 flex items-center justify-between gap-2 bg-[#FAFAFA]">
-                <span className="text-[11px] text-[#888] font-semibold">{t.adjustEta}</span>
-                <div className="flex items-center gap-1">
-                  {[-10, -5, +5, +10].map(delta => {
-                    const current = etaMins ?? effectiveEta;
-                    const newVal = Math.max(1, current + delta);
-                    return (
-                      <button
-                        key={delta}
-                        onClick={() => onAdjustEta(order, newVal)}
-                        disabled={isUpdating}
-                        className={cn(
-                          'px-2.5 py-1.5 rounded-lg text-xs font-black border transition-all active:scale-95 disabled:opacity-40',
-                          delta < 0
-                            ? 'border-red-200 text-red-500 bg-red-50 hover:bg-red-100'
-                            : 'border-green-200 text-green-600 bg-green-50 hover:bg-green-100'
-                        )}
-                      >
-                        {delta > 0 ? '+' : ''}{delta}m
-                      </button>
-                    );
-                  })}
-                </div>
+            <div className="bg-white rounded-2xl border-2 border-[#E8E8E8] px-4 py-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-[#888] flex-shrink-0" />
+                <span className="text-sm font-semibold text-[#888]">{t.eta}</span>
+                <span className={cn('text-sm font-black tabular-nums', isLate ? 'text-red-500' : 'text-[#111]')}>
+                  {etaMins ?? effectiveEta} min
+                  {isLate && <span className="ml-1 text-[10px] font-bold text-red-400 uppercase">{t.overdue}</span>}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                {[-5, +5].map(delta => {
+                  const current = etaMins ?? effectiveEta;
+                  const newVal = Math.max(1, current + delta);
+                  return (
+                    <button
+                      key={delta}
+                      onClick={() => onAdjustEta(order, newVal)}
+                      disabled={isUpdating}
+                      className={cn(
+                        'px-2.5 py-1.5 rounded-lg text-xs font-black border transition-all active:scale-95 disabled:opacity-40',
+                        delta < 0
+                          ? 'border-[#E8E8E8] text-[#888] bg-white hover:bg-[#F5F5F5]'
+                          : 'border-[#E8E8E8] text-[#888] bg-white hover:bg-[#F5F5F5]'
+                      )}
+                    >
+                      {delta > 0 ? '+' : ''}{delta}m
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
