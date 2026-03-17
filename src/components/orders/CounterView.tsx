@@ -104,6 +104,13 @@ function getT(locale?: string) {
     justNow:     en ? 'now'             : 'ahora',
     minsAgo:     (m: number) => en ? `${m}m` : `${m}m`,
     search:      en ? 'Search order or customer…' : 'Buscar orden o cliente…',
+    filterAll:   en ? 'All'        : 'Todos',
+    filterDelivered: en ? 'Delivered' : 'Entregados',
+    filterCancelled: en ? 'Cancelled' : 'Cancelados',
+    filterDelivery:  en ? 'Delivery'  : 'Delivery',
+    filterPickup:    en ? 'Pickup'    : 'Recoger',
+    filterDineIn:    en ? 'Dine-in'   : 'Mesa',
+    results:     (n: number) => en ? `${n} order${n !== 1 ? 's' : ''}` : `${n} ${n === 1 ? 'orden' : 'órdenes'}`,
   };
 }
 
@@ -365,6 +372,8 @@ export function CounterView({
   const [, tick] = useState(0);
   const urgentRef = useRef<Set<string>>(new Set());
   const [historySearch, setHistorySearch] = useState('');
+  const [historyType, setHistoryType] = useState<'all' | 'delivery' | 'pickup' | 'dine_in'>('all');
+  const [historyStatus, setHistoryStatus] = useState<'all' | 'delivered' | 'cancelled'>('all');
 
   // ── History search ──
 
@@ -455,6 +464,8 @@ export function CounterView({
   const historyOrders = useMemo(() => {
     let r = orders.filter(o => ['delivered', 'cancelled'].includes(o.status))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    if (historyStatus !== 'all') r = r.filter(o => o.status === historyStatus);
+    if (historyType !== 'all') r = r.filter(o => o.order_type === historyType);
     if (historySearch.trim()) {
       const q = historySearch.toLowerCase();
       r = r.filter(o =>
@@ -463,7 +474,7 @@ export function CounterView({
       );
     }
     return r;
-  }, [orders, historySearch]);
+  }, [orders, historySearch, historyType, historyStatus]);
 
   const currentList = useMemo(() => {
     if (activeTab === 'new') return newOrders;
@@ -777,15 +788,54 @@ export function CounterView({
           // Tablet/desktop: fixed sidebar width
           'sm:w-72 lg:w-80',
         )}>
-          {/* History search */}
+          {/* History search + filters */}
           {activeTab === 'history' && (
-            <div className="p-3 border-b border-[#F0F0F0]">
-              <input
-                value={historySearch}
-                onChange={e => setHistorySearch(e.target.value)}
-                placeholder={t.search}
-                className="w-full px-3 py-2.5 rounded-xl bg-[#F5F5F5] text-sm text-[#111] placeholder-[#BBBBBB] focus:outline-none"
-              />
+            <div className="border-b border-[#F0F0F0]">
+              {/* Search */}
+              <div className="px-3 pt-3 pb-2">
+                <input
+                  value={historySearch}
+                  onChange={e => setHistorySearch(e.target.value)}
+                  placeholder={t.search}
+                  className="w-full px-3 py-2.5 rounded-xl bg-[#F5F5F5] text-sm text-[#111] placeholder-[#BBBBBB] focus:outline-none"
+                />
+              </div>
+              {/* Status filter */}
+              <div className="flex gap-1.5 px-3 pb-2">
+                {(['all', 'delivered', 'cancelled'] as const).map(s => (
+                  <button key={s}
+                    onClick={() => setHistoryStatus(s)}
+                    className={cn(
+                      'flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors',
+                      historyStatus === s
+                        ? 'bg-[#111] text-white'
+                        : 'bg-[#F5F5F5] text-[#777] hover:bg-[#EBEBEB]'
+                    )}
+                  >
+                    {s === 'all' ? t.filterAll : s === 'delivered' ? t.filterDelivered : t.filterCancelled}
+                  </button>
+                ))}
+              </div>
+              {/* Type filter */}
+              <div className="flex gap-1.5 px-3 pb-2.5">
+                {(['all', 'delivery', 'pickup', 'dine_in'] as const).map(tp => (
+                  <button key={tp}
+                    onClick={() => setHistoryType(tp)}
+                    className={cn(
+                      'flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors',
+                      historyType === tp
+                        ? 'bg-[#06C167] text-white'
+                        : 'bg-[#F5F5F5] text-[#777] hover:bg-[#EBEBEB]'
+                    )}
+                  >
+                    {tp === 'all' ? t.filterAll : tp === 'delivery' ? t.filterDelivery : tp === 'pickup' ? t.filterPickup : t.filterDineIn}
+                  </button>
+                ))}
+              </div>
+              {/* Results count */}
+              <div className="px-3 pb-2 text-[11px] text-[#AAAAAA] font-medium">
+                {t.results(historyOrders.length)}
+              </div>
             </div>
           )}
 
