@@ -236,6 +236,26 @@ export function CounterView({
 }: CounterViewProps) {
   const t = getT(locale);
 
+  // ── Audio unlock gate ──
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+
+  const unlockAudio = useCallback(() => {
+    // Play a silent buffer to unlock the AudioContext permanently
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const buf = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      src.start(0);
+    } catch { /* ignore */ }
+    // Also pre-load and play the MP3 silently to unlock it
+    const audio = new Audio('/sounds/new-order.mp3');
+    audio.volume = 0;
+    audio.play().catch(() => {});
+    setAudioUnlocked(true);
+  }, []);
+
   // ── UI state ──
   const [activeTab, setActiveTab] = useState<Tab>('new');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -559,6 +579,33 @@ export function CounterView({
   // ═══════════════════════════════════════════════════════════════════
   // RENDER
   // ═══════════════════════════════════════════════════════════════════
+
+  // Audio unlock gate — required by all browsers before playing sound
+  if (!audioUnlocked) {
+    return (
+      <div
+        className="h-screen w-full flex flex-col items-center justify-center cursor-pointer"
+        style={{ background: '#111' }}
+        onClick={unlockAudio}
+      >
+        <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-8">
+          <Bell className="w-10 h-10 text-white" />
+        </div>
+        <p className="text-white/60 text-sm font-semibold uppercase tracking-widest mb-3">
+          {restaurantName}
+        </p>
+        <button
+          onClick={unlockAudio}
+          className="h-16 px-12 rounded-2xl text-black text-lg font-black bg-white shadow-xl active:scale-[0.97] transition-transform"
+        >
+          {t.en ? 'Tap to start' : 'Toca para comenzar'}
+        </button>
+        <p className="text-white/30 text-xs mt-6">
+          {t.en ? 'Activates sound notifications' : 'Activa las notificaciones de sonido'}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-full bg-[#F2F2F2] flex flex-col overflow-hidden select-none">
