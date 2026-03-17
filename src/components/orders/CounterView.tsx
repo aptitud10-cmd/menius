@@ -153,60 +153,86 @@ function waLink(phone: string, msg: string) {
 }
 
 // ─── Audio ────────────────────────────────────────────────────────────────────
+//
+// Strategy: decode the MP3s into AudioBuffers via the Web Audio API during the
+// unlock tap (user gesture). Once an AudioContext is resumed by a gesture it
+// stays running, so BufferSource nodes created from setInterval will play
+// without any block — even on iOS Safari.
 
-// Pre-authorized audio elements — set during the unlock tap so the browser
-// allows playback even when triggered by timers (not a user gesture).
-let _newOrderAudio: HTMLAudioElement | null = null;
-let _acceptedAudio: HTMLAudioElement | null = null;
+let _audioCtx: AudioContext | null = null;
+let _newOrderBuffer: AudioBuffer | null = null;
+let _acceptedBuffer: AudioBuffer | null = null;
+
+function getAudioCtx(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+  if (!_audioCtx) {
+    try {
+      _audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    } catch { return null; }
+  }
+  return _audioCtx;
+}
+
+function playBuffer(buffer: AudioBuffer | null) {
+  const ctx = getAudioCtx();
+  if (!ctx || !buffer) return;
+  try {
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(ctx.destination);
+    src.start(0);
+  } catch { /* unavailable */ }
+}
+
+function synthChime() {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    [523, 659, 784].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const t = ctx.currentTime + i * 0.18;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.6, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      osc.start(t); osc.stop(t + 0.55);
+    });
+  } catch { /* unavailable */ }
+}
+
+async function loadAudioBuffer(url: string): Promise<AudioBuffer | null> {
+  const ctx = getAudioCtx();
+  if (!ctx) return null;
+  try {
+    const res = await fetch(url);
+    const arrayBuf = await res.arrayBuffer();
+    return await ctx.decodeAudioData(arrayBuf);
+  } catch { return null; }
+}
 
 function playNewOrderSound() {
-  if (typeof window === 'undefined') return;
-  const synthFallback = () => {
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      [523, 659, 784].forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain); gain.connect(ctx.destination);
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        const t = ctx.currentTime + i * 0.18;
-        gain.gain.setValueAtTime(0, t);
-        gain.gain.linearRampToValueAtTime(0.6, t + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-        osc.start(t); osc.stop(t + 0.55);
-      });
-    } catch { /* unavailable */ }
-  };
-
-  if (_newOrderAudio) {
-    // Reuse the pre-authorized element — reset to start so it always plays fully
-    _newOrderAudio.currentTime = 0;
-    _newOrderAudio.play().catch(synthFallback);
+  if (_newOrderBuffer) {
+    playBuffer(_newOrderBuffer);
   } else {
-    // Fallback before unlock (should not happen in practice)
-    const audio = new Audio('/sounds/new-order.mp3');
-    audio.volume = 0.85;
-    audio.play().catch(synthFallback);
+    synthChime();
   }
 }
 
 function playAcceptSound() {
-  if (typeof window === 'undefined') return;
-  if (_acceptedAudio) {
-    _acceptedAudio.currentTime = 0;
-    _acceptedAudio.play().catch(() => {});
+  if (_acceptedBuffer) {
+    playBuffer(_acceptedBuffer);
   } else {
-    const audio = new Audio('/sounds/order-accepted.mp3');
-    audio.volume = 0.85;
-    audio.play().catch(() => {});
+    synthChime();
   }
 }
 
 function playUrgentSound() {
-  if (typeof window === 'undefined') return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     [880, 880, 880].forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -265,29 +291,32 @@ export function CounterView({
   const [audioUnlocked, setAudioUnlocked] = useState(false);
 
   const unlockAudio = useCallback(() => {
-    // Unlock the Web Audio API context with a silent buffer
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const buf = ctx.createBuffer(1, 1, 22050);
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(ctx.destination);
-      src.start(0);
-    } catch { /* ignore */ }
+    // Resume (or create) the AudioContext during the user-gesture tap.
+    // On iOS Safari this is the ONLY moment the context can be started.
+    const ctx = getAudioCtx();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
 
-    // Pre-authorize both MP3 elements during the user-gesture tap.
-    // After this the browser allows .play() from timers / callbacks.
-    const newOrderAudio = new Audio('/sounds/new-order.mp3');
-    newOrderAudio.volume = 0.85;
-    newOrderAudio.play()
-      .then(() => { _newOrderAudio = newOrderAudio; })
-      .catch(() => { newOrderAudio.volume = 0.85; _newOrderAudio = newOrderAudio; });
+    // Play a silent buffer immediately to fully unlock the context
+    if (ctx) {
+      try {
+        const buf = ctx.createBuffer(1, 1, 22050);
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
+        src.start(0);
+      } catch { /* ignore */ }
+    }
 
-    const acceptedAudio = new Audio('/sounds/order-accepted.mp3');
-    acceptedAudio.volume = 0.85;
-    acceptedAudio.play()
-      .then(() => { acceptedAudio.pause(); acceptedAudio.currentTime = 0; _acceptedAudio = acceptedAudio; })
-      .catch(() => { _acceptedAudio = acceptedAudio; });
+    // Decode both MP3s into AudioBuffers in the background.
+    // Once decoded, playBuffer() works from any timer / interval.
+    loadAudioBuffer('/sounds/new-order.mp3').then(b => {
+      if (b) { _newOrderBuffer = b; playBuffer(b); } // play first chime on unlock
+    });
+    loadAudioBuffer('/sounds/order-accepted.mp3').then(b => {
+      if (b) _acceptedBuffer = b;
+    });
 
     setAudioUnlocked(true);
   }, []);
