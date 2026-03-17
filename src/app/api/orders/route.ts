@@ -142,8 +142,11 @@ export async function POST(request: NextRequest) {
           .eq('restaurant_id', restaurant_id)
           .gte('created_at', todayStart.toISOString());
         if ((count ?? 0) >= DAILY_LIMIT) {
+          const en = restaurant.locale === 'en';
           return NextResponse.json(
-            { error: 'Este restaurante alcanzó el límite de 3 pedidos gratuitos por hoy. Vuelve mañana o contacta al restaurante.' },
+            { error: en
+                ? 'This restaurant has reached its daily limit. Please try again tomorrow or contact the restaurant.'
+                : 'Este restaurante alcanzó el límite de pedidos por hoy. Vuelve mañana o contacta al restaurante.' },
             { status: 429 }
           );
         }
