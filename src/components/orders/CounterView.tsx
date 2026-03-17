@@ -2,31 +2,124 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import {
-  MessageCircle, Clock, Check, XCircle, Printer, Pause, Bell,
-  Phone, Search, X, MoreHorizontal, Utensils, ShoppingBag, Truck,
-  History, MapPin, User, ChevronRight, AlertTriangle, CheckCircle,
-  FlaskConical, Loader2, Plus, Minus, ClipboardList,
+  Menu, X, Bell, Check, CheckCircle, Clock, ChevronLeft,
+  Truck, ShoppingBag, Utensils, MessageCircle, Phone,
+  MapPin, Pause, Flame, Printer, History, AlertTriangle,
+  Wifi, WifiOff, ChevronRight, User,
 } from 'lucide-react';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
-import { updateOrderStatus, updateOrderETA, assignDriver, setPauseOrders } from '@/lib/actions/restaurant';
+import {
+  updateOrderStatus, updateOrderETA, setPauseOrders, assignDriver,
+} from '@/lib/actions/restaurant';
 import { AutoAcceptService } from '@/lib/counter/AutoAcceptService';
 import { PrinterService } from '@/lib/printing/PrinterService';
 import type { Order, OrderItem } from '@/types';
 import { cn } from '@/lib/utils';
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+// ─── i18n ─────────────────────────────────────────────────────────────────────
+
+function getT(locale?: string) {
+  const en = locale === 'en';
+  return {
+    en,
+    // Tabs
+    tabNew:      en ? 'New'              : 'Nuevas',
+    tabPrep:     en ? 'Preparing'        : 'En preparación',
+    tabReady:    en ? 'Ready'            : 'Listas',
+    tabHistory:  en ? 'History'          : 'Historial',
+    // Splash / new order
+    newOrder:    en ? 'New order'        : 'Nueva orden',
+    tapAnywhere: en ? 'Tap anywhere to continue' : 'Toca en cualquier parte',
+    viewOrder:   en ? 'View order'       : 'Ver orden',
+    items:       (n: number) => en ? `${n} item${n !== 1 ? 's' : ''}` : `${n} ${n === 1 ? 'producto' : 'productos'}`,
+    // Order types
+    delivery:    en ? 'Delivery'         : 'Delivery',
+    pickup:      en ? 'Pickup'           : 'Para recoger',
+    dineIn:      en ? 'Dine-in'          : 'En mesa',
+    // Action buttons
+    confirmBtn:  (eta: number) => en ? `Confirm  ${eta} min` : `Confirmar  ${eta} min`,
+    readyBtn:    en ? 'Ready for pickup' : 'Listo para recoger',
+    deliveredBtn: en ? 'Delivered'       : 'Entregado',
+    // Order detail
+    eta:         en ? 'Prep time'        : 'Tiempo estimado',
+    adjustEta:   en ? 'Adjust'           : 'Ajustar',
+    overdue:     en ? 'Overdue'          : '¡Atrasado!',
+    timeLeft:    en ? 'remaining'        : 'restantes',
+    preparing:   en ? 'Preparing…'       : 'En preparación…',
+    total:       en ? 'Total'            : 'Total',
+    payment:     en ? 'Payment'          : 'Pago',
+    cash:        en ? 'Cash'             : 'Efectivo',
+    online:      en ? 'Online'           : 'En línea',
+    wallet:      en ? 'Wallet'           : 'Wallet',
+    notes:       en ? 'Notes'            : 'Notas',
+    viewOnMap:   en ? 'View on map →'   : 'Ver en mapa →',
+    notifyWa:    en ? 'Notify via WhatsApp' : 'Avisar por WhatsApp',
+    callCustomer: en ? 'Call customer'   : 'Llamar al cliente',
+    driver:      en ? 'Driver assigned'  : 'Repartidor asignado',
+    assignDriver: en ? 'Assign driver'   : 'Asignar repartidor',
+    editDriver:  en ? 'Edit'             : 'Editar',
+    // Cancel
+    cancelOrder: en ? 'Cancel order'     : 'Cancelar orden',
+    rejectOrder: en ? 'Reject order'     : 'Rechazar orden',
+    confirmCancel: en ? 'Confirm cancel' : 'Confirmar cancelación',
+    no:          en ? 'No'               : 'No',
+    reasons:     en
+      ? ['Out of stock', 'Restaurant closed', 'Too busy', 'Address out of zone', 'Other']
+      : ['Sin stock', 'Restaurante cerrado', 'Demasiada demanda', 'Dirección fuera de zona', 'Otro'],
+    rejectReason: en ? 'Select a reason' : 'Elige el motivo',
+    // Sidebar
+    online_status: en ? 'Online'         : 'En línea',
+    paused_status: en ? 'Paused'         : 'Pausado',
+    busyMode:    en ? 'Busy mode'        : 'Modo ocupado',
+    busyNormal:  en ? 'Normal'           : 'Normal',
+    busyAdd10:   en ? '+10 min'          : '+10 min',
+    busyAdd20:   en ? '+20 min'          : '+20 min',
+    pauseOrders: en ? 'Pause orders'     : 'Pausar órdenes',
+    resumeOrders: en ? 'Resume orders'   : 'Reanudar órdenes',
+    pause30:     en ? '30 minutes'       : '30 minutos',
+    pause60:     en ? '1 hour'           : '1 hora',
+    pause120:    en ? '2 hours'          : '2 horas',
+    pauseTomorrow: en ? 'Until tomorrow' : 'Hasta mañana',
+    autoPrint:   en ? 'Auto-print'       : 'Auto-impresión',
+    todaySummary: en ? "Today's summary" : 'Resumen de hoy',
+    todayOrders: en ? 'orders'           : 'órdenes',
+    // Status / empty states
+    waitingOrders: en ? 'Waiting for orders…' : 'Esperando órdenes…',
+    connectedRt:   en ? 'Connected in real time' : 'Conectado en tiempo real',
+    noPrepping:    en ? 'Nothing preparing'  : 'Nada en preparación',
+    noReady:       en ? 'No orders ready'    : 'Sin órdenes listas',
+    noHistory:     en ? 'No history today'   : 'Sin historial hoy',
+    selectOrder:   en ? 'Select an order'    : 'Selecciona una orden',
+    urgent:        en ? 'Urgent!'            : '¡Urgente!',
+    // Offline banner
+    offlineBanner: en
+      ? 'No connection — new orders will not arrive until internet is restored'
+      : 'Sin conexión — los nuevos pedidos no llegarán hasta recuperar internet',
+    // History
+    delivered:   en ? 'Delivered'       : 'Entregada',
+    cancelled:   en ? 'Cancelled'       : 'Cancelada',
+    duration:    (m: number) => en ? `${m} min` : `${m} min`,
+    // Time
+    justNow:     en ? 'now'             : 'ahora',
+    minsAgo:     (m: number) => en ? `${m}m` : `${m}m`,
+    search:      en ? 'Search order or customer…' : 'Buscar orden o cliente…',
+  };
+}
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const GREEN = '#06C167';
-const ETA_OPTS = [10, 15, 20, 25, 30, 45] as const;
 const SLA_WARN_MINS = 5;
+type Tab = 'new' | 'prep' | 'ready' | 'history';
+type Locale = 'es' | 'en';
 
-type Tab = 'new' | 'cooking' | 'ready' | 'history';
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmt(amount: number, currency: string) {
   try {
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amount);
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency', currency, minimumFractionDigits: 2,
+    }).format(amount);
   } catch {
     return `${currency} ${amount.toFixed(2)}`;
   }
@@ -40,265 +133,170 @@ function elapsedSecs(createdAt: string) {
   return Math.floor((Date.now() - new Date(createdAt).getTime()) / 1_000);
 }
 
-function fmtMM(seconds: number) {
-  const abs = Math.abs(seconds);
+function fmtCountdown(secs: number) {
+  const abs = Math.abs(secs);
   const m = Math.floor(abs / 60);
   const s = abs % 60;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-function timeAgoShort(createdAt: string) {
+function timeAgo(createdAt: string, t: ReturnType<typeof getT>) {
   const m = elapsedMins(createdAt);
-  if (m < 1) return 'ahora';
-  if (m < 60) return `${m} min`;
+  if (m < 1) return t.justNow;
+  if (m < 60) return t.minsAgo(m);
   const h = Math.floor(m / 60);
   return `${h}h ${m % 60}m`;
 }
 
-function waLink(phone: string, message: string) {
-  return `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+function waLink(phone: string, msg: string) {
+  return `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
 }
 
-// ─── Audio ───────────────────────────────────────────────────────────────────
+// ─── Audio ────────────────────────────────────────────────────────────────────
 
-function isSoundMuted(): boolean {
-  try {
-    const stored = localStorage.getItem('menius-sound');
-    if (!stored) return false;
-    const parsed = JSON.parse(stored);
-    return parsed?.state?.soundEnabled === false;
-  } catch { return false; }
-}
-
-/**
- * Plays /public/sounds/new-order.mp3 if it exists,
- * otherwise falls back to a synthesized 3-note chime (similar to Uber Eats).
- */
-function playBeep() {
-  if (typeof window === 'undefined' || isSoundMuted()) return;
-
-  // Try the real sound file first
+function playNewOrderSound() {
+  if (typeof window === 'undefined') return;
   const audio = new Audio('/sounds/new-order.mp3');
-  audio.volume = 0.8;
+  audio.volume = 0.85;
   audio.play().catch(() => {
-    // File missing or browser blocked autoplay — fall back to synthesized chime
-    playChimeSynth();
+    // Fallback: synthesized chime
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      [523, 659, 784].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const t = ctx.currentTime + i * 0.18;
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.6, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+        osc.start(t); osc.stop(t + 0.55);
+      });
+    } catch { /* unavailable */ }
   });
 }
 
-/** 3-note descending chime (Do-Sol-Mi), pleasant restaurant notification sound */
-function playChimeSynth() {
+function playUrgentSound() {
+  if (typeof window === 'undefined') return;
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    // Notes: C5 (523 Hz), G4 (392 Hz), E4 (330 Hz)
-    [523, 392, 330].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      const t = ctx.currentTime + i * 0.22;
-      gain.gain.setValueAtTime(0, t);
-      gain.gain.linearRampToValueAtTime(0.5, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
-      osc.start(t); osc.stop(t + 0.6);
-    });
-  } catch { /* unavailable */ }
-}
-
-function playUrgentBeep() {
-  if (typeof window === 'undefined' || isSoundMuted()) return;
-  try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    // Rapid triple pulse — more urgent than the chime
-    [660, 660, 660].forEach((freq, i) => {
+    [880, 880, 880].forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
       osc.frequency.value = freq; osc.type = 'square';
-      const t = ctx.currentTime + i * 0.2;
-      gain.gain.setValueAtTime(0.35, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
-      osc.start(t); osc.stop(t + 0.18);
+      const t = ctx.currentTime + i * 0.22;
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      osc.start(t); osc.stop(t + 0.2);
     });
   } catch { /* unavailable */ }
 }
 
-function requestPushPermission() {
-  if (typeof window === 'undefined' || !('Notification' in window)) return;
-  if (Notification.permission === 'default') Notification.requestPermission();
-}
-
-function sendPush(title: string, body: string) {
+function sendPushNotification(title: string, body: string) {
   if (typeof window === 'undefined' || !('Notification' in window)) return;
   if (Notification.permission !== 'granted') return;
   try { new Notification(title, { body, icon: '/favicon.ico', tag: 'menius-order' }); } catch { /* failed */ }
 }
 
-// ─── Types ───────────────────────────────────────────────────────────────────
+// ─── Type icons ──────────────────────────────────────────────────────────────
+
+const TYPE_ICON = {
+  delivery: Truck,
+  pickup: ShoppingBag,
+  dine_in: Utensils,
+} as const;
+
+function getTypeLabel(orderType: string | undefined, t: ReturnType<typeof getT>) {
+  if (orderType === 'delivery') return t.delivery;
+  if (orderType === 'pickup') return t.pickup;
+  return t.dineIn;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Props
+// ══════════════════════════════════════════════════════════════════════════════
 
 interface CounterViewProps {
   initialOrders: Order[];
   restaurantId: string;
   restaurantName: string;
   currency: string;
+  locale?: Locale;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// CounterView — Uber Eats master-detail layout
+// CounterView — main component
 // ══════════════════════════════════════════════════════════════════════════════
 
-export function CounterView({ initialOrders, restaurantId, restaurantName, currency }: CounterViewProps) {
+export function CounterView({
+  initialOrders, restaurantId, restaurantName, currency, locale = 'es',
+}: CounterViewProps) {
+  const t = getT(locale);
+
+  // ── UI state ──
   const [activeTab, setActiveTab] = useState<Tab>('new');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // On mobile/portrait: when an order is selected we show detail fullscreen
+  const [showDetailMobile, setShowDetailMobile] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // ── Order actions state ──
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [eta, setEta] = useState(15);
   const [busyExtra, setBusyExtra] = useState(0);
-  const [showBusy, setShowBusy] = useState(false);
+
+  // ── Pause state ──
   const [pausedUntil, setPausedUntil] = useState<number | null>(null);
-  const [showPause, setShowPause] = useState(false);
-  const [pauseOpt, setPauseOpt] = useState(30);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [isSendingTest, setIsSendingTest] = useState(false);
-  const [testToast, setTestToast] = useState<string | null>(null);
-  const [isOnline, setIsOnline] = useState(true);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
-  const [showRejectConfirm, setShowRejectConfirm] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
-  const [kitchenToast, setKitchenToast] = useState<string | null>(null);
-  const [errorToast, setErrorToast] = useState<string | null>(null);
-  const showError = (msg: string) => { setErrorToast(msg); setTimeout(() => setErrorToast(null), 4000); };
-  const [splashQueue, setSplashQueue] = useState<Order[]>([]);
+  const [pauseModalOpen, setPauseModalOpen] = useState(false);
+
+  // ── Auto-print ──
   const [autoPrint, setAutoPrint] = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('counter-auto-print') === 'true'
   );
-  const [showDriverModal, setShowDriverModal] = useState(false);
-  const [driverOrderId, setDriverOrderId] = useState<string | null>(null);
+
+  // ── Cancel/reject ──
+  const [cancelModal, setCancelModal] = useState<{ orderId: string; type: 'reject' | 'cancel' } | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+
+  // ── Driver modal ──
+  const [driverModal, setDriverModal] = useState<{ orderId: string; address?: string } | null>(null);
   const [driverName, setDriverName] = useState('');
   const [driverPhone, setDriverPhone] = useState('');
-  const [isAssigningDriver, setIsAssigningDriver] = useState(false);
-  const [historySearch, setHistorySearch] = useState('');
-  const [waAction, setWaAction] = useState<{ url: string; label: string } | null>(null);
-  const [isLoadingManualProducts, setIsLoadingManualProducts] = useState(false);
-  const [manualProductsError, setManualProductsError] = useState('');
+  const [assigningDriver, setAssigningDriver] = useState(false);
+
+  // ── Toasts ──
+  const [errorToast, setErrorToast] = useState<string | null>(null);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
+
+  // ── Splash queue ──
+  const [splashQueue, setSplashQueue] = useState<Order[]>([]);
+
+  // ── Connection / misc ──
+  const [isOnline, setIsOnline] = useState(true);
   const [, tick] = useState(0);
   const urgentRef = useRef<Set<string>>(new Set());
+  const [historySearch, setHistorySearch] = useState('');
 
-  // ── Manual/POS Order ──
-  const [showManualOrder, setShowManualOrder] = useState(false);
-  const [manualProducts, setManualProducts] = useState<Array<{ id: string; name: string; price: number; in_stock: boolean }>>([]);
-  const [manualItems, setManualItems] = useState<Array<{ productId: string; name: string; price: number; qty: number }>>([]);
-  const [manualCustomerName, setManualCustomerName] = useState('');
-  const [manualPhone, setManualPhone] = useState('');
-  const [manualNotes, setManualNotes] = useState('');
-  const [manualOrderType, setManualOrderType] = useState<'dine_in' | 'pickup' | 'delivery'>('pickup');
-  const [manualSubmitting, setManualSubmitting] = useState(false);
-  const [manualError, setManualError] = useState('');
-  const [manualProductSearch, setManualProductSearch] = useState('');
+  // ── History search ──
 
-  const fetchManualProducts = useCallback(async () => {
-    setIsLoadingManualProducts(true);
-    setManualProductsError('');
-    try {
-      const res = await fetch('/api/products/stock');
-      if (!res.ok) { setManualProductsError('Error al cargar productos. Intenta de nuevo.'); return; }
-      const data = await res.json();
-      if (Array.isArray(data.products)) {
-        setManualProducts(data.products);
-        if (data.products.length === 0) setManualProductsError('No hay productos activos en el menú.');
-      }
-    } catch {
-      setManualProductsError('Sin conexión. Verifica tu red e intenta de nuevo.');
-    } finally {
-      setIsLoadingManualProducts(false);
-    }
-  }, []);
-
-  const manualTotal = manualItems.reduce((s, i) => s + i.price * i.qty, 0);
-
-  const addManualItem = (product: { id: string; name: string; price: number }) => {
-    setManualItems(prev => {
-      const existing = prev.find(i => i.productId === product.id);
-      if (existing) {
-        return prev.map(i => i.productId === product.id ? { ...i, qty: i.qty + 1 } : i);
-      }
-      return [...prev, { productId: product.id, name: product.name, price: product.price, qty: 1 }];
-    });
+  const showError = (msg: string) => {
+    setErrorToast(msg);
+    setTimeout(() => setErrorToast(null), 4000);
+  };
+  const showSuccess = (msg: string) => {
+    setSuccessToast(msg);
+    setTimeout(() => setSuccessToast(null), 3000);
   };
 
-  const removeManualItem = (productId: string) => {
-    setManualItems(prev => {
-      const existing = prev.find(i => i.productId === productId);
-      if (!existing) return prev;
-      if (existing.qty <= 1) return prev.filter(i => i.productId !== productId);
-      return prev.map(i => i.productId === productId ? { ...i, qty: i.qty - 1 } : i);
-    });
-  };
+  // ── Effects ──
 
-  const handleManualOrderSubmit = useCallback(async () => {
-    if (manualItems.length === 0) { setManualError('Agrega al menos un producto'); return; }
-    if (!manualCustomerName.trim()) { setManualError('Nombre del cliente requerido'); return; }
-    setManualSubmitting(true);
-    setManualError('');
-    try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          restaurant_id: restaurantId,
-          customer_name: manualCustomerName.trim(),
-          customer_phone: manualPhone.trim() || undefined,
-          notes: manualNotes.trim() || undefined,
-          order_type: manualOrderType,
-          payment_method: 'cash',
-          items: manualItems.map(i => ({
-            product_id: i.productId,
-            qty: i.qty,
-            unit_price: i.price,
-            line_total: i.price * i.qty,
-            notes: '',
-            extras: [],
-            modifiers: [],
-          })),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) { setManualError(data.error || 'Error creando orden'); return; }
-      setShowManualOrder(false);
-      setManualItems([]);
-      setManualCustomerName('');
-      setManualPhone('');
-      setManualNotes('');
-      setActiveTab('new');
-    } catch {
-      setManualError('Error de conexión');
-    } finally {
-      setManualSubmitting(false);
-    }
-  }, [manualItems, manualCustomerName, manualPhone, manualNotes, manualOrderType, restaurantId]);
-
-  // Tick every second for live timers
+  // Tick every second for live countdown timers
   useEffect(() => {
-    const t = setInterval(() => tick(n => n + 1), 1_000);
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => { requestPushPermission(); }, []);
-  useEffect(() => { return AutoAcceptService.subscribe(() => {}); }, []);
-
-  // Wake Lock — keep tablet screen always on
-  useEffect(() => {
-    if (typeof navigator === 'undefined' || !('wakeLock' in navigator)) return;
-    let lock: any = null;
-    const acquire = async () => {
-      try { lock = await (navigator as any).wakeLock.request('screen'); } catch { /* permission denied */ }
-    };
-    acquire();
-    const onVisible = () => { if (document.visibilityState === 'visible') acquire(); };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisible);
-      lock?.release().catch(() => {});
-    };
+    const id = setInterval(() => tick(n => n + 1), 1_000);
+    return () => clearInterval(id);
   }, []);
 
   // Connection status
@@ -314,11 +312,41 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
     };
   }, []);
 
+  // Wake Lock — keep tablet screen on
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('wakeLock' in navigator)) return;
+    let lock: any = null;
+    const acquire = async () => {
+      try { lock = await (navigator as any).wakeLock.request('screen'); } catch { /* denied */ }
+    };
+    acquire();
+    const onVisible = () => { if (document.visibilityState === 'visible') acquire(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      lock?.release().catch(() => {});
+    };
+  }, []);
+
+  // Push permission
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Auto-accept subscription
+  useEffect(() => { return AutoAcceptService.subscribe(() => {}); }, []);
+
+  // ── New order handler ──
   const handleNewOrder = useCallback((order: Order) => {
-    playBeep();
-    sendPush('🔔 Nueva orden · ' + restaurantName, `${order.customer_name || 'Cliente'} · #${order.order_number} · ${fmt(order.total, currency)}`);
+    playNewOrderSound();
+    sendPushNotification(
+      `🔔 ${t.newOrder} · ${restaurantName}`,
+      `${order.customer_name || 'Cliente'} · #${order.order_number} · ${fmt(order.total, currency)}`
+    );
     setSplashQueue(q => [...q, order]);
-  }, [restaurantName, currency]);
+  }, [restaurantName, currency, t.newOrder]);
 
   const { orders } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
@@ -328,7 +356,7 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
     [orders]);
 
-  const cookingOrders = useMemo(() =>
+  const prepOrders = useMemo(() =>
     orders.filter(o => ['confirmed', 'preparing'].includes(o.status))
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
     [orders]);
@@ -343,32 +371,40 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     if (historySearch.trim()) {
       const q = historySearch.toLowerCase();
-      r = r.filter(o => o.order_number?.toLowerCase().includes(q) || (o.customer_name ?? '').toLowerCase().includes(q));
+      r = r.filter(o =>
+        o.order_number?.toLowerCase().includes(q) ||
+        (o.customer_name ?? '').toLowerCase().includes(q)
+      );
     }
     return r;
   }, [orders, historySearch]);
 
-  const currentTabList = useMemo(() => {
+  const currentList = useMemo(() => {
     if (activeTab === 'new') return newOrders;
-    if (activeTab === 'cooking') return cookingOrders;
+    if (activeTab === 'prep') return prepOrders;
     if (activeTab === 'ready') return readyOrders;
     return historyOrders;
-  }, [activeTab, newOrders, cookingOrders, readyOrders, historyOrders]);
+  }, [activeTab, newOrders, prepOrders, readyOrders, historyOrders]);
 
-  // Auto-select first order when tab/list changes
+  // Auto-select first order when tab changes or list changes
   useEffect(() => {
-    if (!currentTabList.find(o => o.id === selectedId)) {
-      setSelectedId(currentTabList[0]?.id ?? null);
+    if (!currentList.find(o => o.id === selectedId)) {
+      const first = currentList[0]?.id ?? null;
+      setSelectedId(first);
+      if (!first) setShowDetailMobile(false);
     }
-  }, [currentTabList, selectedId]);
+  }, [currentList, selectedId]);
 
-  // SLA urgent beep
+  // SLA urgent beep (after 5 min without response)
   useEffect(() => {
     newOrders.forEach(o => {
       if (elapsedMins(o.created_at) >= SLA_WARN_MINS && !urgentRef.current.has(o.id)) {
         urgentRef.current.add(o.id);
-        playUrgentBeep();
-        sendPush('⚠️ Orden sin atender · ' + restaurantName, `#${o.order_number} lleva más de ${SLA_WARN_MINS} min esperando`);
+        playUrgentSound();
+        sendPushNotification(
+          `⚠️ ${t.urgent} · ${restaurantName}`,
+          `#${o.order_number} — ${SLA_WARN_MINS} min without response`
+        );
       }
     });
   });
@@ -386,396 +422,297 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newOrders.map(o => o.id).join(',')]);
 
-  // ── Driver assignment ──
-  const openDriverModal = useCallback((order: Order) => {
-    setDriverOrderId(order.id);
-    setDriverName((order as any).driver_name ?? '');
-    setDriverPhone((order as any).driver_phone ?? '');
-    setShowDriverModal(true);
-  }, []);
-
-  const handleAssignDriver = useCallback(async (deliveryAddress?: string) => {
-    if (!driverOrderId) return;
-    setIsAssigningDriver(true);
-    // Build WA URL synchronously before any await (browser popup policy)
-    const waUrl = driverPhone && deliveryAddress
-      ? `https://wa.me/${driverPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${driverName || 'repartidor'} 🛵 Tienes una entrega:\n📍 ${deliveryAddress}\nAcude al restaurante para recoger el pedido.`)}`
-      : null;
-    try {
-      const result = await assignDriver(driverOrderId, driverName, driverPhone);
-      if (result?.error) {
-        showError(`Error al asignar repartidor: ${result.error}`);
-        return;
-      }
-      if (waUrl) {
-        setWaAction({ url: waUrl, label: `Enviar dirección a ${driverName || 'repartidor'}` });
-        setTimeout(() => setWaAction(null), 12_000);
-      }
-      setShowDriverModal(false);
-    } catch {
-      showError('Error inesperado al asignar repartidor');
-    } finally {
-      setIsAssigningDriver(false);
-    }
-  }, [driverOrderId, driverName, driverPhone]);
+  // ── Derived ──
+  const selectedOrder = orders.find(o => o.id === selectedId) ?? null;
+  const isPaused = !!pausedUntil && Date.now() < pausedUntil;
+  const pauseLeftMins = pausedUntil ? Math.max(0, Math.ceil((pausedUntil - Date.now()) / 60_000)) : 0;
+  const effectiveEta = eta + busyExtra;
+  const todayOrders = orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString());
+  const todayRevenue = todayOrders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total), 0);
 
   // ── Actions ──
   const handleAccept = useCallback(async (order: Order) => {
     setUpdatingId(order.id);
-    const effectiveEta = eta + busyExtra;
-    // Build WA URL synchronously before any await (browser popup policy)
+    const eff = eta + busyExtra;
     const waUrl = order.customer_phone
-      ? `https://wa.me/${order.customer_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${order.customer_name || 'cliente'} 👋 Tu orden #${order.order_number} fue confirmada ✅ Estará lista en aprox. ${effectiveEta} minutos.`)}`
+      ? waLink(order.customer_phone, t.en
+          ? `Hi ${order.customer_name || 'there'} 👋 Your order #${order.order_number} was confirmed ✅ Ready in approx. ${eff} minutes.`
+          : `Hola ${order.customer_name || 'cliente'} 👋 Tu orden #${order.order_number} fue confirmada ✅ Lista en aprox. ${eff} minutos.`)
       : null;
     try {
-      const etaRes = await updateOrderETA(order.id, effectiveEta);
-      if (etaRes?.error) { showError(`Error al actualizar ETA: ${etaRes.error}`); return; }
+      const etaRes = await updateOrderETA(order.id, eff);
+      if (etaRes?.error) { showError(etaRes.error); return; }
       const res = await updateOrderStatus(order.id, 'confirmed');
-      if (res?.error) { showError(`Error al confirmar: ${res.error}`); return; }
-      if (autoPrint) PrinterService.printOrder(order, effectiveEta, restaurantName, currency).catch(() => {});
-      setShowMoreMenu(false);
-      setActiveTab('cooking');
+      if (res?.error) { showError(res.error); return; }
+      if (autoPrint) PrinterService.printOrder(order, eff, restaurantName, currency).catch(() => {});
+      setActiveTab('prep');
       setSelectedId(order.id);
-      if (waUrl) {
-        setWaAction({ url: waUrl, label: `Avisar a ${order.customer_name || 'cliente'} por WhatsApp` });
-        setTimeout(() => setWaAction(null), 12_000);
-      }
-      setKitchenToast(`#${order.order_number} → Cocina (${effectiveEta} min)`);
-      setTimeout(() => setKitchenToast(null), 3000);
+      setShowDetailMobile(true);
+      showSuccess(`#${order.order_number} → ${t.tabPrep}`);
+      if (waUrl) window.open(waUrl, '_blank', 'noopener');
     } catch {
-      showError('Error inesperado al confirmar la orden');
+      showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, [eta, busyExtra, restaurantName, currency, autoPrint]);
-
-  const handleReject = useCallback(async (order: Order) => {
-    setUpdatingId(order.id);
-    setShowMoreMenu(false);
-    setShowRejectConfirm(false);
-    // Build WA URL synchronously before any await (browser popup policy)
-    const waUrl = order.customer_phone && rejectReason
-      ? `https://wa.me/${order.customer_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${order.customer_name || 'cliente'}, lamentablemente no podemos procesar tu orden #${order.order_number}. Motivo: ${rejectReason}. Disculpa los inconvenientes.`)}`
-      : null;
-    try {
-      const res = await updateOrderStatus(order.id, 'cancelled', rejectReason || undefined);
-      if (res?.error) { showError(`Error al rechazar: ${res.error}`); return; }
-      if (waUrl) {
-        setWaAction({ url: waUrl, label: `Notificar rechazo a ${order.customer_name || 'cliente'}` });
-        setTimeout(() => setWaAction(null), 12_000);
-      }
-      setRejectReason('');
-    } catch {
-      showError('Error inesperado al rechazar la orden');
-    } finally { setUpdatingId(null); }
-  }, [rejectReason]);
+  }, [eta, busyExtra, restaurantName, currency, autoPrint, t]);
 
   const handleMarkReady = useCallback(async (order: Order) => {
     setUpdatingId(order.id);
     try {
       const res = await updateOrderStatus(order.id, 'ready');
-      if (res?.error) { showError(`Error al marcar como lista: ${res.error}`); return; }
+      if (res?.error) { showError(res.error); return; }
       setActiveTab('ready');
       setSelectedId(order.id);
-      // WA link shown in ready-tab panel as <a> — no window.open needed
+      setShowDetailMobile(true);
     } catch {
-      showError('Error inesperado al marcar como lista');
+      showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, []);
+  }, [t]);
 
   const handleDeliver = useCallback(async (order: Order) => {
     setUpdatingId(order.id);
     try {
       const res = await updateOrderStatus(order.id, 'delivered');
-      if (res?.error) { showError(`Error al marcar como entregada: ${res.error}`); return; }
+      if (res?.error) { showError(res.error); return; }
       setActiveTab('history');
       setSelectedId(null);
+      setShowDetailMobile(false);
     } catch {
-      showError('Error inesperado al marcar como entregada');
+      showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, []);
+  }, [t]);
 
   const handleAdjustEta = useCallback(async (order: Order, newEta: number) => {
     setUpdatingId(order.id);
     try {
       const res = await updateOrderETA(order.id, newEta);
-      if (res?.error) { showError(`Error al ajustar ETA: ${res.error}`); return; }
+      if (res?.error) { showError(res.error); return; }
     } catch {
-      showError('Error inesperado al ajustar ETA');
+      showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, []);
+  }, [t]);
 
-  const handleCancelCooking = useCallback(async (order: Order, reason?: string) => {
-    setUpdatingId(order.id);
-    setShowMoreMenu(false);
+  const handleCancel = useCallback(async () => {
+    if (!cancelModal) return;
+    setUpdatingId(cancelModal.orderId);
+    const order = orders.find(o => o.id === cancelModal.orderId);
+    const waUrl = order?.customer_phone && cancelReason
+      ? waLink(order.customer_phone, t.en
+          ? `Hi ${order.customer_name || 'there'}, we're sorry but we cannot process order #${order.order_number}. Reason: ${cancelReason}. We apologize for the inconvenience.`
+          : `Hola ${order?.customer_name || 'cliente'}, lamentablemente no podemos procesar tu orden #${order?.order_number}. Motivo: ${cancelReason}. Disculpa los inconvenientes.`)
+      : null;
     try {
-      const res = await updateOrderStatus(order.id, 'cancelled', reason);
-      if (res?.error) { showError(`Error al cancelar: ${res.error}`); return; }
+      const res = await updateOrderStatus(cancelModal.orderId, 'cancelled', cancelReason || undefined);
+      if (res?.error) { showError(res.error); return; }
+      setCancelModal(null);
+      setCancelReason('');
+      if (waUrl) window.open(waUrl, '_blank', 'noopener');
     } catch {
-      showError('Error inesperado al cancelar la orden');
+      showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, []);
+  }, [cancelModal, cancelReason, orders, t]);
 
-  const doPause = useCallback(async () => {
-    let ms = pauseOpt * 60_000;
-    if (pauseOpt === 9999) {
+  const handleAssignDriver = useCallback(async () => {
+    if (!driverModal) return;
+    setAssigningDriver(true);
+    const waUrl = driverPhone && driverModal.address
+      ? `https://wa.me/${driverPhone.replace(/\D/g, '')}?text=${encodeURIComponent(
+          t.en
+            ? `Hi ${driverName || 'driver'} 🛵 You have a delivery:\n📍 ${driverModal.address}\nCome to the restaurant to pick up the order.`
+            : `Hola ${driverName || 'repartidor'} 🛵 Tienes una entrega:\n📍 ${driverModal.address}\nAcude al restaurante para recoger el pedido.`
+        )}`
+      : null;
+    try {
+      const res = await assignDriver(driverModal.orderId, driverName, driverPhone);
+      if (res?.error) { showError(res.error); return; }
+      setDriverModal(null);
+      setDriverName(''); setDriverPhone('');
+      if (waUrl) window.open(waUrl, '_blank', 'noopener');
+    } catch {
+      showError(t.en ? 'Unexpected error' : 'Error inesperado');
+    } finally { setAssigningDriver(false); }
+  }, [driverModal, driverName, driverPhone, t]);
+
+  const doPause = useCallback(async (mins: number) => {
+    let ms = mins * 60_000;
+    if (mins === 9999) {
       const n = new Date();
       ms = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1).getTime() - n.getTime();
     }
     const until = Date.now() + ms;
     setPausedUntil(until);
-    setShowPause(false);
-    // Sync to DB so the API also rejects new orders
+    setPauseModalOpen(false);
     await setPauseOrders(new Date(until).toISOString()).catch(() => {});
-  }, [pauseOpt]);
+  }, []);
 
   const doUnpause = useCallback(async () => {
     setPausedUntil(null);
     await setPauseOrders(null).catch(() => {});
   }, []);
 
-  const handleTestOrder = useCallback(async () => {
-    setIsSendingTest(true);
-    setTestToast(null);
-    try {
-      const res = await fetch('/api/test-order', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) {
-        const msg = data.error ?? 'Error al crear pedido de prueba';
-        setTestToast(msg.includes('productos') ? '⚠ Sin productos en stock — agrega productos primero' : `✗ ${msg}`);
-      } else {
-        setTestToast(`✓ Pedido #${data.order_number} enviado`);
-        setActiveTab('new');
-      }
-    } catch {
-      setTestToast('Error de conexión');
-    } finally {
-      setIsSendingTest(false);
-      setTimeout(() => setTestToast(null), 4_000);
-    }
-  }, []);
+  // ── Tab change helper ──
+  const changeTab = (tab: Tab) => {
+    setActiveTab(tab);
+    setShowDetailMobile(false);
+    setSidebarOpen(false);
+  };
 
-  const selectedOrder = activeTab !== 'history'
-    ? orders.find(o => o.id === selectedId) ?? null
-    : null;
-  const historySelected = activeTab === 'history'
-    ? orders.find(o => o.id === selectedId) ?? null
-    : null;
-
-  const todayOrders = orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString());
-  const todayRevenue = todayOrders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total), 0);
-  const pauseLeftMins = pausedUntil ? Math.max(0, Math.ceil((pausedUntil - Date.now()) / 60_000)) : 0;
-  const isPaused = !!pausedUntil && Date.now() < pausedUntil;
+  // ═══════════════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════════════
 
   return (
     <div className="h-screen w-full bg-[#F2F2F2] flex flex-col overflow-hidden select-none">
 
-      {/* ── New order splash (queue — shows one at a time) ── */}
+      {/* ── New order splash ── */}
       {splashQueue.length > 0 && (
         <NewOrderSplash
           order={splashQueue[0]}
           currency={currency}
           queueCount={splashQueue.length}
-          onReview={() => {
+          t={t}
+          onView={() => {
             const current = splashQueue[0];
             setSplashQueue(q => q.slice(1));
-            setActiveTab('new');
+            changeTab('new');
             setSelectedId(current.id);
+            setShowDetailMobile(true);
           }}
         />
       )}
 
-      {/* ══ TOP BAR ══ */}
-      <header className="flex-none h-14 bg-white border-b border-[#E8E8E8] flex items-center px-4 gap-2 z-10 shadow-sm">
-        {/* Live dot + name */}
-        <div className="flex items-center gap-2 mr-1 flex-shrink-0">
-          <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: isPaused ? '#EF4444' : GREEN }} />
-          <span className="text-[#111] text-sm font-bold truncate max-w-[130px] hidden sm:block">{restaurantName}</span>
-        </div>
-
-        {/* 4 Tabs */}
-        <div className="flex items-center gap-1 flex-1 overflow-x-auto">
-          <TabBtn label="Nuevas" count={newOrders.length} active={activeTab === 'new'} urgent={newOrders.length > 0} badgeColor="#EF4444" onClick={() => setActiveTab('new')} />
-          <TabBtn label="En cocina" count={cookingOrders.length} active={activeTab === 'cooking'} urgent={false} badgeColor="#F59E0B" onClick={() => setActiveTab('cooking')} />
-          <TabBtn label="Listas" count={readyOrders.length} active={activeTab === 'ready'} urgent={false} badgeColor={GREEN} onClick={() => setActiveTab('ready')} />
-          <TabBtn label="Historial" count={null} active={activeTab === 'history'} urgent={false} badgeColor="#9CA3AF" onClick={() => setActiveTab('history')} icon={<History className="w-3.5 h-3.5" />} />
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center gap-1 ml-1 flex-shrink-0">
-          {isPaused && (
-            <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-600 text-[11px] font-bold animate-pulse">
-              <Pause className="w-3 h-3" /> {pauseLeftMins}m
-              <button onClick={doUnpause} className="ml-0.5 hover:text-red-800 font-black leading-none">×</button>
-            </span>
-          )}
-          {busyExtra > 0 && (
-            <span className="px-2 py-1 rounded-full text-white text-[11px] font-bold" style={{ background: '#F59E0B' }}>
-              +{busyExtra}min
-            </span>
-          )}
-          <button
-            onClick={() => {
-              const next = !autoPrint;
-              setAutoPrint(next);
-              localStorage.setItem('counter-auto-print', String(next));
-            }}
-            title={autoPrint ? 'Auto-impresión ON — click para desactivar' : 'Auto-impresión OFF — click para activar'}
-            className={cn('w-9 h-9 rounded-xl flex items-center justify-center transition-colors', autoPrint ? 'bg-[#111] text-white' : 'bg-[#F5F5F5] text-[#888] hover:bg-[#E8E8E8]')}
-          ><Printer className="w-4 h-4" /></button>
-          <button
-            onClick={() => setShowBusy(true)}
-            title="Modo ocupado"
-            className={cn('w-9 h-9 rounded-xl flex items-center justify-center transition-colors text-base', busyExtra > 0 ? 'text-white' : 'bg-[#F5F5F5] text-[#888] hover:bg-[#E8E8E8]')}
-            style={busyExtra > 0 ? { background: '#F59E0B' } : {}}
-          >🔥</button>
-          <button
-            onClick={() => setShowPause(true)}
-            title="Pausar órdenes"
-            className={cn('w-9 h-9 rounded-xl flex items-center justify-center transition-colors', isPaused ? 'bg-red-100 text-red-500' : 'bg-[#F5F5F5] text-[#888] hover:bg-[#E8E8E8]')}
-          ><Pause className="w-4 h-4" /></button>
-          <button
-            onClick={handleTestOrder}
-            disabled={isSendingTest}
-            title="Enviar pedido de prueba"
-            className="flex items-center gap-1.5 px-3 h-9 rounded-xl bg-[#F5F5F5] text-[#888] hover:bg-[#E8E8E8] text-xs font-semibold transition-colors disabled:opacity-50"
-          >
-            {isSendingTest
-              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              : <FlaskConical className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">Prueba</span>
-          </button>
-          <button
-            onClick={() => { setShowManualOrder(true); fetchManualProducts(); }}
-            title="Nueva orden manual (POS / teléfono)"
-            className="flex items-center gap-1.5 px-3 h-9 rounded-xl bg-[#111] text-white text-xs font-bold transition-colors hover:bg-[#333]"
-          >
-            <ClipboardList className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Nueva orden</span>
-          </button>
-        </div>
-      </header>
-
       {/* ── Offline banner ── */}
       {!isOnline && (
         <div className="flex-none bg-red-500 text-white text-xs font-bold py-2 px-4 flex items-center justify-center gap-2 z-20">
-          <span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block" />
-          Sin conexión — los nuevos pedidos no llegarán hasta recuperar internet
+          <WifiOff className="w-3.5 h-3.5" />
+          {t.offlineBanner}
         </div>
       )}
 
-      {/* ── Test toast ── */}
-      {testToast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl bg-[#111] text-white text-sm font-semibold shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-200">
-          {testToast}
+      {/* ── Paused banner ── */}
+      {isPaused && (
+        <div className="flex-none bg-amber-500 text-white text-xs font-bold py-2 px-4 flex items-center justify-center gap-2 z-20">
+          <Pause className="w-3.5 h-3.5" />
+          {t.paused_status} — {pauseLeftMins} min
+          <button onClick={doUnpause} className="ml-2 underline">{t.resumeOrders}</button>
         </div>
       )}
 
-      {/* ── Kitchen confirmation toast ── */}
-      {kitchenToast && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl text-white text-sm font-bold shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-200" style={{ background: '#06C167' }}>
-          <span>🍳</span> {kitchenToast}
-        </div>
-      )}
+      {/* ══ TOP BAR ══ */}
+      <header className="flex-none h-14 bg-white border-b border-[#E8E8E8] flex items-center px-3 gap-2 z-10 shadow-sm">
+        {/* Hamburger */}
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-[#555] hover:bg-[#F5F5F5] transition-colors flex-shrink-0"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
 
-      {/* ── Error toast ── */}
-      {errorToast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl text-white text-sm font-bold shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-200 bg-red-600 max-w-sm text-center">
-          <span>⚠️</span> {errorToast}
-        </div>
-      )}
+        {/* Restaurant name */}
+        <span className="text-sm font-bold text-[#111] truncate max-w-[120px] flex-shrink-0 hidden sm:block">
+          {restaurantName}
+        </span>
 
-      {/* ── WhatsApp action toast ── */}
-      {waAction && (
-        <div className="fixed bottom-20 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200"
-          style={{ background: '#25D366', maxWidth: 320 }}>
-          <MessageCircle className="w-5 h-5 text-white flex-shrink-0" />
-          <a href={waAction.url} target="_blank" rel="noopener noreferrer"
-            onClick={() => setWaAction(null)}
-            className="flex-1 text-white text-sm font-bold underline-offset-2 hover:underline">
-            {waAction.label}
-          </a>
-          <button onClick={() => setWaAction(null)} className="text-white/70 hover:text-white ml-1">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+        {/* Tabs */}
+        <nav className="flex items-center gap-1 flex-1 overflow-x-auto px-1">
+          <TabBtn
+            label={t.tabNew} count={newOrders.length}
+            active={activeTab === 'new'} urgent={newOrders.length > 0}
+            badgeColor="#EF4444" onClick={() => changeTab('new')}
+          />
+          <TabBtn
+            label={t.tabPrep} count={prepOrders.length}
+            active={activeTab === 'prep'} urgent={false}
+            badgeColor="#F59E0B" onClick={() => changeTab('prep')}
+          />
+          <TabBtn
+            label={t.tabReady} count={readyOrders.length}
+            active={activeTab === 'ready'} urgent={false}
+            badgeColor={GREEN} onClick={() => changeTab('ready')}
+          />
+          <TabBtn
+            label={t.tabHistory} count={null}
+            active={activeTab === 'history'} urgent={false}
+            badgeColor="#9CA3AF" onClick={() => changeTab('history')}
+            icon={<History className="w-3.5 h-3.5" />}
+          />
+        </nav>
 
-      {/* ══ MASTER-DETAIL ══ */}
+        {/* Online indicator */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className={cn('w-2 h-2 rounded-full', isOnline ? 'bg-[#06C167] animate-pulse' : 'bg-red-400')} />
+          <span className="text-[11px] font-semibold text-[#888] hidden md:block">
+            {isOnline ? t.online_status : 'Offline'}
+          </span>
+        </div>
+      </header>
+
+      {/* ══ MAIN LAYOUT ══ */}
       <div className="flex-1 flex overflow-hidden">
 
-        {/* LEFT — Order list */}
-        <div className="w-[272px] flex-none bg-white border-r border-[#E8E8E8] flex flex-col overflow-hidden">
-
+        {/* ── LEFT: Order list (always visible on sm+, hidden on mobile when detail open) ── */}
+        <div className={cn(
+          'bg-white border-r border-[#E8E8E8] flex flex-col overflow-hidden flex-shrink-0',
+          // Mobile: full width list, hidden when viewing detail
+          showDetailMobile ? 'hidden sm:flex' : 'flex w-full',
+          // Tablet/desktop: fixed sidebar width
+          'sm:w-72 lg:w-80',
+        )}>
+          {/* History search */}
           {activeTab === 'history' && (
             <div className="p-3 border-b border-[#F0F0F0]">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#BBBBBB]" />
-                <input
-                  value={historySearch}
-                  onChange={e => setHistorySearch(e.target.value)}
-                  placeholder="Buscar orden o cliente…"
-                  className="w-full pl-8 pr-3 py-2 rounded-lg bg-[#F5F5F5] text-sm text-[#111] placeholder-[#BBBBBB] focus:outline-none border border-transparent focus:border-[#06C167]/50"
-                />
-              </div>
+              <input
+                value={historySearch}
+                onChange={e => setHistorySearch(e.target.value)}
+                placeholder={t.search}
+                className="w-full px-3 py-2.5 rounded-xl bg-[#F5F5F5] text-sm text-[#111] placeholder-[#BBBBBB] focus:outline-none"
+              />
             </div>
           )}
 
+          {/* Order list */}
           <div className="flex-1 overflow-y-auto">
-            {currentTabList.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full gap-2 text-[#CCCCCC]">
-                {activeTab === 'new' && <Bell className="w-8 h-8" />}
-                {activeTab === 'cooking' && <Utensils className="w-8 h-8" />}
-                {activeTab === 'ready' && <CheckCircle className="w-8 h-8" />}
-                {activeTab === 'history' && <History className="w-8 h-8" />}
-                <p className="text-sm text-[#BBBBBB]">
-                  {activeTab === 'new' ? 'Sin nuevas órdenes' :
-                   activeTab === 'cooking' ? 'Cocina libre' :
-                   activeTab === 'ready' ? 'Sin órdenes listas' : 'Sin historial hoy'}
-                </p>
-              </div>
+            {currentList.length === 0 ? (
+              <EmptyState tab={activeTab} t={t} />
             ) : (
-              currentTabList.map(o => (
+              currentList.map(o =>
                 activeTab === 'history' ? (
-                  <HistoryListRow
-                    key={o.id}
-                    order={o}
-                    currency={currency}
+                  <HistoryRow
+                    key={o.id} order={o} currency={currency} t={t}
                     selected={selectedId === o.id}
-                    onClick={() => setSelectedId(o.id)}
+                    onClick={() => { setSelectedId(o.id); setShowDetailMobile(true); }}
                   />
                 ) : (
-                  <OrderListRow
-                    key={o.id}
-                    order={o}
-                    currency={currency}
-                    tab={activeTab}
+                  <OrderRow
+                    key={o.id} order={o} currency={currency} tab={activeTab} t={t}
                     selected={selectedId === o.id}
                     isUrgent={activeTab === 'new' && elapsedMins(o.created_at) >= SLA_WARN_MINS}
-                    onClick={() => { setSelectedId(o.id); setShowMoreMenu(false); setShowRejectConfirm(false); }}
+                    onClick={() => { setSelectedId(o.id); setShowDetailMobile(true); }}
                   />
                 )
-              ))
+              )
             )}
           </div>
 
-          {/* Day summary footer */}
+          {/* Day summary */}
           <div className="flex-none px-4 py-2.5 border-t border-[#F0F0F0] bg-[#FAFAFA]">
             <div className="flex justify-between text-[11px] text-[#AAAAAA]">
-              <span>Hoy: <span className="font-bold text-[#555]">{todayOrders.length} órdenes</span></span>
+              <span>
+                {t.todaySummary}:{' '}
+                <span className="font-bold text-[#555]">{todayOrders.length} {t.todayOrders}</span>
+              </span>
               <span className="font-bold text-[#555]">{fmt(todayRevenue, currency)}</span>
             </div>
           </div>
         </div>
 
-        {/* RIGHT — Detail panel */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {activeTab === 'history' ? (
-            historySelected ? (
-              <HistoryDetailPanel order={historySelected} currency={currency} restaurantName={restaurantName} />
-            ) : (
-              <IdlePanel icon={<History className="w-12 h-12 text-[#DDDDDD]" />} label="Selecciona una orden" />
-            )
-          ) : selectedOrder ? (
-            <DetailPanel
+        {/* ── RIGHT: Detail panel ── */}
+        <div className={cn(
+          'flex-1 flex flex-col overflow-hidden',
+          // Mobile: full width when viewing detail, hidden otherwise
+          showDetailMobile ? 'flex' : 'hidden sm:flex',
+        )}>
+          {selectedOrder ? (
+            <OrderDetail
               order={selectedOrder}
               currency={currency}
               restaurantName={restaurantName}
@@ -783,284 +720,238 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
               eta={eta}
               busyExtra={busyExtra}
               isUpdating={updatingId === selectedOrder.id}
-              showMoreMenu={showMoreMenu}
-              showRejectConfirm={showRejectConfirm}
-              onRejectReason={rejectReason}
-              onSetRejectReason={setRejectReason}
+              t={t}
+              onBack={() => setShowDetailMobile(false)}
               onSetEta={setEta}
               onAdjustEta={handleAdjustEta}
               onAccept={handleAccept}
-              onReject={handleReject}
               onMarkReady={handleMarkReady}
               onDeliver={handleDeliver}
-              onCancelCooking={handleCancelCooking}
-              onToggleMoreMenu={() => { setShowMoreMenu(s => !s); setShowRejectConfirm(false); setRejectReason(''); }}
-              onShowRejectConfirm={() => setShowRejectConfirm(true)}
-              onCloseMoreMenu={() => { setShowMoreMenu(false); setShowRejectConfirm(false); setRejectReason(''); }}
-              onPrint={() => PrinterService.printOrder(selectedOrder, selectedOrder.estimated_ready_minutes ?? eta, restaurantName, currency).catch(() => {})}
-              onAssignDriver={() => openDriverModal(selectedOrder)}
+              onCancelRequest={(type) => {
+                setCancelModal({ orderId: selectedOrder.id, type });
+                setCancelReason('');
+              }}
+              onPrint={() => PrinterService.printOrder(
+                selectedOrder, selectedOrder.estimated_ready_minutes ?? effectiveEta, restaurantName, currency
+              ).catch(() => {})}
+              onAssignDriver={() => {
+                setDriverModal({
+                  orderId: selectedOrder.id,
+                  address: selectedOrder.delivery_address ?? undefined,
+                });
+                const o = selectedOrder as any;
+                setDriverName(o.driver_name ?? '');
+                setDriverPhone(o.driver_phone ?? '');
+              }}
             />
           ) : (
-            <IdlePanel
-              icon={activeTab === 'new' ? <Bell className="w-12 h-12 text-[#DDDDDD]" /> : <Utensils className="w-12 h-12 text-[#DDDDDD]" />}
-              label={activeTab === 'new' ? 'Esperando órdenes…' : activeTab === 'cooking' ? 'Cocina sin órdenes' : 'Sin órdenes listas'}
-              sub="Conectado en tiempo real"
-              showDot
-            />
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
+              <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-sm">
+                {activeTab === 'new' && <Bell className="w-12 h-12 text-[#DDDDDD]" />}
+                {activeTab === 'prep' && <Clock className="w-12 h-12 text-[#DDDDDD]" />}
+                {activeTab === 'ready' && <CheckCircle className="w-12 h-12 text-[#DDDDDD]" />}
+                {activeTab === 'history' && <History className="w-12 h-12 text-[#DDDDDD]" />}
+              </div>
+              <div>
+                <p className="text-[#888] text-xl font-bold">
+                  {activeTab === 'new' ? t.waitingOrders :
+                   activeTab === 'prep' ? t.noPrepping :
+                   activeTab === 'ready' ? t.noReady : t.selectOrder}
+                </p>
+                {activeTab === 'new' && (
+                  <p className="text-[#BBBBBB] text-sm mt-1 flex items-center justify-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: GREEN }} />
+                    {t.connectedRt}
+                  </p>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>
 
-      {/* ══ MODALS ══ */}
-
-      {/* Busy Mode */}
-      {showBusy && (
+      {/* ══ SIDEBAR ══ */}
+      {sidebarOpen && (
         <>
-          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setShowBusy(false)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-xs mx-auto bg-white rounded-2xl z-50 p-5 shadow-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold text-[#111]">🔥 Modo ocupado</h2>
-              <button onClick={() => setShowBusy(false)} className="p-1 text-[#AAAAAA] hover:text-[#111]"><X className="w-5 h-5" /></button>
-            </div>
-            <p className="text-xs text-[#AAAAAA] mb-4">Agrega minutos extra al ETA cuando hay mucha demanda.</p>
-            <div className="space-y-2 mb-5">
-              {[{ v: 0, l: 'Normal — sin cambios' }, { v: 10, l: 'Ocupado (+10 min)' }, { v: 20, l: 'Muy ocupado (+20 min)' }].map(o => (
-                <label key={o.v} className={cn('flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors', busyExtra === o.v ? 'border-[#06C167] bg-[#06C167]/5' : 'border-[#EEEEEE] hover:border-[#CCCCCC]')}>
-                  <input type="radio" name="busy" checked={busyExtra === o.v} onChange={() => setBusyExtra(o.v)} style={{ accentColor: GREEN }} />
-                  <span className="text-sm font-medium text-[#111]">{o.l}</span>
-                </label>
-              ))}
-            </div>
-            <button onClick={() => setShowBusy(false)} className="w-full py-3 rounded-xl text-white font-bold text-sm" style={{ background: GREEN }}>
-              Guardar
-            </button>
-          </div>
-        </>
-      )}
-
-      {/* Pause orders */}
-      {showPause && (
-        <>
-          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setShowPause(false)} />
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-xs mx-auto bg-white rounded-2xl z-50 p-5 shadow-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold text-[#111]">⏸ Pausar nuevas órdenes</h2>
-              <button onClick={() => setShowPause(false)} className="p-1 text-[#AAAAAA] hover:text-[#111]"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="space-y-2 mb-5">
-              {[{ v: 30, l: '30 minutos' }, { v: 60, l: '1 hora' }, { v: 120, l: '2 horas' }, { v: 9999, l: 'Hasta mañana' }].map(o => (
-                <label key={o.v} className={cn('flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors', pauseOpt === o.v ? 'border-red-400 bg-red-50' : 'border-[#EEEEEE] hover:border-[#CCCCCC]')}>
-                  <input type="radio" name="pause" checked={pauseOpt === o.v} onChange={() => setPauseOpt(o.v)} className="accent-red-500" />
-                  <span className="text-sm font-medium text-[#111]">{o.l}</span>
-                </label>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setShowPause(false)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">Cancelar</button>
-              <button onClick={doPause} className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold">Pausar</button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* ── Driver modal ── */}
-      {/* ── Manual Order Modal ── */}
-      {showManualOrder && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowManualOrder(false)} />
-          <div className="fixed inset-x-0 bottom-0 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:top-1/2 sm:-translate-y-1/2 max-w-lg w-full bg-white rounded-t-2xl sm:rounded-2xl z-50 shadow-2xl flex flex-col max-h-[90dvh]">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#E8E8E8] flex-shrink-0">
-              <h2 className="text-base font-bold text-[#111]">📋 Nueva orden manual</h2>
-              <button onClick={() => setShowManualOrder(false)} className="p-1 text-[#AAAAAA] hover:text-[#111]">
+          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setSidebarOpen(false)} />
+          <aside className="fixed left-0 top-0 bottom-0 w-72 bg-white z-50 flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0F0]">
+              <div>
+                <p className="text-base font-black text-[#111]">{restaurantName}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className={cn('w-2 h-2 rounded-full', isPaused ? 'bg-amber-400' : 'bg-[#06C167] animate-pulse')} />
+                  <span className="text-xs font-semibold text-[#888]">
+                    {isPaused ? `${t.paused_status} (${pauseLeftMins} min)` : t.online_status}
+                  </span>
+                </div>
+              </div>
+              <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg text-[#AAAAAA] hover:text-[#111] hover:bg-[#F5F5F5]">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
-              {/* Order type */}
-              <div>
-                <label className="text-xs font-bold text-[#888] uppercase tracking-wide mb-2 block">Tipo de orden</label>
-                <div className="flex gap-2">
-                  {(['pickup', 'dine_in', 'delivery'] as const).map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => setManualOrderType(t)}
-                      className={cn('flex-1 py-2 rounded-xl text-xs font-bold border-2 transition-all', manualOrderType === t ? 'border-[#111] bg-[#111] text-white' : 'border-[#E8E8E8] text-[#888]')}
-                    >
-                      {t === 'pickup' ? 'Para llevar' : t === 'dine_in' ? 'Mesa' : 'Delivery'}
-                    </button>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+              {/* Busy mode */}
+              <SidebarSection title={t.busyMode} icon={<Flame className="w-4 h-4" />}>
+                <div className="space-y-1.5">
+                  {[{ v: 0, l: t.busyNormal }, { v: 10, l: t.busyAdd10 }, { v: 20, l: t.busyAdd20 }].map(opt => (
+                    <label key={opt.v} className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition-colors',
+                      busyExtra === opt.v ? 'border-[#06C167] bg-[#06C167]/5' : 'border-[#EEEEEE] hover:border-[#CCCCCC]'
+                    )}>
+                      <input type="radio" name="busy" checked={busyExtra === opt.v} onChange={() => setBusyExtra(opt.v)} style={{ accentColor: GREEN }} />
+                      <span className="text-sm font-medium text-[#111]">{opt.l}</span>
+                    </label>
                   ))}
                 </div>
-              </div>
+              </SidebarSection>
 
-              {/* Customer */}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-[#888] uppercase tracking-wide block">Cliente</label>
-                <input
-                  value={manualCustomerName}
-                  onChange={e => setManualCustomerName(e.target.value)}
-                  placeholder="Nombre del cliente *"
-                  className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm focus:outline-none focus:border-[#111] transition-colors"
-                />
-                <input
-                  value={manualPhone}
-                  onChange={e => setManualPhone(e.target.value)}
-                  placeholder="Teléfono (opcional)"
-                  type="tel"
-                  className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm focus:outline-none focus:border-[#111] transition-colors"
-                />
-              </div>
+              {/* Pause orders */}
+              <SidebarSection title={t.pauseOrders} icon={<Pause className="w-4 h-4" />}>
+                {isPaused ? (
+                  <button
+                    onClick={doUnpause}
+                    className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-[#06C167]"
+                  >
+                    {t.resumeOrders}
+                  </button>
+                ) : (
+                  <div className="space-y-1.5">
+                    {[{ v: 30, l: t.pause30 }, { v: 60, l: t.pause60 }, { v: 120, l: t.pause120 }, { v: 9999, l: t.pauseTomorrow }].map(opt => (
+                      <button
+                        key={opt.v}
+                        onClick={() => doPause(opt.v)}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-[#EEEEEE] hover:border-red-300 hover:bg-red-50 transition-colors text-left"
+                      >
+                        <span className="text-sm font-medium text-[#111]">{opt.l}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </SidebarSection>
 
-              {/* Products */}
-              <div>
-                <label className="text-xs font-bold text-[#888] uppercase tracking-wide mb-2 block">Productos</label>
-                <input
-                  value={manualProductSearch}
-                  onChange={e => setManualProductSearch(e.target.value)}
-                  placeholder="Buscar producto..."
-                  className="w-full px-4 py-2.5 rounded-xl border border-[#E8E8E8] text-sm mb-2 focus:outline-none focus:border-[#111]"
-                />
-                <div className="max-h-[200px] overflow-y-auto space-y-1 rounded-xl border border-[#E8E8E8]">
-                  {isLoadingManualProducts ? (
-                    <div className="flex items-center justify-center gap-2 py-6 text-[#AAAAAA]">
-                      <span className="w-4 h-4 border-2 border-[#DDDDDD] border-t-[#AAAAAA] rounded-full animate-spin" />
-                      <span className="text-xs">Cargando productos…</span>
-                    </div>
-                  ) : manualProductsError ? (
-                    <div className="text-center py-5 px-3">
-                      <p className="text-xs text-red-500 font-semibold mb-2">{manualProductsError}</p>
-                      <button onClick={fetchManualProducts} className="text-xs text-[#06C167] font-bold underline">Reintentar</button>
-                    </div>
-                  ) : manualProducts.length === 0 ? (
-                    <div className="text-center text-xs text-[#AAAAAA] py-6">Sin productos disponibles.</div>
-                  ) : (
-                    manualProducts
-                      .filter(p => p.in_stock && (!manualProductSearch || p.name.toLowerCase().includes(manualProductSearch.toLowerCase())))
-                      .map(p => {
-                        const inCart = manualItems.find(i => i.productId === p.id);
-                        return (
-                          <div key={p.id} className="flex items-center justify-between px-3 py-2 hover:bg-[#F5F5F5] transition-colors">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-[#111] truncate">{p.name}</p>
-                              <p className="text-xs text-[#888]">{fmt(p.price, currency)}</p>
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              {inCart && (
-                                <>
-                                  <button onClick={() => removeManualItem(p.id)} className="w-7 h-7 rounded-full bg-[#F5F5F5] flex items-center justify-center hover:bg-[#E8E8E8]">
-                                    <Minus className="w-3.5 h-3.5 text-[#555]" />
-                                  </button>
-                                  <span className="text-sm font-bold text-[#111] w-5 text-center tabular-nums">{inCart.qty}</span>
-                                </>
-                              )}
-                              <button onClick={() => addManualItem(p)} className="w-7 h-7 rounded-full flex items-center justify-center transition-colors" style={{ background: GREEN }}>
-                                <Plus className="w-3.5 h-3.5 text-white" />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })
-                  )}
-                </div>
-              </div>
+              {/* Auto-print */}
+              <SidebarSection title={t.autoPrint} icon={<Printer className="w-4 h-4" />}>
+                <label className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-[#EEEEEE] cursor-pointer">
+                  <span className="text-sm font-medium text-[#111]">{t.autoPrint}</span>
+                  <input
+                    type="checkbox"
+                    checked={autoPrint}
+                    onChange={e => {
+                      setAutoPrint(e.target.checked);
+                      localStorage.setItem('counter-auto-print', String(e.target.checked));
+                    }}
+                    style={{ accentColor: GREEN, width: 18, height: 18 }}
+                  />
+                </label>
+              </SidebarSection>
 
-              {/* Cart summary */}
-              {manualItems.length > 0 && (
-                <div className="bg-[#F5F5F5] rounded-xl p-3 space-y-1">
-                  <p className="text-xs font-bold text-[#888] uppercase tracking-wide mb-2">Resumen</p>
-                  {manualItems.map(i => (
-                    <div key={i.productId} className="flex justify-between text-sm">
-                      <span className="text-[#555]">{i.qty}× {i.name}</span>
-                      <span className="font-semibold text-[#111] tabular-nums">{fmt(i.price * i.qty, currency)}</span>
-                    </div>
-                  ))}
-                  <div className="border-t border-[#E8E8E8] pt-1 mt-1 flex justify-between font-bold text-base">
-                    <span>Total</span>
-                    <span className="tabular-nums">{fmt(manualTotal, currency)}</span>
+              {/* Today summary */}
+              <SidebarSection title={t.todaySummary} icon={<History className="w-4 h-4" />}>
+                <div className="px-3 py-3 rounded-xl bg-[#F5F5F5] space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#888]">{t.todayOrders}</span>
+                    <span className="font-bold text-[#111]">{todayOrders.length}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[#888]">Revenue</span>
+                    <span className="font-bold text-[#111]">{fmt(todayRevenue, currency)}</span>
                   </div>
                 </div>
-              )}
-
-              {/* Notes */}
-              <textarea
-                value={manualNotes}
-                onChange={e => setManualNotes(e.target.value)}
-                placeholder="Notas (opcional)"
-                rows={2}
-                className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm resize-none focus:outline-none focus:border-[#111]"
-              />
-
-              {manualError && (
-                <p className="text-xs text-red-500 font-semibold">{manualError}</p>
-              )}
+              </SidebarSection>
             </div>
+          </aside>
+        </>
+      )}
 
-            <div className="px-5 py-4 border-t border-[#E8E8E8] flex-shrink-0 flex gap-2">
-              <button onClick={() => setShowManualOrder(false)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">
-                Cancelar
+      {/* ══ CANCEL MODAL ══ */}
+      {cancelModal && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setCancelModal(null)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 p-5 shadow-2xl">
+            <p className="text-base font-bold text-[#111] mb-1">
+              {cancelModal.type === 'reject' ? t.rejectOrder : t.cancelOrder}
+            </p>
+            <p className="text-xs text-[#888] mb-4">{t.rejectReason}</p>
+            <div className="space-y-2 mb-4">
+              {t.reasons.map(r => (
+                <label key={r} className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer text-sm transition-colors',
+                  cancelReason === r ? 'border-red-400 bg-red-50 text-red-700' : 'border-[#EEE] text-[#555] hover:border-[#CCC]'
+                )}>
+                  <input type="radio" name="cancel-reason" checked={cancelReason === r} onChange={() => setCancelReason(r)} className="accent-red-500" />
+                  {r}
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setCancelModal(null)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">
+                {t.no}
               </button>
               <button
-                onClick={handleManualOrderSubmit}
-                disabled={manualSubmitting || manualItems.length === 0 || !manualCustomerName.trim()}
-                className="flex-1 py-3 rounded-xl text-white text-sm font-bold disabled:opacity-40 transition-colors"
-                style={{ background: GREEN }}
+                onClick={handleCancel}
+                disabled={!cancelReason || updatingId === cancelModal.orderId}
+                className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-50"
               >
-                {manualSubmitting ? 'Enviando…' : `Crear orden · ${fmt(manualTotal, currency)}`}
+                {t.confirmCancel}
               </button>
             </div>
           </div>
         </>
       )}
 
-      {showDriverModal && (
+      {/* ══ DRIVER MODAL ══ */}
+      {driverModal && (
         <>
-          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setShowDriverModal(false)} />
+          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setDriverModal(null)} />
           <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-xs mx-auto bg-white rounded-2xl z-50 p-5 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-[#111]">🛵 Asignar repartidor</h2>
-              <button onClick={() => setShowDriverModal(false)} className="p-1 text-[#AAAAAA] hover:text-[#111]">
-                <X className="w-5 h-5" />
-              </button>
+              <h2 className="text-base font-bold text-[#111]">🛵 {t.assignDriver}</h2>
+              <button onClick={() => setDriverModal(null)} className="p-1 text-[#AAAAAA] hover:text-[#111]"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-3 mb-5">
-              <div>
-                <label className="text-xs font-semibold text-[#888] mb-1 block">Nombre</label>
-                <input
-                  value={driverName}
-                  onChange={e => setDriverName(e.target.value)}
-                  placeholder="Ej. Juan López"
-                  className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] transition-colors"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-[#888] mb-1 block">Teléfono (WhatsApp)</label>
-                <input
-                  value={driverPhone}
-                  onChange={e => setDriverPhone(e.target.value)}
-                  placeholder="+52 55 1234 5678"
-                  type="tel"
-                  className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] transition-colors"
-                />
-              </div>
+              <input
+                value={driverName}
+                onChange={e => setDriverName(e.target.value)}
+                placeholder={t.en ? 'Driver name' : 'Nombre del repartidor'}
+                className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm focus:outline-none focus:border-[#06C167]"
+              />
+              <input
+                value={driverPhone}
+                onChange={e => setDriverPhone(e.target.value)}
+                placeholder="WhatsApp"
+                type="tel"
+                className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm focus:outline-none focus:border-[#06C167]"
+              />
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setShowDriverModal(false)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">
-                Cancelar
+              <button onClick={() => setDriverModal(null)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">
+                {t.no}
               </button>
               <button
-                onClick={() => {
-                  const order = orders.find(o => o.id === driverOrderId);
-                  handleAssignDriver(order?.delivery_address ?? undefined);
-                }}
-                disabled={isAssigningDriver || !driverName.trim()}
-                className="flex-1 py-3 rounded-xl text-white text-sm font-bold disabled:opacity-50 transition-colors"
+                onClick={handleAssignDriver}
+                disabled={assigningDriver || !driverName.trim()}
+                className="flex-1 py-3 rounded-xl text-white text-sm font-bold disabled:opacity-50"
                 style={{ background: GREEN }}
               >
-                {isAssigningDriver ? 'Guardando…' : driverPhone ? '📲 Asignar + WhatsApp' : 'Asignar'}
+                {assigningDriver ? '…' : driverPhone ? `📲 ${t.assignDriver}` : t.assignDriver}
               </button>
             </div>
           </div>
         </>
+      )}
+
+      {/* ══ TOASTS ══ */}
+      {errorToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-2xl bg-red-600 text-white text-sm font-bold shadow-xl animate-in fade-in slide-in-from-bottom-4 max-w-sm text-center">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" /> {errorToast}
+        </div>
+      )}
+      {successToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl text-white text-sm font-bold shadow-xl animate-in fade-in slide-in-from-bottom-4" style={{ background: GREEN }}>
+          <Check className="w-4 h-4" /> {successToast}
+        </div>
       )}
     </div>
   );
@@ -1070,7 +961,9 @@ export function CounterView({ initialOrders, restaurantId, restaurantName, curre
 // TabBtn
 // ══════════════════════════════════════════════════════════════════════════════
 
-function TabBtn({ label, count, active, urgent, badgeColor, onClick, icon }: {
+function TabBtn({
+  label, count, active, urgent, badgeColor, onClick, icon,
+}: {
   label: string; count: number | null; active: boolean; urgent: boolean;
   badgeColor: string; onClick: () => void; icon?: React.ReactNode;
 }) {
@@ -1078,7 +971,7 @@ function TabBtn({ label, count, active, urgent, badgeColor, onClick, icon }: {
     <button
       onClick={onClick}
       className={cn(
-        'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap',
+        'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap flex-shrink-0',
         active ? 'bg-[#111] text-white shadow-sm' : 'text-[#888] hover:text-[#111] hover:bg-[#F5F5F5]'
       )}
     >
@@ -1086,8 +979,14 @@ function TabBtn({ label, count, active, urgent, badgeColor, onClick, icon }: {
       {label}
       {count !== null && count > 0 && (
         <span
-          className={cn('text-[11px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center', urgent && !active ? 'animate-pulse' : '')}
-          style={{ background: active ? 'rgba(255,255,255,0.25)' : badgeColor + '22', color: active ? '#fff' : badgeColor }}
+          className={cn(
+            'text-[11px] font-black px-1.5 py-0.5 rounded-full min-w-[20px] text-center',
+            urgent && !active ? 'animate-pulse' : ''
+          )}
+          style={{
+            background: active ? 'rgba(255,255,255,0.25)' : badgeColor + '22',
+            color: active ? '#fff' : badgeColor,
+          }}
         >
           {count}
         </span>
@@ -1097,23 +996,18 @@ function TabBtn({ label, count, active, urgent, badgeColor, onClick, icon }: {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// OrderListRow — left panel row for new/cooking/ready tabs
+// OrderRow — left panel row
 // ══════════════════════════════════════════════════════════════════════════════
 
-const TYPE_ICON: Record<string, typeof Utensils> = {
-  delivery: Truck,
-  pickup: ShoppingBag,
-  dine_in: Utensils,
-};
-
-function OrderListRow({ order, currency, tab, selected, isUrgent, onClick }: {
-  order: Order; currency: string; tab: Tab; selected: boolean; isUrgent: boolean; onClick: () => void;
+function OrderRow({
+  order, currency, tab, t, selected, isUrgent, onClick,
+}: {
+  order: Order; currency: string; tab: Tab; t: ReturnType<typeof getT>;
+  selected: boolean; isUrgent: boolean; onClick: () => void;
 }) {
-  // No local setInterval needed — parent ticks every second, driving re-renders.
   const TypeIcon = TYPE_ICON[order.order_type ?? 'dine_in'] ?? Utensils;
   const mins = elapsedMins(order.created_at);
   const secs = elapsedSecs(order.created_at);
-
   const etaMins = order.estimated_ready_minutes;
   const countdownSecs = etaMins != null ? etaMins * 60 - secs : null;
   const isLate = countdownSecs !== null && countdownSecs < 0;
@@ -1122,33 +1016,46 @@ function OrderListRow({ order, currency, tab, selected, isUrgent, onClick }: {
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-4 py-3.5 border-b border-[#F5F5F5] transition-all',
-        selected ? 'bg-[#F0FDF4] border-l-4' : 'hover:bg-[#FAFAFA] border-l-4 border-l-transparent',
-        isUrgent && !selected ? 'bg-red-50 border-l-red-400' : '',
-        selected ? 'border-l-[#06C167]' : ''
+        'w-full text-left px-4 py-4 border-b border-[#F5F5F5] transition-all border-l-4',
+        selected ? 'bg-[#F0FDF4] border-l-[#06C167]' : 'hover:bg-[#FAFAFA] border-l-transparent',
+        isUrgent && !selected ? 'bg-red-50 border-l-red-400' : ''
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <TypeIcon className="w-3 h-3 text-[#AAAAAA] flex-shrink-0" />
-            <span className="text-[13px] font-black text-[#111] truncate">#{order.order_number}</span>
-            {isUrgent && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-500 flex-shrink-0">¡Urgente!</span>}
+          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+            <TypeIcon className="w-3.5 h-3.5 text-[#AAAAAA] flex-shrink-0" />
+            <span className="text-[13px] font-black text-[#111]">#{order.order_number}</span>
+            <span className={cn(
+              'text-[9px] font-bold px-1.5 py-0.5 rounded-full',
+              order.order_type === 'delivery' ? 'bg-blue-100 text-blue-600' :
+              order.order_type === 'pickup' ? 'bg-purple-100 text-purple-600' :
+              'bg-orange-100 text-orange-600'
+            )}>
+              {getTypeLabel(order.order_type, t).toUpperCase()}
+            </span>
+            {isUrgent && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-500">
+                {t.urgent}
+              </span>
+            )}
           </div>
           <p className="text-xs text-[#888] truncate">{order.customer_name || 'Cliente'}</p>
           <p className="text-xs font-bold text-[#111] mt-1">{fmt(Number(order.total), currency)}</p>
         </div>
         <div className="flex-shrink-0 text-right">
-          {tab === 'cooking' && countdownSecs !== null ? (
+          {tab === 'prep' && countdownSecs !== null ? (
             <div className={cn('text-xs font-black tabular-nums', isLate ? 'text-red-500' : 'text-[#06C167]')}>
-              {isLate ? '−' : ''}{fmtMM(countdownSecs)}
+              {isLate ? '−' : ''}{fmtCountdown(countdownSecs)}
             </div>
           ) : (
             <div className={cn('text-xs font-semibold tabular-nums', isUrgent ? 'text-red-500' : 'text-[#AAAAAA]')}>
               {mins}m
             </div>
           )}
-          {tab === 'ready' && <div className="text-[10px] text-[#06C167] font-bold mt-0.5">Lista ✓</div>}
+          {tab === 'ready' && (
+            <div className="text-[10px] text-[#06C167] font-bold mt-0.5">✓</div>
+          )}
         </div>
       </div>
     </button>
@@ -1156,22 +1063,25 @@ function OrderListRow({ order, currency, tab, selected, isUrgent, onClick }: {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// HistoryListRow — left panel row for history tab
+// HistoryRow
 // ══════════════════════════════════════════════════════════════════════════════
 
-function HistoryListRow({ order, currency, selected, onClick }: {
-  order: Order; currency: string; selected: boolean; onClick: () => void;
+function HistoryRow({
+  order, currency, t, selected, onClick,
+}: {
+  order: Order; currency: string; t: ReturnType<typeof getT>;
+  selected: boolean; onClick: () => void;
 }) {
   const ok = order.status === 'delivered';
   return (
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-4 py-3 border-b border-[#F5F5F5] transition-all',
+        'w-full text-left px-4 py-3.5 border-b border-[#F5F5F5] transition-all',
         selected ? 'bg-[#F5F5F5]' : 'hover:bg-[#FAFAFA]'
       )}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         <div className={cn('w-2 h-2 rounded-full flex-shrink-0', ok ? 'bg-[#06C167]' : 'bg-red-400')} />
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-center">
@@ -1180,7 +1090,9 @@ function HistoryListRow({ order, currency, selected, onClick }: {
           </div>
           <div className="flex justify-between items-center mt-0.5">
             <span className="text-xs text-[#888] truncate">{order.customer_name || '—'}</span>
-            <span className="text-[10px] text-[#BBBBBB] flex-shrink-0 ml-2">{timeAgoShort(order.created_at)}</span>
+            <span className={cn('text-[10px] font-semibold ml-2 flex-shrink-0', ok ? 'text-[#06C167]' : 'text-red-400')}>
+              {ok ? t.delivered : t.cancelled}
+            </span>
           </div>
         </div>
       </div>
@@ -1189,33 +1101,53 @@ function HistoryListRow({ order, currency, selected, onClick }: {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// DetailPanel — right panel for new/cooking/ready tabs
+// EmptyState
 // ══════════════════════════════════════════════════════════════════════════════
 
-function DetailPanel({
-  order, currency, restaurantName, tab, eta, busyExtra, isUpdating,
-  showMoreMenu, showRejectConfirm, onRejectReason, onSetRejectReason,
-  onSetEta, onAdjustEta, onAccept, onReject, onMarkReady, onDeliver, onCancelCooking,
-  onToggleMoreMenu, onShowRejectConfirm, onCloseMoreMenu, onPrint, onAssignDriver,
+function EmptyState({ tab, t }: { tab: Tab; t: ReturnType<typeof getT> }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-full gap-3 text-[#CCCCCC] py-16">
+      {tab === 'new' && <Bell className="w-10 h-10" />}
+      {tab === 'prep' && <Clock className="w-10 h-10" />}
+      {tab === 'ready' && <CheckCircle className="w-10 h-10" />}
+      {tab === 'history' && <History className="w-10 h-10" />}
+      <p className="text-sm text-[#BBBBBB]">
+        {tab === 'new' ? t.waitingOrders :
+         tab === 'prep' ? t.noPrepping :
+         tab === 'ready' ? t.noReady : t.noHistory}
+      </p>
+      {tab === 'new' && (
+        <p className="text-xs text-[#DDDDDD] flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: '#06C167' }} />
+          {t.connectedRt}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// OrderDetail — right panel
+// ══════════════════════════════════════════════════════════════════════════════
+
+function OrderDetail({
+  order, currency, restaurantName, tab, eta, busyExtra, isUpdating, t,
+  onBack, onSetEta, onAdjustEta, onAccept, onMarkReady, onDeliver,
+  onCancelRequest, onPrint, onAssignDriver,
 }: {
   order: Order; currency: string; restaurantName: string; tab: Tab;
   eta: number; busyExtra: number; isUpdating: boolean;
-  showMoreMenu: boolean; showRejectConfirm: boolean;
-  onRejectReason: string; onSetRejectReason: (r: string) => void;
+  t: ReturnType<typeof getT>;
+  onBack: () => void;
   onSetEta: (v: number) => void;
-  onAdjustEta: (o: Order, newEta: number) => void;
+  onAdjustEta: (o: Order, v: number) => void;
   onAccept: (o: Order) => void;
-  onReject: (o: Order) => void;
   onMarkReady: (o: Order) => void;
   onDeliver: (o: Order) => void;
-  onCancelCooking: (o: Order, reason?: string) => void;
-  onToggleMoreMenu: () => void;
-  onShowRejectConfirm: () => void;
-  onCloseMoreMenu: () => void;
+  onCancelRequest: (type: 'reject' | 'cancel') => void;
   onPrint: () => void;
   onAssignDriver: () => void;
 }) {
-  // No local setInterval needed — parent ticks every second, driving re-renders.
   const secs = elapsedSecs(order.created_at);
   const mins = elapsedMins(order.created_at);
   const etaMins = order.estimated_ready_minutes;
@@ -1223,48 +1155,70 @@ function DetailPanel({
   const isLate = countdownSecs !== null && countdownSecs < 0;
   const isUrgent = tab === 'new' && mins >= SLA_WARN_MINS;
   const effectiveEta = eta + busyExtra;
-
-  const typeLabels: Record<string, string> = { dine_in: 'En mesa', pickup: 'Para recoger', delivery: 'Delivery' };
   const TypeIcon = TYPE_ICON[order.order_type ?? 'dine_in'] ?? Utensils;
   const table = (order as any).table?.name;
   const subtotal = (order.items ?? []).reduce((s, i) => s + (i.line_total ?? i.unit_price * i.qty), 0);
 
+  // Header bg color
+  const headerBg =
+    isUrgent ? '#EF4444' :
+    tab === 'ready' ? GREEN :
+    tab === 'prep' && isLate ? '#EF4444' :
+    '#111111';
+
   const waReadyMsg = order.customer_phone
-    ? waLink(order.customer_phone, `Hola ${order.customer_name || 'cliente'}, tu orden #${order.order_number} está lista ✅ Puedes pasar a recogerla.`)
+    ? waLink(order.customer_phone, t.en
+        ? `Hi ${order.customer_name || 'there'}, your order #${order.order_number} is ready ✅ You can come pick it up.`
+        : `Hola ${order.customer_name || 'cliente'}, tu orden #${order.order_number} está lista ✅ Puedes pasar a recogerla.`)
     : null;
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
 
-      {/* Header */}
+      {/* ── Detail Header ── */}
       <div
-        className={cn('flex-none px-5 py-4 transition-colors duration-500', isUrgent ? 'animate-pulse' : '')}
-        style={{ background: isUrgent ? '#EF4444' : tab === 'ready' ? GREEN : tab === 'cooking' && isLate ? '#EF4444' : '#111111' }}
+        className={cn('flex-none px-5 py-4 transition-colors duration-300', isUrgent ? 'animate-pulse' : '')}
+        style={{ background: headerBg }}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div>
+        {/* Back button (mobile) + order info */}
+        <div className="flex items-start gap-3">
+          <button
+            onClick={onBack}
+            className="sm:hidden w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center flex-shrink-0 mt-0.5"
+          >
+            <ChevronLeft className="w-5 h-5 text-white" />
+          </button>
+
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-white font-black text-2xl leading-tight">{order.customer_name || 'Cliente'}</span>
-              <span className="text-white/60 text-base font-light">·</span>
+              <span className="text-white font-black text-2xl leading-tight truncate">{order.customer_name || 'Cliente'}</span>
+              <span className="text-white/60 text-base">·</span>
               <span className="text-white font-bold text-base">#{order.order_number}</span>
-              {isUrgent && <span className="text-white bg-white/20 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">¡Urgente!</span>}
+              {isUrgent && (
+                <span className="text-white bg-white/20 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
+                  {t.urgent}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               <div className="flex items-center gap-1 text-white/70 text-xs">
                 <TypeIcon className="w-3 h-3" />
-                <span>{typeLabels[order.order_type ?? 'dine_in']}</span>
-                {table && <span>· Mesa {table}</span>}
+                <span>{getTypeLabel(order.order_type, t)}</span>
+                {table && <span>· {table}</span>}
               </div>
               <span className="text-white/50 text-xs">·</span>
               <div className="flex items-center gap-1 text-white/70 text-xs">
                 <Clock className="w-3 h-3" />
-                <span>{timeAgoShort(order.created_at)}</span>
+                <span>{timeAgo(order.created_at, t)}</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+
+          {/* Action icons */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             {order.customer_phone && (
-              <a href={`https://wa.me/${order.customer_phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
+              <a href={`https://wa.me/${order.customer_phone.replace(/\D/g, '')}`}
+                target="_blank" rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
                 title="WhatsApp">
                 <MessageCircle className="w-4 h-4 text-white" />
@@ -1273,115 +1227,51 @@ function DetailPanel({
             {order.customer_phone && (
               <a href={`tel:${order.customer_phone}`}
                 className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-                title="Llamar">
+                title={t.callCustomer}>
                 <Phone className="w-4 h-4 text-white" />
               </a>
             )}
             <button onClick={onPrint}
               className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-              title="Imprimir ticket">
+              title="Print">
               <Printer className="w-4 h-4 text-white" />
             </button>
-            <button onClick={onToggleMoreMenu}
-              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors relative"
-              title="Más opciones">
-              <MoreHorizontal className="w-4 h-4 text-white" />
+            {/* Cancel/Reject button */}
+            <button
+              onClick={() => onCancelRequest(tab === 'new' ? 'reject' : 'cancel')}
+              className="w-9 h-9 rounded-full bg-white/20 hover:bg-red-500/70 flex items-center justify-center transition-colors"
+              title={tab === 'new' ? t.rejectOrder : t.cancelOrder}
+            >
+              <X className="w-4 h-4 text-white" />
             </button>
           </div>
         </div>
-
-        {/* "..." dropdown */}
-        {showMoreMenu && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={onCloseMoreMenu} />
-            <div className="absolute right-4 top-16 z-50 bg-white rounded-xl shadow-2xl border border-[#E8E8E8] overflow-hidden min-w-[200px]">
-              {tab === 'new' && !showRejectConfirm && (
-                <button onClick={onShowRejectConfirm}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors">
-                  <XCircle className="w-4 h-4" />
-                  Rechazar orden
-                </button>
-              )}
-              {tab === 'new' && showRejectConfirm && (
-                <div className="p-4">
-                  <p className="text-sm font-bold text-[#111] mb-1">¿Rechazar #{order.order_number}?</p>
-                  <p className="text-xs text-[#888] mb-3">Elige el motivo — se enviará por WhatsApp si el cliente tiene teléfono.</p>
-                  <div className="space-y-1.5 mb-3">
-                    {['Sin stock de productos', 'Restaurante cerrado', 'Demasiada demanda', 'Dirección fuera de zona', 'Otro'].map(r => (
-                      <label key={r} className={cn('flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer text-xs transition-colors', onRejectReason === r ? 'border-red-400 bg-red-50 text-red-700' : 'border-[#EEE] text-[#555] hover:border-[#CCC]')}>
-                        <input type="radio" name="reject-reason" checked={onRejectReason === r} onChange={() => onSetRejectReason(r)} className="accent-red-500" />
-                        {r}
-                      </label>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={onCloseMoreMenu} className="flex-1 py-2 rounded-lg text-xs text-[#888] border border-[#E8E8E8]">Cancelar</button>
-                    <button onClick={() => onReject(order)} disabled={isUpdating}
-                      className="flex-1 py-2 rounded-lg bg-red-500 text-white text-xs font-bold disabled:opacity-50">
-                      Rechazar
-                    </button>
-                  </div>
-                </div>
-              )}
-              {tab === 'cooking' && !showRejectConfirm && (
-                <>
-                  <button onClick={onShowRejectConfirm}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors">
-                    <XCircle className="w-4 h-4" /> Cancelar orden
-                  </button>
-                  {order.customer_phone && (
-                    <a href={`https://wa.me/${order.customer_phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                      onClick={onCloseMoreMenu}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#111] hover:bg-[#F5F5F5] transition-colors">
-                      <MessageCircle className="w-4 h-4" /> Contactar cliente
-                    </a>
-                  )}
-                </>
-              )}
-              {tab === 'cooking' && showRejectConfirm && (
-                <div className="p-4">
-                  <p className="text-sm font-bold text-[#111] mb-1">¿Cancelar #{order.order_number}?</p>
-                  <div className="flex gap-2 mt-3">
-                    <button onClick={onCloseMoreMenu} className="flex-1 py-2 rounded-lg text-xs text-[#888] border border-[#E8E8E8]">No</button>
-                    <button onClick={() => onCancelCooking(order)} disabled={isUpdating}
-                      className="flex-1 py-2 rounded-lg bg-red-500 text-white text-xs font-bold disabled:opacity-50">
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </>
-        )}
       </div>
 
-      {/* Body */}
+      {/* ── Detail Body ── */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-5 space-y-4">
 
-          {/* Timer — only for cooking tab */}
-          {tab === 'cooking' && (
+          {/* Countdown timer (prep tab only) */}
+          {tab === 'prep' && (
             <div className={cn('rounded-2xl border-2 overflow-hidden', isLate ? 'bg-red-50 border-red-200' : 'bg-white border-[#E8E8E8]')}>
               {countdownSecs !== null ? (
                 <div className="p-5 text-center">
                   <p className={cn('text-[11px] font-bold uppercase tracking-widest mb-2', isLate ? 'text-red-500' : 'text-[#AAAAAA]')}>
-                    {isLate ? '¡Atrasado!' : 'Tiempo restante'}
+                    {isLate ? t.overdue : t.timeLeft}
                   </p>
                   <p className={cn('font-black tabular-nums leading-none', isLate ? 'text-red-500' : 'text-[#111]')} style={{ fontSize: 64 }}>
-                    {isLate ? '−' : ''}{fmtMM(countdownSecs)}
-                  </p>
-                  <p className={cn('text-sm font-semibold mt-1', isLate ? 'text-red-400' : 'text-[#888]')}>
-                    {isLate ? 'min de retraso' : 'min restantes'}
+                    {isLate ? '−' : ''}{fmtCountdown(countdownSecs)}
                   </p>
                 </div>
               ) : (
                 <div className="p-4 text-center">
-                  <p className="text-[11px] font-bold text-[#AAAAAA] uppercase tracking-widest">En preparación</p>
+                  <p className="text-[11px] font-bold text-[#AAAAAA] uppercase tracking-widest">{t.preparing}</p>
                 </div>
               )}
-              {/* ETA adjustment buttons */}
+              {/* ETA adjust */}
               <div className="border-t border-[#F0F0F0] px-4 py-2.5 flex items-center justify-between gap-2 bg-[#FAFAFA]">
-                <span className="text-[11px] text-[#888] font-semibold">Ajustar ETA</span>
+                <span className="text-[11px] text-[#888] font-semibold">{t.adjustEta}</span>
                 <div className="flex items-center gap-1">
                   {[-10, -5, +5, +10].map(delta => {
                     const current = etaMins ?? effectiveEta;
@@ -1393,7 +1283,9 @@ function DetailPanel({
                         disabled={isUpdating}
                         className={cn(
                           'px-2.5 py-1.5 rounded-lg text-xs font-black border transition-all active:scale-95 disabled:opacity-40',
-                          delta < 0 ? 'border-red-200 text-red-500 bg-red-50 hover:bg-red-100' : 'border-green-200 text-green-600 bg-green-50 hover:bg-green-100'
+                          delta < 0
+                            ? 'border-red-200 text-red-500 bg-red-50 hover:bg-red-100'
+                            : 'border-green-200 text-green-600 bg-green-50 hover:bg-green-100'
                         )}
                       >
                         {delta > 0 ? '+' : ''}{delta}m
@@ -1405,25 +1297,31 @@ function DetailPanel({
             </div>
           )}
 
-          {/* ETA selector — only for new tab */}
+          {/* ETA selector (new tab only) */}
           {tab === 'new' && (
             <div className="bg-white rounded-2xl p-5 border-2 border-[#E8E8E8]">
-              <p className="text-[11px] font-bold text-[#AAAAAA] uppercase tracking-widest mb-3">Tiempo estimado de preparación</p>
-              <div className="grid grid-cols-6 gap-2">
-                {ETA_OPTS.map(v => (
-                  <button key={v}
-                    onClick={() => onSetEta(v)}
-                    className={cn('py-3 rounded-xl text-sm font-black border-2 transition-all active:scale-[0.97]',
-                      (eta === v) ? 'text-white border-transparent shadow-md' : 'bg-white border-[#EEEEEE] text-[#555] hover:border-[#CCCCCC]'
-                    )}
-                    style={(eta === v) ? { background: GREEN, borderColor: GREEN } : {}}>
-                    {v}m
-                  </button>
-                ))}
+              <p className="text-[11px] font-bold text-[#AAAAAA] uppercase tracking-widest mb-3">{t.eta}</p>
+              <div className="flex items-center justify-center gap-4">
+                <button
+                  onClick={() => onSetEta(Math.max(5, eta - 5))}
+                  className="w-12 h-12 rounded-xl border-2 border-[#E8E8E8] text-[#555] font-black text-lg hover:border-[#CCC] active:scale-95 transition-all"
+                >
+                  −
+                </button>
+                <div className="text-center min-w-[80px]">
+                  <span className="text-4xl font-black text-[#111] tabular-nums">{effectiveEta}</span>
+                  <p className="text-xs text-[#888] font-semibold mt-0.5">min</p>
+                </div>
+                <button
+                  onClick={() => onSetEta(Math.min(60, eta + 5))}
+                  className="w-12 h-12 rounded-xl border-2 border-[#E8E8E8] text-[#555] font-black text-lg hover:border-[#CCC] active:scale-95 transition-all"
+                >
+                  +
+                </button>
               </div>
               {busyExtra > 0 && (
                 <p className="text-xs text-center text-[#F59E0B] font-semibold mt-2">
-                  +{busyExtra} min por modo ocupado → ETA real: <strong>{effectiveEta} min</strong>
+                  +{busyExtra} min {t.busyMode} → {effectiveEta} min
                 </p>
               )}
             </div>
@@ -1433,7 +1331,7 @@ function DetailPanel({
           <div className="bg-white rounded-2xl border-2 border-[#E8E8E8] overflow-hidden">
             <div className="px-5 py-3 border-b border-[#F5F5F5]">
               <p className="text-[11px] font-bold text-[#AAAAAA] uppercase tracking-widest">
-                {(order.items ?? []).reduce((s, i) => s + i.qty, 0)} items
+                {t.items((order.items ?? []).reduce((s, i) => s + i.qty, 0))}
               </p>
             </div>
             <div className="px-5 divide-y divide-[#F5F5F5]">
@@ -1457,34 +1355,33 @@ function DetailPanel({
                   <div className="flex items-start gap-2 bg-[#F5F5F5] rounded-xl px-3 py-2.5">
                     <MapPin className="w-3.5 h-3.5 text-[#888] flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-                      <a href={`https://maps.google.com/?q=${encodeURIComponent(order.delivery_address)}`}
+                      <a
+                        href={`https://maps.google.com/?q=${encodeURIComponent(order.delivery_address)}`}
                         target="_blank" rel="noopener noreferrer"
-                        className="text-[11px] font-bold underline" style={{ color: GREEN }}>
-                        Ver en mapa →
+                        className="text-[11px] font-bold underline"
+                        style={{ color: GREEN }}
+                      >
+                        {t.viewOnMap}
                       </a>
                       <p className="text-xs text-[#555] mt-0.5 break-words">{order.delivery_address}</p>
                     </div>
                   </div>
                 )}
-                {/* Driver badge / assign button */}
                 {(order as any).driver_name ? (
-                  <button
-                    onClick={onAssignDriver}
-                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-[#06C167]/30 bg-[#06C167]/5 hover:bg-[#06C167]/10 transition-colors text-left"
-                  >
+                  <button onClick={onAssignDriver} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-[#06C167]/30 bg-[#06C167]/5 hover:bg-[#06C167]/10 transition-colors text-left">
                     <span className="text-base">🛵</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[#06C167]">Repartidor asignado</p>
-                      <p className="text-xs text-[#555] truncate">{(order as any).driver_name}{(order as any).driver_phone ? ` · ${(order as any).driver_phone}` : ''}</p>
+                      <p className="text-xs font-bold text-[#06C167]">{t.driver}</p>
+                      <p className="text-xs text-[#555] truncate">
+                        {(order as any).driver_name}
+                        {(order as any).driver_phone ? ` · ${(order as any).driver_phone}` : ''}
+                      </p>
                     </div>
-                    <span className="text-[10px] text-[#888]">Editar</span>
+                    <span className="text-[10px] text-[#888]">{t.editDriver}</span>
                   </button>
                 ) : (
-                  <button
-                    onClick={onAssignDriver}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border-2 border-dashed border-[#DDDDDD] text-[#888] hover:border-[#06C167] hover:text-[#06C167] transition-colors text-sm font-semibold"
-                  >
-                    🛵 Asignar repartidor
+                  <button onClick={onAssignDriver} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border-2 border-dashed border-[#DDDDDD] text-[#888] hover:border-[#06C167] hover:text-[#06C167] transition-colors text-sm font-semibold">
+                    🛵 {t.assignDriver}
                   </button>
                 )}
               </div>
@@ -1499,31 +1396,33 @@ function DetailPanel({
               )}
               {(order.tax_amount ?? 0) > 0 && (
                 <div className="flex justify-between text-xs text-[#888]">
-                  <span>Impuestos</span><span>{fmt(order.tax_amount!, currency)}</span>
+                  <span>{t.en ? 'Tax' : 'Impuestos'}</span>
+                  <span>{fmt(order.tax_amount!, currency)}</span>
                 </div>
               )}
               {(order.delivery_fee ?? 0) > 0 && (
                 <div className="flex justify-between text-xs text-[#888]">
-                  <span>Envío</span><span>{fmt(order.delivery_fee!, currency)}</span>
+                  <span>{t.en ? 'Delivery fee' : 'Envío'}</span>
+                  <span>{fmt(order.delivery_fee!, currency)}</span>
                 </div>
               )}
               {(order.discount_amount ?? 0) > 0 && (
                 <div className="flex justify-between text-xs" style={{ color: GREEN }}>
-                  <span>Descuento</span><span>−{fmt(order.discount_amount!, currency)}</span>
+                  <span>{t.en ? 'Discount' : 'Descuento'}</span>
+                  <span>−{fmt(order.discount_amount!, currency)}</span>
                 </div>
               )}
               <div className="flex justify-between items-center pt-1 border-t border-[#EEEEEE]">
-                <span className="text-sm font-bold text-[#111]">Total</span>
+                <span className="text-sm font-bold text-[#111]">{t.total}</span>
                 <span className="text-2xl font-black text-[#111]">{fmt(Number(order.total), currency)}</span>
               </div>
               {order.payment_method && (
                 <div className="flex items-center gap-1.5 pt-1">
-                  <span className="text-[10px] text-[#AAAAAA] uppercase tracking-wide font-semibold">Pago:</span>
-                  <span className="text-[11px] font-bold text-[#555] capitalize">
-                    {order.payment_method === 'cash' ? '💵 Efectivo' :
-                     order.payment_method === 'online' ? '💳 En línea' :
-                     order.payment_method === 'wallet' ? '📱 Wallet' :
-                     order.payment_method}
+                  <span className="text-[10px] text-[#AAAAAA] uppercase tracking-wide font-semibold">{t.payment}:</span>
+                  <span className="text-[11px] font-bold text-[#555]">
+                    {order.payment_method === 'cash' ? `💵 ${t.cash}` :
+                     order.payment_method === 'online' ? `💳 ${t.online}` :
+                     `📱 ${t.wallet}`}
                   </span>
                 </div>
               )}
@@ -1532,8 +1431,10 @@ function DetailPanel({
         </div>
       </div>
 
-      {/* Action buttons */}
-      <div className="flex-none p-4 bg-white border-t border-[#E8E8E8] space-y-2.5">
+      {/* ── Action Buttons ── */}
+      <div className="flex-none p-4 bg-white border-t border-[#E8E8E8] space-y-2">
+
+        {/* NEW tab: confirm button */}
         {tab === 'new' && (
           <button
             disabled={isUpdating}
@@ -1543,11 +1444,12 @@ function DetailPanel({
           >
             {isUpdating
               ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              : <><Check className="w-6 h-6" /> Confirmar {effectiveEta} min</>}
+              : <><Check className="w-6 h-6" /> {t.confirmBtn(effectiveEta)}</>}
           </button>
         )}
 
-        {tab === 'cooking' && (
+        {/* PREP tab: mark ready */}
+        {tab === 'prep' && (
           <button
             disabled={isUpdating}
             onClick={() => onMarkReady(order)}
@@ -1556,23 +1458,30 @@ function DetailPanel({
           >
             {isUpdating
               ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              : <><CheckCircle className="w-6 h-6" /> Marcar lista <ChevronRight className="w-5 h-5" /></>}
+              : <><CheckCircle className="w-6 h-6" /> {t.readyBtn} <ChevronRight className="w-5 h-5" /></>}
           </button>
         )}
 
+        {/* READY tab: WhatsApp + delivered */}
         {tab === 'ready' && (
           <>
             {waReadyMsg && (
-              <a href={waReadyMsg} target="_blank" rel="noopener noreferrer"
+              <a
+                href={waReadyMsg}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-sm font-bold border-2 transition-all active:scale-[0.97]"
-                style={{ background: '#DCFCE7', borderColor: '#86EFAC', color: '#15803D' }}>
-                <MessageCircle className="w-4 h-4" /> Avisar por WhatsApp
+                style={{ background: '#DCFCE7', borderColor: '#86EFAC', color: '#15803D' }}
+              >
+                <MessageCircle className="w-4 h-4" /> {t.notifyWa}
               </a>
             )}
             {order.customer_phone && (
-              <a href={`tel:${order.customer_phone}`}
-                className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-sm font-bold border-2 border-[#E8E8E8] bg-white text-[#555] transition-all active:scale-[0.97] hover:bg-[#F5F5F5]">
-                <Phone className="w-4 h-4" /> Llamar al cliente
+              <a
+                href={`tel:${order.customer_phone}`}
+                className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-sm font-bold border-2 border-[#E8E8E8] bg-white text-[#555] transition-all active:scale-[0.97] hover:bg-[#F5F5F5]"
+              >
+                <Phone className="w-4 h-4" /> {t.callCustomer}
               </a>
             )}
             <button
@@ -1583,7 +1492,7 @@ function DetailPanel({
             >
               {isUpdating
                 ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : <><Check className="w-5 h-5" /> Entregado</>}
+                : <><Check className="w-5 h-5" /> {t.deliveredBtn}</>}
             </button>
           </>
         )}
@@ -1598,22 +1507,18 @@ function DetailPanel({
 
 function ItemRow({ item, currency }: { item: OrderItem; currency: string }) {
   const raw = item as any;
-
-  // Variant
   const variantName = item.variant?.name ?? null;
 
-  // Extras with price
   const rawExtras: any[] = item.extras ?? raw.order_item_extras ?? [];
-  const extras: Array<{ name: string; price: number }> = rawExtras
+  const extras = rawExtras
     .map((ex: any) => ({ name: ex.extra?.name ?? ex.product_extras?.name ?? null, price: Number(ex.price ?? 0) }))
     .filter((ex: any) => ex.name);
 
-  // Modifier options grouped by group_name
   const rawMods: any[] = raw.order_item_modifiers ?? [];
   const modGroups = new Map<string, Array<{ option: string; delta: number }>>();
   for (const m of rawMods) {
     if (!m.option_name) continue;
-    const grp = m.group_name ?? 'Opciones';
+    const grp = m.group_name ?? 'Options';
     if (!modGroups.has(grp)) modGroups.set(grp, []);
     modGroups.get(grp)!.push({ option: m.option_name, delta: Number(m.price_delta ?? 0) });
   }
@@ -1627,14 +1532,9 @@ function ItemRow({ item, currency }: { item: OrderItem; currency: string }) {
       </span>
       <div className="flex-1 min-w-0">
         <p className="text-[#111] text-sm font-bold leading-tight">{item.product?.name ?? '—'}</p>
-
         {hasCustomization && (
           <div className="mt-1 space-y-0.5">
-            {/* Variant */}
-            {variantName && (
-              <p className="text-[#666] text-xs">↳ {variantName}</p>
-            )}
-            {/* Modifier groups */}
+            {variantName && <p className="text-[#666] text-xs">↳ {variantName}</p>}
             {Array.from(modGroups.entries()).map(([grpName, options]) => (
               <div key={grpName}>
                 <p className="text-[#AAAAAA] text-[10px] uppercase font-bold tracking-wide mt-1">{grpName}</p>
@@ -1646,7 +1546,6 @@ function ItemRow({ item, currency }: { item: OrderItem; currency: string }) {
                 ))}
               </div>
             ))}
-            {/* Extras */}
             {extras.map((ex, i) => (
               <p key={i} className="text-[#666] text-xs flex justify-between">
                 <span>+ {ex.name}</span>
@@ -1655,7 +1554,6 @@ function ItemRow({ item, currency }: { item: OrderItem; currency: string }) {
             ))}
           </div>
         )}
-
         {item.notes && <p className="text-amber-600 text-xs mt-1 italic font-medium">★ {item.notes}</p>}
       </div>
       <span className="flex-none text-sm font-bold text-[#111]">
@@ -1666,143 +1564,87 @@ function ItemRow({ item, currency }: { item: OrderItem; currency: string }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// HistoryDetailPanel
+// SidebarSection
 // ══════════════════════════════════════════════════════════════════════════════
 
-function HistoryDetailPanel({ order, currency, restaurantName }: { order: Order; currency: string; restaurantName: string }) {
-  const ok = order.status === 'delivered';
-  const typeLabels: Record<string, string> = { dine_in: 'En mesa', pickup: 'Para recoger', delivery: 'Delivery' };
-  const TypeIcon = TYPE_ICON[order.order_type ?? 'dine_in'] ?? Utensils;
-  const elapsed = order.updated_at
-    ? Math.round((new Date(order.updated_at).getTime() - new Date(order.created_at).getTime()) / 60_000)
-    : null;
-
+function SidebarSection({
+  title, icon, children,
+}: {
+  title: string; icon: React.ReactNode; children: React.ReactNode;
+}) {
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="flex-none px-5 py-4" style={{ background: ok ? GREEN : '#EF4444' }}>
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-white font-black text-xl">{order.customer_name || 'Cliente'}</span>
-              <span className="text-white/60">·</span>
-              <span className="text-white font-bold">#{order.order_number}</span>
-              <span className="text-[10px] font-bold text-white bg-white/20 px-2 py-0.5 rounded-full uppercase">
-                {ok ? 'Entregada' : 'Cancelada'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 mt-1 text-white/70 text-xs">
-              <TypeIcon className="w-3 h-3" />
-              <span>{typeLabels[order.order_type ?? 'dine_in']}</span>
-              {elapsed !== null && <><span>·</span><span>{elapsed} min</span></>}
-            </div>
-          </div>
-          <span className="ml-auto text-white font-black text-xl">{fmt(Number(order.total), currency)}</span>
-        </div>
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-[#888]">{icon}</span>
+        <p className="text-xs font-bold text-[#888] uppercase tracking-wide">{title}</p>
       </div>
-
-      <div className="flex-1 overflow-y-auto p-5 space-y-4">
-        {(order.customer_name || order.customer_phone) && (
-          <div className="bg-white rounded-2xl border-2 border-[#E8E8E8] px-5 py-4 flex items-center gap-3">
-            <User className="w-4 h-4 text-[#AAAAAA]" />
-            <div>
-              <p className="text-sm font-bold text-[#111]">{order.customer_name || '—'}</p>
-              {order.customer_phone && <p className="text-xs text-[#888]">{order.customer_phone}</p>}
-            </div>
-            {order.customer_phone && (
-              <div className="flex gap-2 ml-auto">
-                <a href={`https://wa.me/${order.customer_phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
-                  className="w-8 h-8 rounded-full bg-[#F5F5F5] flex items-center justify-center hover:bg-green-100 transition-colors">
-                  <MessageCircle className="w-4 h-4 text-[#888]" />
-                </a>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="bg-white rounded-2xl border-2 border-[#E8E8E8] overflow-hidden">
-          <div className="px-5 divide-y divide-[#F5F5F5]">
-            {(order.items ?? []).map((item, idx) => (
-              <ItemRow key={item.id ?? idx} item={item} currency={currency} />
-            ))}
-          </div>
-          <div className="px-5 py-3 border-t border-[#F5F5F5] bg-[#FAFAFA] flex justify-between items-center">
-            <span className="text-sm font-bold text-[#111]">Total</span>
-            <span className="text-xl font-black text-[#111]">{fmt(Number(order.total), currency)}</span>
-          </div>
-        </div>
-      </div>
+      {children}
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// NewOrderSplash — full screen green flash (identical to Uber Eats)
+// NewOrderSplash — full screen flash identical to Uber Eats
 // ══════════════════════════════════════════════════════════════════════════════
 
-function NewOrderSplash({ order, currency, queueCount, onReview }: { order: Order; currency: string; queueCount: number; onReview: () => void }) {
+function NewOrderSplash({
+  order, currency, queueCount, t, onView,
+}: {
+  order: Order; currency: string; queueCount: number;
+  t: ReturnType<typeof getT>; onView: () => void;
+}) {
   const totalQty = (order.items ?? []).reduce((s, i) => s + i.qty, 0);
-  const typeLabels: Record<string, string> = { dine_in: 'En mesa', pickup: 'Para recoger', delivery: 'Delivery' };
 
   useEffect(() => {
-    const t = setTimeout(onReview, 8_000);
-    return () => clearTimeout(t);
-  }, [onReview]);
+    const timer = setTimeout(onView, 8_000);
+    return () => clearTimeout(timer);
+  }, [onView]);
 
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer"
       style={{ background: GREEN }}
-      onClick={onReview}
+      onClick={onView}
     >
       <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mb-6 animate-bounce">
         <Bell className="w-10 h-10 text-white" />
       </div>
+
       <div className="flex items-center gap-3 mb-2">
-        <p className="text-white/80 text-lg font-bold uppercase tracking-widest">Nueva orden</p>
+        <p className="text-white/80 text-lg font-bold uppercase tracking-widest">{t.newOrder}</p>
         {queueCount > 1 && (
           <span className="bg-white/25 text-white text-sm font-black px-3 py-1 rounded-full">
-            +{queueCount - 1} más
+            +{queueCount - 1}
           </span>
         )}
       </div>
-      <p className="text-white font-black mb-1 text-center" style={{ fontSize: 52, lineHeight: 1.1 }}>
+
+      <p className="text-white font-black mb-1 text-center px-6" style={{ fontSize: 52, lineHeight: 1.1 }}>
         {order.customer_name || 'Cliente'}
       </p>
       <p className="text-white/80 text-2xl font-bold mb-1">#{order.order_number}</p>
+
       <div className="flex items-center gap-3 text-white/70 text-base mt-1 mb-2">
-        <span>{totalQty} {totalQty === 1 ? 'producto' : 'productos'}</span>
-        {typeLabels[order.order_type ?? ''] && <><span>·</span><span>{typeLabels[order.order_type ?? '']}</span></>}
-      </div>
-      <p className="text-white font-black mt-2" style={{ fontSize: 44 }}>{fmt(order.total, currency)}</p>
-      <button onClick={onReview}
-        className="mt-10 h-16 px-12 rounded-2xl bg-white font-extrabold text-xl flex items-center gap-3 shadow-xl active:scale-[0.97] transition-transform"
-        style={{ color: GREEN }}>
-        {queueCount > 1 ? `Ver orden (${queueCount - 1} más)` : 'Ver orden'} <ChevronRight className="w-6 h-6" />
-      </button>
-      <p className="text-white/50 text-xs mt-5">Toca en cualquier parte para continuar</p>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// IdlePanel
-// ══════════════════════════════════════════════════════════════════════════════
-
-function IdlePanel({ icon, label, sub, showDot }: { icon: React.ReactNode; label: string; sub?: string; showDot?: boolean }) {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center p-8">
-      <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-sm">
-        {icon}
-      </div>
-      <div>
-        <p className="text-[#888] text-xl font-bold">{label}</p>
-        {sub && (
-          <p className="text-[#BBBBBB] text-sm mt-1 flex items-center justify-center gap-2">
-            {showDot && <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: GREEN }} />}
-            {sub}
-          </p>
+        <span>{t.items(totalQty)}</span>
+        {order.order_type && (
+          <><span>·</span><span>{getTypeLabel(order.order_type, t)}</span></>
         )}
       </div>
+
+      <p className="text-white font-black mt-2" style={{ fontSize: 44 }}>
+        {fmt(order.total, currency)}
+      </p>
+
+      <button
+        onClick={onView}
+        className="mt-10 h-16 px-12 rounded-2xl bg-white font-extrabold text-xl flex items-center gap-3 shadow-xl active:scale-[0.97] transition-transform"
+        style={{ color: GREEN }}
+      >
+        {queueCount > 1 ? `${t.viewOrder} (${queueCount - 1}+)` : t.viewOrder}
+        <ChevronRight className="w-6 h-6" />
+      </button>
+
+      <p className="text-white/50 text-xs mt-5">{t.tapAnywhere}</p>
     </div>
   );
 }

@@ -11,7 +11,7 @@ export default async function CounterPage() {
   const [{ data: restaurant }, { data: orders }] = await Promise.all([
     supabase
       .from('restaurants')
-      .select('name, currency, slug')
+      .select('name, currency, slug, locale')
       .eq('id', restaurantId)
       .maybeSingle(),
     supabase
@@ -44,6 +44,7 @@ export default async function CounterPage() {
       restaurantId={restaurantId}
       restaurantName={restaurant?.name ?? 'Mi Restaurante'}
       currency={restaurant?.currency ?? 'MXN'}
+      locale={restaurant?.locale ?? 'es'}
     />
   );
 }
