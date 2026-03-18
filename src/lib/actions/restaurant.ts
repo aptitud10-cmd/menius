@@ -316,6 +316,7 @@ export async function createProduct(data: ProductInput & { image_url?: string })
     ...(data.is_new != null && { is_new: data.is_new }),
     ...(data.dietary_tags && { dietary_tags: data.dietary_tags }),
     ...(data.image_url && { image_url: data.image_url }),
+    ...(data.prep_time_minutes != null && { prep_time_minutes: data.prep_time_minutes }),
   }).select('id').single();
 
   if (error) return { error: error.message };
@@ -888,6 +889,36 @@ export async function updateOrderETA(orderId: string, etaMinutes: number) {
   const { error } = await supabase
     .from('orders')
     .update({ estimated_ready_minutes: etaMinutes })
+    .eq('id', orderId)
+    .eq('restaurant_id', restaurantId);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function updateOrderTip(orderId: string, tipAmount: number) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const tip = Math.max(0, Number(tipAmount) || 0);
+
+  // Fetch current order to get existing total
+  const { data: order } = await supabase
+    .from('orders')
+    .select('id, total, tip_amount')
+    .eq('id', orderId)
+    .eq('restaurant_id', restaurantId)
+    .maybeSingle();
+
+  if (!order) return { error: 'Orden no encontrada' };
+
+  const previousTip = Number(order.tip_amount) || 0;
+  const baseTotal = Number(order.total) - previousTip;
+  const newTotal = baseTotal + tip;
+
+  const { error } = await supabase
+    .from('orders')
+    .update({ tip_amount: tip, total: newTotal })
     .eq('id', orderId)
     .eq('restaurant_id', restaurantId);
 

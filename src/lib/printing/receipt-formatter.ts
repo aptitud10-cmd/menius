@@ -112,6 +112,7 @@ export function buildReceiptHTML(data: ReceiptData): string {
     paymentMethod,
     deliveryAddress,
     items,
+    tip,
     total,
     notes,
     etaMinutes,
@@ -261,6 +262,11 @@ export function buildReceiptHTML(data: ReceiptData): string {
 
   <!-- TOTALS -->
   <table class="totals">
+    ${tip && tip > 0 ? `
+    <tr>
+      <td class="label">${isEn(locale) ? 'Tip' : 'Propina'}</td>
+      <td class="value">${formatCurrency(tip, currency, locale)}</td>
+    </tr>` : ''}
     <tr class="total-row">
       <td class="label">${L.total}</td>
       <td class="value">${formatCurrency(total, currency, locale)}</td>

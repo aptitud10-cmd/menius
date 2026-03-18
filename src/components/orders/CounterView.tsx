@@ -5,14 +5,16 @@ import {
   Menu, X, Bell, Check, CheckCircle, Clock, ChevronLeft,
   Truck, ShoppingBag, Utensils, MessageCircle, Phone,
   MapPin, Pause, Flame, Printer, History, AlertTriangle,
-  Wifi, WifiOff, ChevronRight, User,
+  Wifi, WifiOff, ChevronRight, User, Settings2,
 } from 'lucide-react';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import {
-  updateOrderStatus, updateOrderETA, setPauseOrders, assignDriver,
+  updateOrderStatus, updateOrderETA, setPauseOrders, assignDriver, updateOrderTip,
 } from '@/lib/actions/restaurant';
 import { AutoAcceptService } from '@/lib/counter/AutoAcceptService';
 import { PrinterService } from '@/lib/printing/PrinterService';
+import { PrinterConfig } from '@/lib/printing/PrinterConfig';
+import type { PrinterConfigData } from '@/lib/printing/PrinterConfig';
 import { fetchSuggestedEta, clampEta } from '@/lib/utils/eta';
 import type { Order, OrderItem } from '@/types';
 import { cn } from '@/lib/utils';
@@ -366,6 +368,12 @@ export function CounterView({
   const [assigningDriver, setAssigningDriver] = useState(false);
   const [driverPool, setDriverPool] = useState<{ id: string; name: string; phone: string }[]>([]);
 
+  // ── Printer modal ──
+  const [printerModalOpen, setPrinterModalOpen] = useState(false);
+  const [printerConfig, setPrinterConfig] = useState<PrinterConfigData>(() =>
+    typeof window !== 'undefined' ? PrinterConfig.config : { receiptEnabled: true, kitchenEnabled: false }
+  );
+
   // ── Toasts ──
   const [errorToast, setErrorToast] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
@@ -411,6 +419,11 @@ export function CounterView({
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
     };
+  }, []);
+
+  // Mark counter as visited for onboarding checklist
+  useEffect(() => {
+    localStorage.setItem('menius-counter-visited', 'true');
   }, []);
 
   // Wake Lock — keep tablet screen on
@@ -546,8 +559,22 @@ export function CounterView({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setSuggestedEta(null);
-    if (!selectedOrder || selectedOrder.order_type !== 'delivery') return;
-    if (!restaurantLat || !restaurantLng || !selectedOrder.delivery_address) return;
+    if (!selectedOrder || selectedOrder.order_type !== 'delivery') {
+      // For non-delivery: set eta default from max prep_time_minutes in the order items
+      if (selectedOrder?.items?.length) {
+        const maxPrepTime = Math.max(...selectedOrder.items.map(i => (i.product as any)?.prep_time_minutes ?? 0));
+        if (maxPrepTime > 0) setEta(clampEta(maxPrepTime));
+      }
+      return;
+    }
+    if (!restaurantLat || !restaurantLng || !selectedOrder.delivery_address) {
+      // Still use prep time for delivery ETA default
+      if (selectedOrder.items?.length) {
+        const maxPrepTime = Math.max(...selectedOrder.items.map(i => (i.product as any)?.prep_time_minutes ?? 0));
+        if (maxPrepTime > 0) setEta(clampEta(maxPrepTime));
+      }
+      return;
+    }
     fetchSuggestedEta(restaurantLat, restaurantLng, selectedOrder.delivery_address)
       .then(mins => { if (mins) setSuggestedEta(clampEta(mins)); })
       .catch(() => {});
@@ -819,6 +846,15 @@ export function CounterView({
             {isOnline ? t.online_status : 'Offline'}
           </span>
         </div>
+
+        {/* Printer settings button */}
+        <button
+          onClick={() => setPrinterModalOpen(true)}
+          title={t.en ? 'Printer settings' : 'Configurar impresora'}
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-[#555] hover:bg-[#F5F5F5] transition-colors flex-shrink-0"
+        >
+          <Printer className="w-4.5 h-4.5" />
+        </button>
       </header>
 
       {/* ══ MAIN LAYOUT ══ */}
@@ -958,6 +994,7 @@ export function CounterView({
                 setDriverName(o.driver_name ?? '');
                 setDriverPhone(o.driver_phone ?? '');
               }}
+              onTipSaved={() => showSuccess(t.en ? 'Tip saved' : 'Propina guardada')}
             />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
@@ -1080,6 +1117,151 @@ export function CounterView({
               </SidebarSection>
             </div>
           </aside>
+        </>
+      )}
+
+      {/* ══ PRINTER MODAL ══ */}
+      {printerModalOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-50" onClick={() => setPrinterModalOpen(false)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0F0]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#F5F5F5] flex items-center justify-center">
+                  <Printer className="w-4 h-4 text-[#555]" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-[#111]">
+                    {t.en ? 'Printer Settings' : 'Configuración de impresora'}
+                  </p>
+                  <p className="text-[11px] text-[#888]">
+                    {t.en ? 'Settings saved on this device' : 'Configuración guardada en este dispositivo'}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setPrinterModalOpen(false)} className="p-1.5 rounded-lg hover:bg-[#F5F5F5]">
+                <X className="w-4 h-4 text-[#555]" />
+              </button>
+            </div>
+
+            {/* Toggles */}
+            <div className="px-5 py-4 space-y-4">
+              {/* Receipt toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-[#111]">
+                    {t.en ? 'Customer receipt' : 'Recibo del cliente'}
+                  </p>
+                  <p className="text-xs text-[#888] mt-0.5">
+                    {t.en ? 'Full ticket with prices' : 'Ticket completo con precios'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    const next = { ...printerConfig, receiptEnabled: !printerConfig.receiptEnabled };
+                    PrinterConfig.update(next);
+                    setPrinterConfig(next);
+                  }}
+                  className={cn(
+                    'relative w-12 h-6 rounded-full transition-colors',
+                    printerConfig.receiptEnabled ? 'bg-[#06C167]' : 'bg-[#DDD]'
+                  )}
+                >
+                  <span className={cn(
+                    'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                    printerConfig.receiptEnabled && 'translate-x-6'
+                  )} />
+                </button>
+              </div>
+
+              {/* Kitchen toggle */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-[#111]">
+                    {t.en ? 'Kitchen ticket' : 'Ticket de cocina'}
+                  </p>
+                  <p className="text-xs text-[#888] mt-0.5">
+                    {t.en ? 'Items only, no prices' : 'Solo artículos, sin precios'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    const next = { ...printerConfig, kitchenEnabled: !printerConfig.kitchenEnabled };
+                    PrinterConfig.update(next);
+                    setPrinterConfig(next);
+                  }}
+                  className={cn(
+                    'relative w-12 h-6 rounded-full transition-colors',
+                    printerConfig.kitchenEnabled ? 'bg-[#06C167]' : 'bg-[#DDD]'
+                  )}
+                >
+                  <span className={cn(
+                    'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                    printerConfig.kitchenEnabled && 'translate-x-6'
+                  )} />
+                </button>
+              </div>
+            </div>
+
+            {/* Auto-print */}
+            <div className="px-5 pb-4 border-t border-[#F5F5F5] pt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-[#111]">
+                    {t.en ? 'Auto-print on accept' : 'Imprimir al aceptar'}
+                  </p>
+                  <p className="text-xs text-[#888] mt-0.5">
+                    {t.en ? 'Automatically prints when you confirm an order' : 'Imprime automáticamente al confirmar una orden'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    const next = !autoPrint;
+                    setAutoPrint(next);
+                    localStorage.setItem('counter-auto-print', String(next));
+                  }}
+                  className={cn(
+                    'relative w-12 h-6 rounded-full transition-colors',
+                    autoPrint ? 'bg-[#06C167]' : 'bg-[#DDD]'
+                  )}
+                >
+                  <span className={cn(
+                    'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform',
+                    autoPrint && 'translate-x-6'
+                  )} />
+                </button>
+              </div>
+            </div>
+
+            {/* Test print button */}
+            <div className="px-5 pb-5">
+              <button
+                onClick={() => {
+                  const dummyOrder: any = {
+                    id: 'test',
+                    order_number: 'TEST',
+                    customer_name: t.en ? 'Test Customer' : 'Cliente Prueba',
+                    customer_phone: null,
+                    order_type: 'pickup',
+                    payment_method: 'cash',
+                    delivery_address: null,
+                    notes: t.en ? 'Test print — printer working correctly' : 'Impresión de prueba — impresora funcionando',
+                    total: 0,
+                    tip_amount: 0,
+                    tax_amount: 0,
+                    items: [],
+                    created_at: new Date().toISOString(),
+                  };
+                  PrinterService.printOrder(dummyOrder, 0, restaurantName, currency, locale).catch(() => {});
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-[#E8E8E8] text-sm font-semibold text-[#555] hover:bg-[#F5F5F5] transition-colors"
+              >
+                <Printer className="w-4 h-4" />
+                {t.en ? 'Print test ticket' : 'Imprimir ticket de prueba'}
+              </button>
+            </div>
+          </div>
         </>
       )}
 
@@ -1377,7 +1559,7 @@ function EmptyState({ tab, t }: { tab: Tab; t: ReturnType<typeof getT> }) {
 function OrderDetail({
   order, currency, restaurantName, tab, eta, busyExtra, suggestedEta, isUpdating, t,
   onBack, onSetEta, onAdjustEta, onAccept, onMarkReady, onDeliver,
-  onCancelRequest, onPrint, onAssignDriver,
+  onCancelRequest, onPrint, onAssignDriver, onTipSaved,
 }: {
   order: Order; currency: string; restaurantName: string; tab: Tab;
   eta: number; busyExtra: number; suggestedEta?: number | null; isUpdating: boolean;
@@ -1391,6 +1573,7 @@ function OrderDetail({
   onCancelRequest: (type: 'reject' | 'cancel') => void;
   onPrint: () => void;
   onAssignDriver: () => void;
+  onTipSaved?: (orderId: string, tip: number) => void;
 }) {
   const secs = elapsedSecs(order.created_at);
   const mins = elapsedMins(order.created_at);
@@ -1402,6 +1585,8 @@ function OrderDetail({
   const TypeIcon = TYPE_ICON[order.order_type ?? 'dine_in'] ?? Utensils;
   const table = (order as any).table?.name ?? (order as any).table_name ?? null;
   const subtotal = (order.items ?? []).reduce((s, i) => s + (i.line_total ?? i.unit_price * i.qty), 0);
+  const [tipInput, setTipInput] = useState('');
+  const [savingTip, setSavingTip] = useState(false);
 
   // Header bg color
   const headerBg =
@@ -1666,6 +1851,12 @@ function OrderDetail({
                   <span>−{fmt(order.discount_amount!, currency)}</span>
                 </div>
               )}
+              {(order.tip_amount ?? 0) > 0 && (
+                <div className="flex justify-between text-xs text-[#888]">
+                  <span>💵 {t.en ? 'Tip' : 'Propina'}</span>
+                  <span>{fmt(order.tip_amount!, currency)}</span>
+                </div>
+              )}
               <div className="flex justify-between items-center pt-1 border-t border-[#EEEEEE]">
                 <span className="text-sm font-bold text-[#111]">{t.total}</span>
                 <span className="text-2xl font-black text-[#111]">{fmt(Number(order.total), currency)}</span>
@@ -1678,6 +1869,48 @@ function OrderDetail({
                      order.payment_method === 'online' ? `💳 ${t.online}` :
                      `📱 ${t.wallet}`}
                   </span>
+                </div>
+              )}
+              {/* Cash tip input — only for cash payment orders in active tabs */}
+              {order.payment_method === 'cash' && tab !== 'history' && (
+                <div className="pt-2 border-t border-[#EEEEEE]">
+                  <p className="text-[10px] text-[#AAAAAA] uppercase tracking-wide font-semibold mb-1.5">
+                    {t.en ? 'Add tip' : 'Agregar propina'}
+                  </p>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#888] text-xs font-medium">
+                        {currency === 'USD' ? '$' : currency === 'MXN' ? '$' : currency}
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.50"
+                        value={tipInput}
+                        onChange={e => setTipInput(e.target.value)}
+                        placeholder={order.tip_amount ? String(order.tip_amount) : '0.00'}
+                        className="w-full pl-6 pr-2 py-2 rounded-lg border border-[#E8E8E8] bg-white text-sm text-[#111] focus:outline-none focus:border-[#06C167]"
+                      />
+                    </div>
+                    <button
+                      disabled={savingTip || !tipInput}
+                      onClick={async () => {
+                        const val = parseFloat(tipInput);
+                        if (isNaN(val) || val < 0) return;
+                        setSavingTip(true);
+                        const res = await updateOrderTip(order.id, val);
+                        setSavingTip(false);
+                        if (!res?.error) {
+                          setTipInput('');
+                          onTipSaved?.(order.id, val);
+                        }
+                      }}
+                      className="px-3 py-2 rounded-lg text-xs font-bold text-white transition-colors disabled:opacity-40"
+                      style={{ background: savingTip ? '#AAA' : GREEN }}
+                    >
+                      {savingTip ? '…' : t.en ? 'Save' : 'Guardar'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

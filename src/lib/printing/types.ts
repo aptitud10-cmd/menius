@@ -39,6 +39,7 @@ export interface ReceiptData {
   deliveryAddress?: string;
   items: ReceiptLineItem[];
   subtotal: number;
+  tip?: number;
   total: number;
   notes?: string;
   etaMinutes?: number;

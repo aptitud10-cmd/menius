@@ -36,6 +36,28 @@ export interface Restaurant {
   stripe_onboarding_complete?: boolean;
   is_active?: boolean;
   created_at: string;
+  // CFDI / fiscal data (Mexico)
+  fiscal_rfc?: string | null;
+  fiscal_razon_social?: string | null;
+  fiscal_regimen_fiscal?: string | null;
+  fiscal_lugar_expedicion?: string | null;
+}
+
+export interface CfdiRequest {
+  id: string;
+  order_id: string;
+  restaurant_id: string;
+  rfc: string;
+  razon_social: string;
+  cfdi_use: string;
+  regimen_fiscal: string;
+  cp_domicilio?: string | null;
+  status: 'pending' | 'issued' | 'error';
+  facturama_id?: string | null;
+  xml_url?: string | null;
+  pdf_url?: string | null;
+  error_message?: string | null;
+  created_at: string;
 }
 
 export interface Profile {
@@ -80,6 +102,7 @@ export interface Product {
   in_stock?: boolean;
   is_featured?: boolean;
   is_new?: boolean;
+  prep_time_minutes?: number | null;
   translations?: Record<string, ContentTranslation>;
   dietary_tags?: DietaryTag[];
   sort_order: number;

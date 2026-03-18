@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   Check, Camera, FileText, Clock, UtensilsCrossed, QrCode,
   ShoppingBag, X, ChevronRight, Sparkles, PartyPopper,
+  Monitor, Printer, Smartphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
@@ -35,6 +36,9 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
   const storageKey = `menius-onboarding-dismissed-${restaurantSlug}`;
   const [dismissed, setDismissed] = useState<boolean | null>(null);
   const { t } = useDashboardLocale();
+  const [hasPrinterConfigured, setHasPrinterConfigured] = useState(false);
+  const [hasInstalledPWA, setHasInstalledPWA] = useState(false);
+  const [hasOpenedCounter, setHasOpenedCounter] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(storageKey);
@@ -45,6 +49,23 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
     } else {
       setDismissed(stored === 'true');
     }
+
+    // Client-side detection for extra steps
+    try {
+      const printerRaw = localStorage.getItem('menius:printer-config');
+      if (printerRaw) {
+        const pCfg = JSON.parse(printerRaw);
+        setHasPrinterConfigured(pCfg.receiptEnabled === true || pCfg.kitchenEnabled === true);
+      }
+    } catch { /* ignore */ }
+
+    setHasInstalledPWA(
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true
+    );
+
+    const counterVisited = localStorage.getItem('menius-counter-visited') === 'true';
+    setHasOpenedCounter(counterVisited);
   }, [storageKey, steps]);
 
   if (dismissed === null) return null;
@@ -98,6 +119,31 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
       href: `/${restaurantSlug}`,
       icon: <ShoppingBag className="w-4 h-4" />,
       external: true,
+    },
+    {
+      id: 'counter',
+      title: t.onboarding_openCounter ?? 'Abre tu Counter en la tablet',
+      description: t.onboarding_openCounterDesc ?? 'Desde donde gestionarás todas tus órdenes en tiempo real',
+      completed: hasOpenedCounter,
+      href: '/counter',
+      icon: <Monitor className="w-4 h-4" />,
+      external: true,
+    },
+    {
+      id: 'printer',
+      title: t.onboarding_configurePrinter ?? 'Configura tu impresora',
+      description: t.onboarding_configurePrinterDesc ?? 'Conecta una impresora térmica para imprimir tickets automáticamente',
+      completed: hasPrinterConfigured,
+      href: '/app/settings',
+      icon: <Printer className="w-4 h-4" />,
+    },
+    {
+      id: 'pwa',
+      title: t.onboarding_installPWA ?? 'Instala MENIUS en tu tablet',
+      description: t.onboarding_installPWADesc ?? 'Agrega la app a tu pantalla de inicio para una mejor experiencia',
+      completed: hasInstalledPWA,
+      href: '/app/settings',
+      icon: <Smartphone className="w-4 h-4" />,
     },
   ];
 

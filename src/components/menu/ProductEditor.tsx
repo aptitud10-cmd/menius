@@ -137,6 +137,7 @@ export function ProductEditor({
     in_stock: product?.in_stock ?? true,
     is_featured: product?.is_featured ?? false,
     is_new: product?.is_new ?? false,
+    prep_time_minutes: product?.prep_time_minutes ? String(product.prep_time_minutes) : '',
     dietary_tags: (product?.dietary_tags ?? []) as DietaryTag[],
   });
 
@@ -254,6 +255,7 @@ export function ProductEditor({
 
     startTransition(async () => {
       try {
+        const prepTime = form.prep_time_minutes ? parseInt(form.prep_time_minutes, 10) : null;
         if (isEditing && product) {
           const data: Record<string, unknown> = {
             name: form.name,
@@ -264,6 +266,7 @@ export function ProductEditor({
             in_stock: form.in_stock,
             is_featured: form.is_featured,
             is_new: form.is_new,
+            prep_time_minutes: !isNaN(prepTime as number) && prepTime !== null && prepTime > 0 ? prepTime : null,
             dietary_tags: form.dietary_tags,
             translations: Object.keys(translations).length > 0 ? translations : null,
           };
@@ -281,6 +284,7 @@ export function ProductEditor({
             category_id: form.category_id,
             is_active: form.is_active,
             is_new: form.is_new,
+            prep_time_minutes: !isNaN(prepTime as number) && prepTime !== null && prepTime > 0 ? prepTime : null,
             dietary_tags: form.dietary_tags,
             ...(imageUrl ? { image_url: imageUrl } : {}),
           });
@@ -721,6 +725,30 @@ export function ProductEditor({
                     className="dash-input pl-8 text-lg font-semibold"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Prep time card */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h2 className="text-sm font-semibold text-gray-900 mb-1">
+                {defaultLocale === 'en' ? 'Prep time (min)' : 'Tiempo de preparación (min)'}
+              </h2>
+              <p className="text-xs text-gray-500 mb-3">
+                {defaultLocale === 'en'
+                  ? 'Used to suggest the ETA when accepting orders in Counter'
+                  : 'Se usa para sugerir el tiempo estimado al aceptar órdenes en el Counter'}
+              </p>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="1"
+                  max="120"
+                  step="1"
+                  value={form.prep_time_minutes}
+                  onChange={e => setForm(prev => ({ ...prev, prep_time_minutes: e.target.value }))}
+                  placeholder={defaultLocale === 'en' ? 'e.g. 15' : 'Ej: 15'}
+                  className="dash-input"
+                />
               </div>
             </div>
 

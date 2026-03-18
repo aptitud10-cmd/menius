@@ -46,6 +46,21 @@ function getT(locale?: string) {
     reviewSubmitting: en ? 'Sending…' : 'Enviando…',
     reviewSubmit: en ? 'Submit review' : 'Enviar reseña',
     reviewThanks: en ? 'Thanks for your review!' : '¡Gracias por tu reseña!',
+    cfdiBtn: 'Solicitar factura (CFDI)',
+    cfdiTitle: 'Solicitar factura fiscal',
+    cfdiDesc: 'Solo disponible para restaurantes en México. Recibirás tu CFDI 4.0 en formato XML y PDF.',
+    cfdiRfc: 'RFC',
+    cfdiRfcPlaceholder: 'XAXX010101000',
+    cfdiRazonSocial: 'Razón social',
+    cfdiUse: 'Uso del CFDI',
+    cfdiRegimen: 'Régimen fiscal',
+    cfdiCp: 'CP del domicilio fiscal',
+    cfdiSubmit: 'Solicitar factura',
+    cfdiSubmitting: 'Procesando…',
+    cfdiSuccess: '¡Solicitud enviada! El restaurante procesará tu factura pronto.',
+    cfdiIssuedXml: 'Descargar XML',
+    cfdiIssuedPdf: 'Descargar PDF',
+    cfdiError: 'Ocurrió un error. Intenta de nuevo.',
     steps: {
       pending:   { label: en ? 'Received'   : 'Recibido',   desc: en ? 'Your order was received'                  : 'Tu pedido fue recibido' },
       confirmed: { label: en ? 'Confirmed'  : 'Confirmado', desc: en ? 'The restaurant confirmed your order'      : 'El restaurante confirmó tu pedido' },
@@ -464,6 +479,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           </button>
         )}
 
+        {/* CFDI invoice request — only for MXN restaurants and delivered orders */}
+        {isComplete && currency === 'MXN' && (
+          <CfdiButton orderId={order.id} restaurantId={restaurantId} t={t} />
+        )}
+
         {/* Back to menu */}
         <Link
           href={`/${restaurantSlug}`}
@@ -674,5 +694,178 @@ function OrderHistorySaver({ order, restaurantSlug, restaurantName }: { order: a
         </div>
       )}
     </div>
+  );
+}
+
+const CFDI_USES_OPTIONS = [
+  { value: 'G03', label: 'G03 — Gastos en general' },
+  { value: 'G01', label: 'G01 — Adquisición de mercancias' },
+  { value: 'G02', label: 'G02 — Devoluciones, descuentos o bonificaciones' },
+  { value: 'D01', label: 'D01 — Honorarios médicos, dentales y hospitalarios' },
+  { value: 'S01', label: 'S01 — Sin efectos fiscales' },
+  { value: 'CP01', label: 'CP01 — Pagos' },
+  { value: 'CN01', label: 'CN01 — Nómina' },
+];
+
+const REGIMEN_OPTIONS = [
+  { value: '601', label: '601 — General de Ley Personas Morales' },
+  { value: '612', label: '612 — Personas Físicas con Actividades Empresariales' },
+  { value: '626', label: '626 — Simplificado de Confianza (RESICO)' },
+  { value: '621', label: '621 — Incorporación Fiscal' },
+  { value: '606', label: '606 — Arrendamiento' },
+  { value: '608', label: '608 — Demás ingresos' },
+  { value: '616', label: '616 — Sin obligaciones fiscales' },
+];
+
+function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantId: string; t: ReturnType<typeof getT> }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ rfc: '', razonSocial: '', cfdiUse: 'G03', regimenFiscal: '601', cpDomicilio: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<{ success?: boolean; message?: string; xmlUrl?: string; pdfUrl?: string; error?: string } | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setResult(null);
+    try {
+      const res = await fetch('/api/billing/cfdi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, restaurantId, ...form, razonSocial: form.razonSocial }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setResult({ error: data.error ?? t.cfdiError });
+      } else {
+        setResult({ success: true, message: data.message ?? t.cfdiSuccess, xmlUrl: data.xmlUrl, pdfUrl: data.pdfUrl });
+      }
+    } catch {
+      setResult({ error: t.cfdiError });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="block w-full py-3 rounded-xl border border-gray-200 bg-white text-center text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+      >
+        🧾 {t.cfdiBtn}
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <div>
+                <h2 className="font-bold text-gray-900">🧾 {t.cfdiTitle}</h2>
+                <p className="text-xs text-gray-500 mt-0.5">{t.cfdiDesc}</p>
+              </div>
+              <button onClick={() => setOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
+                <XCircle className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            {result?.success ? (
+              <div className="p-5 text-center space-y-4">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                </div>
+                <p className="text-sm font-semibold text-gray-800">{result.message ?? t.cfdiSuccess}</p>
+                {result.xmlUrl && (
+                  <a href={result.xmlUrl} target="_blank" rel="noopener noreferrer"
+                    className="block w-full py-2.5 rounded-xl bg-gray-100 text-sm font-semibold text-gray-700 hover:bg-gray-200 transition-colors">
+                    📄 {t.cfdiIssuedXml}
+                  </a>
+                )}
+                {result.pdfUrl && (
+                  <a href={result.pdfUrl} target="_blank" rel="noopener noreferrer"
+                    className="block w-full py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors">
+                    📋 {t.cfdiIssuedPdf}
+                  </a>
+                )}
+                <button onClick={() => setOpen(false)} className="text-sm text-gray-400 hover:text-gray-600">Cerrar</button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="p-5 space-y-4">
+                {result?.error && (
+                  <div className="px-3.5 py-2.5 rounded-xl bg-red-50 border border-red-100 text-sm text-red-600">
+                    {result.error}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t.cfdiRfc}</label>
+                  <input
+                    required
+                    value={form.rfc}
+                    onChange={e => setForm(f => ({ ...f, rfc: e.target.value.toUpperCase() }))}
+                    placeholder={t.cfdiRfcPlaceholder}
+                    maxLength={13}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 uppercase"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t.cfdiRazonSocial}</label>
+                  <input
+                    required
+                    value={form.razonSocial}
+                    onChange={e => setForm(f => ({ ...f, razonSocial: e.target.value }))}
+                    placeholder="Nombre o razón social"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t.cfdiUse}</label>
+                  <select
+                    value={form.cfdiUse}
+                    onChange={e => setForm(f => ({ ...f, cfdiUse: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 bg-white"
+                  >
+                    {CFDI_USES_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t.cfdiRegimen}</label>
+                  <select
+                    value={form.regimenFiscal}
+                    onChange={e => setForm(f => ({ ...f, regimenFiscal: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 bg-white"
+                  >
+                    {REGIMEN_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">{t.cfdiCp}</label>
+                  <input
+                    value={form.cpDomicilio}
+                    onChange={e => setForm(f => ({ ...f, cpDomicilio: e.target.value }))}
+                    placeholder="00000"
+                    maxLength={5}
+                    inputMode="numeric"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting || !form.rfc || !form.razonSocial}
+                  className="w-full py-3 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                >
+                  {submitting ? t.cfdiSubmitting : t.cfdiSubmit}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }

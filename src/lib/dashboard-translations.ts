@@ -639,6 +639,12 @@ export interface DashboardTranslations {
   onboarding_generateQRDesc: string;
   onboarding_firstOrder: string;
   onboarding_firstOrderDesc: string;
+  onboarding_openCounter: string;
+  onboarding_openCounterDesc: string;
+  onboarding_configurePrinter: string;
+  onboarding_configurePrinterDesc: string;
+  onboarding_installPWA: string;
+  onboarding_installPWADesc: string;
 
   // General
   general_delete: string;
@@ -1734,6 +1740,12 @@ const es: DashboardTranslations = {
   onboarding_generateQRDesc: 'Imprime y colócalos en cada mesa',
   onboarding_firstOrder: 'Recibe tu primer pedido',
   onboarding_firstOrderDesc: 'Comparte tu menú y empieza a vender',
+  onboarding_openCounter: 'Abre tu Counter en la tablet',
+  onboarding_openCounterDesc: 'Gestiona todas tus órdenes en tiempo real desde el Counter',
+  onboarding_configurePrinter: 'Configura tu impresora',
+  onboarding_configurePrinterDesc: 'Conecta una impresora térmica para imprimir tickets automáticamente',
+  onboarding_installPWA: 'Instala MENIUS en tu tablet',
+  onboarding_installPWADesc: 'Agrega la app a tu pantalla de inicio para una mejor experiencia',
 
   // General
   general_delete: 'Eliminar',
@@ -2829,6 +2841,12 @@ const en: DashboardTranslations = {
   onboarding_generateQRDesc: 'Print and place them on each table',
   onboarding_firstOrder: 'Receive your first order',
   onboarding_firstOrderDesc: 'Share your menu and start selling',
+  onboarding_openCounter: 'Open Counter on your tablet',
+  onboarding_openCounterDesc: 'Manage all your orders in real time from the Counter',
+  onboarding_configurePrinter: 'Configure your printer',
+  onboarding_configurePrinterDesc: 'Connect a thermal printer to print tickets automatically',
+  onboarding_installPWA: 'Install MENIUS on your tablet',
+  onboarding_installPWADesc: 'Add the app to your home screen for the best experience',
 
   // General
   general_delete: 'Delete',
