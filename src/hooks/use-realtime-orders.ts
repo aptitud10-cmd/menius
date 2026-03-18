@@ -74,7 +74,7 @@ export function useRealtimeOrders({
         )
       `)
       .eq('restaurant_id', restaurantId)
-      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .gte('created_at', new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString())
       .order('created_at', { ascending: false })
       .limit(150);
 
