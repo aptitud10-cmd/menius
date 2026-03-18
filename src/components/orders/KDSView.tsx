@@ -633,7 +633,7 @@ function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected,
   const nxt = NEXT[order.status];
   const tm = TYPE_META[order.order_type ?? ''];
   const pm = PAY_META[order.payment_method ?? ''];
-  const table = (order as any).table?.name;
+  const table = (order as any).table?.name ?? (order as any).table_name ?? null;
   const items = order.items ?? [];
   const count = items.reduce((s, i: any) => s + i.qty, 0);
   const created = new Date(order.created_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });

@@ -246,9 +246,11 @@ DASHBOARD GUIDE (step-by-step for each section):
 
 - **Tables & QR**: Create tables (numbered), generate elegant printable QR codes for each table. Each QR includes restaurant name and table number. Customers scan to see the menu with their table pre-selected. Print QR codes directly from the dashboard.
 
-- **Kitchen (KDS)**: Full-screen kitchen display. Orders appear in real-time with sound alerts. Each order shows products, variants, extras, customer notes, and contact info. Change status: pending → preparing → ready → completed. Designed for tablets in the kitchen.
+- **Counter**: Dedicated touchscreen for the cashier/front-of-house manager. Tabs: New orders (with sound alert + green splash), Preparing, Ready, Scheduled (pre-orders for a future time), History. For each order: accept it (triggers auto-print + sound confirmation), set/adjust ETA (for delivery, the system suggests ETA automatically based on distance), assign a driver from the pool, print ticket manually, mark as preparing/ready/delivered, cancel. For delivery orders: assign driver from dropdown (drivers pool), driver gets WhatsApp with address + GPS tracking link. To access: go to /counter URL or click "Counter" in the sidebar.
 
-- **Orders**: Full order history. Filter by status (pending, preparing, ready, completed, cancelled), date range, and order type (dine-in, pickup, delivery). Click an order to see full details, contact customer via WhatsApp, cancel or refund.
+- **Kitchen (KDS)**: Full-screen kitchen display. Orders appear in real-time with sound alerts. Each order shows products, variants, extras, customer notes, table number (for dine-in), and contact info. Change status: pending → preparing → ready → completed. Designed for tablets in the kitchen.
+
+- **Orders**: Full order history. Filter by status (pending, preparing, ready, completed, cancelled), date range, and order type (dine-in, pickup, delivery). Click an order to see full details, contact customer via WhatsApp, cancel or refund. Scheduled (pre-) orders appear with their scheduled time.
 
 - **Customers (CRM)**: Customer database automatically built from orders. Each customer profile shows: order history, total spent, number of visits, average ticket, tags (VIP, frequent, new, etc.), notes. Click to send WhatsApp message or email. Use tags to segment customers for marketing campaigns.
 
@@ -274,7 +276,9 @@ DASHBOARD GUIDE (step-by-step for each section):
 
 - **Reviews**: See customer reviews and star ratings. Respond to reviews directly from the dashboard.
 
-- **Team/Staff**: Add employees with email. Assign roles: admin (full access), manager (most access), staff (orders and basic), kitchen (KDS only). Each role has different dashboard permissions.
+- **Team/Staff**: Two sections:
+  1. **Staff members**: Add employees with email. Assign roles: admin (full access), manager (most access), staff (orders and basic), kitchen (KDS only). Each role has different dashboard permissions.
+  2. **Delivery Drivers**: Add your own driver pool (name + phone). Drivers appear in the Counter's driver assignment dropdown when accepting delivery orders. Each driver receives a WhatsApp with the delivery address and a GPS tracking link when assigned. To add a driver: Staff page > Drivers section > "Add driver" button.
 
 - **Settings** (all fields):
   • **Logo**: Upload restaurant logo (square image, drag or click to upload)
@@ -290,6 +294,7 @@ DASHBOARD GUIDE (step-by-step for each section):
   • **Stripe Connect**: Connect your Stripe account to accept online card payments. Click "Connect with Stripe" > complete Stripe onboarding > receive payments directly to your bank. Green badge shows when connected.
   • **Operating Hours**: Set open/close times for each day of the week. Toggle "Closed" for days off. Toggle "24 hours" for non-stop operation.
   • **Notifications**: Master toggle to enable/disable all notifications. When enabled, configure: WhatsApp number (for order alerts) and email address (for order alerts). Both channels receive new order alerts, status changes, etc.
+  • **Printers** (per-device setting, stored in browser): Configure what each device prints when an order is accepted. Toggle "Customer receipt" (full ticket with prices) and/or "Kitchen ticket" (items only, no prices, large order number for the kitchen). Settings are saved per device — a tablet used as a kitchen display can be configured to only print kitchen tickets, while the cashier tablet prints the customer receipt.
 
 - **Billing**: Current plan name and status (active, trialing, past_due, cancelled). Usage meter showing products, tables, etc. vs plan limits. Choose plan: Starter ($39/mo), Pro ($79/mo), Business ($149/mo) — monthly billing. Annual billing saves ~17%: Starter ($32/mo), Pro ($66/mo), Business ($124/mo). Upgrade or downgrade directly — changes apply immediately, prorated. Invoice history with status (paid, pending, failed) and download links. "Manage subscription" button opens Stripe portal for payment method, cancel, etc.
 
@@ -355,6 +360,11 @@ TROUBLESHOOTING GUIDE:
 - Can't access dashboard: Check subscription status in **Billing**. If expired, renew to regain access. If trial ended, choose a plan.
 - Custom domain not verifying: DNS propagation can take up to 48 hours. Make sure the CNAME record points exactly to cname.vercel-dns.com. Check with your DNS provider. Try clicking "Verify" again after a few hours.
 - Delivery settings: Go to **Settings > Order Types** > enable "Delivery" > set estimated delivery time (minutes) and delivery fee.
+- Assign a driver to an order: In the Counter, select a delivery order > click "Assign driver" > pick from your driver pool or type name/phone manually > confirm. Driver receives WhatsApp automatically.
+- Driver GPS not showing on customer map: Driver must open their tracking link and allow location access in the browser. The link is sent via WhatsApp when you assign the driver from Counter.
+- Proof of delivery photo: Driver takes photo from their tracking page. Visible in Counter > order detail > scroll down to driver section.
+- Scheduled/pre-orders not appearing: Check the "Scheduled" tab in the Counter. They activate automatically at the scheduled time. If one doesn't activate, check the cron job is running (Vercel > Logs > /api/cron/activate-scheduled).
+- Printer not printing: Go to **Settings > Printers** > make sure at least one option (Customer receipt or Kitchen ticket) is enabled. The browser must have access to the connected printer. Use Chrome or Edge for best printing compatibility.
 - How to mark a product as out of stock: Go to **Menu > Products** > click the product > toggle "In Stock" OFF. The product will show a "sold out" badge on the public menu but won't be removable from the menu.
 - Slow performance: Clear browser cache. Use Chrome or Edge for best experience. Close unused tabs.
 

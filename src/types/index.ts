@@ -161,6 +161,7 @@ export interface Order {
   order_type?: OrderType;
   payment_method?: PaymentMethod;
   delivery_address?: string;
+  table_name?: string | null;
   created_at: string;
   updated_at?: string;
   estimated_ready_minutes?: number;

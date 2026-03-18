@@ -31,6 +31,8 @@ function ContentEs() {
       <h3>2.2 Datos de Consumidores Finales (Clientes del Restaurante)</h3>
       <ul>
         <li><strong>Datos de pedido:</strong> nombre del cliente, correo electrónico (opcional), dirección de entrega (si aplica), contenido del pedido, notas especiales.</li>
+        <li><strong>Fotos de comprobante de entrega:</strong> cuando un restaurante utiliza la función de delivery con repartidores propios, el repartidor puede subir una fotografía como comprobante de entrega. Esta foto incluye la imagen del exterior del domicilio de entrega. Se almacena de forma segura en Supabase Storage y es accesible únicamente por el restaurante. La foto se retiene junto con el historial del pedido.</li>
+        <li><strong>Ubicación GPS (repartidores):</strong> cuando el restaurante asigna un repartidor a un pedido de delivery, el repartidor puede optar voluntariamente por compartir su ubicación GPS en tiempo real. Esta ubicación se transmite durante el período de entrega y no se almacena de forma permanente — solo se guarda la última posición conocida mientras el pedido está activo.</li>
         <li><strong>Datos técnicos:</strong> dirección IP (para seguridad y rate limiting), tipo de navegador, dispositivo.</li>
       </ul>
       <h3>2.3 Datos Recopilados Automáticamente</h3>
@@ -130,6 +132,8 @@ function ContentEn() {
       <h3>2.2 End Consumer Data (Restaurant Customers)</h3>
       <ul>
         <li><strong>Order data:</strong> customer name, email (optional), delivery address (if applicable), order contents, special notes.</li>
+        <li><strong>Proof-of-delivery photos:</strong> when a restaurant uses the delivery feature with their own drivers, the driver may upload a photograph as proof of delivery. This photo may include an image of the delivery address exterior. It is stored securely in Supabase Storage, accessible only by the restaurant, and retained alongside the order history.</li>
+        <li><strong>GPS location (drivers):</strong> when the restaurant assigns a driver to a delivery order, the driver may voluntarily choose to share their real-time GPS location. This location is transmitted during the delivery period and is not stored permanently — only the last known position is saved while the order is active.</li>
         <li><strong>Technical data:</strong> IP address (for security and rate limiting), browser type, device.</li>
       </ul>
       <h3>2.3 Automatically Collected Data</h3>

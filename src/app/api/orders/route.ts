@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
     const order_type = sanitizeText(body.order_type, 20);
     const payment_method = sanitizeText(body.payment_method, 20);
     const delivery_address = sanitizeMultiline(body.delivery_address, 300);
+    const table_name = sanitizeText(body.table_name, 50);
 
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!restaurant_id || (!String(restaurant_id).startsWith('demo') && !UUID_RE.test(String(restaurant_id)))) {
@@ -302,6 +303,7 @@ export async function POST(request: NextRequest) {
       order_type: parsed.data.order_type,
       payment_method: parsed.data.payment_method,
       delivery_address: delivery_address || null,
+      table_name: table_name || null,
       promo_code: promo_code || '',
       discount_amount: discountAmt,
       idempotency_key: idempotencyKey || null,
@@ -472,6 +474,7 @@ export async function POST(request: NextRequest) {
         customerPhone: parsed.data.customer_phone || undefined,
         orderType: order_type || 'dine_in',
         paymentMethod: parsed.data.payment_method || undefined,
+        tableNumber: table_name || undefined,
         notes: parsed.data.notes || null,
         total,
         items: notifItems,

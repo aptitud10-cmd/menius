@@ -1400,7 +1400,7 @@ function OrderDetail({
   const isUrgent = tab === 'new' && mins >= SLA_WARN_MINS;
   const effectiveEta = eta + busyExtra;
   const TypeIcon = TYPE_ICON[order.order_type ?? 'dine_in'] ?? Utensils;
-  const table = (order as any).table?.name;
+  const table = (order as any).table?.name ?? (order as any).table_name ?? null;
   const subtotal = (order.items ?? []).reduce((s, i) => s + (i.line_total ?? i.unit_price * i.qty), 0);
 
   // Header bg color
