@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     const { allowed } = checkRateLimit(`order:${ip}`, { limit: 10, windowSec: 60 });
     if (!allowed) {
       return NextResponse.json(
-        { error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' },
+        { error: 'Too many requests. Please try again in a minute.' },
         { status: 429, headers: { 'Retry-After': '60', 'X-RateLimit-Remaining': '0' } }
       );
     }
@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    const bodyLocale: string = body.locale ?? 'es';
+    const bodyEn = bodyLocale === 'en';
 
     // Sanitize all user-facing text inputs
     const restaurant_id = body.restaurant_id;
@@ -60,12 +62,12 @@ export async function POST(request: NextRequest) {
 
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!restaurant_id || (!String(restaurant_id).startsWith('demo') && !UUID_RE.test(String(restaurant_id)))) {
-      return NextResponse.json({ error: 'restaurant_id inválido' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid restaurant_id' }, { status: 400 });
     }
 
     if (String(restaurant_id).startsWith('demo')) {
       if (!customer_name || !customer_phone) {
-        return NextResponse.json({ error: 'Nombre y teléfono requeridos' }, { status: 400 });
+        return NextResponse.json({ error: bodyEn ? 'Name and phone required' : 'Nombre y teléfono requeridos' }, { status: 400 });
       }
       const demoNum = `DEMO-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
       return NextResponse.json({ order_id: `demo-order-${Date.now()}`, order_number: demoNum });
@@ -89,14 +91,18 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (!restaurant) {
-      return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: bodyEn ? 'Restaurant not found' : 'Restaurante no encontrado' }, { status: 404 });
     }
+
+    const en = restaurant.locale === 'en';
 
     // Pause guard — if the restaurant paused orders, reject new ones
     const pausedUntil = (restaurant as any).orders_paused_until;
     if (pausedUntil && new Date(pausedUntil) > new Date()) {
       return NextResponse.json(
-        { error: 'El restaurante no está aceptando órdenes en este momento. Intenta más tarde.' },
+        { error: en
+            ? 'This restaurant is not accepting orders right now. Please try again later.'
+            : 'El restaurante no está aceptando órdenes en este momento. Intenta más tarde.' },
         { status: 503 }
       );
     }
@@ -143,7 +149,6 @@ export async function POST(request: NextRequest) {
           .eq('restaurant_id', restaurant_id)
           .gte('created_at', todayStart.toISOString());
         if ((count ?? 0) >= DAILY_LIMIT) {
-          const en = restaurant.locale === 'en';
           return NextResponse.json(
             { error: en
                 ? 'This restaurant has reached its daily limit. Please try again tomorrow or contact the restaurant.'

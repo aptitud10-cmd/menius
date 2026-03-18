@@ -8,14 +8,16 @@
 import { permanentRedirect } from 'next/navigation';
 
 interface PageProps {
-  params: { slug: string };
-  searchParams: { table?: string };
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ table?: string }>;
 }
 
-export default function LegacySlugRedirect({ params, searchParams }: PageProps) {
-  const destination = searchParams.table
-    ? `/${params.slug}?table=${encodeURIComponent(searchParams.table)}`
-    : `/${params.slug}`;
+export default async function LegacySlugRedirect({ params, searchParams }: PageProps) {
+  const { slug } = await params;
+  const { table } = await searchParams;
+  const destination = table
+    ? `/${slug}?table=${encodeURIComponent(table)}`
+    : `/${slug}`;
 
   permanentRedirect(destination);
 }

@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const restaurantId = searchParams.get('restaurant_id');
 
     if (!restaurantId) {
-      return NextResponse.json({ error: 'restaurant_id requerido' }, { status: 400 });
+      return NextResponse.json({ error: 'restaurant_id required' }, { status: 400 });
     }
 
     const supabase = createClient();
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const ip = getClientIP(request);
     const { allowed } = checkRateLimit(`review:${ip}`, { limit: 5, windowSec: 300 });
     if (!allowed) {
-      return NextResponse.json({ error: 'Demasiadas reseñas. Intenta en unos minutos.' }, { status: 429 });
+      return NextResponse.json({ error: 'Too many reviews. Please try again in a few minutes.' }, { status: 429 });
     }
 
     const body = await request.json();
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (!restaurant) {
-      return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
     }
 
     const { data, error } = await supabase

@@ -5,9 +5,10 @@
 import { permanentRedirect } from 'next/navigation';
 
 interface PageProps {
-  params: { slug: string; table: string };
+  params: Promise<{ slug: string; table: string }>;
 }
 
-export default function LegacyTableRedirect({ params }: PageProps) {
-  permanentRedirect(`/${params.slug}?table=${encodeURIComponent(params.table)}`);
+export default async function LegacyTableRedirect({ params }: PageProps) {
+  const { slug, table } = await params;
+  permanentRedirect(`/${slug}?table=${encodeURIComponent(table)}`);
 }

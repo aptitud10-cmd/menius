@@ -157,7 +157,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
       const res = await fetch('/api/orders/validate-promo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode, restaurant_id: restaurant.id, order_total: cartTotal }),
+        body: JSON.stringify({ code: promoCode, restaurant_id: restaurant.id, order_total: cartTotal, locale }),
       });
       const data = await res.json();
       if (res.ok) setPromoResult(data);
@@ -193,6 +193,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           restaurant_id: restaurant.id,
+          locale,
           customer_name: customerName.trim(),
           customer_phone: customerPhone.trim(),
           customer_email: customerEmail.trim() || undefined,
@@ -329,6 +330,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           restaurant_id: restaurant.id,
+          locale,
           customer_name: customerName.trim(),
           customer_phone: customerPhone.trim(),
           customer_email: customerEmail.trim() || undefined,

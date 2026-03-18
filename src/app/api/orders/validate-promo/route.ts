@@ -10,15 +10,16 @@ export async function POST(request: NextRequest) {
     const { allowed } = await checkRateLimitAsync(`validate-promo:${ip}`, { limit: 10, windowSec: 60 });
     if (!allowed) {
       return NextResponse.json(
-        { error: 'Demasiadas solicitudes. Intenta de nuevo en un minuto.' },
+        { error: 'Too many requests. Please try again in a minute.' },
         { status: 429, headers: { 'Retry-After': '60', 'X-RateLimit-Remaining': '0' } }
       );
     }
 
-    const { code, restaurant_id, order_total } = await request.json();
+    const { code, restaurant_id, order_total, locale = 'es' } = await request.json();
+    const en = locale === 'en';
 
     if (!code || !restaurant_id) {
-      return NextResponse.json({ error: 'Código y restaurant_id requeridos' }, { status: 400 });
+      return NextResponse.json({ error: en ? 'Code and restaurant_id required' : 'Código y restaurant_id requeridos' }, { status: 400 });
     }
 
     const supabase = createClient();
@@ -32,24 +33,26 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (error || !promo) {
-      return NextResponse.json({ error: 'Código no válido' }, { status: 404 });
+      return NextResponse.json({ error: en ? 'Invalid code' : 'Código no válido' }, { status: 404 });
     }
 
     // Check expiration
     if (promo.expires_at && new Date(promo.expires_at) < new Date()) {
-      return NextResponse.json({ error: 'Este código ha expirado' }, { status: 400 });
+      return NextResponse.json({ error: en ? 'This code has expired' : 'Este código ha expirado' }, { status: 400 });
     }
 
     // Check max uses
     if (promo.max_uses && promo.current_uses >= promo.max_uses) {
-      return NextResponse.json({ error: 'Este código ya alcanzó su límite de usos' }, { status: 400 });
+      return NextResponse.json({ error: en ? 'This code has reached its usage limit' : 'Este código ya alcanzó su límite de usos' }, { status: 400 });
     }
 
     // Check minimum order
     const total = Number(order_total) || 0;
     if (promo.min_order && total < Number(promo.min_order)) {
       return NextResponse.json({
-        error: `Pedido mínimo de $${Number(promo.min_order).toFixed(2)} para usar este código`,
+        error: en
+          ? `Minimum order of $${Number(promo.min_order).toFixed(2)} required to use this code`
+          : `Pedido mínimo de $${Number(promo.min_order).toFixed(2)} para usar este código`,
       }, { status: 400 });
     }
 
@@ -70,6 +73,6 @@ export async function POST(request: NextRequest) {
       discount_value: Number(promo.discount_value),
     });
   } catch {
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
