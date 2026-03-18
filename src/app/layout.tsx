@@ -50,12 +50,6 @@ export const metadata: Metadata = {
     images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'MENIUS — Digital menus for restaurants' }],
     locale: 'en_US',
   },
-  alternates: {
-    languages: {
-      'en': 'https://menius.app',
-      'es': 'https://menius.app',
-    },
-  },
   twitter: {
     card: 'summary_large_image',
     title: 'MENIUS — Menús digitales para restaurantes',
