@@ -7,8 +7,6 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { formatPrice, cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
-import { PushOptIn } from './PushOptIn';
-
 const DeliveryMap = dynamic(
   () => import('./DeliveryMap').then((m) => m.DeliveryMap),
   { ssr: false, loading: () => <div className="w-full h-48 rounded-2xl bg-gray-100 animate-pulse" /> }
@@ -339,11 +337,6 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             </div>
           )}
         </div>
-
-        {/* Push notification opt-in */}
-        {!isCancelled && !isComplete && order?.id && (
-          <PushOptIn orderId={order.id} />
-        )}
 
         {/* Order details */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">

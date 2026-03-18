@@ -12,7 +12,6 @@ import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, OrderType, PaymentMethod } from '@/types';
 import { trackEvent } from '@/lib/analytics';
 import { WalletButton } from './WalletButton';
-import { PushOptIn } from './PushOptIn';
 import { playSuccessChime, spawnConfetti } from '@/lib/celebration';
 
 const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl border-2 border-gray-200 bg-gray-100 animate-pulse" />;
@@ -747,7 +746,6 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
                 {payLoading ? t.redirecting : t.payNow}
               </button>
             )}
-            {orderId && !restaurant.id.startsWith('demo') && <PushOptIn orderId={orderId} />}
             <button onClick={goBack} className="w-full py-3.5 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 transition-colors">
               {t.backToMenu}
             </button>
