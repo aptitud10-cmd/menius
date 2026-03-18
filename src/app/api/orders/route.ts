@@ -6,7 +6,8 @@ import { publicOrderSchema } from '@/lib/validations';
 import { NextRequest, NextResponse } from 'next/server';
 import { notifyNewOrder } from '@/lib/notifications/order-notifications';
 import { sendEmail } from '@/lib/notifications/email';
-import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
+import { verifyOrderToken } from '@/lib/order-token';
 import { sanitizeText, sanitizeEmail, sanitizeMultiline } from '@/lib/sanitize';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
@@ -17,7 +18,7 @@ const logger = createLogger('orders');
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`order:${ip}`, { limit: 10, windowSec: 60 });
+    const { allowed } = await checkRateLimitAsync(`order:${ip}`, { limit: 10, windowSec: 60 });
     if (!allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again in a minute.' },
@@ -45,6 +46,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const bodyLocale: string = body.locale ?? 'es';
     const bodyEn = bodyLocale === 'en';
+
+    // Honeypot — bots typically fill hidden fields; real users never see this field
+    if (body._hp && String(body._hp).length > 0) {
+      // Silently discard — return a fake success so bots don't retry
+      logger.warn('Honeypot triggered', { ip });
+      return NextResponse.json({ order_id: `blocked-${Date.now()}`, order_number: 'SPAM' });
+    }
+
+    // Page token — verify the request originated from a real browser session
+    const restaurant_id_raw: string = String(body.restaurant_id ?? '');
+    if (!verifyOrderToken(body._ot, restaurant_id_raw)) {
+      logger.warn('Invalid order token', { ip, restaurant_id: restaurant_id_raw });
+      return NextResponse.json(
+        { error: bodyEn ? 'Session expired. Please reload the page.' : 'Sesión expirada. Recarga la página.' },
+        { status: 403 }
+      );
+    }
 
     // Sanitize all user-facing text inputs
     const restaurant_id = body.restaurant_id;

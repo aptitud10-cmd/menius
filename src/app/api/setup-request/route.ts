@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkRateLimitAsync as checkRateLimit } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('setup-request');
@@ -18,7 +18,7 @@ function escapeHtml(str: string): string {
 export async function POST(request: NextRequest) {
   try {
     const ip = request.headers.get('x-forwarded-for') || 'unknown';
-    const { allowed } = checkRateLimit(`setup:${ip}`, { limit: 5, windowSec: 3600 });
+    const { allowed } = await checkRateLimit(`setup:${ip}`, { limit: 5, windowSec: 3600 });
     if (!allowed) {
       return NextResponse.json(
         { error: 'Demasiadas solicitudes. Intenta en 1 hora.' },

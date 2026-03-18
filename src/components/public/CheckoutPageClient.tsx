@@ -29,11 +29,12 @@ interface CheckoutPageClientProps {
   restaurant: Restaurant;
   locale: Locale;
   slug: string;
+  orderToken?: string;
 }
 
 type CheckoutStep = 'form' | 'payment' | 'confirmation';
 
-export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageClientProps) {
+export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }: CheckoutPageClientProps) {
   const router = useRouter();
   const t = getTranslations(locale);
   const fmtPrice = useCallback((price: number) => formatPrice(price, restaurant.currency), [restaurant.currency]);
@@ -97,6 +98,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [honeypot, setHoneypot] = useState('');
   const [orderError, setOrderError] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
   const [orderId, setOrderId] = useState('');
@@ -194,6 +196,8 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
         body: JSON.stringify({
           restaurant_id: restaurant.id,
           locale,
+          _ot: orderToken,
+          _hp: honeypot,
           customer_name: customerName.trim(),
           customer_phone: customerPhone.trim(),
           customer_email: customerEmail.trim() || undefined,
@@ -331,6 +335,8 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
         body: JSON.stringify({
           restaurant_id: restaurant.id,
           locale,
+          _ot: orderToken,
+          _hp: honeypot,
           customer_name: customerName.trim(),
           customer_phone: customerPhone.trim(),
           customer_email: customerEmail.trim() || undefined,
@@ -921,6 +927,11 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
           <div className="bg-white rounded-2xl p-5 border-2 border-gray-200 shadow-sm space-y-5">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{locale === 'es' ? 'Tus datos' : 'Your details'}</p>
             <div>
+              {/* Honeypot — invisible to real users, filled automatically by bots */}
+              <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', visibility: 'hidden', pointerEvents: 'none' }} aria-hidden="true">
+                <label>Website</label>
+                <input type="text" name="website" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
+              </div>
               <label className="block text-sm font-semibold text-gray-900 mb-2">{t.yourName} <span className="text-red-500">*</span></label>
               <input
                 type="text"

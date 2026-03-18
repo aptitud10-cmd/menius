@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { sanitizeText, sanitizeMultiline } from '@/lib/sanitize';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
@@ -44,12 +44,18 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`review:${ip}`, { limit: 5, windowSec: 300 });
+    const { allowed } = await checkRateLimitAsync(`review:${ip}`, { limit: 5, windowSec: 300 });
     if (!allowed) {
       return NextResponse.json({ error: 'Too many reviews. Please try again in a few minutes.' }, { status: 429 });
     }
 
     const body = await request.json();
+
+    // Honeypot — silently discard bot submissions
+    if (body._hp && String(body._hp).length > 0) {
+      logger.warn('Review honeypot triggered', { ip });
+      return NextResponse.json({ review: { id: `blocked-${Date.now()}` } });
+    }
     const parsed = reviewSubmitSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
