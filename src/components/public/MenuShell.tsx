@@ -1115,8 +1115,6 @@ export function MenuShell({
             estimatedMinutes={restaurant.estimated_delivery_minutes ?? undefined}
             deliveryFee={restaurant.delivery_fee ?? undefined}
             locale={locale}
-            suggestedProducts={suggestedProducts}
-            onSuggestAdd={handleQuickAdd}
             lastOrder={lastOrder?.restaurantId === restaurant.id ? lastOrder : null}
             onReorder={handleReorder}
           />
@@ -1207,8 +1205,6 @@ export function MenuShell({
                   estimatedMinutes={restaurant.estimated_delivery_minutes ?? undefined}
                   deliveryFee={restaurant.delivery_fee ?? undefined}
                   locale={locale}
-                  suggestedProducts={suggestedProducts}
-                  onSuggestAdd={handleQuickAdd}
                   lastOrder={lastOrder?.restaurantId === restaurant.id ? lastOrder : null}
                   onReorder={() => { handleReorder(); setOpen(false); }}
                 />
