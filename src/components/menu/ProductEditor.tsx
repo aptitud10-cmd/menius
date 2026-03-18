@@ -124,7 +124,7 @@ export function ProductEditor({
 }: Props) {
   const router = useRouter();
   const { success: toastSuccess, error: toastError } = useToast();
-  const { t } = useDashboardLocale();
+  const { t, locale: dashLocale } = useDashboardLocale();
   const isEditing = !!product;
   const hasMultiLang = availableLocales.length > 1;
 
@@ -722,7 +722,8 @@ export function ProductEditor({
                     value={form.price}
                     onChange={e => setForm(prev => ({ ...prev, price: e.target.value }))}
                     placeholder="0.00"
-                    className="dash-input pl-8 text-lg font-semibold"
+                    className="dash-input text-lg font-semibold"
+                    style={{ paddingLeft: '2rem' }}
                   />
                 </div>
               </div>
@@ -731,10 +732,10 @@ export function ProductEditor({
             {/* Prep time card */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <h2 className="text-sm font-semibold text-gray-900 mb-1">
-                {defaultLocale === 'en' ? 'Prep time (min)' : 'Tiempo de preparación (min)'}
+                {dashLocale === 'en' ? 'Prep time (min)' : 'Tiempo de preparación (min)'}
               </h2>
               <p className="text-xs text-gray-500 mb-3">
-                {defaultLocale === 'en'
+                {dashLocale === 'en'
                   ? 'Used to suggest the ETA when accepting orders in Counter'
                   : 'Se usa para sugerir el tiempo estimado al aceptar órdenes en el Counter'}
               </p>
@@ -746,7 +747,7 @@ export function ProductEditor({
                   step="1"
                   value={form.prep_time_minutes}
                   onChange={e => setForm(prev => ({ ...prev, prep_time_minutes: e.target.value }))}
-                  placeholder={defaultLocale === 'en' ? 'e.g. 15' : 'Ej: 15'}
+                  placeholder={dashLocale === 'en' ? 'e.g. 15' : 'Ej: 15'}
                   className="dash-input"
                 />
               </div>
@@ -789,7 +790,7 @@ export function ProductEditor({
                           : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300',
                       )}
                     >
-                      {tag.emoji} {defaultLocale === 'en' ? tag.labelEn : tag.labelEs}
+                      {tag.emoji} {dashLocale === 'en' ? tag.labelEn : tag.labelEs}
                     </button>
                   );
                 })}
