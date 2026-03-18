@@ -26,7 +26,7 @@ export default async function SettingsPage() {
       <PrinterSettingsSection locale={restaurant?.locale ?? 'es'} />
       {isMxn && (
         <div>
-          <h2 className="dash-heading mb-4">Facturación CFDI</h2>
+          <h2 className="dash-heading mb-4">{restaurant?.locale === 'en' ? 'CFDI Invoicing' : 'Facturación CFDI'}</h2>
           <FiscalSettings
             restaurantId={restaurantId}
             initialData={{

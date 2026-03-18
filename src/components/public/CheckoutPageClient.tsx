@@ -130,24 +130,24 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
     let error = '';
     switch (name) {
       case 'customer_name':
-        if (!value.trim()) error = 'El nombre es obligatorio';
-        else if (value.trim().length < 2) error = 'Mínimo 2 caracteres';
+        if (!value.trim()) error = locale === 'es' ? 'El nombre es obligatorio' : 'Name is required';
+        else if (value.trim().length < 2) error = locale === 'es' ? 'Mínimo 2 caracteres' : 'Minimum 2 characters';
         break;
       case 'customer_phone':
-        if (!value.trim()) error = 'El teléfono es obligatorio';
-        else if (!/^\+?[\d\s()-]{7,}$/.test(value)) error = 'Teléfono no válido';
+        if (!value.trim()) error = locale === 'es' ? 'El teléfono es obligatorio' : 'Phone is required';
+        else if (!/^\+?[\d\s()-]{7,}$/.test(value)) error = locale === 'es' ? 'Teléfono no válido' : 'Invalid phone number';
         break;
       case 'customer_email':
         if (!value.trim()) error = locale === 'es' ? 'El email es obligatorio para recibir tu confirmación' : 'Email is required to receive your confirmation';
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = locale === 'es' ? 'Email no válido' : 'Invalid email';
         break;
       case 'delivery_address':
-        if (orderType === 'delivery' && !value.trim()) error = 'La dirección es obligatoria para delivery';
+        if (orderType === 'delivery' && !value.trim()) error = locale === 'es' ? 'La dirección es obligatoria para delivery' : 'Delivery address is required';
         break;
     }
     setFieldErrors(prev => ({ ...prev, [name]: error }));
     return !error;
-  }, [orderType]);
+  }, [orderType, locale]);
 
   const validatePromo = async () => {
     if (!promoCode.trim()) return;
@@ -163,7 +163,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
       if (res.ok) setPromoResult(data);
       else { setPromoError(data.error); setPromoResult(null); }
     } catch {
-      setPromoError('Error validando código');
+      setPromoError(locale === 'es' ? 'Error validando código' : 'Error validating code');
     } finally {
       setPromoLoading(false);
     }
@@ -434,7 +434,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
     return (
       <div className="min-h-[100dvh] bg-gray-50 flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4">
-          <button onClick={goBack} aria-label="Volver al menú" className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors">
+          <button onClick={goBack} aria-label={locale === 'es' ? 'Volver al menú' : 'Back to menu'} className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors">
             <ArrowLeft className="w-5 h-5" />
             <span className="text-sm font-medium">{t.backToMenu}</span>
           </button>
@@ -670,18 +670,6 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
             </button>
 
             {/* Powered by Stripe footer */}
-            <div className="flex items-center justify-center gap-1.5 pt-2 pb-4">
-              <svg className="w-3 h-3 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0110 0v4" />
-              </svg>
-              <span className="text-xs text-gray-400">{locale === 'es' ? 'Powered by' : 'Powered by'}</span>
-              <svg viewBox="0 0 60 25" className="h-4 w-auto" xmlns="http://www.w3.org/2000/svg">
-                <path d="M59.64 14.28h-8.06c.19 1.93 1.6 2.55 3.2 2.55 1.64 0 2.96-.37 4.05-.95v3.32a8.33 8.33 0 01-4.56 1.1c-4.01 0-6.83-2.5-6.83-7.48 0-4.19 2.39-7.52 6.3-7.52 3.92 0 5.96 3.28 5.96 7.5 0 .4-.04 1.26-.06 1.48zm-5.92-5.62c-1.03 0-2.17.73-2.17 2.58h4.25c0-1.85-1.07-2.58-2.08-2.58zM40.95 20.3c-1.44 0-2.32-.6-2.9-1.04l-.02 4.63-4.12.87V5.57h3.76l.08 1.02a4.7 4.7 0 013.23-1.29c2.9 0 5.62 2.6 5.62 7.4 0 5.23-2.7 7.6-5.65 7.6zM40 8.95c-.95 0-1.54.34-1.97.81l.02 6.12c.4.44.98.78 1.95.78 1.52 0 2.54-1.65 2.54-3.87 0-2.15-1.04-3.84-2.54-3.84zM28.24 5.57h4.13v14.44h-4.13V5.57zm0-4.7L32.37 0v3.36l-4.13.88V.87zm-4.32 9.35v9.79H19.8V5.57h3.7l.12 1.22c1-1.77 3.07-1.41 3.62-1.22v3.79c-.52-.17-2.29-.43-3.32.86zm-8.55 4.72c0 2.43 2.6 1.68 3.12 1.46v3.36c-.55.3-1.54.54-2.89.54a4.15 4.15 0 01-4.27-4.24l.01-13.17 4.02-.86v3.54h3.14V9.1h-3.13v5.84zm-4.91.7c0 2.97-2.31 4.66-5.73 4.66a11.2 11.2 0 01-4.46-.93v-3.93c1.38.75 3.1 1.31 4.46 1.31.92 0 1.53-.24 1.53-1C6.26 13.77 0 14.51 0 9.95 0 7.04 2.28 5.3 5.62 5.3c1.36 0 2.72.2 4.09.75v3.88a9.23 9.23 0 00-4.1-1.06c-.86 0-1.44.25-1.44.9 0 1.85 6.29.97 6.29 5.77z" fill="#635BFF"/>
-              </svg>
-            </div>
-
-            {/* Powered by Stripe footer */}
             <div className="flex flex-col items-center gap-2 pt-2 pb-4">
               <div className="flex items-center gap-1.5 text-gray-400">
                 <svg className="w-3 h-3" viewBox="0 0 12 12" fill="none">
@@ -698,9 +686,9 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
                 </svg>
               </div>
               <div className="flex items-center gap-3 text-[10px] text-gray-400">
-                <a href="#" className="hover:text-gray-600 transition-colors">Terms</a>
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">{locale === 'es' ? 'Términos' : 'Terms'}</a>
                 <span>·</span>
-                <a href="#" className="hover:text-gray-600 transition-colors">Privacy</a>
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">{locale === 'es' ? 'Privacidad' : 'Privacy'}</a>
               </div>
             </div>
 
@@ -843,7 +831,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
                     <button
                       onClick={() => updateQty(idx, item.qty - 1)}
                       className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors text-lg leading-none"
-                      aria-label="Reducir cantidad"
+                      aria-label={locale === 'es' ? 'Reducir cantidad' : 'Decrease quantity'}
                     >
                       −
                     </button>
@@ -851,7 +839,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
                     <button
                       onClick={() => updateQty(idx, item.qty + 1)}
                       className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 transition-colors text-lg leading-none"
-                      aria-label="Aumentar cantidad"
+                      aria-label={locale === 'es' ? 'Aumentar cantidad' : 'Increase quantity'}
                     >
                       +
                     </button>
@@ -1144,7 +1132,7 @@ export function CheckoutPageClient({ restaurant, locale, slug }: CheckoutPageCli
           <button
             onClick={handleSubmitOrder}
             disabled={submitting || items.length === 0}
-            aria-label="Confirmar orden"
+            aria-label={locale === 'es' ? 'Confirmar orden' : 'Place order'}
             className="w-full py-5 rounded-2xl bg-emerald-500 text-white font-extrabold text-[17px] active:scale-[0.98] transition-all duration-150 disabled:opacity-50 shadow-[0_4px_20px_rgba(16,185,129,0.35)]"
           >
             {submitting ? (

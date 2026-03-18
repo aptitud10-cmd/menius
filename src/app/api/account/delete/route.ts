@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { confirmation } = body;
 
-    if (confirmation !== 'ELIMINAR') {
-      return NextResponse.json({ error: 'Confirmación incorrecta. Escribe ELIMINAR para confirmar.' }, { status: 400 });
+    if (confirmation !== 'ELIMINAR' && confirmation !== 'DELETE') {
+      return NextResponse.json({ error: 'Confirmación incorrecta.' }, { status: 400 });
     }
 
     const supabase = createClient();

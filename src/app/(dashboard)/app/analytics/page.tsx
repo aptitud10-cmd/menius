@@ -60,9 +60,9 @@ function formatMoney(v: number, currency = 'MXN') {
   return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(v);
 }
 
-function formatDayLabel(dateStr: string) {
+function formatDayLabel(dateStr: string, locale: 'es' | 'en') {
   const d = new Date(dateStr + 'T12:00:00');
-  return d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' });
+  return d.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-MX', { weekday: 'short', day: 'numeric' });
 }
 
 type PeriodPreset = 7 | 14 | 30 | 'custom';
@@ -72,7 +72,7 @@ function formatDateForInput(d: Date) {
 }
 
 export default function AnalyticsPage() {
-  const { t } = useDashboardLocale();
+  const { t, locale } = useDashboardLocale();
   const STATUS_LABELS = getStatusLabels(t);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -273,7 +273,7 @@ export default function AnalyticsPage() {
               return (
                 <div key={d.date} className="flex-1 flex flex-col items-center gap-1 group relative">
                   <div className="hidden group-hover:block absolute -top-20 left-1/2 -translate-x-1/2 bg-gray-900 rounded-xl px-3.5 py-2.5 text-xs text-white z-10 whitespace-nowrap shadow-lg">
-                    <p className="font-bold">{formatDayLabel(d.date)}</p>
+                    <p className="font-bold">{formatDayLabel(d.date, locale)}</p>
                     <p className="text-gray-200">{d.orders} {t.analytics_ordersLegend}</p>
                     <p className="text-emerald-400 font-semibold">{fmt(d.revenue)}</p>
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
@@ -283,7 +283,7 @@ export default function AnalyticsPage() {
                     style={{ height: `${height}%` }}
                   />
                   <span className="text-[10px] text-gray-500 truncate w-full text-center mt-1">
-                    {formatDayLabel(d.date)}
+                    {formatDayLabel(d.date, locale)}
                   </span>
                 </div>
               );
@@ -295,8 +295,8 @@ export default function AnalyticsPage() {
       {/* Hourly Heatmap */}
       {weeklyHeatmap ? (
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <h2 className="font-semibold text-sm mb-1 text-gray-900">Heatmap de órdenes</h2>
-          <p className="text-xs text-gray-400 mb-4">Intensidad por día de semana y hora</p>
+          <h2 className="font-semibold text-sm mb-1 text-gray-900">{locale === 'en' ? 'Order heatmap' : 'Heatmap de órdenes'}</h2>
+          <p className="text-xs text-gray-400 mb-4">{locale === 'en' ? 'Intensity by day of week and hour' : 'Intensidad por día de semana y hora'}</p>
           <div className="overflow-x-auto">
             <div className="min-w-[520px]">
               {/* Hour labels */}
@@ -307,7 +307,7 @@ export default function AnalyticsPage() {
                   </div>
                 ))}
               </div>
-              {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, dow) => (
+              {(locale === 'en' ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']).map((day, dow) => (
                 <div key={dow} className="flex items-center gap-1 mb-0.5">
                   <span className="text-[10px] text-gray-400 w-7 flex-shrink-0 text-right pr-1">{day}</span>
                   <div className="flex flex-1 gap-px">
@@ -316,7 +316,7 @@ export default function AnalyticsPage() {
                       return (
                         <div
                           key={hour}
-                          title={`${day} ${hour.toString().padStart(2, '0')}:00 — ${count} órdenes`}
+                          title={`${day} ${hour.toString().padStart(2, '0')}:00 — ${count} ${locale === 'en' ? 'orders' : 'órdenes'}`}
                           className="flex-1 h-5 rounded-sm cursor-default transition-opacity"
                           style={{ backgroundColor: count === 0 ? '#F3F4F6' : `rgba(16,185,129,${intensity})` }}
                         />
@@ -326,11 +326,11 @@ export default function AnalyticsPage() {
                 </div>
               ))}
               <div className="flex items-center justify-end gap-2 mt-2">
-                <span className="text-[10px] text-gray-400">Menos</span>
+                <span className="text-[10px] text-gray-400">{locale === 'en' ? 'Less' : 'Menos'}</span>
                 {[0.1, 0.3, 0.5, 0.75, 1].map((i) => (
                   <div key={i} className="w-4 h-4 rounded-sm" style={{ backgroundColor: `rgba(16,185,129,${i})` }} />
                 ))}
-                <span className="text-[10px] text-gray-400">Más</span>
+                <span className="text-[10px] text-gray-400">{locale === 'en' ? 'More' : 'Más'}</span>
               </div>
             </div>
           </div>
@@ -363,17 +363,17 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Conversion Funnel */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <h2 className="font-semibold text-sm mb-4 text-gray-900">Embudo de conversión</h2>
+          <h2 className="font-semibold text-sm mb-4 text-gray-900">{locale === 'en' ? 'Conversion funnel' : 'Embudo de conversión'}</h2>
           {(() => {
             const total = summary.totalOrders;
             const confirmed = total - (statusCount.pending ?? 0);
             const preparing = confirmed - (statusCount.confirmed ?? 0);
             const completed = summary.completedOrders;
             const steps = [
-              { label: 'Recibidas', count: total, color: '#6366f1' },
-              { label: 'Aceptadas', count: confirmed, color: '#3b82f6' },
-              { label: 'En cocina', count: preparing, color: '#f59e0b' },
-              { label: 'Completadas', count: completed, color: '#10b981' },
+              { label: locale === 'en' ? 'Received' : 'Recibidas', count: total, color: '#6366f1' },
+              { label: locale === 'en' ? 'Accepted' : 'Aceptadas', count: confirmed, color: '#3b82f6' },
+              { label: locale === 'en' ? 'In kitchen' : 'En cocina', count: preparing, color: '#f59e0b' },
+              { label: locale === 'en' ? 'Completed' : 'Completadas', count: completed, color: '#10b981' },
             ];
             const max = Math.max(total, 1);
             return (
@@ -401,12 +401,14 @@ export default function AnalyticsPage() {
 
         {/* Order Types */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <h2 className="font-semibold text-sm mb-4 text-gray-900">Tipo de orden</h2>
+          <h2 className="font-semibold text-sm mb-4 text-gray-900">{locale === 'en' ? 'Order type' : 'Tipo de orden'}</h2>
           {orderTypeCount && Object.keys(orderTypeCount).length > 0 ? (
             <div className="space-y-3">
               {Object.entries(orderTypeCount).sort((a, b) => b[1] - a[1]).map(([type, count]) => {
                 const pct = summary.totalOrders > 0 ? (count / summary.totalOrders) * 100 : 0;
-                const labels: Record<string, string> = { dine_in: '🍽️ Mesa', pickup: '🛍️ Para llevar', delivery: '🛵 Delivery' };
+                const labels: Record<string, string> = locale === 'en'
+                  ? { dine_in: '🍽️ Dine-in', pickup: '🛍️ Pickup', delivery: '🛵 Delivery' }
+                  : { dine_in: '🍽️ Mesa', pickup: '🛍️ Para llevar', delivery: '🛵 Delivery' };
                 const colors: Record<string, string> = { dine_in: 'bg-violet-500', pickup: 'bg-blue-500', delivery: 'bg-amber-500' };
                 return (
                   <div key={type}>
@@ -422,7 +424,7 @@ export default function AnalyticsPage() {
               })}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 text-center py-8">Sin datos</p>
+            <p className="text-sm text-gray-400 text-center py-8">{locale === 'en' ? 'No data' : 'Sin datos'}</p>
           )}
         </div>
       </div>

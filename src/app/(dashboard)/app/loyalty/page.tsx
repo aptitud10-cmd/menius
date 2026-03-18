@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Gift, Star, Users, TrendingUp, Settings2, RefreshCw, Check, Plus, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface LoyaltyConfig {
   enabled: boolean;
@@ -23,6 +24,8 @@ interface LoyaltyAccount {
 }
 
 export default function LoyaltyPage() {
+  const { locale } = useDashboardLocale();
+  const en = locale === 'en';
   const [config, setConfig] = useState<LoyaltyConfig | null>(null);
   const [accounts, setAccounts] = useState<LoyaltyAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,7 +81,7 @@ export default function LoyaltyPage() {
         body: JSON.stringify({
           account_id: adjustId,
           points: parseInt(adjustPoints),
-          description: adjustNote || 'Ajuste manual',
+          description: adjustNote || (en ? 'Manual adjustment' : 'Ajuste manual'),
           type: 'adjust',
         }),
       });
@@ -101,14 +104,14 @@ export default function LoyaltyPage() {
   if (needsMigration) {
     return (
       <div className="max-w-lg">
-        <h1 className="dash-heading mb-2">Programa de Lealtad</h1>
+        <h1 className="dash-heading mb-2">{en ? 'Loyalty Program' : 'Programa de Lealtad'}</h1>
         <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6">
-          <p className="text-sm font-bold text-amber-800 mb-2">Migración requerida</p>
+          <p className="text-sm font-bold text-amber-800 mb-2">{en ? 'Migration required' : 'Migración requerida'}</p>
           <p className="text-sm text-amber-700 mb-4">
-            Ejecuta <code className="font-mono bg-amber-100 px-1.5 py-0.5 rounded">supabase/migration-loyalty.sql</code> en tu base de datos Supabase para activar el sistema de lealtad.
+            {en ? 'Run' : 'Ejecuta'} <code className="font-mono bg-amber-100 px-1.5 py-0.5 rounded">supabase/migration-loyalty.sql</code> {en ? 'in your Supabase SQL Editor to activate the loyalty system.' : 'en tu base de datos Supabase para activar el sistema de lealtad.'}
           </p>
           <pre className="text-xs bg-gray-900 text-emerald-400 p-3 rounded-xl overflow-x-auto">
-            {`-- En Supabase SQL Editor:\n-- Pega el contenido de migration-loyalty.sql`}
+            {en ? `-- In Supabase SQL Editor:\n-- Paste the content of migration-loyalty.sql` : `-- En Supabase SQL Editor:\n-- Pega el contenido de migration-loyalty.sql`}
           </pre>
         </div>
       </div>
@@ -123,13 +126,13 @@ export default function LoyaltyPage() {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="dash-heading">Programa de Lealtad</h1>
-          <p className="text-sm text-gray-500 mt-1">Fideliza a tus clientes con puntos por cada compra.</p>
+          <h1 className="dash-heading">{en ? 'Loyalty Program' : 'Programa de Lealtad'}</h1>
+          <p className="text-sm text-gray-500 mt-1">{en ? 'Reward your customers with points for every purchase.' : 'Fideliza a tus clientes con puntos por cada compra.'}</p>
         </div>
         {config && (
           <div className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold', config.enabled ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500')}>
             <span className={cn('w-2 h-2 rounded-full', config.enabled ? 'bg-emerald-500' : 'bg-gray-400')} />
-            {config.enabled ? 'Activo' : 'Inactivo'}
+            {config.enabled ? (en ? 'Active' : 'Activo') : (en ? 'Inactive' : 'Inactivo')}
           </div>
         )}
       </div>
@@ -137,9 +140,9 @@ export default function LoyaltyPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { icon: Users, label: 'Miembros', value: String(totalMembers), color: 'text-blue-500' },
-          { icon: Star, label: 'Puntos activos', value: totalPoints.toLocaleString(), color: 'text-amber-500' },
-          { icon: TrendingUp, label: 'Puntos promedio', value: String(avgPoints), color: 'text-violet-500' },
+          { icon: Users, label: en ? 'Members' : 'Miembros', value: String(totalMembers), color: 'text-blue-500' },
+          { icon: Star, label: en ? 'Active points' : 'Puntos activos', value: totalPoints.toLocaleString(), color: 'text-amber-500' },
+          { icon: TrendingUp, label: en ? 'Avg points' : 'Puntos promedio', value: String(avgPoints), color: 'text-violet-500' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-200 p-4">
             <s.icon className={cn('w-5 h-5 mb-2', s.color)} />
@@ -157,7 +160,7 @@ export default function LoyaltyPage() {
             onClick={() => setActiveTab(tab)}
             className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all', activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500')}
           >
-            {tab === 'config' ? <span className="flex items-center gap-1.5"><Settings2 className="w-3.5 h-3.5" /> Configuración</span> : <span className="flex items-center gap-1.5"><Gift className="w-3.5 h-3.5" /> Miembros ({totalMembers})</span>}
+            {tab === 'config' ? <span className="flex items-center gap-1.5"><Settings2 className="w-3.5 h-3.5" /> {en ? 'Settings' : 'Configuración'}</span> : <span className="flex items-center gap-1.5"><Gift className="w-3.5 h-3.5" /> {en ? 'Members' : 'Miembros'} ({totalMembers})</span>}
           </button>
         ))}
       </div>
@@ -167,8 +170,8 @@ export default function LoyaltyPage() {
           {/* Enable toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-gray-900">Programa activo</p>
-              <p className="text-xs text-gray-500">Los clientes ganarán puntos en sus pedidos</p>
+              <p className="text-sm font-semibold text-gray-900">{en ? 'Program active' : 'Programa activo'}</p>
+              <p className="text-xs text-gray-500">{en ? 'Customers will earn points on their orders' : 'Los clientes ganarán puntos en sus pedidos'}</p>
             </div>
             <button
               onClick={() => setConfig(c => c ? { ...c, enabled: !c.enabled } : c)}
@@ -182,7 +185,7 @@ export default function LoyaltyPage() {
 
           <div className="space-y-4">
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Puntos por peso gastado</label>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">{en ? 'Points per unit spent' : 'Puntos por peso gastado'}</label>
               <input
                 type="number"
                 min="0.1"
@@ -191,10 +194,10 @@ export default function LoyaltyPage() {
                 onChange={e => setConfig(c => c ? { ...c, points_per_peso: parseFloat(e.target.value) || 1 } : c)}
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
               />
-              <p className="text-xs text-gray-400 mt-1">Ej: 1 = 1 punto por cada $1 gastado</p>
+              <p className="text-xs text-gray-400 mt-1">{en ? 'e.g. 1 = 1 point per $1 spent' : 'Ej: 1 = 1 punto por cada $1 gastado'}</p>
             </div>
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Mínimo para canjear</label>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">{en ? 'Minimum to redeem' : 'Mínimo para canjear'}</label>
               <input
                 type="number"
                 min="1"
@@ -204,7 +207,7 @@ export default function LoyaltyPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Valor por punto (pesos)</label>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">{en ? 'Value per point' : 'Valor por punto (pesos)'}</label>
               <input
                 type="number"
                 min="0.01"
@@ -213,10 +216,10 @@ export default function LoyaltyPage() {
                 onChange={e => setConfig(c => c ? { ...c, peso_per_point: parseFloat(e.target.value) || 0.1 } : c)}
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
               />
-              <p className="text-xs text-gray-400 mt-1">Ej: 0.10 = 10 puntos equivalen a $1</p>
+              <p className="text-xs text-gray-400 mt-1">{en ? 'e.g. 0.10 = 10 points = $1' : 'Ej: 0.10 = 10 puntos equivalen a $1'}</p>
             </div>
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">Puntos de bienvenida</label>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">{en ? 'Welcome points' : 'Puntos de bienvenida'}</label>
               <input
                 type="number"
                 min="0"
@@ -232,7 +235,7 @@ export default function LoyaltyPage() {
             disabled={saving}
             className="w-full py-3 rounded-xl bg-gray-900 text-white text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-40 transition-colors"
           >
-            {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : saved ? <><Check className="w-4 h-4" /> Guardado</> : 'Guardar cambios'}
+            {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : saved ? <><Check className="w-4 h-4" /> {en ? 'Saved' : 'Guardado'}</> : (en ? 'Save changes' : 'Guardar cambios')}
           </button>
         </div>
       )}
@@ -242,29 +245,29 @@ export default function LoyaltyPage() {
           {accounts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
               <Gift className="w-10 h-10 opacity-30" />
-              <p className="text-sm">Sin miembros todavía</p>
-              <p className="text-xs text-center max-w-[200px]">Los clientes se registrarán automáticamente al hacer su primer pedido</p>
+              <p className="text-sm">{en ? 'No members yet' : 'Sin miembros todavía'}</p>
+              <p className="text-xs text-center max-w-[200px]">{en ? 'Customers will register automatically on their first order' : 'Los clientes se registrarán automáticamente al hacer su primer pedido'}</p>
             </div>
           ) : (
             <>
               <div className="hidden sm:grid grid-cols-[auto_80px_80px_100px_80px] gap-4 px-5 py-3 bg-gray-50 border-b border-gray-100">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Cliente</p>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-center">Puntos</p>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-center">Total vida</p>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-center">Miembro desde</p>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-center">Ajustar</p>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">{en ? 'Customer' : 'Cliente'}</p>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-center">{en ? 'Points' : 'Puntos'}</p>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-center">{en ? 'Lifetime' : 'Total vida'}</p>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-center">{en ? 'Member since' : 'Miembro desde'}</p>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide text-center">{en ? 'Adjust' : 'Ajustar'}</p>
               </div>
               <div className="divide-y divide-gray-100">
                 {accounts.map(a => (
                   <div key={a.id}>
                     <div className="grid sm:grid-cols-[auto_80px_80px_100px_80px] gap-4 px-5 py-3.5 items-center">
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">{a.customer_name ?? 'Sin nombre'}</p>
+                        <p className="text-sm font-semibold text-gray-900 truncate">{a.customer_name ?? (en ? 'No name' : 'Sin nombre')}</p>
                         <p className="text-xs text-gray-400">{a.customer_phone}</p>
                       </div>
                       <p className="text-sm font-bold text-gray-900 tabular-nums text-center">{a.points.toLocaleString()}</p>
                       <p className="text-sm text-gray-500 tabular-nums text-center">{a.lifetime_points.toLocaleString()}</p>
-                      <p className="text-xs text-gray-400 text-center">{new Date(a.created_at).toLocaleDateString('es-MX')}</p>
+                      <p className="text-xs text-gray-400 text-center">{new Date(a.created_at).toLocaleDateString(en ? 'en-US' : 'es-MX')}</p>
                       <div className="flex items-center justify-center">
                         <button onClick={() => setAdjustId(adjustId === a.id ? null : a.id)} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
                           <Plus className="w-4 h-4 text-gray-400" />
@@ -277,13 +280,13 @@ export default function LoyaltyPage() {
                           type="number"
                           value={adjustPoints}
                           onChange={e => setAdjustPoints(e.target.value)}
-                          placeholder="Puntos (ej. -50 o +100)"
+                          placeholder={en ? 'Points (e.g. -50 or +100)' : 'Puntos (ej. -50 o +100)'}
                           className="w-36 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
                         />
                         <input
                           value={adjustNote}
                           onChange={e => setAdjustNote(e.target.value)}
-                          placeholder="Nota (opcional)"
+                          placeholder={en ? 'Note (optional)' : 'Nota (opcional)'}
                           className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
                         />
                         <button
@@ -291,7 +294,7 @@ export default function LoyaltyPage() {
                           disabled={adjusting || !adjustPoints}
                           className="px-4 py-2 rounded-xl bg-gray-900 text-white text-xs font-bold disabled:opacity-40 transition-colors"
                         >
-                          {adjusting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : 'Aplicar'}
+                          {adjusting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : (en ? 'Apply' : 'Aplicar')}
                         </button>
                         <button onClick={() => setAdjustId(null)} className="p-2 text-gray-400 hover:text-gray-900">
                           <Minus className="w-4 h-4" />

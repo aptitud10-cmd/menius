@@ -82,16 +82,16 @@ function getInvStatus(t: ReturnType<typeof useDashboardLocale>['t']) {
 
 /* ─── Helpers ─── */
 
-function formatCurrency(cents: number, currency: string) {
-  return new Intl.NumberFormat('es-MX', {
+function formatCurrency(cents: number, currency: string, uiLocale: 'en' | 'es' = 'es') {
+  return new Intl.NumberFormat(uiLocale === 'en' ? 'en-US' : 'es-MX', {
     style: 'currency',
     currency: currency.toUpperCase(),
     minimumFractionDigits: 0,
   }).format(cents / 100);
 }
 
-function formatDate(ts: number) {
-  return new Date(ts * 1000).toLocaleDateString('es-MX', {
+function formatDate(ts: number, uiLocale: 'en' | 'es' = 'es') {
+  return new Date(ts * 1000).toLocaleDateString(uiLocale === 'en' ? 'en-US' : 'es-MX', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -142,7 +142,7 @@ function UsageMeter({
 /* ─── Main Component ─── */
 
 export default function BillingPage() {
-  const { t } = useDashboardLocale();
+  const { t, locale } = useDashboardLocale();
   const STATUS_MAP = getStatusMap(t);
   const INV_STATUS = getInvStatus(t);
   const searchParams = useSearchParams();
@@ -509,10 +509,10 @@ export default function BillingPage() {
                     <p className="text-sm font-medium text-gray-900 truncate">
                       {inv.number || t.billing_invoice}
                     </p>
-                    <p className="text-xs text-gray-400">{formatDate(inv.created)}</p>
+                    <p className="text-xs text-gray-400">{formatDate(inv.created, locale)}</p>
                   </div>
                   <span className="text-sm font-semibold text-gray-900 tabular-nums">
-                    {formatCurrency(inv.amount_paid, inv.currency)}
+                    {formatCurrency(inv.amount_paid, inv.currency, locale)}
                   </span>
                   <span className={cn(
                     'inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium border',

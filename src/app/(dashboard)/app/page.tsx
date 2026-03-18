@@ -132,9 +132,10 @@ export default async function DashboardPage() {
       entry.revenue += Number(o.total);
     }
   }
+  const chartLocale = restaurantRes.data?.locale === 'en' ? 'en-US' : 'es';
   const chartData = Array.from(dailyMap.entries()).map(([date, data]) => ({
     date,
-    label: new Date(date + 'T12:00:00').toLocaleDateString('es', { weekday: 'short', day: 'numeric' }),
+    label: new Date(date + 'T12:00:00').toLocaleDateString(chartLocale, { weekday: 'short', day: 'numeric' }),
     ...data,
   }));
 

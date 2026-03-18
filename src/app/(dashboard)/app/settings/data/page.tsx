@@ -7,7 +7,8 @@ import { useToast } from '@/components/dashboard/DashToast';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 export default function DataPrivacyPage() {
-  const { t } = useDashboardLocale();
+  const { t, locale } = useDashboardLocale();
+  const confirmWord = locale === 'en' ? 'DELETE' : 'ELIMINAR';
   const router = useRouter();
   const toast = useToast();
   const [confirmation, setConfirmation] = useState('');
@@ -36,7 +37,7 @@ export default function DataPrivacyPage() {
   };
 
   const handleDelete = async () => {
-    if (confirmation !== 'ELIMINAR') {
+    if (confirmation !== confirmWord) {
       setDeleteError(t.data_typeConfirm);
       return;
     }
@@ -128,7 +129,7 @@ export default function DataPrivacyPage() {
               type="text"
               value={confirmation}
               onChange={e => { setConfirmation(e.target.value); setDeleteError(''); }}
-              placeholder="ELIMINAR"
+              placeholder={confirmWord}
               className="w-full bg-white border border-red-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400/30 font-mono"
             />
             {deleteError && (
@@ -137,7 +138,7 @@ export default function DataPrivacyPage() {
             <div className="flex gap-3">
               <button
                 onClick={handleDelete}
-                disabled={deleting || confirmation !== 'ELIMINAR'}
+                disabled={deleting || confirmation !== confirmWord}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors disabled:opacity-40"
               >
                 <Trash2 className="w-4 h-4" />

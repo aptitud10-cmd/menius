@@ -12,13 +12,14 @@ interface Driver {
 }
 
 function DriversSection({ t }: { t: any }) {
+  const { locale } = useDashboardLocale();
+  const en = locale === 'en';
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const en = t.nav_home === 'Home';
 
   const fetch_ = useCallback(async () => {
     setLoading(true);
