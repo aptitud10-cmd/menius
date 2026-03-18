@@ -1,5 +1,16 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+interface SeedModifierGroup {
+  name: string;
+  selection_type: 'single' | 'multi';
+  is_required: boolean;
+  min_select: number;
+  max_select: number;
+  display_type: 'list' | 'grid';
+  sort_order: number;
+  options: Array<{ name: string; price_delta: number; is_default: boolean; sort_order: number }>;
+}
+
 interface SeedProduct {
   name: string;
   description: string;
@@ -7,6 +18,7 @@ interface SeedProduct {
   image_url: string;
   variants?: Array<{ name: string; price_delta: number; sort_order: number }>;
   extras?: Array<{ name: string; price: number; sort_order: number }>;
+  modifier_groups?: SeedModifierGroup[];
 }
 
 // --------------- SPANISH ---------------
@@ -60,9 +72,51 @@ const SEED_PRODUCTS_ES: Record<string, SeedProduct[]> = {
       description: 'Omelette relleno de champiñones, espinaca, pimiento y queso manchego.',
       price: 8.50,
       image_url: '/seed/es/omelette.webp',
-      extras: [
-        { name: 'Extra queso', price: 1.50, sort_order: 1 },
-        { name: 'Tocino', price: 2.50, sort_order: 2 },
+      modifier_groups: [
+        {
+          name: 'Estilo del huevo',
+          selection_type: 'single',
+          is_required: true,
+          min_select: 1,
+          max_select: 1,
+          display_type: 'grid',
+          sort_order: 1,
+          options: [
+            { name: 'Revuelto', price_delta: 0, is_default: true, sort_order: 1 },
+            { name: 'Estrellado', price_delta: 0, is_default: false, sort_order: 2 },
+            { name: 'Tibio', price_delta: 0, is_default: false, sort_order: 3 },
+            { name: 'Bien cocido', price_delta: 0, is_default: false, sort_order: 4 },
+          ],
+        },
+        {
+          name: 'Proteína adicional',
+          selection_type: 'single',
+          is_required: false,
+          min_select: 0,
+          max_select: 1,
+          display_type: 'list',
+          sort_order: 2,
+          options: [
+            { name: 'Tocino', price_delta: 2.50, is_default: false, sort_order: 1 },
+            { name: 'Jamón', price_delta: 2.00, is_default: false, sort_order: 2 },
+            { name: 'Chorizo', price_delta: 2.50, is_default: false, sort_order: 3 },
+          ],
+        },
+        {
+          name: 'Queso',
+          selection_type: 'single',
+          is_required: false,
+          min_select: 0,
+          max_select: 1,
+          display_type: 'grid',
+          sort_order: 3,
+          options: [
+            { name: 'Manchego', price_delta: 1.50, is_default: false, sort_order: 1 },
+            { name: 'Cheddar', price_delta: 1.50, is_default: false, sort_order: 2 },
+            { name: 'Oaxaca', price_delta: 1.50, is_default: false, sort_order: 3 },
+            { name: 'Feta', price_delta: 1.50, is_default: false, sort_order: 4 },
+          ],
+        },
       ],
     },
     {
@@ -82,10 +136,50 @@ const SEED_PRODUCTS_ES: Record<string, SeedProduct[]> = {
         { name: 'Sencilla', price_delta: 0, sort_order: 1 },
         { name: 'Doble carne', price_delta: 5.00, sort_order: 2 },
       ],
-      extras: [
-        { name: 'Tocino', price: 2.50, sort_order: 1 },
-        { name: 'Aguacate', price: 2.00, sort_order: 2 },
-        { name: 'Aros de cebolla', price: 3.00, sort_order: 3 },
+      modifier_groups: [
+        {
+          name: 'Término',
+          selection_type: 'single',
+          is_required: true,
+          min_select: 1,
+          max_select: 1,
+          display_type: 'grid',
+          sort_order: 1,
+          options: [
+            { name: 'Poco cocido', price_delta: 0, is_default: false, sort_order: 1 },
+            { name: 'Término medio', price_delta: 0, is_default: true, sort_order: 2 },
+            { name: 'Bien cocido', price_delta: 0, is_default: false, sort_order: 3 },
+          ],
+        },
+        {
+          name: 'Tipo de queso',
+          selection_type: 'single',
+          is_required: false,
+          min_select: 0,
+          max_select: 1,
+          display_type: 'grid',
+          sort_order: 2,
+          options: [
+            { name: 'Cheddar', price_delta: 0, is_default: true, sort_order: 1 },
+            { name: 'Americano', price_delta: 0, is_default: false, sort_order: 2 },
+            { name: 'Suizo', price_delta: 0, is_default: false, sort_order: 3 },
+            { name: 'Pepper Jack', price_delta: 1.00, is_default: false, sort_order: 4 },
+          ],
+        },
+        {
+          name: 'Extras',
+          selection_type: 'multi',
+          is_required: false,
+          min_select: 0,
+          max_select: 5,
+          display_type: 'list',
+          sort_order: 3,
+          options: [
+            { name: 'Tocino', price_delta: 2.50, is_default: false, sort_order: 1 },
+            { name: 'Aguacate', price_delta: 2.00, is_default: false, sort_order: 2 },
+            { name: 'Aros de cebolla', price_delta: 3.00, is_default: false, sort_order: 3 },
+          ],
+        },
       ],
     },
     {
@@ -416,9 +510,51 @@ const SEED_PRODUCTS_EN: Record<string, SeedProduct[]> = {
       description: 'Three-egg omelette with ham, bell peppers, onions, and melted cheddar.',
       price: 12.49,
       image_url: '/seed/en/omelette.webp',
-      extras: [
-        { name: 'Extra cheese', price: 1.50, sort_order: 1 },
-        { name: 'Bacon', price: 2.50, sort_order: 2 },
+      modifier_groups: [
+        {
+          name: 'Egg Style',
+          selection_type: 'single',
+          is_required: true,
+          min_select: 1,
+          max_select: 1,
+          display_type: 'grid',
+          sort_order: 1,
+          options: [
+            { name: 'Scrambled', price_delta: 0, is_default: true, sort_order: 1 },
+            { name: 'Over Easy', price_delta: 0, is_default: false, sort_order: 2 },
+            { name: 'Over Medium', price_delta: 0, is_default: false, sort_order: 3 },
+            { name: 'Over Hard', price_delta: 0, is_default: false, sort_order: 4 },
+          ],
+        },
+        {
+          name: 'Add Protein',
+          selection_type: 'single',
+          is_required: false,
+          min_select: 0,
+          max_select: 1,
+          display_type: 'list',
+          sort_order: 2,
+          options: [
+            { name: 'Bacon', price_delta: 2.50, is_default: false, sort_order: 1 },
+            { name: 'Ham', price_delta: 2.00, is_default: false, sort_order: 2 },
+            { name: 'Turkey Sausage', price_delta: 2.50, is_default: false, sort_order: 3 },
+          ],
+        },
+        {
+          name: 'Cheese',
+          selection_type: 'single',
+          is_required: false,
+          min_select: 0,
+          max_select: 1,
+          display_type: 'grid',
+          sort_order: 3,
+          options: [
+            { name: 'Cheddar', price_delta: 1.50, is_default: true, sort_order: 1 },
+            { name: 'American', price_delta: 1.50, is_default: false, sort_order: 2 },
+            { name: 'Swiss', price_delta: 1.50, is_default: false, sort_order: 3 },
+            { name: 'Feta', price_delta: 1.50, is_default: false, sort_order: 4 },
+          ],
+        },
       ],
     },
     {
@@ -444,10 +580,50 @@ const SEED_PRODUCTS_EN: Record<string, SeedProduct[]> = {
         { name: 'Single', price_delta: 0, sort_order: 1 },
         { name: 'Double', price_delta: 5.00, sort_order: 2 },
       ],
-      extras: [
-        { name: 'Bacon', price: 2.50, sort_order: 1 },
-        { name: 'Avocado', price: 2.00, sort_order: 2 },
-        { name: 'Onion rings', price: 3.00, sort_order: 3 },
+      modifier_groups: [
+        {
+          name: 'Doneness',
+          selection_type: 'single',
+          is_required: true,
+          min_select: 1,
+          max_select: 1,
+          display_type: 'grid',
+          sort_order: 1,
+          options: [
+            { name: 'Medium Rare', price_delta: 0, is_default: false, sort_order: 1 },
+            { name: 'Medium', price_delta: 0, is_default: true, sort_order: 2 },
+            { name: 'Well Done', price_delta: 0, is_default: false, sort_order: 3 },
+          ],
+        },
+        {
+          name: 'Cheese Type',
+          selection_type: 'single',
+          is_required: false,
+          min_select: 0,
+          max_select: 1,
+          display_type: 'grid',
+          sort_order: 2,
+          options: [
+            { name: 'Cheddar', price_delta: 0, is_default: true, sort_order: 1 },
+            { name: 'American', price_delta: 0, is_default: false, sort_order: 2 },
+            { name: 'Swiss', price_delta: 0, is_default: false, sort_order: 3 },
+            { name: 'Pepper Jack', price_delta: 1.00, is_default: false, sort_order: 4 },
+          ],
+        },
+        {
+          name: 'Add-ons',
+          selection_type: 'multi',
+          is_required: false,
+          min_select: 0,
+          max_select: 5,
+          display_type: 'list',
+          sort_order: 3,
+          options: [
+            { name: 'Bacon', price_delta: 2.50, is_default: false, sort_order: 1 },
+            { name: 'Avocado', price_delta: 2.00, is_default: false, sort_order: 2 },
+            { name: 'Onion Rings', price_delta: 3.00, is_default: false, sort_order: 3 },
+          ],
+        },
       ],
     },
     {
@@ -800,6 +976,7 @@ export async function seedRestaurant(
 
     const allVariants: Array<{ product_id: string; name: string; price_delta: number; sort_order: number }> = [];
     const allExtras: Array<{ product_id: string; name: string; price: number; sort_order: number }> = [];
+    const productsWithGroups: Array<{ productId: string; groups: SeedModifierGroup[] }> = [];
 
     for (const products of Object.values(seedProducts)) {
       for (const p of products) {
@@ -816,6 +993,9 @@ export async function seedRestaurant(
             allExtras.push({ product_id: productId, name: e.name, price: e.price, sort_order: e.sort_order });
           }
         }
+        if (p.modifier_groups?.length) {
+          productsWithGroups.push({ productId, groups: p.modifier_groups });
+        }
       }
     }
 
@@ -823,6 +1003,38 @@ export async function seedRestaurant(
       allVariants.length ? supabase.from('product_variants').insert(allVariants) : null,
       allExtras.length ? supabase.from('product_extras').insert(allExtras) : null,
     ]);
+
+    // Insert modifier groups and their options sequentially per product to preserve ID relationships
+    for (const { productId, groups } of productsWithGroups) {
+      for (const g of groups) {
+        const { data: createdGroup } = await supabase
+          .from('modifier_groups')
+          .insert({
+            product_id: productId,
+            name: g.name,
+            selection_type: g.selection_type,
+            is_required: g.is_required,
+            min_select: g.min_select,
+            max_select: g.max_select,
+            display_type: g.display_type,
+            sort_order: g.sort_order,
+          })
+          .select('id')
+          .single();
+
+        if (createdGroup?.id && g.options.length) {
+          await supabase.from('modifier_options').insert(
+            g.options.map((o) => ({
+              group_id: createdGroup.id,
+              name: o.name,
+              price_delta: o.price_delta,
+              is_default: o.is_default,
+              sort_order: o.sort_order,
+            }))
+          );
+        }
+      }
+    }
 
     await supabase.from('tables').insert(
       seedTables.map((t) => ({
