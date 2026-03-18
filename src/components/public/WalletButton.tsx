@@ -150,7 +150,9 @@ export function WalletButton({
     prRef.current.show();
   }, [paying, disabled]);
 
-  if (!canPay) return null;
+  // Only show for native wallets (Apple Pay / Google Pay). Stripe Link is excluded
+  // to avoid showing garbled/confusing UI in browsers that support it but lack a card.
+  if (!canPay || walletType === 'link' || walletType === null) return null;
 
   const isApple = walletType === 'applePay';
 
@@ -158,6 +160,7 @@ export function WalletButton({
     <button
       onClick={handleClick}
       disabled={paying || disabled}
+      aria-label={isApple ? 'Pay with Apple Pay' : 'Pay with Google Pay'}
       className={cn(
         'w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-all duration-150 disabled:opacity-50',
         isApple ? 'bg-black text-white' : 'bg-white text-gray-900 border-2 border-gray-200'
@@ -169,13 +172,9 @@ export function WalletButton({
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
       ) : isApple ? (
-        <span className="flex items-center gap-1">
-          <ApplePayIcon />
-        </span>
+        <ApplePayIcon />
       ) : (
-        <span className="flex items-center gap-1">
-          <GooglePayIcon />
-        </span>
+        <GooglePayIcon />
       )}
     </button>
   );
