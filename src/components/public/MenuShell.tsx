@@ -356,7 +356,7 @@ export function MenuShell({
           category: {
             id: POPULAR_ID,
             restaurant_id: restaurant.id,
-            name: locale === 'en' ? 'Popular items' : 'Populares',
+            name: t.popularItems,
             sort_order: -1,
             is_active: true,
             translations: {},
@@ -565,7 +565,7 @@ export function MenuShell({
                 : 'bg-gray-100 text-gray-700 active:bg-gray-200'
             )}
           >
-            {locale === 'en' ? 'All' : 'Todos'}
+            {t.filterAll}
           </button>
         )}
         {visibleCats.map((cat) => categoryPill(
@@ -701,7 +701,7 @@ export function MenuShell({
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-emerald-800">
-                  {locale === 'en' ? 'Reorder your last order?' : '¿Repetir tu último pedido?'}
+                  {t.reorderLastOrder}
                 </p>
                 <p className="text-xs text-emerald-600 truncate mt-0.5">
                   {lastOrder!.items.map((i) => `${i.qty}× ${i.productName}`).join(' · ')}
@@ -711,12 +711,12 @@ export function MenuShell({
                 onClick={handleReorder}
                 className="flex-shrink-0 px-3.5 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold active:scale-95 transition-transform"
               >
-                {locale === 'en' ? 'Add to cart' : 'Agregar'}
+                {t.addToCart}
               </button>
               <button
                 onClick={() => setReorderDismissed(true)}
                 className="flex-shrink-0 p-1.5 text-emerald-400 hover:text-emerald-600 transition-colors"
-                aria-label="Cerrar"
+                aria-label={t.cancel}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -758,7 +758,7 @@ export function MenuShell({
                   return (
                     <span className={`inline-flex items-center gap-1.5 ${is24h ? 'text-emerald-500 font-medium' : ''}`}>
                       <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                      {is24h ? (locale === 'en' ? 'Open 24 Hours' : 'Abierto 24 Horas') : `${dh.open} – ${dh.close}`}
+                      {is24h ? t.open24h : `${dh.open} – ${dh.close}`}
                     </span>
                   );
                 })()}
@@ -783,7 +783,7 @@ export function MenuShell({
           {searchResults !== null ? (
             <div>
               <p className="text-sm text-gray-500 mb-4">
-                {searchResults.length} {searchResults.length === 1 ? (locale === 'en' ? 'result' : 'resultado') : (locale === 'en' ? 'results' : 'resultados')}
+                {searchResults.length} {searchResults.length === 1 ? t.resultSingular : t.resultPlural}
               </p>
               {searchResults.length === 0 ? (
                 <div className="text-center py-20 text-gray-400">
@@ -816,7 +816,7 @@ export function MenuShell({
               <div className="flex items-center gap-3 mb-4 py-2">
                 <Heart className="w-5 h-5 text-red-500 fill-red-500" />
                 <h2 className="text-lg font-bold text-gray-900">
-                  {locale === 'es' ? 'Favoritos' : 'Favorites'}
+                  {t.favoritesTitle}
                 </h2>
                 <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full tabular-nums">
                   {favIds.length}
@@ -826,8 +826,8 @@ export function MenuShell({
               {favIds.length === 0 ? (
                 <div className="text-center py-20 text-gray-400">
                   <Heart className="w-10 h-10 mx-auto mb-3 text-gray-200" />
-                  <p className="font-medium">{locale === 'es' ? 'Aún no tienes favoritos' : 'No favorites yet'}</p>
-                  <p className="text-sm mt-1">{locale === 'es' ? 'Toca el ♥ en un producto para guardarlo' : 'Tap ♥ on a product to save it'}</p>
+                  <p className="font-medium">{t.noFavoritesYet}</p>
+                  <p className="text-sm mt-1">{t.noFavoritesHint}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
@@ -858,8 +858,8 @@ export function MenuShell({
           ) : activeDiet && filteredProducts.length === 0 ? (
             <div className="text-center py-20 text-gray-400">
               <p className="text-3xl mb-3">{DIETARY_TAGS.find((d) => d.id === activeDiet)?.emoji}</p>
-              <p className="font-medium">{locale === 'es' ? 'No hay productos con esta dieta' : 'No products match this diet'}</p>
-              <button onClick={() => setActiveDiet(null)} className="mt-3 text-sm text-emerald-600 font-semibold">{locale === 'es' ? 'Ver todo el menú' : 'View full menu'}</button>
+              <p className="font-medium">{t.noDietMatch}</p>
+              <button onClick={() => setActiveDiet(null)} className="mt-3 text-sm text-emerald-600 font-semibold">{t.viewFullMenu}</button>
             </div>
           ) : (
             <div className="space-y-12">
@@ -879,7 +879,7 @@ export function MenuShell({
                       {isPopular && <span className="text-xl leading-none">🔥</span>}
                       <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">
                         {isPopular
-                          ? (locale === 'en' ? 'Popular items' : 'Populares')
+                          ? t.popularItems
                           : tName(category, locale, defaultLocale)}
                       </h2>
                       {isLocked && category.available_from && (
@@ -944,10 +944,10 @@ export function MenuShell({
             <section className="mt-8 mb-6">
               <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
                 <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                {locale === 'en' ? 'What our customers say' : 'Lo que dicen nuestros clientes'}
+                {t.customersTestimonial}
                 {reviewStats && reviewStats.total > 0 && (
                   <span className="text-sm font-normal text-gray-400 ml-1">
-                    ({reviewStats.average} / 5 · {reviewStats.total} {locale === 'en' ? 'reviews' : 'reseñas'})
+                    ({reviewStats.average} / 5 · {reviewStats.total} {t.reviews})
                   </span>
                 )}
               </h3>
@@ -991,7 +991,7 @@ export function MenuShell({
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-gray-900">
-                        {locale === 'en' ? 'Address' : 'Dirección'}
+                        {t.addressLabel}
                       </p>
                       <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">{restaurant.address}</p>
                       <a
@@ -1004,7 +1004,7 @@ export function MenuShell({
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700 mt-1.5 transition-colors"
                       >
-                        {locale === 'en' ? 'Get directions' : 'Cómo llegar'}
+                        {t.getDirections}
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
                       </a>
                     </div>
@@ -1025,16 +1025,16 @@ export function MenuShell({
                         <Clock className="w-4 h-4 text-emerald-600" />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {locale === 'en' ? 'Hours' : 'Horario'}
-                        </p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {t.schedule}
+                      </p>
                         <p className="text-sm text-gray-500 mt-0.5">
                           <span className="font-medium text-gray-700">{dayNames[todayIdx]}:</span>{' '}
                           {todayHours && !todayHours.closed
                             ? (todayHours.open === '00:00' && todayHours.close === '23:59'
-                              ? <span className="text-emerald-500 font-medium">{locale === 'en' ? 'Open 24 Hours' : 'Abierto 24 Horas'}</span>
+                              ? <span className="text-emerald-500 font-medium">{t.open24h}</span>
                               : `${todayHours.open} – ${todayHours.close}`)
-                            : (locale === 'en' ? 'Closed' : 'Cerrado')}
+                            : t.closedDay}
                         </p>
                       </div>
                     </div>
@@ -1048,7 +1048,7 @@ export function MenuShell({
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-gray-900">
-                        {locale === 'en' ? 'Phone' : 'Teléfono'}
+                        {t.phoneLabel}
                       </p>
                       <a href={`tel:${restaurant.phone}`} className="text-sm text-emerald-600 font-medium hover:text-emerald-700 transition-colors mt-0.5 block">
                         {restaurant.phone}
@@ -1070,7 +1070,7 @@ export function MenuShell({
                         rel="noopener noreferrer"
                         className="text-sm text-emerald-600 font-medium hover:text-emerald-700 transition-colors mt-0.5 block"
                       >
-                        {locale === 'en' ? 'Send message' : 'Enviar mensaje'}
+                        {t.sendWhatsApp}
                       </a>
                     </div>
                   </div>
@@ -1089,7 +1089,7 @@ export function MenuShell({
               className="group/pw inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-50 hover:bg-emerald-50 border border-gray-100 hover:border-emerald-200 text-xs text-gray-400 hover:text-emerald-600 transition-all duration-300"
             >
               <svg className="w-4 h-4 text-emerald-400 group-hover/pw:text-emerald-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>
-              <span>{locale === 'en' ? 'Powered by' : 'Creado con'}</span>
+              <span>{t.poweredBy}</span>
               <span className="font-bold text-gray-600 group-hover/pw:text-emerald-700 tracking-tight transition-colors">MENIUS</span>
             </a>
             <a
@@ -1098,7 +1098,7 @@ export function MenuShell({
               rel="noopener noreferrer"
               className="text-[10px] text-gray-300 hover:text-emerald-500 transition-colors"
             >
-              {locale === 'en' ? 'Create your digital menu for free →' : 'Crea tu menú digital gratis →'}
+              {t.createYourMenu} →
             </a>
           </div>
 
@@ -1133,9 +1133,7 @@ export function MenuShell({
                 <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                 </svg>
-                {locale === 'en'
-                  ? 'Not accepting orders right now. Come back tomorrow.'
-                  : 'No aceptamos pedidos por el momento. Vuelve mañana.'}
+                {t.ordersLimitReached}
               </div>
             </div>
           </div>
@@ -1284,7 +1282,7 @@ export function MenuShell({
               ) : searchResults && searchResults.length > 0 ? (
                 <div className="space-y-1">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                    {searchResults.length} {searchResults.length === 1 ? (locale === 'en' ? 'result' : 'resultado') : (locale === 'en' ? 'results' : 'resultados')}
+                    {searchResults.length} {searchResults.length === 1 ? t.resultSingular : t.resultPlural}
                   </p>
                   {searchResults.map((product) => (
                     <button
@@ -1327,7 +1325,7 @@ export function MenuShell({
                 <div className="flex flex-col items-center justify-center h-full text-center px-8">
                   <p className="text-base font-semibold text-gray-900 mb-1">{t.noResults}</p>
                   <p className="text-sm text-gray-400">
-                    {locale === 'es' ? 'Intenta con otro termino' : 'Try a different search term'}
+                    {t.tryDifferentSearch}
                   </p>
                 </div>
               )}
@@ -1341,7 +1339,7 @@ export function MenuShell({
       {toastName && (
         <div className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:bottom-6 lg:left-auto lg:right-6 pointer-events-none">
           <div className="px-4 py-2.5 rounded-full bg-gray-900 text-white text-sm font-medium shadow-lg">
-            {toastName} {locale === 'es' ? 'se ha agregado al carrito' : 'added to cart'}
+            {toastName} {t.addedCartSuffix}
           </div>
         </div>
       )}

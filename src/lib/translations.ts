@@ -134,6 +134,31 @@ export interface Translations {
   soldOut: string;
   unavailable: string;
   addedShort: string;
+  // Favorites
+  favoritesTitle: string;
+  noFavoritesYet: string;
+  noFavoritesHint: string;
+  // Diet filter
+  noDietMatch: string;
+  viewFullMenu: string;
+  // Reviews section
+  customersTestimonial: string;
+  // Restaurant info footer
+  addressLabel: string;
+  getDirections: string;
+  open24h: string;
+  phoneLabel: string;
+  sendWhatsApp: string;
+  // Catalog & search
+  resultSingular: string;
+  resultPlural: string;
+  tryDifferentSearch: string;
+  // Cart toasts
+  addedCartSuffix: string;
+  // Limits
+  ordersLimitReached: string;
+  // Popular section title
+  popularItems: string;
 }
 
 const es: Translations = {
@@ -240,6 +265,23 @@ const es: Translations = {
   soldOut: 'Agotado',
   unavailable: 'No disponible',
   addedShort: 'Listo',
+  favoritesTitle: 'Favoritos',
+  noFavoritesYet: 'Aún no tienes favoritos',
+  noFavoritesHint: 'Toca el ♥ en un producto para guardarlo',
+  noDietMatch: 'No hay productos con esta dieta',
+  viewFullMenu: 'Ver todo el menú',
+  customersTestimonial: 'Lo que dicen nuestros clientes',
+  addressLabel: 'Dirección',
+  getDirections: 'Cómo llegar',
+  open24h: 'Abierto 24 Horas',
+  phoneLabel: 'Teléfono',
+  sendWhatsApp: 'Enviar mensaje',
+  resultSingular: 'resultado',
+  resultPlural: 'resultados',
+  tryDifferentSearch: 'Intenta con otro término',
+  addedCartSuffix: 'se agregó al carrito',
+  ordersLimitReached: 'No aceptamos pedidos por el momento. Vuelve mañana.',
+  popularItems: 'Populares',
 };
 
 const en: Translations = {
@@ -346,6 +388,23 @@ const en: Translations = {
   soldOut: 'Sold out',
   unavailable: 'Unavailable',
   addedShort: 'Added',
+  favoritesTitle: 'Favorites',
+  noFavoritesYet: 'No favorites yet',
+  noFavoritesHint: 'Tap ♥ on a product to save it',
+  noDietMatch: 'No products match this diet',
+  viewFullMenu: 'View full menu',
+  customersTestimonial: 'What our customers say',
+  addressLabel: 'Address',
+  getDirections: 'Get directions',
+  open24h: 'Open 24 hours',
+  phoneLabel: 'Phone',
+  sendWhatsApp: 'Send message',
+  resultSingular: 'result',
+  resultPlural: 'results',
+  tryDifferentSearch: 'Try a different search term',
+  addedCartSuffix: 'added to cart',
+  ordersLimitReached: 'Not accepting orders right now. Come back tomorrow.',
+  popularItems: 'Popular items',
 };
 
 const translations: Record<string, Translations> = { es, en };

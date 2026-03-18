@@ -29,11 +29,15 @@ const bricolage = Bricolage_Grotesque({
 
 export const metadata: Metadata = {
   title: {
-    default: 'MENIUS — Menús digitales inteligentes para restaurantes',
+    default: 'MENIUS — Smart Digital Menus for Restaurants',
     template: '%s | MENIUS',
   },
-  description: 'La plataforma #1 de menús digitales con QR. Registra tu restaurante, crea tu menú con fotos IA, genera QRs, recibe pedidos en tiempo real y gestiona tu negocio.',
-  keywords: ['menú digital', 'QR restaurante', 'pedidos online', 'SaaS restaurantes', 'menú QR', 'MENIUS', 'menu digital restaurant'],
+  description: 'The #1 digital menu & ordering platform for restaurants. QR codes, AI-powered menu builder, real-time orders, analytics and more. La plataforma #1 de menús digitales con QR para restaurantes.',
+  keywords: [
+    'digital menu', 'restaurant QR menu', 'online ordering', 'restaurant SaaS', 'QR menu', 'MENIUS',
+    'menú digital', 'QR restaurante', 'pedidos online', 'SaaS restaurantes', 'menú QR', 'menu digital restaurante',
+    'digital menu restaurant', 'restaurant ordering system', 'restaurant management',
+  ],
   authors: [{ name: 'MENIUS' }],
   creator: 'MENIUS',
   manifest: '/manifest.json',
@@ -41,10 +45,16 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'MENIUS',
-    title: 'MENIUS — Menús digitales inteligentes para restaurantes',
-    description: 'Crea tu menú digital con QR, recibe pedidos en tiempo real, y gestiona tu restaurante desde un solo lugar.',
-    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'MENIUS — Menús digitales para restaurantes' }],
-    locale: 'es_MX',
+    title: 'MENIUS — Smart Digital Menus for Restaurants',
+    description: 'Create your digital menu with QR codes, receive real-time orders, and manage your restaurant from one place.',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'MENIUS — Digital menus for restaurants' }],
+    locale: 'en_US',
+  },
+  alternates: {
+    languages: {
+      'en': 'https://menius.app',
+      'es': 'https://menius.app',
+    },
   },
   twitter: {
     card: 'summary_large_image',
