@@ -70,7 +70,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
 
   if (dismissed === null) return null;
 
-  const allSteps: OnboardingStep[] = [
+  const coreSteps: OnboardingStep[] = [
     {
       id: 'logo',
       title: t.onboarding_uploadLogo,
@@ -120,10 +120,14 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
       icon: <ShoppingBag className="w-4 h-4" />,
       external: true,
     },
+  ];
+
+  // Hardware / device steps are optional — they don't count toward core progress
+  const optionalSteps: OnboardingStep[] = [
     {
       id: 'counter',
-      title: t.onboarding_openCounter ?? 'Abre tu Counter en la tablet',
-      description: t.onboarding_openCounterDesc ?? 'Desde donde gestionarás todas tus órdenes en tiempo real',
+      title: t.onboarding_openCounter ?? 'Abre tu Counter',
+      description: t.onboarding_openCounterDesc ?? 'Gestiona tus órdenes en tiempo real desde cualquier dispositivo',
       completed: hasOpenedCounter,
       href: '/counter',
       icon: <Monitor className="w-4 h-4" />,
@@ -131,24 +135,24 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
     },
     {
       id: 'printer',
-      title: t.onboarding_configurePrinter ?? 'Configura tu impresora',
-      description: t.onboarding_configurePrinterDesc ?? 'Conecta una impresora térmica para imprimir tickets automáticamente',
+      title: t.onboarding_configurePrinter ?? 'Conecta una impresora',
+      description: t.onboarding_configurePrinterDesc ?? 'Imprime tickets automáticamente con una impresora térmica',
       completed: hasPrinterConfigured,
       href: '/app/settings',
       icon: <Printer className="w-4 h-4" />,
     },
     {
       id: 'pwa',
-      title: t.onboarding_installPWA ?? 'Instala MENIUS en tu tablet',
-      description: t.onboarding_installPWADesc ?? 'Agrega la app a tu pantalla de inicio para una mejor experiencia',
+      title: t.onboarding_installPWA ?? 'Instala MENIUS como app',
+      description: t.onboarding_installPWADesc ?? 'Agrega la app a tu pantalla de inicio para acceso rápido',
       completed: hasInstalledPWA,
       href: '/app/settings',
       icon: <Smartphone className="w-4 h-4" />,
     },
   ];
 
-  const completedCount = allSteps.filter((s) => s.completed).length;
-  const totalSteps = allSteps.length;
+  const completedCount = coreSteps.filter((s) => s.completed).length;
+  const totalSteps = coreSteps.length;
   const allComplete = completedCount === totalSteps;
   const progress = (completedCount / totalSteps) * 100;
   const canDismiss = allComplete;
@@ -186,7 +190,79 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
     );
   }
 
-  const nextStep = allSteps.find((s) => !s.completed);
+  const nextStep = coreSteps.find((s) => !s.completed);
+
+  const renderStep = (step: OnboardingStep, i: number, list: OnboardingStep[], isOptional = false) => {
+    const isNext = !isOptional && nextStep?.id === step.id;
+    const LinkComponent = step.external ? 'a' : Link;
+    const linkProps = step.external
+      ? { href: step.href, target: '_blank', rel: 'noopener noreferrer' }
+      : { href: step.href };
+
+    return (
+      <LinkComponent
+        key={step.id}
+        {...linkProps as any}
+        className={cn(
+          'flex items-center gap-3.5 px-5 py-3.5 transition-colors group',
+          i < list.length - 1 && 'border-b border-gray-200',
+          step.completed
+            ? 'opacity-60'
+            : isNext
+              ? 'bg-emerald-50'
+              : 'hover:bg-gray-50'
+        )}
+      >
+        <div className={cn(
+          'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors',
+          step.completed
+            ? 'bg-emerald-500/[0.12]'
+            : isNext
+              ? 'bg-emerald-50'
+              : 'bg-gray-50'
+        )}>
+          {step.completed ? (
+            <Check className="w-4 h-4 text-emerald-400" />
+          ) : (
+            <span className={cn(isNext ? 'text-emerald-600' : 'text-gray-600')}>
+              {step.icon}
+            </span>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className={cn(
+              'text-sm font-medium',
+              step.completed ? 'text-gray-500 line-through' : 'text-gray-700'
+            )}>
+              {step.title}
+            </p>
+            {isOptional && (
+              <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                Opcional
+              </span>
+            )}
+          </div>
+          <p className={cn(
+            'text-xs mt-0.5',
+            step.completed ? 'text-gray-600' : 'text-gray-500'
+          )}>
+            {step.description}
+          </p>
+        </div>
+
+        {!step.completed && (
+          <ChevronRight className={cn(
+            'w-4 h-4 flex-shrink-0 transition-all',
+            isNext
+              ? 'text-emerald-600 group-hover:translate-x-0.5'
+              : 'text-gray-700 group-hover:text-gray-500 group-hover:translate-x-0.5'
+          )} />
+        )}
+      </LinkComponent>
+    );
+  };
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
@@ -222,77 +298,17 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
         </div>
       </div>
 
-      {/* Steps */}
+      {/* Core steps */}
       <div className="border-t border-gray-200">
-        {allSteps.map((step, i) => {
-          const isNext = nextStep?.id === step.id;
-          const LinkComponent = step.external ? 'a' : Link;
-          const linkProps = step.external
-            ? { href: step.href, target: '_blank', rel: 'noopener noreferrer' }
-            : { href: step.href };
+        {coreSteps.map((step, i) => renderStep(step, i, coreSteps))}
+      </div>
 
-          return (
-            <LinkComponent
-              key={step.id}
-              {...linkProps as any}
-              className={cn(
-                'flex items-center gap-3.5 px-5 py-3.5 transition-colors group',
-                i < allSteps.length - 1 && 'border-b border-gray-200',
-                step.completed
-                  ? 'opacity-60'
-                  : isNext
-                    ? 'bg-emerald-50'
-                    : 'hover:bg-gray-50'
-              )}
-            >
-              {/* Status indicator */}
-              <div className={cn(
-                'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors',
-                step.completed
-                  ? 'bg-emerald-500/[0.12]'
-                  : isNext
-                    ? 'bg-emerald-50'
-                    : 'bg-gray-50'
-              )}>
-                {step.completed ? (
-                  <Check className="w-4 h-4 text-emerald-400" />
-                ) : (
-                  <span className={cn(
-                    isNext ? 'text-emerald-600' : 'text-gray-600'
-                  )}>
-                    {step.icon}
-                  </span>
-                )}
-              </div>
-
-              {/* Text */}
-              <div className="flex-1 min-w-0">
-                <p className={cn(
-                  'text-sm font-medium',
-                  step.completed ? 'text-gray-500 line-through' : 'text-gray-700'
-                )}>
-                  {step.title}
-                </p>
-                <p className={cn(
-                  'text-xs mt-0.5',
-                  step.completed ? 'text-gray-600' : 'text-gray-500'
-                )}>
-                  {step.description}
-                </p>
-              </div>
-
-              {/* Arrow */}
-              {!step.completed && (
-                <ChevronRight className={cn(
-                  'w-4 h-4 flex-shrink-0 transition-all',
-                  isNext
-                    ? 'text-emerald-600 group-hover:translate-x-0.5'
-                    : 'text-gray-700 group-hover:text-gray-500 group-hover:translate-x-0.5'
-                )} />
-              )}
-            </LinkComponent>
-          );
-        })}
+      {/* Optional steps */}
+      <div className="border-t border-gray-200 bg-gray-50/50">
+        <p className="px-5 pt-3 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+          Mejora tu operación
+        </p>
+        {optionalSteps.map((step, i) => renderStep(step, i, optionalSteps, true))}
       </div>
     </div>
   );

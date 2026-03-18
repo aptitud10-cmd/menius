@@ -164,7 +164,7 @@ export default function CreateRestaurantPage() {
 
           {/* Step indicator */}
           <div className="flex items-center justify-center gap-2 mt-6 mb-4">
-            {[1, 2, 3, 4, 5].map((s) => (
+            {[1, 2, 3, 4].map((s) => (
               <div
                 key={s}
                 className={`h-1 rounded-full transition-all duration-300 ${
@@ -173,7 +173,7 @@ export default function CreateRestaurantPage() {
               />
             ))}
           </div>
-          <p className="text-xs text-gray-600 tabular-nums">Paso {step} de 3</p>
+          <p className="text-xs text-gray-600 tabular-nums">Paso {Math.min(step, 4)} de 4</p>
         </div>
 
         {/* ── STEP 1: Restaurant info ── */}
@@ -481,9 +481,9 @@ export default function CreateRestaurantPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0H3" />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-white">Abre tu Counter</h1>
+              <h1 className="text-2xl font-bold text-white">¡Tu restaurante está listo!</h1>
               <p className="text-gray-400 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
-                El Counter es la pantalla principal donde gestionas todas tus órdenes en tiempo real. Ábrelo en tu tablet o computadora del restaurante.
+                El Counter es donde gestionas tus órdenes en tiempo real. Puedes abrirlo desde cualquier dispositivo — celular, tablet o computadora.
               </p>
             </div>
 
@@ -492,8 +492,8 @@ export default function CreateRestaurantPage() {
                 <div className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
                   <span className="text-2xl">📱</span>
                   <div>
-                    <p className="text-sm font-semibold text-white">Desde tu tablet del restaurante</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Abre menius.app/counter en el navegador de tu tablet</p>
+                    <p className="text-sm font-semibold text-white">Desde tu celular o tablet</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Abre menius.app/counter en el navegador</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
@@ -515,58 +515,10 @@ export default function CreateRestaurantPage() {
 
                 <button
                   type="button"
-                  onClick={() => setStep(5)}
+                  onClick={() => router.push('/app')}
                   className="w-full py-2.5 text-[13px] text-gray-500 hover:text-gray-300 transition-colors"
                 >
-                  Continuar sin abrir
-                </button>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* ── STEP 5: Install PWA ── */}
-        {step === 5 && (
-          <>
-            <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 8.25h3" />
-                </svg>
-              </div>
-              <h1 className="text-2xl font-bold text-white">Instala MENIUS como app</h1>
-              <p className="text-gray-400 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
-                Instala MENIUS en tu tablet para recibir órdenes sin abrir el navegador cada vez.
-              </p>
-            </div>
-
-            <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
-              <div className="bg-[#0a0a0a] rounded-2xl p-7 space-y-4">
-                <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.06] space-y-2">
-                  <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">iPhone / iPad</p>
-                  <ol className="text-xs text-gray-400 space-y-1 list-none">
-                    <li>1. Abre menius.app/counter en Safari</li>
-                    <li>2. Toca el ícono de compartir <span className="text-white">⬆</span></li>
-                    <li>3. Toca &quot;Agregar a pantalla de inicio&quot;</li>
-                    <li>4. Toca &quot;Agregar&quot;</li>
-                  </ol>
-                </div>
-                <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.06] space-y-2">
-                  <p className="text-xs font-semibold text-blue-400 uppercase tracking-wide">Android</p>
-                  <ol className="text-xs text-gray-400 space-y-1 list-none">
-                    <li>1. Abre menius.app/counter en Chrome</li>
-                    <li>2. Toca el menú <span className="text-white">⋮</span></li>
-                    <li>3. Toca &quot;Instalar aplicación&quot; o &quot;Agregar a pantalla de inicio&quot;</li>
-                    <li>4. Confirma la instalación</li>
-                  </ol>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => router.push('/app')}
-                  className="w-full py-3.5 rounded-xl bg-emerald-500 text-white font-semibold text-[15px] md:text-sm hover:bg-emerald-400 transition-colors"
-                >
-                  ¡Listo! Ir al dashboard →
+                  Ir al dashboard →
                 </button>
               </div>
             </div>
