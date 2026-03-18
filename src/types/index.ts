@@ -123,6 +123,7 @@ export interface ModifierGroup {
   max_select: number;
   is_required: boolean;
   sort_order: number;
+  display_type?: 'list' | 'grid';
   options: ModifierOption[];
 }
 

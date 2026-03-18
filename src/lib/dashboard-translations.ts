@@ -480,6 +480,9 @@ export interface DashboardTranslations {
   modifiers_multiLabel: string;
   modifiers_minHelper: string;
   modifiers_maxHelper: string;
+  modifiers_displayList: string;
+  modifiers_displayGrid: string;
+  modifiers_displayHint: string;
 
   // AI Chat
   chat_title: string;
@@ -1581,6 +1584,9 @@ const es: DashboardTranslations = {
   modifiers_multiLabel: 'El cliente escoge VARIAS',
   modifiers_minHelper: 'Mínimo a elegir',
   modifiers_maxHelper: 'Máximo a elegir',
+  modifiers_displayList: 'Lista',
+  modifiers_displayGrid: 'Cuadrícula',
+  modifiers_displayHint: 'Recomendado para nombres cortos',
 
   // AI Chat
   chat_title: 'MENIUS AI',
@@ -2682,6 +2688,9 @@ const en: DashboardTranslations = {
   modifiers_multiLabel: 'Customer picks SEVERAL',
   modifiers_minHelper: 'Minimum to pick',
   modifiers_maxHelper: 'Maximum to pick',
+  modifiers_displayList: 'List',
+  modifiers_displayGrid: 'Grid',
+  modifiers_displayHint: 'Recommended for short names',
 
   // AI Chat
   chat_title: 'MENIUS AI',

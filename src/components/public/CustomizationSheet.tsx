@@ -25,6 +25,7 @@ interface CustomizationSheetProps {
   defaultLocale?: string;
   suggestedProducts?: Product[];
   onSuggestAdd?: (product: Product) => void;
+  isPreview?: boolean;
 }
 
 export function CustomizationSheet({
@@ -38,6 +39,7 @@ export function CustomizationSheet({
   defaultLocale = 'es',
   suggestedProducts,
   onSuggestAdd,
+  isPreview = false,
 }: CustomizationSheetProps) {
   const displayName = tName(product, locale, defaultLocale);
   const displayDesc = tDesc(product, locale, defaultLocale);
@@ -326,51 +328,82 @@ export function CustomizationSheet({
                 </span>
               )}
             </div>
-            <div className="space-y-2">
-              {group.options.map((opt) => {
-                const isSelected = selected.some(o => o.id === opt.id);
-                const isDisabled = !isSelected && atMax;
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => !isDisabled && toggleOption(group, opt)}
-                    disabled={isDisabled}
-                    className={cn(
-                      'w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-150 text-left border-2',
-                      isSelected
-                        ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
-                        : isDisabled
-                          ? 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
-                          : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400'
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      {group.selection_type === 'single' ? (
-                        <div className={cn(
-                          'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors',
-                          isSelected ? 'border-white bg-white' : 'border-gray-300'
-                        )}>
-                          {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />}
-                        </div>
-                      ) : (
-                        <div className={cn(
-                          'w-5 h-5 rounded-md flex items-center justify-center transition-colors',
-                          isSelected ? 'bg-white' : 'border-2 border-gray-300'
-                        )}>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-emerald-500" />}
-                        </div>
+            {group.display_type === 'grid' ? (
+              <div className="grid grid-cols-2 gap-2">
+                {group.options.map((opt) => {
+                  const isSelected = selected.some(o => o.id === opt.id);
+                  const isDisabled = !isSelected && atMax;
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => !isDisabled && toggleOption(group, opt)}
+                      disabled={isDisabled}
+                      className={cn(
+                        'flex flex-col items-center justify-center px-3 py-3 rounded-2xl transition-all duration-150 text-center border-2 gap-0.5',
+                        isSelected
+                          ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                          : isDisabled
+                            ? 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
+                            : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400'
                       )}
-                      <span className="text-[15px] font-medium">{opt.name}</span>
-                    </div>
-                    {Number(opt.price_delta) !== 0 && (
-                      <span className={cn('text-sm font-semibold', isSelected ? 'text-gray-300' : 'text-gray-500')}>
-                        {Number(opt.price_delta) > 0 ? '+' : ''}{fmtPrice(Number(opt.price_delta))}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                    >
+                      <span className="text-[14px] font-semibold leading-tight">{opt.name}</span>
+                      {Number(opt.price_delta) !== 0 && (
+                        <span className={cn('text-[11px] font-medium', isSelected ? 'text-emerald-100' : 'text-gray-400')}>
+                          {Number(opt.price_delta) > 0 ? '+' : ''}{fmtPrice(Number(opt.price_delta))}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {group.options.map((opt) => {
+                  const isSelected = selected.some(o => o.id === opt.id);
+                  const isDisabled = !isSelected && atMax;
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => !isDisabled && toggleOption(group, opt)}
+                      disabled={isDisabled}
+                      className={cn(
+                        'w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-150 text-left border-2',
+                        isSelected
+                          ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                          : isDisabled
+                            ? 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
+                            : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        {group.selection_type === 'single' ? (
+                          <div className={cn(
+                            'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors',
+                            isSelected ? 'border-white bg-white' : 'border-gray-300'
+                          )}>
+                            {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />}
+                          </div>
+                        ) : (
+                          <div className={cn(
+                            'w-5 h-5 rounded-md flex items-center justify-center transition-colors',
+                            isSelected ? 'bg-white' : 'border-2 border-gray-300'
+                          )}>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                          </div>
+                        )}
+                        <span className="text-[15px] font-medium">{opt.name}</span>
+                      </div>
+                      {Number(opt.price_delta) !== 0 && (
+                        <span className={cn('text-sm font-semibold', isSelected ? 'text-gray-300' : 'text-gray-500')}>
+                          {Number(opt.price_delta) > 0 ? '+' : ''}{fmtPrice(Number(opt.price_delta))}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         );
       })}
@@ -397,7 +430,13 @@ export function CustomizationSheet({
 
   const hasSuggestionsToShow = added && !isEditing && (suggestedProducts?.length ?? 0) > 0;
 
-  const sheetFooter = (
+  const previewBadge = (
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-bold uppercase tracking-wider">
+      {locale === 'es' ? 'Vista previa' : 'Preview'}
+    </span>
+  );
+
+  const sheetFooter = isPreview ? null : (
     <div className="border-t border-gray-100 flex-shrink-0 bg-white pb-[max(1rem,env(safe-area-inset-bottom))]">
       <AnimatePresence mode="wait">
         {hasSuggestionsToShow ? (
@@ -522,9 +561,12 @@ export function CustomizationSheet({
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0 bg-white z-10">
           <div className="flex items-center gap-3 min-w-0">
-            <button onClick={onClose} className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0">
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
+            {!isPreview && (
+              <button onClick={onClose} className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0">
+                <ArrowLeft className="w-5 h-5 text-gray-600" />
+              </button>
+            )}
+            {isPreview && previewBadge}
             <div className="min-w-0">
               <h2 className="text-base font-bold text-gray-900 truncate">
                 {isEditing ? t.editItem : displayName}
@@ -572,10 +614,13 @@ export function CustomizationSheet({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 flex-shrink-0 bg-white z-10">
           <div className="flex items-center gap-2 min-w-0">
-            <button onClick={onClose} className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg active:bg-gray-100 transition-colors flex-shrink-0">
-              <ArrowLeft className="w-5 h-5 text-gray-700" />
-              <span className="text-sm font-medium text-gray-500">Menu</span>
-            </button>
+            {!isPreview && (
+              <button onClick={onClose} className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg active:bg-gray-100 transition-colors flex-shrink-0">
+                <ArrowLeft className="w-5 h-5 text-gray-700" />
+                <span className="text-sm font-medium text-gray-500">Menu</span>
+              </button>
+            )}
+            {isPreview && previewBadge}
             <h2 className="text-base font-bold text-gray-900 truncate">
               {isEditing ? t.editItem : displayName}
             </h2>

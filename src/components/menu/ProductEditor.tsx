@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useRef, useCallback } from 'react';
+import { useState, useTransition, useRef, useCallback, useMemo } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
@@ -10,13 +10,15 @@ import {
 import { createProduct, updateProduct, deleteProduct, deleteVariant, deleteExtra } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/dashboard/DashToast';
-import type { Product, Category, DietaryTag, ContentTranslation, ProductVariant, ProductExtra } from '@/types';
+import type { Product, Category, DietaryTag, ContentTranslation, ProductVariant, ProductExtra, ModifierGroup } from '@/types';
+import { getTranslations } from '@/lib/translations';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { getLocaleFlag, getLocaleLabel } from '@/lib/i18n';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { DashboardTranslations } from '@/lib/dashboard-translations';
 import { ModifierGroupsEditor } from './ModifierGroupsEditor';
 import { MediaPicker } from './MediaPicker';
+import { CustomizationSheet } from '@/components/public/CustomizationSheet';
 
 interface Props {
   product: Product | null;
@@ -159,6 +161,37 @@ export function ProductEditor({
   const [aiGenerating, setAiGenerating] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlValue, setUrlValue] = useState('');
+
+  const [liveGroups, setLiveGroups] = useState<ModifierGroup[]>(product?.modifier_groups ?? []);
+  const [showPreview, setShowPreview] = useState(false);
+
+  const liveProduct = useMemo<Product>(() => ({
+    ...(product ?? {
+      id: '__preview__',
+      name: '',
+      description: '',
+      price: 0,
+      is_active: true,
+      in_stock: true,
+      is_featured: false,
+      is_new: false,
+      category_id: '',
+      restaurant_id: '',
+      sort_order: 0,
+    }),
+    name: form.name || (product?.name ?? ''),
+    description: form.description || (product?.description ?? ''),
+    price: parseFloat(form.price) || Number(product?.price ?? 0),
+    image_url: imagePreview ?? product?.image_url ?? null,
+    modifier_groups: liveGroups,
+  } as Product), [product, form.name, form.description, form.price, imagePreview, liveGroups]);
+
+  const previewLocale = (defaultLocale?.startsWith('en') ? 'en' : 'es') as 'en' | 'es';
+  const previewT = useMemo(() => getTranslations(previewLocale), [previewLocale]);
+  const fmtPreviewPrice = useCallback((n: number) => {
+    const sym = currency === 'EUR' ? '€' : '$';
+    return `${sym}${n.toFixed(2)}`;
+  }, [currency]);
 
   const selectedCategory = categories.find(c => c.id === form.category_id);
   const busy = uploading || isPending || aiGenerating;
@@ -567,11 +600,21 @@ export function ProductEditor({
             {/* Modifier Groups */}
             {isEditing && product && (
               <div className="bg-white rounded-xl border border-gray-200 p-5">
-                <h2 className="text-sm font-semibold text-gray-900 mb-4">{t.editor_modifierGroups}</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-sm font-semibold text-gray-900">{t.editor_modifierGroups}</h2>
+                  <button
+                    onClick={() => setShowPreview(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition-colors"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    {dashLocale === 'en' ? 'Preview' : 'Vista previa'}
+                  </button>
+                </div>
                 <ModifierGroupsEditor
                   productId={product.id}
                   groups={product.modifier_groups ?? []}
                   currency={currency}
+                  onUpdate={setLiveGroups}
                 />
               </div>
             )}
@@ -819,6 +862,19 @@ export function ProductEditor({
         onClose={() => setGalleryOpen(false)}
         onSelect={handleGallerySelect}
       />
+
+      {showPreview && (
+        <CustomizationSheet
+          product={liveProduct}
+          editIndex={null}
+          onClose={() => setShowPreview(false)}
+          fmtPrice={fmtPreviewPrice}
+          t={previewT}
+          locale={previewLocale}
+          defaultLocale={defaultLocale}
+          isPreview
+        />
+      )}
     </div>
   );
 }

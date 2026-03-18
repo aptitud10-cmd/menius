@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Layers, ChevronRight, Ruler, UtensilsCrossed, Flame, Salad, Settings2, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Layers, ChevronRight, Ruler, UtensilsCrossed, Flame, Salad, Settings2, X, LayoutList, LayoutGrid } from 'lucide-react';
 import {
   createModifierGroup, updateModifierGroup, deleteModifierGroup,
   createModifierOption, updateModifierOption, deleteModifierOption,
@@ -18,15 +18,16 @@ interface Template {
   selection_type: 'single' | 'multi';
   is_required: boolean;
   max_select: number;
+  display_type: 'list' | 'grid';
   optionNames?: { es: string[]; en: string[] };
 }
 
 const TEMPLATES: Template[] = [
-  { icon: Ruler, nameKey: 'modifiers_templateSize', descKey: 'modifiers_templateSizeDesc', selection_type: 'single', is_required: true, max_select: 1, optionNames: { es: ['Pequeño', 'Mediano', 'Grande'], en: ['Small', 'Medium', 'Large'] } },
-  { icon: UtensilsCrossed, nameKey: 'modifiers_templateExtras', descKey: 'modifiers_templateExtrasDesc', selection_type: 'multi', is_required: false, max_select: 5, optionNames: { es: ['Tocino', 'Queso', 'Aguacate'], en: ['Bacon', 'Cheese', 'Avocado'] } },
-  { icon: Flame, nameKey: 'modifiers_templatePrep', descKey: 'modifiers_templatePrepDesc', selection_type: 'single', is_required: true, max_select: 1, optionNames: { es: ['Término medio', 'Tres cuartos', 'Bien cocido'], en: ['Medium Rare', 'Medium Well', 'Well Done'] } },
-  { icon: Salad, nameKey: 'modifiers_templateSides', descKey: 'modifiers_templateSidesDesc', selection_type: 'single', is_required: false, max_select: 1, optionNames: { es: ['Papas fritas', 'Ensalada', 'Arroz'], en: ['Fries', 'Salad', 'Rice'] } },
-  { icon: Settings2, nameKey: 'modifiers_templateCustom', descKey: 'modifiers_templateCustomDesc', selection_type: 'single', is_required: false, max_select: 1 },
+  { icon: Ruler, nameKey: 'modifiers_templateSize', descKey: 'modifiers_templateSizeDesc', selection_type: 'single', is_required: true, max_select: 1, display_type: 'grid', optionNames: { es: ['Pequeño', 'Mediano', 'Grande'], en: ['Small', 'Medium', 'Large'] } },
+  { icon: UtensilsCrossed, nameKey: 'modifiers_templateExtras', descKey: 'modifiers_templateExtrasDesc', selection_type: 'multi', is_required: false, max_select: 5, display_type: 'list', optionNames: { es: ['Tocino', 'Queso', 'Aguacate'], en: ['Bacon', 'Cheese', 'Avocado'] } },
+  { icon: Flame, nameKey: 'modifiers_templatePrep', descKey: 'modifiers_templatePrepDesc', selection_type: 'single', is_required: true, max_select: 1, display_type: 'grid', optionNames: { es: ['Término medio', 'Tres cuartos', 'Bien cocido'], en: ['Medium Rare', 'Medium Well', 'Well Done'] } },
+  { icon: Salad, nameKey: 'modifiers_templateSides', descKey: 'modifiers_templateSidesDesc', selection_type: 'single', is_required: false, max_select: 1, display_type: 'list', optionNames: { es: ['Papas fritas', 'Ensalada', 'Arroz'], en: ['Fries', 'Salad', 'Rice'] } },
+  { icon: Settings2, nameKey: 'modifiers_templateCustom', descKey: 'modifiers_templateCustomDesc', selection_type: 'single', is_required: false, max_select: 1, display_type: 'list' },
 ];
 
 interface ModifierGroupsEditorProps {
@@ -41,7 +42,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
   const [items, setItems] = useState(groups);
   const [showTemplates, setShowTemplates] = useState(false);
   const [addingGroup, setAddingGroup] = useState(false);
-  const [groupForm, setGroupForm] = useState({ name: '', selection_type: 'single' as 'single' | 'multi', min_select: '0', max_select: '1', is_required: false });
+  const [groupForm, setGroupForm] = useState({ name: '', selection_type: 'single' as 'single' | 'multi', min_select: '0', max_select: '1', is_required: false, display_type: 'list' as 'list' | 'grid' });
   const [pendingOptions, setPendingOptions] = useState<string[]>([]);
   const [editGroupId, setEditGroupId] = useState<string | null>(null);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(groups[0]?.id ?? null);
@@ -63,7 +64,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
     setAddingGroup(false);
     setShowTemplates(false);
     setPendingOptions([]);
-    setGroupForm({ name: '', selection_type: 'single', min_select: '0', max_select: '1', is_required: false });
+    setGroupForm({ name: '', selection_type: 'single', min_select: '0', max_select: '1', is_required: false, display_type: 'list' });
   };
 
   const applyTemplate = (tpl: Template) => {
@@ -78,6 +79,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       min_select: tpl.is_required ? '1' : '0',
       max_select: String(tpl.max_select),
       is_required: tpl.is_required,
+      display_type: tpl.display_type,
     });
     setPendingOptions(tpl.optionNames?.[lang] ?? []);
     setShowTemplates(false);
@@ -94,6 +96,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       max_select: parseInt(groupForm.max_select) || 1,
       is_required: groupForm.is_required,
       sort_order: items.length,
+      display_type: groupForm.display_type,
     });
     if (result.group) {
       let newGroup = result.group as ModifierGroup;
@@ -125,6 +128,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       max_select: parseInt(groupForm.max_select) || 1,
       is_required: groupForm.is_required,
       sort_order: g.sort_order,
+      display_type: groupForm.display_type,
     });
     sync(items.map(i => i.id === g.id ? {
       ...i,
@@ -133,9 +137,24 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       min_select: parseInt(groupForm.min_select) || 0,
       max_select: parseInt(groupForm.max_select) || 1,
       is_required: groupForm.is_required,
+      display_type: groupForm.display_type,
     } : i));
     setEditGroupId(null);
     setLoading(false);
+  };
+
+  const handleToggleDisplayType = async (g: ModifierGroup) => {
+    const next: 'list' | 'grid' = g.display_type === 'grid' ? 'list' : 'grid';
+    await updateModifierGroup(g.id, {
+      name: g.name,
+      selection_type: g.selection_type,
+      min_select: g.min_select,
+      max_select: g.max_select,
+      is_required: g.is_required,
+      sort_order: g.sort_order,
+      display_type: next,
+    });
+    sync(items.map(i => i.id === g.id ? { ...i, display_type: next } : i));
   };
 
   const handleDeleteGroup = async (id: string) => {
@@ -276,6 +295,29 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
               </div>
             </div>
           )}
+          {/* Display type toggle */}
+          <div>
+            <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">{lang === 'en' ? 'Display style' : 'Estilo de vista'}</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setGroupForm({ ...groupForm, display_type: 'list' })}
+                className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all', groupForm.display_type === 'list' ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'border-gray-200 text-gray-500 hover:border-gray-300')}
+              >
+                <LayoutList className="w-3.5 h-3.5" /> {t.modifiers_displayList}
+              </button>
+              <button
+                type="button"
+                onClick={() => setGroupForm({ ...groupForm, display_type: 'grid' })}
+                className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all', groupForm.display_type === 'grid' ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'border-gray-200 text-gray-500 hover:border-gray-300')}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" /> {t.modifiers_displayGrid}
+              </button>
+            </div>
+            {groupForm.display_type === 'grid' && (
+              <p className="text-[10px] text-gray-400 mt-1">{t.modifiers_displayHint}</p>
+            )}
+          </div>
           {pendingOptions.length > 0 && (
             <div className="space-y-1">
               <label className="text-[11px] font-medium text-gray-500 block">{t.modifiers_options}</label>
@@ -335,6 +377,18 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
                     </div>
                   </div>
                 )}
+                {/* Display type toggle */}
+                <div>
+                  <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">{lang === 'en' ? 'Display style' : 'Estilo de vista'}</label>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setGroupForm({ ...groupForm, display_type: 'list' })} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all', groupForm.display_type === 'list' ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'border-gray-200 text-gray-500 hover:border-gray-300')}>
+                      <LayoutList className="w-3.5 h-3.5" /> {t.modifiers_displayList}
+                    </button>
+                    <button type="button" onClick={() => setGroupForm({ ...groupForm, display_type: 'grid' })} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all', groupForm.display_type === 'grid' ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'border-gray-200 text-gray-500 hover:border-gray-300')}>
+                      <LayoutGrid className="w-3.5 h-3.5" /> {t.modifiers_displayGrid}
+                    </button>
+                  </div>
+                </div>
                 <div className="flex gap-2">
                   <button onClick={() => handleUpdateGroup(group)} disabled={loading} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 disabled:opacity-50">{t.modifiers_save}</button>
                   <button onClick={() => setEditGroupId(null)} className="text-xs text-gray-500">{t.general_cancel}</button>
@@ -356,7 +410,14 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
                 )}>
                   {ruleLabel}
                 </span>
-                <button onClick={(e) => { e.stopPropagation(); setEditGroupId(group.id); setGroupForm({ name: group.name, selection_type: group.selection_type, min_select: String(group.min_select), max_select: String(group.max_select), is_required: group.is_required }); }} className="p-1 rounded hover:bg-gray-100 text-gray-400"><Pencil className="w-3.5 h-3.5" /></button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleToggleDisplayType(group); }}
+                  title={group.display_type === 'grid' ? t.modifiers_displayList : t.modifiers_displayGrid}
+                  className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-emerald-500 transition-colors"
+                >
+                  {group.display_type === 'grid' ? <LayoutGrid className="w-3.5 h-3.5 text-emerald-500" /> : <LayoutList className="w-3.5 h-3.5" />}
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); setEditGroupId(group.id); setGroupForm({ name: group.name, selection_type: group.selection_type, min_select: String(group.min_select), max_select: String(group.max_select), is_required: group.is_required, display_type: group.display_type ?? 'list' }); }} className="p-1 rounded hover:bg-gray-100 text-gray-400"><Pencil className="w-3.5 h-3.5" /></button>
                 <button onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
               </button>
             )}

@@ -524,7 +524,7 @@ export async function deleteExtra(id: string) {
 }
 
 // ---- Modifier Groups ----
-export async function createModifierGroup(productId: string, data: { name: string; selection_type: 'single' | 'multi'; min_select: number; max_select: number; is_required: boolean; sort_order: number }) {
+export async function createModifierGroup(productId: string, data: { name: string; selection_type: 'single' | 'multi'; min_select: number; max_select: number; is_required: boolean; sort_order: number; display_type?: 'list' | 'grid' }) {
   const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
@@ -546,6 +546,7 @@ export async function createModifierGroup(productId: string, data: { name: strin
       max_select: data.max_select,
       is_required: data.is_required,
       sort_order: data.sort_order,
+      display_type: data.display_type ?? 'list',
     })
     .select()
     .single();
@@ -556,7 +557,7 @@ export async function createModifierGroup(productId: string, data: { name: strin
   return { success: true, group: { ...group, options: [] } };
 }
 
-export async function updateModifierGroup(id: string, data: { name: string; selection_type: 'single' | 'multi'; min_select: number; max_select: number; is_required: boolean; sort_order: number }) {
+export async function updateModifierGroup(id: string, data: { name: string; selection_type: 'single' | 'multi'; min_select: number; max_select: number; is_required: boolean; sort_order: number; display_type?: 'list' | 'grid' }) {
   const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
@@ -577,6 +578,7 @@ export async function updateModifierGroup(id: string, data: { name: string; sele
       max_select: data.max_select,
       is_required: data.is_required,
       sort_order: data.sort_order,
+      display_type: data.display_type ?? 'list',
     })
     .eq('id', id);
 
