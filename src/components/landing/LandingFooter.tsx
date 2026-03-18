@@ -166,7 +166,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
 
             <div className="separator-gradient mt-12" />
             <div className="pt-6 flex items-center justify-between">
-              <p className="text-[11px] text-gray-500" suppressHydrationWarning>&copy; {new Date().getFullYear()} MENIUS Inc.</p>
+              <p className="text-[11px] text-gray-500" suppressHydrationWarning>&copy; {new Date().getFullYear()} MENIUS LLC</p>
               <LocaleSwitcher locale={locale} />
             </div>
           </div>

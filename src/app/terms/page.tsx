@@ -104,7 +104,7 @@ function ContentEs() {
       <p>Nos reservamos el derecho de modificar estos Términos en cualquier momento. Los cambios significativos serán notificados por correo electrónico con al menos 15 días de anticipación. El uso continuado de la Plataforma después de la entrada en vigor de los cambios constituye tu aceptación de los Términos modificados.</p>
 
       <h2>14. Ley Aplicable y Jurisdicción</h2>
-      <p>Estos Términos se rigen por las leyes del Estado de New York, Estados Unidos, sin tener en cuenta sus disposiciones sobre conflictos de leyes. Cualquier disputa derivada de estos Términos se resolverá en los tribunales competentes del Estado de New York, condado de New York.</p>
+      <p>Estos Términos se rigen por las leyes del Estado de Virginia, Estados Unidos, sin tener en cuenta sus disposiciones sobre conflictos de leyes. Cualquier disputa derivada de estos Términos se resolverá en los tribunales competentes del Estado de Virginia, condado de Henrico.</p>
 
       <h2>15. Disposiciones Generales</h2>
       <ul>
@@ -117,6 +117,8 @@ function ContentEs() {
       <h2>16. Contacto</h2>
       <p>Para preguntas sobre estos Términos:</p>
       <ul>
+        <li><strong>Empresa:</strong> MENIUS LLC</li>
+        <li><strong>Dirección:</strong> 8401 Mayland Dr, Ste S, Henrico, VA 23294, EE.UU.</li>
         <li><strong>Email:</strong> <a href="mailto:soporte@menius.app">soporte@menius.app</a></li>
         <li><strong>Sitio web:</strong> <a href="https://menius.app">menius.app</a></li>
       </ul>
@@ -215,7 +217,7 @@ function ContentEn() {
       <p>We reserve the right to modify these Terms at any time. Significant changes will be notified by email with at least 15 days&apos; advance notice. Continued use of the Platform after the changes take effect constitutes your acceptance of the modified Terms.</p>
 
       <h2>14. Governing Law and Jurisdiction</h2>
-      <p>These Terms are governed by the laws of the State of New York, United States, without regard to its conflict of laws provisions. Any dispute arising from these Terms shall be resolved in the competent courts of the State of New York, County of New York.</p>
+      <p>These Terms are governed by the laws of the Commonwealth of Virginia, United States, without regard to its conflict of laws provisions. Any dispute arising from these Terms shall be resolved in the competent courts of the Commonwealth of Virginia, County of Henrico.</p>
 
       <h2>15. General Provisions</h2>
       <ul>
@@ -228,6 +230,8 @@ function ContentEn() {
       <h2>16. Contact</h2>
       <p>For questions about these Terms:</p>
       <ul>
+        <li><strong>Company:</strong> MENIUS LLC</li>
+        <li><strong>Address:</strong> 8401 Mayland Dr, Ste S, Henrico, VA 23294, USA</li>
         <li><strong>Email:</strong> <a href="mailto:soporte@menius.app">soporte@menius.app</a></li>
         <li><strong>Website:</strong> <a href="https://menius.app">menius.app</a></li>
       </ul>
@@ -236,8 +240,8 @@ function ContentEn() {
 }
 
 function getHero(locale: LandingLocale) {
-  if (locale === 'en') return { badge: 'Legal', title: 'Terms & Conditions', date: 'Last updated: February 16, 2026' };
-  return { badge: 'Legal', title: 'Términos y Condiciones', date: 'Última actualización: 16 de febrero de 2026' };
+  if (locale === 'en') return { badge: 'Legal', title: 'Terms & Conditions', date: 'Last updated: March 18, 2026' };
+  return { badge: 'Legal', title: 'Términos y Condiciones', date: 'Última actualización: 18 de marzo de 2026' };
 }
 
 export default function TermsPage() {

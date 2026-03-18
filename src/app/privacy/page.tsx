@@ -95,8 +95,8 @@ function ContentEs() {
       <h2>8. Residentes de California (CCPA)</h2>
       <p>Si eres residente de California, tienes derechos adicionales bajo la Ley de Privacidad del Consumidor de California (CCPA), incluyendo el derecho a saber qué datos recopilamos, el derecho a la eliminación, y el derecho a no ser discriminado por ejercer tus derechos. No vendemos información personal.</p>
 
-      <h2>9. Residentes de New York</h2>
-      <p>Cumplimos con la Ley SHIELD de New York (Stop Hacks and Improve Electronic Data Security Act), implementando salvaguardas administrativas, técnicas y físicas razonables para proteger la información privada.</p>
+      <h2>9. Residentes de Virginia</h2>
+      <p>Cumplimos con la Ley de Protección de Datos del Consumidor de Virginia (VCDPA), incluyendo el derecho de acceso, corrección, eliminación y portabilidad de datos, así como el derecho a optar por no recibir publicidad dirigida o la venta de datos personales. Para ejercer estos derechos, contáctanos en <a href="mailto:soporte@menius.app">soporte@menius.app</a>.</p>
 
       <h2>10. Menores de Edad</h2>
       <p>MENIUS no está dirigido a menores de 13 años. No recopilamos deliberadamente información de menores. Si descubrimos que hemos recopilado datos de un menor, los eliminaremos de inmediato.</p>
@@ -107,6 +107,8 @@ function ContentEs() {
       <h2>12. Contacto</h2>
       <p>Si tienes preguntas sobre esta Política de Privacidad, puedes contactarnos en:</p>
       <ul>
+        <li><strong>Empresa:</strong> MENIUS LLC</li>
+        <li><strong>Dirección:</strong> 8401 Mayland Dr, Ste S, Henrico, VA 23294, EE.UU.</li>
         <li><strong>Email:</strong> <a href="mailto:soporte@menius.app">soporte@menius.app</a></li>
         <li><strong>Sitio web:</strong> <a href="https://menius.app">menius.app</a></li>
       </ul>
@@ -196,8 +198,8 @@ function ContentEn() {
       <h2>8. California Residents (CCPA)</h2>
       <p>If you are a California resident, you have additional rights under the California Consumer Privacy Act (CCPA), including the right to know what data we collect, the right to deletion, and the right not to be discriminated against for exercising your rights. We do not sell personal information.</p>
 
-      <h2>9. New York Residents</h2>
-      <p>We comply with the New York SHIELD Act (Stop Hacks and Improve Electronic Data Security Act), implementing reasonable administrative, technical, and physical safeguards to protect private information.</p>
+      <h2>9. Virginia Residents</h2>
+      <p>We comply with the Virginia Consumer Data Protection Act (VCDPA), including the right to access, correct, delete, and port your personal data, as well as the right to opt out of targeted advertising or the sale of personal data. To exercise these rights, contact us at <a href="mailto:soporte@menius.app">soporte@menius.app</a>.</p>
 
       <h2>10. Minors</h2>
       <p>MENIUS is not directed at children under 13 years of age. We do not knowingly collect information from minors. If we discover that we have collected data from a minor, we will delete it immediately.</p>
@@ -208,6 +210,8 @@ function ContentEn() {
       <h2>12. Contact</h2>
       <p>If you have questions about this Privacy Policy, you can contact us at:</p>
       <ul>
+        <li><strong>Company:</strong> MENIUS LLC</li>
+        <li><strong>Address:</strong> 8401 Mayland Dr, Ste S, Henrico, VA 23294, USA</li>
         <li><strong>Email:</strong> <a href="mailto:soporte@menius.app">soporte@menius.app</a></li>
         <li><strong>Website:</strong> <a href="https://menius.app">menius.app</a></li>
       </ul>
@@ -216,8 +220,8 @@ function ContentEn() {
 }
 
 function getHero(locale: LandingLocale) {
-  if (locale === 'en') return { badge: 'Legal', title: 'Privacy Policy', date: 'Last updated: February 16, 2026' };
-  return { badge: 'Legal', title: 'Política de Privacidad', date: 'Última actualización: 16 de febrero de 2026' };
+  if (locale === 'en') return { badge: 'Legal', title: 'Privacy Policy', date: 'Last updated: March 18, 2026' };
+  return { badge: 'Legal', title: 'Política de Privacidad', date: 'Última actualización: 18 de marzo de 2026' };
 }
 
 export default function PrivacyPage() {
