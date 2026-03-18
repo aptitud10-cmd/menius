@@ -15,7 +15,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
         .eq('restaurant_id', rid)
         .maybeSingle(),
       supabase.from('categories').select('*').eq('restaurant_id', rid).eq('is_active', true).order('sort_order'),
-      supabase.from('restaurants').select('id, currency, locale, available_locales').eq('id', rid).maybeSingle(),
+      supabase.from('restaurants').select('id, currency, locale, available_locales, slug').eq('id', rid).maybeSingle(),
       supabase.from('modifier_groups').select('*, modifier_options(*)').eq('product_id', id).order('sort_order'),
     ]);
 
@@ -40,6 +40,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       currency={restaurant?.currency || 'USD'}
       defaultLocale={restaurant?.locale || 'es'}
       availableLocales={restaurant?.available_locales || [restaurant?.locale || 'es']}
+      slug={restaurant?.slug ?? undefined}
     />
   );
 }

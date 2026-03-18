@@ -29,14 +29,14 @@ export function FaqClient({ categories, pt, totalQuestions }: FaqClientProps) {
     <>
       {/* Sticky category nav */}
       <section className="sticky top-16 z-40 bg-[#050505]/80 backdrop-blur-2xl border-b border-white/[0.04]">
-        <div className="max-w-5xl mx-auto px-6">
+        <div className="max-w-5xl mx-auto px-6 relative">
           <nav className="flex items-center gap-1 overflow-x-auto py-3 scrollbar-hide -mx-2 px-2">
             {categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setActiveId(cat.id)}
                 className={cn(
-                  'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200',
+                  'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 whitespace-nowrap',
                   activeId === cat.id
                     ? 'text-white bg-white/[0.10] border border-white/[0.08]'
                     : 'text-gray-500 hover:text-white hover:bg-white/[0.06]'
@@ -52,6 +52,8 @@ export function FaqClient({ categories, pt, totalQuestions }: FaqClientProps) {
               </button>
             ))}
           </nav>
+          {/* Fade hint: indicates more tabs are scrollable */}
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#050505]/80 to-transparent" />
         </div>
       </section>
 

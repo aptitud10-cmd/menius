@@ -183,10 +183,8 @@ export function CartPanel({
         </button>
       </div>
 
-      {/* ── Single scrollable container: items + upsell ── */}
+      {/* ── Scrollable items only ── */}
       <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-3 min-h-0">
-
-        {/* Items */}
         <AnimatePresence initial={false}>
         {items.map((item, idx) => {
           const imgKey = `${item.product.id}-${idx}`;
@@ -304,61 +302,61 @@ export function CartPanel({
           );
         })}
         </AnimatePresence>
+      </div>
 
-        {/* ── Upsell — inside the scroll ── */}
-        {hasSuggestions && (
-          <div className="pt-2 pb-1">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-              {t.youMayAlsoLike}
-            </p>
-            <div
-              className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-1"
-              style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
-            >
-              {(suggestedProducts ?? []).slice(0, 6).map((p) => {
-                const added = justAddedId === p.id;
-                return (
-                  <div
-                    key={p.id}
-                    className="flex-shrink-0 w-[136px] bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm"
-                  >
-                    {p.image_url ? (
-                      <div className="relative w-full h-[88px] bg-gray-100">
-                        <Image src={p.image_url} alt={p.name} fill sizes="136px" className="object-cover" />
-                      </div>
-                    ) : (
-                      <div className="w-full h-[88px] bg-gray-50 flex items-center justify-center">
-                        <span className="text-2xl opacity-20">🍽️</span>
-                      </div>
-                    )}
-                    <div className="p-2">
-                      <p className="text-[11px] font-semibold text-gray-800 line-clamp-2 leading-tight mb-1.5">{p.name}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-gray-900 tabular-nums">{fmtPrice(Number(p.price))}</span>
-                        <button
-                          onClick={() => {
-                            if (onSuggestAdd) {
-                              onSuggestAdd(p);
-                              setJustAddedId(p.id);
-                              setTimeout(() => setJustAddedId(null), 1200);
-                            }
-                          }}
-                          className={cn(
-                            'w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 flex-shrink-0',
-                            added ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-600'
-                          )}
-                        >
-                          {added ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                        </button>
-                      </div>
+      {/* ── Upsell — fixed strip between items and footer ── */}
+      {hasSuggestions && (
+        <div className="flex-shrink-0 border-t border-gray-100 px-4 pt-2.5 pb-2">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+            {t.youMayAlsoLike}
+          </p>
+          <div
+            className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-1"
+            style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
+          >
+            {(suggestedProducts ?? []).slice(0, 6).map((p) => {
+              const added = justAddedId === p.id;
+              return (
+                <div
+                  key={p.id}
+                  className="flex-shrink-0 w-[120px] bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm"
+                >
+                  {p.image_url ? (
+                    <div className="relative w-full h-[76px] bg-gray-100">
+                      <Image src={p.image_url} alt={p.name} fill sizes="120px" className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-full h-[76px] bg-gray-50 flex items-center justify-center">
+                      <span className="text-xl opacity-20">🍽️</span>
+                    </div>
+                  )}
+                  <div className="p-2">
+                    <p className="text-[10px] font-semibold text-gray-800 line-clamp-2 leading-tight mb-1.5">{p.name}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-gray-900 tabular-nums">{fmtPrice(Number(p.price))}</span>
+                      <button
+                        onClick={() => {
+                          if (onSuggestAdd) {
+                            onSuggestAdd(p);
+                            setJustAddedId(p.id);
+                            setTimeout(() => setJustAddedId(null), 1200);
+                          }
+                        }}
+                        className={cn(
+                          'w-5 h-5 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 flex-shrink-0',
+                          added ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-600'
+                        )}
+                      >
+                        {added ? <Check className="w-2.5 h-2.5" /> : <Plus className="w-2.5 h-2.5" />}
+                      </button>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ── Footer: subtotal + checkout only ── */}
       <div className="border-t border-gray-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex-shrink-0">

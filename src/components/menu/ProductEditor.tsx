@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Save, Loader2, Check, Camera, Trash2, X,
-  ImagePlus, Eye, EyeOff, PackageCheck, PackageX, Languages, Sparkles, Link2,
+  ImagePlus, Eye, EyeOff, PackageCheck, PackageX, Languages, Sparkles, Link2, ExternalLink,
 } from 'lucide-react';
 import { createProduct, updateProduct, deleteProduct, deleteVariant, deleteExtra } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,7 @@ interface Props {
   currency: string;
   defaultLocale?: string;
   availableLocales?: string[];
+  slug?: string;
 }
 
 function LegacyOptionsSection({
@@ -121,6 +122,7 @@ export function ProductEditor({
   currency,
   defaultLocale = 'es',
   availableLocales = ['es'],
+  slug,
 }: Props) {
   const router = useRouter();
   const { success: toastSuccess, error: toastError } = useToast();
@@ -367,6 +369,18 @@ export function ProductEditor({
             >
               {t.general_cancel}
             </button>
+            {slug && (
+              <a
+                href={`/r/${slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="dash-btn-secondary flex items-center gap-1.5"
+                title={dashLocale === 'en' ? 'View live menu' : 'Ver menú en vivo'}
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span className="hidden sm:inline">{dashLocale === 'en' ? 'View menu' : 'Ver menú'}</span>
+              </a>
+            )}
             <button
               onClick={handleSubmit}
               disabled={busy}
