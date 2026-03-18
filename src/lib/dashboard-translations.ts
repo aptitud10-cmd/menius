@@ -14,6 +14,7 @@ export interface DashboardTranslations {
   nav_billing: string;
   nav_settings: string;
   nav_viewMenu: string;
+  nav_support: string;
   nav_logout: string;
   nav_menu: string;
   nav_restaurant: string;
@@ -1118,6 +1119,7 @@ const es: DashboardTranslations = {
   nav_billing: 'Facturación',
   nav_settings: 'Configuración',
   nav_viewMenu: 'Ver menú público',
+  nav_support: 'Reportar problema',
   nav_logout: 'Cerrar sesión',
   nav_menu: 'Menú',
   nav_restaurant: 'Restaurante',
@@ -2222,6 +2224,7 @@ const en: DashboardTranslations = {
   nav_billing: 'Billing',
   nav_settings: 'Settings',
   nav_viewMenu: 'View public menu',
+  nav_support: 'Report an issue',
   nav_logout: 'Log out',
   nav_menu: 'Menu',
   nav_restaurant: 'Restaurant',

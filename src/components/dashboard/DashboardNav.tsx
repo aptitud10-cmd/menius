@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   ClipboardList, Tag, ShoppingBag, QrCode, Settings, LogOut, Menu, X,
-  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star, Store, Boxes, Key, Gift, Building2,
+  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star, Store, Boxes, Key, Gift, Building2, LifeBuoy,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -125,6 +125,13 @@ export function DashboardNav({ slug, mobile }: DashboardNavProps) {
           <ExternalLink className="w-[18px] h-[18px] text-gray-400" />
           {t.nav_viewMenu}
         </Link>
+        <a
+          href={`mailto:soporte@menius.app?subject=Soporte%20MENIUS&body=Hola%2C%20necesito%20ayuda%20con%3A%0A%0A`}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+        >
+          <LifeBuoy className="w-[18px] h-[18px] text-gray-400" />
+          {t.nav_support}
+        </a>
         <button
           onClick={() => logout()}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors w-full text-left"
