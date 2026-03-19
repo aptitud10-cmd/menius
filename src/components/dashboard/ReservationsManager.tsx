@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/browser';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { cn } from '@/lib/utils';
 import { CalendarDays, Clock, Users, Phone, Mail, Check, X, AlertCircle, Plus, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
