@@ -682,6 +682,23 @@ SELECT id, 'Add Avocado', 1.25, 2 FROM products WHERE restaurant_id = rid AND ca
 INSERT INTO product_extras (product_id, name, price, sort_order)
 SELECT id, 'A La Mode', 1.75, 1 FROM products WHERE restaurant_id = rid AND category_id = c_desserts AND name LIKE '%Pie%';
 
+-- ════════════════════════════════════════
+-- FEATURED PRODUCTS (upsell suggestions)
+-- ════════════════════════════════════════
+UPDATE products SET is_featured = true
+WHERE restaurant_id = rid AND name IN (
+  'Lumberjack',
+  'Bacon Cheeseburger',
+  'Chocolate Chip Pancakes',
+  'Apple Crisp French Toast',
+  'Nutella Waffle',
+  'Fried Chicken N'' Waffle',
+  'Chorizo & Eggs',
+  'Avocado Toast',
+  'Banana Pecan Pancakes',
+  'The New Yorker Bagel'
+);
+
 RAISE NOTICE '✅ Buccaneer menu created successfully! Categories: 26, Products: 250+';
 
 END $$;

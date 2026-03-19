@@ -43,7 +43,7 @@ export function FaqClient({ categories, pt, totalQuestions }: FaqClientProps) {
                 )}
               >
                 <span className="text-base">{cat.icon}</span>
-                <span className="hidden sm:inline">{cat.title}</span>
+                <span>{cat.title}</span>
                 {activeId === cat.id && (
                   <span className="ml-1 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">
                     {cat.questions.length}
