@@ -53,19 +53,10 @@ export async function sendSMS({ to, text }: SmsMessage): Promise<{ success: bool
  * Determines whether a phone number belongs to a WhatsApp-first market
  * or an SMS-first market (US/Canada).
  */
-export function resolveChannel(phone: string): 'whatsapp' | 'sms' {
-  const digits = phone.replace(/[^0-9]/g, '');
-  const normalized = phone.trim().startsWith('+') ? `+${digits}` : digits;
-
-  // US and Canada use SMS as primary channel
-  // All other markets (MX +52, CO +57, PE +51, etc.) use WhatsApp
-  const smsMarkets = ['+1'];
-  const isSmsMarket = smsMarkets.some(prefix => normalized.startsWith(prefix));
-
-  // Guard against short numbers that happen to start with 1 (not real E.164)
-  if (isSmsMarket && digits.length < 11) return 'whatsapp';
-
-  return isSmsMarket ? 'sms' : 'whatsapp';
+export function resolveChannel(_phone: string): 'whatsapp' | 'sms' {
+  // WhatsApp is the primary channel for all markets worldwide.
+  // SMS (Twilio) is used as fallback if WhatsApp delivery fails.
+  return 'whatsapp';
 }
 
 export function formatStatusUpdateSMS(
