@@ -1006,8 +1006,28 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   </button>
                 );
               })}
-              <div className="relative">
-                <input type="number" min="0" step="0.5" value={customTip} onChange={(e) => { setCustomTip(e.target.value); setTipPercent(null); }} placeholder={locale === 'es' ? 'Otro' : 'Other'} className={cn('w-full h-full text-center rounded-xl border-2 text-sm font-bold transition-all duration-150 focus:outline-none placeholder-gray-400', customTip ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 text-gray-700 focus:border-gray-400')} />
+              <div className="flex flex-col items-center justify-center py-3 rounded-xl border-2 transition-all duration-150 min-h-[60px] px-1"
+                style={{ borderColor: customTip ? 'rgb(16 185 129)' : 'rgb(229 231 235)', background: customTip ? 'rgb(240 253 244)' : 'white' }}>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={customTip}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9.]/g, '');
+                    setCustomTip(val);
+                    setTipPercent(null);
+                  }}
+                  placeholder={locale === 'es' ? 'Otro' : 'Other'}
+                  className={cn(
+                    'w-full text-center text-sm font-bold bg-transparent focus:outline-none placeholder-gray-400',
+                    customTip ? 'text-emerald-700' : 'text-gray-700'
+                  )}
+                />
+                {customTip ? (
+                  <span className="text-[11px] text-emerald-500 tabular-nums">{fmtPrice(parseFloat(customTip) || 0)}</span>
+                ) : (
+                  <span className="text-[11px] text-gray-400">$</span>
+                )}
               </div>
             </div>
           </div>
