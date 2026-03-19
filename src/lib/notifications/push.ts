@@ -1,4 +1,3 @@
-'use server';
 
 import webpush from 'web-push';
 import { createAdminClient } from '@/lib/supabase/admin';
