@@ -77,10 +77,11 @@ const es: FaqCategory[] = [
     title: 'Pagos de Clientes',
     icon: '💳',
     questions: [
-      { q: '¿Mis clientes pueden pagar en línea?', a: 'Sí. Puedes habilitar pagos en línea a través de Stripe. Tus clientes pagan con tarjeta de crédito o débito directamente desde el menú. El dinero se deposita automáticamente en tu cuenta bancaria según el calendario de Stripe.' },
+      { q: '¿Mis clientes pueden pagar en línea?', a: 'Sí. MENIUS soporta dos pasarelas de pago según la moneda de tu restaurante: Stripe (para USD, MXN, EUR y la mayoría de monedas) y Wompi (para restaurantes en Colombia con moneda COP). Tus clientes pagan con tarjeta, PSE, Nequi o Daviplata directamente desde el menú. El sistema detecta automáticamente cuál usar.' },
+      { q: '¿Qué es Wompi y cómo funciona?', a: 'Wompi es la pasarela de pagos de Bancolombia, ideal para restaurantes en Colombia. Soporta tarjetas de crédito/débito, PSE (transferencias bancarias), Nequi, Daviplata y pagos en efectivo (Efecty). Si tu restaurante usa pesos colombianos (COP), MENIUS redirige automáticamente a Wompi al momento del pago. Solo necesitas registrarte en comercios.wompi.co y agregar tus llaves en la configuración.' },
       { q: '¿También puedo aceptar pagos en efectivo?', a: 'Sí. Puedes habilitar ambas opciones: pago en efectivo y pago en línea. Tus clientes eligen cómo quieren pagar al hacer su pedido. Tú decides qué métodos de pago ofrecer según las necesidades de tu negocio.' },
-      { q: '¿Stripe cobra comisión por transacción?', a: 'Stripe cobra su tarifa estándar por procesamiento de pagos (generalmente 2.9% + $0.30 USD por transacción en EE.UU., varía por país). Esta es la tarifa de Stripe, no de MENIUS. MENIUS no agrega ningún cargo adicional sobre las transacciones.' },
-      { q: '¿Es seguro el proceso de pago para mis clientes?', a: 'Absolutamente. Stripe cuenta con certificación PCI DSS Nivel 1, el estándar más alto de seguridad en la industria de pagos. Los datos de tarjeta nunca pasan por nuestros servidores — son procesados directamente por Stripe con encriptación de extremo a extremo.' },
+      { q: '¿Stripe cobra comisión por transacción?', a: 'Stripe cobra su tarifa estándar por procesamiento de pagos (generalmente 2.9% + $0.30 USD por transacción en EE.UU., varía por país). Wompi tiene sus propias tarifas según tu negociación con Bancolombia. MENIUS no agrega ningún cargo adicional sobre las transacciones de ninguna pasarela.' },
+      { q: '¿Es seguro el proceso de pago para mis clientes?', a: 'Absolutamente. Stripe tiene certificación PCI DSS Nivel 1 y Wompi está regulado por la Superintendencia Financiera de Colombia. Los datos de tarjeta nunca pasan por nuestros servidores — son procesados directamente por la pasarela con encriptación de extremo a extremo.' },
     ],
   },
   {
@@ -139,6 +140,19 @@ const es: FaqCategory[] = [
       { q: '¿El Counter imprime automáticamente al aceptar un pedido?', a: 'Sí. Por defecto, al aceptar un pedido en el Counter, se imprime automáticamente el ticket según la configuración de impresoras del dispositivo. Si el dispositivo tiene habilitado el "Ticket de cocina", se imprime uno adicional para la cocina. También puedes imprimir manualmente desde el detalle de cualquier orden.' },
       { q: '¿MENIUS tiene control de inventario?', a: 'Sí. Desde el dashboard (Menú > Inventario) puedes activar el control de stock por producto. Defines la cantidad disponible y un umbral de alerta de stock bajo. Al realizarse un pedido, el stock se descuenta automáticamente. También puedes marcar productos como agotados con un toggle en tiempo real.' },
       { q: '¿Puedo tener diferentes roles para mi equipo?', a: 'Sí. MENIUS tiene un sistema de roles con 4 niveles: Administrador (acceso total), Gerente (todo excepto facturación), Staff (pedidos y menú) y Cocina (solo vista KDS). Cada miembro del equipo accede exactamente a lo que necesita según su función.' },
+    ],
+  },
+  {
+    id: 'reservaciones',
+    title: 'Reservaciones',
+    icon: '📅',
+    questions: [
+      { q: '¿MENIUS tiene sistema de reservaciones de mesa?', a: 'Sí. MENIUS incluye un sistema básico de reservaciones que puedes activar desde el dashboard (Reservaciones > Ajustes). Cuando está activo, tus clientes ven un formulario "Reservar una mesa" directamente en tu menú público, sin necesidad de llamar ni usar apps externas.' },
+      { q: '¿Cómo activo las reservaciones en mi restaurante?', a: 'Ve a tu dashboard → menú lateral → Reservaciones → clic en "Ajustes" → activa el toggle "Activar reservaciones" → guarda. Desde ese momento, el formulario de reserva aparece en la parte inferior de tu menú público para todos tus clientes.' },
+      { q: '¿Qué información solicita el formulario de reserva?', a: 'El cliente completa: nombre completo (obligatorio), número de personas, fecha y hora de la reserva, teléfono, correo electrónico, y notas especiales opcionales (alergias, ocasión especial, preferencia de mesa). El formulario es limpio y rápido de llenar desde el celular.' },
+      { q: '¿Cómo gestiono las reservaciones recibidas?', a: 'Desde el dashboard → Reservaciones, ves todas las reservaciones organizadas por fecha. Puedes confirmar, rechazar o marcar como "no asistió" con un solo toque. La vista muestra nombre, hora, número de personas, teléfono y notas de cada reservación. También tiene estadísticas de cuántas tienes hoy y próximas.' },
+      { q: '¿Los clientes reciben confirmación de su reservación?', a: 'Por ahora el sistema envía la solicitud al restaurante y muestra un mensaje de confirmación en pantalla. La confirmación formal al cliente (por WhatsApp o email) la hace el equipo del restaurante manualmente después de revisar disponibilidad. Una futura versión incluirá confirmaciones automáticas.' },
+      { q: '¿Hay límite de reservaciones por día?', a: 'No. Puedes recibir y gestionar cualquier número de reservaciones sin límite. La vista del dashboard está optimizada para ver todas las reservaciones del día seleccionado, con navegación por fecha y una sección de próximas reservaciones.' },
     ],
   },
   {
@@ -243,10 +257,11 @@ const en: FaqCategory[] = [
     title: 'Customer Payments',
     icon: '💳',
     questions: [
-      { q: 'Can my customers pay online?', a: 'Yes. You can enable online payments through Stripe. Your customers pay with credit or debit card directly from the menu. The money is automatically deposited into your bank account according to Stripe\'s schedule.' },
+      { q: 'Can my customers pay online?', a: 'Yes. MENIUS supports two payment gateways depending on your restaurant\'s currency: Stripe (for USD, MXN, EUR, and most currencies) and Wompi (for restaurants in Colombia using COP). The system automatically detects which gateway to use based on your currency.' },
+      { q: 'What is Wompi?', a: 'Wompi is Bancolombia\'s payment gateway, ideal for restaurants in Colombia. It supports credit/debit cards, PSE (bank transfers), Nequi, Daviplata, and cash payments (Efecty). If your restaurant uses Colombian pesos (COP), MENIUS automatically redirects to Wompi at checkout. Just register at comercios.wompi.co and add your keys in settings.' },
       { q: 'Can I also accept cash payments?', a: 'Yes. You can enable both options: cash payment and online payment. Your customers choose how they want to pay when placing their order. You decide which payment methods to offer based on your business needs.' },
-      { q: 'Does Stripe charge a per-transaction fee?', a: 'Stripe charges its standard payment processing fee (generally 2.9% + $0.30 USD per transaction in the US, varies by country). This is Stripe\'s fee, not MENIUS\'s. MENIUS does not add any additional charges on transactions.' },
-      { q: 'Is the payment process secure for my customers?', a: 'Absolutely. Stripe holds PCI DSS Level 1 certification, the highest security standard in the payments industry. Card data never passes through our servers — it\'s processed directly by Stripe with end-to-end encryption.' },
+      { q: 'Does Stripe charge a per-transaction fee?', a: 'Stripe charges its standard payment processing fee (generally 2.9% + $0.30 USD per transaction in the US, varies by country). Wompi has its own rates negotiated with Bancolombia. MENIUS does not add any additional charges on transactions from either gateway.' },
+      { q: 'Is the payment process secure for my customers?', a: 'Absolutely. Stripe holds PCI DSS Level 1 certification and Wompi is regulated by Colombia\'s Superintendencia Financiera. Card data never passes through our servers — it\'s processed directly by the payment gateway with end-to-end encryption.' },
     ],
   },
   {
@@ -305,6 +320,18 @@ const en: FaqCategory[] = [
       { q: 'Does the Counter auto-print when accepting an order?', a: 'Yes. By default, when you accept an order in the Counter, a ticket is automatically printed based on the device\'s printer configuration. If the device has "Kitchen ticket" enabled, an additional one prints for the kitchen. You can also print manually from the detail view of any order.' },
       { q: 'Does MENIUS have inventory control?', a: 'Yes. From the dashboard (Menu > Inventory) you can enable stock tracking per product. Set the available quantity and a low-stock alert threshold. When an order is placed, stock is automatically decremented. You can also mark products as sold out with a real-time toggle.' },
       { q: 'Can I set different roles for my team?', a: 'Yes. MENIUS has a role system with 4 levels: Administrator (full access), Manager (everything except billing), Staff (orders and menu), and Kitchen (KDS view only). Each team member accesses exactly what they need for their role.' },
+    ],
+  },
+  {
+    id: 'reservaciones',
+    title: 'Reservations',
+    icon: '📅',
+    questions: [
+      { q: 'Does MENIUS have a table reservation system?', a: 'Yes. MENIUS includes a built-in reservation system you can activate from the dashboard (Reservations > Settings). When enabled, your customers see a "Reserve a table" form directly on your public menu — no phone calls or third-party apps needed.' },
+      { q: 'How do I enable reservations for my restaurant?', a: 'Go to your dashboard → sidebar → Reservations → click "Settings" → toggle on "Enable reservations" → save. From that moment, the reservation form appears at the bottom of your public menu for all your customers.' },
+      { q: 'What information does the reservation form collect?', a: 'The customer fills in: full name (required), number of guests, date and time, phone number, email, and optional special notes (allergies, special occasion, seating preference). The form is clean and quick to fill on mobile.' },
+      { q: 'How do I manage incoming reservations?', a: 'From the dashboard → Reservations, you see all reservations organized by date. You can confirm, reject, or mark as "no-show" with a single tap. The view shows each reservation\'s name, time, party size, phone, and notes. Stats show how many you have today and upcoming.' },
+      { q: 'Is there a limit on daily reservations?', a: 'No. You can receive and manage any number of reservations without limit. The dashboard view is optimized to show all reservations for the selected day, with date navigation and an upcoming reservations section.' },
     ],
   },
   {

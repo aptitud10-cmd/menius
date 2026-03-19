@@ -2878,6 +2878,232 @@ The order appears in the Counter board and on the kitchen KDS exactly like a dig
 The Counter is the central nervous system of your operation: it receives, filters, sends to kitchen, and records everything. With manual orders, no order gets lost. With auto-print, the process is faster and more professional.
     `,
   },
+  {
+    slug: 'pagos-con-wompi-bancolombia-restaurante',
+    title: 'Cómo recibir pagos con Wompi (Bancolombia) en tu restaurante',
+    description: 'Guía completa para activar pagos con Wompi en MENIUS: tarjetas, PSE, Nequi y Daviplata para restaurantes en Colombia con pesos colombianos (COP).',
+    category: 'Pagos',
+    readTime: 5,
+    date: '2026-03-19',
+    author: 'MENIUS',
+    content: `
+## ¿Qué es Wompi y por qué usarlo en tu restaurante?
+
+Wompi es la pasarela de pagos de **Bancolombia**, el banco más grande de Colombia. Es la opción más popular para cobrar pagos digitales en pesos colombianos (COP) porque:
+
+- **Sin tarjeta internacional** — tus clientes pueden pagar por PSE con su cuenta bancaria colombiana
+- **Nequi y Daviplata** — las billeteras digitales más usadas en Colombia
+- **Tarjetas nacionales** — Visa, Mastercard, Amex emitidas en Colombia
+- **Efecty** — para clientes que prefieren pago en efectivo
+
+Si tu restaurante opera en Colombia, Wompi es el método de pago que más convierte porque tus clientes no necesitan tarjeta de crédito.
+
+## MENIUS + Wompi: activación automática
+
+MENIUS detecta automáticamente la moneda de tu restaurante. Si usas **COP (pesos colombianos)**, el botón de pago en línea de tu menú usará Wompi automáticamente — no necesitas cambiar nada en el código.
+
+Al hacer clic en "Pagar con Wompi", el cliente es redirigido al checkout seguro de Wompi donde selecciona su método de pago preferido.
+
+## Paso 1: Crear tu cuenta en Wompi
+
+1. Ve a **[comercios.wompi.co](https://comercios.wompi.co/)**
+2. Regístrate con el correo de tu negocio
+3. Completa la información de tu empresa o negocio
+4. Espera la aprobación de Wompi (puede tardar 1-3 días hábiles)
+
+> 💡 **Modo Sandbox disponible** — mientras esperas la aprobación, puedes hacer pruebas de pago con las llaves de sandbox (prefijo \`pub_test_\`).
+
+## Paso 2: Obtener tus llaves
+
+En el dashboard de Wompi → **Desarrollo → Programadores**, encontrarás:
+
+| Llave | Dónde usarla |
+|---|---|
+| **Llave pública** (\`pub_test_...\` o \`pub_prod_...\`) | Variable \`WOMPI_PUBLIC_KEY\` en Vercel |
+| **Secreto de Integridad** | Variable \`WOMPI_INTEGRITY_SECRET\` en Vercel |
+| **Secreto de Eventos** | Variable \`WOMPI_EVENTS_SECRET\` en Vercel |
+
+## Paso 3: Configurar las variables en MENIUS
+
+1. Inicia sesión en **vercel.com** → tu proyecto MENIUS
+2. Ve a **Settings → Environment Variables**
+3. Agrega las 3 variables con sus valores
+4. Haz **Redeploy** para aplicar los cambios
+
+## Paso 4: Configurar el webhook
+
+En el campo **"URL de Eventos"** en el dashboard de Wompi (Programadores), ingresa:
+
+\`\`\`
+https://tudominio.menius.app/api/payments/wompi-webhook
+\`\`\`
+
+Esto permite que MENIUS marque automáticamente los pedidos como pagados cuando Wompi confirma la transacción.
+
+## Modo prueba vs. producción
+
+- **Sandbox**: usa llaves con prefijo \`pub_test_\` — los pagos son simulados, no se cobra dinero real
+- **Producción**: usa llaves con prefijo \`pub_prod_\` — cuando Wompi aprueba tu cuenta
+
+Para probar en sandbox, Wompi tiene [tarjetas de prueba oficiales](https://docs.wompi.co/docs/colombia/tarjetas-de-prueba/) que puedes usar en el checkout.
+
+## ¿Wompi cobra comisión?
+
+Wompi maneja sus tarifas directamente con cada comercio según el volumen de ventas. MENIUS no agrega ningún cargo sobre las transacciones de Wompi — lo que cobra Wompi es lo único que se descuenta.
+
+## Resumen
+
+1. ✅ Crea cuenta en comercios.wompi.co
+2. ✅ Copia tus 3 llaves (Pública, Integridad, Eventos)
+3. ✅ Agrégalas en Vercel como variables de entorno
+4. ✅ Configura el webhook URL en Wompi
+5. ✅ Tu restaurante ya acepta PSE, Nequi, Daviplata y tarjetas colombianas
+
+Con MENIUS + Wompi, tus clientes colombianos pueden pagar exactamente como prefieren, sin necesidad de tarjeta internacional.
+    `,
+    title_en: 'How to Accept Payments with Wompi (Bancolombia) in Your Restaurant',
+    description_en: 'Complete guide to enable Wompi payments in MENIUS: cards, PSE, Nequi and Daviplata for restaurants in Colombia using COP.',
+    category_en: 'Payments',
+    content_en: `
+## What is Wompi and why use it?
+
+Wompi is **Bancolombia's** payment gateway — Colombia's largest bank. It's the most popular option for accepting digital payments in Colombian pesos (COP) because:
+
+- **No international card needed** — customers can pay via PSE with their Colombian bank account
+- **Nequi and Daviplata** — Colombia's most popular digital wallets
+- **Local cards** — Visa, Mastercard, Amex issued in Colombia
+- **Efecty** — for customers who prefer cash
+
+If your restaurant operates in Colombia, Wompi converts better because your customers don't need a credit card.
+
+## MENIUS + Wompi: automatic detection
+
+MENIUS automatically detects your restaurant's currency. If you use **COP**, the online payment button in your menu uses Wompi automatically — no code changes needed.
+
+## Setup in 4 steps
+
+1. **Create account** at comercios.wompi.co
+2. **Copy your keys** (Public Key, Integrity Secret, Events Secret) from Dashboard → Developers
+3. **Add to Vercel**: \`WOMPI_PUBLIC_KEY\`, \`WOMPI_INTEGRITY_SECRET\`, \`WOMPI_EVENTS_SECRET\`
+4. **Set webhook URL**: \`https://yourdomain.menius.app/api/payments/wompi-webhook\`
+
+MENIUS auto-marks orders as paid when Wompi confirms the transaction via webhook.
+    `,
+  },
+  {
+    slug: 'sistema-reservaciones-digitales-restaurante',
+    title: 'Reservaciones digitales para tu restaurante: la guía completa 2026',
+    description: 'Cómo activar el sistema de reservas en MENIUS para que tus clientes reserven mesa desde el menú digital, sin llamadas ni apps externas.',
+    category: 'Operaciones',
+    readTime: 4,
+    date: '2026-03-19',
+    author: 'MENIUS',
+    content: `
+## ¿Por qué ofrecer reservaciones digitales?
+
+Antes, reservar una mesa requería llamar al restaurante, esperar, y esperar a que alguien contestara. Hoy, tus clientes esperan poder reservar **desde su celular en 30 segundos**, a cualquier hora del día o la noche.
+
+Los restaurantes que ofrecen reservaciones digitales reportan:
+
+- **Menos no-shows** — los clientes que reservan digitalmente se comprometen más
+- **Mejor planificación** — sabes de antemano cuántos cubiertos necesitas
+- **Menos llamadas** — tu equipo se enfoca en atender, no en el teléfono
+- **Mayor ticket promedio** — los clientes que reservan planifican su experiencia con más cuidado
+
+## MENIUS Reservaciones: cómo funciona
+
+MENIUS incluye un sistema de reservaciones integrado directamente en tu menú público digital. No necesitas apps externas como OpenTable o Resy.
+
+### Para tus clientes
+
+El formulario de reserva aparece en la parte inferior del menú público cuando lo activas. El cliente solo necesita:
+
+1. Escribir su nombre
+2. Seleccionar número de personas, fecha y hora
+3. Agregar teléfono o email (opcional)
+4. Agregar notas especiales (alergias, cumpleaños, etc.)
+5. Clic en "Reservar mesa"
+
+El proceso toma menos de 60 segundos desde cualquier celular.
+
+### Para tu equipo
+
+Desde el dashboard → **Reservaciones** ves todas las reservaciones organizadas por fecha. Para cada una puedes:
+
+- ✅ **Confirmar** — el cliente queda anotado
+- ❌ **Rechazar** — si no hay disponibilidad
+- 👻 **No asistió** — para llevar estadísticas reales
+
+La vista de hoy te muestra hora, número de personas, datos de contacto y notas especiales de cada reservación.
+
+## Cómo activar las reservaciones en MENIUS
+
+**Paso 1**: Ve a tu dashboard → menú lateral → **Reservaciones**
+
+**Paso 2**: Clic en **"Ajustes"** en la parte superior derecha
+
+**Paso 3**: Activa el toggle **"Activar reservaciones"**
+
+**Paso 4**: Clic en **"Guardar"**
+
+Listo. El formulario de reserva aparece automáticamente en tu menú público.
+
+## Consejos para reducir no-shows
+
+1. **Confirma por WhatsApp** — cuando llegue una reservación, escríbele al cliente confirmando. MENIUS muestra el teléfono directamente en el panel.
+
+2. **Envía recordatorio el día anterior** — un mensaje simple: "Te esperamos mañana a las 8pm. ¿Sigue todo bien?" reduce los no-shows hasta un 40%.
+
+3. **Pide depósito para grupos grandes** — para mesas de 8+ personas, considera pedir un pequeño depósito (por ahora manual, vía transferencia o Wompi).
+
+4. **Responde rápido** — entre más rápido confirmas o rechazas, mejor la experiencia del cliente.
+
+## Próximas funciones
+
+El módulo de reservaciones de MENIUS seguirá creciendo con:
+
+- Confirmaciones automáticas por WhatsApp y email
+- Horarios de disponibilidad configurables por día
+- Límite de mesas simultáneas por franja horaria
+- Vista de mapa/plano del salón
+
+## Conclusión
+
+Las reservaciones digitales son uno de los diferenciadores más fáciles de activar para cualquier restaurante. Tus clientes ya están acostumbrados a reservar hoteles y vuelos en segundos desde su celular — tu restaurante puede ofrecerles la misma experiencia.
+
+Activa MENIUS Reservaciones en 2 minutos y empieza a llenar tus mesas con más organización y menos estrés.
+    `,
+    title_en: 'Digital Table Reservations for Your Restaurant: The 2026 Complete Guide',
+    description_en: 'How to activate the reservation system in MENIUS so your customers can book a table directly from the digital menu — no calls, no third-party apps.',
+    category_en: 'Operations',
+    content_en: `
+## Why offer digital reservations?
+
+Restaurants that offer digital reservations report fewer no-shows, better planning, and higher average ticket sizes. Your customers expect to book a table in under 60 seconds from their phone, at any time of day.
+
+## How MENIUS Reservations works
+
+The reservation form appears at the bottom of your public menu when activated. Customers fill in: name, party size, date, time, phone/email, and optional notes — done in under 60 seconds.
+
+From the dashboard → **Reservations**, you see all bookings organized by date. Confirm, reject, or mark as no-show with one tap.
+
+## Activate in 2 minutes
+
+1. Dashboard → Reservations → Settings
+2. Toggle on "Enable reservations"
+3. Save
+
+The form appears immediately on your public menu.
+
+## Tips to reduce no-shows
+
+- Confirm via WhatsApp as soon as the reservation comes in (MENIUS shows the phone number directly)
+- Send a reminder the day before
+- Ask for a deposit for large groups (8+ people)
+
+Activate MENIUS Reservations and start filling your tables with less phone calls and more organization.
+    `,
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {
