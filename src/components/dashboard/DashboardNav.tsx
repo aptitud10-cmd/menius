@@ -12,7 +12,7 @@ import { logout } from '@/lib/actions/auth';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { DashboardTranslations } from '@/lib/dashboard-translations';
 
-function buildNavSections(t: DashboardTranslations) {
+function buildNavSections(t: DashboardTranslations, locale: string) {
   return [
     {
       title: null,
@@ -69,7 +69,7 @@ export function DashboardNav({ slug, mobile }: DashboardNavProps) {
   const [open, setOpen] = useState(false);
   const { t, locale, setLocale } = useDashboardLocale();
 
-  const navSections = useMemo(() => buildNavSections(t), [t]);
+  const navSections = useMemo(() => buildNavSections(t, locale), [t, locale]);
 
   useEffect(() => {
     setOpen(false);

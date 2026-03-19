@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/browser';
+import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { cn } from '@/lib/utils';
 import { CalendarDays, Clock, Users, Phone, Mail, Check, X, AlertCircle, Plus, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
@@ -51,7 +51,7 @@ function formatTime(timeStr: string) {
 export function ReservationsManager({ restaurantId, initialReservations, settings }: ReservationsManagerProps) {
   const { locale } = useDashboardLocale();
   const isEs = locale === 'es';
-  const supabase = createClient();
+  const supabase = getSupabaseBrowser();
 
   const [reservations, setReservations] = useState<Reservation[]>(initialReservations);
   const [updating, setUpdating] = useState<string | null>(null);
