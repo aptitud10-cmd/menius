@@ -858,6 +858,7 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
     try {
       const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
       notificationResult = await notifyStatusChange({
+        orderId,
         orderNumber: order.order_number,
         restaurantId: order.restaurant_id,
         status,
@@ -890,6 +891,7 @@ export async function sendOrderNotification(orderId: string, eventType: string) 
   try {
     const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
     const notification = await notifyStatusChange({
+      orderId: order.id,
       orderNumber: order.order_number,
       restaurantId: order.restaurant_id,
       status: eventType,

@@ -383,6 +383,9 @@ export function CounterView({
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [notifToast, setNotifToast] = useState<{ text: string; ok: boolean } | null>(null);
 
+  // ── Notification history (per order, in-memory) ──
+  const [notifStatus, setNotifStatus] = useState<Record<string, { channel: string; success: boolean; error?: string; time: number }>>({});
+
   // ── Splash queue ──
   const [splashQueue, setSplashQueue] = useState<Order[]>([]);
 
@@ -404,7 +407,7 @@ export function CounterView({
     setSuccessToast(msg);
     setTimeout(() => setSuccessToast(null), 3000);
   };
-  const showNotif = (result: { channel: string; success: boolean; error?: string }) => {
+  const showNotif = (result: { channel: string; success: boolean; error?: string }, orderId?: string) => {
     let text: string;
     if (result.channel === 'whatsapp' && result.success) text = t.notifSentWa;
     else if (result.channel === 'sms' && result.success) text = t.notifSentSms;
@@ -414,6 +417,9 @@ export function CounterView({
     else text = t.notifFailed;
     setNotifToast({ text, ok: result.success });
     setTimeout(() => setNotifToast(null), 4000);
+    if (orderId) {
+      setNotifStatus(prev => ({ ...prev, [orderId]: { ...result, time: Date.now() } }));
+    }
   };
 
   // ── Effects ──
@@ -617,7 +623,7 @@ export function CounterView({
       setSelectedId(order.id);
       setShowDetailMobile(true);
       showSuccess(`#${order.order_number} → ${t.tabPrep}`);
-      if (res.notification) showNotif(res.notification);
+      if (res.notification) showNotif(res.notification, order.id);
     } catch {
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
@@ -631,7 +637,7 @@ export function CounterView({
       setActiveTab('ready');
       setSelectedId(order.id);
       setShowDetailMobile(true);
-      if (res.notification) showNotif(res.notification);
+      if (res.notification) showNotif(res.notification, order.id);
     } catch {
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
@@ -668,7 +674,7 @@ export function CounterView({
       if (res?.error) { showError(res.error); return; }
       setCancelModal(null);
       setCancelReason('');
-      if (res.notification) showNotif(res.notification);
+      if (res.notification) showNotif(res.notification, cancelModal.orderId);
     } catch {
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
@@ -990,8 +996,9 @@ export function CounterView({
               onTipSaved={() => showSuccess(t.en ? 'Tip saved' : 'Propina guardada')}
               onNotify={async (order) => {
                 const res = await sendOrderNotification(order.id, 'ready');
-                if (res?.notification) showNotif(res.notification);
+                if (res?.notification) showNotif(res.notification, order.id);
               }}
+              lastNotif={notifStatus[selectedOrder.id]}
             />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
@@ -1564,7 +1571,7 @@ function EmptyState({ tab, t }: { tab: Tab; t: ReturnType<typeof getT> }) {
 function OrderDetail({
   order, currency, restaurantName, tab, eta, busyExtra, suggestedEta, isUpdating, t,
   onBack, onSetEta, onAdjustEta, onAccept, onMarkReady, onDeliver,
-  onCancelRequest, onPrint, onAssignDriver, onTipSaved, onNotify,
+  onCancelRequest, onPrint, onAssignDriver, onTipSaved, onNotify, lastNotif,
 }: {
   order: Order; currency: string; restaurantName: string; tab: Tab;
   eta: number; busyExtra: number; suggestedEta?: number | null; isUpdating: boolean;
@@ -1580,6 +1587,7 @@ function OrderDetail({
   onAssignDriver: () => void;
   onTipSaved?: (orderId: string, tip: number) => void;
   onNotify: (order: Order) => Promise<void>;
+  lastNotif?: { channel: string; success: boolean; error?: string; time: number };
 }) {
   const secs = elapsedSecs(order.created_at);
   const mins = elapsedMins(order.created_at);
@@ -1643,6 +1651,26 @@ function OrderDetail({
                 <span>{timeAgo(order.created_at, t)}</span>
               </div>
             </div>
+            {lastNotif && (
+              <div className="flex items-center gap-1 mt-1.5">
+                <span className={cn(
+                  'inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full',
+                  lastNotif.success
+                    ? 'bg-white/20 text-white/90'
+                    : 'bg-white/10 text-white/50'
+                )}>
+                  <MessageCircle className="w-2.5 h-2.5" />
+                  {lastNotif.channel === 'whatsapp' && 'WhatsApp'}
+                  {lastNotif.channel === 'sms' && 'SMS'}
+                  {lastNotif.channel === 'email' && 'Email'}
+                  {lastNotif.channel === 'none' && (t.en ? 'Not sent' : 'No enviado')}
+                  {lastNotif.success ? ` · ${t.en ? 'sent' : 'enviado'}` : ` · ${t.en ? 'failed' : 'fallido'}`}
+                  {' · '}{Math.round((Date.now() - lastNotif.time) / 60_000) < 1
+                    ? (t.en ? 'just now' : 'ahora')
+                    : `${Math.round((Date.now() - lastNotif.time) / 60_000)}m`}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Action icons */}
