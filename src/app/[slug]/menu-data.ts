@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { Restaurant, Category, Product } from '@/types';
 
@@ -32,7 +33,7 @@ export interface MenuData {
   limitedMode?: LimitedMode | null;
 }
 
-export async function fetchMenuData(slug: string): Promise<MenuData | null> {
+async function _fetchMenuData(slug: string): Promise<MenuData | null> {
   try {
     // Admin client bypasses RLS for public menu reads (server-side only, never exposed to client)
     const db = createAdminClient();
@@ -199,3 +200,14 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
     return null;
   }
 }
+
+/**
+ * Cached version of fetchMenuData.
+ * Menu data is revalidated every 30 seconds in the background (stale-while-revalidate).
+ * Tag: `menu-${slug}` — call revalidateTag(`menu-${slug}`) after product/category updates.
+ */
+export const fetchMenuData = unstable_cache(
+  _fetchMenuData,
+  ['menu-data'],
+  { revalidate: 30, tags: ['menu-data'] }
+);

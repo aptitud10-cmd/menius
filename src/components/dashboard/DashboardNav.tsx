@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   ClipboardList, Tag, ShoppingBag, QrCode, Settings, LogOut, Menu, X,
-  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star, Store, Boxes, Key, Gift, Building2, LifeBuoy,
+  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star, Store, Boxes, Key, Gift, Building2, LifeBuoy, CalendarDays,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,7 @@ function buildNavSections(t: DashboardTranslations) {
       title: t.nav_restaurant,
       items: [
         { href: '/app/tables', label: t.nav_tables, icon: QrCode },
+        { href: '/app/reservations', label: locale === 'es' ? 'Reservaciones' : 'Reservations', icon: CalendarDays },
         { href: '/app/customers', label: t.nav_customers, icon: Contact2 },
         { href: '/app/reviews', label: t.nav_reviews, icon: Star },
         { href: '/app/promotions', label: t.nav_promotions, icon: Ticket },
@@ -66,7 +67,7 @@ interface DashboardNavProps {
 export function DashboardNav({ slug, mobile }: DashboardNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const { t } = useDashboardLocale();
+  const { t, locale, setLocale } = useDashboardLocale();
 
   const navSections = useMemo(() => buildNavSections(t), [t]);
 
@@ -132,6 +133,16 @@ export function DashboardNav({ slug, mobile }: DashboardNavProps) {
           <LifeBuoy className="w-[18px] h-[18px] text-gray-400" />
           {t.nav_support}
         </a>
+        <button
+          onClick={() => setLocale(locale === 'es' ? 'en' : 'es')}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors w-full text-left"
+          title={locale === 'es' ? 'Switch to English' : 'Cambiar a Español'}
+        >
+          <span className="w-[18px] h-[18px] text-base leading-none flex items-center justify-center flex-shrink-0">
+            {locale === 'es' ? '🇺🇸' : '🇨🇴'}
+          </span>
+          <span>{locale === 'es' ? 'English' : 'Español'}</span>
+        </button>
         <button
           onClick={() => logout()}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors w-full text-left"

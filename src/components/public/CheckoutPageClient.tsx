@@ -312,7 +312,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
   }, [saveLastOrder, rememberMe, customerName, customerPhone, customerEmail, restaurant, orderNumber, orderType, items, cartTotal, clearCart, confettiTimer]);
 
+  const isColombianRestaurant = restaurant.currency?.toUpperCase() === 'COP';
+
   const handlePayOnline = async () => {
+    if (isColombianRestaurant) {
+      await handlePayWompi();
+      return;
+    }
     setPayLoading(true);
     try {
       const res = await fetch('/api/payments/checkout', {
@@ -327,6 +333,42 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         setOrderError(data.error || (locale === 'es' ? 'Error al iniciar el pago. Intenta de nuevo.' : 'Payment failed. Please try again.'));
         setPayLoading(false);
       }
+    } catch {
+      setOrderError(locale === 'es' ? 'Error de conexión al procesar el pago.' : 'Connection error processing payment.');
+      setPayLoading(false);
+    }
+  };
+
+  const handlePayWompi = async () => {
+    setPayLoading(true);
+    try {
+      const res = await fetch('/api/payments/wompi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId, slug: restaurant.slug }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setOrderError(data.error);
+        setPayLoading(false);
+        return;
+      }
+      // Use Wompi Web Checkout redirect (most compatible approach)
+      const params = new URLSearchParams({
+        'public-key': data.publicKey,
+        'currency': data.currency,
+        'amount-in-cents': String(data.amountInCents),
+        'reference': data.reference,
+        'signature:integrity': data.integrityHash,
+        'redirect-url': data.redirectUrl,
+      });
+      if (data.customerData?.email) params.append('customer-data:email', data.customerData.email);
+      if (data.customerData?.fullName) params.append('customer-data:full-name', data.customerData.fullName);
+      if (data.customerData?.phoneNumber) {
+        params.append('customer-data:phone-number', data.customerData.phoneNumber);
+        params.append('customer-data:phone-number-prefix', '+57');
+      }
+      window.location.href = `https://checkout.wompi.co/p/?${params.toString()}`;
     } catch {
       setOrderError(locale === 'es' ? 'Error de conexión al procesar el pago.' : 'Connection error processing payment.');
       setPayLoading(false);
@@ -668,8 +710,28 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </div>
             )}
             {paymentMethod === 'online' && orderId && !restaurant.id.startsWith('demo') && (
-              <button onClick={handlePayOnline} disabled={payLoading} className="w-full py-3.5 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors">
-                {payLoading ? t.redirecting : t.payNow}
+              <button
+                onClick={handlePayOnline}
+                disabled={payLoading}
+                className={cn(
+                  'w-full py-3.5 rounded-xl font-semibold text-sm disabled:opacity-50 transition-colors flex items-center justify-center gap-2',
+                  isColombianRestaurant
+                    ? 'bg-[#FDDA24] text-[#002C76] hover:bg-[#f5d01e]'
+                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                )}
+              >
+                {payLoading ? (
+                  locale === 'es' ? 'Redirigiendo...' : 'Redirecting...'
+                ) : isColombianRestaurant ? (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="40" height="40" rx="8" fill="#002C76"/>
+                      <path d="M8 20C8 13.373 13.373 8 20 8s12 5.373 12 12-5.373 12-12 12S8 26.627 8 20z" fill="#FDDA24"/>
+                      <path d="M16 17h8v6h-8z" fill="#002C76"/>
+                    </svg>
+                    {locale === 'es' ? 'Pagar con Wompi' : 'Pay with Wompi'}
+                  </>
+                ) : t.payNow}
               </button>
             )}
             <button onClick={goBack} className="w-full py-3.5 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 transition-colors">

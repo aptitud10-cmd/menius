@@ -1,7 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { sanitizeText, sanitizeMultiline } from '@/lib/sanitize';
 import { captureError } from '@/lib/error-reporting';
@@ -225,6 +225,7 @@ function revalidatePublicMenu(slug: string) {
   if (!slug) return;
   revalidatePath(`/${slug}`);
   revalidatePath(`/${slug}/[table]`, 'layout');
+  revalidateTag('menu-data');
 }
 
 export async function updateCategory(id: string, data: CategoryInput) {

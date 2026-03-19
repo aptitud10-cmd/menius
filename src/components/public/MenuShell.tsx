@@ -20,6 +20,7 @@ import { ProductCard } from './ProductCard';
 import { CartPanel } from './CartPanel';
 import { CustomizationSheet } from './CustomizationSheet';
 import { InstallBanner } from './InstallBanner';
+import { ReservationWidget } from './ReservationWidget';
 interface ReviewStats {
   average: number;
   total: number;
@@ -994,6 +995,14 @@ export function MenuShell({
                 })}
               </div>
             </section>
+          )}
+
+          {/* ── Reservation form ── */}
+          {(restaurant as any).reservations_enabled && (
+            <ReservationWidget
+              restaurantId={restaurant.id}
+              locale={locale}
+            />
           )}
 
           {/* ── Restaurant info footer ── */}
