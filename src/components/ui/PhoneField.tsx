@@ -52,7 +52,7 @@ export function PhoneField({
         onChange={(v) => onChange(v ?? '')}
         placeholder={placeholder}
         className={`phone-field ${dark ? 'phone-field--dark' : 'phone-field--light'}`}
-        numberInputProps={{ className: baseInput + errorInput, onBlur }}
+        numberInputProps={{ className: baseInput + errorInput, onBlur, autoComplete: 'tel' }}
       />
     </div>
   );
