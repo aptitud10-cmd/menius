@@ -42,7 +42,7 @@ export async function sendPushToOrder(orderId: string, payload: PushPayload): Pr
         } catch (err: any) {
           if (err?.statusCode === 410 || err?.statusCode === 404) {
             // Subscription expired — clean up
-            adminDb.from('push_subscriptions').delete().eq('subscription', subscription).then().catch(() => {});
+            void adminDb.from('push_subscriptions').delete().eq('subscription', subscription);
           }
         }
       })
