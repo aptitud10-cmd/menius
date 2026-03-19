@@ -21,6 +21,7 @@ export interface Restaurant {
   phone?: string;
   email?: string;
   website?: string;
+  google_business_url?: string | null;
   custom_domain?: string | null;
   operating_hours?: Record<string, { open: string; close: string; closed?: boolean }>;
   notification_whatsapp?: string | null;

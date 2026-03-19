@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until')
+      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone')
       .eq('id', restaurant_id)
       .maybeSingle();
 
@@ -123,6 +123,33 @@ export async function POST(request: NextRequest) {
             : 'El restaurante no está aceptando órdenes en este momento. Intenta más tarde.' },
         { status: 503 }
       );
+    }
+
+    // Business hours check — reject orders outside opening hours
+    const opHours = (restaurant as any).operating_hours as Record<string, { open: string; close: string; closed?: boolean }> | null;
+    if (opHours && Object.keys(opHours).length > 0 && !body.scheduled_for) {
+      const tz = (restaurant as any).timezone ?? 'UTC';
+      const nowInTz = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
+      const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+      const day = days[nowInTz.getDay()];
+      const dayHours = opHours[day];
+      let isOpen = true;
+      if (!dayHours || dayHours.closed) {
+        isOpen = false;
+      } else if (dayHours.open && dayHours.close) {
+        const [oh, om] = dayHours.open.split(':').map(Number);
+        const [ch, cm] = dayHours.close.split(':').map(Number);
+        const nowMins = nowInTz.getHours() * 60 + nowInTz.getMinutes();
+        isOpen = nowMins >= oh * 60 + om && nowMins < ch * 60 + cm;
+      }
+      if (!isOpen) {
+        return NextResponse.json(
+          { error: en
+              ? 'This restaurant is currently closed. You can schedule an order for later.'
+              : 'El restaurante está cerrado en este momento. Puedes programar tu pedido para más tarde.' },
+          { status: 503 }
+        );
+      }
     }
 
     // Check subscription — enforce daily limit for expired/free-tier restaurants

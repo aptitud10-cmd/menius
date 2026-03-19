@@ -53,6 +53,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     delivery_fee: initialData.delivery_fee ?? '',
     latitude: initialData.latitude ?? '',
     longitude: initialData.longitude ?? '',
+    google_business_url: initialData.google_business_url ?? '',
   });
 
   const [hours, setHours] = useState<Record<string, { open: string; close: string; closed: boolean; fullDay?: boolean }>>(
@@ -379,6 +380,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           </div>
           <Field label={t.settings_email} value={form.email} onChange={(v) => handleChange('email', v)} placeholder="contacto@mirestaurante.com" />
           <Field label={t.settings_website} value={form.website} onChange={(v) => handleChange('website', v)} placeholder="https://..." />
+          <Field label={locale === 'es' ? 'Perfil de Google (Google My Business)' : 'Google Business Profile URL'} value={(form as any).google_business_url ?? ''} onChange={(v) => handleChange('google_business_url', v)} placeholder="https://maps.app.goo.gl/..." />
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import type { Metadata, Viewport } from 'next';
 import { LandingHero } from '@/components/landing/LandingHero';
 import { LandingSections } from '@/components/landing/LandingSections';
@@ -34,12 +34,15 @@ export default async function LandingPage() {
   const cookieStore = await cookies();
   const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as LandingLocale;
 
+  const headerStore = await headers();
+  const country = headerStore.get('x-vercel-ip-country') ?? undefined;
+
   return (
     <div className="landing-bg relative w-full max-w-[100vw] overflow-x-hidden overflow-y-auto">
       <LandingNav locale={locale} />
       <main id="main-content">
         <LandingHero locale={locale} />
-        <LandingSections locale={locale} />
+        <LandingSections locale={locale} country={country} />
       </main>
       <LandingFooter locale={locale} />
     </div>

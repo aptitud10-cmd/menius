@@ -300,7 +300,17 @@ function MidCta({ text, highlight, cta }: { text: string; highlight: string; cta
 
 const PLAN_IDS = ['starter', 'pro', 'business'] as const;
 
-function PricingSection({ t }: { t: LandingT }) {
+const COP_PRICES: Record<typeof PLAN_IDS[number], { monthly: number; annual: number }> = {
+  starter:  { monthly: 89_000,  annual: 890_000 },
+  pro:      { monthly: 179_000, annual: 1_790_000 },
+  business: { monthly: 349_000, annual: 3_490_000 },
+};
+
+function formatCOP(amount: number): string {
+  return amount.toLocaleString('es-CO');
+}
+
+function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean }) {
   const [annual, setAnnual] = useState(false);
   const tp = t.pricing;
 
@@ -343,11 +353,18 @@ function PricingSection({ t }: { t: LandingT }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {tp.plans.map((plan, idx) => {
             const isPopular = idx === 1;
-            const planConfig = PLANS[PLAN_IDS[idx]];
-            const monthlyPrice = planConfig.price.monthly;
-            const annualTotal = planConfig.price.annual;
-            const annualPerMonth = Math.floor(annualTotal / 12);
+            const planId = PLAN_IDS[idx];
+            const planConfig = PLANS[planId];
+
+            const monthlyPrice = isColombia ? COP_PRICES[planId].monthly : planConfig.price.monthly;
+            const annualTotal  = isColombia ? COP_PRICES[planId].annual  : planConfig.price.annual;
+            const annualPerMonth = isColombia
+              ? Math.floor(COP_PRICES[planId].annual / 12)
+              : Math.floor(planConfig.price.annual / 12);
             const displayPrice = annual ? annualPerMonth : monthlyPrice;
+
+            const currencySymbol = isColombia ? '$' : '$';
+            const formatPrice = (n: number) => isColombia ? formatCOP(n) : String(n);
 
             return (
               <div
@@ -368,17 +385,17 @@ function PricingSection({ t }: { t: LandingT }) {
                 <div className="mt-7 mb-1">
                   <div className="flex items-end gap-1.5">
                     <span className="text-5xl font-bold text-white tracking-tight transition-all duration-300">
-                      ${displayPrice}
+                      {currencySymbol}{formatPrice(displayPrice)}
                     </span>
                     <span className="text-sm text-gray-400 mb-1.5 leading-tight">
-                      {annual ? tp.annualPerMonth : tp.perMonth}
+                      {isColombia ? 'COP' : ''}{annual ? tp.annualPerMonth : tp.perMonth}
                     </span>
                   </div>
                   {annual && (
                     <p className="text-xs text-gray-500 mt-1 mb-0">
-                      ${monthlyPrice}<span className="line-through opacity-60">/mes</span>
+                      {currencySymbol}{formatPrice(monthlyPrice)}<span className="line-through opacity-60">/mes</span>
                       {' '}→{' '}
-                      <span className="text-[#05c8a7] font-semibold">${annualTotal}/año</span>
+                      <span className="text-[#05c8a7] font-semibold">{currencySymbol}{formatPrice(annualTotal)}/año</span>
                     </p>
                   )}
                 </div>
@@ -451,8 +468,9 @@ function TestimonialsSection({ t }: { t: LandingT['testimonials'] }) {
 
 /* ─── MAIN ─── */
 
-export function LandingSections({ locale }: { locale: LandingLocale }) {
+export function LandingSections({ locale, country }: { locale: LandingLocale; country?: string }) {
   const t = getLandingT(locale);
+  const isColombia = country === 'CO';
 
   return (
     <>
@@ -617,7 +635,7 @@ export function LandingSections({ locale }: { locale: LandingLocale }) {
         <div className="section-glow section-glow-blue" />
         <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-[#05c8a7]/15 blur-[100px] pointer-events-none" />
         <div className="relative z-10 max-w-5xl mx-auto px-6">
-          <PricingSection t={t} />
+          <PricingSection t={t} isColombia={isColombia} />
         </div>
       </section>
 

@@ -320,6 +320,17 @@ export async function notifyStatusChange(params: {
     }
 
     void logNotification(orderId, restaurantId, status, result);
+
+    // Push notification — fire-and-forget
+    if (orderId) {
+      import('./push').then(({ sendPushToOrder, getStatusPushPayload }) => {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+        const trackUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}`;
+        const payload = getStatusPushPayload(status, orderNumber, restaurant.name, trackUrl, rLocale);
+        sendPushToOrder(orderId, payload).catch(() => {});
+      }).catch(() => {});
+    }
+
     return result;
   } catch (err) {
     console.error('[Notifications] Error sending status update:', err);

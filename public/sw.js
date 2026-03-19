@@ -1,4 +1,4 @@
-const SW_VERSION = '8';
+const SW_VERSION = '9';
 const CACHE_NAME = 'menius-v' + SW_VERSION;
 const STATIC_CACHE = 'menius-static-v' + SW_VERSION;
 const IMAGE_CACHE = 'menius-images-v' + SW_VERSION;
@@ -138,7 +138,7 @@ self.addEventListener('push', (event) => {
   if (!event.data) return;
   let payload;
   try { payload = event.data.json(); } catch { payload = { title: 'MENIUS', body: event.data.text() }; }
-  const { title = 'MENIUS', body = '', icon, badge, data, tag } = payload;
+  const { title = 'MENIUS', body = '', icon, badge, url, data, tag } = payload;
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
@@ -147,7 +147,7 @@ self.addEventListener('push', (event) => {
       tag: tag || 'menius-order',
       renotify: true,
       vibrate: [100, 50, 100],
-      data: data || {},
+      data: { url, ...(data || {}) },
     })
   );
 });

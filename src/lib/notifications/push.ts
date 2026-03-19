@@ -1,66 +1,93 @@
-import { createClient } from '@/lib/supabase/server';
+'use server';
 
-interface PushPayload {
+import webpush from 'web-push';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('push-notifications');
+
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY ?? '';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY ?? '';
+const VAPID_EMAIL = process.env.VAPID_EMAIL ?? 'mailto:hola@menius.app';
+
+if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(VAPID_EMAIL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+}
+
+export interface PushPayload {
   title: string;
   body: string;
   url?: string;
-  tag?: string;
+  icon?: string;
+  badge?: string;
 }
 
-export async function sendPushToOrder(orderId: string, payload: PushPayload) {
-  const vapidPublic = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const vapidPrivate = process.env.VAPID_PRIVATE_KEY;
-
-  if (!vapidPublic || !vapidPrivate) return;
+export async function sendPushToOrder(orderId: string, payload: PushPayload): Promise<void> {
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) return;
 
   try {
-    const webpush = (await import('web-push')).default;
-
-    webpush.setVapidDetails(
-      'mailto:soporte@menius.app',
-      vapidPublic,
-      vapidPrivate
-    );
-
-    const supabase = createClient();
-
-    const { data: subs } = await supabase
+    const adminDb = createAdminClient();
+    const { data: subs } = await adminDb
       .from('push_subscriptions')
-      .select('endpoint, keys_p256dh, keys_auth')
+      .select('subscription')
       .eq('order_id', orderId);
 
-    if (!subs || subs.length === 0) return;
+    if (!subs?.length) return;
 
-    const pushPayload = JSON.stringify({
-      title: payload.title,
-      body: payload.body,
-      tag: payload.tag ?? 'menius-order',
-      data: { url: payload.url ?? '/' },
-    });
+    const message = JSON.stringify(payload);
 
-    const results = await Promise.allSettled(
-      subs.map((sub) =>
-        webpush.sendNotification(
-          {
-            endpoint: sub.endpoint,
-            keys: { p256dh: sub.keys_p256dh, auth: sub.keys_auth },
-          },
-          pushPayload
-        )
-      )
+    await Promise.allSettled(
+      subs.map(async ({ subscription }) => {
+        try {
+          await webpush.sendNotification(subscription, message);
+        } catch (err: any) {
+          if (err?.statusCode === 410 || err?.statusCode === 404) {
+            // Subscription expired — clean up
+            await adminDb.from('push_subscriptions').delete().eq('subscription', subscription).catch(() => {});
+          }
+        }
+      })
     );
-
-    const expired = results
-      .map((r, i) => (r.status === 'rejected' && (r.reason as any)?.statusCode === 410 ? subs[i].endpoint : null))
-      .filter(Boolean);
-
-    if (expired.length > 0) {
-      await supabase
-        .from('push_subscriptions')
-        .delete()
-        .in('endpoint', expired);
-    }
   } catch (err) {
-    console.error('[Push] Error sending push notification:', err);
+    logger.error('sendPushToOrder failed', { orderId, err });
   }
+}
+
+export function getStatusPushPayload(
+  status: string,
+  orderNumber: string,
+  restaurantName: string,
+  trackingUrl: string,
+  locale: string
+): PushPayload {
+  const en = locale === 'en';
+  const statusMessages: Record<string, { title: string; body: string }> = {
+    confirmed: {
+      title: en ? `✅ Order confirmed!` : `✅ ¡Pedido confirmado!`,
+      body: en ? `${restaurantName} confirmed your order #${orderNumber}` : `${restaurantName} confirmó tu pedido #${orderNumber}`,
+    },
+    preparing: {
+      title: en ? `👨‍🍳 Preparing your order` : `👨‍🍳 Preparando tu pedido`,
+      body: en ? `${restaurantName} is preparing order #${orderNumber}` : `${restaurantName} está preparando tu pedido #${orderNumber}`,
+    },
+    ready: {
+      title: en ? `🔔 Your order is ready!` : `🔔 ¡Tu pedido está listo!`,
+      body: en ? `Order #${orderNumber} is ready for pickup` : `Pedido #${orderNumber} listo para recoger`,
+    },
+    delivered: {
+      title: en ? `📦 Order delivered!` : `📦 ¡Pedido entregado!`,
+      body: en ? `Order #${orderNumber} has been delivered. Enjoy!` : `Pedido #${orderNumber} entregado. ¡Buen provecho!`,
+    },
+    cancelled: {
+      title: en ? `❌ Order cancelled` : `❌ Pedido cancelado`,
+      body: en ? `Order #${orderNumber} was cancelled` : `Pedido #${orderNumber} fue cancelado`,
+    },
+  };
+
+  const msg = statusMessages[status] ?? {
+    title: en ? `Order update` : `Actualización de pedido`,
+    body: en ? `Your order #${orderNumber} status changed` : `Tu pedido #${orderNumber} fue actualizado`,
+  };
+
+  return { ...msg, url: trackingUrl, icon: '/icon-192.png', badge: '/icon-192.png' };
 }

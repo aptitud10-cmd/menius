@@ -353,6 +353,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           )}
         </div>
 
+        {/* Push notification prompt — shown while order is in progress */}
+        {!isCancelled && !isComplete && (
+          <PushSubscriptionPrompt orderId={order.id} locale={locale} />
+        )}
+
         {/* Order details */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <h3 className="font-bold text-sm mb-3">{t.orderDetails}</h3>
@@ -503,6 +508,75 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {/* Save order to local history */}
         <OrderHistorySaver order={order} restaurantSlug={restaurantSlug} restaurantName={restaurantName} />
       </div>
+    </div>
+  );
+}
+
+function PushSubscriptionPrompt({ orderId, locale }: { orderId: string; locale?: string }) {
+  const en = locale === 'en';
+  const [state, setState] = useState<'idle' | 'subscribed' | 'denied' | 'unsupported'>('idle');
+
+  useEffect(() => {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      setState('unsupported');
+      return;
+    }
+    if (Notification.permission === 'granted') setState('subscribed');
+    if (Notification.permission === 'denied') setState('denied');
+    // Check if already subscribed for this order
+    const key = `push-subscribed-${orderId}`;
+    if (localStorage.getItem(key)) setState('subscribed');
+  }, [orderId]);
+
+  const handleSubscribe = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') { setState('denied'); return; }
+
+      const reg = await navigator.serviceWorker.ready;
+      const keyRes = await fetch('/api/push/subscribe');
+      const { publicKey } = await keyRes.json();
+      if (!publicKey) return;
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: publicKey,
+      });
+
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub.toJSON(), order_id: orderId }),
+      });
+
+      localStorage.setItem(`push-subscribed-${orderId}`, '1');
+      setState('subscribed');
+    } catch {
+      setState('denied');
+    }
+  };
+
+  if (state === 'subscribed' || state === 'unsupported' || state === 'denied') return null;
+
+  return (
+    <div className="flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-violet-50 border border-violet-200">
+      <div className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
+        <Bell className="w-4 h-4 text-violet-600" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-violet-800">
+          {en ? 'Get order updates' : 'Recibe actualizaciones'}
+        </p>
+        <p className="text-xs text-violet-600 mt-0.5">
+          {en ? 'We\'ll notify you when your order status changes.' : 'Te avisamos cuando cambie el estado de tu pedido.'}
+        </p>
+      </div>
+      <button
+        onClick={handleSubscribe}
+        className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 transition-colors"
+      >
+        {en ? 'Notify me' : 'Activar'}
+      </button>
     </div>
   );
 }

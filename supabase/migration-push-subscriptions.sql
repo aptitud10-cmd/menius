@@ -1,30 +1,22 @@
--- Push notification subscriptions for order tracking
+-- Push notification subscriptions
+-- Run this in Supabase SQL Editor
+
 CREATE TABLE IF NOT EXISTS push_subscriptions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  endpoint TEXT NOT NULL UNIQUE,
-  keys_p256dh TEXT NOT NULL,
-  keys_auth TEXT NOT NULL,
-  order_id UUID REFERENCES orders(id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ DEFAULT now()
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id     uuid NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  subscription jsonb NOT NULL,
+  endpoint     text GENERATED ALWAYS AS (subscription->>'endpoint') STORED,
+  created_at   timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_push_subscriptions_order_id ON push_subscriptions(order_id);
+CREATE UNIQUE INDEX IF NOT EXISTS push_subscriptions_order_endpoint
+  ON push_subscriptions (order_id, endpoint);
 
--- Auto-delete subscriptions older than 7 days (they expire anyway)
--- Run periodically via cron or pg_cron
--- DELETE FROM push_subscriptions WHERE created_at < now() - INTERVAL '7 days';
+CREATE INDEX IF NOT EXISTS push_subscriptions_order_id_idx
+  ON push_subscriptions (order_id);
 
--- RLS: allow anonymous inserts (customers subscribing)
 ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Anyone can subscribe" ON push_subscriptions
-  FOR INSERT TO anon, authenticated
-  WITH CHECK (true);
-
-CREATE POLICY "Service can read subscriptions" ON push_subscriptions
-  FOR SELECT TO authenticated
-  USING (true);
-
-CREATE POLICY "Anon can read own subscription" ON push_subscriptions
-  FOR SELECT TO anon
-  USING (true);
+-- Only service role (admin client) can read/write subscriptions
+CREATE POLICY "admin_all" ON push_subscriptions
+  FOR ALL USING (auth.role() = 'service_role');
