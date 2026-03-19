@@ -10,6 +10,7 @@ import {
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import {
   updateOrderStatus, updateOrderETA, setPauseOrders, assignDriver, updateOrderTip,
+  sendOrderNotification,
 } from '@/lib/actions/restaurant';
 import { AutoAcceptService } from '@/lib/counter/AutoAcceptService';
 import { PrinterService } from '@/lib/printing/PrinterService';
@@ -57,8 +58,15 @@ function getT(locale?: string) {
     wallet:      en ? 'Wallet'           : 'Wallet',
     notes:       en ? 'Notes'            : 'Notas',
     viewOnMap:   en ? 'View on map →'   : 'Ver en mapa →',
-    notifyWa:    en ? 'Notify via WhatsApp' : 'Avisar por WhatsApp',
+    notifyCustomer: en ? 'Resend notification' : 'Reenviar notificación',
     callCustomer: en ? 'Call customer'   : 'Llamar al cliente',
+    notifSentWa:  en ? 'Customer notified via WhatsApp' : 'Cliente notificado por WhatsApp',
+    notifSentSms: en ? 'Customer notified via SMS' : 'Cliente notificado por SMS',
+    notifSentEmail: en ? 'Customer notified via email' : 'Cliente notificado por email',
+    notifFailed:  en ? 'Notification failed' : 'Notificación fallida',
+    notifFallback: en ? 'Primary failed · email sent' : 'Fallo principal · email enviado',
+    notifNoContact: en ? 'No contact info for customer' : 'Sin datos de contacto del cliente',
+    moreActions:  en ? 'More' : 'Más',
     driver:      en ? 'Driver assigned'  : 'Repartidor asignado',
     assignDriver: en ? 'Assign driver'   : 'Asignar repartidor',
     editDriver:  en ? 'Edit'             : 'Editar',
@@ -157,10 +165,6 @@ function timeAgo(createdAt: string, t: ReturnType<typeof getT>) {
   if (m < 60) return t.minsAgo(m);
   const h = Math.floor(m / 60);
   return `${h}h ${m % 60}m`;
-}
-
-function waLink(phone: string, msg: string) {
-  return `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`;
 }
 
 // ─── Audio ────────────────────────────────────────────────────────────────────
@@ -377,6 +381,7 @@ export function CounterView({
   // ── Toasts ──
   const [errorToast, setErrorToast] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [notifToast, setNotifToast] = useState<{ text: string; ok: boolean } | null>(null);
 
   // ── Splash queue ──
   const [splashQueue, setSplashQueue] = useState<Order[]>([]);
@@ -398,6 +403,17 @@ export function CounterView({
   const showSuccess = (msg: string) => {
     setSuccessToast(msg);
     setTimeout(() => setSuccessToast(null), 3000);
+  };
+  const showNotif = (result: { channel: string; success: boolean; error?: string }) => {
+    let text: string;
+    if (result.channel === 'whatsapp' && result.success) text = t.notifSentWa;
+    else if (result.channel === 'sms' && result.success) text = t.notifSentSms;
+    else if (result.channel === 'email' && result.success && result.error?.includes('fallback')) text = t.notifFallback;
+    else if (result.channel === 'email' && result.success) text = t.notifSentEmail;
+    else if (result.error === 'no_contact_info' || result.error === 'notifications_disabled') text = t.notifNoContact;
+    else text = t.notifFailed;
+    setNotifToast({ text, ok: result.success });
+    setTimeout(() => setNotifToast(null), 4000);
   };
 
   // ── Effects ──
@@ -590,11 +606,6 @@ export function CounterView({
   const handleAccept = useCallback(async (order: Order) => {
     setUpdatingId(order.id);
     const eff = eta + busyExtra;
-    const waUrl = order.customer_phone
-      ? waLink(order.customer_phone, t.en
-          ? `Hi ${order.customer_name || 'there'} 👋 Your order #${order.order_number} was confirmed ✅ Ready in approx. ${eff} minutes.`
-          : `Hola ${order.customer_name || 'cliente'} 👋 Tu orden #${order.order_number} fue confirmada ✅ Lista en aprox. ${eff} minutos.`)
-      : null;
     try {
       const etaRes = await updateOrderETA(order.id, eff);
       if (etaRes?.error) { showError(etaRes.error); return; }
@@ -606,7 +617,7 @@ export function CounterView({
       setSelectedId(order.id);
       setShowDetailMobile(true);
       showSuccess(`#${order.order_number} → ${t.tabPrep}`);
-      if (waUrl) window.open(waUrl, '_blank', 'noopener');
+      if (res.notification) showNotif(res.notification);
     } catch {
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
@@ -620,6 +631,7 @@ export function CounterView({
       setActiveTab('ready');
       setSelectedId(order.id);
       setShowDetailMobile(true);
+      if (res.notification) showNotif(res.notification);
     } catch {
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
@@ -651,22 +663,16 @@ export function CounterView({
   const handleCancel = useCallback(async () => {
     if (!cancelModal) return;
     setUpdatingId(cancelModal.orderId);
-    const order = orders.find(o => o.id === cancelModal.orderId);
-    const waUrl = order?.customer_phone && cancelReason
-      ? waLink(order.customer_phone, t.en
-          ? `Hi ${order.customer_name || 'there'}, we're sorry but we cannot process order #${order.order_number}. Reason: ${cancelReason}. We apologize for the inconvenience.`
-          : `Hola ${order?.customer_name || 'cliente'}, lamentablemente no podemos procesar tu orden #${order?.order_number}. Motivo: ${cancelReason}. Disculpa los inconvenientes.`)
-      : null;
     try {
       const res = await updateOrderStatus(cancelModal.orderId, 'cancelled', cancelReason || undefined);
       if (res?.error) { showError(res.error); return; }
       setCancelModal(null);
       setCancelReason('');
-      if (waUrl) window.open(waUrl, '_blank', 'noopener');
+      if (res.notification) showNotif(res.notification);
     } catch {
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, [cancelModal, cancelReason, orders, t]);
+  }, [cancelModal, cancelReason, t]);
 
   const handleAssignDriver = useCallback(async () => {
     if (!driverModal) return;
@@ -676,20 +682,7 @@ export function CounterView({
       if (res?.error) { showError(res.error); return; }
       setDriverModal(null);
       setDriverName(''); setDriverPhone('');
-
-      // Send WhatsApp message with address + tracking link to driver
-      if (driverPhone) {
-        const trackInfo = (res as any).trackingUrl
-          ? (t.en ? `\n🗺️ Tracking link: ${(res as any).trackingUrl}` : `\n🗺️ Link de rastreo: ${(res as any).trackingUrl}`)
-          : '';
-        const msg = t.en
-          ? `Hi ${driverName || 'driver'} 🛵 You have a delivery:\n📍 ${driverModal.address ?? ''}${trackInfo}\nCome to the restaurant to pick up the order.`
-          : `Hola ${driverName || 'repartidor'} 🛵 Tienes una entrega:\n📍 ${driverModal.address ?? ''}${trackInfo}\nAcude al restaurante para recoger el pedido.`;
-        window.open(
-          `https://wa.me/${driverPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`,
-          '_blank', 'noopener'
-        );
-      }
+      showSuccess(t.en ? 'Driver assigned' : 'Repartidor asignado');
     } catch {
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setAssigningDriver(false); }
@@ -995,6 +988,10 @@ export function CounterView({
                 setDriverPhone(o.driver_phone ?? '');
               }}
               onTipSaved={() => showSuccess(t.en ? 'Tip saved' : 'Propina guardada')}
+              onNotify={async (order) => {
+                const res = await sendOrderNotification(order.id, 'ready');
+                if (res?.notification) showNotif(res.notification);
+              }}
             />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
@@ -1374,6 +1371,14 @@ export function CounterView({
           <Check className="w-4 h-4" /> {successToast}
         </div>
       )}
+      {notifToast && (
+        <div className={cn(
+          'fixed bottom-20 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl text-white text-sm font-semibold shadow-xl animate-in fade-in slide-in-from-bottom-4 max-w-xs',
+          notifToast.ok ? 'bg-[#0A8A47]' : 'bg-amber-500'
+        )}>
+          <MessageCircle className="w-4 h-4 flex-shrink-0" /> {notifToast.text}
+        </div>
+      )}
     </div>
   );
 }
@@ -1559,7 +1564,7 @@ function EmptyState({ tab, t }: { tab: Tab; t: ReturnType<typeof getT> }) {
 function OrderDetail({
   order, currency, restaurantName, tab, eta, busyExtra, suggestedEta, isUpdating, t,
   onBack, onSetEta, onAdjustEta, onAccept, onMarkReady, onDeliver,
-  onCancelRequest, onPrint, onAssignDriver, onTipSaved,
+  onCancelRequest, onPrint, onAssignDriver, onTipSaved, onNotify,
 }: {
   order: Order; currency: string; restaurantName: string; tab: Tab;
   eta: number; busyExtra: number; suggestedEta?: number | null; isUpdating: boolean;
@@ -1574,6 +1579,7 @@ function OrderDetail({
   onPrint: () => void;
   onAssignDriver: () => void;
   onTipSaved?: (orderId: string, tip: number) => void;
+  onNotify: (order: Order) => Promise<void>;
 }) {
   const secs = elapsedSecs(order.created_at);
   const mins = elapsedMins(order.created_at);
@@ -1594,11 +1600,8 @@ function OrderDetail({
     isUrgent ? '#EF4444' :
     '#111111';
 
-  const waReadyMsg = order.customer_phone
-    ? waLink(order.customer_phone, t.en
-        ? `Hi ${order.customer_name || 'there'}, your order #${order.order_number} is ready ✅ You can come pick it up.`
-        : `Hola ${order.customer_name || 'cliente'}, tu orden #${order.order_number} está lista ✅ Puedes pasar a recogerla.`)
-    : null;
+  const [moreActionsOpen, setMoreActionsOpen] = useState(false);
+  const [notifying, setNotifying] = useState(false);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -1643,27 +1646,46 @@ function OrderDetail({
           </div>
 
           {/* Action icons */}
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            {order.customer_phone && (
-              <a href={`https://wa.me/${order.customer_phone.replace(/\D/g, '')}`}
-                target="_blank" rel="noopener noreferrer"
-                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-                title="WhatsApp">
-                <MessageCircle className="w-4 h-4 text-white" />
-              </a>
-            )}
-            {order.customer_phone && (
-              <a href={`tel:${order.customer_phone}`}
-                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-                title={t.callCustomer}>
-                <Phone className="w-4 h-4 text-white" />
-              </a>
-            )}
+          <div className="flex items-center gap-1.5 flex-shrink-0 relative">
             <button onClick={onPrint}
               className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
               title="Print">
               <Printer className="w-4 h-4 text-white" />
             </button>
+            {/* More actions (call / WhatsApp manual override) */}
+            {order.customer_phone && (
+              <div className="relative">
+                <button
+                  onClick={() => setMoreActionsOpen(v => !v)}
+                  className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                  title={t.moreActions}
+                >
+                  <Settings2 className="w-4 h-4 text-white" />
+                </button>
+                {moreActionsOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setMoreActionsOpen(false)} />
+                    <div className="absolute right-0 top-11 z-50 bg-white rounded-xl shadow-2xl border border-[#E8E8E8] overflow-hidden min-w-[180px]">
+                      <a
+                        href={`tel:${order.customer_phone}`}
+                        onClick={() => setMoreActionsOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-[#111] hover:bg-[#F5F5F5] transition-colors"
+                      >
+                        <Phone className="w-4 h-4 text-[#888]" /> {t.callCustomer}
+                      </a>
+                      <a
+                        href={`https://wa.me/${order.customer_phone.replace(/\D/g, '')}`}
+                        target="_blank" rel="noopener noreferrer"
+                        onClick={() => setMoreActionsOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-[#111] hover:bg-[#F5F5F5] transition-colors border-t border-[#F5F5F5]"
+                      >
+                        <MessageCircle className="w-4 h-4 text-[#25D366]" /> WhatsApp
+                      </a>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
             {/* Cancel/Reject button */}
             <button
               onClick={() => onCancelRequest(tab === 'new' ? 'reject' : 'cancel')}
@@ -1949,27 +1971,24 @@ function OrderDetail({
           </button>
         )}
 
-        {/* READY tab: WhatsApp + delivered */}
+        {/* READY tab: resend notification + delivered */}
         {tab === 'ready' && (
           <>
-            {waReadyMsg && (
-              <a
-                href={waReadyMsg}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-sm font-bold border-2 transition-all active:scale-[0.97]"
+            {order.customer_phone && (
+              <button
+                disabled={notifying}
+                onClick={async () => {
+                  setNotifying(true);
+                  await onNotify(order);
+                  setNotifying(false);
+                }}
+                className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-sm font-bold border-2 transition-all active:scale-[0.97] disabled:opacity-50"
                 style={{ background: '#DCFCE7', borderColor: '#86EFAC', color: '#15803D' }}
               >
-                <MessageCircle className="w-4 h-4" /> {t.notifyWa}
-              </a>
-            )}
-            {order.customer_phone && (
-              <a
-                href={`tel:${order.customer_phone}`}
-                className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-sm font-bold border-2 border-[#E8E8E8] bg-white text-[#555] transition-all active:scale-[0.97] hover:bg-[#F5F5F5]"
-              >
-                <Phone className="w-4 h-4" /> {t.callCustomer}
-              </a>
+                {notifying
+                  ? <span className="w-4 h-4 border-2 border-green-400/40 border-t-green-600 rounded-full animate-spin" />
+                  : <><MessageCircle className="w-4 h-4" /> {t.notifyCustomer}</>}
+              </button>
             )}
             <button
               disabled={isUpdating}

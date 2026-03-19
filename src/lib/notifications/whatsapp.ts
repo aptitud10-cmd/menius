@@ -1,9 +1,9 @@
 /**
- * Send a WhatsApp message via the WhatsApp Business API (Cloud API).
- * Requires: WHATSAPP_TOKEN and WHATSAPP_PHONE_ID env vars.
- * 
- * Falls back to a WhatsApp deep-link if the Business API is not configured,
- * which can be used as a click-to-chat URL.
+ * Send WhatsApp messages via Twilio REST API.
+ * Required env vars:
+ *   TWILIO_ACCOUNT_SID   — your Twilio Account SID
+ *   TWILIO_AUTH_TOKEN    — your Twilio Auth Token
+ *   TWILIO_WHATSAPP_FROM — your Twilio WhatsApp sender, e.g. "whatsapp:+14155238886"
  */
 
 interface WhatsAppMessage {
@@ -11,50 +11,69 @@ interface WhatsAppMessage {
   text: string;
 }
 
-export async function sendWhatsApp({ to, text }: WhatsAppMessage): Promise<{ success: boolean; fallbackUrl?: string }> {
-  const token = process.env.WHATSAPP_TOKEN;
-  const phoneId = process.env.WHATSAPP_PHONE_ID;
+export async function sendWhatsApp({ to, text }: WhatsAppMessage): Promise<{ success: boolean }> {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_WHATSAPP_FROM;
 
-  const cleanPhone = to.replace(/[^0-9]/g, '');
-
-  if (!token || !phoneId) {
-    const fallbackUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
-    return { success: false, fallbackUrl };
+  if (!accountSid || !authToken || !from) {
+    console.warn('[WhatsApp] Twilio env vars not set — skipping message');
+    return { success: false };
   }
 
+  // Normalize to E.164 with whatsapp: prefix
+  const digits = to.replace(/[^0-9]/g, '');
+  const e164 = to.trim().startsWith('+') ? `+${digits}` : `+${digits}`;
+  const toWhatsApp = `whatsapp:${e164}`;
+
+  const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+  const credentials = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+
+  const body = new URLSearchParams({
+    From: from,
+    To: toWhatsApp,
+    Body: text,
+  });
+
   try {
-    const url = `https://graph.facebook.com/v19.0/${phoneId}/messages`;
     const res = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        Authorization: `Basic ${credentials}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to: cleanPhone,
-        type: 'text',
-        text: { body: text },
-      }),
+      body: body.toString(),
     });
 
     if (!res.ok) {
-      console.error('WhatsApp API error:', await res.text());
+      const err = await res.text();
+      console.error('[WhatsApp] Twilio API error:', err);
       return { success: false };
     }
 
     return { success: true };
   } catch (err) {
-    console.error('WhatsApp send error:', err);
+    console.error('[WhatsApp] Twilio send error:', err);
     return { success: false };
   }
 }
 
-export function formatNewOrderWhatsApp(orderNumber: string, customerName: string, total: string, itemsSummary: string): string {
+export function formatNewOrderWhatsApp(
+  orderNumber: string,
+  customerName: string,
+  total: string,
+  itemsSummary: string,
+  orderType?: string,
+  tableNumber?: string,
+  notes?: string,
+): string {
+  const typeLabel = orderType === 'delivery' ? '🛵 Delivery' : orderType === 'takeaway' ? '🥡 Para llevar' : '🪑 Mesa';
+  const tableStr = tableNumber ? `\n🪑 Mesa: ${tableNumber}` : '';
+  const notesStr = notes ? `\n📝 Notas: ${notes}` : '';
   return `🍽️ *Nueva orden #${orderNumber}*
 
 👤 Cliente: ${customerName}
+${typeLabel}${tableStr}${notesStr}
 💰 Total: ${total}
 
 📋 Productos:
@@ -63,17 +82,74 @@ ${itemsSummary}
 Gestiona esta orden en tu dashboard de MENIUS.`;
 }
 
-export function formatStatusUpdateWhatsApp(orderNumber: string, status: string, restaurantName: string): string {
-  const statusMessages: Record<string, string> = {
-    confirmed: '✅ Tu pedido ha sido confirmado',
-    preparing: '👨‍🍳 Tu pedido se está preparando',
-    ready: '🔔 ¡Tu pedido está listo!',
-    delivered: '✨ Tu pedido ha sido entregado. ¡Buen provecho!',
-    cancelled: '❌ Tu pedido ha sido cancelado',
-  };
+export function formatCustomerOrderConfirmationWhatsApp(
+  orderNumber: string,
+  restaurantName: string,
+  total: string,
+  trackingUrl: string,
+  locale = 'es',
+): string {
+  const en = locale === 'en';
+  if (en) {
+    return `✅ *Order confirmed!*
+
+Your order *#${orderNumber}* at *${restaurantName}* has been received.
+💰 Total: ${total}
+
+Track your order: ${trackingUrl}`;
+  }
+  return `✅ *¡Pedido confirmado!*
+
+Tu pedido *#${orderNumber}* en *${restaurantName}* fue recibido.
+💰 Total: ${total}
+
+Sigue tu pedido aquí: ${trackingUrl}`;
+}
+
+export function formatCustomerPaymentConfirmedWhatsApp(
+  orderNumber: string,
+  restaurantName: string,
+  total: string,
+  trackingUrl: string,
+  locale = 'es',
+): string {
+  const en = locale === 'en';
+  if (en) {
+    return `💳 *Payment confirmed!*
+
+Order *#${orderNumber}* at *${restaurantName}* — payment received.
+💰 Total: ${total}
+
+Track your order: ${trackingUrl}`;
+  }
+  return `💳 *¡Pago confirmado!*
+
+Pedido *#${orderNumber}* en *${restaurantName}* — pago recibido.
+💰 Total: ${total}
+
+Sigue tu pedido aquí: ${trackingUrl}`;
+}
+
+export function formatStatusUpdateWhatsApp(orderNumber: string, status: string, restaurantName: string, locale = 'es'): string {
+  const en = locale === 'en';
+  const statusMessages: Record<string, string> = en
+    ? {
+        confirmed: '✅ Your order has been confirmed',
+        preparing: '👨‍🍳 Your order is being prepared',
+        ready: '🔔 Your order is ready!',
+        delivered: '✨ Your order has been delivered. Enjoy!',
+        cancelled: '❌ Your order has been cancelled',
+      }
+    : {
+        confirmed: '✅ Tu pedido ha sido confirmado',
+        preparing: '👨‍🍳 Tu pedido se está preparando',
+        ready: '🔔 ¡Tu pedido está listo!',
+        delivered: '✨ Tu pedido ha sido entregado. ¡Buen provecho!',
+        cancelled: '❌ Tu pedido ha sido cancelado',
+      };
 
   return `${statusMessages[status] ?? `Estado actualizado: ${status}`}
 
-📋 Pedido #${orderNumber}
+📋 ${en ? 'Order' : 'Pedido'} #${orderNumber}
 🏪 ${restaurantName}`;
 }

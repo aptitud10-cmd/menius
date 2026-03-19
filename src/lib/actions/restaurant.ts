@@ -836,9 +836,28 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
     } catch { /* table may not exist yet — safe to ignore */ }
   })();
 
-  if (['confirmed', 'preparing', 'ready', 'delivered', 'cancelled'].includes(status)) {
-    import('@/lib/notifications/order-notifications').then(({ notifyStatusChange }) => {
-      notifyStatusChange({
+  // Fire push notification (local browser, non-blocking)
+  const pushMessages: Record<string, { title: string; body: string }> = {
+    confirmed: { title: 'Pedido confirmado', body: `Tu pedido #${order.order_number} fue confirmado` },
+    preparing: { title: 'Preparando tu pedido', body: `Tu pedido #${order.order_number} se esta preparando` },
+    ready: { title: '¡Tu pedido esta listo!', body: `Pedido #${order.order_number} listo para recoger` },
+    delivered: { title: '¡Buen provecho!', body: `Pedido #${order.order_number} entregado` },
+    cancelled: { title: 'Pedido cancelado', body: `Tu pedido #${order.order_number} fue cancelado` },
+  };
+  const pushMsg = pushMessages[status];
+  if (pushMsg) {
+    const slug = (order as any).restaurants?.slug;
+    import('@/lib/notifications/push').then(({ sendPushToOrder }) => {
+      sendPushToOrder(orderId, { ...pushMsg, url: slug ? `/${slug}/orden/${order.order_number}` : '/' });
+    }).catch(() => {});
+  }
+
+  // Send transactional notification to customer (WhatsApp primary, email fallback)
+  let notificationResult: { channel: string; success: boolean; error?: string } = { channel: 'none', success: false };
+  if (['confirmed', 'ready', 'cancelled'].includes(status)) {
+    try {
+      const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
+      notificationResult = await notifyStatusChange({
         orderNumber: order.order_number,
         restaurantId: order.restaurant_id,
         status,
@@ -846,42 +865,42 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
         customerEmail: order.customer_email || undefined,
         customerPhone: order.customer_phone || undefined,
       });
-    }).catch(() => {});
-
-    const pushMessages: Record<string, { title: string; body: string }> = {
-      confirmed: { title: 'Pedido confirmado', body: `Tu pedido #${order.order_number} fue confirmado` },
-      preparing: { title: 'Preparando tu pedido', body: `Tu pedido #${order.order_number} se esta preparando` },
-      ready: { title: '¡Tu pedido esta listo!', body: `Pedido #${order.order_number} listo para recoger` },
-      delivered: { title: '¡Buen provecho!', body: `Pedido #${order.order_number} entregado` },
-      cancelled: { title: 'Pedido cancelado', body: `Tu pedido #${order.order_number} fue cancelado` },
-    };
-
-    const msg = pushMessages[status];
-    if (msg) {
-      const slug = (order as any).restaurants?.slug;
-      import('@/lib/notifications/push').then(({ sendPushToOrder }) => {
-        sendPushToOrder(orderId, {
-          ...msg,
-          url: slug ? `/${slug}/orden/${order.order_number}` : '/',
-        });
-      }).catch(() => {});
-    }
-
-    if (order.customer_phone) {
-      const restaurantNameForSms = (order as any).restaurants?.name || '';
-      import('@/lib/twilio').then(({ sendOrderSMS }) => {
-        sendOrderSMS({
-          to: order.customer_phone!,
-          orderNumber: order.order_number,
-          status,
-          restaurantName: restaurantNameForSms,
-        });
-      }).catch(() => {});
+    } catch {
+      notificationResult = { channel: 'none', success: false, error: 'internal_error' };
     }
   }
 
   revalidatePath('/app/orders');
-  return { success: true };
+  return { success: true, notification: notificationResult };
+}
+
+export async function sendOrderNotification(orderId: string, eventType: string) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { data: order } = await supabase
+    .from('orders')
+    .select('id, order_number, customer_name, customer_email, customer_phone, restaurant_id')
+    .eq('id', orderId)
+    .eq('restaurant_id', restaurantId)
+    .maybeSingle();
+
+  if (!order) return { error: 'Orden no encontrada' };
+
+  try {
+    const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
+    const notification = await notifyStatusChange({
+      orderNumber: order.order_number,
+      restaurantId: order.restaurant_id,
+      status: eventType,
+      customerName: order.customer_name,
+      customerEmail: order.customer_email || undefined,
+      customerPhone: order.customer_phone || undefined,
+    });
+    return { success: true, notification };
+  } catch {
+    return { error: 'Error al enviar notificación' };
+  }
 }
 
 export async function updateOrderETA(orderId: string, etaMinutes: number) {

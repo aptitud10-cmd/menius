@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
     const sessionParams: any = {
       line_items: lineItems,
       mode: 'payment',
+      payment_method_types: ['card'],
       payment_method_options: {
         oxxo: { expires_after_days: 3 },
       },

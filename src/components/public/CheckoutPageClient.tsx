@@ -11,7 +11,6 @@ import { cn, formatPrice } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, OrderType, PaymentMethod } from '@/types';
 import { trackEvent } from '@/lib/analytics';
-import { WalletButton } from './WalletButton';
 import { playSuccessChime, spawnConfetti } from '@/lib/celebration';
 
 const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl border-2 border-gray-200 bg-gray-100 animate-pulse" />;
@@ -103,12 +102,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [orderNumber, setOrderNumber] = useState('');
   const [orderId, setOrderId] = useState('');
   const [payLoading, setPayLoading] = useState(false);
-  const [paidViaWallet, setPaidViaWallet] = useState(false);
   const confirmRef = useRef<HTMLDivElement>(null);
   const confettiTimer = useRef<ReturnType<typeof setTimeout>>();
   const submittingRef = useRef(false);
-  const walletSubmittingRef = useRef(false);
-
   const [tipPercent, setTipPercent] = useState<number | null>(null);
   const [customTip, setCustomTip] = useState('');
 
@@ -315,72 +311,6 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     playSuccessChime();
     confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
   }, [saveLastOrder, rememberMe, customerName, customerPhone, customerEmail, restaurant, orderNumber, orderType, items, cartTotal, clearCart, confettiTimer]);
-
-  const handleCreateOrderForWallet = useCallback(async (): Promise<{ orderId: string; orderNumber: string } | { error: string }> => {
-    if (walletSubmittingRef.current) return { error: 'Processing...' };
-    if (!customerName.trim() || !customerPhone.trim()) {
-      return { error: locale === 'es' ? 'Nombre y teléfono son requeridos' : 'Name and phone required' };
-    }
-    if (!customerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
-      return { error: locale === 'es' ? 'Email requerido para recibir tu confirmación de pedido' : 'Email required to receive your order confirmation' };
-    }
-    if (orderType === 'delivery' && !deliveryAddress.trim()) {
-      return { error: locale === 'es' ? 'Dirección de entrega requerida' : 'Delivery address required' };
-    }
-    walletSubmittingRef.current = true;
-    try {
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          restaurant_id: restaurant.id,
-          locale,
-          _ot: orderToken,
-          _hp: honeypot,
-          customer_name: customerName.trim(),
-          customer_phone: customerPhone.trim(),
-          customer_email: customerEmail.trim() || undefined,
-          notes: orderNotes.trim(),
-          order_type: orderType,
-          payment_method: 'wallet',
-          delivery_address: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
-          table_name: orderType === 'dine_in' && tableName ? tableName : undefined,
-          promo_code: promoResult?.valid ? promoCode.trim() : undefined,
-          discount_amount: discount,
-          tip_amount: tipAmount > 0 ? tipAmount : undefined,
-          items: items.map((item) => ({
-            product_id: item.product.id,
-            variant_id: item.variant?.id ?? null,
-            qty: item.qty,
-            unit_price:
-              Number(item.product.price) +
-              (item.variant?.price_delta ?? 0) +
-              item.extras.reduce((s, e) => s + Number(e.price), 0) +
-              (item.modifierSelections ?? []).reduce((s, ms) => s + ms.selectedOptions.reduce((ss, o) => ss + Number(o.price_delta), 0), 0),
-            line_total: item.lineTotal,
-            notes: item.notes,
-            extras: item.extras.map((e) => ({ extra_id: e.id, price: Number(e.price) })),
-            modifiers: (item.modifierSelections ?? []).flatMap((ms) =>
-              ms.selectedOptions.map((opt) => ({
-                group_id: ms.group.id,
-                group_name: ms.group.name,
-                option_id: opt.id,
-                option_name: opt.name,
-                price_delta: Number(opt.price_delta),
-              }))
-            ),
-          })),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) return { error: data.error || 'Error creando orden' };
-      return { orderId: data.order_id, orderNumber: data.order_number };
-    } catch {
-      return { error: 'Error de conexión' };
-    } finally {
-      walletSubmittingRef.current = false;
-    }
-  }, [customerName, customerPhone, customerEmail, orderNotes, orderType, deliveryAddress, promoResult, promoCode, discount, tipAmount, items, restaurant.id, locale]);
 
   const handlePayOnline = async () => {
     setPayLoading(true);
@@ -737,7 +667,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 {orderError}
               </div>
             )}
-            {paymentMethod === 'online' && orderId && !paidViaWallet && !restaurant.id.startsWith('demo') && (
+            {paymentMethod === 'online' && orderId && !restaurant.id.startsWith('demo') && (
               <button onClick={handlePayOnline} disabled={payLoading} className="w-full py-3.5 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors">
                 {payLoading ? t.redirecting : t.payNow}
               </button>
@@ -1100,47 +1030,6 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             </motion.div>
           )}
         </AnimatePresence>
-        {paymentMethod === 'online' && (
-          <WalletButton
-            amount={finalTotal}
-            currency={restaurant.currency ?? 'MXN'}
-            label={restaurant.name}
-            disabled={submitting || items.length === 0 || !customerName.trim() || !customerPhone.trim()}
-            onCreateOrder={handleCreateOrderForWallet}
-            onSuccess={(orderId, orderNumber) => {
-              setOrderId(orderId);
-              setOrderNumber(orderNumber);
-              setPaidViaWallet(true);
-              saveLastOrder();
-              try {
-                if (rememberMe) {
-                  localStorage.setItem('menius_guest_info', JSON.stringify({
-                    name: customerName.trim(),
-                    phone: customerPhone.trim(),
-                    email: customerEmail.trim(),
-                  }));
-                } else {
-                  localStorage.removeItem('menius_guest_info');
-                }
-              } catch {}
-              trackEvent('order_placed', {
-                restaurant_id: restaurant.id,
-                restaurant_slug: restaurant.slug,
-                order_number: orderNumber,
-                order_type: orderType,
-                payment_method: 'wallet',
-                item_count: items.length,
-                total: cartTotal,
-                currency: restaurant.currency,
-              });
-              clearCart();
-              playSuccessChime();
-              setStep('confirmation');
-              confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
-            }}
-            onError={(msg) => setOrderError(msg)}
-          />
-        )}
         <div className="max-w-lg mx-auto">
           <button
             onClick={handleSubmitOrder}
