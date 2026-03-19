@@ -421,9 +421,9 @@ export function buildStatusUpdateEmail(params: {
     },
     delivered: {
       icon: '🎉',
-      titleEn: 'Order delivered!',   titleEs: '¡Pedido entregado!',
-      msgEn:   'Enjoy your meal! We hope everything was perfect.',
-      msgEs:   '¡Buen provecho! Esperamos que todo haya estado perfecto.',
+      titleEn: 'Order delivered — enjoy!', titleEs: '¡Pedido entregado — buen provecho!',
+      msgEn:   'We hope everything was perfect. It would mean a lot to us if you shared your experience!',
+      msgEs:   'Esperamos que todo haya estado perfecto. ¡Nos encantaría saber qué te pareció!',
       color: '#059669',
     },
     cancelled: {
@@ -455,11 +455,22 @@ export function buildStatusUpdateEmail(params: {
     </tr>
   </table>`;
 
+  const reviewCta = status === 'delivered'
+    ? `
+  <div style="margin:24px 0 0;text-align:center;">
+    <p style="margin:0 0 12px;font-size:13px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+      ${en ? '⭐ Rate your experience' : '⭐ Califica tu experiencia'}
+    </p>
+    ${ctaButton(trackingUrl, en ? '🌟 Leave a review' : '🌟 Dejar una reseña', '#f59e0b')}
+  </div>`
+    : '';
+
   const body = `
   <p style="margin:0 0 24px;font-size:15px;color:#374151;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
     ${en ? `Hi <strong>${customerName}</strong>` : `Hola <strong>${customerName}</strong>`} — ${msg}
   </p>
-  ${ctaButton(trackingUrl, en ? '📍 View my order' : '📍 Ver mi pedido', s.color)}`;
+  ${status !== 'delivered' ? ctaButton(trackingUrl, en ? '📍 View my order' : '📍 Ver mi pedido', s.color) : ''}
+  ${reviewCta}`;
 
   const footer = `${en ? 'Sent by' : 'Enviado por'} <strong style="color:#111827;">${restaurantName}</strong> ${en ? 'via MENIUS.' : 'vía MENIUS.'}`;
 

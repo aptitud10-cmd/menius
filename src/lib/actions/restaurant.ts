@@ -854,7 +854,7 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
 
   // Send transactional notification to customer (WhatsApp primary, email fallback)
   let notificationResult: { channel: string; success: boolean; error?: string } = { channel: 'none', success: false };
-  if (['confirmed', 'ready', 'cancelled'].includes(status)) {
+  if (['confirmed', 'ready', 'cancelled', 'delivered'].includes(status)) {
     try {
       const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
       notificationResult = await notifyStatusChange({

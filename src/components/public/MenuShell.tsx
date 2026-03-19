@@ -952,30 +952,46 @@ export function MenuShell({
                 )}
               </h3>
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
-                {recentReviews.map((review) => (
-                  <div
-                    key={review.id}
-                    className="flex-shrink-0 w-[260px] snap-start bg-white rounded-xl border border-gray-100 p-4"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600">
-                        {review.customer_name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">{review.customer_name}</p>
-                        <div className="flex items-center gap-0.5">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star
-                              key={s}
-                              className={cn('w-3 h-3', s <= review.rating ? 'text-amber-500 fill-amber-500' : 'text-gray-200')}
-                            />
-                          ))}
+                {recentReviews.map((review) => {
+                  const reviewDate = new Date(review.created_at);
+                  const diffDays = Math.floor((Date.now() - reviewDate.getTime()) / (1000 * 60 * 60 * 24));
+                  const relativeDate = diffDays === 0
+                    ? (locale === 'en' ? 'Today' : 'Hoy')
+                    : diffDays === 1
+                    ? (locale === 'en' ? 'Yesterday' : 'Ayer')
+                    : diffDays < 7
+                    ? (locale === 'en' ? `${diffDays} days ago` : `Hace ${diffDays} días`)
+                    : diffDays < 30
+                    ? (locale === 'en' ? `${Math.floor(diffDays / 7)}w ago` : `Hace ${Math.floor(diffDays / 7)} sem`)
+                    : reviewDate.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-MX', { month: 'short', year: 'numeric' });
+                  return (
+                    <div
+                      key={review.id}
+                      className="flex-shrink-0 w-[260px] snap-start bg-white rounded-xl border border-gray-100 p-4 shadow-sm"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700 flex-shrink-0">
+                          {review.customer_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-900 truncate">{review.customer_name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-0.5">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star
+                                  key={s}
+                                  className={cn('w-3 h-3', s <= review.rating ? 'text-amber-500 fill-amber-500' : 'text-gray-200')}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-[10px] text-gray-400">{relativeDate}</span>
+                          </div>
                         </div>
                       </div>
+                      <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">{review.comment}</p>
                     </div>
-                    <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">{review.comment}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           )}

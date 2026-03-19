@@ -130,8 +130,15 @@ Pedido *#${orderNumber}* en *${restaurantName}* — pago recibido.
 Sigue tu pedido aquí: ${trackingUrl}`;
 }
 
-export function formatStatusUpdateWhatsApp(orderNumber: string, status: string, restaurantName: string, locale = 'es'): string {
+export function formatStatusUpdateWhatsApp(orderNumber: string, status: string, restaurantName: string, locale = 'es', trackingUrl?: string): string {
   const en = locale === 'en';
+
+  if (status === 'delivered' && trackingUrl) {
+    return en
+      ? `✨ *Order #${orderNumber} delivered!*\n\n🏪 ${restaurantName}\n\nEnjoy your meal! We'd love to hear what you think 🌟\n👉 Rate your experience: ${trackingUrl}`
+      : `✨ *¡Pedido #${orderNumber} entregado!*\n\n🏪 ${restaurantName}\n\n¡Buen provecho! Nos encantaría saber qué te pareció 🌟\n👉 Deja tu reseña aquí: ${trackingUrl}`;
+  }
+
   const statusMessages: Record<string, string> = en
     ? {
         confirmed: '✅ Your order has been confirmed',
@@ -148,8 +155,9 @@ export function formatStatusUpdateWhatsApp(orderNumber: string, status: string, 
         cancelled: '❌ Tu pedido ha sido cancelado',
       };
 
-  return `${statusMessages[status] ?? `Estado actualizado: ${status}`}
-
-📋 ${en ? 'Order' : 'Pedido'} #${orderNumber}
-🏪 ${restaurantName}`;
+  const base = `${statusMessages[status] ?? `Estado actualizado: ${status}`}\n\n📋 ${en ? 'Order' : 'Pedido'} #${orderNumber}\n🏪 ${restaurantName}`;
+  if (trackingUrl && ['confirmed', 'ready'].includes(status)) {
+    return `${base}\n\n${en ? 'Track your order' : 'Sigue tu pedido'}: ${trackingUrl}`;
+  }
+  return base;
 }

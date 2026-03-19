@@ -72,7 +72,11 @@ export function formatStatusUpdateSMS(
   orderNumber: string,
   status: string,
   restaurantName: string,
+  trackingUrl?: string,
 ): string {
+  if (status === 'delivered' && trackingUrl) {
+    return `✨ Order #${orderNumber} delivered at ${restaurantName}. Enjoy! Rate your experience: ${trackingUrl}`;
+  }
   const messages: Record<string, string> = {
     confirmed: `✅ Order #${orderNumber} confirmed at ${restaurantName}.`,
     preparing: `👨‍🍳 Order #${orderNumber} is being prepared at ${restaurantName}.`,
@@ -80,7 +84,11 @@ export function formatStatusUpdateSMS(
     delivered: `✨ Order #${orderNumber} delivered. Enjoy your meal!`,
     cancelled: `❌ Order #${orderNumber} was cancelled by ${restaurantName}.`,
   };
-  return messages[status] ?? `Order #${orderNumber} update from ${restaurantName}.`;
+  const base = messages[status] ?? `Order #${orderNumber} update from ${restaurantName}.`;
+  if (trackingUrl && ['confirmed', 'ready'].includes(status)) {
+    return `${base} Track: ${trackingUrl}`;
+  }
+  return base;
 }
 
 export function formatOrderConfirmationSMS(

@@ -275,7 +275,7 @@ export async function notifyStatusChange(params: {
 
       if (primaryChannel === 'sms') {
         // US/Canada: SMS primary
-        const text = formatStatusUpdateSMS(orderNumber, status, restaurant.name);
+        const text = formatStatusUpdateSMS(orderNumber, status, restaurant.name, trackingUrl);
         const smsResult = await sendSMS({ to: customerPhone, text });
         if (smsResult.success) {
           if (customerEmail) {
@@ -293,7 +293,7 @@ export async function notifyStatusChange(params: {
         }
       } else {
         // LATAM + rest of world: WhatsApp primary
-        const text = formatStatusUpdateWhatsApp(orderNumber, status, restaurant.name, rLocale);
+        const text = formatStatusUpdateWhatsApp(orderNumber, status, restaurant.name, rLocale, trackingUrl);
         const waResult = await sendWhatsApp({ to: customerPhone, text });
         if (waResult.success) {
           if (customerEmail) {
