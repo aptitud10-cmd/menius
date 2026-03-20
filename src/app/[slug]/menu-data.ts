@@ -83,7 +83,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
           product_variants ( id, name, price_delta, sort_order ),
           product_extras   ( id, name, price, sort_order ),
           modifier_groups  (
-            id, name, is_required, min_select, max_select, sort_order,
+            id, name, is_required, min_select, max_select, sort_order, display_type,
             modifier_options ( id, name, price_delta, sort_order )
           )
         `)
