@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { revalidatePublicMenuForRestaurant } from '@/lib/revalidate-public-menu';
 
 const ALLOWED_PATCH_FIELDS = ['in_stock', 'stock_qty', 'low_stock_threshold', 'track_inventory'];
 
@@ -32,6 +33,7 @@ export async function PATCH(
       .eq('restaurant_id', tenant.restaurantId);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    await revalidatePublicMenuForRestaurant(supabase, tenant.restaurantId);
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });

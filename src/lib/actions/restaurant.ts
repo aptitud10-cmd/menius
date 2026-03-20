@@ -1,7 +1,8 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { revalidatePath, revalidateTag } from 'next/cache';
+import { revalidatePath } from 'next/cache';
+import { revalidatePublicMenu } from '@/lib/revalidate-public-menu';
 import { createClient } from '@/lib/supabase/server';
 import { sanitizeText, sanitizeMultiline } from '@/lib/sanitize';
 import { captureError } from '@/lib/error-reporting';
@@ -164,7 +165,7 @@ export async function reseedMyRestaurant() {
   await seedRestaurant(supabase, restaurantId, restaurant.slug, appUrl, locale);
 
   revalidatePath('/app');
-  revalidatePath(`/${restaurant.slug}`);
+  revalidatePublicMenu(restaurant.slug);
   return { success: true };
 }
 
@@ -219,13 +220,6 @@ async function getAuthenticatedRestaurant() {
     .maybeSingle();
 
   return { supabase, restaurantId: profile.default_restaurant_id, restaurantSlug: rest?.slug ?? '', error: null };
-}
-
-function revalidatePublicMenu(slug: string) {
-  if (!slug) return;
-  revalidatePath(`/${slug}`);
-  revalidatePath(`/${slug}/[table]`, 'layout');
-  revalidateTag('menu-data');
 }
 
 export async function updateCategory(id: string, data: CategoryInput) {

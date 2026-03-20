@@ -12,8 +12,9 @@ const DeliveryMap = dynamic(
   { ssr: false, loading: () => <div className="w-full h-48 rounded-2xl bg-gray-100 animate-pulse" /> }
 );
 
-function getT(locale?: string) {
+function getT(locale?: string, orderType?: string) {
   const en = locale === 'en';
+  const isDelivery = orderType === 'delivery';
   return {
     en,
     loading: en ? 'Loading your order…' : 'Cargando tu pedido…',
@@ -65,7 +66,7 @@ function getT(locale?: string) {
       pending:   { label: en ? 'Received'   : 'Recibido',   desc: en ? 'Your order was received'                  : 'Tu pedido fue recibido' },
       confirmed: { label: en ? 'Confirmed'  : 'Confirmado', desc: en ? 'The restaurant confirmed your order'      : 'El restaurante confirmó tu pedido' },
       preparing: { label: en ? 'Preparing'  : 'Preparando', desc: en ? 'Your order is being prepared'             : 'Tu pedido se está preparando' },
-      ready:     { label: en ? 'Ready'      : 'Listo',      desc: en ? 'Your order is ready for pickup!'          : '¡Tu pedido está listo para recoger!' },
+      ready:     { label: en ? 'Ready'      : 'Listo',      desc: isDelivery ? (en ? 'Your order is on its way!' : '¡Tu pedido está en camino!') : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!') },
       delivered: { label: en ? 'Delivered'  : 'Entregado',  desc: en ? 'Order delivered. Enjoy your meal!'        : 'Pedido entregado. ¡Buen provecho!' },
     },
     orderTypes: {
@@ -222,7 +223,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const currentStepIndex = STEP_KEYS.indexOf(order.status);
   const isComplete = order.status === 'delivered';
   const currentStepStyle = STEP_STYLES[order.status];
-  const currentStepText = t.steps[order.status as keyof typeof t.steps];
+  const tWithType = getT(locale, order.order_type);
+  const currentStepText = tWithType.steps[order.status as keyof typeof tWithType.steps];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -321,7 +323,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                       i <= currentStepIndex ? 'text-brand-600' : 'text-gray-300'
                     )}
                   >
-                    {t.steps[key as keyof typeof t.steps]?.label ?? key}
+                    {tWithType.steps[key as keyof typeof tWithType.steps]?.label ?? key}
                   </span>
                 ))}
               </div>
@@ -451,7 +453,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               <img
                 src={(order as any).delivery_photo_url}
                 alt="Delivery proof"
-                className="w-full rounded-2xl object-cover border border-gray-100 shadow-sm max-h-56"
+                className="w-full rounded-2xl object-contain bg-gray-50 border border-gray-100 shadow-sm max-h-72"
               />
             </a>
           </div>

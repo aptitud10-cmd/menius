@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { revalidatePublicMenuForRestaurant } from '@/lib/revalidate-public-menu';
 
 export async function GET() {
   try {
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+    await revalidatePublicMenuForRestaurant(supabase, tenant.restaurantId);
     return NextResponse.json({ success: true });
   } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
