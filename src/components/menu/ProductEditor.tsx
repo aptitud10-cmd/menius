@@ -404,27 +404,40 @@ export function ProductEditor({
             >
               {t.general_cancel}
             </button>
-            {slug && (
-              <a
-                href={`/r/${slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  'flex items-center gap-1.5 transition-all',
-                  showLiveLink
-                    ? 'dash-btn-primary bg-emerald-500 hover:bg-emerald-600 animate-pulse'
-                    : 'dash-btn-secondary',
-                )}
-                title={dashLocale === 'en' ? 'View live menu' : 'Ver menú en vivo'}
-                onClick={() => setShowLiveLink(false)}
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span className="hidden sm:inline">
-                  {showLiveLink
-                    ? (dashLocale === 'en' ? 'View live' : 'Ver en vivo')
-                    : (dashLocale === 'en' ? 'View menu' : 'Ver menú')}
-                </span>
-              </a>
+            {isEditing && (
+              slug ? (
+                <a
+                  href={`/r/${slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    'flex items-center gap-1.5 transition-all',
+                    showLiveLink
+                      ? 'dash-btn-primary bg-emerald-500 hover:bg-emerald-600 animate-pulse'
+                      : 'dash-btn-secondary',
+                  )}
+                  title={dashLocale === 'en' ? 'View live menu' : 'Ver menú en vivo'}
+                  onClick={() => setShowLiveLink(false)}
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span className="hidden sm:inline">
+                    {showLiveLink
+                      ? (dashLocale === 'en' ? 'View live' : 'Ver en vivo')
+                      : (dashLocale === 'en' ? 'View menu' : 'Ver menú')}
+                  </span>
+                </a>
+              ) : (
+                <button
+                  disabled
+                  className="dash-btn-secondary opacity-40 cursor-not-allowed"
+                  title={dashLocale === 'en' ? 'Menu URL not configured' : 'URL del menú no configurada'}
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span className="hidden sm:inline">
+                    {dashLocale === 'en' ? 'View menu' : 'Ver menú'}
+                  </span>
+                </button>
+              )
             )}
             <button
               onClick={handleSubmit}

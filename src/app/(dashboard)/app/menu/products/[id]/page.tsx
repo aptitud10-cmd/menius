@@ -10,7 +10,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     await Promise.all([
       supabase
         .from('products')
-        .select('*, product_variants(*), product_extras(*)')
+        .select('*, product_variants(*), product_extras(*), restaurants(slug)')
         .eq('id', id)
         .eq('restaurant_id', rid)
         .maybeSingle(),
@@ -40,7 +40,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
       currency={restaurant?.currency || 'USD'}
       defaultLocale={restaurant?.locale || 'es'}
       availableLocales={restaurant?.available_locales || [restaurant?.locale || 'es']}
-      slug={restaurant?.slug ?? undefined}
+      slug={restaurant?.slug ?? (product as any)?.restaurants?.slug ?? undefined}
     />
   );
 }
