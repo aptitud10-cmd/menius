@@ -171,6 +171,7 @@ function SortableGroup({
   onDeleteOption,
   onStartEditOption,
   onCancelEditOption,
+  onOptionDragEnd,
   setGroupForm,
   setOptionForm,
 }: {
