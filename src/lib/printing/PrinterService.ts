@@ -18,6 +18,7 @@ import type { Order, OrderItem } from '@/types';
 import type { PrintJob, PrintState, ReceiptData, ReceiptLineItem } from './types';
 import { buildReceiptHTML, buildKitchenHTML } from './receipt-formatter';
 import { PrinterConfig } from './PrinterConfig';
+import { isMeniusNativePrintAvailable, nativePrintReceipt } from './native-bridge';
 
 const MAX_ATTEMPTS = 3;
 const PRINT_TIMEOUT_MS = 25_000;
@@ -239,6 +240,17 @@ class PrinterServiceImpl {
     try {
       const receiptData = mapOrderToReceipt(order, etaMinutes, restaurantName, currency, locale);
       const cfg = PrinterConfig.config;
+
+      // Android Counter app: native Bluetooth ESC/POS (no browser print dialog)
+      if (isMeniusNativePrintAvailable()) {
+        if (cfg.receiptEnabled) nativePrintReceipt(receiptData, 'receipt');
+        if (cfg.kitchenEnabled) nativePrintReceipt(receiptData, 'kitchen');
+        if (!cfg.receiptEnabled && !cfg.kitchenEnabled) {
+          nativePrintReceipt(receiptData, 'receipt');
+        }
+        return this.transition(current, 'printed');
+      }
+
       // Print receipt and/or kitchen ticket based on device config
       if (cfg.receiptEnabled) await executePrint(buildReceiptHTML(receiptData));
       if (cfg.kitchenEnabled) await executePrint(buildKitchenHTML(receiptData));

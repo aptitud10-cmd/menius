@@ -73,3 +73,7 @@ vercel --prod
 ```
 
 O push a GitHub con Vercel conectado.
+
+## App Android — Counter (opcional)
+
+Proyecto en **`apps/menius-counter-android/`**: WebView con login MENIUS y puente nativo `MeniusAndroid` para impresión térmica (stub → ESC/POS + Bluetooth). Ver `apps/menius-counter-android/README.md` y `docs/android-counter-app.md`.

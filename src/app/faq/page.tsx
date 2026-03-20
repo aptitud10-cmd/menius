@@ -50,7 +50,7 @@ export default function FaqPage() {
   };
 
   return (
-    <div className="min-h-screen landing-bg overflow-x-hidden relative noise-overlay">
+    <div className="min-h-screen landing-bg relative noise-overlay">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
       <LandingNav locale={locale} />
 

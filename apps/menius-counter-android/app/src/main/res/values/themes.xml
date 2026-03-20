@@ -1,0 +1,9 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.MeniusCounter" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#05C8A7</item>
+        <item name="colorPrimaryVariant">#049680</item>
+        <item name="android:statusBarColor">#049680</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
+    </style>
+</resources>

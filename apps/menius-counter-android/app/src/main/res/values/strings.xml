@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">MENIUS Counter</string>
+    <string name="printer_settings_title">Printer</string>
+    <string name="menu_printer">Printer</string>
+    <string name="printer_none_selected">No printer selected. Pair your thermal printer in Android Settings → Bluetooth, then tap “Choose paired printer”.</string>
+    <string name="printer_selected">Printer: %1$s</string>
+    <string name="paper_width_status">Paper width: %1$d mm</string>
+    <string name="pick_bonded_printer">Choose paired printer</string>
+    <string name="pick_printer_title">Paired Bluetooth devices</string>
+    <string name="paper_58mm">58 mm</string>
+    <string name="paper_80mm">80 mm</string>
+    <string name="test_print">Test print</string>
+    <string name="printer_saved">Printer saved</string>
+    <string name="printer_pick_first">Select a printer first</string>
+    <string name="bluetooth_off">Turn on Bluetooth</string>
+    <string name="no_paired_printers">No paired devices. Pair the printer in system Bluetooth settings.</string>
+    <string name="test_print_ok">Test sent</string>
+    <string name="test_print_fail">Failed: %1$s</string>
+</resources>

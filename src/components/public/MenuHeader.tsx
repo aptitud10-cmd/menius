@@ -32,7 +32,7 @@ function isRestaurantOpen(hours?: Restaurant['operating_hours']): boolean {
   return t >= dayHours.open && t <= dayHours.close;
 }
 
-export const HEADER_HEIGHT = 56;
+export const HEADER_HEIGHT = 48;
 
 interface MenuHeaderProps {
   restaurant: Restaurant;
@@ -86,7 +86,7 @@ export const MenuHeader = memo(function MenuHeader({
         isScrolled ? 'border-gray-200 shadow-sm' : 'border-gray-100'
       )}
     >
-      <div className="max-w-[1440px] mx-auto px-4 lg:px-6 flex items-center gap-3 h-14">
+      <div className="max-w-[1440px] mx-auto px-3 lg:px-6 flex items-center gap-2 h-12">
         {/* Back button (demo/external) */}
         {backUrl && (
           <Link href={backUrl} className="flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2 rounded-lg active:bg-gray-100 transition-colors" aria-label="Back">
@@ -99,7 +99,7 @@ export const MenuHeader = memo(function MenuHeader({
           'flex items-center gap-2.5 flex-shrink-0 min-w-0',
           !showNameInHeader && 'lg:flex'
         )}>
-          <div className="w-8 h-8 lg:w-10 lg:h-10 flex-shrink-0">
+          <div className="w-7 h-7 lg:w-9 lg:h-9 flex-shrink-0">
             {restaurant.logo_url ? (
               <div className="relative w-full h-full rounded-lg overflow-hidden bg-gray-100">
                 <Image
@@ -116,7 +116,7 @@ export const MenuHeader = memo(function MenuHeader({
               </div>
             )}
           </div>
-          <span className="font-bold text-gray-900 truncate max-w-[180px] lg:max-w-[260px] text-[15px] lg:text-base">
+          <span className="font-bold text-gray-900 truncate max-w-[160px] lg:max-w-[260px] text-[14px] lg:text-base">
             {restaurant.name}
           </span>
         </div>
@@ -181,7 +181,7 @@ export const MenuHeader = memo(function MenuHeader({
           {/* My orders link */}
           <Link
             href={`/${restaurant.slug}/mis-pedidos`}
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+            className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
             aria-label="Mis pedidos"
             title="Ver mis pedidos anteriores"
           >
@@ -189,7 +189,7 @@ export const MenuHeader = memo(function MenuHeader({
           </Link>
 
           {/* Mobile search toggle */}
-          <button onClick={onToggleSearch} className="md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors" aria-label="Search">
+          <button onClick={onToggleSearch} className="md:hidden min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors" aria-label="Search">
             <Search className="w-4 h-4 text-gray-500" />
           </button>
 
@@ -197,7 +197,7 @@ export const MenuHeader = memo(function MenuHeader({
           <button
             onClick={() => setOpen(true)}
             className={cn(
-              'relative flex items-center gap-2 px-3 py-2 rounded-lg transition-colors lg:hidden',
+              'relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-colors lg:hidden',
               itemCount > 0 ? 'bg-emerald-500 text-white' : 'hover:bg-gray-100'
             )}
           >

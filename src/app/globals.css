@@ -60,6 +60,31 @@ body {
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* FAQ / landing: horizontal category tabs — must scroll on mobile (touch + thin bar) */
+.faq-category-tabs {
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x pan-y;
+  scroll-padding-inline: 0.5rem 3rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+.faq-category-tabs::-webkit-scrollbar {
+  height: 5px;
+}
+.faq-category-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+.faq-category-tabs::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+}
+.faq-category-tabs::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
 /* Dynamic viewport height (modern mobile browsers) */
 .min-h-screen-safe { min-height: 100vh; min-height: 100dvh; }
 .h-screen-safe { height: 100vh; height: 100dvh; }

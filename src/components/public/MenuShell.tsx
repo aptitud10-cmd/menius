@@ -336,13 +336,47 @@ export function MenuShell({
 
   // Suggested upsell: featured products not already in the cart, max 5
   const cartProductIds = useCartStore((s) => new Set(s.items.map((i) => i.product.id)));
-  const suggestedProducts = useMemo(
-    () => products
-      .filter((p) => p.is_featured && p.in_stock !== false && !cartProductIds.has(p.id))
-      .slice(0, 5),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [products, cartProductIds],
-  );
+  // Smart cross-selling: suggest complementary items based on the main product's category type.
+  // Rule-based pairing (drinks/sides for mains, etc.) without API latency.
+  const suggestedProducts = useMemo(() => {
+    const mainProduct = customization?.product;
+    if (!mainProduct) return [];
+
+    const classify = (catName: string, productName: string): 'drink' | 'dessert' | 'side' | 'main' => {
+      const text = `${catName} ${productName}`.toLowerCase();
+      if (/bebida|drink|refresco|soda|agua\b|jugo|juice|cerveza|beer|vino|wine|shake|batido|caf[eé]|coffee|t[eé]\b|smoothie|limon/i.test(text)) return 'drink';
+      if (/postre|dessert|helado|ice cream|pastel|cake|brownie|dulce|sweet|cookie|tiramisú|flan/i.test(text)) return 'dessert';
+      if (/acompañ|side|ensalada|salad|sopa|soup|papa|fries|chips|guarnición|arroz|rice/i.test(text)) return 'side';
+      return 'main';
+    };
+
+    const mainCat = categories.find((c) => c.id === mainProduct.category_id);
+    const mainType = classify(mainCat?.name ?? '', mainProduct.name);
+
+    // Priority order of desired companion types
+    const wantOrder: Array<'drink' | 'dessert' | 'side' | 'main'> = (() => {
+      if (mainType === 'main')    return ['drink', 'side', 'dessert'];
+      if (mainType === 'side')    return ['drink', 'main'];
+      if (mainType === 'dessert') return ['drink'];
+      /* drink */                 return ['main', 'side', 'dessert'];
+    })();
+
+    return products
+      .filter((p) => p.id !== mainProduct.id && p.in_stock !== false && !cartProductIds.has(p.id))
+      .map((p) => {
+        const cat = categories.find((c) => c.id === p.category_id);
+        const pType = classify(cat?.name ?? '', p.name);
+        const typeRank = wantOrder.indexOf(pType); // -1 = irrelevant
+        if (typeRank === -1) return null;
+        // Lower score = shown first; featured within each rank group gets priority
+        const score = typeRank * 10 + (p.is_featured ? 0 : 1);
+        return { product: p, score };
+      })
+      .filter((x): x is { product: Product; score: number } => x !== null)
+      .sort((a, b) => a.score - b.score)
+      .slice(0, 4)
+      .map(({ product }) => product);
+  }, [customization?.product, products, categories, cartProductIds]);
 
   const itemsByCategory = useMemo(() => {
     const regular = categories
@@ -1227,18 +1261,18 @@ export function MenuShell({
               transition={{ type: 'spring', damping: 32, stiffness: 380 }}
             >
               {/* Drag handle */}
-              <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                <div className="w-10 h-1 rounded-full bg-gray-200" />
+              <div className="flex justify-center pt-2 pb-0.5 flex-shrink-0">
+                <div className="w-8 h-1 rounded-full bg-gray-200" />
               </div>
               {/* Header */}
-              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
-                <h2 className="text-base font-bold text-gray-900">{t.yourCart}</h2>
+              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 flex-shrink-0">
+                <h2 className="text-sm font-bold text-gray-900">{t.yourCart}</h2>
                 <button
                   onClick={() => setOpen(false)}
-                  className="p-2 -mr-2 rounded-xl active:bg-gray-100 transition-colors"
+                  className="p-1.5 -mr-1.5 rounded-xl active:bg-gray-100 transition-colors"
                   aria-label="Close"
                 >
-                  <X className="w-5 h-5 text-gray-500" />
+                  <X className="w-4 h-4 text-gray-500" />
                 </button>
               </div>
               <div className="flex-1 overflow-hidden min-h-0">
