@@ -209,7 +209,11 @@ export function CustomizationSheet({
       if (isSelected) {
         return { ...prev, [group.id]: current.filter(o => o.id !== option.id) };
       }
-      if (current.length >= group.max_select) return prev;
+      if (current.length >= group.max_select) {
+        // When max is 1, swap instead of block (radio-like behaviour)
+        if (group.max_select === 1) return { ...prev, [group.id]: [option] };
+        return prev;
+      }
       return { ...prev, [group.id]: [...current, option] };
     });
   };
@@ -309,7 +313,8 @@ export function CustomizationSheet({
 
       {activeGroups.map((group) => {
         const selected = selections[group.id] ?? [];
-        const atMax = group.selection_type === 'multi' && selected.length >= group.max_select;
+        // atMax only blocks when max > 1; for max_select=1 we swap instead of block
+        const atMax = group.selection_type === 'multi' && group.max_select > 1 && selected.length >= group.max_select;
         return (
           <div key={group.id} className="px-5 pt-5">
             <div className="flex items-center gap-2 mb-3">
