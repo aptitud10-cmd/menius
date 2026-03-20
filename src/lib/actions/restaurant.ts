@@ -680,6 +680,47 @@ export async function deleteModifierOption(id: string) {
   return { success: true };
 }
 
+export async function reorderModifierGroups(productId: string, orderedIds: string[]) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { data: product } = await supabase
+    .from('products')
+    .select('id')
+    .eq('id', productId)
+    .eq('restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!product) return { error: 'No encontrado' };
+
+  await Promise.all(
+    orderedIds.map((id, i) =>
+      supabase.from('modifier_groups').update({ sort_order: i }).eq('id', id).eq('product_id', productId)
+    )
+  );
+  revalidatePath('/app/menu/products');
+  return { success: true };
+}
+
+export async function reorderModifierOptions(groupId: string, orderedIds: string[]) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { data: owned } = await supabase
+    .from('modifier_groups')
+    .select('id, products!inner(restaurant_id)')
+    .eq('id', groupId)
+    .eq('products.restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!owned) return { error: 'No encontrado' };
+
+  await Promise.all(
+    orderedIds.map((id, i) =>
+      supabase.from('modifier_options').update({ sort_order: i }).eq('id', id).eq('group_id', groupId)
+    )
+  );
+  return { success: true };
+}
+
 // ---- Tables ----
 export async function createTable(data: TableInput) {
   const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();

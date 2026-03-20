@@ -1,10 +1,28 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Pencil, Trash2, Layers, ChevronRight, Ruler, UtensilsCrossed, Flame, Salad, Settings2, X, LayoutList, LayoutGrid } from 'lucide-react';
+import { Plus, Pencil, Trash2, Layers, ChevronRight, Ruler, UtensilsCrossed, Flame, Salad, Settings2, X, LayoutList, LayoutGrid, GripVertical } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   createModifierGroup, updateModifierGroup, deleteModifierGroup,
   createModifierOption, updateModifierOption, deleteModifierOption,
+  reorderModifierGroups, reorderModifierOptions,
 } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
@@ -38,6 +56,315 @@ interface ModifierGroupsEditorProps {
   currency?: string;
 }
 
+// ── Sortable option row ──────────────────────────────────────────────────────
+function SortableOption({
+  opt,
+  groupId,
+  editOptionId,
+  optionForm,
+  loading,
+  t,
+  lang,
+  currSymbol,
+  onEdit,
+  onCancelEdit,
+  onUpdate,
+  onDelete,
+  setOptionForm,
+}: {
+  opt: ModifierOption;
+  groupId: string;
+  editOptionId: string | null;
+  optionForm: { name: string; price_delta: string };
+  loading: boolean;
+  t: ReturnType<typeof getDashboardTranslations>;
+  lang: 'es' | 'en';
+  currSymbol: string;
+  onEdit: (opt: ModifierOption) => void;
+  onCancelEdit: () => void;
+  onUpdate: (opt: ModifierOption, groupId: string) => void;
+  onDelete: (optionId: string, groupId: string) => void;
+  setOptionForm: (f: { name: string; price_delta: string }) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: opt.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  const isEditing = editOptionId === opt.id;
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-2 bg-gray-50 rounded-lg px-2 py-2">
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing p-1 text-gray-300 hover:text-gray-500 flex-shrink-0 touch-none"
+        tabIndex={-1}
+        aria-label="Drag to reorder"
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+
+      {isEditing ? (
+        <>
+          <input
+            value={optionForm.name}
+            onChange={e => setOptionForm({ ...optionForm, name: e.target.value })}
+            placeholder={t.editor_name}
+            className="flex-1 text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+          />
+          <div className="relative w-28">
+            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{currSymbol}</span>
+            <input
+              value={optionForm.price_delta}
+              onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })}
+              placeholder="0.00"
+              type="number"
+              step="0.01"
+              className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+            />
+          </div>
+          <button onClick={() => onUpdate(opt, groupId)} disabled={loading} className="text-xs font-medium text-emerald-600 disabled:opacity-50">{t.modifiers_save}</button>
+          <button onClick={onCancelEdit} className="text-xs text-gray-500">{t.general_cancel}</button>
+        </>
+      ) : (
+        <>
+          <span className="flex-1 text-sm text-gray-700 font-medium">{opt.name}</span>
+          <span className={cn('text-sm font-mono px-2 py-0.5 rounded', Number(opt.price_delta) !== 0 ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-400')}>
+            {Number(opt.price_delta) > 0 ? `+${currSymbol}${Number(opt.price_delta).toFixed(2)}` : Number(opt.price_delta) < 0 ? `-${currSymbol}${Math.abs(Number(opt.price_delta)).toFixed(2)}` : t.modifiers_base}
+          </span>
+          <button onClick={() => onEdit(opt)} className="p-1 rounded hover:bg-gray-100 text-gray-400"><Pencil className="w-3.5 h-3.5" /></button>
+          <button onClick={() => onDelete(opt.id, groupId)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Sortable group row ───────────────────────────────────────────────────────
+function SortableGroup({
+  group,
+  isExpanded,
+  isEditing,
+  editGroupId,
+  groupForm,
+  addingOptionFor,
+  optionForm,
+  editOptionId,
+  loading,
+  t,
+  lang,
+  currSymbol,
+  onToggleExpand,
+  onStartEditGroup,
+  onUpdateGroup,
+  onCancelEditGroup,
+  onDeleteGroup,
+  onToggleDisplayType,
+  onAddOption,
+  onStartAddOption,
+  onCancelAddOption,
+  onUpdateOption,
+  onDeleteOption,
+  onStartEditOption,
+  onCancelEditOption,
+  setGroupForm,
+  setOptionForm,
+}: {
+  group: ModifierGroup;
+  isExpanded: boolean;
+  isEditing: boolean;
+  editGroupId: string | null;
+  groupForm: { name: string; selection_type: 'single' | 'multi'; min_select: string; max_select: string; is_required: boolean; display_type: 'list' | 'grid' };
+  addingOptionFor: string | null;
+  optionForm: { name: string; price_delta: string };
+  editOptionId: string | null;
+  loading: boolean;
+  t: ReturnType<typeof getDashboardTranslations>;
+  lang: 'es' | 'en';
+  currSymbol: string;
+  onToggleExpand: () => void;
+  onStartEditGroup: () => void;
+  onUpdateGroup: (g: ModifierGroup) => void;
+  onCancelEditGroup: () => void;
+  onDeleteGroup: (id: string) => void;
+  onToggleDisplayType: (g: ModifierGroup) => void;
+  onAddOption: (groupId: string) => void;
+  onStartAddOption: (groupId: string) => void;
+  onCancelAddOption: () => void;
+  onUpdateOption: (opt: ModifierOption, groupId: string) => void;
+  onDeleteOption: (optionId: string, groupId: string) => void;
+  onStartEditOption: (opt: ModifierOption) => void;
+  onCancelEditOption: () => void;
+  onOptionDragEnd: (groupId: string, oldIndex: number, newIndex: number) => void;
+  setGroupForm: (f: typeof groupForm) => void;
+  setOptionForm: (f: { name: string; price_delta: string }) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: group.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  };
+
+  const ruleLabel = group.selection_type === 'single'
+    ? (group.is_required ? t.modifiers_choose1Required : t.modifiers_choose1Optional)
+    : group.is_required
+      ? t.modifiers_chooseRange.replace('{min}', String(group.min_select)).replace('{max}', String(group.max_select))
+      : t.modifiers_upTo.replace('{max}', String(group.max_select));
+
+  const optionSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  return (
+    <div ref={setNodeRef} style={style} className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+      {isEditing ? (
+        <div className="p-4 space-y-3 bg-gray-50">
+          <input value={groupForm.name} onChange={e => setGroupForm({ ...groupForm, name: e.target.value })} className="dash-input text-sm" />
+          <div className="grid grid-cols-2 gap-3">
+            <select value={groupForm.selection_type} onChange={e => setGroupForm({ ...groupForm, selection_type: e.target.value as 'single' | 'multi' })} className="dash-select text-sm">
+              <option value="single">{t.modifiers_singleLabel}</option>
+              <option value="multi">{t.modifiers_multiLabel}</option>
+            </select>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={groupForm.is_required} onChange={e => setGroupForm({ ...groupForm, is_required: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500/30" />
+              <span className="text-sm text-gray-700">{t.modifiers_required}</span>
+            </label>
+          </div>
+          {groupForm.selection_type === 'multi' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] text-gray-500 mb-1 block">{t.modifiers_minHelper}</label>
+                <input type="number" min="0" value={groupForm.min_select} onChange={e => setGroupForm({ ...groupForm, min_select: e.target.value })} className="dash-input text-sm" />
+              </div>
+              <div>
+                <label className="text-[11px] text-gray-500 mb-1 block">{t.modifiers_maxHelper}</label>
+                <input type="number" min="1" value={groupForm.max_select} onChange={e => setGroupForm({ ...groupForm, max_select: e.target.value })} className="dash-input text-sm" />
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">{lang === 'en' ? 'Display style' : 'Estilo de vista'}</label>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setGroupForm({ ...groupForm, display_type: 'list' })} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all', groupForm.display_type === 'list' ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'border-gray-200 text-gray-500 hover:border-gray-300')}>
+                <LayoutList className="w-3.5 h-3.5" /> {t.modifiers_displayList}
+              </button>
+              <button type="button" onClick={() => setGroupForm({ ...groupForm, display_type: 'grid' })} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all', groupForm.display_type === 'grid' ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'border-gray-200 text-gray-500 hover:border-gray-300')}>
+                <LayoutGrid className="w-3.5 h-3.5" /> {t.modifiers_displayGrid}
+              </button>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => onUpdateGroup(group)} disabled={loading} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 disabled:opacity-50">{t.modifiers_save}</button>
+            <button onClick={onCancelEditGroup} className="text-xs text-gray-500">{t.general_cancel}</button>
+          </div>
+        </div>
+      ) : (
+        <div className="w-full flex items-center gap-2 px-3 py-3 hover:bg-gray-50 transition-colors">
+          {/* Drag handle */}
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1 text-gray-300 hover:text-gray-500 flex-shrink-0 touch-none"
+            tabIndex={-1}
+            aria-label="Drag to reorder"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+
+          {/* Expand/collapse */}
+          <button onClick={onToggleExpand} className="flex items-center gap-2 flex-1 min-w-0 text-left">
+            <ChevronRight className={cn('w-4 h-4 text-gray-400 transition-transform flex-shrink-0', isExpanded && 'rotate-90')} />
+            <span className="text-sm font-semibold text-gray-900 truncate">{group.name}</span>
+            <span className="text-[11px] text-gray-400 flex-shrink-0">{group.options.length} {t.modifiers_options}</span>
+          </button>
+
+          <span className={cn('text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0', group.is_required ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500')}>
+            {ruleLabel}
+          </span>
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleDisplayType(group); }}
+            title={group.display_type === 'grid' ? t.modifiers_displayList : t.modifiers_displayGrid}
+            className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-emerald-500 transition-colors flex-shrink-0"
+          >
+            {group.display_type === 'grid' ? <LayoutGrid className="w-3.5 h-3.5 text-emerald-500" /> : <LayoutList className="w-3.5 h-3.5" />}
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); onStartEditGroup(); }} className="p-1 rounded hover:bg-gray-100 text-gray-400 flex-shrink-0"><Pencil className="w-3.5 h-3.5" /></button>
+          <button onClick={(e) => { e.stopPropagation(); onDeleteGroup(group.id); }} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 flex-shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
+        </div>
+      )}
+
+      {isExpanded && !isEditing && (
+        <div className="border-t border-gray-100 px-3 py-3 space-y-1.5">
+          <DndContext sensors={optionSensors} collisionDetection={closestCenter} onDragEnd={(event: DragEndEvent) => {
+            const { active, over } = event;
+            if (!over || active.id === over.id) return;
+            const oldIndex = group.options.findIndex(o => o.id === active.id);
+            const newIndex = group.options.findIndex(o => o.id === over.id);
+            onOptionDragEnd(group.id, oldIndex, newIndex);
+            reorderModifierOptions(group.id, arrayMove(group.options, oldIndex, newIndex).map(o => o.id));
+          }}>
+            <SortableContext items={group.options.map(o => o.id)} strategy={verticalListSortingStrategy}>
+              {group.options.map((opt) => (
+                <SortableOption
+                  key={opt.id}
+                  opt={opt}
+                  groupId={group.id}
+                  editOptionId={editOptionId}
+                  optionForm={optionForm}
+                  loading={loading}
+                  t={t}
+                  lang={lang}
+                  currSymbol={currSymbol}
+                  onEdit={onStartEditOption}
+                  onCancelEdit={onCancelEditOption}
+                  onUpdate={onUpdateOption}
+                  onDelete={onDeleteOption}
+                  setOptionForm={setOptionForm}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+
+          {addingOptionFor === group.id ? (
+            <div className="bg-emerald-50 rounded-lg px-3 py-3 border border-emerald-200 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{t.editor_name}</label>
+                  <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder={t.modifiers_optionPlaceholder} autoFocus className="w-full text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                </div>
+                <div className="w-32">
+                  <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{lang === 'en' ? 'Extra price' : 'Precio extra'}</label>
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{currSymbol}</span>
+                    <input value={optionForm.price_delta} onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
+                  </div>
+                  <p className="text-[9px] text-gray-400 mt-0.5">{t.modifiers_priceHint}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => onAddOption(group.id)} disabled={loading || !optionForm.name.trim()} className="px-3 py-1.5 rounded-md bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 disabled:opacity-50 transition-colors">{loading ? '...' : t.general_add}</button>
+                <button onClick={onCancelAddOption} className="text-xs text-gray-500 hover:text-gray-700">{t.general_cancel}</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => onStartAddOption(group.id)} className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 mt-1">
+              <Plus className="w-3.5 h-3.5" /> {t.modifiers_addOption}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
 export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: localeProp, currency }: ModifierGroupsEditorProps) {
   const [items, setItems] = useState(groups);
   const [showTemplates, setShowTemplates] = useState(false);
@@ -54,6 +381,11 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
   const t = localeProp ? getDashboardTranslations(localeProp) : dashboard.t;
   const lang: 'es' | 'en' = (localeProp ?? dashboard.locale ?? 'es') as 'es' | 'en';
   const currSymbol = currency === 'EUR' ? '\u20AC' : '$';
+
+  const groupSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const sync = (updated: ModifierGroup[]) => {
     setItems(updated);
@@ -165,6 +497,16 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
     setLoading(false);
   };
 
+  const handleGroupDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = items.findIndex(g => g.id === active.id);
+    const newIndex = items.findIndex(g => g.id === over.id);
+    const reordered = arrayMove(items, oldIndex, newIndex);
+    sync(reordered);
+    reorderModifierGroups(productId, reordered.map(g => g.id));
+  };
+
   const handleAddOption = async (groupId: string) => {
     if (!optionForm.name.trim()) return;
     setLoading(true);
@@ -208,6 +550,13 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
       ? { ...g, options: g.options.filter(o => o.id !== optionId) }
       : g));
     setLoading(false);
+  };
+
+  // Handle option reorder from inside SortableGroup (optimistic local update)
+  const handleOptionDragEndLocal = (groupId: string, oldIndex: number, newIndex: number) => {
+    sync(items.map(g => g.id === groupId
+      ? { ...g, options: arrayMove(g.options, oldIndex, newIndex) }
+      : g));
   };
 
   return (
@@ -295,7 +644,6 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
               </div>
             </div>
           )}
-          {/* Display type toggle */}
           <div>
             <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">{lang === 'en' ? 'Display style' : 'Estilo de vista'}</label>
             <div className="flex gap-2">
@@ -341,145 +689,48 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
         </div>
       )}
 
-      {items.map((group) => {
-        const isExpanded = expandedGroup === group.id;
-        const isEditing = editGroupId === group.id;
-        const ruleLabel = group.selection_type === 'single'
-          ? (group.is_required ? t.modifiers_choose1Required : t.modifiers_choose1Optional)
-          : group.is_required
-            ? t.modifiers_chooseRange.replace('{min}', String(group.min_select)).replace('{max}', String(group.max_select))
-            : t.modifiers_upTo.replace('{max}', String(group.max_select));
-
-        return (
-          <div key={group.id} className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-            {isEditing ? (
-              <div className="p-4 space-y-3 bg-gray-50">
-                <input value={groupForm.name} onChange={e => setGroupForm({ ...groupForm, name: e.target.value })} className="dash-input text-sm" />
-                <div className="grid grid-cols-2 gap-3">
-                  <select value={groupForm.selection_type} onChange={e => setGroupForm({ ...groupForm, selection_type: e.target.value as 'single' | 'multi' })} className="dash-select text-sm">
-                    <option value="single">{t.modifiers_singleLabel}</option>
-                    <option value="multi">{t.modifiers_multiLabel}</option>
-                  </select>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={groupForm.is_required} onChange={e => setGroupForm({ ...groupForm, is_required: e.target.checked })} className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500/30" />
-                    <span className="text-sm text-gray-700">{t.modifiers_required}</span>
-                  </label>
-                </div>
-                {groupForm.selection_type === 'multi' && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[11px] text-gray-500 mb-1 block">{t.modifiers_minHelper}</label>
-                      <input type="number" min="0" value={groupForm.min_select} onChange={e => setGroupForm({ ...groupForm, min_select: e.target.value })} className="dash-input text-sm" />
-                    </div>
-                    <div>
-                      <label className="text-[11px] text-gray-500 mb-1 block">{t.modifiers_maxHelper}</label>
-                      <input type="number" min="1" value={groupForm.max_select} onChange={e => setGroupForm({ ...groupForm, max_select: e.target.value })} className="dash-input text-sm" />
-                    </div>
-                  </div>
-                )}
-                {/* Display type toggle */}
-                <div>
-                  <label className="text-[11px] font-medium text-gray-500 mb-1.5 block">{lang === 'en' ? 'Display style' : 'Estilo de vista'}</label>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => setGroupForm({ ...groupForm, display_type: 'list' })} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all', groupForm.display_type === 'list' ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'border-gray-200 text-gray-500 hover:border-gray-300')}>
-                      <LayoutList className="w-3.5 h-3.5" /> {t.modifiers_displayList}
-                    </button>
-                    <button type="button" onClick={() => setGroupForm({ ...groupForm, display_type: 'grid' })} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all', groupForm.display_type === 'grid' ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'border-gray-200 text-gray-500 hover:border-gray-300')}>
-                      <LayoutGrid className="w-3.5 h-3.5" /> {t.modifiers_displayGrid}
-                    </button>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleUpdateGroup(group)} disabled={loading} className="text-xs font-bold text-emerald-600 hover:text-emerald-700 disabled:opacity-50">{t.modifiers_save}</button>
-                  <button onClick={() => setEditGroupId(null)} className="text-xs text-gray-500">{t.general_cancel}</button>
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => setExpandedGroup(isExpanded ? null : group.id)}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-              >
-                <ChevronRight className={cn('w-4 h-4 text-gray-400 transition-transform', isExpanded && 'rotate-90')} />
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-semibold text-gray-900">{group.name}</span>
-                  <span className="ml-2 text-[11px] text-gray-400">{group.options.length} {t.modifiers_options}</span>
-                </div>
-                <span className={cn(
-                  'text-[10px] font-medium px-2 py-0.5 rounded-full',
-                  group.is_required ? 'bg-red-50 text-red-500' : 'bg-gray-100 text-gray-500'
-                )}>
-                  {ruleLabel}
-                </span>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleToggleDisplayType(group); }}
-                  title={group.display_type === 'grid' ? t.modifiers_displayList : t.modifiers_displayGrid}
-                  className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-emerald-500 transition-colors"
-                >
-                  {group.display_type === 'grid' ? <LayoutGrid className="w-3.5 h-3.5 text-emerald-500" /> : <LayoutList className="w-3.5 h-3.5" />}
-                </button>
-                <button onClick={(e) => { e.stopPropagation(); setEditGroupId(group.id); setGroupForm({ name: group.name, selection_type: group.selection_type, min_select: String(group.min_select), max_select: String(group.max_select), is_required: group.is_required, display_type: group.display_type ?? 'list' }); }} className="p-1 rounded hover:bg-gray-100 text-gray-400"><Pencil className="w-3.5 h-3.5" /></button>
-                <button onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
-              </button>
-            )}
-
-            {isExpanded && !isEditing && (
-              <div className="border-t border-gray-100 px-4 py-3 space-y-1.5">
-                {group.options.map((opt) => (
-                  <div key={opt.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-                    {editOptionId === opt.id ? (
-                      <>
-                        <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder={t.editor_name} className="flex-1 text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                        <div className="relative w-28">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{currSymbol}</span>
-                          <input value={optionForm.price_delta} onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                        </div>
-                        <button onClick={() => handleUpdateOption(opt, group.id)} disabled={loading} className="text-xs font-medium text-emerald-600 disabled:opacity-50">{t.modifiers_save}</button>
-                        <button onClick={() => { setEditOptionId(null); setOptionForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-500">{t.general_cancel}</button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="flex-1 text-sm text-gray-700 font-medium">{opt.name}</span>
-                        <span className={cn('text-sm font-mono px-2 py-0.5 rounded', Number(opt.price_delta) !== 0 ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-400')}>
-                          {Number(opt.price_delta) > 0 ? `+${currSymbol}${Number(opt.price_delta).toFixed(2)}` : Number(opt.price_delta) < 0 ? `-${currSymbol}${Math.abs(Number(opt.price_delta)).toFixed(2)}` : t.modifiers_base}
-                        </span>
-                        <button onClick={() => { setEditOptionId(opt.id); setOptionForm({ name: opt.name, price_delta: String(opt.price_delta) }); }} className="p-1 rounded hover:bg-gray-100 text-gray-400"><Pencil className="w-3.5 h-3.5" /></button>
-                        <button onClick={() => handleDeleteOption(opt.id, group.id)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
-                      </>
-                    )}
-                  </div>
-                ))}
-
-                {addingOptionFor === group.id ? (
-                  <div className="bg-emerald-50 rounded-lg px-3 py-3 border border-emerald-200 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{t.editor_name}</label>
-                        <input value={optionForm.name} onChange={e => setOptionForm({ ...optionForm, name: e.target.value })} placeholder={t.modifiers_optionPlaceholder} autoFocus className="w-full text-sm px-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                      </div>
-                      <div className="w-32">
-                        <label className="text-[10px] font-medium text-gray-500 mb-0.5 block">{lang === 'en' ? 'Extra price' : 'Precio extra'}</label>
-                        <div className="relative">
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">{currSymbol}</span>
-                          <input value={optionForm.price_delta} onChange={e => setOptionForm({ ...optionForm, price_delta: e.target.value })} placeholder="0.00" type="number" step="0.01" className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400" />
-                        </div>
-                        <p className="text-[9px] text-gray-400 mt-0.5">{t.modifiers_priceHint}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => handleAddOption(group.id)} disabled={loading || !optionForm.name.trim()} className="px-3 py-1.5 rounded-md bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 disabled:opacity-50 transition-colors">{loading ? '...' : t.general_add}</button>
-                      <button onClick={() => { setAddingOptionFor(null); setOptionForm({ name: '', price_delta: '' }); }} className="text-xs text-gray-500 hover:text-gray-700">{t.general_cancel}</button>
-                    </div>
-                  </div>
-                ) : (
-                  <button onClick={() => { setAddingOptionFor(group.id); setOptionForm({ name: '', price_delta: '' }); }} className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-700 mt-1">
-                    <Plus className="w-3.5 h-3.5" /> {t.modifiers_addOption}
-                  </button>
-                )}
-              </div>
-            )}
+      <DndContext sensors={groupSensors} collisionDetection={closestCenter} onDragEnd={handleGroupDragEnd}>
+        <SortableContext items={items.map(g => g.id)} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2">
+            {items.map((group) => (
+              <SortableGroup
+                key={group.id}
+                group={group}
+                isExpanded={expandedGroup === group.id}
+                isEditing={editGroupId === group.id}
+                editGroupId={editGroupId}
+                groupForm={groupForm}
+                addingOptionFor={addingOptionFor}
+                optionForm={optionForm}
+                editOptionId={editOptionId}
+                loading={loading}
+                t={t}
+                lang={lang}
+                currSymbol={currSymbol}
+                onToggleExpand={() => setExpandedGroup(expandedGroup === group.id ? null : group.id)}
+                onStartEditGroup={() => {
+                  setEditGroupId(group.id);
+                  setGroupForm({ name: group.name, selection_type: group.selection_type, min_select: String(group.min_select), max_select: String(group.max_select), is_required: group.is_required, display_type: group.display_type ?? 'list' });
+                }}
+                onUpdateGroup={handleUpdateGroup}
+                onCancelEditGroup={() => setEditGroupId(null)}
+                onDeleteGroup={handleDeleteGroup}
+                onToggleDisplayType={handleToggleDisplayType}
+                onAddOption={handleAddOption}
+                onStartAddOption={(gid) => { setAddingOptionFor(gid); setOptionForm({ name: '', price_delta: '' }); }}
+                onCancelAddOption={() => { setAddingOptionFor(null); setOptionForm({ name: '', price_delta: '' }); }}
+                onUpdateOption={handleUpdateOption}
+                onDeleteOption={handleDeleteOption}
+                onStartEditOption={(opt) => { setEditOptionId(opt.id); setOptionForm({ name: opt.name, price_delta: String(opt.price_delta) }); }}
+                onCancelEditOption={() => { setEditOptionId(null); setOptionForm({ name: '', price_delta: '' }); }}
+                onOptionDragEnd={handleOptionDragEndLocal}
+                setGroupForm={setGroupForm}
+                setOptionForm={setOptionForm}
+              />
+            ))}
           </div>
-        );
-      })}
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }
