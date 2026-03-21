@@ -34,7 +34,7 @@ export function supabaseLoader({ src, width, quality }: LoaderParams): string {
   );
 
   const separator = transformUrl.includes('?') ? '&' : '?';
-  return `${transformUrl}${separator}width=${width}&quality=${q}&format=origin`;
+  return `${transformUrl}${separator}width=${width}&quality=${q}&format=webp`;
 }
 
 /**
@@ -48,7 +48,7 @@ export function getBlurUrl(src: string | null | undefined): string | undefined {
     '/storage/v1/object/public/',
     '/storage/v1/render/image/public/',
   );
-  return `${transformUrl}${transformUrl.includes('?') ? '&' : '?'}width=16&quality=20&format=origin`;
+  return `${transformUrl}${transformUrl.includes('?') ? '&' : '?'}width=16&quality=20&format=webp`;
 }
 
 /**
