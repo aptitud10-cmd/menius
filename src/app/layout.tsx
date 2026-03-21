@@ -141,32 +141,14 @@ function ServiceWorkerRegister() {
       dangerouslySetInnerHTML={{
         __html: `
           if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-              navigator.serviceWorker.register('/sw.js').then(function(reg) {
-                reg.addEventListener('updatefound', function() {
-                  var newWorker = reg.installing;
-                  if (!newWorker) return;
-                  newWorker.addEventListener('statechange', function() {
-                    if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
-                      showUpdateBanner();
-                    }
-                  });
-                });
-              }).catch(function(err) { console.error('[Layout] SW registration failed:', err); });
-
-              navigator.serviceWorker.addEventListener('message', function(e) {
-                if (e.data && e.data.type === 'SW_UPDATED') showUpdateBanner();
-              });
+            // Unregister ALL service workers and clear ALL caches immediately.
+            // This clears any stuck old SW that was serving stale JS to users.
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              regs.forEach(function(r) { r.unregister(); });
             });
-
-            function showUpdateBanner() {
-              // Auto-reload silently — no user action required so new SW code
-              // takes effect immediately without stale UI remaining visible.
-              if (!window._swReloading) {
-                window._swReloading = true;
-                location.reload();
-              }
-            }
+            caches.keys().then(function(keys) {
+              keys.forEach(function(k) { caches.delete(k); });
+            });
           }
         `,
       }}
