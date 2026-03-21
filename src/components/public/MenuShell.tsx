@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe, RotateCcw, AlertCircle } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe, RotateCcw, AlertCircle, Phone, Plus } from 'lucide-react';
+import { supabaseLoader } from '@/lib/image-loader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
@@ -685,7 +686,7 @@ export function MenuShell({
 
           {/* Cover image banner */}
           {restaurant.cover_image_url && (
-            <div className="relative w-full h-28 sm:h-36 lg:h-56 bg-gray-100 overflow-hidden">
+            <div className="relative w-full h-44 sm:h-52 lg:h-72 bg-gray-100 overflow-hidden">
               <Image
                 src={restaurant.cover_image_url}
                 alt={restaurant.name}
@@ -694,40 +695,115 @@ export function MenuShell({
                 className="object-cover animate-cover-zoom"
                 priority
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 px-5 pb-4 lg:px-8 lg:pb-5">
-                <h1 className="text-white font-extrabold text-xl lg:text-2xl tracking-tight drop-shadow-sm lg:hidden">
-                  {restaurant.name}
-                </h1>
-                {reviewStats && reviewStats.total > 0 && (
-                  <div className="flex items-center gap-1.5 mt-1 lg:hidden">
-                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                    <span className="text-sm font-bold text-white tabular-nums">{reviewStats.average}</span>
-                    <span className="text-sm text-white/70">({reviewStats.total}+)</span>
-                  </div>
-                )}
-              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/5 to-transparent" />
             </div>
           )}
 
-          {/* Mobile info bar (when no cover, show name/rating/description) */}
-          {!restaurant.cover_image_url && (
-            <div className="lg:hidden px-4 pt-4 pb-2">
-              <div className="flex items-center justify-between gap-3">
-                <h1 className="text-lg font-extrabold text-gray-900 tracking-tight truncate">{restaurant.name}</h1>
-                {reviewStats && reviewStats.total > 0 && (
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                    <span className="text-sm font-bold text-gray-900 tabular-nums">{reviewStats.average}</span>
-                    <span className="text-xs text-gray-400">({reviewStats.total}+)</span>
+          {/* ── Restaurant Info Card — visible on all screen sizes ── */}
+          <div className={cn('px-4 lg:px-8', hasCover ? '-mt-10 lg:-mt-12 relative z-10' : 'mt-4 lg:mt-6')}>
+            <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-4 lg:p-5">
+
+              {/* Logo + Name + Description */}
+              <div className="flex items-start gap-3">
+                {restaurant.logo_url && (
+                  <div className="relative w-12 h-12 lg:w-14 lg:h-14 rounded-xl overflow-hidden border border-gray-100 shadow-sm flex-shrink-0 bg-white">
+                    <Image src={restaurant.logo_url} alt={restaurant.name} fill sizes="56px" className="object-cover" />
                   </div>
                 )}
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-lg lg:text-xl font-extrabold text-gray-900 tracking-tight leading-tight line-clamp-2">
+                    {restaurant.name}
+                  </h1>
+                  {restaurant.description && (
+                    <p className="text-sm text-gray-500 mt-0.5 line-clamp-2 leading-snug">{restaurant.description}</p>
+                  )}
+                </div>
               </div>
-              {restaurant.description && (
-                <p className="text-sm text-gray-500 mt-1 line-clamp-2">{restaurant.description}</p>
-              )}
+
+              {/* Stats + address + CTA — computed inline (same pattern as existing footer) */}
+              {(() => {
+                const _keys = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+                const _todayH = restaurant.operating_hours?.[_keys[new Date().getDay()]];
+                const _n = new Date();
+                const _now = `${String(_n.getHours()).padStart(2,'0')}:${String(_n.getMinutes()).padStart(2,'0')}`;
+                const _isOpen = _todayH && !_todayH.closed && _now >= _todayH.open && _now <= _todayH.close;
+                const _is24h = _todayH && _todayH.open === '00:00' && _todayH.close === '23:59';
+                const _maps = restaurant.latitude && restaurant.longitude
+                  ? `https://www.google.com/maps/dir/?api=1&destination=${restaurant.latitude},${restaurant.longitude}`
+                  : restaurant.address
+                    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`
+                    : null;
+                return (
+                  <>
+                    {/* Stats row: rating · open status · est time */}
+                    <div className="flex items-center gap-2 mt-3 flex-wrap">
+                      {reviewStats && reviewStats.total > 0 && (
+                        <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-lg">
+                          <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                          <span className="text-sm font-bold text-gray-900 tabular-nums">{reviewStats.average}</span>
+                          <span className="text-xs text-gray-400">({reviewStats.total})</span>
+                        </div>
+                      )}
+                      {restaurant.operating_hours && (
+                        <div className={cn(
+                          'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold',
+                          _isOpen ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'
+                        )}>
+                          <span className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', _isOpen ? 'bg-emerald-500' : 'bg-red-500')} />
+                          {_isOpen && _todayH
+                            ? (_is24h ? t.open24h : `${t.open} · ${t.openUntil} ${_todayH.close}`)
+                            : t.closed}
+                        </div>
+                      )}
+                      {restaurant.estimated_delivery_minutes && (
+                        <div className="flex items-center gap-1 text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg">
+                          <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                          ~{restaurant.estimated_delivery_minutes} min
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Address */}
+                    {restaurant.address && (
+                      <div className="flex items-start gap-1.5 mt-2.5">
+                        <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <p className="text-xs text-gray-500 leading-relaxed">{restaurant.address}</p>
+                      </div>
+                    )}
+
+                    {/* CTA buttons: Call + Directions */}
+                    {(restaurant.phone || _maps) && (
+                      <div className="flex items-center gap-2 mt-3.5">
+                        {restaurant.phone && (
+                          <a
+                            href={`tel:${restaurant.phone}`}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-bold active:scale-95 transition-transform shadow-sm"
+                          >
+                            <Phone className="w-4 h-4" />
+                            {t.callNow}
+                          </a>
+                        )}
+                        {_maps && (
+                          <a
+                            href={_maps}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cn(
+                              'flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-bold active:scale-95 transition-transform',
+                              restaurant.phone ? '' : 'flex-1'
+                            )}
+                          >
+                            <MapPin className="w-4 h-4 text-gray-500" />
+                            {!restaurant.phone && t.getDirections}
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
-          )}
+          </div>
 
           {/* Reorder banner — shown when customer has a previous order here */}
           {showReorderBanner && (
@@ -760,48 +836,10 @@ export function MenuShell({
           )}
 
           <div className="px-4 lg:px-8 pt-3 lg:pt-6">
-          {/* Restaurant info + category tabs (desktop) */}
+          {/* Desktop: Category tabs */}
           <div className="hidden lg:block mb-8">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">{restaurant.name}</h1>
-                {restaurant.description && (
-                  <p className="text-base text-gray-500 mt-1.5 max-w-xl">{restaurant.description}</p>
-                )}
-              </div>
-              {reviewStats && reviewStats.total > 0 && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 flex-shrink-0">
-                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                  <span className="text-sm font-bold text-gray-900 tabular-nums">{reviewStats.average}</span>
-                  <span className="text-sm text-gray-500">({reviewStats.total}+)</span>
-                </div>
-              )}
-            </div>
-            {(restaurant.address || restaurant.operating_hours) && (
-              <div className="flex items-center gap-4 mt-3 text-sm text-gray-400">
-                {restaurant.address && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span className="truncate max-w-[280px]">{restaurant.address}</span>
-                  </span>
-                )}
-                {restaurant.operating_hours && (() => {
-                  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                  const dayKey = days[new Date().getDay()];
-                  const dh = restaurant.operating_hours?.[dayKey];
-                  if (!dh || dh.closed) return null;
-                  const is24h = dh.open === '00:00' && dh.close === '23:59';
-                  return (
-                    <span className={`inline-flex items-center gap-1.5 ${is24h ? 'text-emerald-500 font-medium' : ''}`}>
-                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                      {is24h ? t.open24h : `${dh.open} – ${dh.close}`}
-                    </span>
-                  );
-                })()}
-              </div>
-            )}
-            <div className="relative mt-6">
-              <button onClick={() => scrollCats('left')} className="absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-white via-white to-transparent flex items-center justify-start" aria-label="Scroll left">
+            <div className="relative">
+              <button onClick={() => scrollCats('left')} className="absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-[#f8f8f8] via-[#f8f8f8] to-transparent flex items-center justify-start" aria-label="Scroll left">
                 <ChevronLeft className="w-4 h-4 text-gray-400" />
               </button>
               <div ref={catScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5">
@@ -810,7 +848,7 @@ export function MenuShell({
                 {dietPills}
                 {favPill}
               </div>
-              <button onClick={() => scrollCats('right')} className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end" aria-label="Scroll right">
+              <button onClick={() => scrollCats('right')} className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-[#f8f8f8] via-[#f8f8f8] to-transparent flex items-center justify-end" aria-label="Scroll right">
                 <ChevronRight className="w-4 h-4 text-gray-400" />
               </button>
             </div>
@@ -898,7 +936,72 @@ export function MenuShell({
               <button onClick={() => setActiveDiet(null)} className="mt-3 text-sm text-emerald-600 font-semibold">{t.viewFullMenu}</button>
             </div>
           ) : (
-            <div className="space-y-12">
+            <div className="space-y-10">
+
+              {/* ── Featured Products Carousel ("Más pedidos") ── */}
+              {popularProducts.length > 0 && (
+                <div className="-mx-4 lg:-mx-8">
+                  <div className="flex items-center gap-2 mb-3 px-4 lg:px-8">
+                    <span className="text-xl leading-none">🔥</span>
+                    <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">{t.mostOrdered}</h2>
+                  </div>
+                  <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-hide snap-x snap-mandatory px-4 lg:px-8">
+                    {popularProducts.slice(0, 10).map((product) => {
+                      const pName = tName(product, locale, defaultLocale);
+                      const pDesc = tDesc(product, locale, defaultLocale);
+                      const hasOpts = (product.variants?.length ?? 0) > 0 || (product.modifier_groups?.length ?? 0) > 0 || (product.extras?.length ?? 0) > 0;
+                      const outOfStock = product.in_stock === false;
+                      return (
+                        <div
+                          key={`feat-${product.id}`}
+                          onClick={() => { if (!outOfStock) handleProductSelect(product); }}
+                          className={cn(
+                            'flex-shrink-0 w-[200px] sm:w-[220px] snap-start bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-transform duration-150',
+                            outOfStock ? 'opacity-60 cursor-default' : 'cursor-pointer active:scale-[0.97]'
+                          )}
+                        >
+                          <div className="relative w-full aspect-video bg-gradient-to-br from-gray-100 to-gray-50 overflow-hidden">
+                            {product.image_url ? (
+                              <Image
+                                src={product.image_url}
+                                alt={pName}
+                                fill
+                                sizes="220px"
+                                loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
+                                className="object-cover"
+                              />
+                            ) : null}
+                            <span className="absolute top-2 left-2 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-bold shadow-sm">
+                              🔥 {t.popular}
+                            </span>
+                          </div>
+                          <div className="p-3">
+                            <h3 className="font-bold text-[13px] text-gray-900 line-clamp-1 leading-tight">{pName}</h3>
+                            {pDesc && <p className="text-[11px] text-gray-400 line-clamp-1 mt-0.5">{pDesc}</p>}
+                            <div className="flex items-center justify-between mt-2.5">
+                              <span className="text-sm font-extrabold text-gray-900 tabular-nums">{fmtPrice(Number(product.price))}</span>
+                              {!outOfStock && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (hasOpts) handleProductSelect(product);
+                                    else handleQuickAdd(product);
+                                  }}
+                                  className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center active:scale-90 transition-transform shadow-sm"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div className="w-1 flex-shrink-0" aria-hidden="true" />
+                  </div>
+                </div>
+              )}
+
               {displayedGroups.map(({ category, items, available }) => {
                 const isPopular = category.id === POPULAR_ID;
                 const isLocked = !available;
@@ -1041,120 +1144,102 @@ export function MenuShell({
           )}
 
           {/* ── Restaurant info footer ── */}
-          {(restaurant.address || restaurant.phone || restaurant.operating_hours) && (
-            <section className="mt-12 mb-6 border-t border-gray-100 pt-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {restaurant.address && (
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                      <MapPin className="w-4 h-4 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {t.addressLabel}
-                      </p>
-                      <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">{restaurant.address}</p>
-                      <a
-                        href={
-                          restaurant.latitude && restaurant.longitude
-                            ? `https://www.google.com/maps/dir/?api=1&destination=${restaurant.latitude},${restaurant.longitude}`
-                            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700 mt-1.5 transition-colors"
-                      >
-                        {t.getDirections}
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
-                      </a>
-                    </div>
-                  </div>
-                )}
+          {(restaurant.address || restaurant.phone || restaurant.operating_hours || restaurant.google_business_url) && (
+            <section className="mt-12 mb-6 border-t border-gray-100 pt-8 space-y-6">
 
-                {restaurant.operating_hours && (() => {
-                  const dayNames = locale === 'en'
-                    ? ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-                    : ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-                  const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                  const todayIdx = new Date().getDay();
-                  const todayKey = dayKeys[todayIdx];
-                  const todayHours = restaurant.operating_hours?.[todayKey];
-                  return (
-                    <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                        <Clock className="w-4 h-4 text-emerald-600" />
-                      </div>
-                      <div>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {t.schedule}
-                      </p>
-                        <p className="text-sm text-gray-500 mt-0.5">
-                          <span className="font-medium text-gray-700">{dayNames[todayIdx]}:</span>{' '}
-                          {todayHours && !todayHours.closed
-                            ? (todayHours.open === '00:00' && todayHours.close === '23:59'
-                              ? <span className="text-emerald-500 font-medium">{t.open24h}</span>
-                              : `${todayHours.open} – ${todayHours.close}`)
-                            : t.closedDay}
-                        </p>
+              {/* Full weekly schedule */}
+              {restaurant.operating_hours && (() => {
+                const _fKeys = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+                const _fNames = [t.monday, t.tuesday, t.wednesday, t.thursday, t.friday, t.saturday, t.sunday];
+                const _jsDay = new Date().getDay(); // 0=Sun
+                const _todayIdx = _jsDay === 0 ? 6 : _jsDay - 1; // Mon=0 … Sun=6
+                return (
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Clock className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-900 mb-2">{t.schedule}</p>
+                      <div className="space-y-1">
+                        {_fKeys.map((key, idx) => {
+                          const h = restaurant.operating_hours![key];
+                          const isToday = idx === _todayIdx;
+                          const is24h = h && !h.closed && h.open === '00:00' && h.close === '23:59';
+                          return (
+                            <div key={key} className={cn('flex justify-between text-sm gap-4', isToday ? 'font-semibold text-gray-900' : 'text-gray-500')}>
+                              <span className={cn(isToday && 'text-emerald-600')}>{_fNames[idx]}</span>
+                              <span className="tabular-nums">
+                                {!h || h.closed ? t.closedDay : is24h ? t.open24h : `${h.open} – ${h.close}`}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                  );
-                })()}
-
-                {restaurant.phone && (
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" /></svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {t.phoneLabel}
-                      </p>
-                      <a href={`tel:${restaurant.phone}`} className="text-sm text-emerald-600 font-medium hover:text-emerald-700 transition-colors mt-0.5 block">
-                        {restaurant.phone}
-                      </a>
-                    </div>
                   </div>
-                )}
+                );
+              })()}
 
-                {restaurant.notification_whatsapp && (
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">WhatsApp</p>
-                      <a
-                        href={`https://wa.me/${restaurant.notification_whatsapp.replace(/\D/g, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-emerald-600 font-medium hover:text-emerald-700 transition-colors mt-0.5 block"
-                      >
-                        {t.sendWhatsApp}
-                      </a>
-                    </div>
+              {/* Address */}
+              {restaurant.address && (
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="w-4 h-4 text-emerald-600" />
                   </div>
-                )}
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{t.addressLabel}</p>
+                    <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">{restaurant.address}</p>
+                    <a
+                      href={
+                        restaurant.latitude && restaurant.longitude
+                          ? `https://www.google.com/maps/dir/?api=1&destination=${restaurant.latitude},${restaurant.longitude}`
+                          : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700 mt-1.5 transition-colors"
+                    >
+                      {t.getDirections}
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
+                    </a>
+                  </div>
+                </div>
+              )}
 
-                {restaurant.google_business_url && (
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">Google</p>
-                      <a
-                        href={restaurant.google_business_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 font-medium hover:text-blue-700 transition-colors mt-0.5 block"
-                      >
-                        {locale === 'en' ? 'See on Google Maps' : 'Ver en Google Maps'}
-                      </a>
-                    </div>
+              {/* Phone */}
+              {restaurant.phone && (
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-4 h-4 text-emerald-600" />
                   </div>
-                )}
-              </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{t.phoneLabel}</p>
+                    <a href={`tel:${restaurant.phone}`} className="text-sm text-emerald-600 font-medium hover:text-emerald-700 transition-colors mt-0.5 block">
+                      {restaurant.phone}
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Google Maps */}
+              {restaurant.google_business_url && (
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Google</p>
+                    <a
+                      href={restaurant.google_business_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 font-medium hover:text-blue-700 transition-colors mt-0.5 block"
+                    >
+                      {locale === 'en' ? 'See on Google Maps' : 'Ver en Google Maps'}
+                    </a>
+                  </div>
+                </div>
+              )}
 
             </section>
           )}
