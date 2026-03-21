@@ -26,22 +26,19 @@ export async function GET(request: NextRequest) {
 
     const adminDb = createAdminClient();
 
-    // Fetch core order first
-    const { data: order, error } = await adminDb
-      .from('orders')
-      .select(`
-        id, order_number, status, customer_name, customer_phone, notes, total,
-        created_at, updated_at, estimated_ready_minutes,
-        order_type, payment_method, delivery_address
-      `)
-      .eq('restaurant_id', restaurantId)
-      .eq('order_number', orderNumber)
-      .maybeSingle();
+    // Use the SECURITY DEFINER RPC function — works with anon key even if
+    // service-role key is missing, because the function bypasses RLS internally.
+    const { data: rows, error } = await adminDb
+      .rpc('get_order_tracking', {
+        p_order_number: orderNumber,
+        p_restaurant_id: restaurantId,
+      });
 
     if (error) {
       logger.error('order fetch error', { error: error.message, orderNumber, restaurantId });
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
     }
+    const order = rows?.[0] ?? null;
     if (!order) {
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
     }

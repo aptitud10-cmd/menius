@@ -134,6 +134,14 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     fetchOrder();
   }, [fetchOrder]);
 
+  // Polling fallback — refreshes order every 15 s so status updates even if
+  // realtime websocket is unavailable (e.g. anon key has no realtime perms).
+  useEffect(() => {
+    if (!order?.id || order.status === 'delivered' || order.status === 'cancelled') return;
+    const interval = setInterval(fetchOrder, 15_000);
+    return () => clearInterval(interval);
+  }, [order?.id, order?.status, fetchOrder]);
+
   useEffect(() => {
     if (!order?.id) return;
 
