@@ -111,18 +111,19 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
   const fetchOrder = useCallback(async () => {
     try {
-      const res = await fetch(`/api/orders/status?order_number=${encodeURIComponent(orderNumber)}&restaurant_id=${encodeURIComponent(restaurantId)}`);
-      if (!res.ok) {
+      // Call the SECURITY DEFINER RPC directly from the browser using the
+      // public anon key — no Vercel API route needed, no caching issues.
+      const supabase = getSupabaseBrowser();
+      const { data, error } = await supabase.rpc('get_order_tracking' as any, {
+        p_order_number: orderNumber,
+        p_restaurant_id: restaurantId,
+      } as any);
+      if (error || !data) {
         setError('not_found');
         return;
       }
-      const data = await res.json();
-      if (data?.order) {
-        setOrder(data.order);
-        setError('');
-      } else {
-        setError('not_found');
-      }
+      setOrder(data as any);
+      setError('');
     } catch {
       setError('connection_error');
     } finally {
