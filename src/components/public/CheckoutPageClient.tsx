@@ -734,7 +734,18 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 ) : t.payNow}
               </button>
             )}
-            <button onClick={goBack} className="w-full py-3.5 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 transition-colors">
+            {!restaurant.id.startsWith('demo') && orderNumber && (
+              <button
+                onClick={() => router.push(`/${slug}/orden/${orderNumber}`)}
+                className="w-full py-3.5 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                {locale === 'es' ? 'Seguir mi pedido en vivo' : 'Track my order live'}
+              </button>
+            )}
+            <button onClick={goBack} className="w-full py-3.5 rounded-xl bg-gray-100 text-gray-700 font-semibold text-sm hover:bg-gray-200 transition-colors">
               {t.backToMenu}
             </button>
             {!restaurant.id.startsWith('demo') && (
