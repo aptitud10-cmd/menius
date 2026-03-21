@@ -3,11 +3,11 @@ export const dynamic = 'force-dynamic';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { notFound, redirect } from 'next/navigation';
 import type { Metadata } from 'next';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import Link from 'next/link';
 import { CheckCircle2 } from 'lucide-react';
 
-const OrderTracker = dynamic(() => import('@/components/public/OrderTracker').then(m => m.OrderTracker), {
+const OrderTracker = nextDynamic(() => import('@/components/public/OrderTracker').then(m => m.OrderTracker), {
   ssr: false,
   loading: () => (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
