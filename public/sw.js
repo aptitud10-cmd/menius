@@ -1,4 +1,4 @@
-const SW_VERSION = '9';
+const SW_VERSION = '10';
 const CACHE_NAME = 'menius-v' + SW_VERSION;
 const STATIC_CACHE = 'menius-static-v' + SW_VERSION;
 const IMAGE_CACHE = 'menius-images-v' + SW_VERSION;
@@ -43,6 +43,10 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/_next/webpack')) return;
   if (url.pathname.startsWith('/auth/')) return;
 
+  // Never intercept order tracking, review, or checkout — always fetch fresh
+  const _segs = url.pathname.split('/').filter(Boolean);
+  if (_segs[1] === 'orden' || _segs[1] === 'review' || _segs[1] === 'checkout') return;
+
   const ext = url.pathname.includes('.') ? url.pathname.substring(url.pathname.lastIndexOf('.')) : '';
 
   // Images + Supabase CDN — cache first, long TTL
@@ -74,7 +78,11 @@ self.addEventListener('fetch', (event) => {
 
 function isMenuRoute(pathname) {
   if (pathname.startsWith('/r/')) return true;
-  const firstSegment = pathname.split('/').filter(Boolean)[0];
+  const segs = pathname.split('/').filter(Boolean);
+  const firstSegment = segs[0];
+  const secondSegment = segs[1];
+  // Only treat as menu if it's the root slug page, not a sub-page
+  if (secondSegment) return false;
   return firstSegment && !RESERVED_PATHS.has(firstSegment);
 }
 
