@@ -625,7 +625,7 @@ export function MenuShell({
   const ordersLeft = limitedMode ? Math.max(0, limitedMode.dailyLimit - limitedMode.ordersToday) : null;
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-white overflow-hidden overscroll-none touch-pan-y">
+    <div className="h-[100dvh] flex flex-col bg-[#f8f8f8] overflow-hidden overscroll-none touch-pan-y">
       {/* Fixed header */}
       <MenuHeader
         restaurant={restaurant}

@@ -96,7 +96,7 @@ export const ProductCard = memo(function ProductCard({
       <div
         onClick={handleCardClick}
         className={cn(
-          'lg:hidden flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden transition-all duration-150',
+          'lg:hidden flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-150',
           outOfStock ? 'opacity-70 cursor-default' : 'cursor-pointer active:scale-[0.97]'
         )}
       >
@@ -203,10 +203,10 @@ export const ProductCard = memo(function ProductCard({
       <div
         onClick={handleCardClick}
         className={cn(
-          'hidden lg:block group relative bg-white rounded-2xl border border-gray-100 overflow-hidden transition-[transform,box-shadow] duration-300 ease-out',
+          'hidden lg:block group relative bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-[transform,box-shadow] duration-300 ease-out',
           outOfStock
             ? 'opacity-75 cursor-default'
-            : 'cursor-pointer hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0'
+            : 'cursor-pointer hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0'
         )}
       >
         {showImage ? (
