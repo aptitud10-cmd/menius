@@ -159,10 +159,6 @@ export interface Translations {
   ordersLimitReached: string;
   // Popular section title
   popularItems: string;
-  // Info card
-  mostOrdered: string;
-  callNow: string;
-  openUntil: string;
 }
 
 const es: Translations = {
@@ -286,9 +282,6 @@ const es: Translations = {
   addedCartSuffix: 'se agregó al carrito',
   ordersLimitReached: 'No aceptamos pedidos por el momento. Vuelve mañana.',
   popularItems: 'Populares',
-  mostOrdered: 'Más pedidos',
-  callNow: 'Llamar',
-  openUntil: 'hasta',
 };
 
 const en: Translations = {
@@ -412,9 +405,6 @@ const en: Translations = {
   addedCartSuffix: 'added to cart',
   ordersLimitReached: 'Not accepting orders right now. Come back tomorrow.',
   popularItems: 'Popular items',
-  mostOrdered: 'Most ordered',
-  callNow: 'Call',
-  openUntil: 'until',
 };
 
 const translations: Record<string, Translations> = { es, en };
