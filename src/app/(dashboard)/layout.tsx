@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import CrispChat from '@/components/CrispChat';
 import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { DashboardNav } from '@/components/dashboard/DashboardNav';
 import { DashboardLocaleProvider } from '@/hooks/use-dashboard-locale';
@@ -109,6 +110,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
         <CommandPalette slug={restaurant?.slug ?? ''} />
         <AIChatWidget />
+        <CrispChat />
         <OrderNotifier restaurantId={restaurantId} currency={restaurant?.currency || 'USD'} />
         <IdentifyUser
           userId={userId}

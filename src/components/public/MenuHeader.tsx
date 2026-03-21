@@ -116,7 +116,7 @@ export const MenuHeader = memo(function MenuHeader({
               </div>
             )}
           </div>
-          <span className="font-bold text-gray-900 truncate max-w-[160px] lg:max-w-[260px] text-[14px] lg:text-base">
+          <span className="font-bold text-emerald-600 truncate max-w-[160px] lg:max-w-[260px] text-[14px] lg:text-base">
             {restaurant.name}
           </span>
         </div>

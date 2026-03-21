@@ -96,7 +96,7 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
         .eq('restaurant_id', restaurant.id)
         .eq('is_visible', true)
         .order('created_at', { ascending: false })
-        .limit(50),
+        .limit(10),
     ] as const);
 
     const DAILY_FREE_LIMIT = 3;

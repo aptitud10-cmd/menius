@@ -685,7 +685,7 @@ export function MenuShell({
 
           {/* Cover image banner */}
           {restaurant.cover_image_url && (
-            <div className="relative w-full h-28 sm:h-36 lg:h-56 bg-gray-100 overflow-hidden">
+            <div className="relative w-full h-20 sm:h-28 lg:h-48 bg-gray-100 overflow-hidden">
               <Image
                 src={restaurant.cover_image_url}
                 alt={restaurant.name}

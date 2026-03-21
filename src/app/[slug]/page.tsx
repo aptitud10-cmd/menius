@@ -6,7 +6,7 @@ import { demoRestaurant, demoCategories, demoProducts } from '@/lib/demo-data';
 import { grillHouseRestaurant, grillHouseCategories, grillHouseProducts } from '@/lib/demo-data-en';
 import { JsonLdScript } from '@/components/public/JsonLdScript';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 
 // Reserved paths that must NOT be matched by this catch-all slug route
 const RESERVED_PATHS = new Set([

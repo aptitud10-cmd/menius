@@ -169,14 +169,15 @@ export function CustomizationSheet({
   const modifiersDelta = Object.values(selections).flat().reduce((sum, opt) => sum + Number(opt.price_delta), 0);
   const unitPrice = Number(product.price) + modifiersDelta;
 
-  const [vvH, setVvH] = useState<string>('92vh');
+  const [vvH, setVvH] = useState<string>('96vh');
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     const vv = window.visualViewport;
     if (vv) {
       const sync = () => {
-        const h = Math.min(vv.height, window.innerHeight * 0.92);
+        // Leave ~52px at top so the header with restaurant name/logo is barely visible
+        const h = Math.min(vv.height - 52, vv.height * 0.97);
         setVvH(`${h}px`);
       };
       sync();

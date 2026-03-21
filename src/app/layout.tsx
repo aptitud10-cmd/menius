@@ -4,7 +4,6 @@ import './globals.css';
 import { Suspense } from 'react';
 import { cookies } from 'next/headers';
 import CookieConsent from '@/components/CookieConsent';
-import CrispChat from '@/components/CrispChat';
 import { PostHogProvider } from '@/components/PostHogProvider';
 
 const inter = Inter({
@@ -130,7 +129,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <PostHogProvider>{children}</PostHogProvider>
         </Suspense>
         <CookieConsent />
-        <CrispChat />
         <ServiceWorkerRegister />
       </body>
     </html>
