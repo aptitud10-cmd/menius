@@ -266,6 +266,7 @@ export async function notifyStatusChange(params: {
     const rLocale = restaurant.locale ?? 'es';
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
     const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}`;
+    const reviewUrl = orderId ? `${appUrl}/${restaurant.slug}/review/${orderId}` : undefined;
 
     let result: NotifyStatusResult;
 
@@ -275,17 +276,17 @@ export async function notifyStatusChange(params: {
 
       if (primaryChannel === 'sms') {
         // US/Canada: SMS primary
-        const text = formatStatusUpdateSMS(orderNumber, status, restaurant.name, trackingUrl);
+        const text = formatStatusUpdateSMS(orderNumber, status, restaurant.name, trackingUrl, reviewUrl);
         const smsResult = await sendSMS({ to: customerPhone, text });
         if (smsResult.success) {
           if (customerEmail) {
-            const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, locale: rLocale });
+            const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale });
             sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale), html }).catch(() => {});
           }
           result = { channel: 'sms', success: true };
         } else if (customerEmail) {
           // SMS failed — fallback to email
-          const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, locale: rLocale });
+          const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale });
           const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale), html });
           result = { channel: 'email', success: emailOk, error: 'sms_failed_fallback_email' };
         } else {
@@ -293,17 +294,17 @@ export async function notifyStatusChange(params: {
         }
       } else {
         // LATAM + rest of world: WhatsApp primary
-        const text = formatStatusUpdateWhatsApp(orderNumber, status, restaurant.name, rLocale, trackingUrl);
+        const text = formatStatusUpdateWhatsApp(orderNumber, status, restaurant.name, rLocale, trackingUrl, reviewUrl);
         const waResult = await sendWhatsApp({ to: customerPhone, text });
         if (waResult.success) {
           if (customerEmail) {
-            const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, locale: rLocale });
+            const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale });
             sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale), html }).catch(() => {});
           }
           result = { channel: 'whatsapp', success: true };
         } else if (customerEmail) {
           // WhatsApp failed — fallback to email
-          const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, locale: rLocale });
+          const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale });
           const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale), html });
           result = { channel: 'email', success: emailOk, error: 'whatsapp_failed_fallback_email' };
         } else {
@@ -312,7 +313,7 @@ export async function notifyStatusChange(params: {
       }
     } else if (customerEmail) {
       // No phone — email only
-      const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, locale: rLocale });
+      const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale });
       const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale), html });
       result = { channel: 'email', success: emailOk };
     } else {

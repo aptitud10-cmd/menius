@@ -64,9 +64,13 @@ export function formatStatusUpdateSMS(
   status: string,
   restaurantName: string,
   trackingUrl?: string,
+  reviewUrl?: string,
 ): string {
-  if (status === 'delivered' && trackingUrl) {
-    return `✨ Order #${orderNumber} delivered at ${restaurantName}. Enjoy! Rate your experience: ${trackingUrl}`;
+  if (status === 'delivered') {
+    const ctaUrl = reviewUrl ?? trackingUrl;
+    if (ctaUrl) {
+      return `✨ Order #${orderNumber} delivered at ${restaurantName}. Enjoy! Rate your experience: ${ctaUrl}`;
+    }
   }
   const messages: Record<string, string> = {
     confirmed: `✅ Order #${orderNumber} confirmed at ${restaurantName}.`,

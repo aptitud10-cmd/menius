@@ -391,9 +391,10 @@ export function buildStatusUpdateEmail(params: {
   restaurantName: string;
   status: string;
   trackingUrl: string;
+  reviewUrl?: string;
   locale?: string;
 }): string {
-  const { customerName, orderNumber, restaurantName, status, trackingUrl, locale } = params;
+  const { customerName, orderNumber, restaurantName, status, trackingUrl, reviewUrl, locale } = params;
   const en = locale === 'en';
 
   type StatusInfo = { icon: string; titleEn: string; titleEs: string; msgEn: string; msgEs: string; color: string };
@@ -455,13 +456,14 @@ export function buildStatusUpdateEmail(params: {
     </tr>
   </table>`;
 
+  const reviewCtaUrl = status === 'delivered' ? (reviewUrl ?? trackingUrl) : trackingUrl;
   const reviewCta = status === 'delivered'
     ? `
   <div style="margin:24px 0 0;text-align:center;">
     <p style="margin:0 0 12px;font-size:13px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
       ${en ? '⭐ Rate your experience' : '⭐ Califica tu experiencia'}
     </p>
-    ${ctaButton(trackingUrl, en ? '🌟 Leave a review' : '🌟 Dejar una reseña', '#f59e0b')}
+    ${ctaButton(reviewCtaUrl, en ? '🌟 Leave a review' : '🌟 Dejar una reseña', '#f59e0b')}
   </div>`
     : '';
 

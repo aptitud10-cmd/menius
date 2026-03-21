@@ -130,13 +130,16 @@ Pedido *#${orderNumber}* en *${restaurantName}* — pago recibido.
 Sigue tu pedido aquí: ${trackingUrl}`;
 }
 
-export function formatStatusUpdateWhatsApp(orderNumber: string, status: string, restaurantName: string, locale = 'es', trackingUrl?: string): string {
+export function formatStatusUpdateWhatsApp(orderNumber: string, status: string, restaurantName: string, locale = 'es', trackingUrl?: string, reviewUrl?: string): string {
   const en = locale === 'en';
 
-  if (status === 'delivered' && trackingUrl) {
-    return en
-      ? `✨ *Order #${orderNumber} delivered!*\n\n🏪 ${restaurantName}\n\nEnjoy your meal! We'd love to hear what you think 🌟\n👉 Rate your experience: ${trackingUrl}`
-      : `✨ *¡Pedido #${orderNumber} entregado!*\n\n🏪 ${restaurantName}\n\n¡Buen provecho! Nos encantaría saber qué te pareció 🌟\n👉 Deja tu reseña aquí: ${trackingUrl}`;
+  if (status === 'delivered') {
+    const ctaUrl = reviewUrl ?? trackingUrl;
+    if (ctaUrl) {
+      return en
+        ? `✨ *Order #${orderNumber} delivered!*\n\n🏪 ${restaurantName}\n\nEnjoy your meal! We'd love to hear what you think 🌟\n👉 Rate your experience: ${ctaUrl}`
+        : `✨ *¡Pedido #${orderNumber} entregado!*\n\n🏪 ${restaurantName}\n\n¡Buen provecho! Nos encantaría saber qué te pareció 🌟\n👉 Deja tu reseña aquí: ${ctaUrl}`;
+    }
   }
 
   const statusMessages: Record<string, string> = en
