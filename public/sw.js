@@ -1,4 +1,4 @@
-const SW_VERSION = '11';
+const SW_VERSION = '12';
 const CACHE_NAME = 'menius-v' + SW_VERSION;
 const STATIC_CACHE = 'menius-static-v' + SW_VERSION;
 const IMAGE_CACHE = 'menius-images-v' + SW_VERSION;
@@ -28,10 +28,14 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((names) => Promise.all(names.filter((n) => !allCaches.includes(n)).map((n) => caches.delete(n))))
+      .then(() => self.clients.claim())
+      // Force-navigate every open window to its own URL so the new SW serves
+      // fresh HTML immediately — no banner click needed, no stale JS remains.
       .then(() => self.clients.matchAll({ type: 'window' }))
-      .then((clients) => clients.forEach((c) => c.postMessage({ type: 'SW_UPDATED', version: SW_VERSION })))
+      .then((clients) => clients.forEach((c) => {
+        c.navigate(c.url).catch(() => c.postMessage({ type: 'SW_UPDATED', version: SW_VERSION }));
+      }))
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
