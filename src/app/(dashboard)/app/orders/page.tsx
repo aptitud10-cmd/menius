@@ -9,7 +9,7 @@ export default async function OrdersPage() {
   const [{ data: restaurant }, { data: orders }] = await Promise.all([
     supabase
       .from('restaurants')
-      .select('name, currency, phone, address, locale')
+      .select('name, slug, currency, phone, address, locale')
       .eq('id', restaurantId)
       .maybeSingle(),
     supabase
@@ -49,6 +49,7 @@ export default async function OrdersPage() {
       <OrdersBoard
         initialOrders={mappedOrders}
         restaurantId={restaurantId}
+        restaurantSlug={restaurant?.slug ?? ''}
         currency={restaurant?.currency ?? 'MXN'}
         restaurantName={restaurant?.name ?? ''}
         restaurantPhone={restaurant?.phone ?? undefined}
