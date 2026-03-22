@@ -639,7 +639,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         </Link>
 
         {/* Save order to local history */}
-        <OrderHistorySaver order={order} restaurantSlug={restaurantSlug} restaurantName={restaurantName} />
+        <OrderHistorySaver order={order} restaurantSlug={restaurantSlug} restaurantName={restaurantName} locale={locale} currency={currency} />
       </div>
     </div>
   );
@@ -852,7 +852,11 @@ function OrderSuccessRedirect({ restaurantSlug }: { restaurantSlug: string }) {
   );
 }
 
-function OrderHistorySaver({ order, restaurantSlug, restaurantName }: { order: any; restaurantSlug: string; restaurantName: string }) {
+function OrderHistorySaver({ order, restaurantSlug, restaurantName, locale, currency }: { order: any; restaurantSlug: string; restaurantName: string; locale?: string; currency?: string }) {
+  const en = locale === 'en';
+  const displayCurrency = currency ?? 'MXN';
+  const dateLocale = en ? 'en-US' : 'es-MX';
+
   useEffect(() => {
     if (!order?.id) return;
     try {
@@ -881,10 +885,16 @@ function OrderHistorySaver({ order, restaurantSlug, restaurantName }: { order: a
 
   if (history.length === 0) return null;
 
+  const toggleLabel = showHistory
+    ? (en ? 'Hide' : 'Ocultar')
+    : en
+      ? `See ${history.length} previous order${history.length !== 1 ? 's' : ''}`
+      : `Ver ${history.length} pedido${history.length !== 1 ? 's' : ''} anterior${history.length !== 1 ? 'es' : ''}`;
+
   return (
     <div className="mt-2">
       <button onClick={() => setShowHistory(!showHistory)} className="w-full text-center text-xs text-gray-400 hover:text-gray-600 py-2">
-        {showHistory ? 'Ocultar' : `Ver ${history.length} pedido${history.length !== 1 ? 's' : ''} anterior${history.length !== 1 ? 'es' : ''}`}
+        {toggleLabel}
       </button>
       {showHistory && (
         <div className="space-y-2 mt-1">
@@ -893,9 +903,11 @@ function OrderHistorySaver({ order, restaurantSlug, restaurantName }: { order: a
               className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
               <div>
                 <p className="text-sm font-medium">#{h.number}</p>
-                <p className="text-xs text-gray-400">{new Date(h.date).toLocaleDateString('es-MX', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · {h.items} items</p>
+                <p className="text-xs text-gray-400">
+                  {new Date(h.date).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · {h.items} {en ? 'items' : 'items'}
+                </p>
               </div>
-              <span className="text-sm font-bold text-gray-700">{formatPrice(Number(h.total), 'USD')}</span>
+              <span className="text-sm font-bold text-gray-700">{formatPrice(Number(h.total), displayCurrency)}</span>
             </Link>
           ))}
         </div>
