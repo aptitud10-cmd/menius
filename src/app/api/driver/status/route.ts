@@ -72,11 +72,9 @@ export async function POST(req: NextRequest) {
   if (action === 'delivered') {
     // Only update if not already delivered/cancelled
     if (order.status === 'delivered' || order.status === 'cancelled') {
-      return NextResponse.json({ ok: true, skipped: true });
+      return NextResponse.json({ ok: true, skipped: true, action });
     }
-    updateData = { driver_delivered_at: now };
-
-    // Also update order status to delivered
+    // Single update: status + timestamp together
     const { error: statusErr } = await supabase
       .from('orders')
       .update({ status: 'delivered', driver_delivered_at: now })
@@ -90,8 +88,8 @@ export async function POST(req: NextRequest) {
       : `${restaurantName}: ¡Tu pedido ha sido entregado! Buen provecho 🍽️`;
   }
 
-  // Update driver timestamp fields
-  if (Object.keys(updateData).length > 0 && action !== 'delivered') {
+  // Update driver timestamp fields (picked_up / at_door only — delivered handled above)
+  if (Object.keys(updateData).length > 0) {
     const { error: updateErr } = await supabase
       .from('orders')
       .update(updateData)

@@ -45,7 +45,9 @@ function getT(locale?: string) {
     confirmBtn:  (eta: number) => en ? `Confirm  ${eta} min` : `Confirmar  ${eta} min`,
     readyBtn:    (type?: string) => type === 'delivery'
       ? (en ? 'Ready to dispatch' : 'Listo para entregar')
-      : (en ? 'Ready for pickup'  : 'Listo para recoger'),
+      : type === 'dine_in'
+        ? (en ? 'Ready to serve'  : 'Listo para servir')
+        : (en ? 'Ready for pickup' : 'Listo para recoger'),
     deliveredBtn: en ? 'Delivered'       : 'Entregado',
     // Order detail
     eta:         en ? 'Prep time'        : 'Tiempo estimado',

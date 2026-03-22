@@ -7,7 +7,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  Navigation, CheckCircle, AlertCircle, Camera, Upload,
+  CheckCircle, Camera, Upload,
   Loader2, Package, DoorOpen, MapPin, Bike,
 } from 'lucide-react';
 
@@ -48,6 +48,9 @@ function getT(lang: string) {
     photoTitle: en ? 'Proof of delivery photo'            : 'Foto de prueba de entrega',
     photoTap:   en ? 'Tap to take or upload photo'        : 'Toca para tomar o subir foto',
     photoOk:    en ? 'Photo uploaded'                     : 'Foto subida',
+    photoAlt:   en ? 'Delivery proof'                     : 'Foto de entrega',
+    photoErr:   en ? 'Upload failed — try again'          : 'Error al subir — intenta de nuevo',
+    connErr:    en ? 'Connection error'                   : 'Error de conexión',
     // Action feedback
     sending:    en ? 'Sending…'                           : 'Enviando…',
     notified:   en ? 'Customer notified'                  : 'Cliente notificado',
@@ -97,7 +100,12 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
     );
     intervalRef.current = setInterval(() => {
       navigator.geolocation.getCurrentPosition(
-        pos => sendLocation(pos.coords.latitude, pos.coords.longitude),
+        pos => {
+          // Recover from a previous GPS error automatically
+          setGpsStatus('sharing');
+          setGpsError('');
+          sendLocation(pos.coords.latitude, pos.coords.longitude);
+        },
         err => setGpsError(err.message),
       );
     }, 10_000);
@@ -110,8 +118,8 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
 
   useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
 
-  // Call /api/driver/status for a given action
-  const callDriverStatus = async (action: 'picked_up' | 'at_door' | 'delivered') => {
+  // Call /api/driver/status for a given action — returns true on success
+  const callDriverStatus = async (action: 'picked_up' | 'at_door' | 'delivered'): Promise<boolean> => {
     setActionLoading(true);
     setActionFeedback('');
     try {
@@ -122,33 +130,37 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
       });
       if (res.ok) {
         setActionFeedback(t.notified);
-      } else {
-        const d = await res.json().catch(() => ({}));
-        setActionFeedback(d.error ?? t.errSend);
+        return true;
       }
+      const d = await res.json().catch(() => ({}));
+      setActionFeedback(d.error ?? t.errSend);
+      return false;
     } catch {
       setActionFeedback(t.errSend);
+      return false;
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Step handlers
+  // Step handlers — only advance step if API call succeeded
   const handlePickedUp = async () => {
     startGps();
-    await callDriverStatus('picked_up');
-    setDeliveryStep('picked_up');
+    const ok = await callDriverStatus('picked_up');
+    if (ok) setDeliveryStep('picked_up');
   };
 
   const handleAtDoor = async () => {
-    await callDriverStatus('at_door');
-    setDeliveryStep('at_door');
+    const ok = await callDriverStatus('at_door');
+    if (ok) setDeliveryStep('at_door');
   };
 
   const handleDelivered = async () => {
-    await callDriverStatus('delivered');
-    stopGps();
-    setDeliveryStep('delivered');
+    const ok = await callDriverStatus('delivered');
+    if (ok) {
+      stopGps();
+      setDeliveryStep('delivered');
+    }
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,9 +175,9 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
       const res = await fetch('/api/driver/photo', { method: 'POST', body: form });
       const data = await res.json();
       if (res.ok) setPhotoUrl(data.url);
-      else setPhotoError(data.error ?? 'Upload failed');
+      else setPhotoError(data.error ?? t.photoErr);
     } catch {
-      setPhotoError('Connection error');
+      setPhotoError(t.connErr);
     } finally {
       setPhotoUploading(false);
     }
@@ -287,7 +299,7 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
             </div>
             {photoUrl ? (
               <div className="space-y-2">
-                <img src={photoUrl} alt="Delivery proof" className="w-full rounded-xl object-cover max-h-48" />
+                <img src={photoUrl} alt={t.photoAlt} className="w-full rounded-xl object-cover max-h-48" />
                 <p className="text-xs text-emerald-400 text-center">✓ {t.photoOk}</p>
               </div>
             ) : (
