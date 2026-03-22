@@ -159,7 +159,7 @@ export function formatStatusUpdateWhatsApp(orderNumber: string, status: string, 
       };
 
   const base = `${statusMessages[status] ?? `Estado actualizado: ${status}`}\n\n📋 ${en ? 'Order' : 'Pedido'} #${orderNumber}\n🏪 ${restaurantName}`;
-  if (trackingUrl && ['confirmed', 'ready'].includes(status)) {
+  if (trackingUrl && ['confirmed', 'preparing', 'ready'].includes(status)) {
     return `${base}\n\n${en ? 'Track your order' : 'Sigue tu pedido'}: ${trackingUrl}`;
   }
   return base;
