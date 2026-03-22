@@ -195,18 +195,18 @@ export function CartPanel({
                   <div className="flex gap-3 p-3 bg-gray-50 border-2 border-gray-200 rounded-xl">
                     {/* Thumbnail */}
                     {item.product.image_url ? (
-                      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                      <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
                         <Image
                           src={item.product.image_url}
                           alt={item.product.name}
                           fill
-                          sizes="48px"
+                          sizes="56px"
                           className={cn('object-cover transition-opacity duration-300', loadedImages.has(imgKey) ? 'opacity-100' : 'opacity-0')}
                           onLoad={() => markImageLoaded(imgKey)}
                         />
                       </div>
                     ) : (
-                      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
                         <span className="text-base opacity-30">🍽️</span>
                       </div>
                     )}
@@ -254,24 +254,24 @@ export function CartPanel({
                           <button
                             onClick={() => handleMinusTap(idx, item.qty)}
                             className={cn(
-                              'w-8 h-8 flex items-center justify-center transition-all duration-150',
+                              'w-9 h-9 flex items-center justify-center transition-all duration-150',
                               isPendingRemove
                                 ? 'bg-red-50 text-red-500'
                                 : 'hover:bg-gray-50 active:bg-gray-100 text-gray-600'
                             )}
                           >
                             {isPendingRemove ? (
-                              <X className="w-3 h-3" />
+                              <X className="w-3.5 h-3.5" />
                             ) : (
-                              <Minus className="w-3 h-3" />
+                              <Minus className="w-3.5 h-3.5" />
                             )}
                           </button>
                           <span className="w-6 text-center text-xs font-bold tabular-nums">{item.qty}</span>
                           <button
                             onClick={() => updateQty(idx, item.qty + 1)}
-                            className="w-8 h-8 flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors text-gray-600"
+                            className="w-9 h-9 flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors text-gray-600"
                           >
-                            <Plus className="w-3 h-3" />
+                            <Plus className="w-3.5 h-3.5" />
                           </button>
                         </div>
                         <div className="flex items-center gap-1">
@@ -322,9 +322,10 @@ export function CartPanel({
         )}
         <button
           onClick={onCheckout}
-          className="w-full py-3.5 rounded-2xl bg-emerald-500 text-white font-extrabold text-sm hover:bg-emerald-600 active:scale-[0.98] transition-all duration-150 shadow-[0_4px_16px_rgba(16,185,129,0.3)]"
+          className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-extrabold text-sm hover:bg-emerald-600 active:scale-[0.98] transition-all duration-150 shadow-[0_4px_16px_rgba(16,185,129,0.3)] flex items-center justify-between px-5"
         >
-          {t.checkout} →
+          <span>{t.placeOrder}</span>
+          <span className="tabular-nums">{fmtPrice(cartTotal + (deliveryFee && deliveryFee > 0 ? deliveryFee : 0))}</span>
         </button>
       </div>
     </div>

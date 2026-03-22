@@ -30,6 +30,7 @@ export interface Translations {
   sendOrder: string;
   // Checkout
   checkout: string;
+  placeOrder: string;
   yourName: string;
   yourNamePlaceholder: string;
   orderNotes: string;
@@ -180,6 +181,7 @@ const es: Translations = {
   discount: 'Descuento',
   sendOrder: 'Enviar pedido',
   checkout: 'Completar pedido',
+  placeOrder: 'Ordenar',
   yourName: 'Tu nombre',
   yourNamePlaceholder: '¿Cómo te llamas?',
   orderNotes: 'Notas',
@@ -303,6 +305,7 @@ const en: Translations = {
   discount: 'Discount',
   sendOrder: 'Place order',
   checkout: 'Complete order',
+  placeOrder: 'Place order',
   yourName: 'Your name',
   yourNamePlaceholder: 'What\'s your name?',
   orderNotes: 'Notes',
