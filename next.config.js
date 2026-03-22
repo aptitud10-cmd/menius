@@ -57,6 +57,7 @@ const nextConfig = {
         source: '/:slug/orden/:orderNumber*',
         headers: [
           { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },
+          { key: 'Clear-Site-Data', value: '"cache"' },
         ],
       },
       {

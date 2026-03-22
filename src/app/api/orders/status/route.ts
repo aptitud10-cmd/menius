@@ -38,7 +38,8 @@ export async function GET(request: NextRequest) {
       logger.error('order fetch error', { error: error.message, orderNumber, restaurantId });
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
     }
-    const order = rows?.[0] ?? null;
+    // get_order_tracking returns a single jsonb object (not an array)
+    const order = Array.isArray(rows) ? (rows[0] ?? null) : (rows ?? null);
     if (!order) {
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
     }

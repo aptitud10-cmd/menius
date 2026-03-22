@@ -35,23 +35,38 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
   const paidSuccess = searchParams.paid === 'true';
 
   let restaurant: { id: string; name: string; slug: string; currency: string | null; address: string | null; locale: string | null } | null = null;
+  let initialOrder: any = null;
 
   try {
     const adminDb = createAdminClient();
-    const { data } = await adminDb
+
+    // Fetch restaurant first so we have the UUID needed for the order RPC
+    const { data: restaurantData } = await adminDb
       .from('restaurants')
       .select('id, name, slug, currency, locale, address')
       .eq('slug', params.slug)
       .maybeSingle();
-    if (data) {
+
+    if (restaurantData) {
       restaurant = {
-        id: data.id,
-        name: data.name,
-        slug: data.slug,
-        currency: (data as any).currency ?? null,
-        address: (data as any).address ?? null,
-        locale: (data as any).locale ?? null,
+        id: restaurantData.id,
+        name: restaurantData.name,
+        slug: restaurantData.slug,
+        currency: (restaurantData as any).currency ?? null,
+        address: (restaurantData as any).address ?? null,
+        locale: (restaurantData as any).locale ?? null,
       };
+
+      // Fetch order server-side so the page renders with data immediately,
+      // even if client JS is slow/cached/failing.
+      const { data: orderData, error: orderErr } = await adminDb
+        .rpc('get_order_tracking' as any, {
+          p_order_number: params.orderNumber,
+          p_restaurant_id: restaurantData.id,
+        } as any);
+      if (!orderErr && orderData) {
+        initialOrder = Array.isArray(orderData) ? (orderData[0] ?? null) : orderData;
+      }
     }
   } catch {
     // If DB fetch fails, fall through to show fallback for paid orders
@@ -98,6 +113,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
       currency={restaurant.currency ?? 'MXN'}
       locale={restaurant.locale ?? 'es'}
       showPaidBanner={paidSuccess}
+      initialOrder={initialOrder}
     />
   );
 }

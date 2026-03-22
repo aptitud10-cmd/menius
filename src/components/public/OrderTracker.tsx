@@ -100,14 +100,18 @@ interface OrderTrackerProps {
   currency?: string;
   locale?: string;
   showPaidBanner?: boolean;
+  /** Pre-fetched order data from the server component — renders immediately without a client fetch */
+  initialOrder?: any;
 }
 
-export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, orderNumber, currency = 'MXN', locale, showPaidBanner = false }: OrderTrackerProps) {
+export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, orderNumber, currency = 'MXN', locale, showPaidBanner = false, initialOrder }: OrderTrackerProps) {
   const t = getT(locale);
-  const [order, setOrder] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [order, setOrder] = useState<any>(initialOrder ?? null);
+  const [loading, setLoading] = useState(!initialOrder);
   const [error, setError] = useState('');
   const [paidBannerVisible, setPaidBannerVisible] = useState(showPaidBanner);
+
+  const hasInitialOrder = !!initialOrder;
 
   const fetchOrder = useCallback(async () => {
     try {
@@ -119,21 +123,29 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         p_restaurant_id: restaurantId,
       } as any);
       if (error || !data) {
-        setError('not_found');
+        // Only show error if we have no server-side data to fall back on
+        if (!hasInitialOrder) setError('not_found');
         return;
       }
-      setOrder(data as any);
-      setError('');
+      const orderData = Array.isArray(data) ? (data[0] ?? null) : data;
+      if (orderData) {
+        setOrder(orderData);
+        setError('');
+      } else if (!hasInitialOrder) {
+        setError('not_found');
+      }
     } catch {
-      setError('connection_error');
+      if (!hasInitialOrder) setError('connection_error');
     } finally {
       setLoading(false);
     }
-  }, [orderNumber, restaurantId]);
+  }, [orderNumber, restaurantId, hasInitialOrder]);
 
   useEffect(() => {
+    // If we already have initialOrder, still refresh in background to get latest status
     fetchOrder();
-  }, [fetchOrder]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Polling fallback — refreshes order every 15 s so status updates even if
   // realtime websocket is unavailable (e.g. anon key has no realtime perms).
