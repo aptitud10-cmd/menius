@@ -221,6 +221,7 @@ export function buildReceiptHTML(data: ReceiptData): string {
       font-size: 10px;
     }
     .notes-label { font-weight: bold; font-size: 9px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .table-badge { font-size: 20px; font-weight: 900; text-align: center; border: 3px solid #000; padding: 4px 0; margin: 4px 0; letter-spacing: 1px; }
   </style>
 </head>
 <body>
@@ -237,13 +238,13 @@ export function buildReceiptHTML(data: ReceiptData): string {
     <span class="bold">${L.order}:</span>
     <span class="large">#${orderNumber}</span>
   </div>
+  ${tableName ? `<div class="table-badge">🍽 ${tableName.toUpperCase()}</div>` : ''}
   <div class="meta-row">
     <span>${L.customer}:</span>
     <span class="bold">${customerName || L.guest}</span>
   </div>
   ${customerPhone ? `<div class="meta-row"><span>${L.phone}:</span><span>${customerPhone}</span></div>` : ''}
   ${typeLabel ? `<div class="meta-row"><span>${L.type}:</span><span>${typeLabel}</span></div>` : ''}
-  ${tableName ? `<div class="meta-row"><span>${isEn(locale) ? 'Table' : 'Mesa'}:</span><span class="bold">${tableName}</span></div>` : ''}
   ${payLabel ? `<div class="meta-row"><span>${L.payment}:</span><span>${payLabel}</span></div>` : ''}
   ${deliveryAddress ? `<div class="meta-row"><span>${L.address}:</span><span style="text-align:right;max-width:55mm;">${deliveryAddress}</span></div>` : ''}
   <div class="meta-row">
