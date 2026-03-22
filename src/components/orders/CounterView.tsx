@@ -629,6 +629,17 @@ export function CounterView({
     } finally { setUpdatingId(null); }
   }, [eta, busyExtra, restaurantName, currency, autoPrint, t]);
 
+  const handleMarkPreparing = useCallback(async (order: Order) => {
+    setUpdatingId(order.id);
+    try {
+      const res = await updateOrderStatus(order.id, 'preparing');
+      if (res?.error) { showError(res.error); return; }
+      if (res.notification) showNotif(res.notification, order.id);
+    } catch {
+      showError(t.en ? 'Unexpected error' : 'Error inesperado');
+    } finally { setUpdatingId(null); }
+  }, [t]);
+
   const handleMarkReady = useCallback(async (order: Order) => {
     setUpdatingId(order.id);
     try {
@@ -975,6 +986,7 @@ export function CounterView({
               onSetEta={setEta}
               onAdjustEta={handleAdjustEta}
               onAccept={handleAccept}
+              onMarkPreparing={handleMarkPreparing}
               onMarkReady={handleMarkReady}
               onDeliver={handleDeliver}
               onCancelRequest={(type) => {
@@ -1570,7 +1582,7 @@ function EmptyState({ tab, t }: { tab: Tab; t: ReturnType<typeof getT> }) {
 
 function OrderDetail({
   order, currency, restaurantName, tab, eta, busyExtra, suggestedEta, isUpdating, t,
-  onBack, onSetEta, onAdjustEta, onAccept, onMarkReady, onDeliver,
+  onBack, onSetEta, onAdjustEta, onAccept, onMarkPreparing, onMarkReady, onDeliver,
   onCancelRequest, onPrint, onAssignDriver, onTipSaved, onNotify, lastNotif,
 }: {
   order: Order; currency: string; restaurantName: string; tab: Tab;
@@ -1580,6 +1592,7 @@ function OrderDetail({
   onSetEta: (v: number) => void;
   onAdjustEta: (o: Order, v: number) => void;
   onAccept: (o: Order) => void;
+  onMarkPreparing: (o: Order) => void;
   onMarkReady: (o: Order) => void;
   onDeliver: (o: Order) => void;
   onCancelRequest: (type: 'reject' | 'cancel') => void;
@@ -1985,18 +1998,32 @@ function OrderDetail({
           </button>
         )}
 
-        {/* PREP tab: mark ready */}
+        {/* PREP tab: mark preparing (only if still confirmed) + mark ready */}
         {tab === 'prep' && (
-          <button
-            disabled={isUpdating}
-            onClick={() => onMarkReady(order)}
-            className="w-full h-16 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
-            style={{ background: isUpdating ? '#AAA' : GREEN }}
-          >
-            {isUpdating
-              ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              : <><CheckCircle className="w-6 h-6" /> {t.readyBtn} <ChevronRight className="w-5 h-5" /></>}
-          </button>
+          <>
+            {order.status === 'confirmed' && (
+              <button
+                disabled={isUpdating}
+                onClick={() => onMarkPreparing(order)}
+                className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-sm font-bold border-2 transition-all active:scale-[0.97] disabled:opacity-50"
+                style={{ background: '#EDE9FE', borderColor: '#C4B5FD', color: '#6D28D9' }}
+              >
+                {isUpdating
+                  ? <span className="w-4 h-4 border-2 border-violet-400/40 border-t-violet-600 rounded-full animate-spin" />
+                  : <>{t.en ? '👨‍🍳 Start preparing' : '👨‍🍳 Iniciar preparación'}</>}
+              </button>
+            )}
+            <button
+              disabled={isUpdating}
+              onClick={() => onMarkReady(order)}
+              className="w-full h-16 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
+              style={{ background: isUpdating ? '#AAA' : GREEN }}
+            >
+              {isUpdating
+                ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                : <><CheckCircle className="w-6 h-6" /> {t.readyBtn} <ChevronRight className="w-5 h-5" /></>}
+            </button>
+          </>
         )}
 
         {/* READY tab: resend notification + delivered */}

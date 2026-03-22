@@ -63,11 +63,19 @@ function getT(locale?: string, orderType?: string) {
     cfdiIssuedPdf: 'Descargar PDF',
     cfdiError: 'Ocurrió un error. Intenta de nuevo.',
     steps: {
-      pending:   { label: en ? 'Received'   : 'Recibido',   desc: en ? 'Your order was received'                  : 'Tu pedido fue recibido' },
-      confirmed: { label: en ? 'Confirmed'  : 'Confirmado', desc: en ? 'The restaurant confirmed your order'      : 'El restaurante confirmó tu pedido' },
-      preparing: { label: en ? 'Preparing'  : 'Preparando', desc: en ? 'Your order is being prepared'             : 'Tu pedido se está preparando' },
-      ready:     { label: en ? 'Ready'      : 'Listo',      desc: isDelivery ? (en ? 'Your order is on its way!' : '¡Tu pedido está en camino!') : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!') },
-      delivered: { label: en ? 'Delivered'  : 'Entregado',  desc: en ? 'Order delivered. Enjoy your meal!'        : 'Pedido entregado. ¡Buen provecho!' },
+      // Header icon/text per DB status (detailed view)
+      pending:   { label: en ? 'Received'    : 'Recibido',       desc: en ? 'Your order was received'           : 'Tu pedido fue recibido' },
+      confirmed: { label: en ? 'Preparing'   : 'En preparación', desc: en ? 'Your order is being prepared'     : 'Tu pedido se está preparando' },
+      preparing: { label: en ? 'Preparing'   : 'En preparación', desc: en ? 'Your order is being prepared'     : 'Tu pedido se está preparando' },
+      ready:     { label: en ? 'Ready'       : 'Listo',          desc: isDelivery ? (en ? 'Your order is on its way!' : '¡Tu pedido está en camino!') : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!') },
+      delivered: { label: en ? 'Delivered'   : 'Entregado',      desc: en ? 'Order delivered. Enjoy your meal!' : 'Pedido entregado. ¡Buen provecho!' },
+    },
+    // 4-step progress bar labels (customer-facing simplified)
+    customerSteps: {
+      pending:   en ? 'Received'    : 'Recibido',
+      preparing: en ? 'Preparing'   : 'Preparando',
+      ready:     isDelivery ? (en ? 'On its way' : 'En camino') : (en ? 'Ready'   : 'Listo'),
+      delivered: en ? 'Delivered'   : 'Entregado',
     },
     orderTypes: {
       dine_in:  { icon: Utensils,  label: en ? 'Dine-in'  : 'En restaurante' },
@@ -83,13 +91,21 @@ function getT(locale?: string, orderType?: string) {
 
 const STEP_STYLES: Record<string, { icon: typeof Clock; color: string; bg: string }> = {
   pending:   { icon: Clock,        color: 'text-amber-600',   bg: 'bg-amber-100' },
-  confirmed: { icon: CheckCircle2, color: 'text-blue-600',    bg: 'bg-blue-100' },
+  confirmed: { icon: ChefHat,      color: 'text-violet-600',  bg: 'bg-violet-100' },
   preparing: { icon: ChefHat,      color: 'text-violet-600',  bg: 'bg-violet-100' },
   ready:     { icon: Bell,         color: 'text-orange-600',  bg: 'bg-orange-100' },
   delivered: { icon: Package,      color: 'text-emerald-600', bg: 'bg-emerald-100' },
 };
 
-const STEP_KEYS = ['pending', 'confirmed', 'preparing', 'ready', 'delivered'];
+// Customer-visible progress steps: confirmed and preparing both map to step 1 ("En preparación")
+const CUSTOMER_STEPS = ['pending', 'preparing', 'ready', 'delivered'] as const;
+const STATUS_TO_CUSTOMER_STEP: Record<string, typeof CUSTOMER_STEPS[number]> = {
+  pending:   'pending',
+  confirmed: 'preparing',
+  preparing: 'preparing',
+  ready:     'ready',
+  delivered: 'delivered',
+};
 
 interface OrderTrackerProps {
   restaurantId: string;
@@ -241,7 +257,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   }
 
   const isCancelled = order.status === 'cancelled';
-  const currentStepIndex = STEP_KEYS.indexOf(order.status);
+  const customerStep = STATUS_TO_CUSTOMER_STEP[order.status] ?? 'pending';
+  const currentStepIndex = CUSTOMER_STEPS.indexOf(customerStep);
   const isComplete = order.status === 'delivered';
   const currentStepStyle = STEP_STYLES[order.status];
   const tWithType = getT(locale, order.order_type);
@@ -323,9 +340,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 ) : null}
               </div>
 
-              {/* Progress Steps */}
+              {/* Progress Steps — 4 customer-visible steps */}
               <div className="flex items-center gap-1 mb-3">
-                {STEP_KEYS.map((key, i) => (
+                {CUSTOMER_STEPS.map((key, i) => (
                   <div
                     key={key}
                     className={cn(
@@ -336,7 +353,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 ))}
               </div>
               <div className="flex justify-between">
-                {STEP_KEYS.map((key, i) => (
+                {CUSTOMER_STEPS.map((key, i) => (
                   <span
                     key={key}
                     className={cn(
@@ -344,7 +361,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                       i <= currentStepIndex ? 'text-brand-600' : 'text-gray-300'
                     )}
                   >
-                    {tWithType.steps[key as keyof typeof tWithType.steps]?.label ?? key}
+                    {tWithType.customerSteps[key]}
                   </span>
                 ))}
               </div>
