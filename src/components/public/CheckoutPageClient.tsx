@@ -1067,41 +1067,73 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
           {/* Tip */}
           <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-            <label className="block text-sm font-semibold text-gray-900 mb-3">{locale === 'es' ? 'Deseas dejar propina?' : 'Add a tip?'}</label>
-            <div className="grid grid-cols-4 gap-2">
+            <label className="block text-sm font-semibold text-gray-900 mb-3">{locale === 'es' ? '¿Deseas dejar propina?' : 'Add a tip?'}</label>
+            {/* Row 1: No tip + % options */}
+            <div className="grid grid-cols-4 gap-2 mb-2">
+              {/* No tip button — always first and explicit */}
+              <button
+                type="button"
+                onClick={() => { setTipPercent(null); setCustomTip(''); }}
+                className={cn(
+                  'flex flex-col items-center py-3 rounded-xl border-2 transition-all duration-150',
+                  tipPercent === null && !customTip
+                    ? 'border-gray-900 bg-gray-900'
+                    : 'border-gray-200 active:border-gray-400'
+                )}
+              >
+                <span className={cn('text-sm font-bold', tipPercent === null && !customTip ? 'text-white' : 'text-gray-700')}>
+                  {locale === 'es' ? 'Sin' : 'None'}
+                </span>
+                <span className={cn('text-[11px]', tipPercent === null && !customTip ? 'text-gray-300' : 'text-gray-400')}>
+                  {locale === 'es' ? 'propina' : 'no tip'}
+                </span>
+              </button>
+              {/* % options */}
               {[10, 15, 20].map((pct) => {
                 const isActive = tipPercent === pct && !customTip;
                 const amt = Math.round(cartTotal * pct) / 100;
                 return (
-                  <button key={pct} type="button" onClick={() => { setTipPercent(isActive ? null : pct); setCustomTip(''); }} className={cn('flex flex-col items-center py-3 rounded-xl border-2 transition-all duration-150', isActive ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 active:border-gray-400')}>
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => { setTipPercent(pct); setCustomTip(''); }}
+                    className={cn(
+                      'flex flex-col items-center py-3 rounded-xl border-2 transition-all duration-150',
+                      isActive ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 active:border-gray-400'
+                    )}
+                  >
                     <span className={cn('text-sm font-bold', isActive ? 'text-emerald-700' : 'text-gray-700')}>{pct}%</span>
                     <span className={cn('text-[11px] tabular-nums', isActive ? 'text-emerald-500' : 'text-gray-400')}>{fmtPrice(amt)}</span>
                   </button>
                 );
               })}
-              <div className="flex flex-col items-center justify-center py-3 rounded-xl border-2 transition-all duration-150 min-h-[60px] px-1"
-                style={{ borderColor: customTip ? 'rgb(16 185 129)' : 'rgb(229 231 235)', background: customTip ? 'rgb(240 253 244)' : 'white' }}>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={customTip}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/[^0-9.]/g, '');
-                    setCustomTip(val);
-                    setTipPercent(null);
-                  }}
-                  placeholder={locale === 'es' ? 'Otro' : 'Other'}
-                  className={cn(
-                    'w-full text-center text-sm font-bold bg-transparent focus:outline-none placeholder-gray-400',
-                    customTip ? 'text-emerald-700' : 'text-gray-700'
-                  )}
-                />
-                {customTip ? (
-                  <span className="text-[11px] text-emerald-500 tabular-nums">{fmtPrice(parseFloat(customTip) || 0)}</span>
-                ) : (
-                  <span className="text-[11px] text-gray-400">$</span>
+            </div>
+            {/* Row 2: Custom amount — full width */}
+            <div
+              className="flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all duration-150"
+              style={{ borderColor: customTip ? 'rgb(16 185 129)' : 'rgb(229 231 235)', background: customTip ? 'rgb(240 253 244)' : 'white' }}
+            >
+              <span className={cn('text-sm font-semibold flex-shrink-0', customTip ? 'text-emerald-600' : 'text-gray-400')}>
+                {locale === 'es' ? 'Otro monto' : 'Custom'}
+              </span>
+              <input
+                type="text"
+                inputMode="decimal"
+                value={customTip}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9.]/g, '');
+                  setCustomTip(val);
+                  setTipPercent(null);
+                }}
+                placeholder="0.00"
+                className={cn(
+                  'flex-1 text-right text-sm font-bold bg-transparent focus:outline-none placeholder-gray-300',
+                  customTip ? 'text-emerald-700' : 'text-gray-700'
                 )}
-              </div>
+              />
+              {customTip && (
+                <span className="text-xs text-emerald-500 tabular-nums flex-shrink-0">{fmtPrice(parseFloat(customTip) || 0)}</span>
+              )}
             </div>
           </div>
 
