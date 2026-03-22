@@ -109,6 +109,7 @@ export function buildReceiptHTML(data: ReceiptData): string {
     customerName,
     customerPhone,
     orderType,
+    tableName,
     paymentMethod,
     deliveryAddress,
     items,
@@ -242,6 +243,7 @@ export function buildReceiptHTML(data: ReceiptData): string {
   </div>
   ${customerPhone ? `<div class="meta-row"><span>${L.phone}:</span><span>${customerPhone}</span></div>` : ''}
   ${typeLabel ? `<div class="meta-row"><span>${L.type}:</span><span>${typeLabel}</span></div>` : ''}
+  ${tableName ? `<div class="meta-row"><span>${isEn(locale) ? 'Table' : 'Mesa'}:</span><span class="bold">${tableName}</span></div>` : ''}
   ${payLabel ? `<div class="meta-row"><span>${L.payment}:</span><span>${payLabel}</span></div>` : ''}
   ${deliveryAddress ? `<div class="meta-row"><span>${L.address}:</span><span style="text-align:right;max-width:55mm;">${deliveryAddress}</span></div>` : ''}
   <div class="meta-row">
@@ -343,7 +345,7 @@ export function buildReceiptText(data: ReceiptData): string {
 // ─── Kitchen ticket (items only, no prices) ──────────────────────────────────
 
 export function buildKitchenHTML(data: ReceiptData): string {
-  const { restaurantName, orderNumber, orderType, items, notes, etaMinutes, locale } = data;
+  const { restaurantName, orderNumber, orderType, tableName, items, notes, etaMinutes, locale } = data;
   const L = getLabels(locale);
   const htmlLang = isEn(locale) ? 'en' : 'es';
   const typeLabel = formatOrderType(orderType, locale);
@@ -383,6 +385,7 @@ export function buildKitchenHTML(data: ReceiptData): string {
     .note { font-size: 10px; color: #222; padding-left: 8px; font-style: italic; font-weight: bold; }
     .eta { font-size: 16px; font-weight: bold; text-align: center; margin: 8px 0; }
     .notes-box { border: 2px solid #000; padding: 5px 8px; margin: 6px 0; font-size: 11px; font-weight: bold; }
+    .table-name { font-size: 22px; font-weight: 900; text-align: center; border: 3px solid #000; padding: 4px 0; margin: 4px 0; letter-spacing: 1px; }
   </style>
 </head>
 <body>
@@ -390,7 +393,7 @@ export function buildKitchenHTML(data: ReceiptData): string {
   <div class="tag">${isEn(locale) ? 'KITCHEN TICKET' : 'TICKET DE COCINA'}</div>
   <div class="divider"></div>
   <div class="order-num">#${orderNumber}</div>
-  ${typeLabel ? `<div class="tag">${typeLabel.toUpperCase()}</div>` : ''}
+  ${tableName ? `<div class="table-name">🍽 ${tableName.toUpperCase()}</div>` : typeLabel ? `<div class="tag">${typeLabel.toUpperCase()}</div>` : ''}
   <div class="divider"></div>
   ${itemsHTML}
   <div class="divider"></div>

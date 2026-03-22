@@ -35,6 +35,7 @@ export interface ReceiptData {
   customerName: string;
   customerPhone?: string;
   orderType?: string;
+  tableName?: string;
   paymentMethod?: string;
   deliveryAddress?: string;
   items: ReceiptLineItem[];

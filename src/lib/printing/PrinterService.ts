@@ -66,6 +66,7 @@ function mapOrderToReceipt(
     customerName: order.customer_name ?? '',
     customerPhone: order.customer_phone ?? undefined,
     orderType: order.order_type ?? undefined,
+    tableName: (order as any).table?.name ?? order.table_name ?? undefined,
     paymentMethod: order.payment_method ?? undefined,
     deliveryAddress: order.delivery_address ?? undefined,
     items,

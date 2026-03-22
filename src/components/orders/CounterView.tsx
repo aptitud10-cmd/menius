@@ -622,7 +622,9 @@ export function CounterView({
       const res = await updateOrderStatus(order.id, 'confirmed');
       if (res?.error) { showError(res.error); return; }
       playAcceptSound();
-      if (autoPrint) PrinterService.printOrder(order, eff, restaurantName, currency, locale).catch(() => {});
+      // dine_in always prints so the kitchen gets the ticket even if global auto-print is off
+      const shouldPrint = autoPrint || order.order_type === 'dine_in';
+      if (shouldPrint) PrinterService.printOrder(order, eff, restaurantName, currency, locale).catch(() => {});
       setActiveTab('prep');
       setSelectedId(order.id);
       setShowDetailMobile(true);
