@@ -111,6 +111,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang={locale} className={`${inter.variable} ${dmSans.variable} ${bricolage.variable}`} suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="apple-touch-icon" href="/apple-icon" />
       </head>

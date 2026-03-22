@@ -107,7 +107,7 @@ function buildManifest(
     display: 'standalone',
     orientation: 'portrait-primary',
     background_color: '#ffffff',
-    theme_color: '#10b981',
+    theme_color: '#05c8a7',
     lang: locale,
     categories: ['food', 'lifestyle'],
     prefer_related_applications: false,

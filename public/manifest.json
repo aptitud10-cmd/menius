@@ -6,7 +6,7 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#10b981",
+  "theme_color": "#05c8a7",
   "orientation": "portrait-primary",
   "scope": "/",
   "categories": ["food", "business", "lifestyle"],
