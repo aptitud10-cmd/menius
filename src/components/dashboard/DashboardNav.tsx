@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   ClipboardList, Tag, ShoppingBag, QrCode, Settings, LogOut, Menu, X,
-  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star, Store, Boxes, Key, Gift, Building2, LifeBuoy, CalendarDays,
+  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star, Store, Boxes, Key, Gift, Building2, LifeBuoy, CalendarDays, Globe,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -138,10 +138,13 @@ export function DashboardNav({ slug, mobile }: DashboardNavProps) {
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors w-full text-left"
           title={locale === 'es' ? 'Switch to English' : 'Cambiar a Español'}
         >
-          <span className="w-[18px] h-[18px] text-base leading-none flex items-center justify-center flex-shrink-0">
-            {locale === 'es' ? '🇺🇸' : '🇨🇴'}
+          <Globe className="w-[18px] h-[18px] text-gray-400 flex-shrink-0" />
+          <span className="flex-1">
+            {locale === 'es' ? 'Idioma · Español' : 'Language · English'}
           </span>
-          <span>{locale === 'es' ? 'English' : 'Español'}</span>
+          <span className="text-[11px] text-gray-400 font-normal">
+            {locale === 'es' ? '→ EN' : '→ ES'}
+          </span>
         </button>
         <button
           onClick={() => logout()}
