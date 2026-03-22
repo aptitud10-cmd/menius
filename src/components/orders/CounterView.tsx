@@ -43,7 +43,9 @@ function getT(locale?: string) {
     dineIn:      en ? 'Dine-in'          : 'En mesa',
     // Action buttons
     confirmBtn:  (eta: number) => en ? `Confirm  ${eta} min` : `Confirmar  ${eta} min`,
-    readyBtn:    en ? 'Ready for pickup' : 'Listo para recoger',
+    readyBtn:    (type?: string) => type === 'delivery'
+      ? (en ? 'Ready to dispatch' : 'Listo para entregar')
+      : (en ? 'Ready for pickup'  : 'Listo para recoger'),
     deliveredBtn: en ? 'Delivered'       : 'Entregado',
     // Order detail
     eta:         en ? 'Prep time'        : 'Tiempo estimado',
@@ -2021,7 +2023,7 @@ function OrderDetail({
             >
               {isUpdating
                 ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : <><CheckCircle className="w-6 h-6" /> {t.readyBtn} <ChevronRight className="w-5 h-5" /></>}
+                : <><CheckCircle className="w-6 h-6" /> {t.readyBtn(order.order_type)} <ChevronRight className="w-5 h-5" /></>}
             </button>
           </>
         )}

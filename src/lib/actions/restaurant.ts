@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/server';
 import { sanitizeText, sanitizeMultiline } from '@/lib/sanitize';
 import { captureError } from '@/lib/error-reporting';
 import type { CreateRestaurantInput, CategoryInput, ProductInput, TableInput } from '@/lib/validations';
+import { sendWhatsApp } from '@/lib/notifications/whatsapp';
+import { sendSMS, resolveChannel } from '@/lib/notifications/sms';
 
 const EN_CURRENCIES = new Set(['USD', 'GBP', 'CAD', 'AUD', 'NZD']);
 function inferLocale(currency: string): string {
@@ -1028,10 +1030,39 @@ export async function assignDriver(
 
   if (error) return { error: error.message };
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app';
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app').replace(/\/$/, '');
+  const driverTrackingUrl = token ? `${appUrl}/driver/track/${token}` : null;
+
+  // Auto-send WhatsApp/SMS to the driver with their tracking link
+  if (token && driverPhone.trim() && driverTrackingUrl) {
+    // Fetch order + restaurant for context (delivery address, locale, restaurant name)
+    const { data: orderRow } = await supabase
+      .from('orders')
+      .select('delivery_address, order_number, restaurants(name, locale)')
+      .eq('id', orderId)
+      .maybeSingle();
+
+    const restaurant = (orderRow as any)?.restaurants as { name: string; locale: string | null } | null;
+    const locale = restaurant?.locale ?? 'es';
+    const en = locale === 'en';
+    const restaurantName = restaurant?.name ?? '';
+    const address = (orderRow as any)?.delivery_address ?? '';
+
+    const driverMsg = en
+      ? `${restaurantName ? `[${restaurantName}] ` : ''}New delivery assignment!\n📍 Address: ${address}\n\nOpen your driver page to start tracking:\n${driverTrackingUrl}`
+      : `${restaurantName ? `[${restaurantName}] ` : ''}¡Tienes un nuevo envío!\n📍 Dirección: ${address}\n\nAbre tu página de repartidor para iniciar:\n${driverTrackingUrl}`;
+
+    const channel = resolveChannel(driverPhone.trim());
+    if (channel === 'sms') {
+      sendSMS({ to: driverPhone.trim(), text: driverMsg }).catch(() => {});
+    } else {
+      sendWhatsApp({ to: driverPhone.trim(), text: driverMsg }).catch(() => {});
+    }
+  }
+
   return {
     success: true,
     trackingToken: token,
-    trackingUrl: token ? `${appUrl}/driver/track/${token}` : null,
+    trackingUrl: driverTrackingUrl,
   };
 }

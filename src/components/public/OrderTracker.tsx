@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
-import { CheckCircle2, Check, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, Wifi, Utensils, ShoppingBag, Truck, CreditCard, Banknote, MapPin, Phone } from 'lucide-react';
+import { CheckCircle2, Check, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, Wifi, Utensils, ShoppingBag, Truck, CreditCard, Banknote, MapPin, Phone, DoorOpen } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -274,7 +274,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       case 'confirmed':
       case 'preparing': return en ? `${restaurantName} is preparing your order` : `${restaurantName} está preparando tu pedido`;
       case 'ready':     return order.order_type === 'delivery'
-                          ? (en ? 'Your order is on its way!' : '¡Tu pedido está en camino!')
+                          ? ((order as any).driver_at_door_at
+                              ? (en ? 'Your driver is at the door!' : '¡Tu repartidor está en la puerta!')
+                              : (order as any).driver_picked_up_at
+                                ? (en ? 'Your order is on its way!' : '¡Tu pedido está en camino!')
+                                : (en ? 'Your order is ready for dispatch' : 'Tu pedido está listo para envío'))
                           : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!');
       case 'delivered': return en ? 'Enjoy your meal!' : '¡Buen provecho!';
       default:          return '';
@@ -457,6 +461,52 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             </div>
           );
         })()}
+
+        {/* ── DRIVER STATUS BANNERS (delivery only) ── */}
+        {order.order_type === 'delivery' && order.status === 'ready' && (
+          <>
+            {/* "En camino" banner — shown when driver picked up but not yet at door */}
+            {(order as any).driver_picked_up_at && !(order as any).driver_at_door_at && (
+              <div className="tracker-card flex items-center gap-4 px-5 py-4 rounded-3xl bg-blue-50 border border-blue-200 shadow-sm">
+                <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                  <Truck className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-blue-600 uppercase tracking-wide">
+                    {t.en ? 'On its way' : 'En camino'}
+                  </p>
+                  <p className="text-sm font-black text-blue-800 leading-tight">
+                    {t.en ? 'Driver picked up your order' : 'El repartidor recogió tu pedido'}
+                  </p>
+                  <p className="text-xs text-blue-500 mt-0.5">
+                    {t.en ? 'Heading to your address' : 'En camino a tu dirección'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* "Driver at door" banner — highest urgency */}
+            {(order as any).driver_at_door_at && (
+              <div className="tracker-card flex items-center gap-4 px-5 py-4 rounded-3xl bg-orange-50 border-2 border-orange-300 shadow-sm">
+                <div className="relative w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+                  <span className="absolute inset-0 rounded-2xl bg-orange-400 animate-ping opacity-20" />
+                  <DoorOpen className="w-6 h-6 text-orange-600 relative" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-orange-600 uppercase tracking-wide">
+                    {t.en ? 'Driver arrived!' : '¡Repartidor llegó!'}
+                  </p>
+                  <p className="text-base font-black text-orange-800 leading-tight">
+                    {t.en ? 'Your driver is at the door' : 'Tu repartidor está en la puerta'}
+                  </p>
+                  <p className="text-xs text-orange-500 mt-0.5">
+                    {t.en ? 'Please come to the door' : 'Por favor acércate a la puerta'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Push notification prompt */}
         {!isCancelled && !isComplete && (
