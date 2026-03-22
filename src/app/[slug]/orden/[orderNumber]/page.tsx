@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function OrderTrackingPage({ params, searchParams }: PageProps) {
   const paidSuccess = searchParams.paid === 'true';
 
-  let restaurant: { id: string; name: string; slug: string; currency: string | null; address: string | null; locale: string | null } | null = null;
+  let restaurant: { id: string; name: string; slug: string; currency: string | null; address: string | null; locale: string | null; phone: string | null } | null = null;
   let initialOrder: any = null;
 
   try {
@@ -31,7 +31,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
     // Fetch restaurant first so we have the UUID needed for the order RPC
     const { data: restaurantData } = await adminDb
       .from('restaurants')
-      .select('id, name, slug, currency, locale, address')
+      .select('id, name, slug, currency, locale, address, phone')
       .eq('slug', params.slug)
       .maybeSingle();
 
@@ -43,6 +43,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
         currency: (restaurantData as any).currency ?? null,
         address: (restaurantData as any).address ?? null,
         locale: (restaurantData as any).locale ?? null,
+        phone: (restaurantData as any).phone ?? null,
       };
 
       // Fetch order server-side so the page renders with data immediately,
@@ -97,6 +98,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
       restaurantName={restaurant.name}
       restaurantSlug={restaurant.slug}
       restaurantAddress={restaurant.address ?? undefined}
+      restaurantPhone={restaurant.phone ?? undefined}
       orderNumber={params.orderNumber}
       currency={restaurant.currency ?? 'MXN'}
       locale={restaurant.locale ?? 'es'}

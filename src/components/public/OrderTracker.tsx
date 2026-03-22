@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { CheckCircle2, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, Wifi, Utensils, ShoppingBag, Truck, CreditCard, Banknote, MapPin } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
+import { CheckCircle2, Check, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, Wifi, Utensils, ShoppingBag, Truck, CreditCard, Banknote, MapPin, Phone } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -62,6 +62,7 @@ function getT(locale?: string, orderType?: string) {
     cfdiIssuedXml: 'Descargar XML',
     cfdiIssuedPdf: 'Descargar PDF',
     cfdiError: 'Ocurrió un error. Intenta de nuevo.',
+    callRestaurant: en ? 'Call restaurant' : 'Llamar al restaurante',
     steps: {
       // Header icon/text per DB status (detailed view)
       pending:   { label: en ? 'Received'    : 'Recibido',       desc: en ? 'Your order was received'           : 'Tu pedido fue recibido' },
@@ -112,6 +113,7 @@ interface OrderTrackerProps {
   restaurantName: string;
   restaurantSlug: string;
   restaurantAddress?: string;
+  restaurantPhone?: string;
   orderNumber: string;
   currency?: string;
   locale?: string;
@@ -120,7 +122,7 @@ interface OrderTrackerProps {
   initialOrder?: any;
 }
 
-export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, orderNumber, currency = 'MXN', locale, showPaidBanner = false, initialOrder }: OrderTrackerProps) {
+export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, restaurantPhone, orderNumber, currency = 'MXN', locale, showPaidBanner = false, initialOrder }: OrderTrackerProps) {
   const t = getT(locale);
   const [order, setOrder] = useState<any>(initialOrder ?? null);
   const [loading, setLoading] = useState(!initialOrder);
@@ -264,31 +266,58 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const tWithType = getT(locale, order.order_type);
   const currentStepText = tWithType.steps[order.status as keyof typeof tWithType.steps];
 
+  // Dynamic subtitle per status
+  const statusSubtitle = (() => {
+    const en = tWithType.en;
+    switch (order.status) {
+      case 'pending':   return en ? `${restaurantName} received your order` : `${restaurantName} recibió tu pedido`;
+      case 'confirmed':
+      case 'preparing': return en ? `${restaurantName} is preparing your order` : `${restaurantName} está preparando tu pedido`;
+      case 'ready':     return order.order_type === 'delivery'
+                          ? (en ? 'Your order is on its way!' : '¡Tu pedido está en camino!')
+                          : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!');
+      case 'delivered': return en ? 'Enjoy your meal!' : '¡Buen provecho!';
+      default:          return '';
+    }
+  })();
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      <style>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(14px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .tracker-card { animation: fadeInUp 0.45s ease-out both; }
+        .tracker-card:nth-child(2) { animation-delay: 0.05s; }
+        .tracker-card:nth-child(3) { animation-delay: 0.1s; }
+        .tracker-card:nth-child(4) { animation-delay: 0.15s; }
+      `}</style>
+
+      {/* Sticky nav bar */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link href={`/${restaurantSlug}`} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+            <Link href={`/${restaurantSlug}`} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors active:scale-95">
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </Link>
             <div>
-              <h1 className="text-sm font-bold font-heading">{restaurantName}</h1>
-              <p className="text-xs text-gray-400">{t.en ? 'Order' : 'Pedido'} #{order.order_number}</p>
+              <h1 className="text-sm font-bold font-heading leading-tight">{restaurantName}</h1>
+              <p className="text-[11px] text-gray-400">{t.en ? 'Order' : 'Pedido'} #{order.order_number}</p>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-1 rounded-full">
-            <Wifi className="w-3 h-3" />
+          <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             {t.live}
           </div>
         </div>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+      <div className="max-w-lg mx-auto px-4 py-5 space-y-3">
+
         {/* Payment confirmed banner */}
         {paidBannerVisible && (
-          <div className="flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-emerald-50 border border-emerald-200">
+          <div className="tracker-card flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-emerald-50 border border-emerald-200">
             <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
               <CreditCard className="w-4 h-4 text-emerald-600" />
             </div>
@@ -308,169 +337,222 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           </div>
         )}
 
-        {/* Status Hero */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {/* ── STATUS HERO CARD ── */}
+        <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
           {isCancelled ? (
-            <div className="text-center py-10 px-4">
-              <div className="w-16 h-16 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-4">
-                <XCircle className="w-8 h-8 text-red-500" />
+            <div className="text-center py-12 px-6">
+              <div className="w-20 h-20 rounded-2xl bg-red-100 flex items-center justify-center mx-auto mb-5">
+                <XCircle className="w-10 h-10 text-red-500" />
               </div>
-              <h2 className="text-lg font-bold text-red-600">{t.orderCancelled}</h2>
-              <p className="text-sm text-gray-500 mt-1">{t.orderCancelledDesc}</p>
+              <h2 className="text-2xl font-black text-red-600 mb-1">{t.orderCancelled}</h2>
+              <p className="text-sm text-gray-500">{t.orderCancelledDesc}</p>
             </div>
           ) : (
-            <div className="p-6">
-              <div className="text-center mb-6">
+            <>
+              {/* Colored accent strip */}
+              <div className={cn(
+                'h-1 w-full',
+                isComplete ? 'bg-emerald-500' :
+                order.status === 'ready' ? 'bg-orange-400' :
+                ['confirmed', 'preparing'].includes(order.status) ? 'bg-violet-500' :
+                'bg-amber-400'
+              )} />
+
+              {/* Icon + title + subtitle */}
+              <div className="px-6 pt-8 pb-6 text-center">
                 {isComplete ? (
                   <>
-                    <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-3">
-                      <Package className="w-8 h-8 text-emerald-600" />
+                    <div className="w-20 h-20 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-5">
+                      <Package className="w-10 h-10 text-emerald-600" />
                     </div>
-                    <h2 className="text-lg font-bold text-emerald-700">{t.orderDelivered}</h2>
+                    <h2 className="text-2xl font-black text-gray-900 mb-1">{t.orderDelivered}</h2>
                     <p className="text-sm text-gray-500">{t.orderDeliveredDesc}</p>
                   </>
                 ) : currentStepStyle && currentStepText ? (
                   <>
-                    <div className={cn('w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3', currentStepStyle.bg)}>
-                      <currentStepStyle.icon className={cn('w-8 h-8', currentStepStyle.color)} />
+                    <div className={cn('w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5', currentStepStyle.bg)}>
+                      <currentStepStyle.icon className={cn('w-10 h-10', currentStepStyle.color)} />
                     </div>
-                    <h2 className="text-lg font-bold">{currentStepText.label}</h2>
-                    <p className="text-sm text-gray-500">{currentStepText.desc}</p>
+                    <h2 className="text-2xl font-black text-gray-900 mb-1">{currentStepText.label}</h2>
+                    <p className="text-sm text-gray-500 leading-snug">{statusSubtitle}</p>
                   </>
                 ) : null}
               </div>
 
-              {/* Progress Steps — 4 customer-visible steps */}
-              <div className="flex items-center gap-1 mb-3">
-                {CUSTOMER_STEPS.map((key, i) => (
-                  <div
-                    key={key}
-                    className={cn(
-                      'flex-1 h-2.5 rounded-full transition-all duration-700',
-                      i <= currentStepIndex ? 'bg-brand-500' : 'bg-gray-100'
-                    )}
-                  />
-                ))}
-              </div>
-              <div className="flex justify-between">
-                {CUSTOMER_STEPS.map((key, i) => (
-                  <span
-                    key={key}
-                    className={cn(
-                      'text-[10px] font-medium transition-colors',
-                      i <= currentStepIndex ? 'text-brand-600' : 'text-gray-300'
-                    )}
-                  >
-                    {tWithType.customerSteps[key]}
-                  </span>
-                ))}
-              </div>
+              {/* ── Timeline with circles ── */}
+              <div className="px-6 pb-8">
+                <div className="flex items-start">
+                  {CUSTOMER_STEPS.map((key, i) => {
+                    const isDone   = i < currentStepIndex;
+                    const isActive = i === currentStepIndex;
+                    return (
+                      <Fragment key={key}>
+                        {/* Circle + label */}
+                        <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                          <div className="relative">
+                            {/* Ping ring on active step */}
+                            {isActive && (
+                              <span className="absolute inset-0 rounded-full bg-brand-400 animate-ping opacity-30" />
+                            )}
+                            <div className={cn(
+                              'relative w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all duration-500',
+                              isDone   ? 'bg-brand-500 border-brand-500' :
+                              isActive ? 'bg-brand-500 border-brand-500' :
+                              'bg-white border-gray-200'
+                            )}>
+                              {isDone ? (
+                                <Check className="w-4 h-4 text-white" strokeWidth={3} />
+                              ) : (
+                                <div className={cn('w-2 h-2 rounded-full', isActive ? 'bg-white' : 'bg-gray-300')} />
+                              )}
+                            </div>
+                          </div>
+                          <span className={cn(
+                            'text-[9px] font-semibold text-center leading-tight w-14',
+                            isDone || isActive ? 'text-brand-600' : 'text-gray-300'
+                          )}>
+                            {tWithType.customerSteps[key]}
+                          </span>
+                        </div>
 
-              {/* ETA */}
-              {order.estimated_ready_minutes && ['confirmed', 'preparing'].includes(order.status) && (() => {
-                const confirmedAt = order.updated_at ? new Date(order.updated_at) : new Date(order.created_at);
-                const etaTime = new Date(confirmedAt.getTime() + order.estimated_ready_minutes * 60_000);
-                const etaLocale = t.en ? 'en-US' : 'es-MX';
-                const etaStr = etaTime.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });
-                const minsLeft = Math.max(0, Math.round((etaTime.getTime() - Date.now()) / 60_000));
-                return (
-                  <div className="mt-4 flex items-center gap-3 px-4 py-3 rounded-2xl bg-brand-50 border border-brand-200">
-                    <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center flex-shrink-0">
-                      <Clock className="w-5 h-5 text-brand-600" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-brand-700 uppercase tracking-wide">{t.estimatedTime}</p>
-                      <p className="text-base font-black text-brand-800">
-                        {minsLeft > 0
-                          ? t.en ? `~${minsLeft} min · ready at ${etaStr}` : `~${minsLeft} min · lista a las ${etaStr}`
-                          : t.en ? `Ready at ${etaStr}` : `Lista a las ${etaStr}`}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
+                        {/* Connecting line between circles */}
+                        {i < CUSTOMER_STEPS.length - 1 && (
+                          <div className={cn(
+                            'flex-1 h-0.5 mt-[18px] mx-1 transition-all duration-700',
+                            i < currentStepIndex ? 'bg-brand-500' : 'bg-gray-100'
+                          )} />
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
           )}
         </div>
 
-        {/* Push notification prompt — shown while order is in progress */}
+        {/* ── ETA CARD (standalone, prominent) ── */}
+        {order.estimated_ready_minutes && ['confirmed', 'preparing'].includes(order.status) && (() => {
+          const confirmedAt = order.updated_at ? new Date(order.updated_at) : new Date(order.created_at);
+          const etaTime   = new Date(confirmedAt.getTime() + order.estimated_ready_minutes * 60_000);
+          const etaLocale = t.en ? 'en-US' : 'es-MX';
+          const etaStr    = etaTime.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });
+          const minsLeft  = Math.max(0, Math.round((etaTime.getTime() - Date.now()) / 60_000));
+          return (
+            <div className="tracker-card flex items-center gap-4 px-5 py-4 rounded-3xl bg-emerald-50 border border-emerald-200 shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <Clock className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wide">{t.estimatedTime}</p>
+                <p className="text-xl font-black text-emerald-800 leading-tight">
+                  {minsLeft > 0
+                    ? (t.en ? `~${minsLeft} min` : `~${minsLeft} min`)
+                    : (t.en ? 'Almost ready!' : '¡Ya casi!')}
+                </p>
+                <p className="text-xs text-emerald-600 mt-0.5">
+                  {t.en ? `Today · ${etaStr}` : `Hoy · ${etaStr}`}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Push notification prompt */}
         {!isCancelled && !isComplete && (
           <PushSubscriptionPrompt orderId={order.id} locale={locale} />
         )}
 
-        {/* Order details */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <h3 className="font-bold text-sm mb-3">{t.orderDetails}</h3>
-          <div className="space-y-2.5">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">{t.customer}</span>
-              <span className="font-medium">{order.customer_name}</span>
+        {/* ── ORDER DETAILS CARD ── */}
+        <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+          {/* Section header */}
+          <div className="px-5 py-4 border-b border-gray-50">
+            <h3 className="text-sm font-bold text-gray-900">{t.orderDetails}</h3>
+          </div>
+
+          {/* Customer info rows */}
+          <div className="px-5 py-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">{t.customer}</span>
+              <span className="text-sm font-semibold text-gray-800">{order.customer_name}</span>
             </div>
             {t.orderTypes[order.order_type as keyof typeof t.orderTypes] && (() => {
               const ot = t.orderTypes[order.order_type as keyof typeof t.orderTypes];
               return (
-                <div className="flex justify-between text-sm items-center">
-                  <span className="text-gray-500">{t.type}</span>
-                  <span className="flex items-center gap-1 font-medium"><ot.icon className="w-3.5 h-3.5 text-gray-400" /> {ot.label}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400">{t.type}</span>
+                  <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
+                    <ot.icon className="w-3.5 h-3.5 text-gray-400" /> {ot.label}
+                  </span>
                 </div>
               );
             })()}
             {t.paymentMethods[order.payment_method as keyof typeof t.paymentMethods] && (() => {
               const pm = t.paymentMethods[order.payment_method as keyof typeof t.paymentMethods];
               return (
-                <div className="flex justify-between text-sm items-center">
-                  <span className="text-gray-500">{t.payment}</span>
-                  <span className="flex items-center gap-1 font-medium"><pm.icon className="w-3.5 h-3.5 text-gray-400" /> {pm.label}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-400">{t.payment}</span>
+                  <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
+                    <pm.icon className="w-3.5 h-3.5 text-gray-400" /> {pm.label}
+                  </span>
                 </div>
               );
             })()}
             {order.delivery_address && (
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">{t.address}</span>
-                <span className="text-gray-700 text-right max-w-[60%] flex items-start gap-1"><MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />{order.delivery_address}</span>
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-sm text-gray-400 flex-shrink-0">{t.address}</span>
+                <span className="text-sm font-semibold text-gray-800 text-right flex items-start gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
+                  {order.delivery_address}
+                </span>
               </div>
             )}
             {order.notes && (
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">{t.notes}</span>
-                <span className="text-gray-600 text-right max-w-[60%]">{order.notes}</span>
+              <div className="flex items-start justify-between gap-4">
+                <span className="text-sm text-gray-400 flex-shrink-0">{t.notes}</span>
+                <span className="text-sm text-gray-600 text-right max-w-[60%] italic">&quot;{order.notes}&quot;</span>
               </div>
             )}
           </div>
 
-          <div className="mt-4 pt-4 border-t border-gray-100 space-y-2.5">
+          {/* Items list */}
+          <div className="px-5 py-4 border-t border-gray-50 space-y-3">
             {order.order_items?.map((item: any) => (
-              <div key={item.id} className="flex justify-between text-sm">
+              <div key={item.id} className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <span className="font-medium">{item.qty}x {item.products?.name ?? (t.en ? 'Item' : 'Producto')}</span>
-                  {item.product_variants?.name && (
-                    <span className="text-gray-400 text-xs ml-1">({item.product_variants.name})</span>
-                  )}
+                  <p className="text-sm font-semibold text-gray-800">
+                    <span className="text-brand-600 font-bold">{item.qty}×</span>{' '}
+                    {item.products?.name ?? (t.en ? 'Item' : 'Producto')}
+                    {item.product_variants?.name && (
+                      <span className="text-gray-400 font-normal text-xs ml-1">({item.product_variants.name})</span>
+                    )}
+                  </p>
                   {(item.order_item_extras ?? []).length > 0 && (
-                    <p className="text-xs text-gray-400">
-                      +{(item.order_item_extras ?? []).map((ex: any) => ex.product_extras?.name).filter(Boolean).join(', ')}
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      + {(item.order_item_extras ?? []).map((ex: any) => ex.product_extras?.name).filter(Boolean).join(', ')}
                     </p>
                   )}
                   {(item.order_item_modifiers ?? []).map((mod: any, i: number) => (
                     <p key={i} className="text-xs text-gray-400">{mod.group_name}: {mod.option_name}</p>
                   ))}
-                  {item.notes && <p className="text-xs text-amber-600 italic">&quot;{item.notes}&quot;</p>}
+                  {item.notes && <p className="text-xs text-amber-600 italic mt-0.5">&quot;{item.notes}&quot;</p>}
                 </div>
-                <span className="font-medium ml-2 flex-shrink-0">{formatPrice(Number(item.line_total), currency)}</span>
+                <span className="text-sm font-semibold text-gray-800 flex-shrink-0">{formatPrice(Number(item.line_total), currency)}</span>
               </div>
             ))}
           </div>
 
-          <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between">
-            <span className="font-bold">{t.total}</span>
-            <span className="font-bold text-brand-600 text-lg">{formatPrice(Number(order.total), currency)}</span>
+          {/* Total */}
+          <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
+            <span className="text-base font-bold text-gray-900">{t.total}</span>
+            <span className="text-2xl font-black text-brand-600">{formatPrice(Number(order.total), currency)}</span>
           </div>
         </div>
 
-        {/* Delivery map — shown for delivery orders when restaurant has an address */}
+        {/* Delivery map */}
         {order.order_type === 'delivery' && restaurantAddress && (
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">{t.en ? 'Location' : 'Ubicación'}</p>
+          <div className="tracker-card">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">{t.en ? 'Location' : 'Ubicación'}</p>
             <DeliveryMap
               restaurantAddress={restaurantAddress}
               deliveryAddress={order.delivery_address}
@@ -483,8 +565,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
         {/* Delivery proof photo */}
         {isComplete && (order as any).delivery_photo_url && (
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
+          <div className="tracker-card">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">
               {t.en ? 'Delivery photo' : 'Foto de entrega'}
             </p>
             <a href={(order as any).delivery_photo_url} target="_blank" rel="noopener noreferrer">
@@ -497,7 +579,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           </div>
         )}
 
-        {/* Review prompt when delivered */}
+        {/* Review prompt */}
         {isComplete && (
           <ReviewPrompt restaurantId={restaurantId} orderId={order.id} customerName={order.customer_name} locale={locale} />
         )}
@@ -518,29 +600,40 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               localStorage.setItem('menius-reorder', JSON.stringify(reorderItems));
               window.location.href = `/${restaurantSlug}?reorder=1`;
             }}
-            className="block w-full py-3.5 rounded-xl bg-emerald-600 text-white text-center font-bold text-sm hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-600/20"
+            className="tracker-card block w-full py-3.5 rounded-2xl bg-emerald-600 text-white text-center font-bold text-sm hover:bg-emerald-700 active:scale-[0.98] transition-all shadow-lg shadow-emerald-600/20"
           >
             {t.reorder}
           </button>
         )}
 
-        {/* CFDI invoice request — only for MXN restaurants and delivered orders */}
+        {/* CFDI invoice */}
         {isComplete && currency === 'MXN' && (
           <CfdiButton orderId={order.id} restaurantId={restaurantId} t={t} />
         )}
 
-        {/* Back to menu */}
-        <Link
-          href={`/${restaurantSlug}`}
-          className="block w-full py-3 rounded-xl bg-white border border-gray-200 text-center font-semibold text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-        >
-          {t.backToMenu}
-        </Link>
+        {/* ── CTA BUTTONS ── */}
+        <div className="tracker-card space-y-2.5">
+          <Link
+            href={`/${restaurantSlug}`}
+            className="block w-full py-4 rounded-2xl bg-brand-500 text-white text-center font-bold text-sm hover:bg-brand-600 active:scale-[0.98] transition-all shadow-md shadow-brand-500/20"
+          >
+            {t.backToMenu}
+          </Link>
+          {restaurantPhone && (
+            <a
+              href={`tel:${restaurantPhone}`}
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl border-2 border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 active:scale-[0.98] transition-all"
+            >
+              <Phone className="w-4 h-4" />
+              {t.callRestaurant}
+            </a>
+          )}
+        </div>
 
         {/* My orders history link */}
         <Link
           href={`/${restaurantSlug}/mis-pedidos`}
-          className="block w-full py-2.5 text-center text-xs text-gray-400 hover:text-emerald-600 transition-colors"
+          className="block w-full py-2.5 text-center text-xs text-gray-400 hover:text-brand-600 transition-colors"
         >
           {t.viewPreviousOrders}
         </Link>
