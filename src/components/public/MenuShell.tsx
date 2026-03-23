@@ -198,11 +198,24 @@ export function MenuShell({
   const mobilePillsRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const isScrollingRef = useRef(false);
-  const scrollTargetRef = useRef(0);
+  // True while the banner element is at least partially visible in the scroll container.
+  // Tracked by IntersectionObserver — always accurate, no timing issues.
+  const bannerVisibleRef = useRef(true);
   const [headerScrolled, setHeaderScrolled] = useState(false);
   const hasCover = !!restaurant.cover_image_url;
 
   const getBannerHeight = useCallback(() => bannerRef.current?.offsetHeight ?? 0, []);
+
+  // IntersectionObserver: watch the banner element and keep bannerVisibleRef in sync.
+  useEffect(() => {
+    if (!bannerRef.current || !hasCover) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { bannerVisibleRef.current = entry.isIntersecting; },
+      { threshold: 0.05 }
+    );
+    observer.observe(bannerRef.current);
+    return () => observer.disconnect();
+  }, [hasCover]);
 
   const handleCategorySelect = useCallback((catId: string | null) => {
     setSearchQuery('');
@@ -212,41 +225,32 @@ export function MenuShell({
     setActiveCategory(catId);
 
     if (catId === null) {
-      scrollTargetRef.current = 0;
       mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
     if (isLargeCatalog) {
       setActiveCatFilter(catId);
-      const bannerHeight = getBannerHeight();
-      // Check both actual scroll and the intended target (handles mid-smooth-scroll clicks)
-      const bannerHidden = mainRef.current!.scrollTop >= bannerHeight || scrollTargetRef.current >= bannerHeight;
-      const top = bannerHidden ? bannerHeight : 0;
-      scrollTargetRef.current = top;
+      // If the banner is visible, stay at top. If hidden, jump to just past the banner.
+      const top = bannerVisibleRef.current ? 0 : getBannerHeight();
       mainRef.current?.scrollTo({ top, behavior: 'instant' });
       return;
     }
 
     const section = sectionRefs.current.get(catId);
     if (section && mainRef.current) {
-      const bannerHeight = getBannerHeight();
-      // scrollTargetRef captures where a previous programmatic scroll was heading,
-      // so mid-smooth-scroll clicks are evaluated against the intended destination.
-      const bannerHidden = mainRef.current.scrollTop >= bannerHeight || scrollTargetRef.current >= bannerHeight;
-
-      if (!bannerHidden) {
-        // Banner is visible (and no scroll in progress that would hide it) — don't scroll
+      if (bannerVisibleRef.current) {
+        // Banner is visible — just highlight the category, don't scroll
         return;
       }
 
       // Banner is hidden — scroll to the section keeping it hidden
       isScrollingRef.current = true;
+      const bannerHeight = getBannerHeight();
       const sectionTop = section.getBoundingClientRect().top;
       const containerTop = mainRef.current.getBoundingClientRect().top;
       const rawOffset = mainRef.current.scrollTop + sectionTop - containerTop;
       const offset = Math.max(bannerHeight, rawOffset);
-      scrollTargetRef.current = offset;
       mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
       setTimeout(() => { isScrollingRef.current = false; }, 900);
     }
@@ -493,11 +497,7 @@ export function MenuShell({
     if (!main) return;
     const threshold = hasCover ? 100 : 40;
     const onScroll = () => {
-      const scrollTop = main.scrollTop;
-      setHeaderScrolled(scrollTop > threshold);
-      if (!isScrollingRef.current) {
-        scrollTargetRef.current = scrollTop;
-      }
+      setHeaderScrolled(main.scrollTop > threshold);
     };
     main.addEventListener('scroll', onScroll, { passive: true });
     return () => main.removeEventListener('scroll', onScroll);
