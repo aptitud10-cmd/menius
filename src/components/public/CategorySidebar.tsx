@@ -15,6 +15,7 @@ interface CategorySidebarProps {
   allLabel?: string;
   locale?: string;
   defaultLocale?: string;
+  sectionProgress?: Record<string, number>;
 }
 
 function isCategoryAvailableNow(cat: Category): boolean {
@@ -33,6 +34,7 @@ export const CategorySidebar = memo(function CategorySidebar({
   onSelect,
   locale = 'es',
   defaultLocale = 'es',
+  sectionProgress = {},
 }: CategorySidebarProps) {
   return (
     <nav className="py-5 pr-3 font-sidebar">
@@ -71,6 +73,16 @@ export const CategorySidebar = memo(function CategorySidebar({
                     transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                   />
                 </>
+              )}
+              {/* Scroll progress micro-bar */}
+              {available && (sectionProgress[cat.id] ?? 0) > 0 && (
+                <span className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-gray-100 overflow-hidden">
+                  <motion.span
+                    className="absolute inset-y-0 left-0 rounded-full bg-emerald-400"
+                    style={{ width: `${Math.round((sectionProgress[cat.id] ?? 0) * 100)}%` }}
+                    layoutId={undefined}
+                  />
+                </span>
               )}
               <div className="flex-1 text-left min-w-0 relative z-10">
                 <span className="truncate block">{tName(cat, locale, defaultLocale)}</span>

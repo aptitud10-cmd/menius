@@ -157,9 +157,17 @@ export function CartPanel({
       <div className="px-4 pt-3 pb-2 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-bold text-gray-900">{t.myOrder}</h2>
-          <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full tabular-nums font-medium">
-            {items.reduce((s, i) => s + i.qty, 0)} {t.items}
-          </span>
+          <AnimatePresence mode="popLayout">
+            <motion.span
+              key={items.reduce((s, i) => s + i.qty, 0)}
+              initial={{ scale: 1.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+              className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full tabular-nums font-medium"
+            >
+              {items.reduce((s, i) => s + i.qty, 0)} {t.items}
+            </motion.span>
+          </AnimatePresence>
         </div>
         <button
           onClick={handleClearTap}
@@ -185,10 +193,17 @@ export function CartPanel({
               <motion.div
                 key={item.uid ?? `${item.product.id}-${item.variant?.id ?? 'base'}-${idx}`}
                 layout
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
+                initial={{ opacity: 0, x: 36, height: 0 }}
+                animate={{ opacity: 1, x: 0, height: 'auto' }}
+                exit={{ opacity: 0, x: -24, height: 0, marginBottom: 0 }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 340,
+                  damping: 28,
+                  opacity: { duration: 0.2 },
+                  height: { duration: 0.22 },
+                  marginBottom: { duration: 0.22 },
+                }}
                 className="overflow-hidden mb-2"
               >
                 <SwipeableItem onRemove={() => removeItem(idx)}>
@@ -306,7 +321,18 @@ export function CartPanel({
         )}
         <div className="flex justify-between items-baseline mb-2">
           <span className="text-xs text-gray-500">{t.subtotal}</span>
-          <span className="text-base font-bold text-gray-900 tabular-nums">{fmtPrice(cartTotal)}</span>
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={cartTotal}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
+              className="text-base font-bold text-gray-900 tabular-nums"
+            >
+              {fmtPrice(cartTotal)}
+            </motion.span>
+          </AnimatePresence>
         </div>
         {deliveryFee != null && deliveryFee > 0 && (
           <div className="flex justify-between items-baseline text-xs mb-2">
@@ -320,13 +346,26 @@ export function CartPanel({
             <span className="text-emerald-500 font-medium">{t.freeDelivery}</span>
           </div>
         )}
-        <button
+        <motion.button
           onClick={onCheckout}
-          className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-extrabold text-sm hover:bg-emerald-600 active:scale-[0.98] transition-all duration-150 shadow-[0_4px_16px_rgba(16,185,129,0.3)] flex items-center justify-between px-5"
+          whileHover={{ scale: 1.015 }}
+          whileTap={{ scale: 0.97 }}
+          className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-extrabold text-sm hover:bg-emerald-600 transition-colors duration-150 shadow-[0_4px_16px_rgba(16,185,129,0.3)] flex items-center justify-between px-5"
         >
           <span>{t.placeOrder}</span>
-          <span className="tabular-nums">{fmtPrice(cartTotal + (deliveryFee && deliveryFee > 0 ? deliveryFee : 0))}</span>
-        </button>
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={cartTotal}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+              transition={{ duration: 0.15 }}
+              className="tabular-nums"
+            >
+              {fmtPrice(cartTotal + (deliveryFee && deliveryFee > 0 ? deliveryFee : 0))}
+            </motion.span>
+          </AnimatePresence>
+        </motion.button>
       </div>
     </div>
   );

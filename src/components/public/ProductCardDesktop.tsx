@@ -72,6 +72,10 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
       onQuickAdd(product);
       setJustAdded(true);
       setTimeout(() => setJustAdded(false), 1200);
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      window.dispatchEvent(new CustomEvent('menu:cart-fly', {
+        detail: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+      }));
     }
   }, [outOfStock, hasModifiers, onSelect, onQuickAdd, product]);
 

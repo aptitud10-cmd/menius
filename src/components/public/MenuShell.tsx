@@ -63,6 +63,32 @@ const POPULAR_ID = '__popular__';
 // Renders children only when the section scrolls near the viewport.
 // Once rendered, stays rendered (one-way latch) to avoid thrashing.
 // The wrapping <section> with sectionRef is unaffected — scroll-spy works normally.
+function SkeletonCard() {
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
+      <div className="w-full aspect-[16/9] bg-gray-100 relative overflow-hidden">
+        <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+      </div>
+      <div className="p-4 space-y-2.5">
+        <div className="h-4 rounded-lg bg-gray-100 relative overflow-hidden w-4/5">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_0.1s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+        </div>
+        <div className="h-3 rounded-lg bg-gray-100 relative overflow-hidden w-3/5">
+          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_0.2s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+        </div>
+        <div className="flex justify-between items-center pt-2 border-t border-gray-50">
+          <div className="h-4 w-16 rounded-lg bg-gray-100 relative overflow-hidden">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_0.15s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+          </div>
+          <div className="h-8 w-20 rounded-xl bg-gray-100 relative overflow-hidden">
+            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_0.25s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const LazyProductGrid = memo(function LazyProductGrid({
   itemCount,
   children,
@@ -85,14 +111,17 @@ const LazyProductGrid = memo(function LazyProductGrid({
     return () => obs.disconnect();
   }, [visible]);
 
-  // Estimated height: ~190px per card row on mobile (2-col grid). Prevents layout jump.
-  const estimatedHeight = `${Math.ceil(itemCount / 2) * 190}px`;
+  if (!visible) {
+    return (
+      <div ref={ref} className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+        {Array.from({ length: Math.min(itemCount, 6) }).map((_, i) => (
+          <SkeletonCard key={i} />
+        ))}
+      </div>
+    );
+  }
 
-  return (
-    <div ref={ref} style={!visible ? { minHeight: estimatedHeight } : undefined}>
-      {visible && children}
-    </div>
-  );
+  return <div ref={ref}>{children}</div>;
 });
 
 export function MenuShell({
@@ -203,6 +232,9 @@ export function MenuShell({
   const bannerVisibleRef = useRef(true);
   const [headerScrolled, setHeaderScrolled] = useState(false);
   const hasCover = !!restaurant.cover_image_url;
+  const cartColRef = useRef<HTMLDivElement>(null);
+  const [flyParticles, setFlyParticles] = useState<{ id: number; sx: number; sy: number }[]>([]);
+  const flyIdRef = useRef(0);
 
   const getBannerHeight = useCallback(() => bannerRef.current?.offsetHeight ?? 0, []);
 
@@ -216,6 +248,20 @@ export function MenuShell({
     observer.observe(bannerRef.current);
     return () => observer.disconnect();
   }, [hasCover]);
+
+  // Fly-to-cart: listen for quick-add events and animate a particle to the cart panel.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { x, y } = (e as CustomEvent).detail as { x: number; y: number };
+      const id = ++flyIdRef.current;
+      setFlyParticles((prev) => [...prev, { id, sx: x, sy: y }]);
+      setTimeout(() => {
+        setFlyParticles((prev) => prev.filter((p) => p.id !== id));
+      }, 700);
+    };
+    window.addEventListener('menu:cart-fly', handler);
+    return () => window.removeEventListener('menu:cart-fly', handler);
+  }, []);
 
   const handleCategorySelect = useCallback((catId: string | null) => {
     setSearchQuery('');
@@ -491,13 +537,24 @@ export function MenuShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsByCategory, mainEl]);
 
-  // Track scroll for collapsing header
+  const [sectionProgress, setSectionProgress] = useState<Record<string, number>>({});
+
+  // Track scroll for collapsing header + section progress indicator
   useEffect(() => {
     const main = mainRef.current;
     if (!main) return;
     const threshold = hasCover ? 100 : 40;
     const onScroll = () => {
       setHeaderScrolled(main.scrollTop > threshold);
+      // Compute how far through each section the user has scrolled (0–1)
+      const progress: Record<string, number> = {};
+      sectionRefs.current.forEach((el, catId) => {
+        const top = el.offsetTop - main.scrollTop;
+        const h = el.offsetHeight;
+        const p = Math.max(0, Math.min(1, -top / h));
+        progress[catId] = p;
+      });
+      setSectionProgress(progress);
     };
     main.addEventListener('scroll', onScroll, { passive: true });
     return () => main.removeEventListener('scroll', onScroll);
@@ -771,6 +828,7 @@ export function MenuShell({
             allLabel={t.allCategories}
             locale={locale}
             defaultLocale={defaultLocale}
+            sectionProgress={sectionProgress}
           />
         </aside>
 
@@ -895,33 +953,65 @@ export function MenuShell({
 
           {searchResults !== null ? (
             <div>
-              <p className="text-sm text-gray-500 mb-4">
+              <motion.p
+                key={searchResults.length}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-sm text-gray-500 mb-4"
+              >
                 {searchResults.length} {searchResults.length === 1 ? t.resultSingular : t.resultPlural}
-              </p>
+              </motion.p>
               {searchResults.length === 0 ? (
-                <div className="text-center py-20 text-gray-400">
-                  <p className="font-medium">{t.noResults}</p>
-                </div>
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35 }}
+                  className="text-center py-20 text-gray-400 flex flex-col items-center gap-4"
+                >
+                  <motion.svg
+                    width="64" height="64" viewBox="0 0 64 64" fill="none"
+                    initial={{ scale: 0.7, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
+                  >
+                    <circle cx="28" cy="28" r="18" stroke="#d1d5db" strokeWidth="3" fill="none" />
+                    <path d="M41 41L52 52" stroke="#d1d5db" strokeWidth="3" strokeLinecap="round" />
+                    <path d="M22 28h12M28 22v12" stroke="#d1d5db" strokeWidth="2.5" strokeLinecap="round" opacity="0.4" />
+                  </motion.svg>
+                  <div>
+                    <p className="font-semibold text-gray-500">{t.noResults}</p>
+                    <p className="text-sm text-gray-400 mt-1">{locale === 'en' ? 'Try a different keyword' : 'Intenta con otra palabra'}</p>
+                  </div>
+                </motion.div>
               ) : (
-                <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                <motion.div
+                  className="grid grid-cols-2 xl:grid-cols-3 gap-3"
+                  initial="hidden"
+                  animate="visible"
+                  variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.05 } } }}
+                >
                   {searchResults.map((product) => (
-                    <ProductCard
+                    <motion.div
                       key={product.id}
-                      product={product}
-                      onSelect={handleProductSelect}
-                      onQuickAdd={handleQuickAdd}
-                      fmtPrice={fmtPrice}
-                      addLabel={t.addToCart}
-                      customizeLabel={t.customize}
-                      popularLabel={t.popular}
-                      soldOutLabel={t.soldOut}
-                      unavailableLabel={t.unavailable}
-                      addedShortLabel={t.addedShort}
-                      locale={locale}
-                      defaultLocale={defaultLocale}
-                    />
+                      variants={{ hidden: { opacity: 0, y: 14 }, visible: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }}
+                    >
+                      <ProductCard
+                        product={product}
+                        onSelect={handleProductSelect}
+                        onQuickAdd={handleQuickAdd}
+                        fmtPrice={fmtPrice}
+                        addLabel={t.addToCart}
+                        customizeLabel={t.customize}
+                        popularLabel={t.popular}
+                        soldOutLabel={t.soldOut}
+                        unavailableLabel={t.unavailable}
+                        addedShortLabel={t.addedShort}
+                        locale={locale}
+                        defaultLocale={defaultLocale}
+                      />
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               )}
             </div>
           ) : showFavs ? (
@@ -965,15 +1055,41 @@ export function MenuShell({
               )}
             </div>
           ) : products.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="font-semibold text-gray-600 mb-1">{t.noProductsYet}</p>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="text-center py-20 flex flex-col items-center gap-4"
+            >
+              <motion.div
+                initial={{ scale: 0.7 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
+                className="w-20 h-20 rounded-3xl bg-gray-50 border border-gray-100 flex items-center justify-center"
+              >
+                <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                  <path d="M6 10h24M6 18h24M6 26h14" stroke="#d1d5db" strokeWidth="2.5" strokeLinecap="round" />
+                </svg>
+              </motion.div>
+              <p className="font-semibold text-gray-600">{t.noProductsYet}</p>
+            </motion.div>
           ) : activeDiet && filteredProducts.length === 0 ? (
-            <div className="text-center py-20 text-gray-400">
-              <p className="text-3xl mb-3">{DIETARY_TAGS.find((d) => d.id === activeDiet)?.emoji}</p>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-20 text-gray-400 flex flex-col items-center gap-3"
+            >
+              <motion.p
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                className="text-4xl"
+              >
+                {DIETARY_TAGS.find((d) => d.id === activeDiet)?.emoji}
+              </motion.p>
               <p className="font-medium">{t.noDietMatch}</p>
-              <button onClick={() => setActiveDiet(null)} className="mt-3 text-sm text-emerald-600 font-semibold">{t.viewFullMenu}</button>
-            </div>
+              <button onClick={() => setActiveDiet(null)} className="mt-1 text-sm text-emerald-600 font-semibold hover:text-emerald-700 transition-colors">{t.viewFullMenu}</button>
+            </motion.div>
           ) : (
             <div className="space-y-12">
               {displayedGroups.map(({ category, items, available }) => {
@@ -1257,7 +1373,7 @@ export function MenuShell({
         </div>{/* end center column wrapper */}
 
         {/* Right: Cart — sticky, stays in place while content scrolls */}
-        <aside className="hidden lg:flex flex-col w-[340px] flex-shrink-0 border-l border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
+        <aside ref={cartColRef} className="hidden lg:flex flex-col w-[340px] flex-shrink-0 border-l border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
           <CartPanel
             fmtPrice={fmtPrice}
             t={t}
@@ -1272,6 +1388,23 @@ export function MenuShell({
         </aside>
         </div>{/* end 3-column row */}
       </div>{/* end outer scroll */}
+
+      {/* ── Fly-to-cart particles (desktop only) ── */}
+      {flyParticles.map((p) => {
+        const cartRect = cartColRef.current?.getBoundingClientRect();
+        const tx = cartRect ? cartRect.left + cartRect.width / 2 - p.sx : 0;
+        const ty = cartRect ? cartRect.top + 40 - p.sy : -200;
+        return (
+          <motion.div
+            key={p.id}
+            className="fixed z-[999] w-5 h-5 rounded-full bg-emerald-500 pointer-events-none hidden lg:block"
+            style={{ left: p.sx - 10, top: p.sy - 10 }}
+            initial={{ scale: 1, opacity: 1, x: 0, y: 0 }}
+            animate={{ scale: 0.3, opacity: 0, x: tx, y: ty }}
+            transition={{ duration: 0.55, ease: [0.25, 0.46, 0.45, 0.94] }}
+          />
+        );
+      })}
 
       {/* ── Mobile: Bottom cart bar ── */}
       {ordersLeft === 0 ? (
