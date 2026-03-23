@@ -233,16 +233,22 @@ export function MenuShell({
 
     const section = sectionRefs.current.get(catId);
     if (section && mainRef.current) {
+      const bannerHeight = getBannerHeight();
+      const bannerAlreadyHidden =
+        bannerEverHiddenRef.current || mainRef.current.scrollTop >= bannerHeight;
+
+      if (!bannerAlreadyHidden) {
+        // Banner is visible — just highlight the category, don't scroll
+        // (scrolling would inevitably push the banner out of view)
+        return;
+      }
+
+      // Banner was already hidden — scroll to the section, keeping banner hidden
       isScrollingRef.current = true;
       const sectionTop = section.getBoundingClientRect().top;
       const containerTop = mainRef.current.getBoundingClientRect().top;
       const rawOffset = mainRef.current.scrollTop + sectionTop - containerTop;
-      const bannerHeight = getBannerHeight();
-      // bannerEverHiddenRef: once the user scrolled past the banner it stays hidden
-      // on all subsequent category clicks, regardless of scroll timing race conditions.
-      const bannerAlreadyHidden =
-        bannerEverHiddenRef.current || mainRef.current.scrollTop >= bannerHeight;
-      const offset = bannerAlreadyHidden ? Math.max(bannerHeight, rawOffset) : Math.max(0, rawOffset);
+      const offset = Math.max(bannerHeight, rawOffset);
       scrollTargetRef.current = offset;
       mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
       setTimeout(() => { isScrollingRef.current = false; }, 900);
