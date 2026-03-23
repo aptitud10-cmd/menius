@@ -220,7 +220,8 @@ export function MenuShell({
     if (isLargeCatalog) {
       setActiveCatFilter(catId);
       const bannerHeight = getBannerHeight();
-      const bannerHidden = mainRef.current!.scrollTop >= bannerHeight;
+      // Check both actual scroll and the intended target (handles mid-smooth-scroll clicks)
+      const bannerHidden = mainRef.current!.scrollTop >= bannerHeight || scrollTargetRef.current >= bannerHeight;
       const top = bannerHidden ? bannerHeight : 0;
       scrollTargetRef.current = top;
       mainRef.current?.scrollTo({ top, behavior: 'instant' });
@@ -230,10 +231,12 @@ export function MenuShell({
     const section = sectionRefs.current.get(catId);
     if (section && mainRef.current) {
       const bannerHeight = getBannerHeight();
-      const bannerHidden = mainRef.current.scrollTop >= bannerHeight;
+      // scrollTargetRef captures where a previous programmatic scroll was heading,
+      // so mid-smooth-scroll clicks are evaluated against the intended destination.
+      const bannerHidden = mainRef.current.scrollTop >= bannerHeight || scrollTargetRef.current >= bannerHeight;
 
       if (!bannerHidden) {
-        // Banner is currently visible — don't scroll, just highlight the category
+        // Banner is visible (and no scroll in progress that would hide it) — don't scroll
         return;
       }
 
