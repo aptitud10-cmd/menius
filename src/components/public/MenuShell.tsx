@@ -198,6 +198,7 @@ export function MenuShell({
   const mobilePillsRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const isScrollingRef = useRef(false);
+  const scrollTargetRef = useRef(0);
   const [headerScrolled, setHeaderScrolled] = useState(false);
   const hasCover = !!restaurant.cover_image_url;
 
@@ -211,6 +212,7 @@ export function MenuShell({
     setActiveCategory(catId);
 
     if (catId === null) {
+      scrollTargetRef.current = 0;
       mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -218,8 +220,10 @@ export function MenuShell({
     if (isLargeCatalog) {
       setActiveCatFilter(catId);
       const bannerHeight = getBannerHeight();
-      // Keep banner hidden only if it was already hidden; otherwise stay at top
-      const top = mainRef.current && mainRef.current.scrollTop >= bannerHeight ? bannerHeight : 0;
+      const bannerAlreadyHidden =
+        mainRef.current!.scrollTop >= bannerHeight || scrollTargetRef.current >= bannerHeight;
+      const top = bannerAlreadyHidden ? bannerHeight : 0;
+      scrollTargetRef.current = top;
       mainRef.current?.scrollTo({ top, behavior: 'instant' });
       return;
     }
@@ -231,9 +235,11 @@ export function MenuShell({
       const containerTop = mainRef.current.getBoundingClientRect().top;
       const rawOffset = mainRef.current.scrollTop + sectionTop - containerTop;
       const bannerHeight = getBannerHeight();
-      const bannerAlreadyHidden = mainRef.current.scrollTop >= bannerHeight;
-      // Only clamp to bannerHeight if banner was already hidden (keep it hidden)
+      // Use scrollTargetRef to avoid race with in-progress smooth scroll
+      const bannerAlreadyHidden =
+        mainRef.current.scrollTop >= bannerHeight || scrollTargetRef.current >= bannerHeight;
       const offset = bannerAlreadyHidden ? Math.max(bannerHeight, rawOffset) : Math.max(0, rawOffset);
+      scrollTargetRef.current = offset;
       mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
       setTimeout(() => { isScrollingRef.current = false; }, 900);
     }
@@ -479,7 +485,13 @@ export function MenuShell({
     const main = mainRef.current;
     if (!main) return;
     const threshold = hasCover ? 100 : 40;
-    const onScroll = () => setHeaderScrolled(main.scrollTop > threshold);
+    const onScroll = () => {
+      setHeaderScrolled(main.scrollTop > threshold);
+      // Keep scrollTargetRef in sync with real scroll so programmatic checks are accurate
+      if (!isScrollingRef.current) {
+        scrollTargetRef.current = main.scrollTop;
+      }
+    };
     main.addEventListener('scroll', onScroll, { passive: true });
     return () => main.removeEventListener('scroll', onScroll);
   }, [hasCover, mainEl]);
