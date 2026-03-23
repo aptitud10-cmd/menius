@@ -664,8 +664,26 @@ export function MenuShell({
         )}
       </div>
 
-      {/* ── 3-Column Layout — fills remaining viewport ── */}
-      <div className="flex-1 flex overflow-hidden max-w-[1440px] w-full mx-auto">
+      {/* ── Banner + 3-Column Layout ── */}
+      <div className="flex-1 flex flex-col overflow-hidden max-w-[1440px] w-full mx-auto">
+
+        {/* Cover banner — full width of the 3-column block */}
+        {restaurant.cover_image_url && (
+          <div className="relative w-full flex-shrink-0 h-44 sm:h-52 lg:h-64 bg-gray-100 overflow-hidden rounded-b-2xl">
+            <Image
+              src={restaurant.cover_image_url}
+              alt={restaurant.name}
+              fill
+              sizes="(max-width: 1440px) 100vw, 1440px"
+              className="object-cover animate-cover-zoom"
+              priority
+            />
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#f8f8f8]/60 to-transparent" />
+          </div>
+        )}
+
+        {/* ── 3-Column Layout ── */}
+        <div className="flex-1 flex overflow-hidden">
 
         {/* Left: Categories — fixed column with own scroll */}
         <aside className="hidden lg:flex flex-col w-[260px] flex-shrink-0 border-r border-gray-100 overflow-y-auto">
@@ -682,21 +700,6 @@ export function MenuShell({
 
         {/* Center: Products grid — scrolls independently */}
         <main ref={mainRefCb} className={`flex-1 min-w-0 overflow-y-auto lg:pb-8 ${cartCount > 0 ? 'pb-36' : 'pb-4'}`}>
-
-          {/* Cover banner — scrolls away with products */}
-          {restaurant.cover_image_url && (
-            <div className="relative w-full flex-shrink-0 h-44 sm:h-52 lg:h-64 bg-gray-100 overflow-hidden rounded-b-2xl">
-              <Image
-                src={restaurant.cover_image_url}
-                alt={restaurant.name}
-                fill
-                sizes="(max-width: 1024px) 100vw, calc(100vw - 620px)"
-                className="object-cover animate-cover-zoom"
-                priority
-              />
-              <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#f8f8f8]/60 to-transparent rounded-b-2xl" />
-            </div>
-          )}
 
           {/* Mobile info bar (when no cover, show name/rating/description) */}
           {!restaurant.cover_image_url && (
@@ -1168,7 +1171,8 @@ export function MenuShell({
             onReorder={handleReorder}
           />
         </aside>
-      </div>
+        </div>{/* end 3-column */}
+      </div>{/* end banner + 3-column container */}
 
       {/* ── Mobile: Bottom cart bar ── */}
       {ordersLeft === 0 ? (
