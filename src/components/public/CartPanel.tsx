@@ -215,9 +215,9 @@ export function CartPanel({
                       {/* Name + Edit */}
                       <div className="flex items-start justify-between gap-1">
                         <div className="min-w-0">
-                          <h4 className="font-semibold text-xs text-gray-900 truncate leading-tight">{item.product.name}</h4>
+                          <h4 className="font-semibold text-sm text-gray-900 truncate leading-tight">{item.product.name}</h4>
                           {item.variant && (item.modifierSelections ?? []).length === 0 && (
-                            <span className="inline-flex items-center mt-0.5 px-1.5 py-0.5 rounded bg-emerald-50 text-[10px] font-medium text-emerald-600">
+                            <span className="inline-flex items-center mt-0.5 px-1.5 py-0.5 rounded bg-emerald-50 text-xs font-medium text-emerald-600">
                               {item.variant.name}
                             </span>
                           )}
@@ -225,9 +225,9 @@ export function CartPanel({
                         {(item.variant || item.extras.length > 0 || (item.modifierSelections ?? []).length > 0) && (
                           <button
                             onClick={() => onEdit(idx)}
-                            className="flex items-center gap-1 text-[10px] text-emerald-600 hover:text-emerald-700 font-medium flex-shrink-0 min-h-[40px] px-1"
+                            className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-medium flex-shrink-0 min-h-[44px] min-w-[44px] px-1 justify-end"
                           >
-                            <Pencil className="w-3 h-3" />
+                            <Pencil className="w-3.5 h-3.5" />
                             {t.edit}
                           </button>
                         )}
@@ -235,17 +235,17 @@ export function CartPanel({
 
                       {/* Modifier selections */}
                       {(item.modifierSelections ?? []).length > 0 && (
-                        <p className="text-[10px] text-gray-400 truncate mt-0.5">
+                        <p className="text-xs text-gray-400 truncate mt-0.5">
                           {(item.modifierSelections ?? []).flatMap(ms => ms.selectedOptions.map(o => o.name)).join(', ')}
                         </p>
                       )}
                       {(item.modifierSelections ?? []).length === 0 && item.extras.length > 0 && (
-                        <p className="text-[10px] text-gray-400 truncate mt-0.5">
+                        <p className="text-xs text-gray-400 truncate mt-0.5">
                           +{item.extras.map((e) => e.name).join(', ')}
                         </p>
                       )}
                       {item.notes && (
-                        <p className="text-[10px] text-gray-400 italic truncate">&quot;{item.notes}&quot;</p>
+                        <p className="text-xs text-gray-400 italic truncate">&quot;{item.notes}&quot;</p>
                       )}
 
                       {/* Qty stepper + Price */}
@@ -266,7 +266,7 @@ export function CartPanel({
                               <Minus className="w-3.5 h-3.5" />
                             )}
                           </button>
-                          <span className="w-6 text-center text-xs font-bold tabular-nums">{item.qty}</span>
+                          <span className="w-7 text-center text-sm font-bold tabular-nums">{item.qty}</span>
                           <button
                             onClick={() => updateQty(idx, item.qty + 1)}
                             className="w-9 h-9 flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors text-gray-600"
@@ -275,7 +275,7 @@ export function CartPanel({
                           </button>
                         </div>
                         <div className="flex items-center gap-1">
-                          <span className="text-xs font-bold text-gray-900 tabular-nums">
+                          <span className="text-sm font-bold text-gray-900 tabular-nums">
                             {fmtPrice(item.lineTotal)}
                           </span>
                         </div>
@@ -283,7 +283,7 @@ export function CartPanel({
 
                       {/* Confirm remove hint */}
                       {isPendingRemove && (
-                        <p className="text-[9px] text-red-400 mt-1">
+                        <p className="text-xs text-red-400 mt-1">
                           {t.tapToRemove}
                         </p>
                       )}

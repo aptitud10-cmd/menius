@@ -1211,8 +1211,8 @@ export function MenuShell({
       {/* ── Mobile: Bottom cart bar ── */}
       {ordersLeft === 0 ? (
         /* Limit reached — generic "paused" bar, no mention of billing */
-        <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden pointer-events-none pb-[env(safe-area-inset-bottom)]">
-          <div className="p-4 pt-8 bg-gradient-to-t from-white via-white/95 to-transparent">
+        <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden pointer-events-none">
+          <div className="px-4 pt-10 pb-[calc(env(safe-area-inset-bottom)+1rem)] bg-gradient-to-t from-white via-white to-transparent">
             <div className="max-w-lg mx-auto pointer-events-auto">
               <div className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-gray-100 text-gray-500 text-sm font-semibold">
                 <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1224,20 +1224,21 @@ export function MenuShell({
           </div>
         </div>
       ) : cartCount > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden pointer-events-none pb-[env(safe-area-inset-bottom)]">
-          <div className="p-4 pt-8 bg-gradient-to-t from-white via-white/95 to-transparent">
+        <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden pointer-events-none">
+          <div className="px-4 pt-10 pb-[calc(env(safe-area-inset-bottom)+1rem)] bg-gradient-to-t from-white via-white to-transparent">
             <div className="max-w-lg mx-auto pointer-events-auto">
               <button
                 onClick={() => setOpen(true)}
-                className="w-full flex items-center justify-between px-6 py-5 rounded-2xl bg-emerald-500 text-white shadow-[0_8px_30px_rgba(16,185,129,0.35)] active:scale-[0.98] transition-transform"
+                className="w-full flex items-center justify-between px-6 py-4 rounded-2xl bg-emerald-500 text-white shadow-[0_8px_30px_rgba(16,185,129,0.4)] active:scale-[0.98] transition-transform"
               >
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <ShoppingCart className="w-6 h-6" />
-                    <span className="absolute -top-2.5 -right-2.5 min-w-[20px] h-[20px] flex items-center justify-center rounded-full bg-white text-emerald-600 text-[11px] font-extrabold px-1">
+                    <ShoppingCart className="w-5 h-5" />
+                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-white text-emerald-600 text-[10px] font-extrabold px-1">
                       {cartCount}
                     </span>
                   </div>
+                  <span className="text-sm font-semibold opacity-90">{t.myOrder}</span>
                 </div>
                 <span className="font-extrabold text-base tabular-nums">
                   {fmtPrice(cartTotal)}
@@ -1269,18 +1270,18 @@ export function MenuShell({
               transition={{ type: 'spring', damping: 32, stiffness: 380 }}
             >
               {/* Drag handle */}
-              <div className="flex justify-center pt-2 pb-0.5 flex-shrink-0">
-                <div className="w-8 h-1 rounded-full bg-gray-200" />
+              <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+                <div className="w-10 h-1.5 rounded-full bg-gray-300" />
               </div>
               {/* Header */}
-              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 flex-shrink-0">
-                <h2 className="text-sm font-bold text-gray-900">{t.yourCart}</h2>
+              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
+                <h2 className="text-base font-bold text-gray-900">{t.yourCart}</h2>
                 <button
                   onClick={() => setOpen(false)}
-                  className="p-1.5 -mr-1.5 rounded-xl active:bg-gray-100 transition-colors"
+                  className="min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-xl active:bg-gray-100 transition-colors"
                   aria-label="Close"
                 >
-                  <X className="w-4 h-4 text-gray-500" />
+                  <X className="w-5 h-5 text-gray-500" />
                 </button>
               </div>
               <div className="flex-1 overflow-hidden min-h-0">

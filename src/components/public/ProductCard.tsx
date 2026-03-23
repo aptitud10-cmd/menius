@@ -101,7 +101,7 @@ export const ProductCard = memo(function ProductCard({
         )}
       >
         {/* Image */}
-        <div className="relative w-full aspect-[4/3] bg-gray-100 flex-shrink-0 overflow-hidden">
+        <div className="relative w-full aspect-square bg-gray-100 flex-shrink-0 overflow-hidden">
           {showImage ? (
             <>
               {!imgLoaded && <div className="absolute inset-0 bg-gray-100 animate-pulse" />}
@@ -120,49 +120,52 @@ export const ProductCard = memo(function ProductCard({
             </>
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gray-50">
-              <UtensilsCrossed className="w-7 h-7 text-gray-200" />
+              <UtensilsCrossed className="w-8 h-8 text-gray-200" />
             </div>
           )}
 
           {outOfStock && (
             <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
-              <span className="px-2 py-1 rounded-full bg-black/60 text-white text-[10px] font-bold">
+              <span className="px-2.5 py-1 rounded-full bg-black/60 text-white text-xs font-bold">
                 {labelSoldOut}
               </span>
             </div>
           )}
           {!outOfStock && product.is_featured && (
-            <span className="absolute top-2 left-2 text-sm leading-none">🔥</span>
+            <span className="absolute top-2 left-2 text-base leading-none">🔥</span>
           )}
           {!outOfStock && product.is_new && (
-            <span className="absolute top-2 left-2 text-[10px] font-bold text-white bg-blue-500 px-1.5 py-0.5 rounded-full leading-none">NEW</span>
+            <span className="absolute top-2 left-2 text-[11px] font-bold text-white bg-blue-500 px-2 py-0.5 rounded-full leading-none">NEW</span>
           )}
 
           {/* Quantity badge — bottom-left of image */}
           {!outOfStock && cartQty > 0 && (
-            <span className="absolute bottom-2 left-2 min-w-[22px] h-[22px] px-1.5 rounded-full bg-emerald-500 text-white text-[11px] font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none">
+            <span className="absolute bottom-2 left-2 min-w-[24px] h-[24px] px-1.5 rounded-full bg-emerald-500 text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none">
               {cartQty}
             </span>
           )}
 
+          {/* Favorite — 44px touch target */}
           <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
-            className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-sm"
+            className="absolute top-1 right-1 w-11 h-11 flex items-center justify-center"
             aria-label="Favorite"
           >
-            <Heart className={cn('w-3.5 h-3.5 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+            <span className="w-7 h-7 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center shadow-sm">
+              <Heart className={cn('w-3.5 h-3.5 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
+            </span>
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-2.5 flex flex-col flex-1">
-          <h3 className={cn('font-bold text-[13px] line-clamp-2 leading-tight', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
+        <div className="p-3 flex flex-col flex-1">
+          <h3 className={cn('font-bold text-sm line-clamp-2 leading-snug', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
             {displayName}
           </h3>
           {hasModifiers && !outOfStock && (
-            <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 font-medium mt-0.5">
+            <span className="inline-flex items-center gap-0.5 text-xs text-emerald-600 font-medium mt-1">
               {customizeLabel}
-              <ChevronRight className="w-2.5 h-2.5" />
+              <ChevronRight className="w-3 h-3" />
             </span>
           )}
           {(product.dietary_tags?.length ?? 0) > 0 && (
@@ -170,23 +173,23 @@ export const ProductCard = memo(function ProductCard({
               {product.dietary_tags!.slice(0, 3).map((tagId) => {
                 const tag = DIETARY_TAGS.find((t) => t.id === tagId);
                 if (!tag) return null;
-                return <span key={tagId} className="text-[11px]">{tag.emoji}</span>;
+                return <span key={tagId} className="text-sm">{tag.emoji}</span>;
               })}
             </div>
           )}
-          <div className="flex items-center justify-between mt-auto pt-2">
-            <span className={cn('text-[13px] font-extrabold tabular-nums leading-none', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
+          <div className="flex items-center justify-between mt-auto pt-2.5">
+            <span className={cn('text-sm font-extrabold tabular-nums leading-none', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
               {fmtPrice(Number(product.price))}
             </span>
             {outOfStock ? (
-              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                <Ban className="w-3.5 h-3.5 text-gray-300" />
+              <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <Ban className="w-4 h-4 text-gray-300" />
               </div>
             ) : (
               <button
                 onClick={handleAddClick}
                 className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 flex-shrink-0 shadow-sm',
+                  'w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 flex-shrink-0 shadow-sm',
                   justAdded
                     ? 'bg-emerald-600 text-white scale-110'
                     : 'bg-emerald-500 text-white'

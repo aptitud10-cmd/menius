@@ -95,10 +95,10 @@ export const MenuHeader = memo(function MenuHeader({
 
         {/* Name */}
         <div className={cn(
-          'flex items-center flex-shrink-0 min-w-0',
+          'flex items-center flex-1 min-w-0',
           !showNameInHeader && 'lg:hidden'
         )}>
-          <span className="font-bold text-emerald-600 truncate max-w-[160px] lg:max-w-[260px] text-[14px] lg:text-base">
+          <span className="font-bold text-emerald-600 truncate text-sm lg:text-base">
             {restaurant.name}
           </span>
         </div>
@@ -136,22 +136,24 @@ export const MenuHeader = memo(function MenuHeader({
 
           {restaurant.estimated_delivery_minutes && (
             <span className={cn(
-              'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all duration-300',
-              isScrolled
-                ? 'bg-gray-50 text-gray-500'
-                : 'bg-gray-50 text-gray-500'
+              'hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-gray-50 text-gray-500'
             )}>
               <Clock className="w-3 h-3" />
               ~{restaurant.estimated_delivery_minutes} min
             </span>
           )}
 
+          {/* Open/closed: dot only on mobile, full badge on sm+ */}
           <span className={cn(
-            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold',
+            'sm:hidden w-2 h-2 rounded-full flex-shrink-0',
+            open ? 'bg-emerald-500' : 'bg-red-500'
+          )} />
+          <span className={cn(
+            'hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold',
             open ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
           )}>
             <span className={cn('w-1.5 h-1.5 rounded-full', open ? 'bg-emerald-500' : 'bg-red-500')} />
-            <span className="hidden sm:inline">{open ? openLabel : closedLabel}</span>
+            {open ? openLabel : closedLabel}
           </span>
 
           {tableName && (
@@ -179,7 +181,7 @@ export const MenuHeader = memo(function MenuHeader({
           <button
             onClick={() => setOpen(true)}
             className={cn(
-              'relative flex items-center gap-2 px-2.5 py-1.5 rounded-lg transition-colors lg:hidden',
+              'relative flex items-center gap-1.5 min-w-[44px] min-h-[44px] px-2.5 rounded-xl transition-colors lg:hidden justify-center',
               itemCount > 0 ? 'bg-emerald-500 text-white' : 'hover:bg-gray-100'
             )}
           >
