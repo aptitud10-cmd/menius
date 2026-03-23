@@ -664,6 +664,33 @@ export function MenuShell({
         )}
       </div>
 
+      {/* ── Full-width cover banner — above 3-column layout ── */}
+      {restaurant.cover_image_url && (
+        <div className="relative w-full flex-shrink-0 h-36 sm:h-44 lg:h-52 bg-gray-100 overflow-hidden">
+          <Image
+            src={restaurant.cover_image_url}
+            alt={restaurant.name}
+            fill
+            sizes="100vw"
+            className="object-cover animate-cover-zoom"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 px-5 pb-4 lg:px-8 lg:pb-5">
+            <h1 className="text-white font-extrabold text-xl lg:text-2xl tracking-tight drop-shadow-sm">
+              {restaurant.name}
+            </h1>
+            {reviewStats && reviewStats.total > 0 && (
+              <div className="flex items-center gap-1.5 mt-1">
+                <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                <span className="text-sm font-bold text-white tabular-nums">{reviewStats.average}</span>
+                <span className="text-sm text-white/70">({reviewStats.total}+)</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── 3-Column Layout — fills remaining viewport ── */}
       <div className="flex-1 flex overflow-hidden max-w-[1440px] w-full mx-auto">
 
@@ -682,33 +709,6 @@ export function MenuShell({
 
         {/* Center: Products grid — scrolls independently */}
         <main ref={mainRefCb} className={`flex-1 min-w-0 overflow-y-auto lg:pb-8 ${cartCount > 0 ? 'pb-36' : 'pb-4'}`}>
-
-          {/* Cover image banner */}
-          {restaurant.cover_image_url && (
-            <div className="relative w-full h-20 sm:h-28 lg:h-48 bg-gray-100 overflow-hidden">
-              <Image
-                src={restaurant.cover_image_url}
-                alt={restaurant.name}
-                fill
-                sizes="100vw"
-                className="object-cover animate-cover-zoom"
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 px-5 pb-4 lg:px-8 lg:pb-5">
-                <h1 className="text-white font-extrabold text-xl lg:text-2xl tracking-tight drop-shadow-sm lg:hidden">
-                  {restaurant.name}
-                </h1>
-                {reviewStats && reviewStats.total > 0 && (
-                  <div className="flex items-center gap-1.5 mt-1 lg:hidden">
-                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                    <span className="text-sm font-bold text-white tabular-nums">{reviewStats.average}</span>
-                    <span className="text-sm text-white/70">({reviewStats.total}+)</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Mobile info bar (when no cover, show name/rating/description) */}
           {!restaurant.cover_image_url && (

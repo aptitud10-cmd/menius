@@ -1,7 +1,6 @@
 'use client';
 
 import { memo, useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { ShoppingCart, Search, X, ArrowLeft, LayoutDashboard, Clock, History } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
@@ -94,28 +93,11 @@ export const MenuHeader = memo(function MenuHeader({
           </Link>
         )}
 
-        {/* Logo + Name */}
+        {/* Name */}
         <div className={cn(
-          'flex items-center gap-2.5 flex-shrink-0 min-w-0',
+          'flex items-center flex-shrink-0 min-w-0',
           !showNameInHeader && 'lg:flex'
         )}>
-          <div className="w-7 h-7 lg:w-9 lg:h-9 flex-shrink-0">
-            {restaurant.logo_url ? (
-              <div className="relative w-full h-full rounded-lg overflow-hidden bg-gray-100">
-                <Image
-                  src={restaurant.logo_url}
-                  alt={restaurant.name}
-                  fill
-                  sizes="40px"
-                  className="object-cover"
-                />
-              </div>
-            ) : (
-              <div className="w-full h-full rounded-lg bg-emerald-500 flex items-center justify-center">
-                <span className="text-xs lg:text-sm font-bold text-white">{restaurant.name.charAt(0).toUpperCase()}</span>
-              </div>
-            )}
-          </div>
           <span className="font-bold text-emerald-600 truncate max-w-[160px] lg:max-w-[260px] text-[14px] lg:text-base">
             {restaurant.name}
           </span>
