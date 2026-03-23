@@ -664,14 +664,17 @@ export function MenuShell({
         )}
       </div>
 
-      {/* ── Full-width cover banner — above 3-column layout ── */}
+      {/* ── Contenedor principal: banner + 3 columnas ── */}
+      <div className="flex-1 flex flex-col overflow-hidden max-w-[1440px] w-full mx-auto">
+
+      {/* Cover banner — mismo ancho que las 3 columnas */}
       {restaurant.cover_image_url && (
         <div className="relative w-full flex-shrink-0 h-36 sm:h-44 lg:h-52 bg-gray-100 overflow-hidden">
           <Image
             src={restaurant.cover_image_url}
             alt={restaurant.name}
             fill
-            sizes="100vw"
+            sizes="(max-width: 1440px) 100vw, 1440px"
             className="object-cover animate-cover-zoom"
             priority
           />
@@ -679,7 +682,7 @@ export function MenuShell({
       )}
 
       {/* ── 3-Column Layout — fills remaining viewport ── */}
-      <div className="flex-1 flex overflow-hidden max-w-[1440px] w-full mx-auto">
+      <div className="flex-1 flex overflow-hidden">
 
         {/* Left: Categories — fixed column with own scroll */}
         <aside className="hidden lg:flex flex-col w-[260px] flex-shrink-0 border-r border-gray-100 overflow-y-auto">
@@ -1168,6 +1171,7 @@ export function MenuShell({
           />
         </aside>
       </div>
+      </div>{/* end contenedor principal banner + 3 columnas */}
 
       {/* ── Mobile: Bottom cart bar ── */}
       {ordersLeft === 0 ? (
