@@ -696,7 +696,7 @@ export function MenuShell({
         <div className="flex min-h-[calc(100dvh-48px)]">
 
         {/* Left: Sidebar — sticky, stays in place while content scrolls */}
-        <aside className="hidden lg:flex flex-col w-[260px] flex-shrink-0 border-r border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
+        <aside className="hidden lg:flex flex-col w-[200px] flex-shrink-0 border-r border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
           <CategorySidebar
             categories={categories}
             products={products}
@@ -1176,7 +1176,7 @@ export function MenuShell({
         </div>{/* end center column wrapper */}
 
         {/* Right: Cart — sticky, stays in place while content scrolls */}
-        <aside className="hidden lg:flex flex-col w-[420px] flex-shrink-0 border-l border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
+        <aside className="hidden lg:flex flex-col w-[340px] flex-shrink-0 border-l border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
           <CartPanel
             fmtPrice={fmtPrice}
             t={t}
