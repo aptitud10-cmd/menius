@@ -199,6 +199,9 @@ export function MenuShell({
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const isScrollingRef = useRef(false);
   const scrollTargetRef = useRef(0);
+  // Once the banner has been scrolled past, this stays true for the lifetime of the page.
+  // This avoids race conditions where scrollTargetRef hasn't synced yet on a second click.
+  const bannerEverHiddenRef = useRef(false);
   const [headerScrolled, setHeaderScrolled] = useState(false);
   const hasCover = !!restaurant.cover_image_url;
 
@@ -221,7 +224,7 @@ export function MenuShell({
       setActiveCatFilter(catId);
       const bannerHeight = getBannerHeight();
       const bannerAlreadyHidden =
-        mainRef.current!.scrollTop >= bannerHeight || scrollTargetRef.current >= bannerHeight;
+        bannerEverHiddenRef.current || mainRef.current!.scrollTop >= bannerHeight;
       const top = bannerAlreadyHidden ? bannerHeight : 0;
       scrollTargetRef.current = top;
       mainRef.current?.scrollTo({ top, behavior: 'instant' });
@@ -235,9 +238,10 @@ export function MenuShell({
       const containerTop = mainRef.current.getBoundingClientRect().top;
       const rawOffset = mainRef.current.scrollTop + sectionTop - containerTop;
       const bannerHeight = getBannerHeight();
-      // Use scrollTargetRef to avoid race with in-progress smooth scroll
+      // bannerEverHiddenRef: once the user scrolled past the banner it stays hidden
+      // on all subsequent category clicks, regardless of scroll timing race conditions.
       const bannerAlreadyHidden =
-        mainRef.current.scrollTop >= bannerHeight || scrollTargetRef.current >= bannerHeight;
+        bannerEverHiddenRef.current || mainRef.current.scrollTop >= bannerHeight;
       const offset = bannerAlreadyHidden ? Math.max(bannerHeight, rawOffset) : Math.max(0, rawOffset);
       scrollTargetRef.current = offset;
       mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
@@ -486,15 +490,19 @@ export function MenuShell({
     if (!main) return;
     const threshold = hasCover ? 100 : 40;
     const onScroll = () => {
-      setHeaderScrolled(main.scrollTop > threshold);
-      // Keep scrollTargetRef in sync with real scroll so programmatic checks are accurate
+      const scrollTop = main.scrollTop;
+      setHeaderScrolled(scrollTop > threshold);
       if (!isScrollingRef.current) {
-        scrollTargetRef.current = main.scrollTop;
+        scrollTargetRef.current = scrollTop;
+      }
+      // Once the user manually scrolls past the banner, lock it as "ever hidden"
+      if (hasCover && scrollTop >= getBannerHeight()) {
+        bannerEverHiddenRef.current = true;
       }
     };
     main.addEventListener('scroll', onScroll, { passive: true });
     return () => main.removeEventListener('scroll', onScroll);
-  }, [hasCover, mainEl]);
+  }, [hasCover, mainEl, getBannerHeight]);
 
   // Keyboard shortcuts: / or Ctrl+K for search, Esc to close overlays
   useEffect(() => {
@@ -695,7 +703,7 @@ export function MenuShell({
 
         {/* Cover banner — full width, scrolls away naturally with content */}
         {restaurant.cover_image_url && (
-          <div ref={bannerRef} className="relative w-full h-44 sm:h-52 lg:h-64 bg-gray-100 overflow-hidden rounded-b-2xl">
+          <div ref={bannerRef} className="relative w-full h-44 sm:h-52 lg:h-72 bg-gray-100 overflow-hidden rounded-b-2xl">
             <Image
               src={restaurant.cover_image_url}
               alt={restaurant.name}
@@ -704,7 +712,50 @@ export function MenuShell({
               className="object-cover animate-cover-zoom"
               priority
             />
-            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#f8f8f8]/60 to-transparent" />
+            {/* Gradient overlay — subtle on mobile, stronger on desktop for text legibility */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+            {/* Desktop: restaurant info overlaid on the banner */}
+            <div className="hidden lg:flex absolute bottom-0 left-0 right-0 px-8 pb-5 items-end justify-between gap-4">
+              <div className="min-w-0">
+                <h1 className="text-3xl font-extrabold text-white tracking-tight drop-shadow-sm leading-tight truncate">
+                  {restaurant.name}
+                </h1>
+                {restaurant.description && (
+                  <p className="text-sm text-white/75 mt-1 max-w-lg line-clamp-1">{restaurant.description}</p>
+                )}
+                {(restaurant.address || restaurant.operating_hours) && (
+                  <div className="flex items-center gap-4 mt-2 text-sm text-white/70">
+                    {restaurant.address && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-emerald-400" />
+                        <span className="truncate max-w-[240px]">{restaurant.address}</span>
+                      </span>
+                    )}
+                    {restaurant.operating_hours && (() => {
+                      const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                      const dayKey = days[new Date().getDay()];
+                      const dh = restaurant.operating_hours?.[dayKey];
+                      if (!dh || dh.closed) return null;
+                      const is24h = dh.open === '00:00' && dh.close === '23:59';
+                      return (
+                        <span className="inline-flex items-center gap-1.5 text-emerald-400 font-medium">
+                          <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                          {is24h ? t.open24h : `${dh.open} – ${dh.close}`}
+                        </span>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+              {reviewStats && reviewStats.total > 0 && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-400/20 backdrop-blur-sm border border-amber-400/30 flex-shrink-0">
+                  <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                  <span className="text-sm font-bold text-white tabular-nums">{reviewStats.average}</span>
+                  <span className="text-sm text-white/70">({reviewStats.total}+)</span>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -798,47 +849,50 @@ export function MenuShell({
           )}
 
           <div className="px-4 lg:px-8 pt-3 lg:pt-6">
-          {/* Restaurant info + category tabs (desktop) */}
-          <div className="hidden lg:block mb-8">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">{restaurant.name}</h1>
-                {restaurant.description && (
-                  <p className="text-base text-gray-500 mt-1.5 max-w-xl">{restaurant.description}</p>
+          {/* Desktop restaurant info is now overlaid on the cover banner above.
+              If there is NO cover image, show the info block here instead. */}
+          {!restaurant.cover_image_url && (
+            <div className="hidden lg:block mb-8">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">{restaurant.name}</h1>
+                  {restaurant.description && (
+                    <p className="text-base text-gray-500 mt-1.5 max-w-xl">{restaurant.description}</p>
+                  )}
+                </div>
+                {reviewStats && reviewStats.total > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 flex-shrink-0">
+                    <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                    <span className="text-sm font-bold text-gray-900 tabular-nums">{reviewStats.average}</span>
+                    <span className="text-sm text-gray-500">({reviewStats.total}+)</span>
+                  </div>
                 )}
               </div>
-              {reviewStats && reviewStats.total > 0 && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 flex-shrink-0">
-                  <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                  <span className="text-sm font-bold text-gray-900 tabular-nums">{reviewStats.average}</span>
-                  <span className="text-sm text-gray-500">({reviewStats.total}+)</span>
+              {(restaurant.address || restaurant.operating_hours) && (
+                <div className="flex items-center gap-4 mt-3 text-sm text-gray-400">
+                  {restaurant.address && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="truncate max-w-[280px]">{restaurant.address}</span>
+                    </span>
+                  )}
+                  {restaurant.operating_hours && (() => {
+                    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                    const dayKey = days[new Date().getDay()];
+                    const dh = restaurant.operating_hours?.[dayKey];
+                    if (!dh || dh.closed) return null;
+                    const is24h = dh.open === '00:00' && dh.close === '23:59';
+                    return (
+                      <span className={`inline-flex items-center gap-1.5 ${is24h ? 'text-emerald-500 font-medium' : ''}`}>
+                        <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                        {is24h ? t.open24h : `${dh.open} – ${dh.close}`}
+                      </span>
+                    );
+                  })()}
                 </div>
               )}
             </div>
-            {(restaurant.address || restaurant.operating_hours) && (
-              <div className="flex items-center gap-4 mt-3 text-sm text-gray-400">
-                {restaurant.address && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span className="truncate max-w-[280px]">{restaurant.address}</span>
-                  </span>
-                )}
-                {restaurant.operating_hours && (() => {
-                  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                  const dayKey = days[new Date().getDay()];
-                  const dh = restaurant.operating_hours?.[dayKey];
-                  if (!dh || dh.closed) return null;
-                  const is24h = dh.open === '00:00' && dh.close === '23:59';
-                  return (
-                    <span className={`inline-flex items-center gap-1.5 ${is24h ? 'text-emerald-500 font-medium' : ''}`}>
-                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                      {is24h ? t.open24h : `${dh.open} – ${dh.close}`}
-                    </span>
-                  );
-                })()}
-              </div>
-            )}
-          </div>
+          )}
 
           {searchResults !== null ? (
             <div>
