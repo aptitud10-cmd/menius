@@ -1021,31 +1021,43 @@ export function MenuShell({
                           </div>
                         </div>
                       )}
-                      {(() => {
-                        return (
-                          <LazyProductGrid itemCount={items.length}>
-                            <div className={cn('grid grid-cols-2 xl:grid-cols-3 gap-3', isLocked && 'opacity-40')}>
-                              {items.map((product) => (
-                                <ProductCard
-                                  key={product.id}
-                                  product={product}
-                                  onSelect={handleProductSelect}
-                                  onQuickAdd={handleQuickAdd}
-                                  fmtPrice={fmtPrice}
-                                  addLabel={t.addToCart}
-                                  customizeLabel={t.customize}
-                                  popularLabel={t.popular}
-                                  soldOutLabel={t.soldOut}
-                                  unavailableLabel={t.unavailable}
-                                  addedShortLabel={t.addedShort}
-                                  locale={locale}
-                                  defaultLocale={defaultLocale}
-                                />
-                              ))}
-                            </div>
-                          </LazyProductGrid>
-                        );
-                      })()}
+                      <LazyProductGrid itemCount={items.length}>
+                        <motion.div
+                          className={cn('grid grid-cols-2 xl:grid-cols-3 gap-3', isLocked && 'opacity-40')}
+                          initial="hidden"
+                          whileInView="visible"
+                          viewport={{ once: true, margin: '-40px' }}
+                          variants={{
+                            hidden: {},
+                            visible: { transition: { staggerChildren: 0.06 } },
+                          }}
+                        >
+                          {items.map((product) => (
+                            <motion.div
+                              key={product.id}
+                              variants={{
+                                hidden: { opacity: 0, y: 16 },
+                                visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+                              }}
+                            >
+                              <ProductCard
+                                product={product}
+                                onSelect={handleProductSelect}
+                                onQuickAdd={handleQuickAdd}
+                                fmtPrice={fmtPrice}
+                                addLabel={t.addToCart}
+                                customizeLabel={t.customize}
+                                popularLabel={t.popular}
+                                soldOutLabel={t.soldOut}
+                                unavailableLabel={t.unavailable}
+                                addedShortLabel={t.addedShort}
+                                locale={locale}
+                                defaultLocale={defaultLocale}
+                              />
+                            </motion.div>
+                          ))}
+                        </motion.div>
+                      </LazyProductGrid>
                     </div>
                   </section>
                 );

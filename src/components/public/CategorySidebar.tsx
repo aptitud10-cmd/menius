@@ -1,6 +1,7 @@
 'use client';
 
 import { memo } from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { Category, Product } from '@/types';
 import { tName } from '@/lib/i18n';
@@ -49,18 +50,29 @@ export const CategorySidebar = memo(function CategorySidebar({
               onClick={() => available ? onSelect(cat.id) : undefined}
               disabled={!available}
               className={cn(
-                'w-full flex items-start gap-2 px-4 py-2.5 rounded-xl text-[15px] transition-all duration-150 relative',
+                'w-full flex items-start gap-2 px-4 py-2.5 rounded-xl text-[15px] transition-colors duration-150 relative',
                 available
                   ? isActive
-                    ? 'bg-emerald-50 text-emerald-700 font-semibold'
-                    : 'text-gray-600 font-medium hover:bg-gray-50'
+                    ? 'text-emerald-700 font-semibold'
+                    : 'text-gray-600 font-medium hover:text-gray-900'
                   : 'text-gray-300 font-medium cursor-not-allowed'
               )}
             >
               {isActive && available && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald-500" />
+                <>
+                  <motion.span
+                    layoutId="sidebar-pill"
+                    className="absolute inset-0 rounded-xl bg-emerald-50"
+                    transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                  />
+                  <motion.span
+                    layoutId="sidebar-bar"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald-500"
+                    transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                  />
+                </>
               )}
-              <div className="flex-1 text-left min-w-0">
+              <div className="flex-1 text-left min-w-0 relative z-10">
                 <span className="truncate block">{tName(cat, locale, defaultLocale)}</span>
                 {hasSchedule && !available && (
                   <span className="flex items-center gap-1 text-[10px] text-gray-400 mt-0.5">
@@ -70,7 +82,7 @@ export const CategorySidebar = memo(function CategorySidebar({
                 )}
               </div>
               <span className={cn(
-                'text-xs tabular-nums flex-shrink-0 mt-0.5',
+                'text-xs tabular-nums flex-shrink-0 mt-0.5 relative z-10',
                 available
                   ? isActive ? 'text-emerald-500' : 'text-gray-300'
                   : 'text-gray-200'

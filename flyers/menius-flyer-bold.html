@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MENIUS — The Bold (Awwwards-Level)</title>
+<!--
+  PRINT: Chrome → Ctrl+P → Save as PDF → A4 → Margins: None → Background graphics: ✓
+  This file is a BLUEPRINT for Canva. Replace screenshot images with real high-res captures.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  @page { size: 210mm 297mm; margin: 0; }
+  body {
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  @media screen {
+    body { background: #ccc; display: flex; flex-direction: column; align-items: center; gap: 32px; padding: 32px; }
+    .page { box-shadow: 0 8px 50px rgba(0,0,0,.3); }
+  }
+
+  /* ────── PAGE ────── */
+  .page {
+    width: 210mm; height: 297mm;
+    background: #FAFAF8;
+    position: relative; overflow: hidden;
+    display: grid;
+    /* Golden ratio: 183mm / 114mm */
+    grid-template-rows: 183mm 114mm;
+  }
+
+  /* Thin accent line — left edge */
+  .page::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    width: 1.8mm;
+    background: #10b981;
+    z-index: 20;
+  }
+
+  /* ────── TOP ZONE — number + phone ────── */
+  .top-zone {
+    position: relative; z-index: 2;
+    padding: 14mm 14mm 0 20mm;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Brand bar */
+  .brand-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8mm;
+  }
+  .brand-left {
+    display: flex; align-items: center; gap: 5px;
+  }
+  .b-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; }
+  .b-name { font-size: 4mm; font-weight: 800; letter-spacing: .14em; color: #0A0A0A; }
+  .b-url { font-size: 2.8mm; font-weight: 500; color: #10b981; letter-spacing: .04em; }
+
+  /* The big number */
+  .big-number {
+    font-size: 72mm;
+    font-weight: 900;
+    line-height: .82;
+    letter-spacing: -.06em;
+    color: #0A0A0A;
+    margin-left: -3mm;
+  }
+
+  .big-unit {
+    font-size: 28mm;
+    font-weight: 900;
+    line-height: .95;
+    letter-spacing: -.04em;
+    color: #0A0A0A;
+    margin-top: -2mm;
+  }
+
+  /* Accent underline */
+  .accent-bar {
+    width: 20mm; height: 1.2mm;
+    background: #10b981;
+    border-radius: 1mm;
+    margin-top: 5mm;
+  }
+
+  .big-sub {
+    font-size: 4.5mm;
+    font-weight: 400;
+    color: #6B7280;
+    margin-top: 5mm;
+    line-height: 1.4;
+    max-width: 120mm;
+    letter-spacing: -.01em;
+  }
+
+  /* Phone — floating right, overlapping zones */
+  .phone-float {
+    position: absolute;
+    right: 12mm;
+    top: 50mm;
+    z-index: 15;
+    transform: rotate(-4deg);
+  }
+
+  .pf-device {
+    width: 52mm; height: 106mm;
+    background: #111;
+    border-radius: 11mm;
+    position: relative;
+    box-shadow:
+      0 0 0 .35mm rgba(0,0,0,.15),
+      0 12mm 40mm rgba(0,0,0,.18),
+      0 4mm 16mm rgba(0,0,0,.10);
+    overflow: hidden;
+  }
+
+  .pf-screen {
+    position: absolute;
+    inset: 1.1mm;
+    border-radius: 9.9mm;
+    overflow: hidden;
+    background: #f8f8f8;
+  }
+  .pf-screen img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: top center;
+  }
+  .pf-di {
+    position: absolute;
+    top: 3.2mm; left: 50%;
+    transform: translateX(-50%);
+    width: 16mm; height: 4.5mm;
+    background: #000;
+    border-radius: 10mm;
+    z-index: 5;
+  }
+
+  /* ────── BOTTOM ZONE — features + QR ────── */
+  .bottom-zone {
+    position: relative; z-index: 2;
+    padding: 6mm 14mm 0 20mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-bottom: 18mm;
+  }
+
+  /* Stats badge — floating alongside phone */
+  .stats-badge {
+    position: absolute;
+    right: 16mm;
+    top: -20mm;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3mm;
+    z-index: 16;
+  }
+  .stat-box {
+    background: #fff;
+    border: .3mm solid #E5E7EB;
+    border-radius: 3mm;
+    padding: 3mm 5mm;
+    text-align: center;
+    box-shadow: 0 2mm 8mm rgba(0,0,0,.06);
+  }
+  .stat-num { font-size: 10mm; font-weight: 900; line-height: 1; letter-spacing: -.03em; }
+  .stat-num-green { color: #10b981; }
+  .stat-num-black { color: #0A0A0A; }
+  .stat-label {
+    font-size: 2mm; font-weight: 700;
+    color: #9CA3AF;
+    letter-spacing: .1em;
+    margin-top: 1mm;
+    line-height: 1.3;
+  }
+
+  /* Features grid */
+  .feat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3mm 8mm;
+    margin-bottom: 8mm;
+    max-width: 120mm;
+  }
+  .feat-item {
+    display: flex; align-items: flex-start; gap: 2mm;
+  }
+  .feat-icon {
+    width: 4.5mm; height: 4.5mm;
+    flex-shrink: 0; margin-top: .3mm;
+  }
+  .feat-text {
+    font-size: 3mm; font-weight: 500;
+    color: #374151; line-height: 1.4;
+  }
+
+  /* Divider */
+  .divider {
+    width: 100%; height: .25mm;
+    background: #E5E7EB;
+    margin-bottom: 7mm;
+  }
+
+  /* QR row */
+  .qr-row {
+    display: flex; align-items: center; gap: 5mm;
+    margin-bottom: 7mm;
+  }
+  .qr-box {
+    width: 22mm; height: 22mm;
+    border: .4mm solid #D1D5DB;
+    border-radius: 2.5mm;
+    padding: 1.2mm;
+    background: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 1mm 4mm rgba(0,0,0,.05);
+  }
+  .qr-box img { width: 100%; height: 100%; display: block; border-radius: .8mm; }
+  .qr-right { display: flex; flex-direction: column; gap: 1.5mm; }
+  .qr-label { font-size: 3.8mm; font-weight: 700; color: #0A0A0A; letter-spacing: -.01em; }
+  .qr-link { font-size: 2.8mm; font-weight: 600; color: #10b981; letter-spacing: .02em; }
+  .qr-note { font-size: 2.4mm; font-weight: 400; color: #9CA3AF; line-height: 1.45; }
+
+  /* Bottom bar */
+  .bottom-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 10mm;
+    background: #0A0A0A;
+    display: flex; align-items: center; justify-content: center; gap: 4mm;
+    z-index: 20;
+  }
+  .bb-text {
+    font-size: 2.5mm; font-weight: 500;
+    color: rgba(255,255,255,.45);
+    letter-spacing: .06em;
+  }
+  .bb-dot {
+    width: 3px; height: 3px;
+    background: #10b981;
+    border-radius: 50%;
+    opacity: .6;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     PAGE 1 — ENGLISH (FRONT)
+═══════════════════════════════════════ -->
+<div class="page">
+
+  <!-- Phone floating right — overlaps both zones -->
+  <div class="phone-float">
+    <div class="pf-device">
+      <div class="pf-screen">
+        <div class="pf-di"></div>
+        <img src="screenshot-grill.png" alt="MENIUS demo">
+      </div>
+    </div>
+  </div>
+
+  <!-- TOP ZONE -->
+  <div class="top-zone">
+    <div class="brand-bar">
+      <div class="brand-left">
+        <div class="b-dot"></div>
+        <span class="b-name">MENIUS</span>
+      </div>
+      <span class="b-url">menius.app</span>
+    </div>
+
+    <div class="big-number">10</div>
+    <div class="big-unit">minutes.</div>
+    <div class="accent-bar"></div>
+    <div class="big-sub">
+      To set up your restaurant's<br>
+      complete digital menu.
+    </div>
+  </div>
+
+  <!-- Stats badge floating right -->
+  <div class="stats-badge">
+    <div class="stat-box">
+      <div class="stat-num stat-num-green">$0</div>
+      <div class="stat-label">COMMISSION<br>EVER</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num stat-num-black">∞</div>
+      <div class="stat-label">ORDERS<br>PER MONTH</div>
+    </div>
+  </div>
+
+  <!-- BOTTOM ZONE -->
+  <div class="bottom-zone">
+
+    <div class="feat-grid">
+      <div class="feat-item">
+        <svg class="feat-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="8" fill="#10b981" opacity=".12"/>
+          <path d="M4.5 8l2.5 2.5 4.5-4.5" stroke="#10b981" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="feat-text">QR ordering — no app</span>
+      </div>
+      <div class="feat-item">
+        <svg class="feat-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="8" fill="#10b981" opacity=".12"/>
+          <path d="M4.5 8l2.5 2.5 4.5-4.5" stroke="#10b981" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="feat-text">Real-time to kitchen</span>
+      </div>
+      <div class="feat-item">
+        <svg class="feat-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="8" fill="#10b981" opacity=".12"/>
+          <path d="M4.5 8l2.5 2.5 4.5-4.5" stroke="#10b981" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="feat-text">AI product photos</span>
+      </div>
+      <div class="feat-item">
+        <svg class="feat-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="8" fill="#10b981" opacity=".12"/>
+          <path d="M4.5 8l2.5 2.5 4.5-4.5" stroke="#10b981" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="feat-text">Analytics &amp; loyalty</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="qr-row">
+      <div class="qr-box">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?data=https%3A%2F%2Fmenius.app%2Fdemo%3Futm_source%3Dflyer%26utm_medium%3Dprint&size=220x220&margin=6&bgcolor=ffffff&color=000000" alt="QR">
+      </div>
+      <div class="qr-right">
+        <span class="qr-label">Scan to try it — free.</span>
+        <span class="qr-link">menius.app/demo →</span>
+        <span class="qr-note">See a real menu in action. No sign-up needed.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bottom-bar">
+    <span class="bb-text">Start free</span>
+    <div class="bb-dot"></div>
+    <span class="bb-text">No credit card</span>
+    <div class="bb-dot"></div>
+    <span class="bb-text">Cancel anytime</span>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     PAGE 2 — ESPAÑOL (REVERSE)
+═══════════════════════════════════════ -->
+<div class="page" style="page-break-before:always">
+
+  <div class="phone-float">
+    <div class="pf-device">
+      <div class="pf-screen">
+        <div class="pf-di"></div>
+        <img src="screenshot-casa.png" alt="MENIUS demo">
+      </div>
+    </div>
+  </div>
+
+  <div class="top-zone">
+    <div class="brand-bar">
+      <div class="brand-left">
+        <div class="b-dot"></div>
+        <span class="b-name">MENIUS</span>
+      </div>
+      <span class="b-url">menius.app</span>
+    </div>
+
+    <div class="big-number">10</div>
+    <div class="big-unit">minutos.</div>
+    <div class="accent-bar"></div>
+    <div class="big-sub">
+      Para configurar el menú digital<br>
+      completo de tu restaurante.
+    </div>
+  </div>
+
+  <div class="stats-badge">
+    <div class="stat-box">
+      <div class="stat-num stat-num-green">$0</div>
+      <div class="stat-label">COMISIÓN<br>SIEMPRE</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num stat-num-black">∞</div>
+      <div class="stat-label">PEDIDOS<br>AL MES</div>
+    </div>
+  </div>
+
+  <div class="bottom-zone">
+
+    <div class="feat-grid">
+      <div class="feat-item">
+        <svg class="feat-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="8" fill="#10b981" opacity=".12"/>
+          <path d="M4.5 8l2.5 2.5 4.5-4.5" stroke="#10b981" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="feat-text">Pedidos con QR — sin app</span>
+      </div>
+      <div class="feat-item">
+        <svg class="feat-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="8" fill="#10b981" opacity=".12"/>
+          <path d="M4.5 8l2.5 2.5 4.5-4.5" stroke="#10b981" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="feat-text">Directo a cocina</span>
+      </div>
+      <div class="feat-item">
+        <svg class="feat-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="8" fill="#10b981" opacity=".12"/>
+          <path d="M4.5 8l2.5 2.5 4.5-4.5" stroke="#10b981" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="feat-text">Fotos con IA</span>
+      </div>
+      <div class="feat-item">
+        <svg class="feat-icon" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="8" fill="#10b981" opacity=".12"/>
+          <path d="M4.5 8l2.5 2.5 4.5-4.5" stroke="#10b981" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="feat-text">Analíticas y fidelidad</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="qr-row">
+      <div class="qr-box">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?data=https%3A%2F%2Fmenius.app%2Fdemo%3Futm_source%3Dflyer%26utm_medium%3Dprint&size=220x220&margin=6&bgcolor=ffffff&color=000000" alt="QR">
+      </div>
+      <div class="qr-right">
+        <span class="qr-label">Escanéalo y pruébalo gratis.</span>
+        <span class="qr-link">menius.app/demo →</span>
+        <span class="qr-note">Ve un menú real en acción. Sin registro.</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bottom-bar">
+    <span class="bb-text">Empieza gratis</span>
+    <div class="bb-dot"></div>
+    <span class="bb-text">Sin tarjeta</span>
+    <div class="bb-dot"></div>
+    <span class="bb-text">Cancela cuando quieras</span>
+  </div>
+
+</div>
+
+</body>
+</html>

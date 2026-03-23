@@ -7,6 +7,7 @@
 
 import { memo, useState, useEffect } from 'react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Search, X, ArrowLeft, LayoutDashboard, Clock, History } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
@@ -50,11 +51,13 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
   const showName = !hasCover || isScrolled;
 
   return (
-    <header
+    <motion.header
       className={cn(
-        'flex-shrink-0 z-40 bg-white border-b',
-        isScrolled ? 'border-gray-200 shadow-sm' : 'border-gray-100'
+        'flex-shrink-0 z-40 bg-white/95 backdrop-blur-md border-b',
+        isScrolled ? 'border-gray-200 shadow-[0_1px_12px_rgba(0,0,0,0.07)]' : 'border-gray-100'
       )}
+      animate={{ boxShadow: isScrolled ? '0 1px 12px rgba(0,0,0,0.07)' : '0 0 0 transparent' }}
+      transition={{ duration: 0.3 }}
     >
       <div className="max-w-[1440px] mx-auto px-6 flex items-center gap-3 h-12">
         {/* Back */}
@@ -68,12 +71,23 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
           </Link>
         )}
 
-        {/* Restaurant name */}
-        <div className={cn('flex items-center flex-shrink-0 min-w-0', !showName && 'invisible')}>
-          <span className="font-bold text-emerald-600 truncate text-base max-w-[260px]">
-            {restaurant.name}
-          </span>
-        </div>
+        {/* Restaurant name — fade in when banner scrolls away */}
+        <AnimatePresence mode="wait">
+          {showName && (
+            <motion.div
+              key="restaurant-name"
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.22, ease: 'easeOut' }}
+              className="flex items-center flex-shrink-0 min-w-0"
+            >
+              <span className="font-bold text-emerald-600 truncate text-base max-w-[260px]">
+                {restaurant.name}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Center search bar */}
         <div className="flex flex-1 max-w-md mx-auto">
@@ -148,6 +162,6 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
           </div>
         </div>
       </div>
-    </header>
+    </motion.header>
   );
 });

@@ -2,6 +2,7 @@
 
 import { memo, useState, useCallback } from 'react';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { Plus, Check, UtensilsCrossed, ChevronRight, Heart, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types';
@@ -81,7 +82,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
         'group relative bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-[transform,box-shadow] duration-300 ease-out',
         outOfStock
           ? 'opacity-75 cursor-default'
-          : 'cursor-pointer hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0'
+          : 'cursor-pointer hover:shadow-[0_12px_40px_rgba(0,0,0,0.14)] hover:-translate-y-1 active:scale-[0.98] active:translate-y-0'
       )}
     >
       {showImage ? (
@@ -95,10 +96,17 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
             placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
             blurDataURL={getBlurUrl(product.image_url)}
-            className={cn('object-cover transition-[transform,opacity] duration-500', imgLoaded ? 'opacity-100' : 'opacity-0', outOfStock && 'grayscale')}
+            className={cn(
+              'object-cover transition-[transform,opacity] duration-500',
+              imgLoaded ? 'opacity-100' : 'opacity-0',
+              outOfStock ? 'grayscale' : 'group-hover:scale-105'
+            )}
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
           />
+          {!outOfStock && (
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          )}
           {outOfStock && (
             <div className="absolute inset-0 bg-white/40 flex items-center justify-center">
               <span className="px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-bold">{labelSoldOut}</span>
@@ -115,9 +123,14 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             </span>
           )}
           {!outOfStock && cartQty > 0 && (
-            <span className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-emerald-500 text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none">
+            <motion.span
+              key={cartQty}
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-emerald-500 text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
+            >
               {cartQty}
-            </span>
+            </motion.span>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
@@ -128,8 +141,8 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           </button>
         </div>
       ) : (
-        <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-          <UtensilsCrossed className="w-10 h-10 text-gray-200" />
+        <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
+          <UtensilsCrossed className="w-10 h-10 text-gray-200 transition-transform duration-500 group-hover:scale-110" />
           {outOfStock && (
             <div className="absolute inset-0 bg-white/40 flex items-center justify-center">
               <span className="px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-bold">{labelSoldOut}</span>
@@ -146,9 +159,14 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             </span>
           )}
           {!outOfStock && cartQty > 0 && (
-            <span className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-emerald-500 text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none">
+            <motion.span
+              key={cartQty}
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-emerald-500 text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
+            >
               {cartQty}
-            </span>
+            </motion.span>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
