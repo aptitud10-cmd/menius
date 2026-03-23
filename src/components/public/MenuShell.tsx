@@ -222,7 +222,9 @@ export function MenuShell({
     const section = sectionRefs.current.get(catId);
     if (section && mainRef.current) {
       isScrollingRef.current = true;
-      const offset = section.offsetTop - 120;
+      const sectionTop = section.getBoundingClientRect().top;
+      const containerTop = mainRef.current.getBoundingClientRect().top;
+      const offset = mainRef.current.scrollTop + sectionTop - containerTop - 48;
       mainRef.current.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
       setTimeout(() => { isScrollingRef.current = false; }, 900);
     }
