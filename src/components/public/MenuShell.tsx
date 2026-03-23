@@ -708,6 +708,27 @@ export function MenuShell({
           />
         </aside>
 
+        {/* Center: wrapper so sticky pills + products stack vertically */}
+        <div className="flex-1 min-w-0 flex flex-col">
+
+        {/* Sticky category pills — desktop only, pins once banner scrolls away */}
+        <div className="hidden lg:block sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+          <div className="relative px-2 py-2">
+            <button onClick={() => scrollCats('left')} className="absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-white via-white to-transparent flex items-center justify-start" aria-label="Scroll left">
+              <ChevronLeft className="w-4 h-4 text-gray-400" />
+            </button>
+            <div ref={catScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5">
+              {visibleCats.map((cat) => categoryPill(cat.id, tName(cat, locale, defaultLocale), activeCategory === cat.id && !showFavs && !activeDiet))}
+              {filterDivider}
+              {dietPills}
+              {favPill}
+            </div>
+            <button onClick={() => scrollCats('right')} className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end" aria-label="Scroll right">
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
+        </div>
+
         {/* Center: Products — natural flow, no independent scroll */}
         <main className={`flex-1 min-w-0 pb-4 lg:pb-8`}>
 
@@ -801,20 +822,6 @@ export function MenuShell({
                 })()}
               </div>
             )}
-            <div className="relative mt-6">
-              <button onClick={() => scrollCats('left')} className="absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-white via-white to-transparent flex items-center justify-start" aria-label="Scroll left">
-                <ChevronLeft className="w-4 h-4 text-gray-400" />
-              </button>
-              <div ref={catScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5">
-                {visibleCats.map((cat) => categoryPill(cat.id, tName(cat, locale, defaultLocale), activeCategory === cat.id && !showFavs && !activeDiet))}
-                {filterDivider}
-                {dietPills}
-                {favPill}
-              </div>
-              <button onClick={() => scrollCats('right')} className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end" aria-label="Scroll right">
-                <ChevronRight className="w-4 h-4 text-gray-400" />
-              </button>
-            </div>
           </div>
 
           {searchResults !== null ? (
@@ -1166,9 +1173,10 @@ export function MenuShell({
 
           </div>{/* end px wrapper */}
         </main>
+        </div>{/* end center column wrapper */}
 
         {/* Right: Cart — sticky, stays in place while content scrolls */}
-        <aside className="hidden lg:flex flex-col w-[360px] flex-shrink-0 border-l border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
+        <aside className="hidden lg:flex flex-col w-[420px] flex-shrink-0 border-l border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
           <CartPanel
             fmtPrice={fmtPrice}
             t={t}
