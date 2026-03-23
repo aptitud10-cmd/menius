@@ -217,8 +217,10 @@ export function MenuShell({
 
     if (isLargeCatalog) {
       setActiveCatFilter(catId);
-      // Scroll to just past the banner so it stays hidden
-      mainRef.current?.scrollTo({ top: getBannerHeight(), behavior: 'instant' });
+      const bannerHeight = getBannerHeight();
+      // Keep banner hidden only if it was already hidden; otherwise stay at top
+      const top = mainRef.current && mainRef.current.scrollTop >= bannerHeight ? bannerHeight : 0;
+      mainRef.current?.scrollTo({ top, behavior: 'instant' });
       return;
     }
 
@@ -228,8 +230,10 @@ export function MenuShell({
       const sectionTop = section.getBoundingClientRect().top;
       const containerTop = mainRef.current.getBoundingClientRect().top;
       const rawOffset = mainRef.current.scrollTop + sectionTop - containerTop;
-      // Never scroll into the banner area
-      const offset = Math.max(getBannerHeight(), rawOffset);
+      const bannerHeight = getBannerHeight();
+      const bannerAlreadyHidden = mainRef.current.scrollTop >= bannerHeight;
+      // Only clamp to bannerHeight if banner was already hidden (keep it hidden)
+      const offset = bannerAlreadyHidden ? Math.max(bannerHeight, rawOffset) : Math.max(0, rawOffset);
       mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
       setTimeout(() => { isScrollingRef.current = false; }, 900);
     }
