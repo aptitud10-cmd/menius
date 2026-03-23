@@ -199,9 +199,6 @@ export function MenuShell({
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const isScrollingRef = useRef(false);
   const scrollTargetRef = useRef(0);
-  // Once the banner has been scrolled past, this stays true for the lifetime of the page.
-  // This avoids race conditions where scrollTargetRef hasn't synced yet on a second click.
-  const bannerEverHiddenRef = useRef(false);
   const [headerScrolled, setHeaderScrolled] = useState(false);
   const hasCover = !!restaurant.cover_image_url;
 
@@ -223,9 +220,8 @@ export function MenuShell({
     if (isLargeCatalog) {
       setActiveCatFilter(catId);
       const bannerHeight = getBannerHeight();
-      const bannerAlreadyHidden =
-        bannerEverHiddenRef.current || mainRef.current!.scrollTop >= bannerHeight;
-      const top = bannerAlreadyHidden ? bannerHeight : 0;
+      const bannerHidden = mainRef.current!.scrollTop >= bannerHeight;
+      const top = bannerHidden ? bannerHeight : 0;
       scrollTargetRef.current = top;
       mainRef.current?.scrollTo({ top, behavior: 'instant' });
       return;
@@ -234,16 +230,14 @@ export function MenuShell({
     const section = sectionRefs.current.get(catId);
     if (section && mainRef.current) {
       const bannerHeight = getBannerHeight();
-      const bannerAlreadyHidden =
-        bannerEverHiddenRef.current || mainRef.current.scrollTop >= bannerHeight;
+      const bannerHidden = mainRef.current.scrollTop >= bannerHeight;
 
-      if (!bannerAlreadyHidden) {
-        // Banner is visible — just highlight the category, don't scroll
-        // (scrolling would inevitably push the banner out of view)
+      if (!bannerHidden) {
+        // Banner is currently visible — don't scroll, just highlight the category
         return;
       }
 
-      // Banner was already hidden — scroll to the section, keeping banner hidden
+      // Banner is hidden — scroll to the section keeping it hidden
       isScrollingRef.current = true;
       const sectionTop = section.getBoundingClientRect().top;
       const containerTop = mainRef.current.getBoundingClientRect().top;
@@ -501,14 +495,10 @@ export function MenuShell({
       if (!isScrollingRef.current) {
         scrollTargetRef.current = scrollTop;
       }
-      // Once the user manually scrolls past the banner, lock it as "ever hidden"
-      if (hasCover && scrollTop >= getBannerHeight()) {
-        bannerEverHiddenRef.current = true;
-      }
     };
     main.addEventListener('scroll', onScroll, { passive: true });
     return () => main.removeEventListener('scroll', onScroll);
-  }, [hasCover, mainEl, getBannerHeight]);
+  }, [hasCover, mainEl]);
 
   // Keyboard shortcuts: / or Ctrl+K for search, Esc to close overlays
   useEffect(() => {
