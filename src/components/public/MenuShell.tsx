@@ -664,12 +664,15 @@ export function MenuShell({
         )}
       </div>
 
-      {/* ── Banner + 3-Column Layout ── */}
-      <div className="flex-1 flex flex-col overflow-hidden max-w-[1440px] w-full mx-auto">
+      {/* ── Outer scroll: banner scrolls away, sidebar/cart stay sticky ── */}
+      <div
+        ref={mainRefCb}
+        className={`flex-1 overflow-y-auto max-w-[1440px] w-full mx-auto ${cartCount > 0 ? 'pb-36 lg:pb-0' : ''}`}
+      >
 
-        {/* Cover banner — full width of the 3-column block */}
+        {/* Cover banner — full width, scrolls away naturally with content */}
         {restaurant.cover_image_url && (
-          <div className="relative w-full flex-shrink-0 h-44 sm:h-52 lg:h-64 bg-gray-100 overflow-hidden rounded-b-2xl">
+          <div className="relative w-full h-44 sm:h-52 lg:h-64 bg-gray-100 overflow-hidden rounded-b-2xl">
             <Image
               src={restaurant.cover_image_url}
               alt={restaurant.name}
@@ -682,11 +685,11 @@ export function MenuShell({
           </div>
         )}
 
-        {/* ── 3-Column Layout ── */}
-        <div className="flex-1 flex overflow-hidden">
+        {/* ── 3-Column row ── */}
+        <div className="flex min-h-[calc(100dvh-48px)]">
 
-        {/* Left: Categories — fixed column with own scroll */}
-        <aside className="hidden lg:flex flex-col w-[260px] flex-shrink-0 border-r border-gray-100 overflow-y-auto">
+        {/* Left: Sidebar — sticky, stays in place while content scrolls */}
+        <aside className="hidden lg:flex flex-col w-[260px] flex-shrink-0 border-r border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
           <CategorySidebar
             categories={categories}
             products={products}
@@ -698,8 +701,8 @@ export function MenuShell({
           />
         </aside>
 
-        {/* Center: Products grid — scrolls independently */}
-        <main ref={mainRefCb} className={`flex-1 min-w-0 overflow-y-auto lg:pb-8 ${cartCount > 0 ? 'pb-36' : 'pb-4'}`}>
+        {/* Center: Products — natural flow, no independent scroll */}
+        <main className={`flex-1 min-w-0 pb-4 lg:pb-8`}>
 
           {/* Mobile info bar (when no cover, show name/rating/description) */}
           {!restaurant.cover_image_url && (
@@ -1157,8 +1160,8 @@ export function MenuShell({
           </div>{/* end px wrapper */}
         </main>
 
-        {/* Right: Cart — fixed column with own scroll, desktop only */}
-        <aside className="hidden lg:flex flex-col w-[360px] flex-shrink-0 border-l border-gray-100">
+        {/* Right: Cart — sticky, stays in place while content scrolls */}
+        <aside className="hidden lg:flex flex-col w-[360px] flex-shrink-0 border-l border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
           <CartPanel
             fmtPrice={fmtPrice}
             t={t}
@@ -1171,8 +1174,8 @@ export function MenuShell({
             onReorder={handleReorder}
           />
         </aside>
-        </div>{/* end 3-column */}
-      </div>{/* end banner + 3-column container */}
+        </div>{/* end 3-column row */}
+      </div>{/* end outer scroll */}
 
       {/* ── Mobile: Bottom cart bar ── */}
       {ordersLeft === 0 ? (
