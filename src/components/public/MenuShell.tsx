@@ -188,6 +188,7 @@ export function MenuShell({
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const audioCtxRef = useRef<AudioContext | null>(null);
   const catScrollRef = useRef<HTMLDivElement>(null);
+  const bannerRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement | null>(null);
   const [mainEl, setMainEl] = useState<HTMLElement | null>(null);
   const mainRefCb = useCallback((node: HTMLElement | null) => {
@@ -199,6 +200,8 @@ export function MenuShell({
   const isScrollingRef = useRef(false);
   const [headerScrolled, setHeaderScrolled] = useState(false);
   const hasCover = !!restaurant.cover_image_url;
+
+  const getBannerHeight = useCallback(() => bannerRef.current?.offsetHeight ?? 0, []);
 
   const handleCategorySelect = useCallback((catId: string | null) => {
     setSearchQuery('');
@@ -213,9 +216,9 @@ export function MenuShell({
     }
 
     if (isLargeCatalog) {
-      // Large catalog: filter to show only the selected category, reset scroll
       setActiveCatFilter(catId);
-      mainRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+      // Scroll to just past the banner so it stays hidden
+      mainRef.current?.scrollTo({ top: getBannerHeight(), behavior: 'instant' });
       return;
     }
 
@@ -224,11 +227,13 @@ export function MenuShell({
       isScrollingRef.current = true;
       const sectionTop = section.getBoundingClientRect().top;
       const containerTop = mainRef.current.getBoundingClientRect().top;
-      const offset = mainRef.current.scrollTop + sectionTop - containerTop - 48;
-      mainRef.current.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
+      const rawOffset = mainRef.current.scrollTop + sectionTop - containerTop;
+      // Never scroll into the banner area
+      const offset = Math.max(getBannerHeight(), rawOffset);
+      mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
       setTimeout(() => { isScrollingRef.current = false; }, 900);
     }
-  }, [isLargeCatalog]);
+  }, [isLargeCatalog, getBannerHeight]);
 
   const handleProductSelect = useCallback((product: Product) => {
     setCustomization({ product, editIndex: null });
@@ -674,7 +679,7 @@ export function MenuShell({
 
         {/* Cover banner — full width, scrolls away naturally with content */}
         {restaurant.cover_image_url && (
-          <div className="relative w-full h-44 sm:h-52 lg:h-64 bg-gray-100 overflow-hidden rounded-b-2xl">
+          <div ref={bannerRef} className="relative w-full h-44 sm:h-52 lg:h-64 bg-gray-100 overflow-hidden rounded-b-2xl">
             <Image
               src={restaurant.cover_image_url}
               alt={restaurant.name}
