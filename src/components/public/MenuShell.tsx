@@ -675,19 +675,6 @@ export function MenuShell({
             className="object-cover animate-cover-zoom"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 px-5 pb-4 lg:px-8 lg:pb-5">
-            <h1 className="text-white font-extrabold text-xl lg:text-2xl tracking-tight drop-shadow-sm">
-              {restaurant.name}
-            </h1>
-            {reviewStats && reviewStats.total > 0 && (
-              <div className="flex items-center gap-1.5 mt-1">
-                <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                <span className="text-sm font-bold text-white tabular-nums">{reviewStats.average}</span>
-                <span className="text-sm text-white/70">({reviewStats.total}+)</span>
-              </div>
-            )}
-          </div>
         </div>
       )}
 

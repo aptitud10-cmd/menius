@@ -96,7 +96,7 @@ export const MenuHeader = memo(function MenuHeader({
         {/* Name */}
         <div className={cn(
           'flex items-center flex-shrink-0 min-w-0',
-          !showNameInHeader && 'lg:flex'
+          !showNameInHeader && 'lg:hidden'
         )}>
           <span className="font-bold text-emerald-600 truncate max-w-[160px] lg:max-w-[260px] text-[14px] lg:text-base">
             {restaurant.name}
