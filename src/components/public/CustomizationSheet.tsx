@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { X, Minus, Plus, Check, ArrowLeft } from 'lucide-react';
 import { motion, useMotionValue, useTransform, useDragControls, type PanInfo } from 'framer-motion';
@@ -170,6 +170,8 @@ export function CustomizationSheet({
   const unitPrice = Number(product.price) + modifiersDelta;
 
   const [vvH, setVvH] = useState<string>('96vh');
+  const sheetBodyRef = useRef<HTMLDivElement>(null);
+  const notesRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -259,6 +261,7 @@ export function CustomizationSheet({
 
   const sheetBody = (
     <div
+      ref={sheetBodyRef}
       className="flex-1 overflow-y-auto overscroll-contain"
       onScroll={(e) => scrollY.set(e.currentTarget.scrollTop)}
     >
@@ -421,14 +424,22 @@ export function CustomizationSheet({
           </span>
         </label>
         <textarea
+          ref={notesRef}
           value={notes}
           onChange={(e) => setNotes(e.target.value.slice(0, 120))}
           placeholder={t.specialNotesPlaceholder}
           rows={2}
           maxLength={120}
           className="w-full px-4 py-2.5 rounded-xl bg-gray-50 text-base text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none border border-gray-100"
-          onFocus={(e) => {
-            setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 320);
+          onFocus={() => {
+            setTimeout(() => {
+              const body = sheetBodyRef.current;
+              const el = notesRef.current;
+              if (body && el) {
+                const targetTop = el.offsetTop - 16;
+                body.scrollTo({ top: targetTop, behavior: 'smooth' });
+              }
+            }, 350);
           }}
         />
         <p className="text-[10px] text-gray-300 text-right mt-1">{notes.length}/120</p>
