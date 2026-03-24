@@ -285,17 +285,12 @@ export function MenuShell({
 
     const section = sectionRefs.current.get(catId);
     if (section && mainRef.current) {
-      if (bannerVisibleRef.current) {
-        // Banner is visible — just highlight the category, don't scroll
-        return;
-      }
-
-      // Banner is hidden — scroll to the section keeping it hidden
       isScrollingRef.current = true;
       const bannerHeight = getBannerHeight();
       const sectionTop = section.getBoundingClientRect().top;
       const containerTop = mainRef.current.getBoundingClientRect().top;
       const rawOffset = mainRef.current.scrollTop + sectionTop - containerTop;
+      // Always scroll past the banner so it stays hidden after navigation
       const offset = Math.max(bannerHeight, rawOffset);
       mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
       setTimeout(() => { isScrollingRef.current = false; }, 900);
@@ -584,11 +579,14 @@ export function MenuShell({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [showSearch, customization, isOpen, setOpen]);
 
-  // Auto-scroll pill bar to show active pill — use scrollLeft directly to avoid
-  // scrollIntoView accidentally scrolling parent/body containers horizontally.
+  // Auto-scroll pill bar to show active pill.
+  // Use catScrollRef (desktop) when viewport >= 1024px, mobilePillsRef otherwise.
+  // The mobile div exists in the DOM even on desktop (just hidden via CSS),
+  // so we can't rely on null-check — we must check the actual viewport width.
   useEffect(() => {
     if (!activeCategory) return;
-    const container = mobilePillsRef.current ?? catScrollRef.current;
+    const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
+    const container = isDesktop ? catScrollRef.current : mobilePillsRef.current;
     if (!container) return;
     const pill = container.querySelector(`[data-pill-id="${activeCategory}"]`) as HTMLElement;
     if (pill) {
