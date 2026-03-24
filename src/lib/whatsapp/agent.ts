@@ -1,4 +1,4 @@
-import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { createClient as createAdminClientSupabase } from '@supabase/supabase-js';
 import { Redis } from '@upstash/redis';
 import { sendWhatsApp } from '@/lib/notifications/whatsapp';
 
@@ -6,7 +6,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 function getAdminClient() {
-  return createAdminClient(supabaseUrl, supabaseServiceKey);
+  return createAdminClientSupabase(supabaseUrl, supabaseServiceKey);
 }
 
 interface IncomingMessage {
@@ -15,6 +15,15 @@ interface IncomingMessage {
   name: string;
 }
 
+interface CartItem {
+  productId: string;
+  name: string;
+  qty: number;
+  unitPrice: number;
+}
+
+type ConversationStep = 'browsing' | 'awaiting_name' | 'awaiting_confirm';
+
 interface ConversationSession {
   restaurantId: string;
   restaurantName: string;
@@ -22,10 +31,12 @@ interface ConversationSession {
   locale: string;
   currency: string;
   lastActivity: number;
+  step?: ConversationStep;
+  cart?: CartItem[];
+  customerName?: string;
 }
 
-// Sessions are stored in Redis when available, falling back to in-process Map
-// for local dev. Redis is required in multi-instance Vercel deployments.
+// Sessions stored in Redis when available, falling back to in-process Map for local dev.
 const SESSION_TTL_SECONDS = 30 * 60;
 const localSessions = new Map<string, ConversationSession>();
 
@@ -67,6 +78,14 @@ async function setSession(from: string, session: ConversationSession): Promise<v
   localSessions.set(from, session);
 }
 
+async function clearSession(from: string): Promise<void> {
+  const r = getRedis();
+  if (r) {
+    try { await r.del(`wa:session:${from}`); } catch { /* ignore */ }
+  }
+  localSessions.delete(from);
+}
+
 async function findRestaurantByPhone(phone: string) {
   const supabase = getAdminClient();
   const { data } = await supabase
@@ -74,22 +93,21 @@ async function findRestaurantByPhone(phone: string) {
     .select('id, name, slug, locale, currency, notification_whatsapp')
     .or(`notification_whatsapp.eq.${phone},notification_whatsapp.eq.+${phone}`)
     .maybeSingle();
-
   return data;
 }
 
 async function getMenuForRestaurant(restaurantId: string) {
   const supabase = getAdminClient();
-
   const [{ data: categories }, { data: products }] = await Promise.all([
     supabase.from('categories').select('id, name').eq('restaurant_id', restaurantId).eq('is_active', true).order('sort_order'),
     supabase.from('products').select('id, name, description, price, category_id').eq('restaurant_id', restaurantId).eq('is_active', true).order('sort_order'),
   ]);
-
   return { categories: categories ?? [], products: products ?? [] };
 }
 
-function detectIntent(text: string): 'menu' | 'hours' | 'order_status' | 'help' | 'greeting' | 'unknown' {
+// ── Intent detection ──
+
+function detectIntent(text: string): 'menu' | 'hours' | 'order_status' | 'help' | 'greeting' | 'order' | 'unknown' {
   const lower = text.toLowerCase().trim();
 
   if (/^(hola|hi|hello|hey|buenos?\s*d[ií]as?|buenas?\s*tardes?|buenas?\s*noches?|qu[eé]\s*tal)/i.test(lower)) {
@@ -101,14 +119,112 @@ function detectIntent(text: string): 'menu' | 'hours' | 'order_status' | 'help' 
   if (/horario|hora|abierto|cerrado|hours?|open|close/i.test(lower)) {
     return 'hours';
   }
-  if (/pedido|orden|order|estado|status|tracking|seguimiento/i.test(lower)) {
+  if (/pedido|orden|order|estado|status|tracking|seguimiento/i.test(lower) &&
+      !/quiero.*order|quiero.*pedir|want.*order/i.test(lower)) {
     return 'order_status';
   }
   if (/ayuda|help|info|informaci[oó]n/i.test(lower)) {
     return 'help';
   }
+  // Detect ordering intent: "quiero X", "dame X", "2 hamburguesas", etc.
+  if (/quiero|pido|dame\s+\w|me\s+das?\s+\w|agregar|a[ñn]adir|ordenar|pedir|comprar|llevar|I\s+want|give\s+me|I[''']d\s+like|add\s+\w|\d+\s*(x\s*)?\w{3}/i.test(lower)) {
+    return 'order';
+  }
 
   return 'unknown';
+}
+
+function isConfirmation(text: string): boolean {
+  return /^(si|sí|yes|confirm|ok|confirmar|dale|listo|va|claro|adelante|sure|yep|yeah|vamos|s[íi])[\s!.]*$/i.test(text.trim());
+}
+
+function isCancellation(text: string): boolean {
+  return /^(no|cancel|cancelar|no\s+quiero|mejor\s+no|nope|stop|salir|exit)[\s!.]*$/i.test(text.trim());
+}
+
+// ── Formatting helpers ──
+
+function formatPrice(amount: number, currency: string): string {
+  try {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `$${amount.toFixed(2)}`;
+  }
+}
+
+function formatCartSummary(cart: CartItem[], currency: string): string {
+  const lines = cart.map(
+    (item) => `• ${item.qty}x ${item.name} — ${formatPrice(item.unitPrice * item.qty, currency)}`
+  );
+  const total = cart.reduce((sum, item) => sum + item.unitPrice * item.qty, 0);
+  return lines.join('\n') + `\n\n*Total: ${formatPrice(total, currency)}*`;
+}
+
+// ── Gemini helpers ──
+
+async function matchProductsWithAI(
+  userMessage: string,
+  products: { id: string; name: string; price: number }[],
+): Promise<{ productId: string; qty: number }[]> {
+  const apiKey = (process.env.GEMINI_API_KEY ?? '').trim();
+  if (!apiKey || products.length === 0) return [];
+
+  const productList = products
+    .map((p) => `ID:${p.id} NAME:"${p.name}" PRICE:${p.price}`)
+    .join('\n');
+
+  const prompt = `You are a JSON API for a restaurant ordering system.
+
+MENU:
+${productList}
+
+CUSTOMER MESSAGE: "${userMessage}"
+
+Extract what the customer wants to order. Return ONLY a valid JSON array like:
+[{"productId": "uuid-here", "qty": 2}, {"productId": "uuid-here", "qty": 1}]
+
+Rules:
+- Match product names fuzzy (e.g. "hamburguesa" matches "Hamburguesa Clásica")
+- Default qty is 1 if not specified
+- Return [] if nothing clearly matches
+- Return ONLY the JSON array, no markdown, no explanation`;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 400, temperature: 0.1 },
+        }),
+        signal: AbortSignal.timeout(8000),
+      }
+    );
+
+    if (!res.ok) return [];
+    const data = await res.json();
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    const jsonStr = raw.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(jsonStr);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item: unknown) =>
+        item !== null &&
+        typeof item === 'object' &&
+        typeof (item as Record<string, unknown>).productId === 'string' &&
+        typeof (item as Record<string, unknown>).qty === 'number' &&
+        (item as Record<string, unknown>).qty > 0
+    );
+  } catch {
+    return [];
+  }
 }
 
 async function generateAIResponse(
@@ -125,9 +241,10 @@ async function generateAIResponse(
   }
 
   try {
-    const systemPrompt = locale === 'en'
-      ? `You are a friendly WhatsApp assistant for "${restaurantName}". Answer customer questions about the menu, hours, and ordering. Keep responses short (max 300 chars). Use emojis sparingly. Always be helpful and polite. Here's the menu:\n${menuSummary}`
-      : `Eres un asistente amigable de WhatsApp para "${restaurantName}". Responde preguntas sobre el menú, horarios y pedidos. Mantén respuestas cortas (máx 300 caracteres). Usa emojis con moderación. Siempre sé útil y amable. Aquí está el menú:\n${menuSummary}`;
+    const systemPrompt =
+      locale === 'en'
+        ? `You are a friendly WhatsApp assistant for "${restaurantName}". Answer customer questions about the menu, hours, and ordering. Keep responses short (max 300 chars). Use emojis sparingly. Always be helpful and polite. Here's the menu:\n${menuSummary}`
+        : `Eres un asistente amigable de WhatsApp para "${restaurantName}". Responde preguntas sobre el menú, horarios y pedidos. Mantén respuestas cortas (máx 300 caracteres). Usa emojis con moderación. Siempre sé útil y amable. Aquí está el menú:\n${menuSummary}`;
 
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -136,19 +253,18 @@ async function generateAIResponse(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [
-            { role: 'user', parts: [{ text: `${systemPrompt}\n\nCustomer message: "${userMessage}"` }] },
+            {
+              role: 'user',
+              parts: [{ text: `${systemPrompt}\n\nCustomer message: "${userMessage}"` }],
+            },
           ],
-          generationConfig: {
-            maxOutputTokens: 200,
-            temperature: 0.7,
-          },
+          generationConfig: { maxOutputTokens: 200, temperature: 0.7 },
         }),
         signal: AbortSignal.timeout(10000),
       }
     );
 
     if (!res.ok) throw new Error('Gemini API error');
-
     const data = await res.json();
     const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     return reply?.trim() || (locale === 'en' ? 'Thanks for reaching out! 😊' : '¡Gracias por escribirnos! 😊');
@@ -158,6 +274,143 @@ async function generateAIResponse(
       : `¡Gracias por tu mensaje! Revisa nuestro menú completo en línea. 😊`;
   }
 }
+
+// ── Order creation ──
+
+async function getProductsWithRequiredModifiers(
+  restaurantId: string,
+  productIds: string[],
+): Promise<Set<string>> {
+  if (productIds.length === 0) return new Set();
+  const supabase = getAdminClient();
+  const { data } = await supabase
+    .from('modifier_groups')
+    .select('product_id')
+    .in('product_id', productIds)
+    .eq('restaurant_id', restaurantId)
+    .eq('is_required', true);
+  return new Set((data ?? []).map((r) => r.product_id));
+}
+
+async function createWhatsAppOrder(
+  session: ConversationSession,
+  customerName: string,
+  customerPhone: string,
+): Promise<{ orderNumber: string; error?: string }> {
+  const supabase = getAdminClient();
+
+  // Check if restaurant is paused
+  const { data: restaurant } = await supabase
+    .from('restaurants')
+    .select('orders_paused_until, notification_whatsapp')
+    .eq('id', session.restaurantId)
+    .maybeSingle();
+
+  const pausedUntil = (restaurant as any)?.orders_paused_until;
+  if (pausedUntil && new Date(pausedUntil) > new Date()) {
+    return { orderNumber: '', error: 'paused' };
+  }
+
+  const cart = session.cart ?? [];
+  if (cart.length === 0) return { orderNumber: '', error: 'empty_cart' };
+
+  // Fetch real server-side prices — never trust session values
+  const productIds = cart.map((item) => item.productId);
+  const { data: dbProducts } = await supabase
+    .from('products')
+    .select('id, price, name, in_stock')
+    .in('id', productIds)
+    .eq('restaurant_id', session.restaurantId);
+
+  const priceMap = new Map(
+    (dbProducts ?? []).map((p) => [
+      p.id,
+      { price: Number(p.price), name: p.name as string, inStock: p.in_stock },
+    ])
+  );
+
+  const orderItems: {
+    productId: string;
+    name: string;
+    qty: number;
+    unitPrice: number;
+    lineTotal: number;
+  }[] = [];
+
+  for (const item of cart) {
+    const dbProduct = priceMap.get(item.productId);
+    if (!dbProduct) continue;
+    if (dbProduct.inStock === false) return { orderNumber: '', error: 'out_of_stock' };
+    orderItems.push({
+      productId: item.productId,
+      name: dbProduct.name,
+      qty: item.qty,
+      unitPrice: dbProduct.price,
+      lineTotal: dbProduct.price * item.qty,
+    });
+  }
+
+  if (orderItems.length === 0) return { orderNumber: '', error: 'empty_cart' };
+
+  const total = orderItems.reduce((sum, item) => sum + item.lineTotal, 0);
+
+  // Generate order number using same RPC as web
+  const { data: orderNum } = await supabase.rpc('generate_order_number', {
+    rest_id: session.restaurantId,
+  });
+  const orderNumber = (orderNum as string) ?? `WA-${Date.now().toString(36).toUpperCase()}`;
+
+  // Insert order
+  const { data: order, error: orderError } = await supabase
+    .from('orders')
+    .insert({
+      restaurant_id: session.restaurantId,
+      order_number: orderNumber,
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      total,
+      status: 'pending',
+      order_type: 'pickup',
+      payment_method: 'cash',
+      notes: '📱 Pedido por WhatsApp',
+      include_utensils: true,
+      idempotency_key: `wa:${customerPhone}:${Date.now()}`,
+    })
+    .select('id')
+    .single();
+
+  if (orderError || !order) return { orderNumber: '', error: 'db_error' };
+
+  // Insert order items
+  const { error: itemsError } = await supabase.from('order_items').insert(
+    orderItems.map((item) => ({
+      order_id: order.id,
+      product_id: item.productId,
+      qty: item.qty,
+      unit_price: item.unitPrice,
+      line_total: item.lineTotal,
+    }))
+  );
+
+  if (itemsError) {
+    await supabase.from('orders').delete().eq('id', order.id);
+    return { orderNumber: '', error: 'db_error' };
+  }
+
+  // Notify restaurant
+  if (restaurant?.notification_whatsapp) {
+    const isEn = session.locale === 'en';
+    const itemLines = orderItems.map((i) => `• ${i.qty}x ${i.name}`).join('\n');
+    const notifText = isEn
+      ? `🔔 *New WhatsApp order!*\n#${orderNumber}\n\n${itemLines}\n\nTotal: ${formatPrice(total, session.currency)}\nCustomer: ${customerName} (${customerPhone})\nPickup / Cash`
+      : `🔔 *¡Nuevo pedido por WhatsApp!*\n#${orderNumber}\n\n${itemLines}\n\nTotal: ${formatPrice(total, session.currency)}\nCliente: ${customerName} (${customerPhone})\nRecoger / Efectivo`;
+    sendWhatsApp({ to: restaurant.notification_whatsapp, text: notifText }).catch(() => {});
+  }
+
+  return { orderNumber };
+}
+
+// ── Main handler ──
 
 export async function handleIncomingMessage({ from, text, name }: IncomingMessage) {
   let session = await getSession(from);
@@ -177,30 +430,111 @@ export async function handleIncomingMessage({ from, text, name }: IncomingMessag
       restaurantName: restaurant.name,
       slug: restaurant.slug,
       locale: restaurant.locale ?? 'es',
-      currency: restaurant.currency ?? 'USD',
+      currency: restaurant.currency ?? 'MXN',
       lastActivity: Date.now(),
+      step: 'browsing',
     };
   }
 
   session.lastActivity = Date.now();
-  await setSession(from, session);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
   const menuUrl = `${appUrl}/${session.slug}`;
   const isEn = session.locale === 'en';
-  const intent = detectIntent(text);
-
   let reply = '';
+
+  // ── Mid-conversation steps ──
+
+  if (session.step === 'awaiting_name') {
+    if (isCancellation(text)) {
+      session.step = 'browsing';
+      session.cart = undefined;
+      await setSession(from, session);
+      reply = isEn
+        ? `Order cancelled. You can start over anytime! 😊\n📋 ${menuUrl}`
+        : `Pedido cancelado. ¡Puedes empezar de nuevo cuando quieras! 😊\n📋 ${menuUrl}`;
+      await sendWhatsApp({ to: from, text: reply });
+      return;
+    }
+
+    const customerName = text.trim().slice(0, 60);
+    session.customerName = customerName;
+    session.step = 'awaiting_confirm';
+    await setSession(from, session);
+
+    const cartSummary = formatCartSummary(session.cart ?? [], session.currency);
+    reply = isEn
+      ? `Great! Order for *${customerName}*:\n\n${cartSummary}\n\n💵 Pay at pickup (cash)\n\nType *YES* to confirm or *CANCEL* to cancel.`
+      : `¡Perfecto! Pedido para *${customerName}*:\n\n${cartSummary}\n\n💵 Pago al recoger (efectivo)\n\nEscribe *SÍ* para confirmar o *CANCELAR* para cancelar.`;
+    await sendWhatsApp({ to: from, text: reply });
+    return;
+  }
+
+  if (session.step === 'awaiting_confirm') {
+    if (isCancellation(text)) {
+      session.step = 'browsing';
+      session.cart = undefined;
+      session.customerName = undefined;
+      await setSession(from, session);
+      reply = isEn
+        ? `Order cancelled. No problem! 😊\n📋 ${menuUrl}`
+        : `Pedido cancelado. ¡Sin problema! 😊\n📋 ${menuUrl}`;
+      await sendWhatsApp({ to: from, text: reply });
+      return;
+    }
+
+    if (isConfirmation(text)) {
+      const customerName = session.customerName ?? name ?? 'Cliente';
+      const { orderNumber, error } = await createWhatsAppOrder(session, customerName, from);
+
+      session.step = 'browsing';
+      session.cart = undefined;
+      session.customerName = undefined;
+      await setSession(from, session);
+
+      if (error === 'paused') {
+        reply = isEn
+          ? `Sorry, this restaurant is not accepting orders right now. Please try again later or visit: ${menuUrl}`
+          : `Lo sentimos, el restaurante no está aceptando pedidos en este momento. Intenta más tarde o visita: ${menuUrl}`;
+      } else if (error === 'out_of_stock') {
+        reply = isEn
+          ? `Sorry, one of the items in your order is out of stock. Please check the menu and try again: ${menuUrl}`
+          : `Lo sentimos, uno de los productos de tu pedido está agotado. Revisa el menú e intenta de nuevo: ${menuUrl}`;
+      } else if (error) {
+        reply = isEn
+          ? `There was an error processing your order. Please try again or order directly from: ${menuUrl}`
+          : `Hubo un error al procesar tu pedido. Intenta de nuevo o pide desde: ${menuUrl}`;
+      } else {
+        reply = isEn
+          ? `✅ *Order #${orderNumber} confirmed!* 🎉\n\nWe'll notify you when it's ready for pickup. Thank you, ${customerName}! 😊`
+          : `✅ *¡Pedido #${orderNumber} confirmado!* 🎉\n\nTe avisaremos cuando esté listo para recoger. ¡Gracias, ${customerName}! 😊`;
+      }
+
+      await sendWhatsApp({ to: from, text: reply });
+      return;
+    }
+
+    // Unrecognized input during confirm step — remind
+    reply = isEn
+      ? `Please type *YES* to confirm your order or *CANCEL* to cancel it.`
+      : `Por favor escribe *SÍ* para confirmar tu pedido o *CANCELAR* para cancelarlo.`;
+    await sendWhatsApp({ to: from, text: reply });
+    return;
+  }
+
+  // ── Normal intent detection (step === 'browsing' or undefined) ──
+
+  const intent = detectIntent(text);
 
   switch (intent) {
     case 'greeting': {
       reply = isEn
-        ? `Hi${name ? ` ${name}` : ''}! 👋 Welcome to *${session.restaurantName}*.\n\nHow can I help you?\n📋 See our menu: ${menuUrl}\n\nType "menu", "hours", or ask me anything!`
-        : `¡Hola${name ? ` ${name}` : ''}! 👋 Bienvenido/a a *${session.restaurantName}*.\n\n¿En qué te puedo ayudar?\n📋 Ver menú: ${menuUrl}\n\nEscribe "menú", "horario", o pregúntame lo que necesites.`;
+        ? `Hi${name ? ` ${name}` : ''}! 👋 Welcome to *${session.restaurantName}*.\n\nHow can I help you?\n📋 See our menu: ${menuUrl}\n\nYou can also type what you'd like to order and I'll help you! 🛒`
+        : `¡Hola${name ? ` ${name}` : ''}! 👋 Bienvenido/a a *${session.restaurantName}*.\n\n¿En qué te puedo ayudar?\n📋 Ver menú: ${menuUrl}\n\n¡También puedes escribir lo que quieres pedir y te ayudo! 🛒`;
       break;
     }
 
     case 'menu': {
-      const { categories, products } = await getMenuForRestaurant(session.restaurantId);
+      const { products } = await getMenuForRestaurant(session.restaurantId);
 
       if (products.length === 0) {
         reply = isEn
@@ -211,12 +545,12 @@ export async function handleIncomingMessage({ from, text, name }: IncomingMessag
 
       const topProducts = products.slice(0, 8);
       const productList = topProducts
-        .map((p) => `• ${p.name} — $${Number(p.price).toFixed(2)}`)
+        .map((p) => `• ${p.name} — ${formatPrice(Number(p.price), session.currency)}`)
         .join('\n');
 
       reply = isEn
-        ? `📋 *Menu — ${session.restaurantName}*\n\n${productList}\n\n${products.length > 8 ? `...and ${products.length - 8} more items\n\n` : ''}👉 Full menu & order: ${menuUrl}`
-        : `📋 *Menú — ${session.restaurantName}*\n\n${productList}\n\n${products.length > 8 ? `...y ${products.length - 8} productos más\n\n` : ''}👉 Menú completo y pedidos: ${menuUrl}`;
+        ? `📋 *Menu — ${session.restaurantName}*\n\n${productList}\n\n${products.length > 8 ? `...and ${products.length - 8} more items\n\n` : ''}💬 Just type what you want to order!\n👉 Full menu: ${menuUrl}`
+        : `📋 *Menú — ${session.restaurantName}*\n\n${productList}\n\n${products.length > 8 ? `...y ${products.length - 8} productos más\n\n` : ''}💬 ¡Escribe lo que quieres pedir!\n👉 Menú completo: ${menuUrl}`;
       break;
     }
 
@@ -239,7 +573,9 @@ export async function handleIncomingMessage({ from, text, name }: IncomingMessag
         ? { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' }
         : { monday: 'Lun', tuesday: 'Mar', wednesday: 'Mié', thursday: 'Jue', friday: 'Vie', saturday: 'Sáb', sunday: 'Dom' };
 
-      const hours = Object.entries(restaurant.operating_hours as Record<string, { open: string; close: string; closed?: boolean }>)
+      const hours = Object.entries(
+        restaurant.operating_hours as Record<string, { open: string; close: string; closed?: boolean }>
+      )
         .map(([day, h]) => {
           const label = days[day] ?? day;
           if (h.closed) return `${label}: ${isEn ? 'Closed' : 'Cerrado'}`;
@@ -262,22 +598,101 @@ export async function handleIncomingMessage({ from, text, name }: IncomingMessag
 
     case 'help': {
       reply = isEn
-        ? `ℹ️ *${session.restaurantName}* — How can I help?\n\n📋 "menu" — See our dishes\n🕐 "hours" — Opening hours\n📦 "order" — Order status\n\n👉 Order online: ${menuUrl}`
-        : `ℹ️ *${session.restaurantName}* — ¿En qué puedo ayudarte?\n\n📋 "menú" — Ver nuestros platillos\n🕐 "horario" — Horario de atención\n📦 "pedido" — Estado de tu pedido\n\n👉 Pedir en línea: ${menuUrl}`;
+        ? `ℹ️ *${session.restaurantName}* — How can I help?\n\n📋 "menu" — See our dishes\n🕐 "hours" — Opening hours\n🛒 Just type your order — I'll place it for you!\n📦 "order" — Order status\n\n👉 Order online: ${menuUrl}`
+        : `ℹ️ *${session.restaurantName}* — ¿En qué puedo ayudarte?\n\n📋 "menú" — Ver nuestros platillos\n🕐 "horario" — Horario de atención\n🛒 ¡Escribe tu pedido directamente y lo proceso!\n📦 "pedido" — Estado de tu pedido\n\n👉 Pedir en línea: ${menuUrl}`;
+      break;
+    }
+
+    case 'order': {
+      const { products } = await getMenuForRestaurant(session.restaurantId);
+
+      if (products.length === 0) {
+        reply = isEn
+          ? `We don't have products available right now. Check our menu: ${menuUrl}`
+          : `No tenemos productos disponibles en este momento. Ve el menú: ${menuUrl}`;
+        break;
+      }
+
+      const matched = await matchProductsWithAI(
+        text,
+        products.map((p) => ({ id: p.id, name: p.name, price: Number(p.price) })),
+      );
+
+      if (matched.length === 0) {
+        // Couldn't match anything — fall through to AI response
+        const menuSummary = products
+          .slice(0, 15)
+          .map((p) => `${p.name}: ${formatPrice(Number(p.price), session.currency)}`)
+          .join('\n');
+        const aiReply = await generateAIResponse(text, session.restaurantName, menuSummary, session.locale);
+        reply = `${aiReply}\n\n📋 ${menuUrl}`;
+        break;
+      }
+
+      // Build product map for quick lookup
+      const productMap = new Map(products.map((p) => [p.id, p]));
+
+      // Check for required modifiers — redirect those to web
+      const matchedIds = matched.map((m) => m.productId);
+      const withRequiredMods = await getProductsWithRequiredModifiers(session.restaurantId, matchedIds);
+
+      const orderable = matched.filter((m) => !withRequiredMods.has(m.productId));
+      const needsWeb = matched.filter((m) => withRequiredMods.has(m.productId));
+
+      const cart: CartItem[] = orderable
+        .map((m) => {
+          const product = productMap.get(m.productId);
+          if (!product) return null;
+          return {
+            productId: m.productId,
+            name: product.name,
+            qty: m.qty,
+            unitPrice: Number(product.price),
+          };
+        })
+        .filter((item): item is CartItem => item !== null);
+
+      if (cart.length === 0) {
+        // All products need web ordering (required modifiers)
+        const names = needsWeb.map((m) => productMap.get(m.productId)?.name ?? '').filter(Boolean).join(', ');
+        reply = isEn
+          ? `*${names}* has required customizations (like size or extras). Please order from our menu to choose your options:\n👉 ${menuUrl}`
+          : `*${names}* tiene opciones obligatorias (como tamaño o extras). Por favor pide desde el menú para elegir tus opciones:\n👉 ${menuUrl}`;
+        break;
+      }
+
+      session.cart = cart;
+      session.step = 'awaiting_name';
+      await setSession(from, session);
+
+      const cartSummary = formatCartSummary(cart, session.currency);
+
+      let webOnlyNote = '';
+      if (needsWeb.length > 0) {
+        const names = needsWeb.map((m) => productMap.get(m.productId)?.name ?? '').filter(Boolean).join(', ');
+        webOnlyNote = isEn
+          ? `\n\n⚠️ *${names}* needs customizations — please add from the menu: ${menuUrl}`
+          : `\n\n⚠️ *${names}* requiere personalización — agrégalo desde el menú: ${menuUrl}`;
+      }
+
+      reply = isEn
+        ? `🛒 *Your order:*\n\n${cartSummary}${webOnlyNote}\n\n💵 Pickup / Cash\n\n*What's your name for the order?* (or type CANCEL to cancel)`
+        : `🛒 *Tu pedido:*\n\n${cartSummary}${webOnlyNote}\n\n💵 Recoger / Efectivo\n\n*¿A qué nombre va el pedido?* (o escribe CANCELAR para cancelar)`;
       break;
     }
 
     default: {
       const { products } = await getMenuForRestaurant(session.restaurantId);
-      const menuSummary = products.slice(0, 15)
-        .map((p) => `${p.name}: $${Number(p.price).toFixed(2)}${p.description ? ` — ${p.description}` : ''}`)
+      const menuSummary = products
+        .slice(0, 15)
+        .map((p) => `${p.name}: ${formatPrice(Number(p.price), session.currency)}${p.description ? ` — ${p.description}` : ''}`)
         .join('\n');
-
-      reply = await generateAIResponse(text, session.restaurantName, menuSummary, session.locale);
-      reply += `\n\n📋 ${menuUrl}`;
+      const aiReply = await generateAIResponse(text, session.restaurantName, menuSummary, session.locale);
+      reply = `${aiReply}\n\n📋 ${menuUrl}`;
       break;
     }
   }
 
+  await setSession(from, session);
   await sendWhatsApp({ to: from, text: reply });
 }
