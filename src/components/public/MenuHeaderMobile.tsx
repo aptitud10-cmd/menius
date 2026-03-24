@@ -66,7 +66,7 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
 
         {/* Restaurant name — takes all available space */}
         <span className={cn(
-          'flex-1 min-w-0 font-bold text-emerald-600 text-sm truncate',
+          'flex-1 min-w-0 font-bold text-gray-900 text-sm truncate',
           !showName && 'invisible'
         )}>
           {restaurant.name}

@@ -82,7 +82,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
               transition={{ duration: 0.22, ease: 'easeOut' }}
               className="flex items-center flex-shrink-0 min-w-0"
             >
-              <span className="font-bold text-emerald-600 truncate text-base max-w-[260px]">
+              <span className="font-bold text-gray-900 truncate text-base max-w-[260px]">
                 {restaurant.name}
               </span>
             </motion.div>
