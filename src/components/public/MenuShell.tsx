@@ -1165,6 +1165,7 @@ export function MenuShell({
                           {items.map((product) => (
                             <motion.div
                               key={product.id}
+                              className="rounded-2xl overflow-hidden"
                               variants={isDesktopView ? {
                                 hidden: { opacity: 0, y: 16 },
                                 visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
