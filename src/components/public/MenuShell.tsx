@@ -273,16 +273,15 @@ export function MenuShell({
     const section = sectionRefs.current.get(catId);
     if (section && mainRef.current) {
       isScrollingRef.current = true;
-      const bannerHeight = getBannerHeight();
-      const sectionTop = section.getBoundingClientRect().top;
-      const containerTop = mainRef.current.getBoundingClientRect().top;
-      const rawOffset = mainRef.current.scrollTop + sectionTop - containerTop;
-      // Always scroll past the banner so it stays hidden after navigation
-      const offset = Math.max(bannerHeight, rawOffset);
+      // Use offsetTop (absolute position from scroll container top) — avoids
+      // getBoundingClientRect() drift when the container is mid-scroll.
+      const pillsHeight = mobilePillsRef.current?.offsetHeight ?? 0;
+      const sectionOffsetTop = section.offsetTop;
+      const offset = Math.max(0, sectionOffsetTop - HEADER_HEIGHT - pillsHeight);
       mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
       setTimeout(() => { isScrollingRef.current = false; }, 900);
     }
-  }, [isLargeCatalog, getBannerHeight]);
+  }, [isLargeCatalog]);
 
   const handleProductSelect = useCallback((product: Product) => {
     setCustomization({ product, editIndex: null });
@@ -760,11 +759,28 @@ export function MenuShell({
               className="object-cover animate-cover-zoom"
               priority
             />
-            {/* Mobile: light gradient only for header legibility — info moves below banner */}
-            <div className="lg:hidden absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
+            {/* Mobile: gradient — dark at top for header, dark at bottom for info legibility */}
+            <div className="lg:hidden absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/65" />
 
             {/* Desktop: gradient + info overlay */}
             <div className="hidden lg:block absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+
+            {/* Mobile: nombre + rating overlaid at bottom of banner */}
+            <div className="lg:hidden absolute bottom-0 left-0 right-0 px-4 pb-4">
+              <h1 className="text-2xl font-extrabold text-white drop-shadow-lg leading-tight">
+                {restaurant.name}
+              </h1>
+              {restaurant.description && (
+                <p className="text-sm text-white/85 mt-0.5 line-clamp-1 drop-shadow-sm">{restaurant.description}</p>
+              )}
+              {reviewStats && reviewStats.total > 0 && (
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <Star className="w-4 h-4 text-amber-400 fill-amber-400 drop-shadow-sm" />
+                  <span className="text-sm font-bold text-white drop-shadow-sm tabular-nums">{reviewStats.average}</span>
+                  <span className="text-xs text-white/75">({reviewStats.total}+)</span>
+                </div>
+              )}
+            </div>
 
             {/* Desktop: nombre + info a la izquierda, rating a la derecha */}
             <div className="hidden lg:flex absolute bottom-0 left-0 right-0 px-8 pb-5 items-end justify-between gap-4">
@@ -807,25 +823,6 @@ export function MenuShell({
                 </div>
               )}
             </div>
-          </div>
-        )}
-
-        {/* Mobile: restaurant info section — below banner, above tabs */}
-        {restaurant.cover_image_url && (
-          <div className="lg:hidden bg-white px-4 pt-4 pb-3">
-            <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-tight">
-              {restaurant.name}
-            </h1>
-            {restaurant.description && (
-              <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{restaurant.description}</p>
-            )}
-            {reviewStats && reviewStats.total > 0 && (
-              <div className="flex items-center gap-1 mt-1.5">
-                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                <span className="text-sm font-semibold text-gray-900 tabular-nums">{reviewStats.average}</span>
-                <span className="text-xs text-gray-400">({reviewStats.total}+)</span>
-              </div>
-            )}
           </div>
         )}
 
@@ -1482,7 +1479,7 @@ export function MenuShell({
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 32, stiffness: 380 }}
+              transition={{ type: 'tween', duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
               {/* Drag handle */}
               <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
