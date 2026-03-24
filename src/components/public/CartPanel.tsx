@@ -165,7 +165,7 @@ export function CartPanel({
       {/* ── Header: compact with clear-cart icon ── */}
       <div className="px-4 pt-3 pb-2 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-bold text-gray-900">{t.myOrder}</h2>
+          <h2 className="text-[15px] font-bold text-gray-900">{t.myOrder}</h2>
           <AnimatePresence mode="popLayout">
             <motion.span
               key={items.reduce((s, i) => s + i.qty, 0)}
@@ -216,7 +216,7 @@ export function CartPanel({
                 className="overflow-hidden mb-2"
               >
                 <SwipeableItem onRemove={() => removeItem(idx)}>
-                  <div className="flex gap-3 p-3 bg-gray-50 border-2 border-gray-200 rounded-xl">
+                  <div className="flex gap-3 p-3 bg-white border border-gray-100 rounded-xl">
                     {/* Thumbnail */}
                     {item.product.image_url ? (
                       <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
@@ -274,7 +274,7 @@ export function CartPanel({
 
                       {/* Qty stepper + Price */}
                       <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center bg-white rounded-xl border-2 border-gray-200 overflow-hidden">
+                        <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
                           <button
                             onClick={() => handleMinusTap(idx, item.qty)}
                             className={cn(
@@ -336,7 +336,7 @@ export function CartPanel({
           </div>
         )}
         <div className="flex justify-between items-baseline mb-2">
-          <span className="text-xs text-gray-500">{t.subtotal}</span>
+          <span className="text-sm font-medium text-gray-500">{t.subtotal}</span>
           <AnimatePresence mode="wait">
             <motion.span
               key={cartTotal}
@@ -344,7 +344,7 @@ export function CartPanel({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 8 }}
               transition={{ duration: 0.18, ease: 'easeOut' }}
-              className="text-base font-bold text-gray-900 tabular-nums"
+              className="text-lg font-extrabold text-gray-900 tabular-nums"
             >
               {fmtPrice(cartTotal)}
             </motion.span>

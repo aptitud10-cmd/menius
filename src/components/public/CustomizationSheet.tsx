@@ -295,9 +295,9 @@ export function CustomizationSheet({
       <div className="px-5 pt-4 pb-2">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-gray-900">{displayName}</h3>
+            <h3 className="text-xl font-extrabold text-gray-900 leading-tight">{displayName}</h3>
             {displayDesc && (
-              <p className="text-sm text-gray-500 mt-1">{displayDesc}</p>
+              <p className="text-sm text-gray-500 mt-1 leading-relaxed">{displayDesc}</p>
             )}
             {(product.dietary_tags?.length ?? 0) > 0 && (
               <div className="flex items-center gap-1.5 mt-2 flex-wrap">
@@ -314,7 +314,7 @@ export function CustomizationSheet({
               </div>
             )}
           </div>
-          <span className="text-lg font-bold text-gray-900 flex-shrink-0">
+          <span className="text-xl font-extrabold text-gray-900 flex-shrink-0 tabular-nums">
             {fmtPrice(Number(product.price))}
           </span>
         </div>
@@ -351,7 +351,7 @@ export function CustomizationSheet({
                       onClick={() => !isDisabled && toggleOption(group, opt)}
                       disabled={isDisabled}
                       className={cn(
-                        'flex flex-col items-center justify-center px-3 py-3 rounded-2xl transition-all duration-150 text-center border-2 gap-0.5',
+                        'flex flex-col items-center justify-center px-3 py-3 rounded-2xl transition-all duration-150 text-center border gap-0.5',
                         isSelected
                           ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
                           : isDisabled
@@ -380,7 +380,7 @@ export function CustomizationSheet({
                       onClick={() => !isDisabled && toggleOption(group, opt)}
                       disabled={isDisabled}
                       className={cn(
-                        'w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-150 text-left border-2',
+                        'w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-150 text-left border',
                         isSelected
                           ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
                           : isDisabled
@@ -391,14 +391,14 @@ export function CustomizationSheet({
                       <div className="flex items-center gap-3">
                         {group.selection_type === 'single' ? (
                           <div className={cn(
-                            'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors',
+                            'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0',
                             isSelected ? 'border-white bg-white' : 'border-gray-300'
                           )}>
                             {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />}
                           </div>
                         ) : (
                           <div className={cn(
-                            'w-5 h-5 rounded-md flex items-center justify-center transition-colors',
+                            'w-5 h-5 rounded-md flex items-center justify-center transition-colors flex-shrink-0',
                             isSelected ? 'bg-white' : 'border-2 border-gray-300'
                           )}>
                             {isSelected && <Check className="w-3.5 h-3.5 text-emerald-500" />}
@@ -533,7 +533,7 @@ export function CustomizationSheet({
             onClick={handleSubmit}
             disabled={!isValid || added}
             className={cn(
-              'flex-1 h-12 rounded-2xl font-bold text-[15px] transition-all duration-200',
+              'flex-1 h-[52px] rounded-2xl font-extrabold text-[16px] transition-all duration-200',
               added
                 ? 'bg-emerald-500 text-white'
                 : !isValid

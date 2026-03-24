@@ -72,8 +72,8 @@ export const ProductCardMobile = memo(function ProductCardMobile({
     <div
       onClick={handleCardClick}
       className={cn(
-        'flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-150',
-        outOfStock ? 'opacity-70 cursor-default' : 'cursor-pointer active:scale-[0.97]'
+        'flex flex-col bg-white rounded-2xl border border-gray-150 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden transition-all duration-150',
+        outOfStock ? 'opacity-60 cursor-default' : 'cursor-pointer active:scale-[0.97] active:shadow-none'
       )}
     >
       {/* Image */}
@@ -134,11 +134,11 @@ export const ProductCardMobile = memo(function ProductCardMobile({
 
       {/* Content */}
       <div className="p-3 flex flex-col flex-1">
-        <h3 className={cn('font-bold text-sm line-clamp-2 leading-snug', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
+        <h3 className={cn('font-bold text-[13px] line-clamp-2 leading-snug', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
           {displayName}
         </h3>
         {product.description && !outOfStock && (
-          <p className="text-xs text-gray-400 line-clamp-1 mt-0.5 leading-snug">
+          <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5 leading-snug">
             {product.description}
           </p>
         )}
@@ -158,7 +158,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           </div>
         )}
         <div className="flex items-center justify-between mt-auto pt-2.5">
-          <span className={cn('text-sm font-extrabold tabular-nums leading-none', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
+          <span className={cn('text-[15px] font-extrabold tabular-nums leading-none', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
             {fmtPrice(Number(product.price))}
           </span>
           {outOfStock ? (

@@ -1105,7 +1105,7 @@ export function MenuShell({
               <button onClick={() => setActiveDiet(null)} className="mt-1 text-sm text-emerald-600 font-semibold hover:text-emerald-700 transition-colors">{t.viewFullMenu}</button>
             </motion.div>
           ) : (
-            <div className="space-y-12">
+            <div className="space-y-8">
               {displayedGroups.map(({ category, items, available }) => {
                 const isPopular = category.id === POPULAR_ID;
                 const isLocked = !available;
@@ -1118,9 +1118,9 @@ export function MenuShell({
                       else sectionRefs.current.delete(category.id);
                     }}
                   >
-                    <div className="flex items-center gap-3 mb-5">
-                      {isPopular && <span className="text-xl leading-none">🔥</span>}
-                      <h2 className="text-xl font-extrabold text-gray-900 tracking-tight">
+                    <div className="flex items-center gap-2 mb-4">
+                      {isPopular && <span className="text-lg leading-none">🔥</span>}
+                      <h2 className="text-[17px] font-extrabold text-gray-900 tracking-tight">
                         {isPopular
                           ? t.popularItems
                           : tName(category, locale, defaultLocale)}
@@ -1132,11 +1132,11 @@ export function MenuShell({
                         </span>
                       )}
                       {!isLocked && (
-                        <span className="text-[11px] font-semibold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-md tabular-nums">
+                        <span className="text-[11px] font-medium text-gray-400 tabular-nums">
                           {items.length}
                         </span>
                       )}
-                      <div className="flex-1 h-px bg-gradient-to-r from-gray-100 to-transparent" />
+                      <div className="flex-1 h-px bg-gray-100" />
                     </div>
                     <div className={cn('relative', isLocked && 'pointer-events-none')}>
                       {isLocked && (
