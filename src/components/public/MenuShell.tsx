@@ -765,19 +765,36 @@ export function MenuShell({
             {/* Gradient overlay — stronger at bottom for text legibility */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
 
-            {/* Restaurant info overlaid on banner — mobile + desktop */}
-            <div className="flex absolute bottom-0 left-0 right-0 px-4 pb-4 lg:px-8 lg:pb-5 items-end justify-between gap-4">
+            {/* Mobile: nombre centrado y grande */}
+            <div className="lg:hidden flex absolute bottom-0 left-0 right-0 px-4 pb-5 flex-col items-center text-center gap-2">
+              <h1 className="text-3xl font-extrabold text-white tracking-tight drop-shadow leading-tight">
+                {restaurant.name}
+              </h1>
+              {restaurant.description && (
+                <p className="text-xs text-white/70 line-clamp-1 max-w-xs">{restaurant.description}</p>
+              )}
+              {reviewStats && reviewStats.total > 0 && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/30 backdrop-blur-sm">
+                  <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                  <span className="text-sm font-bold text-white tabular-nums">{reviewStats.average}</span>
+                  <span className="text-xs text-white/70">({reviewStats.total}+)</span>
+                </div>
+              )}
+            </div>
+
+            {/* Desktop: nombre + info a la izquierda, rating a la derecha */}
+            <div className="hidden lg:flex absolute bottom-0 left-0 right-0 px-8 pb-5 items-end justify-between gap-4">
               <div className="min-w-0">
-                <h1 className="text-xl lg:text-3xl font-extrabold text-white tracking-tight drop-shadow-sm leading-tight truncate">
+                <h1 className="text-3xl font-extrabold text-white tracking-tight drop-shadow-sm leading-tight truncate">
                   {restaurant.name}
                 </h1>
                 {restaurant.description && (
-                  <p className="text-xs lg:text-sm text-white/75 mt-0.5 lg:mt-1 max-w-lg line-clamp-1">{restaurant.description}</p>
+                  <p className="text-sm text-white/75 mt-1 max-w-lg line-clamp-1">{restaurant.description}</p>
                 )}
                 {(restaurant.address || restaurant.operating_hours) && (
-                  <div className="flex items-center gap-4 mt-1.5 lg:mt-2 text-xs lg:text-sm text-white/70">
+                  <div className="flex items-center gap-4 mt-2 text-sm text-white/70">
                     {restaurant.address && (
-                      <span className="hidden lg:inline-flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-emerald-400" />
                         <span className="truncate max-w-[240px]">{restaurant.address}</span>
                       </span>
@@ -790,7 +807,7 @@ export function MenuShell({
                       const is24h = dh.open === '00:00' && dh.close === '23:59';
                       return (
                         <span className="inline-flex items-center gap-1.5 text-emerald-400 font-medium">
-                          <Clock className="w-3 lg:w-3.5 h-3 lg:h-3.5 flex-shrink-0" />
+                          <Clock className="w-3.5 h-3.5 flex-shrink-0" />
                           {is24h ? t.open24h : `${dh.open} – ${dh.close}`}
                         </span>
                       );
@@ -799,10 +816,10 @@ export function MenuShell({
                 )}
               </div>
               {reviewStats && reviewStats.total > 0 && (
-                <div className="flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-3 py-1.5 lg:py-2 rounded-xl bg-amber-400/20 backdrop-blur-sm border border-amber-400/30 flex-shrink-0">
-                  <Star className="w-3.5 lg:w-4 h-3.5 lg:h-4 text-amber-400 fill-amber-400" />
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-400/20 backdrop-blur-sm border border-amber-400/30 flex-shrink-0">
+                  <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                   <span className="text-sm font-bold text-white tabular-nums">{reviewStats.average}</span>
-                  <span className="text-xs lg:text-sm text-white/70">({reviewStats.total}+)</span>
+                  <span className="text-sm text-white/70">({reviewStats.total}+)</span>
                 </div>
               )}
             </div>
