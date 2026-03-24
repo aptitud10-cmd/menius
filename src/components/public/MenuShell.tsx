@@ -676,7 +676,7 @@ export function MenuShell({
   );
 
   const mobileCategoryPills = (
-    <div className="lg:hidden sticky z-30 bg-white border-b border-gray-200" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
+    <div className="lg:hidden sticky z-30 bg-white border-b border-gray-200" style={{ top: HEADER_HEIGHT }}>
       <div ref={mobilePillsRef} className="py-2 px-3 flex gap-2 overflow-x-auto scrollbar-hide">
         {/* Large catalog: "Todos" pill to show all categories */}
         {isLargeCatalog && (
@@ -714,7 +714,10 @@ export function MenuShell({
   const ordersLeft = limitedMode ? Math.max(0, limitedMode.dailyLimit - limitedMode.ordersToday) : null;
 
   return (
-    <div className="relative h-[100dvh] flex flex-col bg-[#f8f8f8] overflow-hidden overscroll-none touch-pan-y">
+    <div className={cn(
+      'relative h-[100dvh] flex flex-col overflow-hidden overscroll-none touch-pan-y transition-colors duration-300',
+      hasCover && !headerScrolled ? 'bg-black lg:bg-[#f8f8f8]' : 'bg-[#f8f8f8]'
+    )}>
       {/* Fixed header — absolute over banner on mobile when hasCover */}
       <div className={cn(
         'lg:flex-shrink-0 lg:relative',
@@ -735,6 +738,11 @@ export function MenuShell({
         isScrolled={headerScrolled}
         hasCover={hasCover}
       />
+      </div>
+
+      {/* Mobile category pills — fuera del scroll, siempre accesibles */}
+      <div className={cn('lg:hidden flex-shrink-0', hasCover && 'mt-12 lg:mt-0')}>
+        {mobileCategoryPills}
       </div>
 
       {/* ── Outer scroll: banner scrolls away, sidebar/cart stay sticky ── */}
@@ -800,11 +808,6 @@ export function MenuShell({
             </div>
           </div>
         )}
-
-        {/* Mobile category pills — inside scroll, sticky below the absolute header */}
-        <div className="lg:hidden">
-          {mobileCategoryPills}
-        </div>
 
         {/* ── 3-Column row ── */}
         <div className="flex min-h-[calc(100dvh-48px)]">
