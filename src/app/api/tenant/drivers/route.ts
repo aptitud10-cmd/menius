@@ -24,7 +24,8 @@ export async function POST(req: NextRequest) {
   const tenant = await getTenant();
   if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   const name = (body.name ?? '').trim();
   const phone = (body.phone ?? '').trim();
   if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -44,7 +45,8 @@ export async function PATCH(req: NextRequest) {
   const tenant = await getTenant();
   if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json();
+  const body = await req.json().catch(() => null);
+  if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   const { id, ...patch } = body;
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
@@ -68,8 +70,8 @@ export async function DELETE(req: NextRequest) {
   const tenant = await getTenant();
   if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = await req.json();
-  if (!body.id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+  const body = await req.json().catch(() => null);
+  if (!body || !body.id) return NextResponse.json({ error: 'id required' }, { status: 400 });
 
   const { error } = await supabase
     .from('drivers')
