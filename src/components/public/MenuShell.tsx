@@ -571,14 +571,16 @@ export function MenuShell({
   }, [showSearch, customization, isOpen, setOpen]);
 
   // Auto-scroll pill bar to show active pill.
-  // Desktop uses manual scrollTo (catScrollRef). Mobile uses scrollIntoView for reliability.
+  // In large-catalog mode the visible active pill is activeCatFilter; in normal mode it's activeCategory.
+  // Desktop uses manual scrollTo (catScrollRef). Mobile uses offsetLeft for reliability.
   useEffect(() => {
-    if (!activeCategory) return;
+    const catToShow = isLargeCatalog ? activeCatFilter : activeCategory;
+    if (!catToShow) return;
     const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
     if (isDesktop) {
       const container = catScrollRef.current;
       if (!container) return;
-      const pill = container.querySelector(`[data-pill-id="${activeCategory}"]`) as HTMLElement;
+      const pill = container.querySelector(`[data-pill-id="${catToShow}"]`) as HTMLElement;
       if (pill) {
         const containerRect = container.getBoundingClientRect();
         const pillRect = pill.getBoundingClientRect();
@@ -592,14 +594,14 @@ export function MenuShell({
     } else {
       const container = mobilePillsRef.current;
       if (!container) return;
-      const pill = container.querySelector(`[data-pill-id="${activeCategory}"]`) as HTMLElement;
+      const pill = container.querySelector(`[data-pill-id="${catToShow}"]`) as HTMLElement;
       if (pill) {
         // offsetLeft is relative to container — only moves horizontal axis, never vertical
         const targetLeft = pill.offsetLeft - (container.offsetWidth - pill.offsetWidth) / 2;
         container.scrollLeft = Math.max(0, targetLeft);
       }
     }
-  }, [activeCategory]);
+  }, [activeCategory, activeCatFilter, isLargeCatalog]);
 
   const scrollCats = (dir: 'left' | 'right') => {
     catScrollRef.current?.scrollBy({ left: dir === 'left' ? -200 : 200, behavior: 'smooth' });
