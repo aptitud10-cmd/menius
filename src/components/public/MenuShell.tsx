@@ -64,29 +64,7 @@ const POPULAR_ID = '__popular__';
 // Once rendered, stays rendered (one-way latch) to avoid thrashing.
 // The wrapping <section> with sectionRef is unaffected — scroll-spy works normally.
 function SkeletonCard() {
-  return (
-    <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
-      <div className="w-full aspect-[16/9] bg-gray-100 relative overflow-hidden">
-        <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-      </div>
-      <div className="p-4 space-y-2.5">
-        <div className="h-4 rounded-lg bg-gray-100 relative overflow-hidden w-4/5">
-          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_0.1s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-        </div>
-        <div className="h-3 rounded-lg bg-gray-100 relative overflow-hidden w-3/5">
-          <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_0.2s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-        </div>
-        <div className="flex justify-between items-center pt-2 border-t border-gray-50">
-          <div className="h-4 w-16 rounded-lg bg-gray-100 relative overflow-hidden">
-            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_0.15s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-          </div>
-          <div className="h-8 w-20 rounded-xl bg-gray-100 relative overflow-hidden">
-            <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_0.25s_infinite] bg-gradient-to-r from-transparent via-white/60 to-transparent" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="rounded-2xl bg-gray-100 aspect-square" />;
 }
 
 const LazyProductGrid = memo(function LazyProductGrid({
@@ -676,7 +654,7 @@ export function MenuShell({
   );
 
   const mobileCategoryPills = (
-    <div className="lg:hidden sticky z-30 bg-white border-b border-gray-200" style={{ top: HEADER_HEIGHT }}>
+    <div className="lg:hidden sticky z-30 bg-white border-b border-gray-200" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
       <div ref={mobilePillsRef} className="py-2 px-3 flex gap-2 overflow-x-auto scrollbar-hide">
         {/* Large catalog: "Todos" pill to show all categories */}
         {isLargeCatalog && (
@@ -714,10 +692,7 @@ export function MenuShell({
   const ordersLeft = limitedMode ? Math.max(0, limitedMode.dailyLimit - limitedMode.ordersToday) : null;
 
   return (
-    <div className={cn(
-      'relative h-[100dvh] flex flex-col overflow-hidden overscroll-none touch-pan-y transition-colors duration-300',
-      hasCover && !headerScrolled ? 'bg-black lg:bg-[#f8f8f8]' : 'bg-[#f8f8f8]'
-    )}>
+    <div className="relative h-[100dvh] flex flex-col bg-[#f8f8f8] overflow-hidden overscroll-none touch-pan-y">
       {/* Fixed header — absolute over banner on mobile when hasCover */}
       <div className={cn(
         'lg:flex-shrink-0 lg:relative',
@@ -738,11 +713,6 @@ export function MenuShell({
         isScrolled={headerScrolled}
         hasCover={hasCover}
       />
-      </div>
-
-      {/* Mobile category pills — fuera del scroll, siempre accesibles */}
-      <div className={cn('lg:hidden flex-shrink-0', hasCover && 'mt-12 lg:mt-0')}>
-        {mobileCategoryPills}
       </div>
 
       {/* ── Outer scroll: banner scrolls away, sidebar/cart stay sticky ── */}
@@ -825,6 +795,11 @@ export function MenuShell({
             </div>
           </div>
         )}
+
+        {/* Mobile pills — dentro del scroll, sticky debajo del header */}
+        <div className="lg:hidden">
+          {mobileCategoryPills}
+        </div>
 
         {/* ── 3-Column row ── */}
         <div className="flex min-h-[calc(100dvh-48px)]">
@@ -1472,7 +1447,7 @@ export function MenuShell({
             />
             <motion.div
               className="relative bg-white rounded-t-3xl shadow-2xl flex flex-col"
-              style={{ maxHeight: '88dvh' }}
+              style={{ maxHeight: '95dvh' }}
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}

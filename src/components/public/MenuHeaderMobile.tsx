@@ -7,7 +7,7 @@
 
 import { memo, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShoppingCart, Search, ArrowLeft, LayoutDashboard, History } from 'lucide-react';
+import { ShoppingCart, Search, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
@@ -76,12 +76,6 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
           {restaurant.name}
         </span>
 
-        {/* Open/closed dot */}
-        <span
-          className={cn('w-2 h-2 rounded-full flex-shrink-0 mx-1 shadow', open ? 'bg-emerald-400' : 'bg-red-400')}
-          title={open ? openLabel : closedLabel}
-        />
-
         {/* Dashboard (owner only) */}
         {isOwner && (
           <Link
@@ -92,15 +86,6 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
             <LayoutDashboard className={cn('w-4 h-4', isTransparent ? 'text-white drop-shadow' : 'text-gray-500')} />
           </Link>
         )}
-
-        {/* My orders */}
-        <Link
-          href={`/${restaurant.slug}/mis-pedidos`}
-          className="w-10 h-10 flex items-center justify-center rounded-lg active:bg-white/20 transition-colors"
-          aria-label="Mis pedidos"
-        >
-          <History className={cn('w-4 h-4', isTransparent ? 'text-white drop-shadow' : 'text-gray-500')} />
-        </Link>
 
         {/* Search toggle — opens fullscreen overlay in MenuShell */}
         <button

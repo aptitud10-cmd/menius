@@ -426,6 +426,9 @@ export function CustomizationSheet({
           rows={2}
           maxLength={120}
           className="w-full px-4 py-2.5 rounded-xl bg-gray-50 text-base text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none border border-gray-100"
+          onFocus={(e) => {
+            setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 320);
+          }}
         />
         <p className="text-[10px] text-gray-300 text-right mt-1">{notes.length}/120</p>
       </div>
