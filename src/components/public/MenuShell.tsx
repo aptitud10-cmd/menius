@@ -616,7 +616,7 @@ export function MenuShell({
             ? 'bg-amber-500 text-white shadow-md'
             : 'bg-amber-50 text-amber-700 active:bg-amber-100'
           : isActive
-            ? 'bg-gray-900 text-white shadow-md'
+            ? 'bg-emerald-500 text-white shadow-md'
             : 'bg-gray-100 text-gray-700 active:bg-gray-200'
       )}
     >
@@ -684,7 +684,7 @@ export function MenuShell({
             className={cn(
               'flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 whitespace-nowrap',
               !activeCatFilter && !showFavs && !activeDiet
-                ? 'bg-gray-800 text-white shadow-md'
+                ? 'bg-emerald-500 text-white shadow-md'
                 : 'bg-gray-100 text-gray-700 active:bg-gray-200'
             )}
           >
