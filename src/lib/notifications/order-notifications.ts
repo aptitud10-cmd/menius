@@ -32,6 +32,7 @@ interface OrderNotificationPayload {
   paymentMethod?: string;
   tableNumber?: string | null;
   notes?: string | null;
+  includeUtensils?: boolean;
   total: number;
   items: { name: string; qty: number; price: number; variant?: string; modifiers?: string[]; extras?: string[]; notes?: string }[];
 }
@@ -88,7 +89,7 @@ async function fetchRichItems(orderId: string, currency: string): Promise<OrderE
  * Non-blocking — errors are logged but don't affect the order flow.
  */
 export async function notifyNewOrder(payload: OrderNotificationPayload) {
-  const { orderId, orderNumber, restaurantId, restaurantData, customerName, customerEmail, customerPhone, orderType, paymentMethod, tableNumber, notes, total, items } = payload;
+  const { orderId, orderNumber, restaurantId, restaurantData, customerName, customerEmail, customerPhone, orderType, paymentMethod, tableNumber, notes, includeUtensils, total, items } = payload;
 
   try {
     let restaurant = restaurantData ?? null;
@@ -131,7 +132,9 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
       const itemsSummary = (richItems.length ? richItems : items.map(i => ({ name: i.name, qty: i.qty, price: formatPrice(i.price, currency) })))
         .map((i) => `• ${i.qty}x ${i.name} — ${i.price}`)
         .join('\n');
-      const text = formatNewOrderWhatsApp(orderNumber, customerName, totalFormatted, itemsSummary, orderType, tableNumber ?? undefined, notes ?? undefined);
+      const utensilsNote = includeUtensils === false ? undefined : '🍴 Incluir cubiertos';
+      const fullNotes = [notes, utensilsNote].filter(Boolean).join('\n') || undefined;
+      const text = formatNewOrderWhatsApp(orderNumber, customerName, totalFormatted, itemsSummary, orderType, tableNumber ?? undefined, fullNotes);
       sendWhatsApp({ to: restaurant.notification_whatsapp, text }).catch(() => {});
     }
 

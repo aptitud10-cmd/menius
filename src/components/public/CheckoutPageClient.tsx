@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { ArrowLeft, CheckCircle, ShoppingCart, Lock } from 'lucide-react';
+import { ArrowLeft, CheckCircle, ShoppingCart, Lock, UtensilsCrossed } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { cn, formatPrice } from '@/lib/utils';
@@ -90,6 +90,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError, setPromoError] = useState('');
   const [promoResult, setPromoResult] = useState<{ valid: boolean; discount: number; description?: string } | null>(null);
+
+  const [includeUtensils, setIncludeUtensils] = useState(true);
 
   // Pre-order / scheduled
   const [scheduledFor, setScheduledFor] = useState('');
@@ -206,6 +208,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           promo_code: promoResult?.valid ? promoCode.trim() : undefined,
           discount_amount: discount,
           tip_amount: tipAmount > 0 ? tipAmount : undefined,
+          include_utensils: includeUtensils,
           scheduled_for: scheduleEnabled && scheduledFor ? scheduledFor : undefined,
           items: items.map((item) => ({
             product_id: item.product.id,
@@ -1009,6 +1012,25 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               <label className="block text-sm font-semibold text-gray-900 mb-2">{t.orderNotes} <span className="text-gray-400 font-normal text-xs">({t.optional})</span></label>
               <textarea value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)} placeholder={t.orderNotesPlaceholder} rows={2} className={cn(inputClass, 'resize-none')} />
             </div>
+
+            <button
+              type="button"
+              onClick={() => setIncludeUtensils(v => !v)}
+              aria-pressed={includeUtensils}
+              className="flex items-center gap-3 w-full py-1 group"
+            >
+              <div className={cn('w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors', includeUtensils ? 'bg-gray-900 border-gray-900' : 'border-gray-300 bg-white')}>
+                {includeUtensils && (
+                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+              <UtensilsCrossed className="w-4 h-4 text-gray-500" />
+              <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors text-left">
+                {locale === 'es' ? 'Incluir cubiertos y servilletas' : 'Include utensils & napkins'}
+              </span>
+            </button>
 
             {/* Schedule for later */}
             <div className="border border-dashed border-gray-200 rounded-2xl p-4 space-y-3">

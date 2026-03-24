@@ -358,6 +358,7 @@ export async function POST(request: NextRequest) {
       discount_amount: discountAmt,
       idempotency_key: idempotencyKey || null,
       scheduled_for: scheduledFor,
+      include_utensils: body.include_utensils !== false,
     };
     if (tipAmt > 0) orderInsert.tip_amount = tipAmt;
     if (deliveryFeeAmt > 0) orderInsert.delivery_fee = deliveryFeeAmt;
@@ -526,6 +527,7 @@ export async function POST(request: NextRequest) {
         paymentMethod: parsed.data.payment_method || undefined,
         tableNumber: table_name || undefined,
         notes: parsed.data.notes || null,
+        includeUtensils: body.include_utensils !== false,
         total,
         items: notifItems,
       });

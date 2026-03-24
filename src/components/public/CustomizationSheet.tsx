@@ -262,7 +262,7 @@ export function CustomizationSheet({
     return locale === 'es' ? `Hasta ${g.max_select} (opcional)` : `Up to ${g.max_select} (optional)`;
   };
 
-  const springTransition = { type: 'tween' as const, duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] };
+  const springTransition = { type: 'tween' as const, duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] as const };
 
   const sheetBody = (
     <div

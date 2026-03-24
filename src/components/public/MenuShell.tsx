@@ -1479,7 +1479,7 @@ export function MenuShell({
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
-              transition={{ type: 'tween', duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] }}
+              transition={{ type: 'tween' as const, duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] as const }}
             >
               {/* Drag handle */}
               <div className="flex justify-center pt-3 pb-1 flex-shrink-0">

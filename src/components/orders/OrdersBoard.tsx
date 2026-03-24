@@ -568,6 +568,13 @@ function OrderCard({
         </div>
       )}
 
+      {order.include_utensils === false && (expanded || isNew) && (
+        <div className="flex items-center gap-1 text-[11px] text-gray-500 bg-gray-50 rounded-lg px-2 py-1 mb-1.5">
+          <span>🚫🍴</span>
+          <span className="font-medium">{locale === 'en' ? 'No utensils' : 'Sin cubiertos'}</span>
+        </div>
+      )}
+
       {!isNew && order.items?.some((item: any) =>
         item.variant || (item.order_item_extras?.length ?? 0) > 0 || (item.order_item_modifiers?.length ?? 0) > 0 || item.notes
       ) && (
@@ -777,6 +784,13 @@ function OrderDetailModal({
             <div className="bg-amber-50 rounded-xl p-4">
               <h3 className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-1.5">{t.orders_customerNotes}</h3>
               <p className="text-sm text-amber-800 italic">{order.notes}</p>
+            </div>
+          )}
+
+          {order.include_utensils === false && (
+            <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2">
+              <span className="text-base">🚫🍴</span>
+              <span className="text-sm font-medium text-gray-600">{locale === 'en' ? 'No utensils requested' : 'Sin cubiertos ni servilletas'}</span>
             </div>
           )}
 
