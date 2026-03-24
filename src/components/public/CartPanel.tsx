@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Minus, Plus, Pencil, Trash2, ShoppingCart, Clock, RotateCcw, X } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
@@ -82,6 +82,14 @@ export function CartPanel({
   // 2-step clear cart: first tap shows icon red, second tap clears
   const [clearStep, setClearStep] = useState(0);
   const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear pending timers on unmount to avoid setState on unmounted component
+  useEffect(() => {
+    return () => {
+      if (confirmTimer.current) clearTimeout(confirmTimer.current);
+      if (clearTimer.current) clearTimeout(clearTimer.current);
+    };
+  }, []);
 
   const handleMinusTap = useCallback((idx: number, qty: number) => {
     if (qty > 1) {
@@ -289,10 +297,17 @@ export function CartPanel({
                             <Plus className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
                           <span className="text-sm font-bold text-gray-900 tabular-nums">
                             {fmtPrice(item.lineTotal)}
                           </span>
+                          <button
+                            onClick={() => removeItem(idx)}
+                            className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            aria-label={t.tapToRemove ?? 'Eliminar'}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
 

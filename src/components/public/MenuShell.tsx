@@ -279,7 +279,7 @@ export function MenuShell({
       setActiveCatFilter(catId);
       // If the banner is visible, stay at top. If hidden, jump to just past the banner.
       const top = bannerVisibleRef.current ? 0 : getBannerHeight();
-      mainRef.current?.scrollTo({ top, behavior: 'instant' });
+      mainRef.current?.scrollTo({ top, behavior: 'auto' });
       return;
     }
 
@@ -534,25 +534,29 @@ export function MenuShell({
 
   const [sectionProgress, setSectionProgress] = useState<Record<string, number>>({});
 
-  // Track scroll for collapsing header + section progress indicator
+  // Track scroll for collapsing header + section progress indicator.
+  // Progress updates are throttled with rAF to avoid expensive state updates on every pixel.
   useEffect(() => {
     const main = mainRef.current;
     if (!main) return;
     const threshold = hasCover ? 100 : 40;
+    let rafId = 0;
     const onScroll = () => {
       setHeaderScrolled(main.scrollTop > threshold);
-      // Compute how far through each section the user has scrolled (0–1)
-      const progress: Record<string, number> = {};
-      sectionRefs.current.forEach((el, catId) => {
-        const top = el.offsetTop - main.scrollTop;
-        const h = el.offsetHeight;
-        const p = Math.max(0, Math.min(1, -top / h));
-        progress[catId] = p;
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const progress: Record<string, number> = {};
+        sectionRefs.current.forEach((el, catId) => {
+          const top = el.offsetTop - main.scrollTop;
+          const h = el.offsetHeight;
+          const p = Math.max(0, Math.min(1, -top / h));
+          progress[catId] = p;
+        });
+        setSectionProgress(progress);
       });
-      setSectionProgress(progress);
     };
     main.addEventListener('scroll', onScroll, { passive: true });
-    return () => main.removeEventListener('scroll', onScroll);
+    return () => { main.removeEventListener('scroll', onScroll); cancelAnimationFrame(rafId); };
   }, [hasCover, mainEl]);
 
   // Keyboard shortcuts: / or Ctrl+K for search, Esc to close overlays
@@ -678,7 +682,7 @@ export function MenuShell({
         {isLargeCatalog && (
           <button
             data-pill-id="__all__"
-            onClick={() => { setActiveCatFilter(null); setActiveCategory(null); mainRef.current?.scrollTo({ top: 0, behavior: 'instant' }); }}
+            onClick={() => { setActiveCatFilter(null); setActiveCategory(null); mainRef.current?.scrollTo({ top: 0, behavior: 'auto' }); }}
             className={cn(
               'flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 whitespace-nowrap',
               !activeCatFilter && !showFavs && !activeDiet
@@ -836,7 +840,7 @@ export function MenuShell({
         {/* Sticky category pills — desktop only, pins once banner scrolls away */}
         <div className="hidden lg:block sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-100">
           <div className="relative px-2 py-2">
-            <button onClick={() => scrollCats('left')} className="absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-white via-white to-transparent flex items-center justify-start" aria-label="Scroll left">
+            <button onClick={() => scrollCats('left')} className="absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-white via-white to-transparent flex items-center justify-start" aria-label={locale === 'en' ? 'Scroll left' : 'Desplazar izquierda'}>
               <ChevronLeft className="w-4 h-4 text-gray-400" />
             </button>
             <div ref={catScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5">
@@ -845,7 +849,7 @@ export function MenuShell({
               {dietPills}
               {favPill}
             </div>
-            <button onClick={() => scrollCats('right')} className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end" aria-label="Scroll right">
+            <button onClick={() => scrollCats('right')} className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end" aria-label={locale === 'en' ? 'Scroll right' : 'Desplazar derecha'}>
               <ChevronRight className="w-4 h-4 text-gray-400" />
             </button>
           </div>
@@ -1448,7 +1452,7 @@ export function MenuShell({
       {/* ── Mobile: Cart Bottom Sheet ── */}
       <AnimatePresence>
         {isOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
+          <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end" role="dialog" aria-modal="true" aria-labelledby="cart-sheet-title">
             <motion.div
               className="absolute inset-0 bg-black/40"
               initial={{ opacity: 0 }}
@@ -1471,11 +1475,11 @@ export function MenuShell({
               </div>
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
-                <h2 className="text-base font-bold text-gray-900">{t.yourCart}</h2>
+                <h2 id="cart-sheet-title" className="text-base font-bold text-gray-900">{t.yourCart}</h2>
                 <button
                   onClick={() => setOpen(false)}
                   className="min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-xl active:bg-gray-100 transition-colors"
-                  aria-label="Close"
+                  aria-label={locale === 'en' ? 'Close cart' : 'Cerrar carrito'}
                 >
                   <X className="w-5 h-5 text-gray-500" />
                 </button>
@@ -1665,7 +1669,7 @@ export function MenuShell({
           <AnimatePresence>
             {showLangPicker && (
               <motion.div
-                className="fixed bottom-20 left-4 z-[71] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
+                className={cn('fixed left-4 z-[71] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden', cartCount > 0 ? 'bottom-48 lg:bottom-16' : 'bottom-16')}
                 initial={{ y: 20, opacity: 0, scale: 0.9 }}
                 animate={{ y: 0, opacity: 1, scale: 1 }}
                 exit={{ y: 10, opacity: 0, scale: 0.95 }}
@@ -1695,7 +1699,11 @@ export function MenuShell({
           </AnimatePresence>
           <button
             onClick={() => setShowLangPicker((s) => !s)}
-            className="fixed bottom-20 lg:bottom-6 left-4 z-[60] flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-gray-200 shadow-lg text-sm font-medium text-gray-700 hover:shadow-xl transition-shadow active:scale-95"
+            className={cn(
+              'fixed left-4 z-[60] flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-gray-200 shadow-lg text-sm font-medium text-gray-700 hover:shadow-xl transition-shadow active:scale-95',
+              cartCount > 0 ? 'bottom-36 lg:bottom-6' : 'bottom-6'
+            )}
+            aria-label={locale === 'en' ? 'Change language' : 'Cambiar idioma'}
           >
             <Globe className="w-4 h-4 text-gray-500" />
             <span>{getLocaleFlag(locale)}</span>

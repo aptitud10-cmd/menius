@@ -105,6 +105,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const confirmRef = useRef<HTMLDivElement>(null);
   const confettiTimer = useRef<ReturnType<typeof setTimeout>>();
   const submittingRef = useRef(false);
+  // Double-tap confirm before removing last qty of an item
+  const [confirmRemoveIdx, setConfirmRemoveIdx] = useState<number | null>(null);
+  const confirmRemoveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => { return () => { if (confirmRemoveTimer.current) clearTimeout(confirmRemoveTimer.current); }; }, []);
   const [tipPercent, setTipPercent] = useState<number | null>(null);
   const [customTip, setCustomTip] = useState('');
 
@@ -231,7 +235,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         }),
       });
       const data = await res.json();
-      if (!res.ok) { setOrderError(data.error || 'Error enviando orden'); return; }
+      if (!res.ok) { setOrderError(data.error || (locale === 'en' ? 'Error sending order' : 'Error enviando orden')); return; }
       setOrderNumber(data.order_number);
       setOrderId(data.order_id);
       // For online payments: redirect immediately to Stripe
@@ -272,7 +276,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       playSuccessChime();
       confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
     } catch {
-      setOrderError('Error de conexión');
+      setOrderError(locale === 'en' ? 'Connection error' : 'Error de conexión');
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -366,7 +370,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       if (data.customerData?.fullName) params.append('customer-data:full-name', data.customerData.fullName);
       if (data.customerData?.phoneNumber) {
         params.append('customer-data:phone-number', data.customerData.phoneNumber);
-        params.append('customer-data:phone-number-prefix', '+57');
+        // Use prefix from API response if provided, otherwise default to Colombia (+57) for Wompi
+        const prefix = data.customerData?.phonePrefix ?? '+57';
+        params.append('customer-data:phone-number-prefix', prefix);
       }
       window.location.href = `https://checkout.wompi.co/p/?${params.toString()}`;
     } catch {
@@ -518,6 +524,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
               <button
                 onClick={() => setSummaryOpen((o) => !o)}
+                aria-expanded={summaryOpen}
+                aria-controls="order-summary-content"
                 className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 <span>{locale === 'es' ? 'Resumen del pedido' : 'Order summary'} ({items.length} {items.length === 1 ? (locale === 'es' ? 'item' : 'item') : (locale === 'es' ? 'items' : 'items')})</span>
@@ -529,7 +537,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 </svg>
               </button>
               {summaryOpen && (
-                <div className="border-t border-gray-100 px-4 py-3 space-y-2">
+                <div id="order-summary-content" className="border-t border-gray-100 px-4 py-3 space-y-2">
                   {items.map((item, idx) => (
                     <div key={idx} className="flex justify-between text-sm text-gray-600">
                       <span className="flex-1 truncate pr-2">{item.qty > 1 ? `${item.qty}× ` : ''}{item.product.name}{item.variant ? ` · ${item.variant.name}` : ''}</span>
@@ -840,8 +848,23 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   )}
                   <div className="flex items-center gap-2 mt-2">
                     <button
-                      onClick={() => updateQty(idx, item.qty - 1)}
-                      className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors text-lg leading-none"
+                      onClick={() => {
+                        if (item.qty > 1) { updateQty(idx, item.qty - 1); return; }
+                        if (confirmRemoveIdx === idx) {
+                          if (confirmRemoveTimer.current) clearTimeout(confirmRemoveTimer.current);
+                          setConfirmRemoveIdx(null);
+                          removeItem(idx);
+                        } else {
+                          setConfirmRemoveIdx(idx);
+                          confirmRemoveTimer.current = setTimeout(() => setConfirmRemoveIdx(null), 2000);
+                        }
+                      }}
+                      className={cn(
+                        'w-7 h-7 rounded-full border flex items-center justify-center transition-colors text-lg leading-none',
+                        confirmRemoveIdx === idx
+                          ? 'border-red-300 bg-red-50 text-red-500'
+                          : 'border-gray-200 text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-500'
+                      )}
                       aria-label={locale === 'es' ? 'Reducir cantidad' : 'Decrease quantity'}
                     >
                       −
@@ -995,6 +1018,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               <button
                 type="button"
                 onClick={() => setScheduleEnabled(v => !v)}
+                aria-pressed={scheduleEnabled}
                 className="flex items-center gap-3 w-full group"
               >
                 <div className={cn('w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors', scheduleEnabled ? 'bg-gray-900 border-gray-900' : 'border-gray-300 bg-white')}>
@@ -1022,6 +1046,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             <button
               type="button"
               onClick={() => setRememberMe((v) => !v)}
+              aria-pressed={rememberMe}
               className="flex items-center gap-3 w-full py-1 group"
             >
               <div className={cn('w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors', rememberMe ? 'bg-gray-900 border-gray-900' : 'border-gray-300 bg-white')}>
