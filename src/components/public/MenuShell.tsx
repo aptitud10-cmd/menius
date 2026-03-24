@@ -621,7 +621,7 @@ export function MenuShell({
             ? 'bg-amber-500 text-white shadow-md'
             : 'bg-amber-50 text-amber-700 active:bg-amber-100'
           : isActive
-            ? 'bg-emerald-500 text-white shadow-md'
+            ? 'bg-gray-900 text-white shadow-md'
             : 'bg-gray-100 text-gray-700 active:bg-gray-200'
       )}
     >
@@ -676,7 +676,7 @@ export function MenuShell({
   );
 
   const mobileCategoryPills = (
-    <div className="lg:hidden sticky z-30 bg-white border-b border-gray-200" style={{ top: HEADER_HEIGHT }}>
+    <div className="lg:hidden sticky z-30 bg-white border-b border-gray-200" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
       <div ref={mobilePillsRef} className="py-2 px-3 flex gap-2 overflow-x-auto scrollbar-hide">
         {/* Large catalog: "Todos" pill to show all categories */}
         {isLargeCatalog && (
@@ -714,8 +714,12 @@ export function MenuShell({
   const ordersLeft = limitedMode ? Math.max(0, limitedMode.dailyLimit - limitedMode.ordersToday) : null;
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-[#f8f8f8] overflow-hidden overscroll-none touch-pan-y">
-      {/* Fixed header */}
+    <div className="relative h-[100dvh] flex flex-col bg-[#f8f8f8] overflow-hidden overscroll-none touch-pan-y">
+      {/* Fixed header — absolute over banner on mobile when hasCover */}
+      <div className={cn(
+        'lg:flex-shrink-0 lg:relative',
+        hasCover ? 'absolute inset-x-0 top-0 z-40' : 'flex-shrink-0'
+      )}>
       <MenuHeader
         restaurant={restaurant}
         tableName={tableName}
@@ -731,26 +735,6 @@ export function MenuShell({
         isScrolled={headerScrolled}
         hasCover={hasCover}
       />
-
-      {/* Mobile category pills — scrolls with content on mobile */}
-      <div className="lg:hidden flex-shrink-0">
-        {mobileCategoryPills}
-        {/* Search hint for large catalogs (30+ products) */}
-        {!showSearch && !searchQuery && products.length >= 30 && (
-          <button
-            onClick={() => setShowSearch(true)}
-            className="w-full flex items-center gap-2 px-4 py-2 bg-gray-50 border-b border-gray-100 text-left"
-          >
-            <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-            </svg>
-            <span className="text-[12px] text-gray-400">
-              {locale === 'en'
-                ? `Search among ${products.length} items...`
-                : `Busca entre ${products.length} platillos...`}
-            </span>
-          </button>
-        )}
       </div>
 
       {/* ── Outer scroll: banner scrolls away, sidebar/cart stay sticky ── */}
@@ -761,7 +745,7 @@ export function MenuShell({
 
         {/* Cover banner — full width, scrolls away naturally with content */}
         {restaurant.cover_image_url && (
-          <div ref={bannerRef} className="relative w-full h-44 sm:h-52 lg:h-72 bg-gray-100 overflow-hidden rounded-b-2xl">
+          <div ref={bannerRef} className="relative w-full h-64 sm:h-72 lg:h-72 bg-gray-100 overflow-hidden rounded-b-2xl">
             <Image
               src={restaurant.cover_image_url}
               alt={restaurant.name}
@@ -770,22 +754,22 @@ export function MenuShell({
               className="object-cover animate-cover-zoom"
               priority
             />
-            {/* Gradient overlay — subtle on mobile, stronger on desktop for text legibility */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            {/* Gradient overlay — stronger at bottom for text legibility */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
 
-            {/* Desktop: restaurant info overlaid on the banner */}
-            <div className="hidden lg:flex absolute bottom-0 left-0 right-0 px-8 pb-5 items-end justify-between gap-4">
+            {/* Restaurant info overlaid on banner — mobile + desktop */}
+            <div className="flex absolute bottom-0 left-0 right-0 px-4 pb-4 lg:px-8 lg:pb-5 items-end justify-between gap-4">
               <div className="min-w-0">
-                <h1 className="text-3xl font-extrabold text-white tracking-tight drop-shadow-sm leading-tight truncate">
+                <h1 className="text-xl lg:text-3xl font-extrabold text-white tracking-tight drop-shadow-sm leading-tight truncate">
                   {restaurant.name}
                 </h1>
                 {restaurant.description && (
-                  <p className="text-sm text-white/75 mt-1 max-w-lg line-clamp-1">{restaurant.description}</p>
+                  <p className="text-xs lg:text-sm text-white/75 mt-0.5 lg:mt-1 max-w-lg line-clamp-1">{restaurant.description}</p>
                 )}
                 {(restaurant.address || restaurant.operating_hours) && (
-                  <div className="flex items-center gap-4 mt-2 text-sm text-white/70">
+                  <div className="flex items-center gap-4 mt-1.5 lg:mt-2 text-xs lg:text-sm text-white/70">
                     {restaurant.address && (
-                      <span className="inline-flex items-center gap-1.5">
+                      <span className="hidden lg:inline-flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-emerald-400" />
                         <span className="truncate max-w-[240px]">{restaurant.address}</span>
                       </span>
@@ -798,7 +782,7 @@ export function MenuShell({
                       const is24h = dh.open === '00:00' && dh.close === '23:59';
                       return (
                         <span className="inline-flex items-center gap-1.5 text-emerald-400 font-medium">
-                          <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                          <Clock className="w-3 lg:w-3.5 h-3 lg:h-3.5 flex-shrink-0" />
                           {is24h ? t.open24h : `${dh.open} – ${dh.close}`}
                         </span>
                       );
@@ -807,15 +791,20 @@ export function MenuShell({
                 )}
               </div>
               {reviewStats && reviewStats.total > 0 && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-400/20 backdrop-blur-sm border border-amber-400/30 flex-shrink-0">
-                  <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                <div className="flex items-center gap-1.5 lg:gap-2 px-2.5 lg:px-3 py-1.5 lg:py-2 rounded-xl bg-amber-400/20 backdrop-blur-sm border border-amber-400/30 flex-shrink-0">
+                  <Star className="w-3.5 lg:w-4 h-3.5 lg:h-4 text-amber-400 fill-amber-400" />
                   <span className="text-sm font-bold text-white tabular-nums">{reviewStats.average}</span>
-                  <span className="text-sm text-white/70">({reviewStats.total}+)</span>
+                  <span className="text-xs lg:text-sm text-white/70">({reviewStats.total}+)</span>
                 </div>
               )}
             </div>
           </div>
         )}
+
+        {/* Mobile category pills — inside scroll, sticky below the absolute header */}
+        <div className="lg:hidden">
+          {mobileCategoryPills}
+        </div>
 
         {/* ── 3-Column row ── */}
         <div className="flex min-h-[calc(100dvh-48px)]">

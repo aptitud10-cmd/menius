@@ -138,6 +138,11 @@ export const ProductCardMobile = memo(function ProductCardMobile({
         <h3 className={cn('font-bold text-sm line-clamp-2 leading-snug', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
           {displayName}
         </h3>
+        {product.description && !outOfStock && (
+          <p className="text-xs text-gray-400 line-clamp-1 mt-0.5 leading-snug">
+            {product.description}
+          </p>
+        )}
         {hasModifiers && !outOfStock && (
           <span className="inline-flex items-center gap-0.5 text-xs text-emerald-600 font-medium mt-1">
             {customizeLabel}
