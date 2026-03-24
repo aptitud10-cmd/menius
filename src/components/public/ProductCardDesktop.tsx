@@ -2,7 +2,7 @@
 
 import { memo, useState, useCallback } from 'react';
 import Image from 'next/image';
-import { m } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Plus, Check, UtensilsCrossed, ChevronRight, Heart, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types';
@@ -127,14 +127,14 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             </span>
           )}
           {!outOfStock && cartQty > 0 && (
-            <m.span
+            <motion.span
               key={cartQty}
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-emerald-500 text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
             >
               {cartQty}
-            </m.span>
+            </motion.span>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
@@ -163,14 +163,14 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             </span>
           )}
           {!outOfStock && cartQty > 0 && (
-            <m.span
+            <motion.span
               key={cartQty}
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               className="absolute bottom-3 left-3 min-w-[24px] h-6 px-2 rounded-full bg-emerald-500 text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
             >
               {cartQty}
-            </m.span>
+            </motion.span>
           )}
           <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}

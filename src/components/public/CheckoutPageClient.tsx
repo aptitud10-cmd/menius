@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { ArrowLeft, CheckCircle, ShoppingCart, Lock } from 'lucide-react';
-import { m, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { cn, formatPrice } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
@@ -693,7 +693,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           <span className="text-sm font-semibold text-gray-900">{restaurant.name}</span>
           <button onClick={goBack} className="text-sm text-emerald-600 font-medium">{t.backToMenu}</button>
         </header>
-        <m.div
+        <motion.div
           ref={confirmRef}
           className="flex-1 flex flex-col items-center justify-center px-8 relative overflow-hidden"
           initial={{ opacity: 0, y: 20 }}
@@ -779,13 +779,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </button>
             )}
           </div>
-        </m.div>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <m.div
+    <motion.div
       className="min-h-[100dvh] bg-gray-50 flex flex-col"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
@@ -1170,14 +1170,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       <div className="sticky bottom-0 bg-white border-t-2 border-gray-200 px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] space-y-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
         <AnimatePresence>
           {orderError && (
-            <m.div
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
               className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200"
             >
               <span className="text-red-700 text-sm font-medium">{orderError}</span>
-            </m.div>
+            </motion.div>
           )}
         </AnimatePresence>
         <div className="max-w-lg mx-auto">
@@ -1198,6 +1198,6 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           </button>
         </div>
       </div>
-    </m.div>
+    </motion.div>
   );
 }

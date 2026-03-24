@@ -1,7 +1,7 @@
 'use client';
 
 import { memo } from 'react';
-import { m } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { Category, Product } from '@/types';
 import { tName } from '@/lib/i18n';
@@ -62,12 +62,12 @@ export const CategorySidebar = memo(function CategorySidebar({
             >
               {isActive && available && (
                 <>
-                  <m.span
+                  <motion.span
                     layoutId="sidebar-pill"
                     className="absolute inset-0 rounded-xl bg-emerald-50"
                     transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                   />
-                  <m.span
+                  <motion.span
                     layoutId="sidebar-bar"
                     className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald-500"
                     transition={{ type: 'spring', stiffness: 400, damping: 35 }}
@@ -77,7 +77,7 @@ export const CategorySidebar = memo(function CategorySidebar({
               {/* Scroll progress micro-bar */}
               {available && (sectionProgress[cat.id] ?? 0) > 0 && (
                 <span className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-gray-100 overflow-hidden">
-                  <m.span
+                  <motion.span
                     className="absolute inset-y-0 left-0 rounded-full bg-emerald-400"
                     style={{ width: `${Math.round((sectionProgress[cat.id] ?? 0) * 100)}%` }}
                     layoutId={undefined}

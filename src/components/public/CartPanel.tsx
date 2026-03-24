@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { m, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Minus, Plus, Pencil, Trash2, ShoppingCart, Clock, RotateCcw, X } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
@@ -39,7 +39,7 @@ function SwipeableItem({
       <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-5 rounded-xl">
         <Trash2 className="w-5 h-5 text-white" />
       </div>
-      <m.div
+      <motion.div
         drag="x"
         dragDirectionLock
         dragConstraints={{ left: -80, right: 0 }}
@@ -53,7 +53,7 @@ function SwipeableItem({
         className="relative z-10 bg-white rounded-xl"
       >
         {children}
-      </m.div>
+      </motion.div>
     </div>
   );
 }
@@ -167,7 +167,7 @@ export function CartPanel({
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-bold text-gray-900">{t.myOrder}</h2>
           <AnimatePresence mode="popLayout">
-            <m.span
+            <motion.span
               key={items.reduce((s, i) => s + i.qty, 0)}
               initial={{ scale: 1.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -175,7 +175,7 @@ export function CartPanel({
               className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full tabular-nums font-medium"
             >
               {items.reduce((s, i) => s + i.qty, 0)} {t.items}
-            </m.span>
+            </motion.span>
           </AnimatePresence>
         </div>
         <button
@@ -199,7 +199,7 @@ export function CartPanel({
           const imgKey = `${item.product.id}-${idx}`;
           const isPendingRemove = confirmRemoveIdx === idx;
           return (
-              <m.div
+              <motion.div
                 key={item.uid ?? `${item.product.id}-${item.variant?.id ?? 'base'}-${idx}`}
                 layout
                 initial={{ opacity: 0, x: 36, height: 0 }}
@@ -321,7 +321,7 @@ export function CartPanel({
                     </div>
                   </div>
                 </SwipeableItem>
-              </m.div>
+              </motion.div>
           );
         })}
         </AnimatePresence>
@@ -338,7 +338,7 @@ export function CartPanel({
         <div className="flex justify-between items-baseline mb-2">
           <span className="text-xs text-gray-500">{t.subtotal}</span>
           <AnimatePresence mode="wait">
-            <m.span
+            <motion.span
               key={cartTotal}
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -347,7 +347,7 @@ export function CartPanel({
               className="text-base font-bold text-gray-900 tabular-nums"
             >
               {fmtPrice(cartTotal)}
-            </m.span>
+            </motion.span>
           </AnimatePresence>
         </div>
         {deliveryFee != null && deliveryFee > 0 && (
@@ -362,7 +362,7 @@ export function CartPanel({
             <span className="text-emerald-500 font-medium">{t.freeDelivery}</span>
           </div>
         )}
-        <m.button
+        <motion.button
           onClick={onCheckout}
           whileHover={{ scale: 1.015 }}
           whileTap={{ scale: 0.97 }}
@@ -370,7 +370,7 @@ export function CartPanel({
         >
           <span>{t.placeOrder}</span>
           <AnimatePresence mode="wait">
-            <m.span
+            <motion.span
               key={cartTotal}
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
@@ -379,9 +379,9 @@ export function CartPanel({
               className="tabular-nums"
             >
               {fmtPrice(cartTotal + (deliveryFee && deliveryFee > 0 ? deliveryFee : 0))}
-            </m.span>
+            </motion.span>
           </AnimatePresence>
-        </m.button>
+        </motion.button>
       </div>
     </div>
   );
