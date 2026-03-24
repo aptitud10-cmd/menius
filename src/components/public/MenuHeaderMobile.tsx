@@ -31,6 +31,7 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
   backUrl,
   isScrolled = false,
   hasCover = false,
+  locale = 'es',
 }: MenuHeaderProps) {
   const [isOwner, setIsOwner] = useState(false);
   useEffect(() => {
@@ -55,10 +56,13 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
           {backUrl && (
             <Link
               href={backUrl}
-              className="w-10 h-10 flex items-center justify-center rounded-lg active:bg-white/20 transition-colors"
-              aria-label="Back"
+              className={cn(
+                'w-10 h-10 flex items-center justify-center rounded-full transition-colors',
+                isTransparent ? 'bg-black/30 backdrop-blur-sm active:bg-black/50' : 'active:bg-gray-100'
+              )}
+              aria-label={locale === 'en' ? 'Back' : 'Atrás'}
             >
-              <ArrowLeft className={cn('w-5 h-5', isTransparent ? 'text-white drop-shadow' : 'text-gray-600')} />
+              <ArrowLeft className={cn('w-5 h-5', isTransparent ? 'text-white' : 'text-gray-600')} />
             </Link>
           )}
         </div>
@@ -77,18 +81,24 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
           {isOwner && (
             <Link
               href="/app"
-              className="w-10 h-10 flex items-center justify-center rounded-lg active:bg-white/20 transition-colors"
+              className={cn(
+                'w-10 h-10 flex items-center justify-center rounded-full transition-colors',
+                isTransparent ? 'bg-black/30 backdrop-blur-sm active:bg-black/50' : 'active:bg-gray-100'
+              )}
               aria-label="Dashboard"
             >
-              <LayoutDashboard className={cn('w-4 h-4', isTransparent ? 'text-white drop-shadow' : 'text-gray-500')} />
+              <LayoutDashboard className={cn('w-4 h-4', isTransparent ? 'text-white' : 'text-gray-500')} />
             </Link>
           )}
           <button
             onClick={onToggleSearch}
-            className="w-10 h-10 flex items-center justify-center rounded-lg active:bg-white/20 transition-colors"
-            aria-label="Search"
+            className={cn(
+              'w-10 h-10 flex items-center justify-center rounded-full transition-colors',
+              isTransparent ? 'bg-black/30 backdrop-blur-sm active:bg-black/50' : 'active:bg-gray-100'
+            )}
+            aria-label={locale === 'en' ? 'Search' : 'Buscar'}
           >
-            <Search className={cn('w-4 h-4', isTransparent ? 'text-white drop-shadow' : 'text-gray-500')} />
+            <Search className={cn('w-4 h-4', isTransparent ? 'text-white' : 'text-gray-500')} />
           </button>
         </div>
       </div>

@@ -110,7 +110,6 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const confirmRemoveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => { return () => { if (confirmRemoveTimer.current) clearTimeout(confirmRemoveTimer.current); }; }, []);
   const [tipPercent, setTipPercent] = useState<number | null>(null);
-  const [customTip, setCustomTip] = useState('');
 
   // Demo payment simulation state
   const [demoCardNum, setDemoCardNum] = useState('4242 4242 4242 4242');
@@ -118,9 +117,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [demoCVC, setDemoCVC] = useState('123');
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [demoPayProcessing, setDemoPayProcessing] = useState(false);
-  const tipAmount = tipPercent !== null
-    ? Math.round(cartTotal * tipPercent) / 100
-    : (parseFloat(customTip) || 0);
+  const tipAmount = tipPercent !== null ? Math.round(cartTotal * tipPercent) / 100 : 0;
 
   const discount = promoResult?.valid ? promoResult.discount : 0;
   const deliveryFee = (orderType === 'delivery' && restaurant.delivery_fee) ? restaurant.delivery_fee : 0;
@@ -816,7 +813,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               <ShoppingCart className="w-4 h-4 text-gray-500" />
               <p className="text-sm font-semibold text-gray-900">{t.myOrder}</p>
               <span className="ml-auto text-xs font-medium text-gray-400">
-                {items.reduce((s, i) => s + i.qty, 0)} {locale === 'es' ? 'items' : 'items'}
+                {items.reduce((s, i) => s + i.qty, 0)} {t.items}
               </span>
             </div>
             {items.map((item, idx) => (
@@ -1081,7 +1078,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             <div className="flex gap-2">
               <input type="text" value={promoCode} onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); setPromoResult(null); }} placeholder={t.promoCodePlaceholder} className={cn(inputClass, 'flex-1 uppercase')} />
               <button onClick={validatePromo} disabled={promoLoading || !promoCode.trim()} className="px-5 py-3.5 rounded-xl bg-gray-900 text-white text-[15px] font-semibold disabled:opacity-30 transition-colors">
-                {promoLoading ? '...' : t.apply}
+                {promoLoading ? (locale === 'es' ? 'Aplicando…' : 'Applying…') : t.apply}
               </button>
             </div>
             {promoError && <p className="text-sm text-red-500 mt-2">{promoError}</p>}
@@ -1101,7 +1098,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   <button
                     key={pct}
                     type="button"
-                    onClick={() => { setTipPercent(isActive ? null : pct); setCustomTip(''); }}
+                    onClick={() => { setTipPercent(isActive ? null : pct); }}
                     className={cn(
                       'flex flex-col items-center py-3 rounded-xl border-2 transition-all duration-150',
                       isActive ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 active:border-gray-400'

@@ -123,7 +123,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           )}
           {!outOfStock && !product.is_featured && product.is_new && (
             <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold shadow-sm">
-              NEW
+              {locale === 'es' ? 'NUEVO' : 'NEW'}
             </span>
           )}
           {!outOfStock && cartQty > 0 && (
@@ -139,7 +139,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
             className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200"
-            aria-label="Favorite"
+            aria-label={locale === 'en' ? 'Favorite' : 'Favorito'}
           >
             <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover:text-gray-500')} />
           </button>
@@ -159,7 +159,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           )}
           {!outOfStock && !product.is_featured && product.is_new && (
             <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold">
-              NEW
+              {locale === 'es' ? 'NUEVO' : 'NEW'}
             </span>
           )}
           {!outOfStock && cartQty > 0 && (
@@ -175,7 +175,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
             className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200"
-            aria-label="Favorite"
+            aria-label={locale === 'en' ? 'Favorite' : 'Favorito'}
           >
             <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover:text-gray-500')} />
           </button>

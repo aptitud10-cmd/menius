@@ -208,7 +208,7 @@ const es: Translations = {
   thankYouReview: '¡Gracias por tu reseña!',
   addedToCart: 'Agregado al carrito',
   viewCart: 'Ver carrito',
-  items: 'items',
+  items: 'artículos',
   schedule: 'Horario',
   closedDay: 'Cerrado',
   noInfoAvailable: 'No hay información adicional disponible',

@@ -607,6 +607,7 @@ export function MenuShell({
     catScrollRef.current?.scrollBy({ left: dir === 'left' ? -200 : 200, behavior: 'smooth' });
   };
 
+  // Desktop: rounded pill style
   const categoryPill = (id: string, label: string, isActive: boolean) => (
     <button
       key={id}
@@ -629,8 +630,32 @@ export function MenuShell({
     </button>
   );
 
+  // Mobile: underline tab style (Uber Eats native look)
+  const categoryTab = (id: string, label: string, isActive: boolean) => (
+    <button
+      key={id}
+      data-pill-id={id}
+      onClick={() => handleCategorySelect(id)}
+      style={{ touchAction: 'manipulation' }}
+      className={cn(
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-3 text-[13px] whitespace-nowrap border-b-2 transition-colors',
+        id === POPULAR_ID
+          ? isActive
+            ? 'border-amber-500 text-gray-900 font-semibold'
+            : 'border-transparent text-gray-500 font-medium active:text-gray-700'
+          : isActive
+            ? 'border-emerald-500 text-gray-900 font-semibold'
+            : 'border-transparent text-gray-500 font-medium active:text-gray-700'
+      )}
+    >
+      {id === POPULAR_ID && <span className="text-xs leading-none">🔥</span>}
+      {label}
+    </button>
+  );
+
   const visibleCats = itemsByCategory.map((g) => g.category);
 
+  // Desktop pill style for favs
   const favPill = hasMounted && favIds.length > 0 && (
     <button
       key="__favs__"
@@ -649,6 +674,26 @@ export function MenuShell({
     </button>
   );
 
+  // Mobile tab style for favs
+  const favTab = hasMounted && favIds.length > 0 && (
+    <button
+      key="__favs__"
+      data-pill-id="__favs__"
+      onClick={() => { setShowFavs(!showFavs); if (!showFavs) setActiveCategory(null); }}
+      style={{ touchAction: 'manipulation' }}
+      className={cn(
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-3 text-[13px] whitespace-nowrap border-b-2 transition-colors',
+        showFavs
+          ? 'border-red-500 text-gray-900 font-semibold'
+          : 'border-transparent text-gray-500 font-medium active:text-gray-700'
+      )}
+    >
+      <Heart className={cn('w-3.5 h-3.5', showFavs ? 'fill-red-500 text-red-500' : '')} />
+      {favIds.length}
+    </button>
+  );
+
+  // Desktop pill style for dietary filters
   const dietPills = availableDiets.length > 0 && availableDiets.map((dt) => (
     <button
       key={dt.id}
@@ -672,30 +717,54 @@ export function MenuShell({
     </button>
   ));
 
+  // Mobile tab style for dietary filters
+  const dietTabs = availableDiets.length > 0 && availableDiets.map((dt) => (
+    <button
+      key={dt.id}
+      data-pill-id={`diet-${dt.id}`}
+      onClick={() => {
+        const next = activeDiet === dt.id ? null : dt.id;
+        setActiveDiet(next);
+        setShowFavs(false);
+        if (next) setActiveCategory(null);
+      }}
+      style={{ touchAction: 'manipulation' }}
+      className={cn(
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-3 text-[13px] whitespace-nowrap border-b-2 transition-colors',
+        activeDiet === dt.id
+          ? 'border-emerald-500 text-gray-900 font-semibold'
+          : 'border-transparent text-gray-500 font-medium active:text-gray-700'
+      )}
+    >
+      <span className="text-xs">{dt.emoji}</span>
+      {locale === 'en' ? dt.labelEn : dt.labelEs}
+    </button>
+  ));
+
   const filterDivider = (availableDiets.length > 0 || (hasMounted && favIds.length > 0)) && (
-    <div className="flex-shrink-0 self-center w-px h-5 bg-gray-200 mx-1" aria-hidden />
+    <div className="flex-shrink-0 self-stretch w-px bg-gray-200 my-2 mx-1" aria-hidden />
   );
 
   const mobileCategoryPills = (
-    <div className="lg:hidden sticky z-40 bg-white border-b border-gray-200" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
-      <div ref={mobilePillsRef} className="py-2 px-3 flex gap-2 overflow-x-auto scrollbar-hide" style={{ touchAction: 'pan-x' }}>
-        {/* Large catalog: "Todos" pill to show all categories */}
+    <div className="lg:hidden sticky z-40 bg-white" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
+      <div ref={mobilePillsRef} className="flex overflow-x-auto scrollbar-hide border-b border-gray-200 px-1" style={{ touchAction: 'pan-x' }}>
+        {/* Large catalog: "Todos" tab */}
         {isLargeCatalog && (
           <button
             data-pill-id="__all__"
             onClick={() => { setActiveCatFilter(null); setActiveCategory(null); mainRef.current?.scrollTo({ top: 0, behavior: 'auto' }); }}
             style={{ touchAction: 'manipulation' }}
             className={cn(
-              'flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 whitespace-nowrap',
+              'flex-shrink-0 inline-flex items-center px-3 py-3 text-[13px] whitespace-nowrap border-b-2 transition-colors',
               !activeCatFilter && !showFavs && !activeDiet
-                ? 'bg-emerald-500 text-white shadow-md'
-                : 'bg-gray-100 text-gray-700 active:bg-gray-200'
+                ? 'border-emerald-500 text-gray-900 font-semibold'
+                : 'border-transparent text-gray-500 font-medium active:text-gray-700'
             )}
           >
             {t.filterAll}
           </button>
         )}
-        {visibleCats.map((cat) => categoryPill(
+        {visibleCats.map((cat) => categoryTab(
           cat.id,
           tName(cat, locale, defaultLocale),
           isLargeCatalog
@@ -703,12 +772,12 @@ export function MenuShell({
             : activeCategory === cat.id && !showFavs && !activeDiet
         ))}
         {filterDivider}
-        {dietPills}
-        {favPill}
-        {/* Spacer so last pill doesn't sit under the fade */}
+        {dietTabs}
+        {favTab}
+        {/* Spacer so last tab doesn't sit under the fade */}
         <div className="w-8 flex-shrink-0" aria-hidden="true" />
       </div>
-      {/* Right-side fade gradient indicating more content */}
+      {/* Right-side fade indicating more tabs */}
       <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-white to-transparent" aria-hidden="true" />
     </div>
   );
@@ -716,7 +785,7 @@ export function MenuShell({
   const ordersLeft = limitedMode ? Math.max(0, limitedMode.dailyLimit - limitedMode.ordersToday) : null;
 
   return (
-    <div className="relative h-[100dvh] flex flex-col bg-[#f8f8f8] overflow-hidden overscroll-none touch-pan-y">
+    <div className="relative h-[100dvh] flex flex-col bg-white lg:bg-[#f8f8f8] overflow-hidden overscroll-none touch-pan-y">
       {/* Fixed header — absolute over banner on mobile when hasCover */}
       <div className={cn(
         'lg:flex-shrink-0 lg:relative',
@@ -736,6 +805,7 @@ export function MenuShell({
         backUrl={backUrl}
         isScrolled={headerScrolled}
         hasCover={hasCover}
+        locale={locale}
       />
       </div>
 
@@ -747,7 +817,7 @@ export function MenuShell({
 
         {/* Cover banner — full width, scrolls away naturally with content */}
         {restaurant.cover_image_url && (
-          <div ref={bannerRef} className="relative w-full h-64 sm:h-72 lg:h-72 bg-gray-100 overflow-hidden rounded-b-2xl">
+          <div ref={bannerRef} className="relative w-full h-72 sm:h-72 lg:h-72 bg-gray-100 overflow-hidden">
             <Image
               src={restaurant.cover_image_url}
               alt={restaurant.name}
@@ -756,25 +826,11 @@ export function MenuShell({
               className="object-cover animate-cover-zoom"
               priority
             />
-            {/* Gradient overlay — stronger at bottom for text legibility */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+            {/* Mobile: light gradient only for header legibility — info moves below banner */}
+            <div className="lg:hidden absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
 
-            {/* Mobile: nombre centrado y grande */}
-            <div className="lg:hidden flex absolute bottom-0 left-0 right-0 px-4 pb-5 flex-col items-center text-center gap-2">
-              <h1 className="text-3xl font-extrabold text-white tracking-tight drop-shadow leading-tight">
-                {restaurant.name}
-              </h1>
-              {restaurant.description && (
-                <p className="text-xs text-white/70 line-clamp-1 max-w-xs">{restaurant.description}</p>
-              )}
-              {reviewStats && reviewStats.total > 0 && (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/30 backdrop-blur-sm">
-                  <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                  <span className="text-sm font-bold text-white tabular-nums">{reviewStats.average}</span>
-                  <span className="text-xs text-white/70">({reviewStats.total}+)</span>
-                </div>
-              )}
-            </div>
+            {/* Desktop: gradient + info overlay */}
+            <div className="hidden lg:block absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
 
             {/* Desktop: nombre + info a la izquierda, rating a la derecha */}
             <div className="hidden lg:flex absolute bottom-0 left-0 right-0 px-8 pb-5 items-end justify-between gap-4">
@@ -817,6 +873,25 @@ export function MenuShell({
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Mobile: restaurant info section — below banner, above tabs */}
+        {restaurant.cover_image_url && (
+          <div className="lg:hidden bg-white px-4 pt-4 pb-3">
+            <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-tight">
+              {restaurant.name}
+            </h1>
+            {restaurant.description && (
+              <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{restaurant.description}</p>
+            )}
+            {reviewStats && reviewStats.total > 0 && (
+              <div className="flex items-center gap-1 mt-1.5">
+                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                <span className="text-sm font-semibold text-gray-900 tabular-nums">{reviewStats.average}</span>
+                <span className="text-xs text-gray-400">({reviewStats.total}+)</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -996,12 +1071,12 @@ export function MenuShell({
                   className="grid grid-cols-2 xl:grid-cols-3 gap-3"
                   initial="hidden"
                   animate="visible"
-                  variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.05 } } }}
+                  variants={{ hidden: {}, visible: { transition: { staggerChildren: isDesktopView ? 0.05 : 0 } } }}
                 >
                   {searchResults.map((product) => (
                     <motion.div
                       key={product.id}
-                      variants={{ hidden: { opacity: 0, y: 14 }, visible: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }}
+                      variants={isDesktopView ? { hidden: { opacity: 0, y: 14 }, visible: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } } : { hidden: {}, visible: {} }}
                     >
                       <ProductCard
                         product={product}
@@ -1479,12 +1554,11 @@ export function MenuShell({
               <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
                 <div className="w-10 h-1.5 rounded-full bg-gray-300" />
               </div>
-              {/* Header */}
-              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0">
-                <h2 id="cart-sheet-title" className="text-base font-bold text-gray-900">{t.yourCart}</h2>
+              {/* Close button row — CartPanel already renders its own header/title */}
+              <div className="flex justify-end px-4 pt-1 flex-shrink-0">
                 <button
                   onClick={() => setOpen(false)}
-                  className="min-w-[44px] min-h-[44px] -mr-2 flex items-center justify-center rounded-xl active:bg-gray-100 transition-colors"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl active:bg-gray-100 transition-colors"
                   aria-label={locale === 'en' ? 'Close cart' : 'Cerrar carrito'}
                 >
                   <X className="w-5 h-5 text-gray-500" />

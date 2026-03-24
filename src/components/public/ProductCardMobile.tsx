@@ -111,7 +111,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           <span className="absolute top-2 left-2 text-base leading-none">🔥</span>
         )}
         {!outOfStock && product.is_new && (
-          <span className="absolute top-2 left-2 text-[11px] font-bold text-white bg-blue-500 px-2 py-0.5 rounded-full leading-none">NEW</span>
+          <span className="absolute top-2 left-2 text-[11px] font-bold text-white bg-blue-500 px-2 py-0.5 rounded-full leading-none">{locale === 'es' ? 'NUEVO' : 'NEW'}</span>
         )}
 
         {!outOfStock && cartQty > 0 && (
@@ -124,7 +124,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
         <button
           onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
           className="absolute top-1 right-1 w-11 h-11 flex items-center justify-center"
-          aria-label="Favorite"
+          aria-label={locale === 'en' ? 'Favorite' : 'Favorito'}
         >
           <span className="w-7 h-7 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center shadow-sm">
             <Heart className={cn('w-3.5 h-3.5 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />

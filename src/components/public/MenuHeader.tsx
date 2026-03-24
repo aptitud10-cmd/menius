@@ -27,6 +27,7 @@ export interface MenuHeaderProps {
   backUrl?: string;
   isScrolled?: boolean;
   hasCover?: boolean;
+  locale?: string;
 }
 
 /** Utility shared by both mobile and desktop sub-components */

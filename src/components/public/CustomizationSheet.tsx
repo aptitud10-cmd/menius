@@ -81,7 +81,7 @@ export function CustomizationSheet({
       legacyGroups.push({
         id: '__legacy_extras',
         product_id: product.id,
-        name: 'Extras',
+        name: t.extras,
         selection_type: 'multi',
         min_select: 0,
         max_select: 99,
@@ -632,7 +632,7 @@ export function CustomizationSheet({
             {!isPreview && (
               <button onClick={onClose} className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg active:bg-gray-100 transition-colors flex-shrink-0">
                 <ArrowLeft className="w-5 h-5 text-gray-700" />
-                <span className="text-sm font-medium text-gray-500">Menu</span>
+                <span className="text-sm font-medium text-gray-500">{locale === 'es' ? 'Menú' : 'Menu'}</span>
               </button>
             )}
             {isPreview && previewBadge}

@@ -278,24 +278,24 @@ export function CartPanel({
                           <button
                             onClick={() => handleMinusTap(idx, item.qty)}
                             className={cn(
-                              'w-9 h-9 flex items-center justify-center transition-all duration-150',
+                              'w-11 h-11 flex items-center justify-center transition-all duration-150',
                               isPendingRemove
                                 ? 'bg-red-50 text-red-500'
                                 : 'hover:bg-gray-50 active:bg-gray-100 text-gray-600'
                             )}
                           >
                             {isPendingRemove ? (
-                              <X className="w-3.5 h-3.5" />
+                              <X className="w-4 h-4" />
                             ) : (
-                              <Minus className="w-3.5 h-3.5" />
+                              <Minus className="w-4 h-4" />
                             )}
                           </button>
                           <span className="w-7 text-center text-sm font-bold tabular-nums">{item.qty}</span>
                           <button
                             onClick={() => updateQty(idx, item.qty + 1)}
-                            className="w-9 h-9 flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors text-gray-600"
+                            className="w-11 h-11 flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors text-gray-600"
                           >
-                            <Plus className="w-3.5 h-3.5" />
+                            <Plus className="w-4 h-4" />
                           </button>
                         </div>
                         <div className="flex items-center gap-2">
@@ -304,10 +304,10 @@ export function CartPanel({
                           </span>
                           <button
                             onClick={() => removeItem(idx)}
-                            className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
                             aria-label={`${locale === 'en' ? 'Remove' : 'Eliminar'} ${item.product.name}`}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
