@@ -16,6 +16,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `Order ${params.orderNumber} | MENIUS`,
     description: 'Track your order in real time',
+    robots: { index: false, follow: false },
   };
 }
 

@@ -22,7 +22,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const post = getLocalizedBlogPost(params.slug, locale);
   if (!post) return { title: 'Artículo no encontrado' };
 
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
   const url = `/blog/${post.slug}`;
+  const ogImage = `${APP_URL}/blog/${post.slug}/opengraph-image`;
 
   return {
     title: post.title,
@@ -36,11 +38,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       publishedTime: post.date,
       authors: [post.author],
       url,
+      images: [{ url: ogImage, width: 1200, height: 630, alt: post.title }],
     },
     twitter: {
       card: 'summary_large_image',
       title: post.title,
       description: post.description,
+      images: [ogImage],
     },
   };
 }
@@ -79,7 +83,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     '@type': 'BlogPosting',
     headline: post.title,
     description: post.description,
-    image: `${APP_URL}/opengraph-image`,
+    image: `${APP_URL}/blog/${post.slug}/opengraph-image`,
     datePublished: post.date,
     dateModified: post.date,
     author: { '@type': 'Organization', name: post.author },

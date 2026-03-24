@@ -78,6 +78,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const image = restaurant.cover_image_url || restaurant.logo_url || `${APP_URL}/opengraph-image`;
   const logoUrl = restaurant.logo_url ?? undefined;
 
+  // Build hreflang only when the restaurant explicitly supports multiple locales
+  const multiLang = data.availableLocales.length > 1;
+  const langAlternates = multiLang
+    ? Object.fromEntries([
+        ...data.availableLocales.map((lc) => [lc, url]),
+        ['x-default', url],
+      ])
+    : undefined;
+
   return {
     title,
     description,
@@ -90,7 +99,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
     openGraph: { title, description, url, siteName: 'MENIUS', type: 'website', images: [{ url: image, width: 1200, height: 630, alt: restaurant.name }], locale: isEn ? 'en_US' : 'es_MX' },
     twitter: { card: 'summary_large_image', title: restaurant.name, description, images: [image] },
-    alternates: { canonical: url },
+    alternates: { canonical: url, ...(langAlternates ? { languages: langAlternates } : {}) },
     robots: { index: true, follow: true },
   };
 }

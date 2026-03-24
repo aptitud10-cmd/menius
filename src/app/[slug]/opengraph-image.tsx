@@ -10,6 +10,7 @@ export const contentType = 'image/png';
 
 const DEMO_MAP: Record<string, { name: string; description?: string | null }> = {
   demo: demoRestaurant,
+  'la-casa-del-sabor': demoRestaurant,
   'the-grill-house': grillHouseRestaurant,
 };
 

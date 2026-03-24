@@ -19,6 +19,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${APP_URL}/demo`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${APP_URL}/la-casa-del-sabor`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${APP_URL}/the-grill-house`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${APP_URL}/start`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${APP_URL}/changelog`, lastModified: now, changeFrequency: 'weekly', priority: 0.5 },
+    { url: `${APP_URL}/status`, lastModified: now, changeFrequency: 'daily', priority: 0.3 },
   ];
 
   const blogPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({

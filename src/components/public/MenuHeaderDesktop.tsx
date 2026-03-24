@@ -7,7 +7,7 @@
 
 import { memo, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Search, X, ArrowLeft, LayoutDashboard, Clock, History } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
@@ -51,7 +51,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
   const showName = !hasCover || isScrolled;
 
   return (
-    <motion.header
+    <m.header
       className={cn(
         'flex-shrink-0 z-40 bg-white/95 backdrop-blur-md border-b',
         isScrolled ? 'border-gray-200 shadow-[0_1px_12px_rgba(0,0,0,0.07)]' : 'border-gray-100'
@@ -74,7 +74,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
         {/* Restaurant name — fade in when banner scrolls away */}
         <AnimatePresence mode="wait">
           {showName && (
-            <motion.div
+            <m.div
               key="restaurant-name"
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
@@ -85,7 +85,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
               <span className="font-bold text-gray-900 truncate text-base max-w-[260px]">
                 {restaurant.name}
               </span>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 
@@ -162,6 +162,6 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
           </div>
         </div>
       </div>
-    </motion.header>
+    </m.header>
   );
 });

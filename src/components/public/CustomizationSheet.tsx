@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { X, Minus, Plus, Check, ArrowLeft } from 'lucide-react';
-import { motion, useMotionValue, useTransform, useDragControls, type PanInfo } from 'framer-motion';
+import { m, useMotionValue, useTransform, useDragControls, type PanInfo } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import type { Product, ModifierGroup, ModifierOption, ModifierSelection } from '@/types';
@@ -265,7 +265,7 @@ export function CustomizationSheet({
       {product.image_url && (
         <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
-          <motion.div
+          <m.div
             className="absolute inset-0"
             style={{ y: imageY, scale: imageScale, opacity: imageOpacity }}
           >
@@ -281,7 +281,7 @@ export function CustomizationSheet({
               onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
               priority
             />
-          </motion.div>
+          </m.div>
         </div>
       )}
       <div className="px-5 pt-4 pb-2">
@@ -536,7 +536,7 @@ export function CustomizationSheet({
 
   return (
     <div className="fixed inset-0 z-50">
-      <motion.div
+      <m.div
         className="absolute inset-0 bg-black/40"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -546,7 +546,7 @@ export function CustomizationSheet({
       />
 
       {/* Desktop: slide from right — polished side panel */}
-      <motion.div
+      <m.div
         className="hidden lg:flex fixed top-0 bottom-0 right-0 w-[520px] bg-white flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)] border-l border-gray-100"
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -579,10 +579,10 @@ export function CustomizationSheet({
 
         {sheetBody}
         {sheetFooter}
-      </motion.div>
+      </m.div>
 
       {/* Mobile: slide from bottom with drag-to-dismiss */}
-      <motion.div
+      <m.div
         className="lg:hidden fixed bottom-0 left-0 right-0 bg-white flex flex-col shadow-2xl rounded-t-2xl"
         style={{ maxHeight: vvH }}
         initial={{ y: '100%' }}
@@ -626,7 +626,7 @@ export function CustomizationSheet({
 
         {sheetBody}
         {sheetFooter}
-      </motion.div>
+      </m.div>
     </div>
   );
 }

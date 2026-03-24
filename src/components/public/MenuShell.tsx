@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe, RotateCcw, AlertCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, LazyMotion, domMax, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { formatPrice, cn } from '@/lib/utils';
@@ -714,6 +714,7 @@ export function MenuShell({
   const ordersLeft = limitedMode ? Math.max(0, limitedMode.dailyLimit - limitedMode.ordersToday) : null;
 
   return (
+    <LazyMotion features={domMax} strict>
     <div className="h-[100dvh] flex flex-col bg-[#f8f8f8] overflow-hidden overscroll-none touch-pan-y">
       {/* Fixed header */}
       <MenuHeader
@@ -955,22 +956,22 @@ export function MenuShell({
 
           {searchResults !== null ? (
             <div>
-              <motion.p
+              <m.p
                 key={searchResults.length}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="text-sm text-gray-500 mb-4"
               >
                 {searchResults.length} {searchResults.length === 1 ? t.resultSingular : t.resultPlural}
-              </motion.p>
+              </m.p>
               {searchResults.length === 0 ? (
-                <motion.div
+                <m.div
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.35 }}
                   className="text-center py-20 text-gray-400 flex flex-col items-center gap-4"
                 >
-                  <motion.svg
+                  <m.svg
                     width="64" height="64" viewBox="0 0 64 64" fill="none"
                     initial={{ scale: 0.7, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -979,21 +980,21 @@ export function MenuShell({
                     <circle cx="28" cy="28" r="18" stroke="#d1d5db" strokeWidth="3" fill="none" />
                     <path d="M41 41L52 52" stroke="#d1d5db" strokeWidth="3" strokeLinecap="round" />
                     <path d="M22 28h12M28 22v12" stroke="#d1d5db" strokeWidth="2.5" strokeLinecap="round" opacity="0.4" />
-                  </motion.svg>
+                  </m.svg>
                   <div>
                     <p className="font-semibold text-gray-500">{t.noResults}</p>
                     <p className="text-sm text-gray-400 mt-1">{locale === 'en' ? 'Try a different keyword' : 'Intenta con otra palabra'}</p>
                   </div>
-                </motion.div>
+                </m.div>
               ) : (
-                <motion.div
+                <m.div
                   className="grid grid-cols-2 xl:grid-cols-3 gap-3"
                   initial="hidden"
                   animate="visible"
                   variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.05 } } }}
                 >
                   {searchResults.map((product) => (
-                    <motion.div
+                    <m.div
                       key={product.id}
                       variants={{ hidden: { opacity: 0, y: 14 }, visible: { opacity: 1, y: 0, transition: { duration: 0.28, ease: 'easeOut' } } }}
                     >
@@ -1011,9 +1012,9 @@ export function MenuShell({
                         locale={locale}
                         defaultLocale={defaultLocale}
                       />
-                    </motion.div>
+                    </m.div>
                   ))}
-                </motion.div>
+                </m.div>
               )}
             </div>
           ) : showFavs ? (
@@ -1057,13 +1058,13 @@ export function MenuShell({
               )}
             </div>
           ) : products.length === 0 ? (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
               className="text-center py-20 flex flex-col items-center gap-4"
             >
-              <motion.div
+              <m.div
                 initial={{ scale: 0.7 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
@@ -1072,26 +1073,26 @@ export function MenuShell({
                 <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
                   <path d="M6 10h24M6 18h24M6 26h14" stroke="#d1d5db" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
-              </motion.div>
+              </m.div>
               <p className="font-semibold text-gray-600">{t.noProductsYet}</p>
-            </motion.div>
+            </m.div>
           ) : activeDiet && filteredProducts.length === 0 ? (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-center py-20 text-gray-400 flex flex-col items-center gap-3"
             >
-              <motion.p
+              <m.p
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 className="text-4xl"
               >
                 {DIETARY_TAGS.find((d) => d.id === activeDiet)?.emoji}
-              </motion.p>
+              </m.p>
               <p className="font-medium">{t.noDietMatch}</p>
               <button onClick={() => setActiveDiet(null)} className="mt-1 text-sm text-emerald-600 font-semibold hover:text-emerald-700 transition-colors">{t.viewFullMenu}</button>
-            </motion.div>
+            </m.div>
           ) : (
             <div className="space-y-12">
               {displayedGroups.map(({ category, items, available }) => {
@@ -1140,7 +1141,7 @@ export function MenuShell({
                         </div>
                       )}
                       <LazyProductGrid itemCount={items.length}>
-                        <motion.div
+                        <m.div
                           className={cn('grid grid-cols-2 xl:grid-cols-3 gap-3', isLocked && 'opacity-40')}
                           initial="hidden"
                           whileInView="visible"
@@ -1151,7 +1152,7 @@ export function MenuShell({
                           }}
                         >
                           {items.map((product) => (
-                            <motion.div
+                            <m.div
                               key={product.id}
                               variants={{
                                 hidden: { opacity: 0, y: 16 },
@@ -1172,9 +1173,9 @@ export function MenuShell({
                                 locale={locale}
                                 defaultLocale={defaultLocale}
                               />
-                            </motion.div>
+                            </m.div>
                           ))}
-                        </motion.div>
+                        </m.div>
                       </LazyProductGrid>
                     </div>
                   </section>
@@ -1397,7 +1398,7 @@ export function MenuShell({
         const tx = cartRect ? cartRect.left + cartRect.width / 2 - p.sx : 0;
         const ty = cartRect ? cartRect.top + 40 - p.sy : -200;
         return (
-          <motion.div
+          <m.div
             key={p.id}
             className="fixed z-[999] w-5 h-5 rounded-full bg-emerald-500 pointer-events-none hidden lg:block"
             style={{ left: p.sx - 10, top: p.sy - 10 }}
@@ -1453,7 +1454,7 @@ export function MenuShell({
       <AnimatePresence>
         {isOpen && (
           <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end" role="dialog" aria-modal="true" aria-labelledby="cart-sheet-title">
-            <motion.div
+            <m.div
               className="absolute inset-0 bg-black/40"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1461,7 +1462,7 @@ export function MenuShell({
               transition={{ duration: 0.18 }}
               onClick={() => setOpen(false)}
             />
-            <motion.div
+            <m.div
               className="relative bg-white rounded-t-3xl shadow-2xl flex flex-col"
               style={{ maxHeight: '88dvh' }}
               initial={{ y: '100%' }}
@@ -1498,7 +1499,7 @@ export function MenuShell({
                 />
               </div>
               <div className="pb-[env(safe-area-inset-bottom)] flex-shrink-0" />
-            </motion.div>
+            </m.div>
           </div>
         )}
       </AnimatePresence>
@@ -1525,7 +1526,7 @@ export function MenuShell({
       {/* ── Mobile Full-screen Search Overlay ── */}
       <AnimatePresence>
         {showSearch && (
-          <motion.div
+          <m.div
             className="fixed inset-0 z-[70] bg-white flex flex-col lg:hidden"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1614,7 +1615,7 @@ export function MenuShell({
                 </div>
               )}
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -1657,7 +1658,7 @@ export function MenuShell({
         <>
           <AnimatePresence>
             {showLangPicker && (
-              <motion.div
+              <m.div
                 className="fixed inset-0 bg-black/20 z-[70]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -1668,7 +1669,7 @@ export function MenuShell({
           </AnimatePresence>
           <AnimatePresence>
             {showLangPicker && (
-              <motion.div
+              <m.div
                 className={cn('fixed left-4 z-[71] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden', cartCount > 0 ? 'bottom-48 lg:bottom-16' : 'bottom-16')}
                 initial={{ y: 20, opacity: 0, scale: 0.9 }}
                 animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -1694,7 +1695,7 @@ export function MenuShell({
                     </button>
                   );
                 })}
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
           <button
@@ -1712,5 +1713,6 @@ export function MenuShell({
       )}
 
     </div>
+    </LazyMotion>
   );
 }

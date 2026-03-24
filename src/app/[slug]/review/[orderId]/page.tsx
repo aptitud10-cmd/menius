@@ -13,6 +13,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `Leave a review | MENIUS`,
     description: 'Rate your experience',
+    robots: { index: false, follow: false },
   };
 }
 

@@ -6,6 +6,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import {
   CheckCircle, Camera, Upload,
   Loader2, Package, DoorOpen, MapPin, Bike,
@@ -299,7 +300,9 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
             </div>
             {photoUrl ? (
               <div className="space-y-2">
-                <img src={photoUrl} alt={t.photoAlt} className="w-full rounded-xl object-cover max-h-48" />
+                <div className="relative w-full h-48 rounded-xl overflow-hidden">
+                  <Image src={photoUrl} alt={t.photoAlt} fill className="object-cover" sizes="(max-width: 640px) 100vw, 640px" />
+                </div>
                 <p className="text-xs text-emerald-400 text-center">✓ {t.photoOk}</p>
               </div>
             ) : (

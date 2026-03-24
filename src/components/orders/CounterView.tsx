@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import Image from 'next/image';
 import {
   Menu, X, Bell, Check, CheckCircle, Clock, ChevronLeft,
   Truck, ShoppingBag, Utensils, MessageCircle, Phone,
@@ -1882,7 +1883,9 @@ function OrderDetail({
                       <div className="mt-2">
                         <p className="text-[10px] font-bold text-[#888] uppercase tracking-wider mb-1">📷 {t.en ? 'Delivery proof' : 'Foto de entrega'}</p>
                         <a href={(order as any).delivery_photo_url} target="_blank" rel="noopener noreferrer">
-                          <img src={(order as any).delivery_photo_url} alt="Delivery proof" className="w-full rounded-xl object-cover max-h-36 border border-[#E8E8E8]" />
+                          <div className="relative w-full h-36 rounded-xl overflow-hidden border border-[#E8E8E8]">
+                            <Image src={(order as any).delivery_photo_url} alt="Delivery proof" fill className="object-cover" sizes="(max-width: 480px) 100vw, 480px" />
+                          </div>
                         </a>
                       </div>
                     )}

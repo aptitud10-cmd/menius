@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { Restaurant, Category, Product } from '@/types';
 
@@ -33,10 +34,12 @@ export interface MenuData {
 }
 
 /**
- * Load public menu data from the database (no Data Cache wrapper).
+ * Load public menu data from the database.
+ * Wrapped in React.cache() so generateMetadata and the page component share a single
+ * Supabase request per slug per render pass — no duplicate queries.
  * Server actions call revalidatePublicMenu after edits; API routes that mutate products must too.
  */
-export async function fetchMenuData(slug: string): Promise<MenuData | null> {
+export const fetchMenuData = cache(async function fetchMenuData(slug: string): Promise<MenuData | null> {
   try {
     // Admin client bypasses RLS for public menu reads (server-side only, never exposed to client)
     const db = createAdminClient();
@@ -202,4 +205,4 @@ export async function fetchMenuData(slug: string): Promise<MenuData | null> {
     });
     return null;
   }
-}
+});
