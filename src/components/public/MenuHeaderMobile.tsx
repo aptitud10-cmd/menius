@@ -7,12 +7,10 @@
 
 import { memo, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShoppingCart, Search, ArrowLeft, LayoutDashboard } from 'lucide-react';
-import { useCartStore } from '@/store/cartStore';
+import { Search, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import type { MenuHeaderProps } from './MenuHeader';
-import { isRestaurantOpen } from './MenuHeader';
 
 let _sessionCache: Promise<boolean> | null = null;
 function checkIsLoggedIn(): Promise<boolean> {
@@ -34,10 +32,6 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
   isScrolled = false,
   hasCover = false,
 }: MenuHeaderProps) {
-  const itemCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.qty, 0));
-  const setOpen = useCartStore((s) => s.setOpen);
-  const open = isRestaurantOpen(restaurant.operating_hours);
-
   const [isOwner, setIsOwner] = useState(false);
   useEffect(() => {
     checkIsLoggedIn().then((loggedIn) => { if (loggedIn) setIsOwner(true); });
@@ -55,64 +49,48 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
           : cn('bg-white border-b', isScrolled ? 'border-gray-200 shadow-sm' : 'border-gray-100')
       )}
     >
-      <div className="flex items-center h-12 px-2 gap-1">
-        {/* Back */}
-        {backUrl && (
-          <Link
-            href={backUrl}
-            className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-lg active:bg-white/20 transition-colors"
-            aria-label="Back"
-          >
-            <ArrowLeft className={cn('w-5 h-5', isTransparent ? 'text-white drop-shadow' : 'text-gray-600')} />
-          </Link>
-        )}
+      <div className="relative flex items-center h-12 px-2">
+        {/* Left: Back */}
+        <div className="flex items-center flex-shrink-0">
+          {backUrl && (
+            <Link
+              href={backUrl}
+              className="w-10 h-10 flex items-center justify-center rounded-lg active:bg-white/20 transition-colors"
+              aria-label="Back"
+            >
+              <ArrowLeft className={cn('w-5 h-5', isTransparent ? 'text-white drop-shadow' : 'text-gray-600')} />
+            </Link>
+          )}
+        </div>
 
-        {/* Restaurant name — takes all available space */}
+        {/* Center: Restaurant name — absolutely centered */}
         <span className={cn(
-          'flex-1 min-w-0 font-bold text-sm truncate',
+          'absolute left-0 right-0 text-center font-bold text-base px-16 truncate pointer-events-none',
           !showName && 'invisible',
           isTransparent ? 'text-white drop-shadow' : 'text-gray-900'
         )}>
           {restaurant.name}
         </span>
 
-        {/* Dashboard (owner only) */}
-        {isOwner && (
-          <Link
-            href="/app"
+        {/* Right: Dashboard + Search */}
+        <div className="ml-auto flex items-center flex-shrink-0">
+          {isOwner && (
+            <Link
+              href="/app"
+              className="w-10 h-10 flex items-center justify-center rounded-lg active:bg-white/20 transition-colors"
+              aria-label="Dashboard"
+            >
+              <LayoutDashboard className={cn('w-4 h-4', isTransparent ? 'text-white drop-shadow' : 'text-gray-500')} />
+            </Link>
+          )}
+          <button
+            onClick={onToggleSearch}
             className="w-10 h-10 flex items-center justify-center rounded-lg active:bg-white/20 transition-colors"
-            aria-label="Dashboard"
+            aria-label="Search"
           >
-            <LayoutDashboard className={cn('w-4 h-4', isTransparent ? 'text-white drop-shadow' : 'text-gray-500')} />
-          </Link>
-        )}
-
-        {/* Search toggle — opens fullscreen overlay in MenuShell */}
-        <button
-          onClick={onToggleSearch}
-          className="w-10 h-10 flex items-center justify-center rounded-lg active:bg-white/20 transition-colors"
-          aria-label="Search"
-        >
-          <Search className={cn('w-4 h-4', isTransparent ? 'text-white drop-shadow' : 'text-gray-500')} />
-        </button>
-
-        {/* Cart button */}
-        <button
-          onClick={() => setOpen(true)}
-          className={cn(
-            'flex items-center gap-1.5 min-w-[44px] h-10 px-2.5 rounded-xl transition-colors justify-center flex-shrink-0',
-            itemCount > 0
-              ? 'bg-emerald-500 text-white'
-              : isTransparent
-                ? 'hover:bg-white/20'
-                : 'hover:bg-gray-100'
-          )}
-        >
-          <ShoppingCart className={cn('w-4 h-4', itemCount > 0 || isTransparent ? 'text-white drop-shadow' : 'text-gray-500')} />
-          {itemCount > 0 && (
-            <span className="text-xs font-bold tabular-nums">{itemCount}</span>
-          )}
-        </button>
+            <Search className={cn('w-4 h-4', isTransparent ? 'text-white drop-shadow' : 'text-gray-500')} />
+          </button>
+        </div>
       </div>
     </header>
   );
