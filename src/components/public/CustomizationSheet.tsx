@@ -180,8 +180,8 @@ export function CustomizationSheet({
     const vv = window.visualViewport;
     if (vv) {
       const sync = () => {
-        // Keyboard height = gap between layout viewport bottom and visual viewport bottom
-        const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        // Keyboard height: difference between layout and visual viewport heights
+        const kb = Math.max(0, window.innerHeight - vv.height);
         setKbOffset(kb);
         // Sheet height = visual viewport minus 52px gap at top
         const h = Math.min(vv.height - 52, vv.height * 0.97);
@@ -650,10 +650,10 @@ export function CustomizationSheet({
       </motion.div>
 
       {/* Floating "Listo" bar above keyboard when notes textarea is focused */}
-      {notesFocused && kbOffset > 0 && (
+      {notesFocused && (
         <div
           className="lg:hidden fixed left-0 right-0 z-[200] flex items-center justify-between px-4 py-2 bg-gray-800 border-t border-gray-700"
-          style={{ bottom: kbOffset }}
+          style={{ bottom: kbOffset > 0 ? kbOffset : 0, paddingBottom: kbOffset > 0 ? 0 : 'env(safe-area-inset-bottom)' }}
         >
           <span className="text-sm text-gray-300">
             {locale === 'es' ? 'Instrucciones especiales' : 'Special instructions'}
