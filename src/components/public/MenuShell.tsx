@@ -594,7 +594,9 @@ export function MenuShell({
       if (!container) return;
       const pill = container.querySelector(`[data-pill-id="${activeCategory}"]`) as HTMLElement;
       if (pill) {
-        pill.scrollIntoView({ behavior: 'instant', inline: 'center', block: 'nearest' });
+        // offsetLeft is relative to container — only moves horizontal axis, never vertical
+        const targetLeft = pill.offsetLeft - (container.offsetWidth - pill.offsetWidth) / 2;
+        container.scrollLeft = Math.max(0, targetLeft);
       }
     }
   }, [activeCategory]);
