@@ -413,6 +413,27 @@ export function CustomizationSheet({
       })}
 
 
+      <div className="px-5 pt-5 pb-4">
+        <label className="text-xs font-bold text-gray-900 uppercase tracking-wide block mb-2">
+          {t.specialNotes}
+          <span className="text-gray-400 font-normal normal-case ml-1">
+            ({locale === 'es' ? 'max 120 caracteres' : 'max 120 chars'})
+          </span>
+        </label>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value.slice(0, 120))}
+          placeholder={t.specialNotesPlaceholder}
+          rows={2}
+          maxLength={120}
+          className="w-full px-4 py-2.5 rounded-xl bg-gray-50 text-base text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none border border-gray-100"
+          onFocus={(e) => {
+            setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 320);
+          }}
+        />
+        <p className="text-[10px] text-gray-300 text-right mt-1">{notes.length}/120</p>
+      </div>
+
       {/* ── Smart complementary suggestions (always visible, below notes) ── */}
       {!isEditing && (suggestedProducts ?? []).length > 0 && (
         <div className="px-5 pt-1 pb-6">
