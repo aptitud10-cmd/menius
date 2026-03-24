@@ -191,6 +191,7 @@ export interface Order {
   updated_at?: string;
   estimated_ready_minutes?: number;
   scheduled_for?: string | null;
+  include_utensils?: boolean;
   // joined
   items?: OrderItem[];
   table?: Table;
