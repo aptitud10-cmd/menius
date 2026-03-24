@@ -214,14 +214,11 @@ Rules:
     const jsonStr = raw.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(jsonStr);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (item: unknown) =>
-        item !== null &&
-        typeof item === 'object' &&
-        typeof (item as Record<string, unknown>).productId === 'string' &&
-        typeof (item as Record<string, unknown>).qty === 'number' &&
-        (item as Record<string, unknown>).qty > 0
-    );
+    return parsed.filter((item: unknown) => {
+      if (item === null || typeof item !== 'object') return false;
+      const rec = item as Record<string, unknown>;
+      return typeof rec.productId === 'string' && typeof rec.qty === 'number' && (rec.qty as number) > 0;
+    });
   } catch {
     return [];
   }
