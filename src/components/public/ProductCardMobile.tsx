@@ -44,10 +44,9 @@ export const ProductCardMobile = memo(function ProductCardMobile({
   const isFav = useFavoritesStore((s) => s.ids.includes(product.id));
   const toggleFav = useFavoritesStore((s) => s.toggle);
 
-  const cartItems = useCartStore((s) => s.items);
-  const cartQty = cartItems
-    .filter((i) => i.product.id === product.id)
-    .reduce((s, i) => s + i.qty, 0);
+  const cartQty = useCartStore((s) =>
+    s.items.reduce((sum, i) => i.product.id === product.id ? sum + i.qty : sum, 0)
+  );
 
   const haptic = () => { try { navigator?.vibrate?.([25, 15, 10]); } catch {} };
 

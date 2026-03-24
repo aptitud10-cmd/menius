@@ -210,6 +210,13 @@ export function MenuShell({
   const bannerVisibleRef = useRef(true);
   const [headerScrolled, setHeaderScrolled] = useState(false);
   const hasCover = !!restaurant.cover_image_url;
+  const [isDesktopView, setIsDesktopView] = useState(false);
+  useEffect(() => {
+    const check = () => setIsDesktopView(window.innerWidth >= 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
   const cartColRef = useRef<HTMLDivElement>(null);
   const [flyParticles, setFlyParticles] = useState<{ id: number; sx: number; sy: number }[]>([]);
   const flyIdRef = useRef(0);
@@ -519,8 +526,10 @@ export function MenuShell({
     if (!main) return;
     const threshold = hasCover ? 100 : 40;
     let rafId = 0;
+    const desktop = window.innerWidth >= 1024;
     const onScroll = () => {
       setHeaderScrolled(main.scrollTop > threshold);
+      if (!desktop) return;
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
         const progress: Record<string, number> = {};
@@ -585,7 +594,7 @@ export function MenuShell({
       if (!container) return;
       const pill = container.querySelector(`[data-pill-id="${activeCategory}"]`) as HTMLElement;
       if (pill) {
-        pill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        pill.scrollIntoView({ behavior: 'instant', inline: 'center', block: 'nearest' });
       }
     }
   }, [activeCategory]);
@@ -599,6 +608,7 @@ export function MenuShell({
       key={id}
       data-pill-id={id}
       onClick={() => handleCategorySelect(id)}
+      style={{ touchAction: 'manipulation' }}
       className={cn(
         'flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 whitespace-nowrap',
         id === POPULAR_ID
@@ -622,6 +632,7 @@ export function MenuShell({
       key="__favs__"
       data-pill-id="__favs__"
       onClick={() => { setShowFavs(!showFavs); if (!showFavs) setActiveCategory(null); }}
+      style={{ touchAction: 'manipulation' }}
       className={cn(
         'flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 whitespace-nowrap',
         showFavs
@@ -644,6 +655,7 @@ export function MenuShell({
         setShowFavs(false);
         if (next) setActiveCategory(null);
       }}
+      style={{ touchAction: 'manipulation' }}
       className={cn(
         'flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 whitespace-nowrap',
         activeDiet === dt.id
@@ -662,12 +674,13 @@ export function MenuShell({
 
   const mobileCategoryPills = (
     <div className="lg:hidden sticky z-40 bg-white border-b border-gray-200" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
-      <div ref={mobilePillsRef} className="py-2 px-3 flex gap-2 overflow-x-auto scrollbar-hide">
+      <div ref={mobilePillsRef} className="py-2 px-3 flex gap-2 overflow-x-auto scrollbar-hide" style={{ touchAction: 'pan-x' }}>
         {/* Large catalog: "Todos" pill to show all categories */}
         {isLargeCatalog && (
           <button
             data-pill-id="__all__"
             onClick={() => { setActiveCatFilter(null); setActiveCategory(null); mainRef.current?.scrollTo({ top: 0, behavior: 'auto' }); }}
+            style={{ touchAction: 'manipulation' }}
             className={cn(
               'flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 whitespace-nowrap',
               !activeCatFilter && !showFavs && !activeDiet
@@ -1131,21 +1144,21 @@ export function MenuShell({
                       <LazyProductGrid itemCount={items.length}>
                         <motion.div
                           className={cn('grid grid-cols-2 xl:grid-cols-3 gap-3', isLocked && 'opacity-40')}
-                          initial="hidden"
-                          whileInView="visible"
-                          viewport={{ once: true, margin: '-40px' }}
-                          variants={{
+                          initial={isDesktopView ? 'hidden' : false}
+                          whileInView={isDesktopView ? 'visible' : undefined}
+                          viewport={isDesktopView ? { once: true, margin: '-40px' } : undefined}
+                          variants={isDesktopView ? {
                             hidden: {},
                             visible: { transition: { staggerChildren: 0.06 } },
-                          }}
+                          } : undefined}
                         >
                           {items.map((product) => (
                             <motion.div
                               key={product.id}
-                              variants={{
+                              variants={isDesktopView ? {
                                 hidden: { opacity: 0, y: 16 },
                                 visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
-                              }}
+                              } : undefined}
                             >
                               <ProductCard
                                 product={product}
