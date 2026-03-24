@@ -171,6 +171,7 @@ export function CustomizationSheet({
 
   const [vvH, setVvH] = useState<string>('96vh');
   const [kbOffset, setKbOffset] = useState(0);
+  const [notesFocused, setNotesFocused] = useState(false);
   const sheetBodyRef = useRef<HTMLDivElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
 
@@ -436,6 +437,7 @@ export function CustomizationSheet({
           maxLength={120}
           className="w-full px-4 py-2.5 rounded-xl bg-gray-50 text-base text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none border border-gray-100"
           onFocus={() => {
+            setNotesFocused(true);
             setTimeout(() => {
               const body = sheetBodyRef.current;
               const el = notesRef.current;
@@ -444,6 +446,7 @@ export function CustomizationSheet({
               }
             }, 450);
           }}
+          onBlur={() => setNotesFocused(false)}
         />
         <p className="text-[10px] text-gray-300 text-right mt-1">{notes.length}/120</p>
       </div>
@@ -645,6 +648,28 @@ export function CustomizationSheet({
         {sheetBody}
         {sheetFooter}
       </motion.div>
+
+      {/* Floating "Listo" bar above keyboard when notes textarea is focused */}
+      {notesFocused && kbOffset > 0 && (
+        <div
+          className="lg:hidden fixed left-0 right-0 z-[200] flex items-center justify-between px-4 py-2 bg-gray-800 border-t border-gray-700"
+          style={{ bottom: kbOffset }}
+        >
+          <span className="text-sm text-gray-300">
+            {locale === 'es' ? 'Instrucciones especiales' : 'Special instructions'}
+          </span>
+          <button
+            onMouseDown={(e) => {
+              e.preventDefault(); // prevent blur before tap registers
+              notesRef.current?.blur();
+            }}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-500 text-white text-sm font-bold active:bg-emerald-600"
+          >
+            <Check className="w-4 h-4" />
+            {locale === 'es' ? 'Listo' : 'Done'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
