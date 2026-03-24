@@ -262,9 +262,11 @@ export function MenuShell({
 
     if (isLargeCatalog) {
       setActiveCatFilter(catId);
-      // If the banner is visible, stay at top. If hidden, jump to just past the banner.
-      const top = bannerVisibleRef.current ? 0 : getBannerHeight();
-      mainRef.current?.scrollTo({ top, behavior: 'auto' });
+      // Only reset scroll if the banner is still visible (user is at top).
+      // If the banner is already off-screen, just swap the filter — no scroll needed.
+      if (bannerVisibleRef.current) {
+        mainRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+      }
       return;
     }
 
@@ -607,7 +609,7 @@ export function MenuShell({
     catScrollRef.current?.scrollBy({ left: dir === 'left' ? -200 : 200, behavior: 'smooth' });
   };
 
-  // Desktop: rounded pill style
+  // Shared pill renderer — premium style, works for both desktop and mobile
   const categoryPill = (id: string, label: string, isActive: boolean) => (
     <button
       key={id}
@@ -615,37 +617,14 @@ export function MenuShell({
       onClick={() => handleCategorySelect(id)}
       style={{ touchAction: 'manipulation' }}
       className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 whitespace-nowrap',
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors whitespace-nowrap',
         id === POPULAR_ID
           ? isActive
-            ? 'bg-amber-500 text-white shadow-md'
-            : 'bg-amber-50 text-amber-700 active:bg-amber-100'
+            ? 'bg-amber-500 text-white shadow-sm'
+            : 'bg-white border border-gray-200 text-gray-600 active:bg-gray-50'
           : isActive
-            ? 'bg-emerald-500 text-white shadow-md'
-            : 'bg-gray-100 text-gray-700 active:bg-gray-200'
-      )}
-    >
-      {id === POPULAR_ID && <span className="text-xs leading-none">🔥</span>}
-      {label}
-    </button>
-  );
-
-  // Mobile: underline tab style (Uber Eats native look)
-  const categoryTab = (id: string, label: string, isActive: boolean) => (
-    <button
-      key={id}
-      data-pill-id={id}
-      onClick={() => handleCategorySelect(id)}
-      style={{ touchAction: 'manipulation' }}
-      className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-3 text-[13px] whitespace-nowrap border-b-2 transition-colors',
-        id === POPULAR_ID
-          ? isActive
-            ? 'border-amber-500 text-gray-900 font-semibold'
-            : 'border-transparent text-gray-500 font-medium active:text-gray-700'
-          : isActive
-            ? 'border-emerald-500 text-gray-900 font-semibold'
-            : 'border-transparent text-gray-500 font-medium active:text-gray-700'
+            ? 'bg-emerald-500 text-white shadow-sm'
+            : 'bg-white border border-gray-200 text-gray-600 active:bg-gray-50'
       )}
     >
       {id === POPULAR_ID && <span className="text-xs leading-none">🔥</span>}
@@ -655,7 +634,6 @@ export function MenuShell({
 
   const visibleCats = itemsByCategory.map((g) => g.category);
 
-  // Desktop pill style for favs
   const favPill = hasMounted && favIds.length > 0 && (
     <button
       key="__favs__"
@@ -663,10 +641,10 @@ export function MenuShell({
       onClick={() => { setShowFavs(!showFavs); if (!showFavs) setActiveCategory(null); }}
       style={{ touchAction: 'manipulation' }}
       className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 whitespace-nowrap',
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors whitespace-nowrap',
         showFavs
-          ? 'bg-red-500 text-white shadow-md'
-          : 'bg-gray-100 text-gray-700 active:bg-gray-200'
+          ? 'bg-red-500 text-white shadow-sm'
+          : 'bg-white border border-gray-200 text-gray-600 active:bg-gray-50'
       )}
     >
       <Heart className={cn('w-3.5 h-3.5', showFavs ? 'fill-white' : '')} />
@@ -674,26 +652,6 @@ export function MenuShell({
     </button>
   );
 
-  // Mobile tab style for favs
-  const favTab = hasMounted && favIds.length > 0 && (
-    <button
-      key="__favs__"
-      data-pill-id="__favs__"
-      onClick={() => { setShowFavs(!showFavs); if (!showFavs) setActiveCategory(null); }}
-      style={{ touchAction: 'manipulation' }}
-      className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-3 text-[13px] whitespace-nowrap border-b-2 transition-colors',
-        showFavs
-          ? 'border-red-500 text-gray-900 font-semibold'
-          : 'border-transparent text-gray-500 font-medium active:text-gray-700'
-      )}
-    >
-      <Heart className={cn('w-3.5 h-3.5', showFavs ? 'fill-red-500 text-red-500' : '')} />
-      {favIds.length}
-    </button>
-  );
-
-  // Desktop pill style for dietary filters
   const dietPills = availableDiets.length > 0 && availableDiets.map((dt) => (
     <button
       key={dt.id}
@@ -706,34 +664,10 @@ export function MenuShell({
       }}
       style={{ touchAction: 'manipulation' }}
       className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-[13px] font-bold transition-all duration-200 whitespace-nowrap',
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors whitespace-nowrap',
         activeDiet === dt.id
-          ? 'bg-emerald-500 text-white shadow-md'
-          : 'bg-gray-100 text-gray-700 active:bg-gray-200'
-      )}
-    >
-      <span className="text-xs">{dt.emoji}</span>
-      {locale === 'en' ? dt.labelEn : dt.labelEs}
-    </button>
-  ));
-
-  // Mobile tab style for dietary filters
-  const dietTabs = availableDiets.length > 0 && availableDiets.map((dt) => (
-    <button
-      key={dt.id}
-      data-pill-id={`diet-${dt.id}`}
-      onClick={() => {
-        const next = activeDiet === dt.id ? null : dt.id;
-        setActiveDiet(next);
-        setShowFavs(false);
-        if (next) setActiveCategory(null);
-      }}
-      style={{ touchAction: 'manipulation' }}
-      className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-3 text-[13px] whitespace-nowrap border-b-2 transition-colors',
-        activeDiet === dt.id
-          ? 'border-emerald-500 text-gray-900 font-semibold'
-          : 'border-transparent text-gray-500 font-medium active:text-gray-700'
+          ? 'bg-emerald-500 text-white shadow-sm'
+          : 'bg-white border border-gray-200 text-gray-600 active:bg-gray-50'
       )}
     >
       <span className="text-xs">{dt.emoji}</span>
@@ -742,29 +676,29 @@ export function MenuShell({
   ));
 
   const filterDivider = (availableDiets.length > 0 || (hasMounted && favIds.length > 0)) && (
-    <div className="flex-shrink-0 self-stretch w-px bg-gray-200 my-2 mx-1" aria-hidden />
+    <div className="flex-shrink-0 self-center w-px h-5 bg-gray-200 mx-1" aria-hidden />
   );
 
   const mobileCategoryPills = (
-    <div className="lg:hidden sticky z-40 bg-white" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
-      <div ref={mobilePillsRef} className="flex overflow-x-auto scrollbar-hide border-b border-gray-200 px-1" style={{ touchAction: 'pan-x' }}>
-        {/* Large catalog: "Todos" tab */}
+    <div className="lg:hidden sticky z-40 bg-white border-b border-gray-100" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
+      <div ref={mobilePillsRef} className="py-2.5 px-3 flex gap-2 overflow-x-auto scrollbar-hide" style={{ touchAction: 'pan-x' }}>
+        {/* Large catalog: "Todos" pill */}
         {isLargeCatalog && (
           <button
             data-pill-id="__all__"
             onClick={() => { setActiveCatFilter(null); setActiveCategory(null); mainRef.current?.scrollTo({ top: 0, behavior: 'auto' }); }}
             style={{ touchAction: 'manipulation' }}
             className={cn(
-              'flex-shrink-0 inline-flex items-center px-3 py-3 text-[13px] whitespace-nowrap border-b-2 transition-colors',
+              'flex-shrink-0 inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold transition-colors whitespace-nowrap',
               !activeCatFilter && !showFavs && !activeDiet
-                ? 'border-emerald-500 text-gray-900 font-semibold'
-                : 'border-transparent text-gray-500 font-medium active:text-gray-700'
+                ? 'bg-emerald-500 text-white shadow-sm'
+                : 'bg-white border border-gray-200 text-gray-600 active:bg-gray-50'
             )}
           >
             {t.filterAll}
           </button>
         )}
-        {visibleCats.map((cat) => categoryTab(
+        {visibleCats.map((cat) => categoryPill(
           cat.id,
           tName(cat, locale, defaultLocale),
           isLargeCatalog
@@ -772,12 +706,12 @@ export function MenuShell({
             : activeCategory === cat.id && !showFavs && !activeDiet
         ))}
         {filterDivider}
-        {dietTabs}
-        {favTab}
-        {/* Spacer so last tab doesn't sit under the fade */}
+        {dietPills}
+        {favPill}
+        {/* Spacer so last pill doesn't sit under the fade */}
         <div className="w-8 flex-shrink-0" aria-hidden="true" />
       </div>
-      {/* Right-side fade indicating more tabs */}
+      {/* Right-side fade gradient indicating more content */}
       <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-white to-transparent" aria-hidden="true" />
     </div>
   );
