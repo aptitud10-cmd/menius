@@ -796,10 +796,8 @@ export function MenuShell({
           </div>
         )}
 
-        {/* Mobile pills — dentro del scroll, sticky debajo del header */}
-        <div className="lg:hidden">
-          {mobileCategoryPills}
-        </div>
+        {/* Mobile pills — sticky debajo del header */}
+        {mobileCategoryPills}
 
         {/* ── 3-Column row ── */}
         <div className="flex min-h-[calc(100dvh-48px)]">
