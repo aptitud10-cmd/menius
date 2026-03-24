@@ -182,7 +182,7 @@ export function MenuShell({
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const CATEGORY_PREVIEW = 8; // kept for potential future use
   // Large-catalog mode: 60+ products → one category at a time (like Uber Eats)
-  const LARGE_CATALOG_THRESHOLD = 60;
+  const LARGE_CATALOG_THRESHOLD = 150;
   const isLargeCatalog = products.length >= LARGE_CATALOG_THRESHOLD;
   const [activeCatFilter, setActiveCatFilter] = useState<string | null>(null);
   const [showFavs, setShowFavs] = useState(false);
