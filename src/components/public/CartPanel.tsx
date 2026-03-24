@@ -66,6 +66,7 @@ export function CartPanel({
   onCheckout,
   estimatedMinutes,
   deliveryFee,
+  locale = 'es',
   lastOrder,
   onReorder,
 }: CartPanelProps) {
@@ -304,7 +305,7 @@ export function CartPanel({
                           <button
                             onClick={() => removeItem(idx)}
                             className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                            aria-label={t.tapToRemove ?? 'Eliminar'}
+                            aria-label={`${locale === 'en' ? 'Remove' : 'Eliminar'} ${item.product.name}`}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
