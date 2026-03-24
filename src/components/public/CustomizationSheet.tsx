@@ -170,6 +170,7 @@ export function CustomizationSheet({
   const unitPrice = Number(product.price) + modifiersDelta;
 
   const [vvH, setVvH] = useState<string>('96vh');
+  const [kbOffset, setKbOffset] = useState(0);
   const sheetBodyRef = useRef<HTMLDivElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
 
@@ -178,7 +179,10 @@ export function CustomizationSheet({
     const vv = window.visualViewport;
     if (vv) {
       const sync = () => {
-        // Leave ~52px at top so the header with restaurant name/logo is barely visible
+        // Keyboard height = gap between layout viewport bottom and visual viewport bottom
+        const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        setKbOffset(kb);
+        // Sheet height = visual viewport minus 52px gap at top
         const h = Math.min(vv.height - 52, vv.height * 0.97);
         setVvH(`${h}px`);
       };
@@ -436,10 +440,9 @@ export function CustomizationSheet({
               const body = sheetBodyRef.current;
               const el = notesRef.current;
               if (body && el) {
-                const targetTop = el.offsetTop - 16;
-                body.scrollTo({ top: targetTop, behavior: 'smooth' });
+                body.scrollTo({ top: el.offsetTop - 16, behavior: 'smooth' });
               }
-            }, 350);
+            }, 450);
           }}
         />
         <p className="text-[10px] text-gray-300 text-right mt-1">{notes.length}/120</p>
@@ -598,8 +601,8 @@ export function CustomizationSheet({
 
       {/* Mobile: slide from bottom with drag-to-dismiss */}
       <motion.div
-        className="lg:hidden fixed bottom-0 left-0 right-0 bg-white flex flex-col shadow-2xl rounded-t-2xl"
-        style={{ maxHeight: vvH }}
+        className="lg:hidden fixed left-0 right-0 bg-white flex flex-col shadow-2xl rounded-t-2xl"
+        style={{ maxHeight: vvH, bottom: kbOffset, transition: kbOffset > 0 ? 'bottom 0.25s ease-out' : 'none' }}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
