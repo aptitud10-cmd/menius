@@ -654,7 +654,7 @@ export function MenuShell({
   );
 
   const mobileCategoryPills = (
-    <div className="lg:hidden sticky z-30 bg-white border-b border-gray-200" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
+    <div className="lg:hidden sticky z-40 bg-white border-b border-gray-200" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
       <div ref={mobilePillsRef} className="py-2 px-3 flex gap-2 overflow-x-auto scrollbar-hide">
         {/* Large catalog: "Todos" pill to show all categories */}
         {isLargeCatalog && (
