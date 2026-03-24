@@ -562,24 +562,31 @@ export function MenuShell({
   }, [showSearch, customization, isOpen, setOpen]);
 
   // Auto-scroll pill bar to show active pill.
-  // Use catScrollRef (desktop) when viewport >= 1024px, mobilePillsRef otherwise.
-  // The mobile div exists in the DOM even on desktop (just hidden via CSS),
-  // so we can't rely on null-check — we must check the actual viewport width.
+  // Desktop uses manual scrollTo (catScrollRef). Mobile uses scrollIntoView for reliability.
   useEffect(() => {
     if (!activeCategory) return;
     const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
-    const container = isDesktop ? catScrollRef.current : mobilePillsRef.current;
-    if (!container) return;
-    const pill = container.querySelector(`[data-pill-id="${activeCategory}"]`) as HTMLElement;
-    if (pill) {
-      const containerRect = container.getBoundingClientRect();
-      const pillRect = pill.getBoundingClientRect();
-      const targetLeft =
-        container.scrollLeft +
-        pillRect.left -
-        containerRect.left -
-        (containerRect.width - pillRect.width) / 2;
-      container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+    if (isDesktop) {
+      const container = catScrollRef.current;
+      if (!container) return;
+      const pill = container.querySelector(`[data-pill-id="${activeCategory}"]`) as HTMLElement;
+      if (pill) {
+        const containerRect = container.getBoundingClientRect();
+        const pillRect = pill.getBoundingClientRect();
+        const targetLeft =
+          container.scrollLeft +
+          pillRect.left -
+          containerRect.left -
+          (containerRect.width - pillRect.width) / 2;
+        container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+      }
+    } else {
+      const container = mobilePillsRef.current;
+      if (!container) return;
+      const pill = container.querySelector(`[data-pill-id="${activeCategory}"]`) as HTMLElement;
+      if (pill) {
+        pill.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
     }
   }, [activeCategory]);
 
