@@ -571,7 +571,7 @@ function OrderCard({
       {order.include_utensils === false && (expanded || isNew) && (
         <div className="flex items-center gap-1 text-[11px] text-gray-500 bg-gray-50 rounded-lg px-2 py-1 mb-1.5">
           <span>🚫🍴</span>
-          <span className="font-medium">{locale === 'en' ? 'No utensils' : 'Sin cubiertos'}</span>
+          <span className="font-medium">Sin cubiertos</span>
         </div>
       )}
 
@@ -790,7 +790,7 @@ function OrderDetailModal({
           {order.include_utensils === false && (
             <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-2">
               <span className="text-base">🚫🍴</span>
-              <span className="text-sm font-medium text-gray-600">{locale === 'en' ? 'No utensils requested' : 'Sin cubiertos ni servilletas'}</span>
+              <span className="text-sm font-medium text-gray-600">Sin cubiertos ni servilletas</span>
             </div>
           )}
 
