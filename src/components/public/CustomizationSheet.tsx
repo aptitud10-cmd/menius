@@ -433,7 +433,7 @@ export function CustomizationSheet({
           value={notes}
           onChange={(e) => setNotes(e.target.value.slice(0, 120))}
           placeholder={t.specialNotesPlaceholder}
-          rows={6}
+          rows={3}
           maxLength={120}
           className="w-full px-4 py-2.5 rounded-xl bg-gray-50 text-base text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none border border-gray-100"
           onFocus={() => {
