@@ -13,7 +13,7 @@ import type { Restaurant, OrderType, PaymentMethod } from '@/types';
 import { trackEvent } from '@/lib/analytics';
 import { playSuccessChime, spawnConfetti } from '@/lib/celebration';
 
-const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl border-2 border-gray-200 bg-gray-100 animate-pulse" />;
+const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl border border-gray-200 bg-gray-100 animate-pulse" />;
 
 const AddressAutocomplete = dynamic(
   () => import('@/components/ui/AddressAutocomplete').then((m) => ({ default: m.AddressAutocomplete })),
@@ -378,29 +378,29 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     }
   };
 
-  const inputClass = 'w-full px-4 py-4 rounded-2xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white';
+  const inputClass = 'w-full px-4 py-3.5 rounded-xl border border-gray-300 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white';
 
   if (!hasMounted) {
     return (
-      <div className="min-h-[100dvh] bg-gray-50 flex flex-col animate-pulse">
+      <div className="h-[100dvh] bg-[#f5f5f5] flex flex-col overflow-hidden animate-pulse">
         <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4">
           <div className="h-5 w-24 bg-gray-200 rounded-full" />
         </header>
         <div className="flex-1 px-4 py-5 space-y-4 max-w-lg mx-auto w-full">
-          <div className="bg-white rounded-2xl p-5 space-y-3 border-2 border-gray-200">
+          <div className="bg-white rounded-2xl p-5 space-y-3 border border-gray-200">
             <div className="h-3 w-32 bg-gray-200 rounded-full" />
             <div className="h-12 bg-gray-100 rounded-2xl" />
             <div className="h-12 bg-gray-100 rounded-2xl" />
             <div className="h-12 bg-gray-100 rounded-2xl" />
           </div>
-          <div className="bg-white rounded-2xl p-5 space-y-3 border-2 border-gray-200">
+          <div className="bg-white rounded-2xl p-5 space-y-3 border border-gray-200">
             <div className="h-3 w-24 bg-gray-200 rounded-full" />
             <div className="grid grid-cols-2 gap-2">
               <div className="h-12 bg-gray-100 rounded-2xl" />
               <div className="h-12 bg-gray-100 rounded-2xl" />
             </div>
           </div>
-          <div className="bg-white rounded-2xl p-5 space-y-3 border-2 border-gray-200">
+          <div className="bg-white rounded-2xl p-5 space-y-3 border border-gray-200">
             <div className="h-3 w-20 bg-gray-200 rounded-full" />
             <div className="h-16 bg-gray-100 rounded-2xl" />
             <div className="h-16 bg-gray-100 rounded-2xl" />
@@ -783,7 +783,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   return (
     <motion.div
-      className="min-h-[100dvh] bg-gray-50 flex flex-col"
+      className="h-[100dvh] bg-[#f5f5f5] flex flex-col overflow-hidden"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
@@ -808,7 +808,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         <div className="max-w-lg mx-auto px-5 py-6 space-y-6">
 
           {/* Order summary */}
-          <div className="bg-white rounded-2xl p-5 space-y-3 border-2 border-gray-200 shadow-sm">
+          <div className="bg-white rounded-2xl p-5 space-y-3 border border-gray-200 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
               <ShoppingCart className="w-4 h-4 text-gray-500" />
               <p className="text-sm font-semibold text-gray-900">{t.myOrder}</p>
@@ -909,7 +909,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           </div>
 
           {/* Order type */}
-          <div className="bg-white rounded-2xl p-5 border-2 border-gray-200 shadow-sm">
+          <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
             <label className="block text-sm font-semibold text-gray-900 mb-3">{t.orderType}</label>
             <div className={cn('grid gap-2', enabledOrderTypes.length === 3 ? 'grid-cols-3' : enabledOrderTypes.length === 2 ? 'grid-cols-2' : 'grid-cols-1')}>
               {enabledOrderTypes.map((type) => (
@@ -917,7 +917,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   key={type}
                   onClick={() => setOrderType(type)}
                   className={cn(
-                    'py-4 px-3 rounded-xl text-[15px] font-bold text-center transition-all duration-150 border-2',
+                    'py-3.5 px-3 rounded-xl text-[15px] font-bold text-center transition-all duration-150 border',
                     orderType === type
                       ? 'bg-gray-900 text-white border-gray-900'
                       : 'bg-white text-gray-600 border-gray-200 active:border-gray-400'
@@ -947,8 +947,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           </div>
 
           {/* Customer details */}
-          <div className="bg-white rounded-2xl p-5 border-2 border-gray-200 shadow-sm space-y-5">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">{locale === 'es' ? 'Tus datos' : 'Your details'}</p>
+          <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm space-y-5">
+            <p className="text-sm font-bold text-gray-900">{locale === 'es' ? 'Tus datos' : 'Your details'}</p>
             <div>
               {/* Honeypot — invisible to real users, filled automatically by bots */}
               <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', visibility: 'hidden', pointerEvents: 'none' }} aria-hidden="true">
@@ -1060,11 +1060,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           </div>
 
           {/* Payment method */}
-          <div className="bg-white rounded-2xl p-5 border-2 border-gray-200 shadow-sm">
+          <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
             <label className="block text-sm font-semibold text-gray-900 mb-3">{t.paymentMethod}</label>
             <div className="space-y-2">
               {enabledPaymentMethods.map((method) => (
-                <label key={method} className={cn('flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all duration-150', paymentMethod === method ? 'border-gray-900 bg-gray-50' : 'border-gray-200')}>
+                <label key={method} className={cn('flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-150', paymentMethod === method ? 'border-gray-900 bg-gray-50' : 'border-gray-200')}>
                   <input type="radio" name="paymentMethod" value={method} checked={paymentMethod === method} onChange={() => setPaymentMethod(method)} className="w-5 h-5 text-gray-900 focus:ring-gray-900/20" />
                   <span className="text-[15px] font-medium text-gray-800">{method === 'cash' ? t.payCash : t.payOnline}</span>
                 </label>
@@ -1073,7 +1073,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           </div>
 
           {/* Promo code */}
-          <div className="bg-white rounded-2xl p-5 border-2 border-gray-200 shadow-sm">
+          <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
             <label className="block text-sm font-semibold text-gray-900 mb-2">{t.promoCode}</label>
             <div className="flex gap-2">
               <input type="text" value={promoCode} onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); setPromoResult(null); }} placeholder={t.promoCodePlaceholder} className={cn(inputClass, 'flex-1 uppercase')} />
@@ -1100,7 +1100,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     type="button"
                     onClick={() => { setTipPercent(isActive ? null : pct); }}
                     className={cn(
-                      'flex flex-col items-center py-3 rounded-xl border-2 transition-all duration-150',
+                      'flex flex-col items-center py-3 rounded-xl border transition-all duration-150',
                       isActive ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 active:border-gray-400'
                     )}
                   >
@@ -1117,7 +1117,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       </div>
 
       {/* Sticky footer */}
-      <div className="sticky bottom-0 bg-white border-t-2 border-gray-200 px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] space-y-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+      <div className="sticky bottom-0 bg-white border-t border-gray-200 px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] space-y-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
         <AnimatePresence>
           {orderError && (
             <motion.div
