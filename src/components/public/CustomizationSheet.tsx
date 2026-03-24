@@ -605,7 +605,7 @@ export function CustomizationSheet({
       {/* Mobile: slide from bottom with drag-to-dismiss */}
       <motion.div
         className="lg:hidden fixed left-0 right-0 bg-white flex flex-col shadow-2xl rounded-t-2xl"
-        style={{ maxHeight: vvH, bottom: kbOffset, transition: kbOffset > 0 ? 'bottom 0.25s ease-out' : 'none' }}
+        style={{ maxHeight: notesFocused ? '98dvh' : vvH, bottom: kbOffset, transition: 'max-height 0.2s ease-out, bottom 0.25s ease-out' }}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
