@@ -92,13 +92,14 @@ export async function GET(request: NextRequest) {
       .in('modifier_group_id', modGroupIds.length > 0 ? modGroupIds : ['null']);
 
     // 8. Fetch reviews
-    const { data: reviews = [] } = await adminDb
+    const { data: reviewsData = [] } = await adminDb
       .from('reviews')
       .select('*')
       .eq('restaurant_id', restaurantId)
       .eq('is_approved', true)
       .order('created_at', { ascending: false })
       .limit(50);
+    const reviews = reviewsData ?? [];
 
     // 9. Fetch delivery zones
     const { data: deliveryZones = [] } = await adminDb
