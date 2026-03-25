@@ -281,7 +281,7 @@ export async function GET(request: NextRequest) {
     const statistics = {
       totalOrders,
       averageRating,
-      totalReviews: reviews.length,
+      totalReviews: (reviews || []).length,
       totalRevenue,
       responseRate: 95,
       averagePreparationTime: restaurantData.delivery_time_minutes || 30
