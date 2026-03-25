@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     // ─── CATEGORY → CONTAINER (what the food/drink is IN or ON) ─────────────
     // This is the critical fix for the "pan/skillet" problem.
-    function getContainer(): string {
+    const getContainer = (): string => {
       if (/margarita/.test(lowerName)) return 'a classic margarita glass with a salted rim, lime wedge on the rim';
       if (/cerveza|beer|craft beer/.test(lowerName)) return 'a cold frosted pint glass with a creamy foam head';
       if (/mezcal/.test(lowerName)) return 'a traditional clay copita (small clay cup) with an orange slice and sal de gusano';
