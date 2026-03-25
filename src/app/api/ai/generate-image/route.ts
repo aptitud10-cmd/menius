@@ -41,98 +41,167 @@ export async function POST(request: NextRequest) {
     const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ apiKey });
 
-    const styleInstructions: Record<string, string> = {
-      professional: 'Professional food photography for a high-end restaurant menu. Clean white marble or light gray surface. Soft diffused natural window light from the left. Shallow depth of field (f/2.8). Subtle garnish visible.',
-      rustic: 'Rustic artisanal food photography for a cozy restaurant. Reclaimed wooden table surface. Warm golden-hour side lighting. Linen napkin and vintage utensils as subtle props. Overhead 60-degree angle.',
-      modern: 'Modern minimalist food photography for a trendy restaurant. Matte ceramic plate on solid muted background. Bright, even, shadowless studio lighting. Geometric plating. Clean overhead flat-lay.',
-      vibrant: 'Vibrant editorial food photography. Rich saturated colors. Dynamic 30-degree hero angle. Fresh herb garnishes and ingredient splashes around the plate. Bright natural daylight with hard shadows.',
+    // ─── CATEGORY → HERO ANGLE ───────────────────────────────────────────────
+    const angleMap: Record<string, string> = {
+      Beverages:  'Camera at 20-degree tilt — shows glass profile, liquid level and condensation clearly.',
+      Drinks:     'Camera at 20-degree tilt — shows glass profile, liquid level and condensation clearly.',
+      'Hot drinks': 'Camera at 22-degree tilt — captures steam rising from the cup.',
+      Desserts:   'Camera at 45-degree angle — captures every layer, drizzle and topping.',
+      Breakfast:  'Camera at 50-degree overhead — shows full plate layout and vibrant colors.',
+      Salads:     'Camera directly overhead (flat-lay) — all ingredients visible, beautiful composition.',
+      Pizza:      'Camera directly overhead — full pizza visible, one slice pulled slightly away showing cheese stretch.',
+      Soups:      'Camera directly overhead — bowl centered, garnish floating, steam rising.',
+      Tacos:      'Camera at 28-degree angle — 2–3 tacos arranged naturally, filling and toppings fully visible.',
+      Bowls:      'Camera at 45-degree overhead — all ingredients arranged in sections, beautiful colors.',
+      Burgers:    'Camera at 38-degree angle (the McDonald\'s standard) — every layer of the burger clearly visible, bun sesame seeds sharp.',
+      Sandwiches: 'Camera at 35-degree angle — cross-section visible showing all fillings.',
+      Chicken:    'Camera at 30-degree angle — crispy texture and char visible from this angle.',
+      Sushi:      'Camera at 15-degree tilt — pieces arranged in a line, rice texture and fish color visible.',
+      Pasta:      'Camera at 40-degree angle — depth of the bowl, sauce coating and garnish visible.',
+    };
+    const angleInstruction = (category && angleMap[category]) ? angleMap[category] : 'Camera at 38-degree hero angle — the universal professional food photography standard used by top restaurant chains.';
+
+    // ─── CATEGORY → SURFACE & BACKGROUND ─────────────────────────────────────
+    const surfaceMap: Record<string, string> = {
+      Burgers:    'Polished dark slate stone surface. Deep matte charcoal background. One sesame seed scattered naturally.',
+      Chicken:    'Rustic matte black ceramic tile surface. Deep charcoal background. One sprig of rosemary at edge.',
+      Pizza:      'Worn wooden pizza board surface. Dark warm background.',
+      Tacos:      'Terracotta or warm stone surface. Earthy warm-toned background.',
+      Desserts:   'White marble surface with subtle veining. Soft light gray background.',
+      Beverages:  'Polished black granite surface. Dark charcoal background. Water droplets on nearby surface.',
+      Drinks:     'Polished black granite surface. Dark charcoal background.',
+      'Hot drinks': 'Light oak wood surface. Warm cream-toned background.',
+      Salads:     'White ceramic plate on white marble surface. Clean bright background.',
+      Soups:      'Dark ceramic bowl on slate surface. Moody dark background.',
+      Sushi:      'Black lacquered slate surface. Minimalist dark background. Subtle bamboo mat at edge.',
+      Pasta:      'White ceramic bowl on linen cloth. Warm off-white background.',
+      Breakfast:  'Light oak wood surface. Warm soft morning-light background.',
+    };
+    const surfaceInstruction = (category && surfaceMap[category]) ? surfaceMap[category] : 'Polished matte slate surface. Deep charcoal background — makes food colors pop dramatically.';
+
+    // ─── FOOD TYPE → STYLING DETAILS ─────────────────────────────────────────
+    const lowerName = (productName + ' ' + (description ?? '')).toLowerCase();
+
+    const getFoodStylingDetails = (): string => {
+      if (/burger|hamburguesa|smash|whopper|big.?mac/.test(lowerName)) {
+        return 'Burger layers perfectly stacked and visible. Cheese gently melting over the patty edges in golden ribbons. Patty showing deep Maillard-reaction crust with visible sear marks. Lettuce crisp and vibrant green, tomato slice red and fresh, sauce peeking out at edges. Bun lightly toasted, golden-brown, sesame seeds perfectly distributed. One tiny drip of sauce falling from the side — the iconic "money shot".';
+      }
+      if (/pollo|chicken|fried|crispy|kentucky|crujiente/.test(lowerName)) {
+        return 'Fried chicken showing spectacular crispy golden-brown crust with visible ridges and crunchy texture from the Maillard reaction. Steam wisps rising from the hot interior. Cross-section showing juicy white meat inside. Coating glistening under the rim light.';
+      }
+      if (/taco|burrito|quesadilla|enchilada|fajita/.test(lowerName)) {
+        return 'Taco filling overflowing naturally — visible layers of protein, fresh salsa, vibrant cilantro, crisp white onion. Lime wedge cut and placed nearby with one drop of juice. Corn or flour tortilla with slight char marks. Micro water droplets on the vegetables suggesting ultimate freshness.';
+      }
+      if (/pizza/.test(lowerName)) {
+        return 'One pizza slice being slightly lifted — mozzarella cheese stretching in long, glossy strands (the iconic cheese pull). Toppings perfectly distributed. Crust showing golden-brown bubbles and char spots from the oven. Sauce visible at the crust edge. Steam rising from the freshly baked surface.';
+      }
+      if (/pasta|spaghetti|fettuccine|penne|lasagna|carbonara|alfredo/.test(lowerName)) {
+        return 'Pasta twisted naturally into a nest. Sauce coating every strand — glistening under the key light. Fresh basil leaf placed precisely on top. Parmigiano shavings falling mid-air. Steam rising from the hot dish. Fork twisted in pasta at the side of the bowl.';
+      }
+      if (/sushi|roll|maki|nigiri|sashimi/.test(lowerName)) {
+        return 'Sushi pieces arranged in a perfect diagonal line. Fish glistening with natural sheen. Rice texture sharp and individual grains visible. Wasabi and pickled ginger placed at the corner. Tiny sesame seeds on top catching the light.';
+      }
+      if (/arepa|bandeja|changua|ajiaco|sancocho/.test(lowerName)) {
+        return 'Traditional Colombian plating. Vibrant colors of each ingredient separated beautifully. Arepa showing golden-brown toasted exterior. Melted cheese pulling naturally. Hogao sauce glistening. Fresh avocado slices with lime. Steam from hot components.';
+      }
+      if (/ceviche|lomo.?saltado|aji.?de.?gallina|causa|anticucho/.test(lowerName)) {
+        return 'Modern Peruvian fine-dining presentation. Aji amarillo sauce artfully drizzled. Micro herbs placed precisely. Corn and purple potato as colorful accents. Every element looking bright, fresh and meticulously placed.';
+      }
+      if (/helado|ice.?cream|gelato|sundae/.test(lowerName)) {
+        return 'Ice cream scoops perfectly rounded, glistening. Sauce dripping naturally down the sides in a controlled flow. Toppings scattered with precision. Micro condensation on the cold glass or bowl. Color contrast between the ice cream and sauce dramatic.';
+      }
+      if (/café|coffee|latte|cappuccino|espresso/.test(lowerName)) {
+        return 'Latte art on the surface — perfect rosette or tulip pattern in the foam. Steam curling elegantly upward, backlit. Cup showing warm ceramic tones. Crema on espresso deep golden-brown. Condensation on glass if iced.';
+      }
+      if (/smoothie|jugo|juice|batido/.test(lowerName)) {
+        return 'Vibrant color of the drink saturated and glowing. Condensation droplets on the outside of the glass. Fruit slice on the rim. Straw positioned at an angle. One splash of liquid frozen mid-air (if creatively appropriate).';
+      }
+      return 'Every ingredient perfectly visible and identifiable. Food appears fresh, appetizing and perfectly cooked. Textures crisp, sauces glistening, proteins showing golden-brown Maillard reaction. Steam rising if hot. Natural moisture droplets if cold or fresh.';
     };
 
-    const stylePrompt = styleInstructions[style] || styleInstructions.professional;
-
-    // Latin cuisine detection — specific plating and dishware by country/region
+    // ─── CUISINE CONTEXT ──────────────────────────────────────────────────────
     const latinCuisineMap: Record<string, string> = {
-      Mexican: 'Authentic Mexican plating: rustic clay or talavera ceramic plate, warm terracotta tones, fresh cilantro, lime wedge, red and green salsa on the side. Traditional Mexican street food or restaurant presentation.',
-      Colombian: 'Authentic Colombian plating: colorful ceramic or white plate, traditional garnishes with hogao sauce, crispy chicharrón, patacones, or rice and beans. Bandeja paisa style for hearty dishes.',
-      Peruvian: 'Authentic Peruvian plating: modern Nikkei or traditional presentation, aji amarillo sauces, corn, purple potato, microgreens. Clean fine-dining plating with Andean ingredients.',
-      Argentine: 'Authentic Argentine plating: rustic wooden board or white ceramic, asado-style charcoal marks, chimichurri sauce on the side, red wine glass hint in background. Bold, hearty South American style.',
-      Venezuelan: 'Authentic Venezuelan plating: arepa on a colorful plate, melting cheese, black beans, shredded beef (pabellón style). Warm tropical colors, plantains as garnish.',
-      Brazilian: 'Authentic Brazilian plating: bright ceramic plate, feijoada style with black beans, white rice, farofa, orange slices. Tropical colors and generous portions.',
-      Guatemalan: 'Authentic Central American plating: rustic ceramic, black beans, rice, tortillas, pepián sauce. Traditional Mayan-inspired garnishes and natural earthen colors.',
-      Spanish: 'Authentic Spanish tapas or paella style: cazuela clay dish, saffron-colored rice, seafood, chorizo. Mediterranean warmth with olive oil drizzle.',
-      Italian: 'Authentic Italian plating: white ceramic plate, fresh basil leaves, extra virgin olive oil drizzle, Parmigiano shavings. Simple, elegant, bistro-style presentation.',
-      Japanese: 'Authentic Japanese plating: lacquerware or minimalist white ceramic, wasabi and pickled ginger, clean geometric presentation. Kaiseki-inspired minimal elegance.',
-      American: 'American comfort food style: cast iron skillet or thick ceramic plate, generous portion, crispy edges visible. Casual diner or gourmet burger restaurant style.',
-      Chinese: 'Authentic Chinese plating: porcelain bowl or plate with blue and white pattern, steaming broth, chopsticks visible at edge. Restaurant-quality dim sum or wok-fried presentation.',
+      Mexican:    'Rustic clay or Talavera ceramic plate. Warm terracotta color palette. Cilantro, lime wedge, salsa roja and verde on the side.',
+      Colombian:  'Colorful ceramic plate. Hogao sauce, crispy chicharrón, patacones visible. Bandeja paisa generosity and color.',
+      Peruvian:   'Modern fine-dining plate. Aji amarillo sauce drizzle, corn, purple potato, microgreens. Nikkei-inspired elegant precision.',
+      Argentine:  'Rustic wooden board. Char marks from the grill, chimichurri sauce on the side, lemon wedge. Bold South American style.',
+      Venezuelan: 'Colorful ceramic plate. Melting cheese, black beans, shredded beef (pabellón style). Plantains as garnish.',
+      Brazilian:  'Bright ceramic plate. Black beans, white rice, farofa, orange slices. Generous tropical portions.',
+      Spanish:    'Cazuela clay dish or white ceramic. Saffron color, olive oil drizzle, paprika dust. Mediterranean warmth.',
+      Italian:    'White ceramic plate. Fresh basil leaf, extra-virgin olive oil drizzle, Parmigiano shavings. Simple, elegant, Michelin-adjacent.',
+      Japanese:   'Black lacquer or minimalist white ceramic. Wasabi and pickled ginger. Clean geometric precision.',
+      American:   'Cast iron skillet or thick white ceramic. Generous portion, crispy edges, diner-meets-gourmet energy.',
+      Chinese:    'Blue-and-white porcelain bowl. Steaming broth, chopsticks at edge. Wok-fired restaurant quality.',
     };
 
     const cuisineContext = cuisine && cuisine !== 'General' && latinCuisineMap[cuisine]
       ? latinCuisineMap[cuisine]
       : cuisine && cuisine !== 'General'
-        ? `This is a ${cuisine} cuisine dish. Use authentic ${cuisine} plating style, traditional garnishes, and appropriate dishware.`
+        ? `${cuisine} cuisine: authentic plating style, traditional garnishes and appropriate dishware for ${cuisine} food culture.`
         : '';
 
-    // Auto-detect Latin cuisine from product name
-    const lowerName = (productName + ' ' + (description ?? '')).toLowerCase();
-    let autoLatinContext = '';
+    let autoCuisineContext = '';
     if (!cuisineContext) {
-      if (/taco|burrito|quesadilla|enchilada|pozole|mole|tamale|tostada|chilaquil|guacamol|elote|tlayuda|torta|huarache/.test(lowerName)) {
-        autoLatinContext = latinCuisineMap.Mexican;
-      } else if (/arepa|bandeja|changua|ajiaco|sancocho|aguapanela|chicharrón|patacón/.test(lowerName)) {
-        autoLatinContext = latinCuisineMap.Colombian;
-      } else if (/ceviche|lomo.?saltado|aji.?de.?gallina|causa|anticucho|chicha/.test(lowerName)) {
-        autoLatinContext = latinCuisineMap.Peruvian;
-      } else if (/asado|empanada|choripán|milanesa|locro|chimichurri/.test(lowerName)) {
-        autoLatinContext = latinCuisineMap.Argentine;
-      } else if (/pabellón|cachapa|hallaca|tequeño/.test(lowerName)) {
-        autoLatinContext = latinCuisineMap.Venezuelan;
-      } else if (/feijoada|coxinha|brigadeiro|caipirinha|pão.?de.?queijo/.test(lowerName)) {
-        autoLatinContext = latinCuisineMap.Brazilian;
-      } else if (/pizza|pasta|risotto|ossobuco|carbonara|lasagna|gnocchi/.test(lowerName)) {
-        autoLatinContext = latinCuisineMap.Italian;
-      } else if (/sushi|ramen|udon|tempura|katsu|miso|onigiri/.test(lowerName)) {
-        autoLatinContext = latinCuisineMap.Japanese;
-      }
+      if (/taco|burrito|quesadilla|enchilada|pozole|mole|tamale|tostada|chilaquil|guacamol|elote|torta|huarache/.test(lowerName)) autoCuisineContext = latinCuisineMap.Mexican;
+      else if (/arepa|bandeja|changua|ajiaco|sancocho|aguapanela|chicharrón|patacón/.test(lowerName)) autoCuisineContext = latinCuisineMap.Colombian;
+      else if (/ceviche|lomo.?saltado|aji.?de.?gallina|causa|anticucho/.test(lowerName)) autoCuisineContext = latinCuisineMap.Peruvian;
+      else if (/asado|choripán|milanesa|locro|chimichurri/.test(lowerName)) autoCuisineContext = latinCuisineMap.Argentine;
+      else if (/pabellón|cachapa|hallaca|tequeño/.test(lowerName)) autoCuisineContext = latinCuisineMap.Venezuelan;
+      else if (/feijoada|coxinha|brigadeiro|pão.?de.?queijo/.test(lowerName)) autoCuisineContext = latinCuisineMap.Brazilian;
+      else if (/pizza|pasta|risotto|carbonara|lasagna|gnocchi|tiramisu/.test(lowerName)) autoCuisineContext = latinCuisineMap.Italian;
+      else if (/sushi|ramen|udon|tempura|katsu|miso|onigiri/.test(lowerName)) autoCuisineContext = latinCuisineMap.Japanese;
     }
 
-    const effectiveCuisineContext = cuisineContext || autoLatinContext;
+    const effectiveCuisineContext = cuisineContext || autoCuisineContext;
 
-    const categoryHint = category ? `Category: ${category}.` : '';
+    // ─── STYLE OVERRIDE ───────────────────────────────────────────────────────
+    const styleOverride = style === 'rustic'
+      ? 'Warm, rustic feel: reclaimed wood surface, golden-hour side lighting, linen napkin at edge.'
+      : style === 'modern'
+        ? 'Modern minimalist: matte ceramic on solid muted background, shadowless studio light, geometric plating, flat-lay.'
+        : style === 'vibrant'
+          ? 'Vibrant editorial: saturated colors, hard natural daylight shadows, ingredient splashes around the plate.'
+          : '';
 
-    const angleMap: Record<string, string> = {
-      'Beverages': 'Shot from a slight 20-degree angle to show the glass/cup and liquid level clearly.',
-      'Drinks': 'Shot from a slight 20-degree angle to show the glass/cup and liquid level clearly.',
-      'Desserts': 'Shot from a 45-degree angle to capture layers, textures, and toppings.',
-      'Breakfast': 'Shot from overhead flat-lay to show the full plate composition.',
-      'Salads': 'Shot from overhead to show all ingredients and colors.',
-      'Pizza': 'Shot from directly overhead to show toppings, with one slice slightly pulled away.',
-      'Soups': 'Shot from overhead to show the bowl and garnish floating on top.',
-      'Tacos': 'Shot from a 30-degree angle to show the filling and toppings clearly, two or three tacos arranged naturally.',
-      'Bowls': 'Shot from overhead at 45 degrees to show all ingredients arranged beautifully.',
-    };
-    const angleHint = (category && angleMap[category]) ? angleMap[category] : '';
+    // ─── BUILD THE FINAL PROMPT ───────────────────────────────────────────────
+    const foodStyling = getFoodStylingDetails();
 
-    const prompt = `A single, stunning, photorealistic food photograph of: "${productName}"${description ? `. ${description}` : ''}.
+    const prompt = `Commercial food advertising photograph — the kind shot for a world-class restaurant chain like McDonald's, KFC or Nobu, produced by an award-winning food photographer using a Hasselblad H6D-400C with a 120mm f/4 macro lens, lit by a professional three-point studio lighting rig, retouched in Capture One Pro.
 
-${effectiveCuisineContext}
-${categoryHint}
-${stylePrompt}
-${angleHint}
+SUBJECT: "${productName}"${description ? ` — ${description}` : ''}.
+${effectiveCuisineContext ? `\nCUISINE CONTEXT: ${effectiveCuisineContext}` : ''}
+FOOD STYLING: ${foodStyling}
 
-FRAMING (critical):
-- Landscape orientation, roughly 16:9 aspect ratio (wider than tall)
-- The ENTIRE dish must be fully visible within the frame — no part of the plate or food cut off at any edge
-- Center the dish with 10-15% breathing room (margin) around all sides
-- The dish should fill about 70-80% of the frame, leaving clean background visible
+LIGHTING SETUP (critical — replicate exactly):
+- Key light: 120cm octabox softbox at 45° left, 1.2m from dish — creates soft gradients, no harsh shadows
+- Fill light: large silver reflector at 30° right — reduces shadow contrast to a flattering 3:1 ratio
+- Rim/backlight: strip softbox directly behind the dish — creates a luminous halo around steam, edges and texture
+- Combined result: food appears to GLOW from within, exactly like a multi-million-dollar advertising campaign
 
-Technical requirements:
-- Ultra-realistic food photography, 4K HDR quality, indistinguishable from a real photo by a professional photographer
-- Absolutely NO text, watermarks, logos, or labels anywhere in the image
-- Single dish, perfectly plated, as it would be served in a real restaurant
-- Food must look fresh, steaming if hot, glistening if sauced, crispy if fried
-- Professional color grading with appetizing warm tones
-- Shallow depth of field with the dish in sharp focus
-- No human hands, no faces, no distracting background elements`;
+CAMERA & COMPOSITION:
+- Aperture f/3.2 — subject razor-sharp, background melts into creamy bokeh
+- ISO 100 — zero grain, ultra-clean shadows
+- ${angleInstruction}
+- Dish fills 75% of the 16:9 frame — elegant breathing room on all sides, NEVER cropped at any edge
+- Rule of thirds applied — subject positioned at left or center third, negative space breathes on the right
+
+SURFACE & BACKGROUND:
+- ${surfaceInstruction}
+${styleOverride ? `- Style override: ${styleOverride}` : ''}
+
+COLOR GRADING (baked into the image):
+- Color temperature 5800K — makes golden-browns, crispy crusts and warm tones absolutely sing
+- Slightly lifted blacks (cinematic depth, not pure black) 
+- Teal-orange color split: warm food tones contrast against cool dark background
+- Micro contrast boost on all textures — every crispy ridge, pore and glaze highlight visible
+- Vibrance naturally elevated — food looks rich and real, never oversaturated
+
+QUALITY MANDATE:
+- 4K ultra-high resolution, 100% photorealistic, indistinguishable from a real photograph
+- The image must make the viewer immediately hungry upon seeing it
+- Shot for a premium restaurant advertising campaign — zero compromise on quality
+- Absolutely NO text, watermarks, logos, UI elements, or human hands visible
+- NO illustration, painting, cartoon or AI-looking artifacts — pure photorealism only`;
 
     // Use Imagen 4 for superior photorealistic food photography
     let imageBase64: string | null = null;
