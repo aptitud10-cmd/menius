@@ -41,206 +41,236 @@ export async function POST(request: NextRequest) {
     const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ apiKey });
 
+    const lowerName = (productName + ' ' + (description ?? '')).toLowerCase();
+    const isDrink = ['Beverages', 'Hot drinks', 'Cocktails', 'Drinks'].includes(category ?? '');
+
     // ─── CATEGORY → HERO ANGLE ───────────────────────────────────────────────
     const angleMap: Record<string, string> = {
-      Beverages:  'Camera at 20-degree tilt — shows glass profile, liquid level and condensation clearly.',
-      Drinks:     'Camera at 20-degree tilt — shows glass profile, liquid level and condensation clearly.',
-      'Hot drinks': 'Camera at 22-degree tilt — captures steam rising from the cup.',
-      Desserts:   'Camera at 45-degree angle — captures every layer, drizzle and topping.',
-      Breakfast:  'Camera at 50-degree overhead — shows full plate layout and vibrant colors.',
-      Salads:     'Camera directly overhead (flat-lay) — all ingredients visible, beautiful composition.',
-      Pizza:      'Camera directly overhead — full pizza visible, one slice pulled slightly away showing cheese stretch.',
-      Soups:      'Camera directly overhead — bowl centered, garnish floating, steam rising.',
-      Tacos:      'Camera at 28-degree angle — 2–3 tacos arranged naturally, filling and toppings fully visible.',
-      Bowls:      'Camera at 45-degree overhead — all ingredients arranged in sections, beautiful colors.',
-      Burgers:    'Camera at 38-degree angle (the McDonald\'s standard) — every layer of the burger clearly visible, bun sesame seeds sharp.',
-      Sandwiches: 'Camera at 35-degree angle — cross-section visible showing all fillings.',
-      Chicken:    'Camera at 30-degree angle — crispy texture and char visible from this angle.',
-      Sushi:      'Camera at 15-degree tilt — pieces arranged in a line, rice texture and fish color visible.',
-      Pasta:      'Camera at 40-degree angle — depth of the bowl, sauce coating and garnish visible.',
+      Beverages:    '20-degree tilt showing the full glass profile, condensation, and liquid level',
+      Drinks:       '20-degree tilt showing the full glass profile, condensation, and liquid level',
+      'Hot drinks': '22-degree tilt showing the cup rim, steam curling up, and latte art if present',
+      Cocktails:    '20-degree tilt showing the glass silhouette and garnish against the background',
+      Desserts:     '45-degree angle capturing every layer, drizzle, and topping in detail',
+      Breakfast:    '50-degree overhead showing full plate and vibrant colors',
+      Salads:       'overhead flat-lay — all colorful ingredients visible and beautifully arranged',
+      Pizza:        'overhead flat-lay — full round pizza visible, one slice lifted slightly to show cheese pull',
+      Soups:        'overhead flat-lay — bowl centered, garnish floating, steam rising',
+      Tacos:        '28-degree angle — 2-3 tacos arranged naturally, filling spilling slightly, toppings visible',
+      Bowls:        '45-degree overhead — all ingredients arranged in sections, beautiful colors',
+      Burgers:      '38-degree hero angle — every burger layer clearly visible from patty to bun',
+      Sandwiches:   '35-degree angle — cross-section visible showing all fillings',
+      Chicken:      '30-degree angle — crispy texture and golden char visible',
+      Sushi:        '15-degree tilt — pieces in a diagonal line, rice texture and fish color visible',
+      Pasta:        '40-degree angle — bowl depth, sauce coating, garnish visible',
     };
-    const angleInstruction = (category && angleMap[category]) ? angleMap[category] : 'Camera at 38-degree hero angle — the universal professional food photography standard used by top restaurant chains.';
+    const angleInstruction = (category && angleMap[category]) ? angleMap[category] : '38-degree hero angle — the universal professional food photography standard';
+
+    // ─── CATEGORY → CONTAINER (what the food/drink is IN or ON) ─────────────
+    // This is the critical fix for the "pan/skillet" problem.
+    function getContainer(): string {
+      if (/margarita/.test(lowerName)) return 'a classic margarita glass with a salted rim, lime wedge on the rim';
+      if (/cerveza|beer|craft beer/.test(lowerName)) return 'a cold frosted pint glass with a creamy foam head';
+      if (/mezcal/.test(lowerName)) return 'a traditional clay copita (small clay cup) with an orange slice and sal de gusano';
+      if (/mojito/.test(lowerName)) return 'a tall highball glass with ice, mint, lime, and soda, with a straw';
+      if (/wine|vino/.test(lowerName)) return 'a large elegant wine glass';
+      if (/whiskey|bourbon|sour/.test(lowerName)) return 'a thick whiskey rocks glass with a large clear ice cube';
+      if (/limonada|lemonade/.test(lowerName)) return 'a tall highball glass with ice, fresh mint, and a lemon slice on the rim';
+      if (/horchata/.test(lowerName)) return 'a tall glass with ice, filled with creamy horchata, a cinnamon stick on the rim';
+      if (/smoothie|batido/.test(lowerName)) return 'a tall frosted glass with a straw and fruit garnish on the rim';
+      if (/agua mineral|sparkling water|water/.test(lowerName)) return 'a clear glass bottle with condensation and a lemon slice beside it';
+      if (/jugo|juice|naranja/.test(lowerName)) return 'a chilled glass filled with freshly squeezed bright juice';
+      if (/café|coffee|espresso|latte|cappuccino|olla/.test(lowerName)) return 'a beautiful ceramic coffee mug or clay pot, steam gently rising';
+      if (/tea|té/.test(lowerName)) return 'a ceramic mug or glass cup with tea';
+      if (/hot chocolate|chocolate caliente/.test(lowerName)) return 'a large ceramic mug with whipped cream on top';
+      if (/burger|hamburguesa/.test(lowerName)) return 'a ceramic plate or wooden board';
+      if (/taco/.test(lowerName)) return 'a traditional ceramic plate or oval serving tray';
+      if (/pizza/.test(lowerName)) return 'a round wooden pizza board';
+      if (/pasta|fettuccine|alfredo|spaghetti|linguine/.test(lowerName)) return 'a wide, shallow white ceramic pasta bowl';
+      if (/salad|ensalada|césar|caesar/.test(lowerName)) return 'a wide ceramic salad bowl or large flat plate';
+      if (/sopa|soup/.test(lowerName)) return 'a deep ceramic bowl';
+      if (/pancake|hotcake|waffle|french toast|omelette|huevo|egg|benedict|avena|molletes|chilaquil/.test(lowerName)) return 'a round white ceramic breakfast plate';
+      if (/guacamole/.test(lowerName)) return 'a traditional molcajete (stone mortar bowl) or small ceramic bowl, tortilla chips arranged around it';
+      if (/nacho/.test(lowerName)) return 'a large oval ceramic sharing plate';
+      if (/alita|wing/.test(lowerName)) return 'a ceramic sharing plate lined with parchment';
+      if (/helado|ice.?cream/.test(lowerName)) return 'a chilled ceramic bowl or glass coupe';
+      if (/brownie|sundae/.test(lowerName)) return 'a white ceramic plate or deep glass bowl';
+      if (/churro/.test(lowerName)) return 'a long rectangular ceramic plate, with a small cup of chocolate sauce beside it';
+      if (/flan/.test(lowerName)) return 'a small ceramic ramekin or plate, inverted with caramel sauce pooling around it';
+      if (/cheesecake|pay de queso/.test(lowerName)) return 'a white ceramic dessert plate';
+      if (/tiramisu/.test(lowerName)) return 'a rectangular glass dish or ceramic ramekin';
+      if (/crème brûlée|creme brulee/.test(lowerName)) return 'a classic white oval ceramic ramekin';
+      if (isDrink) return 'an appropriate glass or mug';
+      return 'a white ceramic plate';
+    }
 
     // ─── CATEGORY → SURFACE & BACKGROUND ─────────────────────────────────────
     const surfaceMap: Record<string, string> = {
-      Burgers:    'Polished dark slate stone surface. Deep matte charcoal background. One sesame seed scattered naturally.',
-      Chicken:    'Rustic matte black ceramic tile surface. Deep charcoal background. One sprig of rosemary at edge.',
-      Pizza:      'Worn wooden pizza board surface. Dark warm background.',
-      Tacos:      'Terracotta or warm stone surface. Earthy warm-toned background.',
-      Desserts:   'White marble surface with subtle veining. Soft light gray background.',
-      Beverages:  'Polished black granite surface. Dark charcoal background. Water droplets on nearby surface.',
-      Drinks:     'Polished black granite surface. Dark charcoal background.',
-      'Hot drinks': 'Light oak wood surface. Warm cream-toned background.',
-      Salads:     'White ceramic plate on white marble surface. Clean bright background.',
-      Soups:      'Dark ceramic bowl on slate surface. Moody dark background.',
-      Sushi:      'Black lacquered slate surface. Minimalist dark background. Subtle bamboo mat at edge.',
-      Pasta:      'White ceramic bowl on linen cloth. Warm off-white background.',
-      Breakfast:  'Light oak wood surface. Warm soft morning-light background.',
+      Beverages:    'polished dark granite bar counter. Water droplets scattered nearby. NO plates, NO food around it.',
+      Drinks:       'polished dark granite bar counter. NO plates, NO food around it.',
+      'Hot drinks': 'warm light oak wood table surface. A small saucer underneath.',
+      Cocktails:    'sleek dark marble bar counter, one cocktail napkin folded beside it.',
+      Burgers:      'dark slate stone surface or rustic wooden board. Deep matte charcoal background.',
+      Chicken:      'matte black ceramic tile surface. Deep charcoal background.',
+      Pizza:        'worn rustic wooden pizza board on a rough stone surface.',
+      Tacos:        'warm terracotta surface with a small woven cloth underneath.',
+      Desserts:     'white marble surface with soft gray veining. Elegant minimal background.',
+      Salads:       'clean white marble surface, bright natural daylight look.',
+      Soups:        'dark slate or matte ceramic tile surface. Moody warm tones.',
+      Pasta:        'white linen cloth on a wooden restaurant table.',
+      Breakfast:    'light oak wood breakfast table. Soft morning light atmosphere.',
+      Dinner:       'polished dark slate restaurant surface. Deep charcoal background.',
+      Appetizers:   'rustic wooden serving board or dark ceramic tile.',
+      Sandwiches:   'rustic wooden board. Warm natural background.',
     };
-    const surfaceInstruction = (category && surfaceMap[category]) ? surfaceMap[category] : 'Polished matte slate surface. Deep charcoal background — makes food colors pop dramatically.';
+    const surfaceInstruction = (category && surfaceMap[category]) ? surfaceMap[category] : 'clean dark matte restaurant table surface. Deep charcoal background.';
 
-    // ─── FOOD TYPE → STYLING DETAILS ─────────────────────────────────────────
-    const lowerName = (productName + ' ' + (description ?? '')).toLowerCase();
-
+    // ─── FOOD STYLING ─────────────────────────────────────────────────────────
     const getFoodStylingDetails = (): string => {
-      if (/burger|hamburguesa|smash|whopper|big.?mac/.test(lowerName)) {
-        return 'Burger layers perfectly stacked and visible. Cheese gently melting over the patty edges in golden ribbons. Patty showing deep Maillard-reaction crust with visible sear marks. Lettuce crisp and vibrant green, tomato slice red and fresh, sauce peeking out at edges. Bun lightly toasted, golden-brown, sesame seeds perfectly distributed. One tiny drip of sauce falling from the side — the iconic "money shot".';
+      if (isDrink) {
+        if (/margarita/.test(lowerName)) return 'Salt rim on half the glass. Lime wedge on rim. Ice visible. Vibrant lime-green color.';
+        if (/beer|cerveza/.test(lowerName)) return 'Thick creamy foam head, condensation droplets on the cold glass, golden amber color glowing through.';
+        if (/mezcal/.test(lowerName)) return 'Clear or amber mezcal in the clay copita. Orange slice bright and fresh. Sal de gusano in a tiny dish.';
+        if (/mojito/.test(lowerName)) return 'Fresh mint leaves pressed against the glass. Lime wedge. Ice cubes perfectly clear. Bubbles rising.';
+        if (/wine|vino/.test(lowerName)) return 'Deep ruby-red wine with legs running down the glass. Beautiful bokeh background.';
+        if (/whiskey|bourbon/.test(lowerName)) return 'Amber whiskey with a perfectly clear large ice cube. Orange peel twist garnish.';
+        if (/limonada|lemonade/.test(lowerName)) return 'Vibrant yellow lemonade, fresh mint, ice cubes, lemon slice on rim. Condensation on the cold glass.';
+        if (/smoothie/.test(lowerName)) return 'Thick vibrant tropical smoothie. Fresh fruit garnish on the rim. Straw at a natural angle.';
+        if (/juice|jugo/.test(lowerName)) return 'Bright vibrant color, freshly squeezed look. Slice of fruit on rim.';
+        if (/coffee|café|espresso|latte|cappuccino/.test(lowerName)) return 'Perfect latte art rosette. Steam rising delicately. Crema golden-brown and smooth.';
+        return 'Drink fresh, vibrant, and perfectly prepared. Garnish precisely placed. Condensation visible on glass.';
       }
-      if (/pollo|chicken|fried|crispy|kentucky|crujiente/.test(lowerName)) {
-        return 'Fried chicken showing spectacular crispy golden-brown crust with visible ridges and crunchy texture from the Maillard reaction. Steam wisps rising from the hot interior. Cross-section showing juicy white meat inside. Coating glistening under the rim light.';
-      }
-      if (/taco|burrito|quesadilla|enchilada|fajita/.test(lowerName)) {
-        return 'Taco filling overflowing naturally — visible layers of protein, fresh salsa, vibrant cilantro, crisp white onion. Lime wedge cut and placed nearby with one drop of juice. Corn or flour tortilla with slight char marks. Micro water droplets on the vegetables suggesting ultimate freshness.';
-      }
-      if (/pizza/.test(lowerName)) {
-        return 'One pizza slice being slightly lifted — mozzarella cheese stretching in long, glossy strands (the iconic cheese pull). Toppings perfectly distributed. Crust showing golden-brown bubbles and char spots from the oven. Sauce visible at the crust edge. Steam rising from the freshly baked surface.';
-      }
-      if (/pasta|spaghetti|fettuccine|penne|lasagna|carbonara|alfredo/.test(lowerName)) {
-        return 'Pasta twisted naturally into a nest. Sauce coating every strand — glistening under the key light. Fresh basil leaf placed precisely on top. Parmigiano shavings falling mid-air. Steam rising from the hot dish. Fork twisted in pasta at the side of the bowl.';
-      }
-      if (/sushi|roll|maki|nigiri|sashimi/.test(lowerName)) {
-        return 'Sushi pieces arranged in a perfect diagonal line. Fish glistening with natural sheen. Rice texture sharp and individual grains visible. Wasabi and pickled ginger placed at the corner. Tiny sesame seeds on top catching the light.';
-      }
-      if (/arepa|bandeja|changua|ajiaco|sancocho/.test(lowerName)) {
-        return 'Traditional Colombian plating. Vibrant colors of each ingredient separated beautifully. Arepa showing golden-brown toasted exterior. Melted cheese pulling naturally. Hogao sauce glistening. Fresh avocado slices with lime. Steam from hot components.';
-      }
-      if (/ceviche|lomo.?saltado|aji.?de.?gallina|causa|anticucho/.test(lowerName)) {
-        return 'Modern Peruvian fine-dining presentation. Aji amarillo sauce artfully drizzled. Micro herbs placed precisely. Corn and purple potato as colorful accents. Every element looking bright, fresh and meticulously placed.';
-      }
-      if (/helado|ice.?cream|gelato|sundae/.test(lowerName)) {
-        return 'Ice cream scoops perfectly rounded, glistening. Sauce dripping naturally down the sides in a controlled flow. Toppings scattered with precision. Micro condensation on the cold glass or bowl. Color contrast between the ice cream and sauce dramatic.';
-      }
-      if (/café|coffee|latte|cappuccino|espresso/.test(lowerName)) {
-        return 'Latte art on the surface — perfect rosette or tulip pattern in the foam. Steam curling elegantly upward, backlit. Cup showing warm ceramic tones. Crema on espresso deep golden-brown. Condensation on glass if iced.';
-      }
-      if (/smoothie|jugo|juice|batido/.test(lowerName)) {
-        return 'Vibrant color of the drink saturated and glowing. Condensation droplets on the outside of the glass. Fruit slice on the rim. Straw positioned at an angle. One splash of liquid frozen mid-air (if creatively appropriate).';
-      }
-      return 'Every ingredient perfectly visible and identifiable. Food appears fresh, appetizing and perfectly cooked. Textures crisp, sauces glistening, proteins showing golden-brown Maillard reaction. Steam rising if hot. Natural moisture droplets if cold or fresh.';
+      if (/burger|hamburguesa/.test(lowerName)) return 'All burger layers perfectly visible: brioche bun with sesame seeds, Maillard-crusted patty, cheese melting in golden ribbons, fresh lettuce and red tomato. One tiny sauce drip at the side.';
+      if (/taco/.test(lowerName)) return 'Taco filling overflowing naturally — protein, vibrant salsa, fresh cilantro, white onion. Lime wedge. Slight char marks on tortilla.';
+      if (/pizza/.test(lowerName)) return 'One slice being lifted — mozzarella cheese stretching in long glossy strands. Crust golden-brown with charred bubbles. Fresh basil leaf bright green.';
+      if (/pasta|alfredo|fettuccine/.test(lowerName)) return 'Pasta twisted into a natural nest. Sauce coating every strand, glistening. Fresh basil leaf. Parmigiano shavings catching the light. Steam rising.';
+      if (/steak|ribeye|filete/.test(lowerName)) return 'Perfect sear marks. Golden-brown Maillard crust. Sauce artfully drizzled. Steam rising. Sides arranged beautifully.';
+      if (/salmon|shrimp|lobster|seafood/.test(lowerName)) return 'Perfectly cooked seafood glistening with butter. Lemon wedge bright yellow. Steam rising.';
+      if (/chicken|pollo|alita|wing/.test(lowerName)) return 'Golden-brown crispy exterior with char marks. Sauce glistening. Steam rising.';
+      if (/guacamole/.test(lowerName)) return 'Chunky fresh guacamole, diced tomato, cilantro, lime visible. Tortilla chips arranged around the bowl.';
+      if (/nacho/.test(lowerName)) return 'Cheese melted and pulling between chips. Jalapeño slices bright green. Guacamole bright green. Pico de gallo vibrant red.';
+      if (/ice cream|helado/.test(lowerName)) return 'Scoops perfectly rounded, glistening. Sauce dripping naturally down sides. Slight condensation on the cold bowl.';
+      if (/brownie/.test(lowerName)) return 'Warm brownie with cracked top, ice cream melting slightly over it. Chocolate sauce dripping. Whipped cream perfectly swirled.';
+      if (/pancake|hotcake/.test(lowerName)) return 'Pancakes stacked with butter melting on top, maple syrup dripping naturally. Fresh berries bright and colorful.';
+      if (/salad|ensalada/.test(lowerName)) return 'Greens crisp and vibrant. Dressing glistening on leaves. Parmesan shavings catching light. Croutons golden-brown.';
+      return 'Food fresh, appetizing, and perfectly prepared. Natural textures and colors. Steam rising if hot. Professional restaurant presentation.';
     };
 
-    // ─── CUISINE CONTEXT ──────────────────────────────────────────────────────
+    // ─── CUISINE CONTEXT (suppressed for drinks) ──────────────────────────────
     const latinCuisineMap: Record<string, string> = {
-      Mexican:    'Rustic clay or Talavera ceramic plate. Warm terracotta color palette. Cilantro, lime wedge, salsa roja and verde on the side.',
-      Colombian:  'Colorful ceramic plate. Hogao sauce, crispy chicharrón, patacones visible. Bandeja paisa generosity and color.',
-      Peruvian:   'Modern fine-dining plate. Aji amarillo sauce drizzle, corn, purple potato, microgreens. Nikkei-inspired elegant precision.',
-      Argentine:  'Rustic wooden board. Char marks from the grill, chimichurri sauce on the side, lemon wedge. Bold South American style.',
-      Venezuelan: 'Colorful ceramic plate. Melting cheese, black beans, shredded beef (pabellón style). Plantains as garnish.',
-      Brazilian:  'Bright ceramic plate. Black beans, white rice, farofa, orange slices. Generous tropical portions.',
-      Spanish:    'Cazuela clay dish or white ceramic. Saffron color, olive oil drizzle, paprika dust. Mediterranean warmth.',
-      Italian:    'White ceramic plate. Fresh basil leaf, extra-virgin olive oil drizzle, Parmigiano shavings. Simple, elegant, Michelin-adjacent.',
+      Mexican:    'Served on a rustic clay or Talavera ceramic plate. Warm terracotta tones. Cilantro, lime wedge, and salsa as natural garnishes.',
+      Colombian:  'Colorful ceramic plate. Hogao sauce, fresh herbs visible.',
+      Peruvian:   'Modern fine-dining plate. Aji amarillo sauce drizzle, corn, purple potato, microgreens.',
+      Argentine:  'Rustic wooden board. Char marks from the grill, chimichurri sauce on the side, lemon wedge.',
+      Venezuelan: 'Colorful ceramic plate. Melting cheese, black beans, shredded beef. Plantains as garnish.',
+      Brazilian:  'Bright ceramic plate. Black beans, white rice, farofa, orange slices.',
+      Spanish:    'White ceramic. Saffron color, olive oil drizzle, paprika dust.',
+      Italian:    'White ceramic plate. Fresh basil leaf, olive oil drizzle, Parmigiano shavings.',
       Japanese:   'Black lacquer or minimalist white ceramic. Wasabi and pickled ginger. Clean geometric precision.',
-      American:   'Cast iron skillet or thick white ceramic. Generous portion, crispy edges, diner-meets-gourmet energy.',
-      Chinese:    'Blue-and-white porcelain bowl. Steaming broth, chopsticks at edge. Wok-fired restaurant quality.',
+      American:   'White ceramic plate or wooden board. Generous portion, crispy edges, restaurant-quality presentation.',
+      Chinese:    'Blue-and-white porcelain bowl. Steaming broth, chopsticks at edge.',
     };
 
-    const cuisineContext = cuisine && cuisine !== 'General' && latinCuisineMap[cuisine]
-      ? latinCuisineMap[cuisine]
-      : cuisine && cuisine !== 'General'
-        ? `${cuisine} cuisine: authentic plating style, traditional garnishes and appropriate dishware for ${cuisine} food culture.`
-        : '';
-
-    let autoCuisineContext = '';
-    if (!cuisineContext) {
-      if (/taco|burrito|quesadilla|enchilada|pozole|mole|tamale|tostada|chilaquil|guacamol|elote|torta|huarache/.test(lowerName)) autoCuisineContext = latinCuisineMap.Mexican;
-      else if (/arepa|bandeja|changua|ajiaco|sancocho|aguapanela|chicharrón|patacón/.test(lowerName)) autoCuisineContext = latinCuisineMap.Colombian;
-      else if (/ceviche|lomo.?saltado|aji.?de.?gallina|causa|anticucho/.test(lowerName)) autoCuisineContext = latinCuisineMap.Peruvian;
-      else if (/asado|choripán|milanesa|locro|chimichurri/.test(lowerName)) autoCuisineContext = latinCuisineMap.Argentine;
-      else if (/pabellón|cachapa|hallaca|tequeño/.test(lowerName)) autoCuisineContext = latinCuisineMap.Venezuelan;
-      else if (/feijoada|coxinha|brigadeiro|pão.?de.?queijo/.test(lowerName)) autoCuisineContext = latinCuisineMap.Brazilian;
-      else if (/pizza|pasta|risotto|carbonara|lasagna|gnocchi|tiramisu/.test(lowerName)) autoCuisineContext = latinCuisineMap.Italian;
-      else if (/sushi|ramen|udon|tempura|katsu|miso|onigiri/.test(lowerName)) autoCuisineContext = latinCuisineMap.Japanese;
+    let effectiveCuisineContext = '';
+    if (!isDrink) {
+      if (cuisine && cuisine !== 'General' && latinCuisineMap[cuisine]) {
+        effectiveCuisineContext = latinCuisineMap[cuisine];
+      } else if (!cuisine || cuisine === 'General') {
+        if (/taco|burrito|quesadilla|enchilada|pozole|mole|tamale|chilaquil|guacamol|torta/.test(lowerName)) effectiveCuisineContext = latinCuisineMap.Mexican;
+        else if (/arepa|bandeja|ajiaco|sancocho/.test(lowerName)) effectiveCuisineContext = latinCuisineMap.Colombian;
+        else if (/ceviche|lomo.?saltado|anticucho/.test(lowerName)) effectiveCuisineContext = latinCuisineMap.Peruvian;
+        else if (/asado|choripán|milanesa|chimichurri/.test(lowerName)) effectiveCuisineContext = latinCuisineMap.Argentine;
+        else if (/pizza|pasta|risotto|carbonara|lasagna|tiramisu/.test(lowerName)) effectiveCuisineContext = latinCuisineMap.Italian;
+        else if (/sushi|ramen|udon|tempura|katsu|miso/.test(lowerName)) effectiveCuisineContext = latinCuisineMap.Japanese;
+      }
     }
-
-    const effectiveCuisineContext = cuisineContext || autoCuisineContext;
 
     // ─── STYLE OVERRIDE ───────────────────────────────────────────────────────
     const styleOverride = style === 'rustic'
       ? 'Warm, rustic feel: reclaimed wood surface, golden-hour side lighting, linen napkin at edge.'
       : style === 'modern'
-        ? 'Modern minimalist: matte ceramic on solid muted background, shadowless studio light, geometric plating, flat-lay.'
+        ? 'Modern minimalist: matte ceramic on solid muted background, shadowless studio light, flat-lay.'
         : style === 'vibrant'
-          ? 'Vibrant editorial: saturated colors, hard natural daylight shadows, ingredient splashes around the plate.'
+          ? 'Vibrant editorial: saturated colors, hard natural daylight shadows.'
           : '';
 
     // ─── BUILD THE FINAL PROMPT ───────────────────────────────────────────────
+    const container = getContainer();
     const foodStyling = getFoodStylingDetails();
 
-    const prompt = `Commercial food advertising photograph — the kind shot for a world-class restaurant chain like McDonald's, KFC or Nobu, produced by an award-winning food photographer using a Hasselblad H6D-400C with a 120mm f/4 macro lens, lit by a professional three-point studio lighting rig, retouched in Capture One Pro.
+    const prompt = `Hyperrealistic food photography RAW photograph. Shot in a real restaurant or food photography studio with professional equipment. Indistinguishable from an actual photograph taken with a professional DSLR. NOT CGI, NOT 3D render, NOT illustration, NOT painting, NOT Pixar, NOT animation, NOT AI art.
+
+SERVED IN/ON: ${container}.
 
 SUBJECT: "${productName}"${description ? ` — ${description}` : ''}.
-${effectiveCuisineContext ? `\nCUISINE CONTEXT: ${effectiveCuisineContext}` : ''}
+${effectiveCuisineContext ? `PRESENTATION STYLE: ${effectiveCuisineContext}` : ''}
 FOOD STYLING: ${foodStyling}
 
-LIGHTING SETUP (critical — replicate exactly):
-- Key light: 120cm octabox softbox at 45° left, 1.2m from dish — creates soft gradients, no harsh shadows
-- Fill light: large silver reflector at 30° right — reduces shadow contrast to a flattering 3:1 ratio
-- Rim/backlight: strip softbox directly behind the dish — creates a luminous halo around steam, edges and texture
-- Combined result: food appears to GLOW from within, exactly like a multi-million-dollar advertising campaign
+CAMERA: 50mm or 85mm prime lens, f/2.8 aperture, ISO 400 — real DSLR photo with natural grain.
+ANGLE: ${angleInstruction}.
+COMPOSITION: Square 1:1 frame. Subject centered, filling approximately 65-70% of frame. Equal breathing room on all sides. SAFE ZONE: all food/drink within central 80% — outer 10% may be cropped by UI.
 
-CAMERA & COMPOSITION (square framing — critical):
-- Aperture f/3.2 — subject razor-sharp, background melts into creamy bokeh
-- ISO 100 — zero grain, ultra-clean shadows
-- ${angleInstruction}
-- SQUARE 1:1 composition — the image is displayed in both square mobile cards and 16:9 widescreen desktop cards (cropped with object-cover), so the subject MUST be perfectly centered
-- Dish centered in the square frame, filling about 70% — equal breathing room on all 4 sides
-- SAFE ZONE: every element of the food must stay within the central 80% of the frame — the outer 10% on every side may be cropped by the display container
-- No important food detail in the corners or edges
+SURFACE & SETTING: ${surfaceInstruction}
+${styleOverride ? `STYLE: ${styleOverride}` : ''}
 
-SURFACE & BACKGROUND:
-- ${surfaceInstruction}
-${styleOverride ? `- Style override: ${styleOverride}` : ''}
+LIGHTING: Professional three-point soft lighting — large octabox softbox from the left, silver reflector fill from the right, subtle warm backlight for natural rim separation.
 
-COLOR GRADING (baked into the image):
-- Color temperature 5800K — makes golden-browns, crispy crusts and warm tones absolutely sing
-- Slightly lifted blacks (cinematic depth, not pure black) 
-- Teal-orange color split: warm food tones contrast against cool dark background
-- Micro contrast boost on all textures — every crispy ridge, pore and glaze highlight visible
-- Vibrance naturally elevated — food looks rich and real, never oversaturated
+REALISM (critical):
+- This is a REAL photograph — show natural, authentic food with real imperfections
+- Condensation on cold drinks, natural sauce drips, slight caramelization — authentic textures
+- NO plastic-looking textures, NO artificial CGI glow, NO over-processed digital sheen
+- NO pans, skillets, woks, or cooking equipment${isDrink ? '\n- Beverage MUST be in proper glassware (glass, mug, cup, bottle) — NEVER on a plate or flat surface alone' : '\n- Food MUST be shown as served to a customer at a restaurant table — plated and ready to eat'}
+- NO text, watermarks, logos, or human hands visible`;
 
-QUALITY MANDATE:
-- 4K ultra-high resolution, 100% photorealistic, indistinguishable from a real photograph
-- The image must make the viewer immediately hungry upon seeing it
-- Shot for a premium restaurant advertising campaign — zero compromise on quality
-- Absolutely NO text, watermarks, logos, UI elements, or human hands visible
-- NO illustration, painting, cartoon or AI-looking artifacts — pure photorealism only`;
-
-    // Use Imagen 4 for superior photorealistic food photography
+    // Primary: gemini-3-pro-image-preview (nano banana — most photorealistic)
     let imageBase64: string | null = null;
-    const mimeType = 'image/png';
+    const mimeType = 'image/jpeg';
 
     try {
-      const imagenResponse = await ai.models.generateImages({
-        model: 'imagen-4.0-generate-001',
-        prompt,
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-pro-image-preview',
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
-          numberOfImages: 1,
-          aspectRatio: '1:1',
-        },
+          responseModalities: ['TEXT', 'IMAGE'] as any,
+          imageConfig: { aspectRatio: '1:1' } as any,
+        } as any,
       });
-
-      const firstImage = imagenResponse.generatedImages?.[0];
-      if (firstImage?.image?.imageBytes) {
-        imageBase64 = firstImage.image.imageBytes as string;
+      const parts = (response as any).candidates?.[0]?.content?.parts ?? [];
+      for (const part of parts) {
+        if (part.inlineData?.data) {
+          imageBase64 = part.inlineData.data;
+          break;
+        }
       }
-    } catch (imagenErr) {
-      // Fallback to gemini multimodal image generation if Imagen 4 fails
-      logger.warn('Imagen 4 failed, falling back to gemini-2.5-flash-image', {
-        error: imagenErr instanceof Error ? imagenErr.message : String(imagenErr),
-      });
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash-image',
-        generationConfig: { responseModalities: ['TEXT', 'IMAGE'] as any } as any,
-      });
-      const result = await model.generateContent(prompt);
-      const response = result.response;
-      if (response.candidates?.[0]?.content?.parts) {
-        for (const part of response.candidates[0].content.parts) {
-          if ((part as any).inlineData) {
-            imageBase64 = (part as any).inlineData.data;
-            break;
+    } catch {
+      // Fallback 1: Imagen 4
+      logger.warn('gemini-3-pro-image-preview failed, falling back to Imagen 4');
+      try {
+        const imagenResponse = await ai.models.generateImages({
+          model: 'imagen-4.0-generate-001',
+          prompt,
+          config: { numberOfImages: 1, aspectRatio: '1:1' },
+        });
+        const firstImage = imagenResponse.generatedImages?.[0];
+        if (firstImage?.image?.imageBytes) imageBase64 = firstImage.image.imageBytes as string;
+      } catch (imagenErr) {
+        // Fallback 2: gemini-2.5-flash-image
+        logger.warn('Imagen 4 failed, falling back to gemini-2.5-flash-image', {
+          error: imagenErr instanceof Error ? imagenErr.message : String(imagenErr),
+        });
+        const { GoogleGenerativeAI } = await import('@google/generative-ai');
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-2.5-flash-image',
+          generationConfig: { responseModalities: ['TEXT', 'IMAGE'] as any } as any,
+        });
+        const result = await model.generateContent(prompt);
+        const response = result.response;
+        if (response.candidates?.[0]?.content?.parts) {
+          for (const part of response.candidates[0].content.parts) {
+            if ((part as any).inlineData) {
+              imageBase64 = (part as any).inlineData.data;
+              break;
+            }
           }
         }
       }
@@ -254,14 +284,14 @@ QUALITY MANDATE:
     }
 
     const buffer = Buffer.from(imageBase64, 'base64');
-    const ext = 'png';
+    const ext = 'jpg';
     const fileName = `${tenant.userId}/ai-${Date.now()}.${ext}`;
 
     const adminSupabase = createAdminClient();
     const { error: uploadError } = await adminSupabase.storage
       .from('product-images')
       .upload(fileName, buffer, {
-        contentType: mimeType,
+        contentType: 'image/jpeg',
         cacheControl: '3600',
         upsert: false,
       });

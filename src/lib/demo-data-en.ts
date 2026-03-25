@@ -113,7 +113,7 @@ export const grillHouseProducts: Product[] = [
     id: 'buc-p-burrito', restaurant_id: RID, category_id: CAT_BREAKFAST,
     name: 'Breakfast Burrito',
     description: 'Flour tortilla stuffed with scrambled eggs, cheddar, sausage, peppers, and salsa verde.',
-    price: 12.99, image_url: 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=600&h=340&fit=crop&q=80',
+    price: 12.99, image_url: '/seed/en/omelette.webp',
     is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
