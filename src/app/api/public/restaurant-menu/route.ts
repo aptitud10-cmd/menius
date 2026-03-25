@@ -56,12 +56,14 @@ export async function GET(request: NextRequest) {
       .order('sort_order', { ascending: true });
 
     // 3. Fetch products
-    const { data: products = [] } = await adminDb
+    const { data: productsData = [] } = await adminDb
       .from('products')
       .select('*')
       .eq('restaurant_id', restaurantId)
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
+
+    const products = productsData ?? [];
 
     // 4. Fetch product variants
     const productIds = products.map(p => p.id);
