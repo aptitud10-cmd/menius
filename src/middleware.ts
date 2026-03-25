@@ -84,6 +84,11 @@ export async function middleware(request: NextRequest) {
 
   // Skip auth + DB queries entirely for public routes (menu, blog, landing, etc.)
   if (!needsAuth) {
+    // API routes should never be rewritten — they need to stay as /api/...
+    if (path.startsWith('/api/')) {
+      return response;
+    }
+
     const hostname = request.headers.get('host') || '';
     const isMainDomain = !MAIN_DOMAIN || hostname === MAIN_DOMAIN || hostname.startsWith('localhost') || hostname.startsWith('127.0.0.1');
     if (!isMainDomain) {
@@ -215,7 +220,16 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/app/:path*', '/kds/:path*', '/counter', '/onboarding/:path*', '/login', '/signup', '/auth/callback', '/admin', '/admin/:path*',
-    '/((?!_next/static|_next/image|favicon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
+    '/app/:path*',
+    '/kds/:path*',
+    '/counter',
+    '/onboarding/:path*',
+    '/login',
+    '/signup',
+    '/auth/callback',
+    '/admin',
+    '/admin/:path*',
+    // Exclude API routes, static files, and assets from middleware
+    '/((?!api/|_next/static|_next/image|favicon|.*\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
   ],
 };
