@@ -178,12 +178,14 @@ LIGHTING SETUP (critical — replicate exactly):
 - Rim/backlight: strip softbox directly behind the dish — creates a luminous halo around steam, edges and texture
 - Combined result: food appears to GLOW from within, exactly like a multi-million-dollar advertising campaign
 
-CAMERA & COMPOSITION:
+CAMERA & COMPOSITION (square framing — critical):
 - Aperture f/3.2 — subject razor-sharp, background melts into creamy bokeh
 - ISO 100 — zero grain, ultra-clean shadows
 - ${angleInstruction}
-- Dish fills 75% of the 16:9 frame — elegant breathing room on all sides, NEVER cropped at any edge
-- Rule of thirds applied — subject positioned at left or center third, negative space breathes on the right
+- SQUARE 1:1 composition — the image is displayed in both square mobile cards and 16:9 widescreen desktop cards (cropped with object-cover), so the subject MUST be perfectly centered
+- Dish centered in the square frame, filling about 70% — equal breathing room on all 4 sides
+- SAFE ZONE: every element of the food must stay within the central 80% of the frame — the outer 10% on every side may be cropped by the display container
+- No important food detail in the corners or edges
 
 SURFACE & BACKGROUND:
 - ${surfaceInstruction}
@@ -213,7 +215,7 @@ QUALITY MANDATE:
         prompt,
         config: {
           numberOfImages: 1,
-          aspectRatio: '16:9',
+          aspectRatio: '1:1',
         },
       });
 
