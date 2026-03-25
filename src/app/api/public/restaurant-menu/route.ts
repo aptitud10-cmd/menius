@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     const products = productsData ?? [];
 
     // 4. Fetch product variants
-    const productIds = products.map(p => p.id);
+    const productIds = (products || []).map(p => p.id);
     const { data: variants = [] } = await adminDb
       .from('product_variants')
       .select('*')
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
       .in('product_id', productIds.length > 0 ? productIds : ['null']);
 
     // 7. Fetch modifier options
-    const modGroupIds = modifierGroups.map(mg => mg.id);
+    const modGroupIds = (modifierGroups || []).map(mg => mg.id);
     const { data: modifierOptions = [] } = await adminDb
       .from('modifier_options')
       .select('*')
@@ -295,14 +295,14 @@ export async function GET(request: NextRequest) {
       .limit(1000);
 
     const productCounts: Record<string, number> = {};
-    orderItems?.forEach(item => {
+    (orderItems || []).forEach(item => {
       productCounts[item.product_id] = (productCounts[item.product_id] || 0) + 1;
     });
 
     const bestsellers = Object.entries(productCounts)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 10)
-      .map(([productId]) => products.find(p => p.id === productId))
+      .map(([productId]) => (products || []).find(p => p.id === productId))
       .filter(Boolean);
 
     // Return complete restaurant data
