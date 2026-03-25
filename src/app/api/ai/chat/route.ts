@@ -492,7 +492,7 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient();
 
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const oneDayAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const { data: savedMessages } = await supabase
       .from('chat_messages')
       .select('role, content, created_at')
@@ -539,10 +539,10 @@ export async function POST(request: NextRequest) {
             { role: 'user', parts: [{ text: userMessage }] },
           ],
           generationConfig: {
-            maxOutputTokens: 1500,
-            temperature: 0.8,
+            maxOutputTokens: 2500,
+            temperature: 0.55,
             topP: 0.92,
-            thinkingConfig: { thinkingBudget: 0 },
+            thinkingConfig: { thinkingBudget: 1024 },
           },
         }),
         signal: AbortSignal.timeout(20000),
