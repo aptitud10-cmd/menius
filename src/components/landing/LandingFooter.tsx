@@ -100,7 +100,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
                 <ul className="space-y-2.5">
                   <li><Link href="/blog" className="text-sm text-gray-400 hover:text-white transition-colors">{f.blog}</Link></li>
                   <li><Link href="/faq" className="text-sm text-gray-400 hover:text-white transition-colors">{f.faq}</Link></li>
-                  <li><Link href="/changelog" className="text-sm text-gray-400 hover:text-white transition-colors">Changelog</Link></li>
+                  <li><Link href="/changelog" className="text-sm text-gray-400 hover:text-white transition-colors">{f.changelog}</Link></li>
                   <li><Link href="/status" className="text-sm text-gray-400 hover:text-white transition-colors">{f.status}</Link></li>
                   <li><a href="mailto:soporte@menius.app" className="text-sm text-gray-400 hover:text-white transition-colors">{f.support}</a></li>
                 </ul>
@@ -148,7 +148,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
                 <ul className="space-y-2.5">
                   <li><Link href="/blog" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.blog}</Link></li>
                   <li><Link href="/faq" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.faq}</Link></li>
-                  <li><Link href="/changelog" className="text-[13px] text-gray-500 hover:text-white transition-colors">Changelog</Link></li>
+                  <li><Link href="/changelog" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.changelog}</Link></li>
                   <li><Link href="/status" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.status}</Link></li>
                   <li><Link href="/setup-profesional" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.professionalSetup}</Link></li>
                   <li><a href="mailto:soporte@menius.app" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.support}</a></li>

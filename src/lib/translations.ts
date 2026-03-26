@@ -292,7 +292,7 @@ const en: Translations = {
   allCategories: 'All',
   popular: 'Popular',
   addToCart: 'Add',
-  variant: 'Size',
+  variant: 'Variant',
   extras: 'Add-ons',
   specialNotes: 'Special notes',
   specialNotesPlaceholder: 'Special instructions...',

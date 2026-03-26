@@ -550,6 +550,18 @@ export async function POST(request: NextRequest) {
 
         const connectedAccount = restStripe?.stripe_onboarding_complete ? restStripe?.stripe_account_id : null;
 
+        if (!connectedAccount) {
+          // Stripe Connect not configured for this restaurant.
+          // Refuse instead of silently collecting funds into the platform account.
+          await adminDb.from('orders').delete().eq('id', order.id);
+          return NextResponse.json(
+            { error: en
+                ? 'Online payment is not available for this restaurant yet. Please pay in person.'
+                : 'El pago en línea no está disponible para este restaurante aún. Por favor paga en persona.' },
+            { status: 400 }
+          );
+        }
+
         const stripeProductIds = parsed.data.items.map((i) => i.product_id);
         const { data: stripeProducts } = await adminDb
           .from('products')
@@ -582,10 +594,8 @@ export async function POST(request: NextRequest) {
           success_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=true`,
           cancel_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=false`,
           metadata: { order_id: order.id, order_number: order.order_number },
+          payment_intent_data: { transfer_data: { destination: connectedAccount } },
         };
-        if (connectedAccount) {
-          sessionParams.payment_intent_data = { transfer_data: { destination: connectedAccount } };
-        }
         const session = await stripe.checkout.sessions.create(sessionParams);
         stripeUrl = session.url;
       } catch (stripeErr) {

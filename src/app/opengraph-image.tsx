@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
-export const alt = 'MENIUS — Menús digitales para restaurantes';
+export const alt = 'MENIUS — Digital menus for restaurants';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -62,12 +62,12 @@ export default function OgImage() {
             lineHeight: 1.4,
           }}
         >
-          Menús digitales inteligentes para restaurantes
+          Smart digital menus for restaurants
         </div>
 
         {/* Pills */}
         <div style={{ display: 'flex', gap: 12, marginTop: 36 }}>
-          {['QR Menú', 'Pedidos en tiempo real', 'IA integrada'].map((label) => (
+          {['QR Menu', 'Real-time orders', 'AI powered'].map((label) => (
             <div
               key={label}
               style={{

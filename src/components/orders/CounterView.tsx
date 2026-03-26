@@ -6,7 +6,7 @@ import {
   Menu, X, Bell, Check, CheckCircle, Clock, ChevronLeft,
   Truck, ShoppingBag, Utensils, MessageCircle, Phone,
   MapPin, Pause, Flame, Printer, History, AlertTriangle,
-  Wifi, WifiOff, ChevronRight, User, Settings2,
+  Wifi, WifiOff, ChevronRight, User, Settings2, Calendar,
 } from 'lucide-react';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import {
@@ -742,26 +742,56 @@ export function CounterView({
 
   // Audio unlock gate — required by all browsers before playing sound
   if (!audioUnlocked) {
+    const steps = t.en
+      ? [
+          { icon: '🔔', label: 'New order arrives', desc: 'Sound alert + splash screen' },
+          { icon: '👨‍🍳', label: 'Confirm & prepare', desc: 'Set ETA and move to kitchen' },
+          { icon: '✅', label: 'Ready & delivered', desc: 'Notify customer, close order' },
+        ]
+      : [
+          { icon: '🔔', label: 'Llega una orden nueva', desc: 'Alerta de sonido + pantalla emergente' },
+          { icon: '👨‍🍳', label: 'Confirmar y preparar', desc: 'Establece el tiempo y pasa a cocina' },
+          { icon: '✅', label: 'Lista y entregada', desc: 'Notifica al cliente, cierra la orden' },
+        ];
     return (
       <div
-        className="h-screen w-full flex flex-col items-center justify-center cursor-pointer"
+        className="h-screen w-full flex flex-col items-center justify-center cursor-pointer px-6"
         style={{ background: '#111' }}
         onClick={unlockAudio}
       >
-        <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-8">
-          <Bell className="w-10 h-10 text-white" />
+        <div className="w-16 h-16 rounded-2xl bg-[#06C167]/20 flex items-center justify-center mb-6 border border-[#06C167]/30">
+          <Bell className="w-8 h-8 text-[#06C167]" />
         </div>
-        <p className="text-white/60 text-sm font-semibold uppercase tracking-widest mb-3">
+
+        <p className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-1">
           {restaurantName}
         </p>
+        <h1 className="text-white text-2xl font-black mb-8">Counter</h1>
+
+        {/* Flow steps */}
+        <div className="w-full max-w-sm space-y-3 mb-10">
+          {steps.map((s, i) => (
+            <div key={i} className="flex items-center gap-4 bg-white/5 rounded-2xl px-4 py-3 border border-white/10">
+              <span className="text-2xl">{s.icon}</span>
+              <div>
+                <p className="text-white text-sm font-bold">{s.label}</p>
+                <p className="text-white/40 text-xs">{s.desc}</p>
+              </div>
+              <div className="ml-auto w-6 h-6 rounded-full border-2 border-white/20 flex items-center justify-center text-white/30 text-xs font-black flex-shrink-0">
+                {i + 1}
+              </div>
+            </div>
+          ))}
+        </div>
+
         <button
           onClick={unlockAudio}
-          className="h-16 px-12 rounded-2xl text-black text-lg font-black bg-white shadow-xl active:scale-[0.97] transition-transform"
+          className="w-full max-w-sm h-16 rounded-2xl text-black text-lg font-black bg-[#06C167] shadow-xl active:scale-[0.97] transition-transform"
         >
-          {t.en ? 'Tap to start' : 'Toca para comenzar'}
+          {t.en ? 'Start Counter →' : 'Iniciar Counter →'}
         </button>
-        <p className="text-white/30 text-xs mt-6">
-          {t.en ? 'Activates sound notifications' : 'Activa las notificaciones de sonido'}
+        <p className="text-white/20 text-xs mt-4">
+          {t.en ? 'Tap anywhere to activate sound' : 'Toca para activar las notificaciones de sonido'}
         </p>
       </div>
     );
@@ -1567,11 +1597,14 @@ function EmptyState({ tab, t }: { tab: Tab; t: ReturnType<typeof getT> }) {
       {tab === 'new' && <Bell className="w-10 h-10" />}
       {tab === 'prep' && <Clock className="w-10 h-10" />}
       {tab === 'ready' && <CheckCircle className="w-10 h-10" />}
+      {tab === 'scheduled' && <Calendar className="w-10 h-10" />}
       {tab === 'history' && <History className="w-10 h-10" />}
       <p className="text-sm text-[#BBBBBB]">
         {tab === 'new' ? t.waitingOrders :
          tab === 'prep' ? t.noPrepping :
-         tab === 'ready' ? t.noReady : t.noHistory}
+         tab === 'ready' ? t.noReady :
+         tab === 'scheduled' ? (t.en ? 'No scheduled orders' : 'Sin órdenes programadas') :
+         t.noHistory}
       </p>
       {tab === 'new' && (
         <p className="text-xs text-[#DDDDDD] flex items-center gap-1.5">
@@ -1745,6 +1778,54 @@ function OrderDetail({
           </div>
         </div>
       </div>
+
+      {/* ── Order flow progress ── */}
+      {tab !== 'history' && (
+        <div className="flex-none px-5 py-2.5 bg-[#FAFAFA] border-b border-[#F0F0F0]">
+          <div className="flex items-center gap-1">
+            {[
+              { key: 'pending',   label: t.tabNew,  color: '#EF4444' },
+              { key: 'confirmed', label: t.en ? 'Confirmed' : 'Confirmada', color: '#F59E0B' },
+              { key: 'preparing', label: t.tabPrep, color: '#8B5CF6' },
+              { key: 'ready',     label: t.tabReady, color: '#06C167' },
+              { key: 'delivered', label: t.deliveredBtn, color: '#111' },
+            ].map((step, i, arr) => {
+              const statuses = ['pending', 'confirmed', 'preparing', 'ready', 'delivered'];
+              const currentIdx = statuses.indexOf(order.status);
+              const stepIdx = statuses.indexOf(step.key);
+              const isDone = stepIdx < currentIdx;
+              const isActive = stepIdx === currentIdx;
+              return (
+                <div key={step.key} className="flex items-center flex-1 min-w-0">
+                  <div className="flex flex-col items-center flex-shrink-0">
+                    <div
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black transition-all"
+                      style={{
+                        background: isDone ? '#06C167' : isActive ? step.color : '#E5E7EB',
+                        color: isDone || isActive ? '#fff' : '#9CA3AF',
+                      }}
+                    >
+                      {isDone ? '✓' : i + 1}
+                    </div>
+                    <p
+                      className="text-[9px] font-semibold mt-0.5 leading-tight text-center max-w-[48px] truncate"
+                      style={{ color: isActive ? step.color : isDone ? '#06C167' : '#9CA3AF' }}
+                    >
+                      {step.label}
+                    </p>
+                  </div>
+                  {i < arr.length - 1 && (
+                    <div
+                      className="flex-1 h-0.5 mx-1 rounded-full transition-all"
+                      style={{ background: isDone ? '#06C167' : '#E5E7EB' }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Detail Body ── */}
       <div className="flex-1 overflow-y-auto">

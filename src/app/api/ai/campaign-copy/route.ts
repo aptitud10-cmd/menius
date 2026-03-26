@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { createClient } from '@/lib/supabase/server';
+import { callTextAI } from '@/lib/ai-text';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,8 +16,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Límite alcanzado. Intenta en unos minutos.' }, { status: 429 });
     }
 
-    const apiKey = (process.env.GEMINI_API_KEY ?? '').trim();
-    if (!apiKey) return NextResponse.json({ error: 'IA no configurada.' }, { status: 503 });
+    const hasAI = (process.env.GEMINI_API_KEY ?? '').trim() || (process.env.OPENROUTER_API_KEY ?? '').trim();
+    if (!hasAI) return NextResponse.json({ error: 'IA no configurada.' }, { status: 503 });
 
     const { campaignType, audience, restaurantName, customPrompt, locale: reqLocale } = await request.json();
 
@@ -189,33 +190,7 @@ FORMATO DE RESPUESTA (JSON estricto, sin markdown):
   "cta": "Texto del botón CTA (máx 4 palabras, voz centrada en el cliente)"
 }`;
 
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.95,
-            maxOutputTokens: 1500,
-            responseMimeType: 'application/json',
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        }),
-      },
-    );
-
-    if (!res.ok) {
-      const errText = await res.text();
-      return NextResponse.json({ error: `Gemini error: ${errText.slice(0, 200)}` }, { status: 502 });
-    }
-
-    const geminiData = await res.json();
-    const rawText = (geminiData?.candidates?.[0]?.content?.parts ?? [])
-      .filter((p: { thought?: boolean }) => !p.thought)
-      .map((p: { text?: string }) => p.text ?? '')
-      .join('') || '';
+    const { text: rawText } = await callTextAI(prompt, { maxTokens: 1500, temperature: 0.95 });
 
     try {
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);

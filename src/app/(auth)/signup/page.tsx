@@ -1,13 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Sparkles } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { signup } from '@/lib/actions/auth';
 import { signupSchema } from '@/lib/validations';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { useLocale } from '@/providers/locale-provider';
 import { getLandingT } from '@/lib/landing-translations';
+
+function PlanBadge({ locale }: { locale: string }) {
+  const searchParams = useSearchParams();
+  const selectedPlan = searchParams.get('plan');
+  const selectedBilling = searchParams.get('billing');
+  if (!selectedPlan) return null;
+  return (
+    <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium">
+      <Sparkles className="w-3 h-3" />
+      {locale === 'es'
+        ? `Plan ${selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)} seleccionado${selectedBilling === 'annual' ? ' · Anual' : ''}`
+        : `${selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)} plan selected${selectedBilling === 'annual' ? ' · Annual' : ''}`}
+    </div>
+  );
+}
 
 export default function SignupPage() {
   const locale = useLocale();
@@ -99,6 +115,9 @@ export default function SignupPage() {
             <span className="text-white">MENIUS</span>
           </Link>
           <p className="text-gray-400 md:text-gray-500 text-sm md:text-[13px] mt-2 tracking-wide">{t.subtitle}</p>
+          <Suspense fallback={null}>
+            <PlanBadge locale={locale} />
+          </Suspense>
         </div>
 
         <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">

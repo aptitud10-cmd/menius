@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2, Languages, Plus, X } from 'lucide-react';
+import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2, Languages, Plus, X, Sparkles } from 'lucide-react';
 import { SUPPORTED_LOCALES, getLocaleFlag } from '@/lib/i18n';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -21,7 +21,7 @@ const DAYS = [
 ];
 
 export function RestaurantSettings({ initialData }: { initialData: Restaurant }) {
-  const { t } = useDashboardLocale();
+  const { t, locale } = useDashboardLocale();
   const dayLabels: Record<string, string> = {
     monday: t.settings_days_monday,
     tuesday: t.settings_days_tuesday,
@@ -76,6 +76,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
   const [coverUrl, setCoverUrl] = useState(initialData.cover_image_url ?? '');
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [generatingCoverAI, setGeneratingCoverAI] = useState(false);
   const coverRef = useRef<HTMLInputElement>(null);
 
   const [saving, setSaving] = useState(false);
@@ -190,6 +191,30 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     if (logoRef.current) logoRef.current.value = '';
   };
 
+  const handleGenerateBannerAI = async () => {
+    setGeneratingCoverAI(true);
+    setError('');
+    try {
+      const res = await fetch('/api/ai/generate-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productName: form.name,
+          description: form.description || form.name,
+          isBanner: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t.settings_uploadError);
+      setCoverUrl(data.url);
+      setSaved(false);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t.settings_uploadError);
+    } finally {
+      setGeneratingCoverAI(false);
+    }
+  };
+
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -287,7 +312,19 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
       {/* Cover / Banner */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <h2 className="font-semibold text-sm text-gray-900 mb-1">{t.settings_banner}</h2>
+        <div className="flex items-start justify-between mb-1">
+          <h2 className="font-semibold text-sm text-gray-900">{t.settings_banner}</h2>
+          <button
+            onClick={handleGenerateBannerAI}
+            disabled={generatingCoverAI || uploadingCover}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
+          >
+            {generatingCoverAI
+              ? <Loader2 className="w-3 h-3 animate-spin" />
+              : <Sparkles className="w-3 h-3" />}
+            {generatingCoverAI ? t.settings_generatingBannerAI : t.settings_generateBannerAI}
+          </button>
+        </div>
         <p className="text-xs text-gray-500 mb-4">
           {t.settings_bannerDesc} {t.settings_bannerFormatNote}
         </p>
@@ -315,11 +352,11 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         ) : (
           <button
             onClick={() => coverRef.current?.click()}
-            disabled={uploadingCover}
+            disabled={uploadingCover || generatingCoverAI}
             className="w-full aspect-[3/1] border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors disabled:opacity-50"
           >
-            {uploadingCover ? (
-              <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+            {uploadingCover || generatingCoverAI ? (
+              <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
             ) : (
               <>
                 <Camera className="w-6 h-6 text-gray-400" />
@@ -665,6 +702,18 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             );
           })}
         </div>
+
+        {/* Warning: online enabled but Connect not ready */}
+        {form.payment_methods_enabled.includes('online') && !stripeStatus.onboarding_complete && (
+          <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+            <span className="mt-0.5 shrink-0">⚠️</span>
+            <span>
+              {locale === 'en'
+                ? 'Online payment is enabled but Stripe Connect is not set up. Customers will not see online payment as an option until you complete the setup below.'
+                : 'El pago en línea está activado pero Stripe Connect no está configurado. Los clientes no verán esa opción hasta que completes el proceso abajo.'}
+            </span>
+          </div>
+        )}
 
         {/* Stripe Connect */}
         <div className="mt-4 p-4 rounded-xl border border-gray-200 bg-gray-50">

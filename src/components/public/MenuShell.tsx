@@ -181,9 +181,7 @@ export function MenuShell({
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const CATEGORY_PREVIEW = 8; // kept for potential future use
-  // Large-catalog mode: 60+ products → one category at a time (like Uber Eats)
-  const LARGE_CATALOG_THRESHOLD = 150;
-  const isLargeCatalog = products.length >= LARGE_CATALOG_THRESHOLD;
+  const isLargeCatalog = false;
   const [activeCatFilter, setActiveCatFilter] = useState<string | null>(null);
   const [showFavs, setShowFavs] = useState(false);
   const favIds = useFavoritesStore((s) => s.ids);
@@ -494,13 +492,13 @@ export function MenuShell({
         ticking = false;
         if (isScrollingRef.current) return;
 
-        const triggerY = main.getBoundingClientRect().top + 130;
+        const scrollTop = main.scrollTop;
         let current = itemsByCategory[0].category.id;
 
         for (const { category } of itemsByCategory) {
           const el = sectionRefs.current.get(category.id);
           if (!el) continue;
-          if (el.getBoundingClientRect().top <= triggerY) {
+          if (el.offsetTop - scrollTop <= 130) {
             current = category.id;
           } else {
             break;
@@ -599,7 +597,7 @@ export function MenuShell({
       if (pill) {
         // offsetLeft is relative to container — only moves horizontal axis, never vertical
         const targetLeft = pill.offsetLeft - (container.offsetWidth - pill.offsetWidth) / 2;
-        container.scrollLeft = Math.max(0, targetLeft);
+        container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
       }
     }
   }, [activeCategory, activeCatFilter, isLargeCatalog]);
@@ -679,8 +677,8 @@ export function MenuShell({
   );
 
   const mobileCategoryPills = (
-    <div className="lg:hidden sticky z-40 bg-white border-b border-gray-100" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
-      <div ref={mobilePillsRef} className="py-2.5 px-3 flex gap-2 overflow-x-auto scrollbar-hide" style={{ touchAction: 'pan-x' }}>
+    <div className="lg:hidden sticky z-40 bg-white border-b border-gray-200" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
+      <div ref={mobilePillsRef} className="py-2.5 px-4 flex gap-2 overflow-x-auto scrollbar-hide" style={{ touchAction: 'pan-x' }}>
         {/* Large catalog: "Todos" pill */}
         {isLargeCatalog && (
           <button
@@ -745,7 +743,7 @@ export function MenuShell({
       {/* ── Outer scroll: banner scrolls away, sidebar/cart stay sticky ── */}
       <div
         ref={mainRefCb}
-        className={`flex-1 overflow-y-auto max-w-[1440px] w-full mx-auto ${cartCount > 0 ? 'pb-36 lg:pb-0' : ''}`}
+        className={`flex-1 overflow-y-auto max-w-[1440px] w-full mx-auto ${cartCount > 0 ? 'pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-0' : 'pb-[env(safe-area-inset-bottom)]'}`}
       >
 
         {/* Cover banner — full width, scrolls away naturally with content */}
@@ -1362,7 +1360,7 @@ export function MenuShell({
           )}
 
           {/* Powered by MENIUS — always visible */}
-          <div className="mt-10 mb-6 pt-6 border-t border-gray-100 flex flex-col items-center gap-2">
+          <div className="mt-8 mb-4 pt-5 border-t border-gray-100 flex flex-col items-center gap-2">
             <a
               href="https://menius.app?ref=menu"
               target="_blank"
@@ -1425,7 +1423,7 @@ export function MenuShell({
       {ordersLeft === 0 ? (
         /* Limit reached — generic "paused" bar, no mention of billing */
         <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden pointer-events-none">
-          <div className="px-4 pt-10 pb-[calc(env(safe-area-inset-bottom)+1rem)] bg-gradient-to-t from-white via-white to-transparent">
+          <div className="px-4 pt-8 pb-[max(env(safe-area-inset-bottom),12px)] bg-gradient-to-t from-white via-white/95 to-transparent">
             <div className="max-w-lg mx-auto pointer-events-auto">
               <div className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-gray-100 text-gray-500 text-sm font-semibold">
                 <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1438,7 +1436,7 @@ export function MenuShell({
         </div>
       ) : cartCount > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden pointer-events-none">
-          <div className="px-4 pt-10 pb-[calc(env(safe-area-inset-bottom)+1rem)] bg-gradient-to-t from-white via-white to-transparent">
+          <div className="px-4 pt-8 pb-[max(env(safe-area-inset-bottom),12px)] bg-gradient-to-t from-white via-white/95 to-transparent">
             <div className="max-w-lg mx-auto pointer-events-auto">
               <button
                 onClick={() => setOpen(true)}

@@ -72,8 +72,8 @@ export const ProductCardMobile = memo(function ProductCardMobile({
     <div
       onClick={handleCardClick}
       className={cn(
-        'flex flex-col bg-white rounded-2xl border border-gray-150 shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden transition-all duration-150',
-        outOfStock ? 'opacity-60 cursor-default' : 'cursor-pointer active:scale-[0.97] active:shadow-none'
+        'flex flex-col bg-white rounded-2xl border border-gray-200 shadow-[0_2px_10px_rgba(0,0,0,0.09)] overflow-hidden transition-all duration-150',
+        outOfStock ? 'opacity-60 cursor-default' : 'cursor-pointer active:scale-[0.97] active:shadow-sm'
       )}
     >
       {/* Image */}
@@ -169,8 +169,8 @@ export const ProductCardMobile = memo(function ProductCardMobile({
             <button
               onClick={handleAddClick}
               className={cn(
-                'w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 flex-shrink-0 shadow-sm',
-                justAdded ? 'bg-emerald-600 text-white scale-110' : 'bg-emerald-500 text-white'
+                'w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 flex-shrink-0 shadow-md',
+                justAdded ? 'bg-emerald-600 text-white scale-110' : 'bg-emerald-600 text-white hover:bg-emerald-700'
               )}
             >
               {justAdded ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}

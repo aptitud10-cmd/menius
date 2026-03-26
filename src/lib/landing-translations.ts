@@ -253,6 +253,8 @@ const es = {
     billingAnnual: 'Anual',
     annualBadge: '2 meses gratis',
     annualPerMonth: '/mes · facturado anual',
+    annualMonthSuffix: '/mes',
+    annualYearSuffix: '/año',
     plans: [
       {
         name: 'Starter',
@@ -333,6 +335,7 @@ const es = {
     demoEnglish: 'Demo (Inglés)',
     blog: 'Blog',
     faq: 'FAQ',
+    changelog: 'Changelog',
     status: 'Estado del sistema',
     support: 'Soporte',
     professionalSetup: 'Setup profesional',
@@ -597,6 +600,8 @@ const en: LandingT = {
     billingAnnual: 'Annual',
     annualBadge: '2 months free',
     annualPerMonth: '/mo · billed annually',
+    annualMonthSuffix: '/mo',
+    annualYearSuffix: '/yr',
     plans: [
       {
         name: 'Starter',
@@ -677,6 +682,7 @@ const en: LandingT = {
     demoEnglish: 'Demo (English)',
     blog: 'Blog',
     faq: 'FAQ',
+    changelog: 'Changelog',
     status: 'System status',
     support: 'Support',
     professionalSetup: 'Professional setup',

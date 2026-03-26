@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { productName, description, style, cuisine, category } = body;
+    const { productName, description, style, cuisine, category, isBanner } = body;
 
     if (!productName?.trim()) {
       return NextResponse.json({ error: 'Nombre del producto requerido' }, { status: 400 });
@@ -197,7 +197,27 @@ export async function POST(request: NextRequest) {
     const container = getContainer();
     const foodStyling = getFoodStylingDetails();
 
-    const prompt = `Hyperrealistic food photography RAW photograph. Shot in a real restaurant or food photography studio with professional equipment. Indistinguishable from an actual photograph taken with a professional DSLR. NOT CGI, NOT 3D render, NOT illustration, NOT painting, NOT Pixar, NOT animation, NOT AI art.
+    // ─── BANNER MODE ──────────────────────────────────────────────────────────
+    const bannerPrompt = isBanner ? `Hyperrealistic wide-format restaurant banner photograph. Shot in a real restaurant or professional food photography studio. Indistinguishable from an actual photograph taken with a professional DSLR camera. NOT CGI, NOT 3D render, NOT illustration, NOT painting, NOT AI art.
+
+RESTAURANT: "${productName}"${description ? ` — ${description}` : ''}.
+${effectiveCuisineContext ? `CUISINE STYLE: ${effectiveCuisineContext}` : ''}
+
+COMPOSITION: Wide 16:9 horizontal banner. Multiple dishes or food elements spread naturally across the frame. Beautiful table scene or food flat-lay. Slight empty space on one side for potential text overlay. Depth of field with bokeh on background elements.
+
+SCENE: Beautifully plated dishes on a restaurant table. Warm ambient restaurant lighting. Soft candlelight or golden-hour window light. Natural textures — linen napkins, wooden table, ceramic plates.
+
+CAMERA: 35mm wide lens, f/4 aperture, ISO 800 — cinematic look with natural grain.
+
+LIGHTING: Warm, inviting restaurant ambiance. Soft directional light from the left, gentle fill from the right. Golden tones, appetizing and welcoming.
+
+REALISM (critical):
+- This is a REAL restaurant photograph — authentic food, natural imperfections
+- NO text, watermarks, logos, or human faces visible
+- NO pans, skillets, or cooking equipment — food served and plated
+- Natural steam, condensation on glasses, glossy sauce — authentic restaurant scene` : null;
+
+    const prompt = bannerPrompt ?? `Hyperrealistic food photography RAW photograph. Shot in a real restaurant or food photography studio with professional equipment. Indistinguishable from an actual photograph taken with a professional DSLR. NOT CGI, NOT 3D render, NOT illustration, NOT painting, NOT Pixar, NOT animation, NOT AI art.
 
 SERVED IN/ON: ${container}.
 
@@ -221,6 +241,8 @@ REALISM (critical):
 - NO pans, skillets, woks, or cooking equipment${isDrink ? '\n- Beverage MUST be in proper glassware (glass, mug, cup, bottle) — NEVER on a plate or flat surface alone' : '\n- Food MUST be shown as served to a customer at a restaurant table — plated and ready to eat'}
 - NO text, watermarks, logos, or human hands visible`;
 
+    const aspectRatio = isBanner ? '16:9' : '1:1';
+
     // Primary: gemini-3-pro-image-preview (nano banana — most photorealistic)
     let imageBase64: string | null = null;
     const mimeType = 'image/jpeg';
@@ -231,7 +253,7 @@ REALISM (critical):
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
           responseModalities: ['TEXT', 'IMAGE'] as any,
-          imageConfig: { aspectRatio: '1:1' } as any,
+          imageConfig: { aspectRatio } as any,
         } as any,
       });
       const parts = (response as any).candidates?.[0]?.content?.parts ?? [];
@@ -248,7 +270,7 @@ REALISM (critical):
         const imagenResponse = await ai.models.generateImages({
           model: 'imagen-4.0-generate-001',
           prompt,
-          config: { numberOfImages: 1, aspectRatio: '1:1' },
+          config: { numberOfImages: 1, aspectRatio },
         });
         const firstImage = imagenResponse.generatedImages?.[0];
         if (firstImage?.image?.imageBytes) imageBase64 = firstImage.image.imageBytes as string;

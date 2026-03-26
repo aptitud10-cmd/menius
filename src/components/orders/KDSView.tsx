@@ -20,21 +20,16 @@ import type { Order, OrderStatus } from '@/types';
 
 /* ── Status flow ── KDS starts from confirmed (pending is handled by Counter) */
 const NEXT: Record<string, OrderStatus> = { confirmed: 'preparing', preparing: 'ready', ready: 'delivered' };
-const BUMP: Record<string, { label: string }> = {
-  confirmed: { label: 'PREPARAR' },
-  preparing: { label: 'LISTA'    },
-  ready:     { label: 'ENTREGAR' },
+
+const TYPE_META: Record<string, { icon: typeof Utensils }> = {
+  dine_in:  { icon: Utensils },
+  pickup:   { icon: ShoppingBag },
+  delivery: { icon: Truck },
 };
 
-const TYPE_META: Record<string, { icon: typeof Utensils; label: string }> = {
-  dine_in:  { icon: Utensils,    label: 'Mesa' },
-  pickup:   { icon: ShoppingBag, label: 'Pickup' },
-  delivery: { icon: Truck,       label: 'Delivery' },
-};
-
-const PAY_META: Record<string, { icon: typeof Banknote; label: string }> = {
-  cash:   { icon: Banknote,   label: 'Efectivo' },
-  online: { icon: CreditCard, label: 'En linea' },
+const PAY_META: Record<string, { icon: typeof Banknote }> = {
+  cash:   { icon: Banknote },
+  online: { icon: CreditCard },
 };
 
 const AUTO_ARCHIVE_MIN = 120;
@@ -84,7 +79,8 @@ interface Undo { orderId: string; num: string; prev: OrderStatus; next: OrderSta
    KDSView — Toast / Fresh KDS style
    ══════════════════════════════════════════════════════════════════════ */
 export function KDSView({ initialOrders, restaurantId, restaurantName, currency, restaurantPhone, restaurantAddress, restaurantSlug }: Props) {
-  const { t } = useDashboardLocale();
+  const { t, locale } = useDashboardLocale();
+  const isEn = locale === 'en';
   const [tab, setTab] = useState<Tab>('active');
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -313,10 +309,10 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
         body: JSON.stringify({ product_id: pid, in_stock: false }),
       });
       const ok = res.ok;
-      setOosToast({ msg: ok ? 'Producto marcado sin stock' : 'Error al actualizar stock', ok });
+      setOosToast({ msg: ok ? (isEn ? 'Product marked out of stock' : 'Producto marcado sin stock') : (isEn ? 'Error updating stock' : 'Error al actualizar stock'), ok });
       setTimeout(() => setOosToast(null), 3000);
     } catch {
-      setOosToast({ msg: 'Error de conexión al actualizar stock', ok: false });
+      setOosToast({ msg: isEn ? 'Connection error updating stock' : 'Error de conexión al actualizar stock', ok: false });
       setTimeout(() => setOosToast(null), 3000);
     }
   };
@@ -351,7 +347,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
           <a
             href="/counter"
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-600 text-white text-xs font-bold animate-pulse hover:bg-red-700 transition-colors"
-            title="Hay órdenes nuevas esperando en Counter"
+            title={isEn ? 'New orders waiting in Counter' : 'Hay órdenes nuevas esperando en Counter'}
           >
             🔔 {pendingInCounter} en Counter
           </a>
@@ -410,14 +406,11 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
         </button>
         {tab === 'active' && (
           <div className="ml-auto flex items-center gap-1">
-            {(['all', 'dine_in', 'pickup', 'delivery'] as const).map(f => {
-              const m = f !== 'all' ? TYPE_META[f] : null;
-              return (
-                <button key={f} onClick={() => setFilter(f)} className={cn('px-3 py-1.5 rounded-lg text-xs font-bold touch-manipulation', filter === f ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300')}>
-                  {f === 'all' ? t.kds_all : f === 'dine_in' ? t.kds_table : f === 'pickup' ? t.kds_pickup : t.kds_delivery}
-                </button>
-              );
-            })}
+            {(['all', 'dine_in', 'pickup', 'delivery'] as const).map(f => (
+              <button key={f} onClick={() => setFilter(f)} className={cn('px-3 py-1.5 rounded-lg text-xs font-bold touch-manipulation', filter === f ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300')}>
+                {f === 'all' ? t.kds_all : f === 'dine_in' ? t.kds_table : f === 'pickup' ? t.kds_pickup : t.kds_delivery}
+              </button>
+            ))}
           </div>
         )}
       </div>
@@ -629,7 +622,6 @@ function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected,
   const payLabel: Record<string, string> = { cash: t.kds_cash, online: t.kds_online };
   const dietLabel: Record<string, string> = { spicy: `🌶️ ${t.kds_spicy}`, dairy_free: `🥛 ${t.kds_dairyFree}` };
   const u = urgency(order.created_at, busyExtra);
-  const bmp = BUMP[order.status];
   const nxt = NEXT[order.status];
   const tm = TYPE_META[order.order_type ?? ''];
   const pm = PAY_META[order.payment_method ?? ''];
@@ -757,13 +749,13 @@ function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected,
         {order.status !== 'cancelled' && order.status !== 'delivered' && (
           <button onClick={onCancel} className="p-3 rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 touch-manipulation"><XCircle className="w-5 h-5" /></button>
         )}
-        {nxt && bmp && (
+        {nxt && bumpLabel[order.status] && (
           <button
             onClick={onBump}
             className="flex-1 py-5 rounded-xl text-white font-black text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.97] touch-manipulation tracking-wide"
             style={{ backgroundColor: order.status === 'confirmed' ? '#3b82f6' : order.status === 'preparing' ? '#7c3aed' : '#06c167' }}
           >
-            {bumpLabel[order.status] ?? bmp.label} <ArrowRight className="w-5 h-5" />
+            {bumpLabel[order.status]} <ArrowRight className="w-5 h-5" />
           </button>
         )}
       </div>

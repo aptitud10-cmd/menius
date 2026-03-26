@@ -68,9 +68,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const enabledOrderTypes = restaurant.order_types_enabled?.length
     ? restaurant.order_types_enabled
     : (['dine_in', 'pickup', 'delivery'] as OrderType[]);
-  const enabledPaymentMethods = restaurant.payment_methods_enabled?.length
+  const stripeConnectReady = !!restaurant.stripe_onboarding_complete && !!restaurant.stripe_account_id;
+  const enabledPaymentMethods = (restaurant.payment_methods_enabled?.length
     ? restaurant.payment_methods_enabled
-    : (['cash'] as PaymentMethod[]);
+    : (['cash'] as PaymentMethod[])
+  ).filter((m) => m !== 'online' || stripeConnectReady);
 
   const [step, setStep] = useState<CheckoutStep>('form');
   const [orderType, setOrderType] = useState<OrderType>(enabledOrderTypes[0]);

@@ -33,6 +33,7 @@ import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 const MenuImportLazy = lazy(() => import('./MenuImport').then(m => ({ default: m.MenuImport })));
 const BulkImageUploadLazy = lazy(() => import('./BulkImageUpload').then(m => ({ default: m.BulkImageUpload })));
+const BulkAIImageGenerateLazy = lazy(() => import('./BulkAIImageGenerate').then(m => ({ default: m.BulkAIImageGenerate })));
 
 // ─── Inline price cell ──────────────────────────────────────────
 
@@ -133,6 +134,7 @@ export function ProductsManager({
   const [isPending, startTransition] = useTransition();
   const [showImport, setShowImport] = useState(false);
   const [showBulkImages, setShowBulkImages] = useState(false);
+  const [showBulkAI, setShowBulkAI] = useState(false);
   const { t } = useDashboardLocale();
 
   const toggleCat = (id: string) => {
@@ -337,6 +339,21 @@ export function ProductsManager({
           </Link>
           <button onClick={() => setShowBulkImages(true)} className="dash-btn-secondary">
             <ImagePlus className="w-4 h-4" /> {t.products_photos}
+          </button>
+          <button
+            onClick={() => setShowBulkAI(true)}
+            className="dash-btn-secondary"
+            title={products.filter(p => !p.image_url).length > 0
+              ? `${products.filter(p => !p.image_url).length} productos sin imagen`
+              : 'Todos los productos tienen imagen'}
+          >
+            <Sparkles className="w-4 h-4 text-purple-500" />
+            <span className="hidden sm:inline">{t.products_bulkAI}</span>
+            {products.filter(p => !p.image_url).length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 text-[10px] font-bold">
+                {products.filter(p => !p.image_url).length}
+              </span>
+            )}
           </button>
           <button onClick={() => setShowImport(true)} className="dash-btn-secondary">
             <Sparkles className="w-4 h-4" /> {t.products_importAI}
@@ -559,6 +576,25 @@ export function ProductsManager({
               );
             }}
             onClose={() => setShowBulkImages(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* Bulk AI Image Generate */}
+      {showBulkAI && (
+        <Suspense fallback={null}>
+          <BulkAIImageGenerateLazy
+            products={products}
+            categories={categories}
+            onComplete={(updated) => {
+              setProducts(prev =>
+                prev.map(p => {
+                  const newUrl = updated.get(p.id);
+                  return newUrl ? { ...p, image_url: newUrl } : p;
+                }),
+              );
+            }}
+            onClose={() => setShowBulkAI(false)}
           />
         </Suspense>
       )}

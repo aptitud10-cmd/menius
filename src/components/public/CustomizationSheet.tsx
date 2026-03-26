@@ -148,6 +148,15 @@ export function CustomizationSheet({
   const [justAddedSuggestId, setJustAddedSuggestId] = useState<string | null>(null);
   const dragControls = useDragControls();
 
+  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   const scrollY = useMotionValue(0);
   const imageY = useTransform(scrollY, [0, 300], [0, 120]);
   const imageScale = useTransform(scrollY, [0, 300], [1, 1.15]);
@@ -544,7 +553,7 @@ export function CustomizationSheet({
             {added
               ? t.added
               : !isValid
-                ? `${locale === 'es' ? 'Selecciona' : 'Select'}: ${validationErrors.join(', ')}`
+                ? (locale === 'es' ? `Selecciona: ${validationErrors.join(', ')}` : `Choose: ${validationErrors.join(', ')}`)
                 : isEditing
                   ? `${t.updateItem} · ${fmtPrice(unitPrice * qty)}`
                   : `${t.add} · ${fmtPrice(unitPrice * qty)}`
@@ -567,8 +576,9 @@ export function CustomizationSheet({
       />
 
       {/* Desktop: slide from right — polished side panel */}
+      {isDesktop !== false && (
       <motion.div
-        className="hidden lg:flex fixed top-0 bottom-0 right-0 w-[520px] bg-white flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)] border-l border-gray-100"
+        className={isDesktop === null ? 'hidden lg:flex fixed top-0 bottom-0 right-0 w-[520px] bg-white flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)] border-l border-gray-100' : 'flex fixed top-0 bottom-0 right-0 w-[520px] bg-white flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)] border-l border-gray-100'}
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
@@ -601,10 +611,12 @@ export function CustomizationSheet({
         {sheetBody}
         {sheetFooter}
       </motion.div>
+      )}
 
       {/* Mobile: slide from bottom with drag-to-dismiss */}
+      {isDesktop !== true && (
       <motion.div
-        className="lg:hidden fixed left-0 right-0 bg-white flex flex-col shadow-2xl rounded-t-2xl"
+        className={isDesktop === null ? 'lg:hidden fixed left-0 right-0 bg-white flex flex-col shadow-2xl rounded-t-2xl' : 'fixed left-0 right-0 bg-white flex flex-col shadow-2xl rounded-t-2xl'}
         style={{ maxHeight: notesFocused ? '98dvh' : vvH, bottom: kbOffset, transition: 'max-height 0.2s ease-out, bottom 0.25s ease-out' }}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
@@ -648,6 +660,7 @@ export function CustomizationSheet({
         {sheetBody}
         {sheetFooter}
       </motion.div>
+      )}
 
       {/* Floating "Listo" bar above keyboard when notes textarea is focused */}
       {notesFocused && (

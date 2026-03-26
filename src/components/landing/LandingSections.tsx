@@ -393,9 +393,9 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
                   </div>
                   {annual && (
                     <p className="text-xs text-gray-500 mt-1 mb-0">
-                      {currencySymbol}{formatPrice(monthlyPrice)}<span className="line-through opacity-60">/mes</span>
+                      {currencySymbol}{formatPrice(monthlyPrice)}<span className="line-through opacity-60">{tp.annualMonthSuffix}</span>
                       {' '}→{' '}
-                      <span className="text-[#05c8a7] font-semibold">{currencySymbol}{formatPrice(annualTotal)}/año</span>
+                      <span className="text-[#05c8a7] font-semibold">{currencySymbol}{formatPrice(annualTotal)}{tp.annualYearSuffix}</span>
                     </p>
                   )}
                 </div>

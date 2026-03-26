@@ -357,6 +357,7 @@ export interface DashboardTranslations {
   products_clickEditPrice: string;
   products_groups: string;
   products_copy: string;
+  products_bulkAI: string;
 
   // Product Editor
   editor_back: string;
@@ -592,6 +593,8 @@ export interface DashboardTranslations {
   settings_domainCNAME: string;
   settings_uploadError: string;
   settings_bannerFormatNote: string;
+  settings_generateBannerAI: string;
+  settings_generatingBannerAI: string;
   settings_dineInDesc: string;
   settings_pickupDesc: string;
   settings_deliveryDesc: string;
@@ -1462,6 +1465,7 @@ const es: DashboardTranslations = {
   products_clickEditPrice: 'Click para editar precio',
   products_groups: 'grupos',
   products_copy: 'copia',
+  products_bulkAI: 'Fotos con IA',
 
   // Product Editor
   editor_back: 'Volver',
@@ -1697,6 +1701,8 @@ const es: DashboardTranslations = {
   settings_domainCNAME: 'cname.menius.app',
   settings_uploadError: 'Error subiendo imagen',
   settings_bannerFormatNote: 'Medida ideal: 1200 x 400px (3:1). JPG, PNG o WebP, máximo 10MB.',
+  settings_generateBannerAI: 'Generar con IA',
+  settings_generatingBannerAI: 'Generando...',
   settings_dineInDesc: 'El cliente ordena y come en tu restaurante',
   settings_pickupDesc: 'El cliente ordena y pasa a recoger',
   settings_deliveryDesc: 'El cliente pone su dirección y tú le envías el pedido',
@@ -2567,6 +2573,7 @@ const en: DashboardTranslations = {
   products_clickEditPrice: 'Click to edit price',
   products_groups: 'groups',
   products_copy: 'copy',
+  products_bulkAI: 'AI Photos',
 
   // Product Editor
   editor_back: 'Back',
@@ -2802,6 +2809,8 @@ const en: DashboardTranslations = {
   settings_domainCNAME: 'cname.menius.app',
   settings_uploadError: 'Error uploading image',
   settings_bannerFormatNote: 'Ideal size: 1200 x 400px (3:1). JPG, PNG or WebP, max 10MB.',
+  settings_generateBannerAI: 'Generate with AI',
+  settings_generatingBannerAI: 'Generating...',
   settings_dineInDesc: 'Customer orders and eats at your restaurant',
   settings_pickupDesc: 'Customer orders and picks up',
   settings_deliveryDesc: 'Customer provides their address and you deliver the order',
