@@ -87,8 +87,10 @@ export interface ReceiptData {
     notes?: string;
   }[];
   subtotal: number;
+  tip?: number;
   tax?: number;
   taxLabel?: string;
+  taxIncluded?: boolean;
   total: number;
   notes?: string;
   currency: string;
