@@ -30,7 +30,7 @@ interface GeneratedPost {
 }
 
 export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale }: Props) {
-  const { t } = useDashboardLocale();
+  const { t, locale } = useDashboardLocale();
 
   const POST_TYPES = [
     { value: 'promo', label: t.social_typePromo },
@@ -274,7 +274,7 @@ export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale 
                 <div className="relative w-full rounded-lg overflow-hidden" style={{ maxHeight: '300px', minHeight: '200px' }}>
                   <Image
                     src={generatedImageUrl}
-                    alt="AI generated post image"
+                    alt={locale === 'en' ? 'AI generated post image' : 'Imagen de post generada por IA'}
                     fill
                     sizes="(max-width: 640px) 100vw, 480px"
                     className="object-cover"

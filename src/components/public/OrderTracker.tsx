@@ -720,10 +720,10 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               {t.en ? 'Delivery photo' : 'Foto de entrega'}
             </p>
             <a href={(order as any).delivery_photo_url} target="_blank" rel="noopener noreferrer">
-              <div className="relative w-full rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm" style={{ maxHeight: '288px', minHeight: '160px' }}>
+              <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
                 <Image
                   src={(order as any).delivery_photo_url}
-                  alt="Delivery proof"
+                  alt={t.en ? 'Delivery proof' : 'Foto de entrega'}
                   fill
                   sizes="(max-width: 640px) 100vw, 480px"
                   className="object-contain"

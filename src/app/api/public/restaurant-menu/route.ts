@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 
       adminDb
         .from('products')
-        .select('id, restaurant_id, category_id, name, name_en, description, description_en, price, image_url, sort_order, is_active, in_stock, is_popular, dietary_tags, calories, preparation_time_minutes, allergens')
+        .select('id, restaurant_id, category_id, name, name_en, description, description_en, price, image_url, sort_order, is_active, in_stock, is_featured, dietary_tags, calories, preparation_time_minutes, allergens')
         .eq('restaurant_id', restaurantId)
         .eq('is_active', true)
         .order('sort_order', { ascending: true }),
