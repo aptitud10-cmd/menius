@@ -229,29 +229,32 @@ export function MenuShell({
     const supabase = getSupabaseBrowser();
 
     async function fetchSuggestions() {
-      // 1. Manual pairings (instant, deterministic)
-      const { data: pairingRows } = await supabase
-        .from('product_pairings')
-        .select('paired_id, sort_order')
-        .eq('product_id', productId)
-        .order('sort_order', { ascending: true });
+      try {
+        // Fetch pairings and co-occurrence in parallel
+        const [{ data: pairingRows }, { data: coRows }] = await Promise.all([
+          supabase
+            .from('product_pairings')
+            .select('paired_id, sort_order')
+            .eq('product_id', productId)
+            .order('sort_order', { ascending: true }),
+          supabase.rpc('get_product_cooccurrences', {
+            p_product_id: productId,
+            p_restaurant_id: restaurant.id,
+            p_limit: 8,
+          }),
+        ]);
 
-      const pairingIds: string[] = (pairingRows ?? []).map((r: { paired_id: string }) => r.paired_id);
+        const pairingIds: string[] = (pairingRows ?? []).map((r: { paired_id: string }) => r.paired_id);
+        const pairingSet = new Set(pairingIds);
+        const coIds: string[] = (coRows ?? [])
+          .map((r: { product_id: string }) => r.product_id)
+          .filter((id: string) => !pairingSet.has(id));
 
-      // 2. Co-occurrence (historical order data) — fill up to 8
-      const { data: coRows } = await supabase
-        .rpc('get_product_cooccurrences', {
-          p_product_id: productId,
-          p_restaurant_id: restaurant.id,
-          p_limit: 8,
-        });
-
-      const coIds: string[] = (coRows ?? [])
-        .map((r: { product_id: string }) => r.product_id)
-        .filter((id: string) => !pairingIds.includes(id));
-
-      if (!cancelled) {
-        setDataBasedSuggestionIds([...pairingIds, ...coIds]);
+        if (!cancelled) {
+          setDataBasedSuggestionIds([...pairingIds, ...coIds]);
+        }
+      } catch {
+        // Non-critical — regex fallback will still be used
       }
     }
 
@@ -459,8 +462,7 @@ export function MenuShell({
       alcoholRegex.test(`${p.name} ${categories.find((c) => c.id === p.category_id)?.name ?? ''}`);
 
     // 1. Data-driven: pairings first, then co-occurrence
-    const dataIds = dataBasedSuggestionIds;
-    const dataProducts: Product[] = dataIds
+    const dataProducts: Product[] = dataBasedSuggestionIds
       .map((id) => productMap.get(id))
       .filter((p): p is Product => !!p && isEligible(p) && !(isBreakfastHour && isAlcohol(p)))
       .slice(0, 4);

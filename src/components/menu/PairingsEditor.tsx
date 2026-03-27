@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import { Link2, X, Loader2, Search, GripVertical, Plus } from 'lucide-react';
+import { Link2, X, Loader2, Search, Plus } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
@@ -30,15 +30,18 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
   const [search, setSearch] = useState('');
   const [showPicker, setShowPicker] = useState(false);
 
-  const pairedIds = new Set(pairings.map((p) => p.paired_id));
-  const eligibleProducts = allProducts.filter(
-    (p) => p.id !== productId && !pairedIds.has(p.id)
+  const pairedIds = useMemo(() => new Set(pairings.map((p) => p.paired_id)), [pairings]);
+  const eligibleProducts = useMemo(
+    () => allProducts.filter((p) => p.id !== productId && !pairedIds.has(p.id)),
+    [allProducts, productId, pairedIds],
   );
-  const filteredProducts = search
-    ? eligibleProducts.filter((p) =>
-        p.name.toLowerCase().includes(search.toLowerCase())
-      )
-    : eligibleProducts;
+  const filteredProducts = useMemo(
+    () =>
+      search
+        ? eligibleProducts.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
+        : eligibleProducts,
+    [eligibleProducts, search],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -77,7 +80,7 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
     setSaving(false);
   };
 
-  const productMap = new Map(allProducts.map((p) => [p.id, p]));
+  const productMap = useMemo(() => new Map(allProducts.map((p) => [p.id, p])), [allProducts]);
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -112,7 +115,6 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
                     key={pairing.id}
                     className="flex items-center gap-3 bg-gray-50 border border-gray-100 rounded-lg px-3 py-2"
                   >
-                    <GripVertical className="w-4 h-4 text-gray-300 flex-shrink-0" />
                     {p.image_url ? (
                       <div className="relative w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
                         <Image
