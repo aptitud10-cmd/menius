@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { hasPlanAccess } from '@/lib/auth/check-plan';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
 
@@ -14,10 +15,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    const { allowed } = await checkRateLimitAsync(`ocr:${tenant.userId}`, { limit: 10, windowSec: 3600 });
+    const isFreePlan = !(await hasPlanAccess(tenant.restaurantId, 'starter'));
+    const importLimit = isFreePlan ? 3 : 10;
+    const { allowed } = await checkRateLimitAsync(`ocr:${tenant.userId}`, { limit: importLimit, windowSec: 3600 });
     if (!allowed) {
       return NextResponse.json(
-        { error: 'Límite alcanzado. Intenta en 1 hora.' },
+        { error: isFreePlan
+            ? 'Límite de 3 importaciones por hora en el plan gratuito. Actualiza a Starter para 10/hora.'
+            : 'Límite alcanzado. Intenta en 1 hora.' },
         { status: 429 }
       );
     }
