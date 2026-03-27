@@ -19,6 +19,7 @@ import type { DashboardTranslations } from '@/lib/dashboard-translations';
 import { ModifierGroupsEditor } from './ModifierGroupsEditor';
 import { MediaPicker } from './MediaPicker';
 import { CustomizationSheet } from '@/components/public/CustomizationSheet';
+import { PairingsEditor } from './PairingsEditor';
 
 interface Props {
   product: Product | null;
@@ -27,6 +28,8 @@ interface Props {
   defaultLocale?: string;
   availableLocales?: string[];
   slug?: string;
+  allProducts?: Product[];
+  restaurantId?: string;
 }
 
 function LegacyOptionsSection({
@@ -125,6 +128,8 @@ export function ProductEditor({
   defaultLocale = 'es',
   availableLocales = ['es'],
   slug,
+  allProducts = [],
+  restaurantId,
 }: Props) {
   const router = useRouter();
   const { success: toastSuccess, error: toastError } = useToast();
@@ -878,6 +883,15 @@ export function ProductEditor({
                 })}
               </div>
             </div>
+
+            {/* Pairings card — only for existing products */}
+            {isEditing && product && restaurantId && allProducts.length > 0 && (
+              <PairingsEditor
+                productId={product.id}
+                restaurantId={restaurantId}
+                allProducts={allProducts}
+              />
+            )}
           </div>
         </div>
       </div>

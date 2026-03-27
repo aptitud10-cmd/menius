@@ -14,6 +14,7 @@ import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { getLocaleFlag, SUPPORTED_LOCALES, tName, tDesc } from '@/lib/i18n';
 import { trackEvent } from '@/lib/analytics';
 
+import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { MenuHeader, HEADER_HEIGHT } from './MenuHeader';
 import { CategorySidebar } from './CategorySidebar';
 import { ProductCard } from './ProductCard';
@@ -189,6 +190,8 @@ export function MenuShell({
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [customization, setCustomization] = useState<CustomizationTarget | null>(null);
+  // Ordered list of product IDs from data-driven suggestions (pairings + co-occurrence)
+  const [dataBasedSuggestionIds, setDataBasedSuggestionIds] = useState<string[]>([]);
   const [toastName, setToastName] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -215,6 +218,47 @@ export function MenuShell({
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
+  // Fetch data-driven suggestions (manual pairings first, then co-occurrence)
+  useEffect(() => {
+    const productId = customization?.product?.id;
+    if (!productId) {
+      setDataBasedSuggestionIds([]);
+      return;
+    }
+    let cancelled = false;
+    const supabase = getSupabaseBrowser();
+
+    async function fetchSuggestions() {
+      // 1. Manual pairings (instant, deterministic)
+      const { data: pairingRows } = await supabase
+        .from('product_pairings')
+        .select('paired_id, sort_order')
+        .eq('product_id', productId)
+        .order('sort_order', { ascending: true });
+
+      const pairingIds: string[] = (pairingRows ?? []).map((r: { paired_id: string }) => r.paired_id);
+
+      // 2. Co-occurrence (historical order data) — fill up to 8
+      const { data: coRows } = await supabase
+        .rpc('get_product_cooccurrences', {
+          p_product_id: productId,
+          p_restaurant_id: restaurant.id,
+          p_limit: 8,
+        });
+
+      const coIds: string[] = (coRows ?? [])
+        .map((r: { product_id: string }) => r.product_id)
+        .filter((id: string) => !pairingIds.includes(id));
+
+      if (!cancelled) {
+        setDataBasedSuggestionIds([...pairingIds, ...coIds]);
+      }
+    }
+
+    fetchSuggestions();
+    return () => { cancelled = true; };
+  }, [customization?.product?.id, restaurant.id]);
+
   const cartColRef = useRef<HTMLDivElement>(null);
   const [flyParticles, setFlyParticles] = useState<{ id: number; sx: number; sy: number }[]>([]);
   const flyIdRef = useRef(0);
@@ -387,49 +431,72 @@ export function MenuShell({
     [filteredProducts],
   );
 
-  // Suggested upsell: featured products not already in the cart, max 5
   const cartProductIds = useCartStore((s) => new Set(s.items.map((i) => i.product.id)));
-  // Smart cross-selling: suggest complementary items based on the main product's category type.
-  // Rule-based pairing (drinks/sides for mains, etc.) without API latency.
+
+  // Classifier shared between suggestedProducts and the data-merge below
+  const classifyProduct = useCallback((catName: string, productName: string): 'drink' | 'dessert' | 'side' | 'main' => {
+    const text = `${catName} ${productName}`.toLowerCase();
+    if (/bebida|drink|refresco|soda|agua\b|jugo|juice|cerveza|beer|vino|wine|shake|batido|caf[eé]|coffee|t[eé]\b|smoothie|limon|milkshake|horchata|margarita|coctel|cocktail|limonada|frapp[eé]|cappuccino|latte|espresso|gatorade|red bull|energy|agua mineral|sparkling|kombucha|infusion|chai|matcha|mojito|sangria|michelada|tepache|agua fresca|jamaica|tamarindo|hibiscus|lemonade|limeade|iced tea/i.test(text)) return 'drink';
+    if (/postre|dessert|helado|ice cream|pastel|cake|brownie|dulce|sweet|cookie|tiramisú|flan|churro|cheesecake|mousse|pudding|gelato|sorbet|donut|muffin|crepe|waffle|tarta|pie|eclair|profiterole|macaron|tres leches|panna cotta|tiramisu|cannoli|semifreddo/i.test(text)) return 'dessert';
+    if (/acompañ|side|ensalada|salad|sopa|soup|papa|fries|chips|guarnición|arroz|rice|wings|alitas|nachos|onion ring|mozzarella stick|guacamole|dip|coleslaw|breadstick|garlic bread|pan de ajo|bastones|elote|corn|coliflor|cauliflower|brócoli|broccoli|jalapeño|poppers|tater tot|yuca|plantain|patacón|tostón|boniato|camote|edamame|dumplings|gyoza|spring roll|rollo/i.test(text)) return 'side';
+    return 'main';
+  }, []);
+
+  // Smart cross-selling: data-driven (pairings + co-occurrence) → rule-based fallback
   const suggestedProducts = useMemo(() => {
     const mainProduct = customization?.product;
     if (!mainProduct) return [];
 
-    const classify = (catName: string, productName: string): 'drink' | 'dessert' | 'side' | 'main' => {
-      const text = `${catName} ${productName}`.toLowerCase();
-      if (/bebida|drink|refresco|soda|agua\b|jugo|juice|cerveza|beer|vino|wine|shake|batido|caf[eé]|coffee|t[eé]\b|smoothie|limon/i.test(text)) return 'drink';
-      if (/postre|dessert|helado|ice cream|pastel|cake|brownie|dulce|sweet|cookie|tiramisú|flan/i.test(text)) return 'dessert';
-      if (/acompañ|side|ensalada|salad|sopa|soup|papa|fries|chips|guarnición|arroz|rice/i.test(text)) return 'side';
-      return 'main';
-    };
+    const productMap = new Map(products.map((p) => [p.id, p]));
+    const isEligible = (p: Product) =>
+      p.id !== mainProduct.id && p.in_stock !== false && !cartProductIds.has(p.id);
 
+    // Time-of-day context: filter alcohol before noon
+    const hour = new Date().getHours();
+    const isBreakfastHour = hour >= 5 && hour < 11;
+    const alcoholRegex = /cerveza|beer|vino|wine|margarita|coctel|cocktail|mojito|sangria|michelada|alcohol/i;
+    const isAlcohol = (p: Product) =>
+      alcoholRegex.test(`${p.name} ${categories.find((c) => c.id === p.category_id)?.name ?? ''}`);
+
+    // 1. Data-driven: pairings first, then co-occurrence
+    const dataIds = dataBasedSuggestionIds;
+    const dataProducts: Product[] = dataIds
+      .map((id) => productMap.get(id))
+      .filter((p): p is Product => !!p && isEligible(p) && !(isBreakfastHour && isAlcohol(p)))
+      .slice(0, 4);
+
+    if (dataProducts.length >= 4) return dataProducts;
+
+    // 2. Regex fallback to pad remaining slots
+    const seen = new Set(dataProducts.map((p) => p.id));
     const mainCat = categories.find((c) => c.id === mainProduct.category_id);
-    const mainType = classify(mainCat?.name ?? '', mainProduct.name);
+    const mainType = classifyProduct(mainCat?.name ?? '', mainProduct.name);
 
-    // Priority order of desired companion types
     const wantOrder: Array<'drink' | 'dessert' | 'side' | 'main'> = (() => {
       if (mainType === 'main')    return ['drink', 'side', 'dessert'];
       if (mainType === 'side')    return ['drink', 'main'];
       if (mainType === 'dessert') return ['drink'];
-      /* drink */                 return ['main', 'side', 'dessert'];
+      return ['main', 'side', 'dessert'];
     })();
 
-    return products
-      .filter((p) => p.id !== mainProduct.id && p.in_stock !== false && !cartProductIds.has(p.id))
+    const fallback = products
+      .filter((p) => isEligible(p) && !seen.has(p.id) && !(isBreakfastHour && isAlcohol(p)))
       .map((p) => {
         const cat = categories.find((c) => c.id === p.category_id);
-        const pType = classify(cat?.name ?? '', p.name);
-        const typeRank = wantOrder.indexOf(pType); // -1 = irrelevant
+        const pType = classifyProduct(cat?.name ?? '', p.name);
+        const typeRank = wantOrder.indexOf(pType);
         if (typeRank === -1) return null;
-        // Lower score = shown first; featured within each rank group gets priority
-        const score = typeRank * 10 + (p.is_featured ? 0 : 1);
+        const marginBoost = pType === 'drink' ? 0 : pType === 'side' ? 1 : 2;
+        const score = typeRank * 10 + marginBoost + (p.is_featured ? 0 : 3);
         return { product: p, score };
       })
       .filter((x): x is { product: Product; score: number } => x !== null)
       .sort((a, b) => a.score - b.score)
-      .slice(0, 4)
+      .slice(0, 4 - dataProducts.length)
       .map(({ product }) => product);
-  }, [customization?.product, products, categories, cartProductIds]);
+
+    return [...dataProducts, ...fallback];
+  }, [customization?.product, products, categories, cartProductIds, dataBasedSuggestionIds, classifyProduct]);
 
   const itemsByCategory = useMemo(() => {
     const regular = categories
