@@ -50,11 +50,13 @@ interface DashboardHomeProps {
     hasOrders: boolean;
   };
   analytics?: AnalyticsData;
-  freeTier?: { ordersToday: number; dailyLimit: number } | null;
+  freeTier?: { ordersThisMonth: number; monthlyLimit: number } | null;
+  planId?: string;
 }
 
-export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrders, subscription, onboarding, analytics, freeTier }: DashboardHomeProps) {
-  const { t } = useDashboardLocale();
+export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrders, subscription, onboarding, analytics, freeTier, planId }: DashboardHomeProps) {
+  const { t, locale } = useDashboardLocale();
+  const isEn = locale === 'en';
   const salesDelta = stats.salesYesterday > 0
     ? ((stats.salesToday - stats.salesYesterday) / stats.salesYesterday) * 100
     : stats.salesToday > 0 ? 100 : 0;
@@ -137,47 +139,61 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
         </div>
       )}
 
-      {/* Free tier banner — owner only, never shown to customers */}
-      {freeTier && (
-        <div className={cn(
-          'rounded-2xl p-4 flex items-center justify-between gap-4 border',
-          freeTier.ordersToday >= freeTier.dailyLimit
-            ? 'bg-red-500/[0.06] border-red-500/[0.15]'
-            : freeTier.ordersToday >= freeTier.dailyLimit - 1
-            ? 'bg-amber-50 border-amber-200'
-            : 'bg-gray-50 border-gray-200'
-        )}>
-          <div className="flex items-center gap-3 min-w-0">
-            <div className={cn(
-              'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
-              freeTier.ordersToday >= freeTier.dailyLimit ? 'bg-red-500/[0.15]' : 'bg-amber-100'
-            )}>
-              {freeTier.ordersToday >= freeTier.dailyLimit
-                ? <AlertTriangle className="w-5 h-5 text-red-400" />
-                : <Clock className="w-5 h-5 text-amber-600" />
-              }
-            </div>
-            <div className="min-w-0">
-              <p className={cn('font-semibold text-sm', freeTier.ordersToday >= freeTier.dailyLimit ? 'text-red-700' : 'text-gray-800')}>
-                {freeTier.ordersToday >= freeTier.dailyLimit
-                  ? 'Límite diario alcanzado — tu menú no acepta más pedidos hoy'
-                  : `Plan gratuito · ${freeTier.dailyLimit - freeTier.ordersToday} de ${freeTier.dailyLimit} pedido${freeTier.dailyLimit - freeTier.ordersToday !== 1 ? 's' : ''} disponible${freeTier.dailyLimit - freeTier.ordersToday !== 1 ? 's' : ''} hoy`
+      {/* Free plan banner */}
+      {freeTier && (() => {
+        const { ordersThisMonth, monthlyLimit } = freeTier;
+        const remaining = monthlyLimit - ordersThisMonth;
+        const isLimit = remaining <= 0;
+        const isWarning = !isLimit && remaining <= 10;
+        return (
+          <div className={cn(
+            'rounded-2xl p-4 flex items-center justify-between gap-4 border',
+            isLimit ? 'bg-red-500/[0.06] border-red-500/[0.15]'
+              : isWarning ? 'bg-amber-50 border-amber-200'
+              : 'bg-violet-50 border-violet-200'
+          )}>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={cn(
+                'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
+                isLimit ? 'bg-red-500/[0.15]' : isWarning ? 'bg-amber-100' : 'bg-violet-100'
+              )}>
+                {isLimit
+                  ? <AlertTriangle className="w-5 h-5 text-red-400" />
+                  : <Sparkles className="w-5 h-5 text-violet-500" />
                 }
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Suscríbete para recibir pedidos ilimitados y eliminar este límite.
-              </p>
+              </div>
+              <div className="min-w-0">
+                <p className={cn('font-semibold text-sm', isLimit ? 'text-red-700' : isWarning ? 'text-amber-700' : 'text-violet-700')}>
+                  {isLimit
+                    ? (isEn ? 'Monthly order limit reached — your menu is paused' : 'Límite mensual alcanzado — tu menú está pausado')
+                    : isEn
+                      ? `Free plan · ${ordersThisMonth} / ${monthlyLimit} orders this month`
+                      : `Plan gratuito · ${ordersThisMonth} / ${monthlyLimit} pedidos este mes`
+                  }
+                </p>
+                <p className={cn('text-xs mt-0.5', isLimit ? 'text-red-500/80' : 'text-gray-500')}>
+                  {isLimit
+                    ? (isEn ? 'Upgrade to receive unlimited orders.' : 'Mejora tu plan para recibir pedidos ilimitados.')
+                    : isEn
+                      ? `${remaining} orders remaining · Upgrade for unlimited orders, delivery & WhatsApp`
+                      : `${remaining} pedidos restantes · Mejora para pedidos ilimitados, delivery y WhatsApp`
+                  }
+                </p>
+              </div>
             </div>
+            <Link
+              href="/app/billing"
+              className={cn(
+                'flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-colors flex-shrink-0',
+                isLimit ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-violet-600 text-white hover:bg-violet-700'
+              )}
+            >
+              <CreditCard className="w-4 h-4" />
+              {isEn ? 'Upgrade' : 'Mejorar'}
+            </Link>
           </div>
-          <Link
-            href="/app/billing"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors flex-shrink-0"
-          >
-            <CreditCard className="w-4 h-4" />
-            Ver planes
-          </Link>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Onboarding Checklist */}
       {onboarding && (

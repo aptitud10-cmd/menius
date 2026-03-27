@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   ClipboardList, Tag, ShoppingBag, QrCode, Settings, LogOut, Menu, X,
-  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star, Store, Boxes, Key, Gift, Building2, LifeBuoy, CalendarDays, Globe,
+  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star, Store, Boxes, Key, Gift, Building2, LifeBuoy, CalendarDays, Globe, Lock,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -12,14 +12,29 @@ import { logout } from '@/lib/actions/auth';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { DashboardTranslations } from '@/lib/dashboard-translations';
 
-function buildNavSections(t: DashboardTranslations, locale: string) {
+// Plan hierarchy: free < starter < pro < business
+const PLAN_RANK: Record<string, number> = { free: 0, starter: 1, pro: 2, business: 3 };
+function meetsMin(planId: string, minPlan: string) {
+  return (PLAN_RANK[planId] ?? 0) >= (PLAN_RANK[minPlan] ?? 0);
+}
+
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  exact?: boolean;
+  minPlan?: string; // minimum plan required to access
+  badge?: string;   // badge text (e.g. 'Pro', 'Business')
+};
+
+function buildNavSections(t: DashboardTranslations, locale: string): { title: string | null; items: NavItem[] }[] {
   return [
     {
       title: null,
       items: [
         { href: '/app', label: t.nav_home, icon: LayoutDashboard, exact: true },
         { href: '/app/orders', label: t.nav_orders, icon: ClipboardList },
-        { href: '/kds', label: t.nav_kds, icon: Monitor },
+        { href: '/kds', label: t.nav_kds, icon: Monitor, minPlan: 'pro', badge: 'Pro' },
         { href: '/counter', label: t.nav_counter, icon: Store },
       ],
     },
@@ -36,23 +51,23 @@ function buildNavSections(t: DashboardTranslations, locale: string) {
       title: t.nav_restaurant,
       items: [
         { href: '/app/tables', label: t.nav_tables, icon: QrCode },
-        { href: '/app/reservations', label: locale === 'es' ? 'Reservaciones' : 'Reservations', icon: CalendarDays },
-        { href: '/app/customers', label: t.nav_customers, icon: Contact2 },
-        { href: '/app/reviews', label: t.nav_reviews, icon: Star },
-        { href: '/app/promotions', label: t.nav_promotions, icon: Ticket },
-        { href: '/app/loyalty', label: t.nav_loyalty, icon: Gift },
-        { href: '/app/staff', label: t.nav_staff, icon: Users },
+        { href: '/app/reservations', label: locale === 'es' ? 'Reservaciones' : 'Reservations', icon: CalendarDays, minPlan: 'starter', badge: 'Starter' },
+        { href: '/app/customers', label: t.nav_customers, icon: Contact2, minPlan: 'starter', badge: 'Starter' },
+        { href: '/app/reviews', label: t.nav_reviews, icon: Star, minPlan: 'pro', badge: 'Pro' },
+        { href: '/app/promotions', label: t.nav_promotions, icon: Ticket, minPlan: 'pro', badge: 'Pro' },
+        { href: '/app/loyalty', label: t.nav_loyalty, icon: Gift, minPlan: 'pro', badge: 'Pro' },
+        { href: '/app/staff', label: t.nav_staff, icon: Users, minPlan: 'starter', badge: 'Starter' },
       ],
     },
     {
       title: t.nav_business,
       items: [
-        { href: '/app/analytics', label: t.nav_analytics, icon: BarChart3 },
-        { href: '/app/marketing', label: t.nav_marketing, icon: Megaphone },
-        { href: '/app/branches', label: t.nav_branches, icon: Building2 },
+        { href: '/app/analytics', label: t.nav_analytics, icon: BarChart3, minPlan: 'starter', badge: 'Starter' },
+        { href: '/app/marketing', label: t.nav_marketing, icon: Megaphone, minPlan: 'pro', badge: 'Pro' },
+        { href: '/app/branches', label: t.nav_branches, icon: Building2, minPlan: 'business', badge: 'Business' },
         { href: '/app/billing', label: t.nav_billing, icon: CreditCard },
         { href: '/app/settings', label: t.nav_settings, icon: Settings },
-        { href: '/app/settings/api-keys', label: 'API Keys', icon: Key },
+        { href: '/app/settings/api-keys', label: 'API Keys', icon: Key, minPlan: 'business', badge: 'Business' },
         { href: '/app/settings/data', label: t.nav_dataPrivacy, icon: Shield },
       ],
     },
@@ -62,9 +77,10 @@ function buildNavSections(t: DashboardTranslations, locale: string) {
 interface DashboardNavProps {
   slug: string;
   mobile?: boolean;
+  planId?: string;
 }
 
-export function DashboardNav({ slug, mobile }: DashboardNavProps) {
+export function DashboardNav({ slug, mobile, planId = 'free' }: DashboardNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { t, locale, setLocale } = useDashboardLocale();
@@ -91,6 +107,29 @@ export function DashboardNav({ slug, mobile }: DashboardNavProps) {
             <div className="flex flex-col gap-0.5">
               {section.items.map((item) => {
                 const active = isActive(item.href, (item as any).exact);
+                const locked = item.minPlan ? !meetsMin(planId, item.minPlan) : false;
+                if (locked) {
+                  return (
+                    <Link
+                      key={item.href}
+                      href="/app/billing"
+                      onClick={() => setOpen(false)}
+                      title={item.badge ? `${item.badge} plan required` : 'Upgrade required'}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all text-gray-400 hover:bg-gray-50 hover:text-gray-600 group"
+                    >
+                      <item.icon className="w-[18px] h-[18px] flex-shrink-0 text-gray-300 group-hover:text-gray-400 transition-colors" />
+                      <span className="flex-1 opacity-60">{item.label}</span>
+                      <span className="flex items-center gap-1">
+                        {item.badge && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-600 leading-none">
+                            {item.badge}
+                          </span>
+                        )}
+                        <Lock className="w-3 h-3 text-gray-300 group-hover:text-violet-400 transition-colors" />
+                      </span>
+                    </Link>
+                  );
+                }
                 return (
                   <Link
                     key={item.href}

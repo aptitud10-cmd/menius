@@ -16,7 +16,7 @@ import { redirect } from 'next/navigation';
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { supabase, userId, restaurantId } = await getDashboardContext();
 
-  const [{ data: profile }, { data: restaurant }, { data: { user } }] = await Promise.all([
+  const [{ data: profile }, { data: restaurant }, { data: { user } }, { data: subscription }] = await Promise.all([
     supabase
       .from('profiles')
       .select('full_name')
@@ -28,7 +28,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
       .eq('id', restaurantId)
       .maybeSingle(),
     supabase.auth.getUser(),
+    supabase
+      .from('subscriptions')
+      .select('plan_id, status, trial_end')
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle(),
   ]);
+
+  const resolvedPlanId: string = (() => {
+    if (!subscription) return 'free';
+    if (subscription.status === 'active' || subscription.status === 'past_due') return subscription.plan_id ?? 'free';
+    if (subscription.status === 'trialing' && subscription.trial_end && new Date(subscription.trial_end) > new Date()) return subscription.plan_id ?? 'starter';
+    return 'free';
+  })();
 
   if (!restaurant) redirect('/onboarding/create-restaurant');
 
@@ -62,7 +74,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
           {/* Navigation */}
           <div className="flex-1 overflow-y-auto px-3 py-4 scrollbar-hide">
-            <DashboardNav slug={restaurant?.slug ?? ''} />
+            <DashboardNav slug={restaurant?.slug ?? ''} planId={resolvedPlanId} />
           </div>
 
           <TrialBanner />
@@ -94,7 +106,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </Link>
             <div className="flex items-center gap-2">
               <SidebarSoundButton mobile />
-              <DashboardNav slug={restaurant?.slug ?? ''} mobile />
+              <DashboardNav slug={restaurant?.slug ?? ''} mobile planId={resolvedPlanId} />
             </div>
           </header>
 

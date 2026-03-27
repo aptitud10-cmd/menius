@@ -172,24 +172,29 @@ export default async function DashboardPage() {
 
   const analytics = { chartData, hourlyData, topProducts, orderTypeCounts };
 
-  // Determine free tier status (expired trial / no active subscription)
-  const DAILY_FREE_LIMIT = 3;
-  let freeTier: { ordersToday: number; dailyLimit: number } | null = null;
+  // Determine free tier status
+  const MONTHLY_FREE_LIMIT = 50;
+  let freeTier: { ordersThisMonth: number; monthlyLimit: number } | null = null;
   const sub = subRes.data;
   const now = new Date();
-  const isExpired = (() => {
-    if (!sub) {
-      const grace = new Date(restaurant.created_at);
-      grace.setDate(grace.getDate() + 14);
-      return now > grace;
-    }
+  const isFreePlan = (() => {
+    if (!sub) return true;                                          // no subscription → free
     if (sub.status === 'active' || sub.status === 'past_due') return false;
-    // trial_end in future → full access (covers trialing + manual admin extensions)
-    if (sub.trial_end && new Date(sub.trial_end) > now) return false;
-    return true;
+    if (sub.status === 'trialing' && sub.trial_end && new Date(sub.trial_end) > now) return false;
+    if (sub.plan_id === 'free' || sub.status === 'free') return true;
+    if (sub.status === 'canceled' || sub.status === 'cancelled') return true;
+    return true;                                                    // any other unknown status → free
   })();
-  if (isExpired) {
-    freeTier = { ordersToday: todaysOrders.filter((o) => o.status !== 'cancelled').length, dailyLimit: DAILY_FREE_LIMIT };
+  if (isFreePlan) {
+    // Count orders this calendar month
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const { count: monthCount } = await supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurantId)
+      .neq('status', 'cancelled')
+      .gte('created_at', monthStart.toISOString());
+    freeTier = { ordersThisMonth: monthCount ?? 0, monthlyLimit: MONTHLY_FREE_LIMIT };
   }
 
   const hasOpenDay = (() => {
@@ -217,6 +222,7 @@ export default async function DashboardPage() {
       onboarding={onboarding}
       analytics={analytics}
       freeTier={freeTier}
+      planId={sub?.plan_id ?? 'free'}
     />
   );
 }
