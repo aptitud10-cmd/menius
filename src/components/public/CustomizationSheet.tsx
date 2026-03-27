@@ -250,7 +250,7 @@ export function CustomizationSheet({
           <div className="absolute inset-0">
             <Image
               src={product.image_url}
-              alt={product.name}
+              alt={displayName}
               fill
               sizes="600px"
               unoptimized={product.image_url.includes('.supabase.co/storage/')}

@@ -225,7 +225,7 @@ export function CartPanel({
                           alt={item.product.name}
                           fill
                           sizes="56px"
-                          className={cn('object-cover transition-opacity duration-300', loadedImages.has(imgKey) ? 'opacity-100' : 'opacity-0')}
+                          className={cn('object-cover transition-opacity duration-150', loadedImages.has(imgKey) ? 'opacity-100' : 'opacity-0')}
                           onLoad={() => markImageLoaded(imgKey)}
                         />
                       </div>
@@ -246,13 +246,9 @@ export function CartPanel({
                             </span>
                           )}
                         </div>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onEdit(idx); }}
-                          className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-medium flex-shrink-0 min-h-[44px] min-w-[44px] px-1 justify-end"
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                          {t.edit}
-                        </button>
+                        <div className="flex-shrink-0 p-1.5 text-gray-300" aria-hidden>
+                          <Pencil className="w-3 h-3" />
+                        </div>
                       </div>
 
                       {/* Modifier selections */}
