@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2, Languages, Plus, X, Sparkles } from 'lucide-react';
+import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2, Languages, Plus, X, Sparkles, Receipt } from 'lucide-react';
+import { COUNTRY_LIST, US_STATE_LIST, COUNTRY_TAX_PRESETS, US_STATE_TAX_RATES, computeTaxAmount } from '@/lib/tax-presets';
 import { SUPPORTED_LOCALES, getLocaleFlag } from '@/lib/i18n';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -54,6 +55,11 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     latitude: initialData.latitude ?? '',
     longitude: initialData.longitude ?? '',
     google_business_url: initialData.google_business_url ?? '',
+    country_code: initialData.country_code ?? '',
+    state_code: initialData.state_code ?? '',
+    tax_rate: initialData.tax_rate ?? 0,
+    tax_included: initialData.tax_included ?? false,
+    tax_label: initialData.tax_label ?? 'Tax',
   });
 
   const [hours, setHours] = useState<Record<string, { open: string; close: string; closed: boolean; fullDay?: boolean }>>(
@@ -245,6 +251,11 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           delivery_fee: form.delivery_fee ? Number(form.delivery_fee) : null,
           latitude: form.latitude ? Number(form.latitude) : null,
           longitude: form.longitude ? Number(form.longitude) : null,
+          country_code: form.country_code || null,
+          state_code: form.state_code || null,
+          tax_rate: Number(form.tax_rate) || 0,
+          tax_included: form.tax_included,
+          tax_label: form.tax_label || 'Tax',
         }),
       });
 
@@ -488,6 +499,181 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Taxes / Impuestos */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <Receipt className="w-4 h-4 text-emerald-600" />
+          <h2 className="font-semibold text-sm text-gray-900">
+            {locale === 'en' ? 'Taxes' : 'Impuestos'}
+          </h2>
+        </div>
+        <p className="text-xs text-gray-500 mb-4">
+          {locale === 'en'
+            ? 'Configure the tax rate applied to orders. Select your country to auto-fill the preset.'
+            : 'Configura el impuesto aplicado a los pedidos. Selecciona tu país para autocompletar el preset.'}
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Country */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">
+              {locale === 'en' ? 'Country' : 'País'}
+            </label>
+            <select
+              value={form.country_code}
+              onChange={(e) => {
+                const code = e.target.value;
+                const preset = COUNTRY_TAX_PRESETS[code];
+                setForm((prev) => ({
+                  ...prev,
+                  country_code: code,
+                  state_code: code !== 'US' ? '' : prev.state_code,
+                  tax_rate: preset ? preset.rate : prev.tax_rate,
+                  tax_label: preset ? preset.label : prev.tax_label,
+                  tax_included: preset ? preset.included : prev.tax_included,
+                }));
+                setSaved(false);
+              }}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            >
+              <option value="">{locale === 'en' ? '— No country / custom —' : '— Sin país / personalizado —'}</option>
+              {COUNTRY_LIST.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.flag} {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* US State (only shown when US selected) */}
+          {form.country_code === 'US' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">State</label>
+              <select
+                value={form.state_code}
+                onChange={(e) => {
+                  const sc = e.target.value;
+                  const state = US_STATE_TAX_RATES[sc];
+                  setForm((prev) => ({
+                    ...prev,
+                    state_code: sc,
+                    tax_rate: state ? state.rate : prev.tax_rate,
+                  }));
+                  setSaved(false);
+                }}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              >
+                <option value="">— Select state —</option>
+                {US_STATE_LIST.map((s) => (
+                  <option key={s.code} value={s.code}>
+                    {s.name} ({s.rate}%)
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-gray-500 mt-1">
+                Base state rate. Add county/city surcharge manually below if needed.
+              </p>
+            </div>
+          )}
+
+          {/* Tax rate % */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">
+              {locale === 'en' ? 'Tax rate (%)' : 'Tasa de impuesto (%)'}
+            </label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={0.01}
+              value={form.tax_rate}
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, tax_rate: parseFloat(e.target.value) || 0 }));
+                setSaved(false);
+              }}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            />
+          </div>
+
+          {/* Tax label */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">
+              {locale === 'en' ? 'Tax label' : 'Etiqueta del impuesto'}
+            </label>
+            <input
+              type="text"
+              maxLength={20}
+              value={form.tax_label}
+              onChange={(e) => {
+                setForm((prev) => ({ ...prev, tax_label: e.target.value }));
+                setSaved(false);
+              }}
+              placeholder="IVA, Sales Tax, VAT…"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            />
+          </div>
+        </div>
+
+        {/* Tax mode toggle */}
+        <div className="mt-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
+          <p className="text-xs font-medium text-gray-700 mb-3">
+            {locale === 'en' ? 'How is tax applied?' : '¿Cómo se aplica el impuesto?'}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button
+              type="button"
+              onClick={() => { setForm((prev) => ({ ...prev, tax_included: true })); setSaved(false); }}
+              className={cn(
+                'flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all',
+                form.tax_included
+                  ? 'bg-emerald-500 text-white border-emerald-500'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300'
+              )}
+            >
+              {locale === 'en' ? '✓ Included in price' : '✓ Incluido en el precio'}
+              <span className="block text-[10px] font-normal mt-0.5 opacity-80">
+                {locale === 'en' ? 'e.g. IVA Mexico / Spain / LATAM' : 'ej. IVA México / España / LATAM'}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setForm((prev) => ({ ...prev, tax_included: false })); setSaved(false); }}
+              className={cn(
+                'flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border transition-all',
+                !form.tax_included
+                  ? 'bg-emerald-500 text-white border-emerald-500'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-emerald-300'
+              )}
+            >
+              {locale === 'en' ? '+ Added on subtotal' : '+ Añadido sobre el subtotal'}
+              <span className="block text-[10px] font-normal mt-0.5 opacity-80">
+                {locale === 'en' ? 'e.g. Sales Tax USA / Canada' : 'ej. Sales Tax USA / Canada'}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Preview */}
+        {Number(form.tax_rate) > 0 && (
+          <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700">
+            {(() => {
+              const subtotal = 100;
+              const taxAmt = computeTaxAmount(subtotal, Number(form.tax_rate), form.tax_included);
+              const total = form.tax_included ? subtotal : subtotal + taxAmt;
+              return (
+                <>
+                  <span className="font-semibold">{locale === 'en' ? 'Preview' : 'Vista previa'}</span>
+                  {' — '}
+                  {locale === 'en' ? 'On a' : 'Sobre un'} {form.tax_included ? '' : (locale === 'en' ? 'subtotal of ' : 'subtotal de ')}$100 {locale === 'en' ? 'order' : 'pedido'}:{' '}
+                  {form.tax_label} = ${taxAmt.toFixed(2)}{form.tax_included ? (locale === 'en' ? ' (extracted from price)' : ' (extraído del precio)') : ''},{' '}
+                  {locale === 'en' ? 'total' : 'total'} = ${total.toFixed(2)}
+                </>
+              );
+            })()}
+          </div>
+        )}
       </div>
 
       {/* Multi-language */}

@@ -151,6 +151,10 @@ export const restaurantUpdateSchema = z.object({
   theme_color: z.string().max(20).optional(),
   order_types: z.array(z.enum(['dine_in', 'pickup', 'delivery'])).optional(),
   tax_rate: z.number().min(0).max(100).optional(),
+  tax_included: z.boolean().optional(),
+  tax_label: z.string().max(20).optional(),
+  country_code: z.string().length(2).optional().nullable(),
+  state_code: z.string().max(5).optional().nullable(),
 }).partial();
 
 // ── Payment schemas ──

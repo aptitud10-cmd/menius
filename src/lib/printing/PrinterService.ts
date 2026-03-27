@@ -60,6 +60,8 @@ function mapOrderToReceipt(
     };
   });
 
+  const taxAmt = order.tax_amount ? Number(order.tax_amount) : undefined;
+
   return {
     restaurantName,
     orderNumber: order.order_number ?? order.id.slice(-6).toUpperCase(),
@@ -70,8 +72,11 @@ function mapOrderToReceipt(
     paymentMethod: order.payment_method ?? undefined,
     deliveryAddress: order.delivery_address ?? undefined,
     items,
-    subtotal: Number(order.total) - (Number(order.tip_amount) || 0),
+    subtotal: Number(order.total) - (Number(order.tip_amount) || 0) - (taxAmt && !order.tax_included ? taxAmt : 0),
     tip: Number(order.tip_amount) || undefined,
+    tax: taxAmt,
+    taxLabel: taxAmt ? ((order as any).tax_label ?? 'Tax') : undefined,
+    taxIncluded: (order as any).tax_included ?? false,
     total: order.total,
     notes: order.notes ?? undefined,
     etaMinutes,

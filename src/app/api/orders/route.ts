@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone')
+      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label')
       .eq('id', restaurant_id)
       .maybeSingle();
 
@@ -326,7 +326,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const total = Math.max(0, subtotal - discountAmt + tipAmt + deliveryFeeAmt);
+    const taxRate = Number((restaurant as any).tax_rate) || 0;
+    const taxIncluded = (restaurant as any).tax_included ?? false;
+    const taxableBase = Math.max(0, subtotal - discountAmt);
+    let taxAmt = 0;
+    if (taxRate > 0) {
+      taxAmt = taxIncluded
+        ? taxableBase - taxableBase / (1 + taxRate / 100)
+        : taxableBase * (taxRate / 100);
+      taxAmt = Math.round(taxAmt * 100) / 100;
+    }
+
+    const total = Math.max(0, subtotal - discountAmt + tipAmt + deliveryFeeAmt + (taxIncluded ? 0 : taxAmt));
 
     // scheduled_for: parse ISO string from body, validate, reject if in the past
     let scheduledFor: string | null = null;
@@ -358,6 +369,7 @@ export async function POST(request: NextRequest) {
     };
     if (tipAmt > 0) orderInsert.tip_amount = tipAmt;
     if (deliveryFeeAmt > 0) orderInsert.delivery_fee = deliveryFeeAmt;
+    if (taxAmt > 0) orderInsert.tax_amount = taxAmt;
 
     const { data: order, error: orderError } = await adminDb
       .from('orders')

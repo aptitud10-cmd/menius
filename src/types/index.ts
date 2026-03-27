@@ -42,6 +42,12 @@ export interface Restaurant {
   fiscal_razon_social?: string | null;
   fiscal_regimen_fiscal?: string | null;
   fiscal_lugar_expedicion?: string | null;
+  // Tax configuration
+  country_code?: string | null;
+  state_code?: string | null;
+  tax_rate?: number | null;
+  tax_included?: boolean | null;
+  tax_label?: string | null;
 }
 
 export interface CfdiRequest {

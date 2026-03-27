@@ -87,6 +87,8 @@ export interface ReceiptData {
     notes?: string;
   }[];
   subtotal: number;
+  tax?: number;
+  taxLabel?: string;
   total: number;
   notes?: string;
   currency: string;
@@ -231,6 +233,9 @@ export function buildReceipt(data: ReceiptData): Uint8Array {
   }
 
   e.line('-');
+  if (data.tax && data.tax > 0) {
+    e.row(data.taxLabel ?? 'Tax', fmt(data.tax));
+  }
   e.bold(true);
   e.row('TOTAL', fmt(data.total));
   e.bold(false);

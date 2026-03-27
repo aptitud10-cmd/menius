@@ -41,6 +41,9 @@ export interface ReceiptData {
   items: ReceiptLineItem[];
   subtotal: number;
   tip?: number;
+  tax?: number;
+  taxLabel?: string;
+  taxIncluded?: boolean;
   total: number;
   notes?: string;
   etaMinutes?: number;

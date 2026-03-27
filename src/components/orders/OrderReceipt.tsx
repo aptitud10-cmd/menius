@@ -23,6 +23,7 @@ interface OrderReceiptProps {
   restaurantPhone?: string;
   restaurantAddress?: string;
   currency: string;
+  taxLabel?: string;
   onClose: () => void;
 }
 
@@ -32,6 +33,7 @@ function buildReceiptData(
   restaurantPhone: string | undefined,
   restaurantAddress: string | undefined,
   currency: string,
+  taxLabel?: string,
 ): ReceiptData {
   const items = (order.items ?? []).map((item) => {
     const prod = item.product as { name: string } | undefined;
@@ -43,6 +45,8 @@ function buildReceiptData(
       notes: item.notes || undefined,
     };
   });
+
+  const taxAmt = order.tax_amount ? Number(order.tax_amount) : undefined;
 
   return {
     restaurantName,
@@ -59,6 +63,8 @@ function buildReceiptData(
     tableName: order.table?.name || undefined,
     items,
     subtotal: Number(order.total),
+    tax: taxAmt,
+    taxLabel: taxAmt ? (taxLabel ?? 'Tax') : undefined,
     total: Number(order.total),
     notes: order.notes || undefined,
     currency,
@@ -71,6 +77,7 @@ export function OrderReceipt({
   restaurantPhone,
   restaurantAddress,
   currency,
+  taxLabel,
   onClose,
 }: OrderReceiptProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -90,7 +97,7 @@ export function OrderReceipt({
   const handleThermalPrint = async () => {
     setPrinting(true);
     setPrintResult(null);
-    const data = buildReceiptData(order, restaurantName, restaurantPhone, restaurantAddress, currency);
+    const data = buildReceiptData(order, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel);
     const result = await printReceipt(data);
 
     if (result.success) {
@@ -340,8 +347,9 @@ export async function quickPrintOrder(
   restaurantPhone: string | undefined,
   restaurantAddress: string | undefined,
   currency: string,
+  taxLabel?: string,
 ): Promise<void> {
-  const data = buildReceiptData(order, restaurantName, restaurantPhone, restaurantAddress, currency);
+  const data = buildReceiptData(order, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel);
   const result = await printReceipt(data);
   if (!result.success) {
     const receiptHtml = buildBrowserReceiptHtml(data);

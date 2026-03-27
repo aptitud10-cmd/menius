@@ -129,7 +129,18 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   const discount = promoResult?.valid ? promoResult.discount : 0;
   const deliveryFee = (orderType === 'delivery' && restaurant.delivery_fee) ? restaurant.delivery_fee : 0;
-  const finalTotal = Math.max(0, cartTotal - discount + deliveryFee + tipAmount);
+
+  const taxRate = restaurant.tax_rate ?? 0;
+  const taxIncluded = restaurant.tax_included ?? false;
+  const taxLabel = restaurant.tax_label ?? 'Tax';
+  const taxableBase = Math.max(0, cartTotal - discount);
+  const taxAmount = taxRate > 0
+    ? Math.round((taxIncluded
+        ? taxableBase - taxableBase / (1 + taxRate / 100)
+        : taxableBase * (taxRate / 100)) * 100) / 100
+    : 0;
+
+  const finalTotal = Math.max(0, cartTotal - discount + deliveryFee + tipAmount + (taxIncluded ? 0 : taxAmount));
 
   const goBack = useCallback(() => router.push(`/${slug}`), [router, slug]);
 
@@ -909,6 +920,19 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               <div className="flex justify-between text-[15px] text-gray-500">
                 <span>{locale === 'es' ? 'Propina' : 'Tip'}</span>
                 <span className="font-semibold tabular-nums">+{fmtPrice(tipAmount)}</span>
+              </div>
+            )}
+            {taxAmount > 0 && (
+              <div className="flex justify-between text-[15px] text-gray-500">
+                <span>
+                  {taxLabel}{' '}
+                  {taxIncluded
+                    ? `(${locale === 'es' ? 'incluido' : 'included'})`
+                    : `(${taxRate}%)`}
+                </span>
+                <span className="font-semibold tabular-nums">
+                  {taxIncluded ? '' : '+'}{fmtPrice(taxAmount)}
+                </span>
               </div>
             )}
             <div className="border-t border-gray-200 pt-3 flex justify-between font-bold text-lg">
