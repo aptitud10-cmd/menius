@@ -423,8 +423,25 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
         </div>
 
         <Link
+          href="/signup"
+          className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] hover:bg-emerald-500/[0.08] hover:border-emerald-500/30 transition-all"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+            <span className="text-sm text-gray-400">
+              {tp.freeBannerPrefix}{' '}
+              <strong className="text-emerald-400">{tp.freeBannerPlan}</strong>
+              {' '}—{' '}
+              <span className="text-gray-400">{tp.freeBannerDesc}</span>
+            </span>
+          </div>
+          <span className="shrink-0 text-sm font-medium text-emerald-400 whitespace-nowrap">
+            {tp.freeBannerCta}
+          </span>
+        </Link>
+
+        <Link
           href="/setup-profesional"
-          className="mt-6 flex items-center justify-between p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all group"
+          className="mt-3 flex items-center justify-between p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all group"
         >
           <span className="text-sm text-gray-400">{tp.setupCtaPrefix} <strong className="text-gray-200">{tp.setupCtaBold}</strong> {tp.setupCtaSuffix}</span>
           <svg className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>

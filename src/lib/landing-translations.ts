@@ -255,6 +255,10 @@ const es = {
     annualPerMonth: '/mes · facturado anual',
     annualMonthSuffix: '/mes',
     annualYearSuffix: '/año',
+    freeBannerPrefix: 'O empieza con el',
+    freeBannerPlan: 'Plan Gratis',
+    freeBannerDesc: '50 pedidos/mes · Menú digital + QR · Hasta 5 mesas · Sin tarjeta',
+    freeBannerCta: 'Crear cuenta gratis →',
     plans: [
       {
         name: 'Starter',
@@ -602,6 +606,10 @@ const en: LandingT = {
     annualPerMonth: '/mo · billed annually',
     annualMonthSuffix: '/mo',
     annualYearSuffix: '/yr',
+    freeBannerPrefix: 'Or start with the',
+    freeBannerPlan: 'Free Plan',
+    freeBannerDesc: '50 orders/mo · Digital menu + QR · Up to 5 tables · No credit card',
+    freeBannerCta: 'Create free account →',
     plans: [
       {
         name: 'Starter',
