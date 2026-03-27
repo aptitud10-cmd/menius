@@ -237,6 +237,18 @@ export function OrderReceipt({
 
             <div className="line" />
 
+            {order.tip_amount && Number(order.tip_amount) > 0 && (
+              <div className="row">
+                <span>Propina</span>
+                <span>{fmtPrice(Number(order.tip_amount))}</span>
+              </div>
+            )}
+            {order.tax_amount && Number(order.tax_amount) > 0 && (
+              <div className="row">
+                <span>{taxLabel ?? 'Tax'}</span>
+                <span>{fmtPrice(Number(order.tax_amount))}</span>
+              </div>
+            )}
             <div className="row bold big">
               <span>TOTAL</span>
               <span>{fmtPrice(Number(order.total))}</span>
@@ -400,6 +412,8 @@ function buildBrowserReceiptHtml(data: ReceiptData): string {
     <div class="ln"></div>
     ${itemsHtml}
     <div class="ln"></div>
+    ${data.tip && data.tip > 0 ? `<div class="r"><span>Propina</span><span>${fmt(data.tip)}</span></div>` : ''}
+    ${data.tax && data.tax > 0 ? `<div class="r"><span>${data.taxLabel ?? 'Tax'}${data.taxIncluded ? ' (inc.)' : ''}</span><span>${fmt(data.tax)}</span></div>` : ''}
     <div class="r b bg"><span>TOTAL</span><span>${fmt(data.total)}</span></div>
     ${data.notes ? `<div class="ln"></div><div>Notas: ${data.notes}</div>` : ''}
     <div class="ln"></div>

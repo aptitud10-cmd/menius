@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Exclude sensitive/internal fields: owner_user_id
     const { data: restaurant, error: restaurantError } = await adminDb
       .from('restaurants')
-      .select('id, name, slug, description, logo_url, cover_image_url, address, phone, email, currency, timezone, is_active, rating, delivery_time_minutes, estimated_delivery_minutes, delivery_fee, min_order_amount, max_order_amount, accepts_delivery, accepts_pickup, accepts_dine_in, table_ordering_enabled, custom_domain, primary_color, secondary_color, pause_orders, pause_message, locale, country_code, tax_rate, tip_enabled, tip_percentages, whatsapp_number, instagram_url, facebook_url, website_url, created_at')
+      .select('id, name, slug, description, logo_url, cover_image_url, address, phone, email, currency, timezone, is_active, rating, delivery_time_minutes, estimated_delivery_minutes, delivery_fee, min_order_amount, max_order_amount, accepts_delivery, accepts_pickup, accepts_dine_in, table_ordering_enabled, custom_domain, primary_color, secondary_color, pause_orders, pause_message, locale, country_code, tax_rate, tax_included, tax_label, tip_enabled, tip_percentages, whatsapp_number, instagram_url, facebook_url, website_url, created_at')
       .eq('slug', slug)
       .eq('is_active', true)
       .maybeSingle();

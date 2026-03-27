@@ -332,6 +332,10 @@ export function buildReceiptText(data: ReceiptData): string {
   }
 
   lines.push(divider());
+  if (data.tax && data.tax > 0) {
+    const taxLineLabel = `${data.taxLabel ?? 'Tax'}${data.taxIncluded ? (isEn(data.locale) ? ' (inc.)' : ' (inc.)') : ''}:`;
+    lines.push(pad(taxLineLabel, formatCurrency(data.tax, data.currency, data.locale)));
+  }
   lines.push(pad(`${L.total}:`, formatCurrency(data.total, data.currency, data.locale)));
   lines.push(divider());
 
