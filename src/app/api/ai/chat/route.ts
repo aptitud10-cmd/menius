@@ -120,9 +120,9 @@ ${en ? 'Payment methods' : 'Métodos de pago'}: ${(restaurant?.payment_methods_e
 ${en ? 'Schedule' : 'Horario'}: ${restaurant?.operating_hours ? JSON.stringify(restaurant.operating_hours) : na}
 
 === ${en ? 'SUBSCRIPTION' : 'SUSCRIPCIÓN'} ===
-${en ? 'Plan' : 'Plan'}: ${plan?.name ?? (en ? 'No plan' : 'Sin plan')}
-${en ? 'Status' : 'Estado'}: ${subscription?.status ?? 'N/A'}
-${trialDaysLeft !== null ? `${en ? 'Trial days left' : 'Días de prueba restantes'}: ${trialDaysLeft}` : ''}
+${en ? 'Plan' : 'Plan'}: ${plan?.name ?? 'Free'}
+${en ? 'Status' : 'Estado'}: ${subscription?.status ?? 'free'}
+${trialDaysLeft !== null && (subscription?.status === 'trialing') ? `${en ? 'Trial days left' : 'Días de prueba restantes'}: ${trialDaysLeft}` : ''}
 ${plan ? `${en ? 'Limits' : 'Límites'}: ${plan.limits.maxProducts === -1 ? (en ? 'unlimited' : 'ilimitados') : `${plan.limits.maxProducts} ${en ? 'products' : 'productos'}, ${plan.limits.maxTables} ${en ? 'tables' : 'mesas'}, ${plan.limits.maxUsers} ${en ? 'users' : 'usuarios'}`}` : ''}
 
 === ${en ? 'MENU' : 'MENÚ'} ===
@@ -296,7 +296,7 @@ DASHBOARD GUIDE (step-by-step for each section):
   • **Notifications**: Master toggle to enable/disable all notifications. When enabled, configure: WhatsApp number (for order alerts) and email address (for order alerts). Both channels receive new order alerts, status changes, etc.
   • **Printers** (per-device setting, stored in browser): Configure what each device prints when an order is accepted. Toggle "Customer receipt" (full ticket with prices) and/or "Kitchen ticket" (items only, no prices, large order number for the kitchen). Settings are saved per device — a tablet used as a kitchen display can be configured to only print kitchen tickets, while the cashier tablet prints the customer receipt.
 
-- **Billing**: Current plan name and status (active, trialing, past_due, cancelled). Usage meter showing products, tables, etc. vs plan limits. Choose plan: Starter ($39/mo), Pro ($79/mo), Business ($149/mo) — monthly billing. Annual billing saves ~17%: Starter ($32/mo), Pro ($66/mo), Business ($124/mo). Upgrade or downgrade directly — changes apply immediately, prorated. Invoice history with status (paid, pending, failed) and download links. "Manage subscription" button opens Stripe portal for payment method, cancel, etc.
+- **Billing**: Current plan name and status (free, active, past_due). Usage meter showing products, tables, etc. vs plan limits. Available plans: Free ($0/mo — 5 tables, 50 orders/month, dine-in only, MENIUS branding), Starter ($39/mo — 15 tables, unlimited orders, dine-in + pickup, no branding, chat support), Pro ($79/mo — 50 tables, delivery, WhatsApp 500 msgs/mo, KDS, analytics, 5 users, chat 24h), Business ($149/mo — unlimited tables/users, 3 locations, WhatsApp 2000 msgs/mo, custom domain, API, account manager, tickets SLA <1h). Annual billing saves ~17%. Upgrade or downgrade directly — changes apply immediately, prorated. Invoice history with download links. "Manage subscription" button opens Stripe portal.
 
 - **Data & Privacy**: Export all your data as JSON file (menu, orders, customers, settings). Delete account permanently (type "ELIMINAR" to confirm). All data is erased irreversibly.
 
@@ -357,7 +357,7 @@ TROUBLESHOOTING GUIDE:
 - Payment issues: Go to **Settings > Payment Methods**. Make sure Stripe Connect is connected (green badge). If not, click "Connect with Stripe" and complete the onboarding. Check your Stripe dashboard for errors.
 - Menu not updating: Changes may take 1-2 minutes to appear on the public menu. Try clearing browser cache. Check if the product is set to "Active" (not hidden).
 - Product shows "sold out": Go to **Menu > Products** > click the product > toggle "In Stock" back ON.
-- Can't access dashboard: Check subscription status in **Billing**. If expired, renew to regain access. If trial ended, choose a plan.
+- Can't access dashboard: Dashboard is always accessible on the free plan. Check **Billing** to see your current plan and upgrade if needed.
 - Custom domain not verifying: DNS propagation can take up to 48 hours. Make sure the CNAME record points exactly to cname.vercel-dns.com. Check with your DNS provider. Try clicking "Verify" again after a few hours.
 - Delivery settings: Go to **Settings > Order Types** > enable "Delivery" > set estimated delivery time (minutes) and delivery fee.
 - Assign a driver to an order: In the Counter, select a delivery order > click "Assign driver" > pick from your driver pool or type name/phone manually > confirm. Driver receives WhatsApp automatically.

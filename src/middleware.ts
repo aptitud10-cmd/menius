@@ -172,38 +172,34 @@ export async function middleware(request: NextRequest) {
     try {
       const { data: subscription } = await supabase
         .from('subscriptions')
-        .select('status, current_period_end, trial_end, created_at')
+        .select('status, current_period_end, trial_end, plan_id')
         .eq('restaurant_id', profile.default_restaurant_id)
         .maybeSingle();
 
       const now = new Date();
 
-      if (!subscription) {
-        const { data: restaurant } = await supabase
-          .from('restaurants')
-          .select('created_at')
-          .eq('id', profile.default_restaurant_id)
-          .maybeSingle();
-        const createdAt = restaurant?.created_at ? new Date(restaurant.created_at) : new Date(0);
-        const graceEnds = new Date(createdAt.getTime() + 14 * 24 * 60 * 60 * 1000);
-        if (now > graceEnds) {
-          return NextResponse.redirect(new URL('/app/subscription-expired', request.url));
-        }
-      } else {
+      if (subscription) {
         const { status } = subscription;
-        // trial_end in future → full access (covers 'trialing' + manual admin extensions)
+        // trial_end in future → full access (covers legacy 'trialing' + admin extensions)
         const trialStillValid = subscription.trial_end && new Date(subscription.trial_end) > now;
 
         if (status === 'active' || status === 'past_due') {
-          // allow
+          // paid plan — allow
         } else if (trialStillValid) {
-          // allow — trial or admin-extended access
+          // legacy trial still running — allow
+        } else if (status === 'free' || subscription.plan_id === 'free') {
+          // FREE plan — always allow (limits enforced at order-creation time)
+        } else if (status === 'canceled' || status === 'trialing') {
+          // canceled or expired trial → treat as FREE (no hard block, limits enforced later)
         } else {
-          return NextResponse.redirect(new URL('/app/subscription-expired', request.url));
+          // unknown status — allow with free-tier limits (graceful degradation)
         }
+        // No redirect in any case — the /app/subscription-expired page is retired.
+        // Access is always granted; feature gating happens at the API level.
       }
+      // No subscription row at all → FREE tier, allow access
     } catch {
-      // Graceful degradation: if subscription check fails, allow access but log the failure.
+      // Graceful degradation: if subscription check fails, allow access.
       // This prevents a DB outage from locking all users out of their dashboards.
       console.error('[middleware] Subscription check failed — allowing access', {
         restaurantId: profile.default_restaurant_id,

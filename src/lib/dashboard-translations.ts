@@ -924,6 +924,8 @@ export interface DashboardTranslations {
   trial_endsToday: string;
   trial_daysOfTrial: string;
   trial_dayOfTrial: string;
+  free_planBanner: string;
+  free_planUpgrade: string;
 
   // Command Palette
   cmd_searchPlaceholder: string;
@@ -2028,10 +2030,12 @@ const es: DashboardTranslations = {
   auto_eachNewOrder: 'Cada nuevo pedido',
   auto_statusChangeTrigger: 'Cambio de estado del pedido',
 
-  // Trial Banner
+  // Trial Banner / Free plan banner
   trial_endsToday: 'Tu prueba termina hoy',
   trial_daysOfTrial: 'días de prueba',
   trial_dayOfTrial: 'día de prueba',
+  free_planBanner: 'Plan gratuito · 50 pedidos/mes',
+  free_planUpgrade: 'Mejorar',
 
   // Command Palette
   cmd_searchPlaceholder: 'Buscar o ir a...',
@@ -3136,10 +3140,12 @@ const en: DashboardTranslations = {
   auto_eachNewOrder: 'Each new order',
   auto_statusChangeTrigger: 'Order status change',
 
-  // Trial Banner
+  // Trial Banner / Free plan banner
   trial_endsToday: 'Your trial ends today',
   trial_daysOfTrial: 'days of trial',
   trial_dayOfTrial: 'day of trial',
+  free_planBanner: 'Free plan · 50 orders/mo',
+  free_planUpgrade: 'Upgrade',
 
   // Command Palette
   cmd_searchPlaceholder: 'Search or go to...',

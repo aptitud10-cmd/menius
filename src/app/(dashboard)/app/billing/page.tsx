@@ -257,9 +257,12 @@ export default function BillingPage() {
     );
   }
 
-  const resolvedId = sub ? resolvePlanId(sub.plan_id) : null;
-  const planInfo = resolvedId ? PLANS[resolvedId] : null;
-  const statusInfo = sub ? STATUS_MAP[sub.status] ?? STATUS_MAP.incomplete : null;
+  const resolvedId = sub ? resolvePlanId(sub.plan_id) : 'free';
+  const planInfo = resolvedId ? (PLANS[resolvedId] ?? PLANS.free) : PLANS.free;
+  const isFreePlan = !sub || sub.plan_id === 'free' || sub.status === 'free' || sub.status === 'canceled';
+  const statusInfo = isFreePlan
+    ? { label: locale === 'en' ? 'Free plan' : 'Plan gratuito', color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', dot: 'bg-gray-400' }
+    : sub ? (STATUS_MAP[sub.status] ?? STATUS_MAP.incomplete) : null;
   const isTrialing = sub?.status === 'trialing';
   const isActive = sub?.status === 'active';
   const billingInterval: BillingInterval = sub?.stripe_price_id
@@ -353,16 +356,24 @@ export default function BillingPage() {
 
                 {/* Price */}
                 <div className="mb-4">
-                  <span className="text-4xl font-extrabold text-gray-900 tracking-tight">
-                    ${planInfo.price[billingInterval]}
-                  </span>
-                  <span className="text-gray-400 ml-1">
-                    /{billingInterval === 'annual' ? t.billing_perYear : t.billing_perMonth}
-                  </span>
-                  {billingInterval === 'annual' && (
-                    <span className="ml-3 text-sm text-emerald-600 font-medium">
-                      ${Math.round(planInfo.price.annual / 12)}/{t.billing_monthEquiv}
+                  {isFreePlan ? (
+                    <span className="text-4xl font-extrabold text-gray-900 tracking-tight">
+                      {locale === 'en' ? 'Free' : 'Gratis'}
                     </span>
+                  ) : (
+                    <>
+                      <span className="text-4xl font-extrabold text-gray-900 tracking-tight">
+                        ${planInfo.price[billingInterval]}
+                      </span>
+                      <span className="text-gray-400 ml-1">
+                        /{billingInterval === 'annual' ? t.billing_perYear : t.billing_perMonth}
+                      </span>
+                      {billingInterval === 'annual' && (
+                        <span className="ml-3 text-sm text-emerald-600 font-medium">
+                          ${Math.round(planInfo.price.annual / 12)}/{t.billing_monthEquiv}
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -539,26 +550,31 @@ export default function BillingPage() {
       )}
 
       {/* ─── Change plan section ─── */}
-      {sub && resolvedId && (isActive || isTrialing) && (
-        <div className="mt-10 mb-8">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
-              {t.billing_upgradeTitle}
-            </h2>
-            <p className="text-gray-500 mt-2 max-w-lg mx-auto">
-              {t.billing_upgradeDesc}
-            </p>
-          </div>
-          <PricingTable
-            onSelect={handlePlanSelect}
-            currentPlan={resolvedId}
-            loading={actionLoading}
-          />
+      <div className="mt-10 mb-8">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+            {isFreePlan
+              ? (locale === 'en' ? 'Upgrade your plan' : 'Elige un plan')
+              : t.billing_upgradeTitle}
+          </h2>
+          <p className="text-gray-500 mt-2 max-w-lg mx-auto">
+            {isFreePlan
+              ? (locale === 'en'
+                  ? 'Remove limits and unlock all features.'
+                  : 'Elimina los límites y desbloquea todas las funciones.')
+              : t.billing_upgradeDesc}
+          </p>
         </div>
-      )}
+        <PricingTable
+          onSelect={handlePlanSelect}
+          currentPlan={isFreePlan ? 'free' : (resolvedId ?? undefined)}
+          loading={actionLoading}
+          hideFree={isActive && !isFreePlan}
+        />
+      </div>
 
-      {/* ─── No subscription ─── */}
-      {!sub && (
+      {/* ─── No subscription (legacy fallback) ─── */}
+      {false && !sub && (
         <div className="space-y-10">
           <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
             <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gray-100 mx-auto mb-4">

@@ -41,9 +41,9 @@ function ContentEs() {
 
       <h2>4. Planes, Precios y Facturación</h2>
       <h3>4.1 Planes de Suscripción</h3>
-      <p>MENIUS ofrece planes de suscripción mensual y anual. Los detalles de cada plan, incluyendo funciones y límites, están disponibles en nuestra <a href="/#precios">página de precios</a>. Nos reservamos el derecho de modificar los precios con un aviso previo de 30 días.</p>
-      <h3>4.2 Periodo de Prueba Gratuito</h3>
-      <p>Los nuevos usuarios reciben un periodo de prueba gratuito de 14 días con acceso a todas las funciones. No se requiere tarjeta de crédito para iniciar el trial. Al finalizar el periodo de prueba, deberás seleccionar un plan de pago para continuar usando la Plataforma.</p>
+      <p>MENIUS ofrece un plan gratuito permanente y planes de suscripción mensual y anual (Starter, Pro, Business). Los detalles de cada plan, incluyendo funciones y límites, están disponibles en nuestra <a href="/#precios">página de precios</a>. Nos reservamos el derecho de modificar los precios con un aviso previo de 30 días.</p>
+      <h3>4.2 Plan Gratuito</h3>
+      <p>MENIUS ofrece un plan gratuito permanente sin límite de tiempo. El plan Free incluye menú digital con QR para hasta 5 mesas, pedidos dine-in, hasta 50 pedidos por mes e importación de menú con IA. No se requiere tarjeta de crédito. El plan Free es permanente: si cancelas un plan de pago, tu cuenta retorna automáticamente al plan Free con todos tus datos intactos.</p>
       <h3>4.3 Facturación</h3>
       <p>Los pagos se procesan de forma segura a través de Stripe. La suscripción se renueva automáticamente al final de cada periodo (mensual o anual). Recibirás un recibo por correo electrónico con cada cobro.</p>
       <h3>4.4 Cancelación</h3>
@@ -155,8 +155,8 @@ function ContentEn() {
       <h2>4. Plans, Pricing, and Billing</h2>
       <h3>4.1 Subscription Plans</h3>
       <p>MENIUS offers monthly and annual subscription plans. Details of each plan, including features and limits, are available on our <a href="/#precios">pricing page</a>. We reserve the right to modify prices with 30 days&apos; prior notice.</p>
-      <h3>4.2 Free Trial Period</h3>
-      <p>New users receive a 14-day free trial with access to all features. No credit card is required to start the trial. At the end of the trial period, you must select a paid plan to continue using the Platform.</p>
+      <h3>4.2 Free Plan</h3>
+      <p>MENIUS offers a permanent free plan with no time limit. The Free plan includes a digital menu with QR codes for up to 5 tables, dine-in orders, up to 50 orders per month, and AI menu import from photo. No credit card is required. The Free plan is permanent: if you cancel a paid plan, your account automatically returns to the Free plan with all your data intact.</p>
       <h3>4.3 Billing</h3>
       <p>Payments are processed securely through Stripe. The subscription automatically renews at the end of each period (monthly or annual). You will receive a receipt by email with each charge.</p>
       <h3>4.4 Cancellation</h3>

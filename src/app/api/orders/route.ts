@@ -152,52 +152,48 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check subscription — enforce daily limit for expired/free-tier restaurants
+    // Check subscription — enforce monthly limit for FREE-tier restaurants
     try {
       const { data: sub } = await supabase
         .from('subscriptions')
-        .select('status, trial_end, current_period_end')
+        .select('status, trial_end, current_period_end, plan_id')
         .eq('restaurant_id', restaurant_id)
         .maybeSingle();
 
       const now = new Date();
-      let isExpired = false;
+      let isFreeTier = false;
 
       if (!sub) {
-        const { data: rest } = await supabase.from('restaurants').select('created_at').eq('id', restaurant_id).maybeSingle();
-        if (rest) {
-          const graceEnds = new Date(new Date(rest.created_at).getTime() + 14 * 24 * 60 * 60 * 1000);
-          if (now > graceEnds) isExpired = true;
-        }
+        // No subscription row → FREE tier
+        isFreeTier = true;
       } else {
         const { status } = sub;
+        const trialStillValid = sub.trial_end && new Date(sub.trial_end) > now;
+
         if (status === 'active' || status === 'past_due') {
-          isExpired = false;
-        } else if (sub.trial_end && new Date(sub.trial_end) > now) {
-          // trial_end in the future → full access regardless of status label
-          isExpired = false;
-        } else if (status === 'trialing' || status === 'trial') {
-          isExpired = true;
+          isFreeTier = false;
+        } else if (trialStillValid) {
+          // Legacy trial still running → full access
+          isFreeTier = false;
         } else {
-          const periodEnded = sub.current_period_end && new Date(sub.current_period_end) < now;
-          if (periodEnded) isExpired = true;
+          // canceled, expired trial, or explicitly free plan → FREE limits apply
+          isFreeTier = true;
         }
       }
 
-      if (isExpired) {
-        const DAILY_LIMIT = 3;
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
+      if (isFreeTier) {
+        const { FREE_MONTHLY_ORDER_LIMIT } = await import('@/lib/plans');
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const { count } = await adminDb
           .from('orders')
           .select('id', { count: 'exact', head: true })
           .eq('restaurant_id', restaurant_id)
-          .gte('created_at', todayStart.toISOString());
-        if ((count ?? 0) >= DAILY_LIMIT) {
+          .gte('created_at', monthStart.toISOString());
+        if ((count ?? 0) >= FREE_MONTHLY_ORDER_LIMIT) {
           return NextResponse.json(
             { error: en
-                ? 'This restaurant has reached its daily limit. Please try again tomorrow or contact the restaurant.'
-                : 'Este restaurante alcanzó el límite de pedidos por hoy. Vuelve mañana o contacta al restaurante.' },
+                ? `This restaurant has reached its free plan limit of ${FREE_MONTHLY_ORDER_LIMIT} orders per month. Please try again next month or contact the restaurant.`
+                : `Este restaurante alcanzó el límite del plan gratuito (${FREE_MONTHLY_ORDER_LIMIT} pedidos/mes). Vuelve el próximo mes o contacta al restaurante.` },
             { status: 429 }
           );
         }

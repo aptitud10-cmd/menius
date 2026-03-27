@@ -23,7 +23,7 @@ const es = {
       magicLinkSentDesc: 'Haz click en el enlace del email para entrar a tu cuenta.',
     },
     signup: {
-      subtitle: 'Crea tu cuenta gratis — 14 días de prueba',
+      subtitle: 'Crea tu cuenta gratis — sin tarjeta de crédito',
       fullName: 'Nombre completo',
       namePlaceholder: 'Juan García',
       email: 'Email',
@@ -99,7 +99,7 @@ const es = {
     ctaSecondary: 'Ver demo en vivo',
     stats: [
       { value: '0%', label: 'Comisiones' },
-      { value: '14 días', label: 'Prueba gratis' },
+      { value: 'Gratis', label: 'Plan siempre gratis' },
       { value: '2 min', label: 'Configuración' },
     ],
     phone: {
@@ -257,25 +257,32 @@ const es = {
     annualYearSuffix: '/año',
     plans: [
       {
+        name: 'Free',
+        price: 0,
+        desc: 'Empieza gratis. Sin tarjeta de crédito.',
+        cta: 'Crear cuenta gratis',
+        features: ['Menú digital + QR (hasta 5 mesas)', 'Solo dine-in', '50 pedidos / mes', 'Importar menú desde foto con IA', 'Soporte por email'],
+      },
+      {
         name: 'Starter',
         price: 39,
         desc: 'Para restaurantes que inician su digitalización.',
-        cta: 'Empezar gratis',
-        features: ['Menú digital con fotos', 'QR para hasta 15 mesas', 'Pedidos (dine-in + pickup)', 'Sin marca MENIUS en el menú', 'MENIUS AI (asistente IA)', 'Importar menú desde foto (IA)', 'Analytics básico (30 días)', '2 usuarios administradores', 'Soporte por email'],
+        cta: 'Elegir Starter',
+        features: ['Menú digital con fotos', 'QR para hasta 15 mesas', 'Pedidos (dine-in + pickup)', 'Sin marca MENIUS en el menú', 'MENIUS AI (asistente IA)', 'Importar menú desde foto (IA)', 'Analytics básico (30 días)', '2 usuarios administradores', 'Soporte por chat'],
       },
       {
         name: 'Pro',
         price: 79,
         desc: 'Para restaurantes que quieren crecer y vender más.',
-        cta: 'Empezar con Pro',
-        features: ['Todo de Starter', 'Hasta 50 mesas', 'Delivery + dirección de entrega', 'Notificaciones WhatsApp y email', 'Cocina KDS en tiempo real', 'Analytics avanzado (histórico)', 'Promociones y cupones', 'Reseñas de clientes', '5 usuarios', 'Pagos online con tarjeta', 'Exportar reportes PDF / CSV', 'Soporte prioritario 24h'],
+        cta: 'Elegir Pro',
+        features: ['Todo de Starter', 'Hasta 50 mesas', 'Delivery + dirección de entrega', 'WhatsApp (500 msgs/mes)', 'Notificaciones por email', 'Cocina KDS en tiempo real', 'Analytics avanzado (histórico)', 'Promociones y cupones', 'Reseñas de clientes', '5 usuarios', 'Pagos online con tarjeta', 'Exportar reportes PDF / CSV', 'Chat prioritario 24h'],
       },
       {
         name: 'Business',
         price: 149,
         desc: 'Para cadenas y franquicias con múltiples ubicaciones.',
-        cta: 'Empezar con Business',
-        features: ['Todo de Pro', 'Mesas y usuarios ilimitados', 'Hasta 3 sucursales incluidas', 'Dominio personalizado', 'Exportar datos CSV / Excel', 'Acceso API', 'Onboarding personalizado (videollamada)', 'Gestor de cuenta dedicado', 'Soporte WhatsApp < 2h'],
+        cta: 'Elegir Business',
+        features: ['Todo de Pro', 'Mesas y usuarios ilimitados', 'Hasta 3 sucursales incluidas', 'WhatsApp (2,000 msgs/mes)', 'Dominio personalizado', 'Exportar datos CSV / Excel', 'Acceso API', 'Account manager (chat)', 'Tickets SLA < 1h'],
       },
     ],
     setupCtaPrefix: '¿No tienes tiempo?',
@@ -370,7 +377,7 @@ const en: LandingT = {
       magicLinkSentDesc: 'Click the link in the email to sign in to your account.',
     },
     signup: {
-      subtitle: 'Create your free account — 14-day trial',
+      subtitle: 'Create your free account — no credit card needed',
       fullName: 'Full name',
       namePlaceholder: 'John Smith',
       email: 'Email',
@@ -438,7 +445,7 @@ const en: LandingT = {
     menuLabel: 'Menu',
   },
   hero: {
-    badge: '0% commissions · 14-day free trial',
+    badge: '0% commissions · forever free plan',
     titleLine1: 'Digital menu & ',
     titleHighlight: 'direct orders',
     subtitle: 'QR per table, online orders, kitchen KDS & AI assistant. Zero commissions. Set up in 2 minutes.',
@@ -446,7 +453,7 @@ const en: LandingT = {
     ctaSecondary: 'View live demo',
     stats: [
       { value: '0%', label: 'Commissions' },
-      { value: '14 days', label: 'Free trial' },
+      { value: 'Free', label: 'Forever free plan' },
       { value: '2 min', label: 'Setup' },
     ],
     phone: {
@@ -593,7 +600,7 @@ const en: LandingT = {
   pricing: {
     sectionLabel: 'Pricing',
     sectionTitle: 'No commissions. No surprises.',
-    sectionDesc: '14 days free. No credit card. Cancel anytime.',
+    sectionDesc: 'Free forever plan. No credit card. Cancel anytime.',
     popularBadge: 'Popular',
     perMonth: '/mo',
     billingMonthly: 'Monthly',
@@ -604,25 +611,32 @@ const en: LandingT = {
     annualYearSuffix: '/yr',
     plans: [
       {
+        name: 'Free',
+        price: 0,
+        desc: 'Start free. No credit card required.',
+        cta: 'Create free account',
+        features: ['Digital menu + QR (up to 5 tables)', 'Dine-in only', '50 orders / month', 'Import menu from photo (AI)', 'Email support'],
+      },
+      {
         name: 'Starter',
         price: 39,
         desc: 'For restaurants starting their digital journey.',
-        cta: 'Start free',
-        features: ['Digital menu with photos', 'QR codes up to 15 tables', 'Orders (dine-in + pickup)', 'No MENIUS branding', 'MENIUS AI assistant', 'Import menu from photo (AI)', 'Basic analytics (30 days)', '2 admin users', 'Email support'],
+        cta: 'Get Starter',
+        features: ['Digital menu with photos', 'QR codes up to 15 tables', 'Orders (dine-in + pickup)', 'No MENIUS branding', 'MENIUS AI assistant', 'Import menu from photo (AI)', 'Basic analytics (30 days)', '2 admin users', 'Chat support'],
       },
       {
         name: 'Pro',
         price: 79,
         desc: 'For restaurants looking to grow and sell more.',
-        cta: 'Start with Pro',
-        features: ['Everything in Starter', 'Up to 50 tables', 'Delivery + delivery address', 'WhatsApp & email notifications', 'Real-time kitchen KDS', 'Advanced analytics (full history)', 'Promotions & coupons', 'Customer reviews', '5 users', 'Online card payments', 'Export reports PDF / CSV', 'Priority support 24h'],
+        cta: 'Get Pro',
+        features: ['Everything in Starter', 'Up to 50 tables', 'Delivery + delivery address', 'WhatsApp (500 msgs/mo)', 'Email notifications', 'Real-time kitchen KDS', 'Advanced analytics (full history)', 'Promotions & coupons', 'Customer reviews', '5 users', 'Online card payments', 'Export reports PDF / CSV', 'Priority chat 24h'],
       },
       {
         name: 'Business',
         price: 149,
         desc: 'For chains and franchises with multiple locations.',
-        cta: 'Start with Business',
-        features: ['Everything in Pro', 'Unlimited tables & users', 'Up to 3 locations included', 'Custom domain', 'Full data export (CSV / Excel)', 'API access', 'Personalized onboarding (video call)', 'Dedicated account manager', 'WhatsApp support < 2h'],
+        cta: 'Get Business',
+        features: ['Everything in Pro', 'Unlimited tables & users', 'Up to 3 locations included', 'WhatsApp (2,000 msgs/mo)', 'Custom domain', 'Full data export (CSV / Excel)', 'API access', 'Dedicated account manager (chat)', 'Tickets SLA < 1h'],
       },
     ],
     setupCtaPrefix: "Don't have time?",
