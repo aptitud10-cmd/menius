@@ -28,6 +28,7 @@ export interface ProductCardProps {
   addedShortLabel?: string;
   locale?: string;
   defaultLocale?: string;
+  priority?: boolean;
 }
 
 export const ProductCard = memo(function ProductCard(props: ProductCardProps) {

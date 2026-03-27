@@ -143,13 +143,8 @@ function ServiceWorkerRegister() {
       dangerouslySetInnerHTML={{
         __html: `
           if ('serviceWorker' in navigator) {
-            // Unregister ALL service workers and clear ALL caches immediately.
-            // This clears any stuck old SW that was serving stale JS to users.
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-              regs.forEach(function(r) { r.unregister(); });
-            });
-            caches.keys().then(function(keys) {
-              keys.forEach(function(k) { caches.delete(k); });
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js');
             });
           }
         `,

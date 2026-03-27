@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
+import Image from 'next/image';
 import { CheckCircle2, Check, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, Wifi, Utensils, ShoppingBag, Truck, CreditCard, Banknote, MapPin, Phone, DoorOpen } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -719,11 +720,15 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               {t.en ? 'Delivery photo' : 'Foto de entrega'}
             </p>
             <a href={(order as any).delivery_photo_url} target="_blank" rel="noopener noreferrer">
-              <img
-                src={(order as any).delivery_photo_url}
-                alt="Delivery proof"
-                className="w-full rounded-2xl object-contain bg-gray-50 border border-gray-100 shadow-sm max-h-72"
-              />
+              <div className="relative w-full rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm" style={{ maxHeight: '288px', minHeight: '160px' }}>
+                <Image
+                  src={(order as any).delivery_photo_url}
+                  alt="Delivery proof"
+                  fill
+                  sizes="(max-width: 640px) 100vw, 480px"
+                  className="object-contain"
+                />
+              </div>
             </a>
           </div>
         )}

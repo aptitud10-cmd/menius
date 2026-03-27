@@ -1174,7 +1174,9 @@ export function MenuShell({
             </motion.div>
           ) : (
             <div className="space-y-8">
-              {displayedGroups.map(({ category, items, available }) => {
+              {(() => {
+                let globalProductIdx = 0;
+                return displayedGroups.map(({ category, items, available }) => {
                 const isPopular = category.id === POPULAR_ID;
                 const isLocked = !available;
                 return (
@@ -1230,7 +1232,10 @@ export function MenuShell({
                             visible: { transition: { staggerChildren: 0.06 } },
                           } : undefined}
                         >
-                          {items.map((product) => (
+                          {items.map((product) => {
+                            const isPriority = globalProductIdx < 4;
+                            globalProductIdx++;
+                            return (
                             <motion.div
                               key={product.id}
                               className="rounded-2xl overflow-hidden"
@@ -1252,15 +1257,18 @@ export function MenuShell({
                                 addedShortLabel={t.addedShort}
                                 locale={locale}
                                 defaultLocale={defaultLocale}
+                                priority={isPriority}
                               />
                             </motion.div>
-                          ))}
+                            );
+                          })}
                         </motion.div>
                       </LazyProductGrid>
                     </div>
                   </section>
                 );
-              })}
+              });
+              })()}
             </div>
           )}
           {/* Recent reviews */}

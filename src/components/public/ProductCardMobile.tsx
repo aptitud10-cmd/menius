@@ -22,6 +22,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
   addedShortLabel,
   locale = 'es',
   defaultLocale = 'es',
+  priority = false,
 }: ProductCardProps) {
   const isEn = locale === 'en';
   const labelSoldOut = soldOutLabel ?? (isEn ? 'Sold out' : 'Agotado');
@@ -86,6 +87,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
               alt={imgAlt}
               fill
               sizes="50vw"
+              priority={priority}
               unoptimized={product.image_url.includes('.supabase.co/storage/')}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}

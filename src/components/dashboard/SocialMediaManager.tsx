@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Sparkles, Copy, CheckCircle2, Loader2, Clock, Lightbulb, ImageIcon, Instagram, Facebook, Twitter, MessageCircle, Download, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
@@ -270,12 +271,16 @@ export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale 
 
             {generatedImageUrl && (
               <div className="space-y-2">
-                <img
-                  src={generatedImageUrl}
-                  alt="AI generated post image"
-                  className="w-full rounded-lg object-cover"
-                  style={{ maxHeight: '300px' }}
-                />
+                <div className="relative w-full rounded-lg overflow-hidden" style={{ maxHeight: '300px', minHeight: '200px' }}>
+                  <Image
+                    src={generatedImageUrl}
+                    alt="AI generated post image"
+                    fill
+                    sizes="(max-width: 640px) 100vw, 480px"
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
                 <button
                   onClick={() => { setGeneratedImageUrl(null); setImageError(''); }}
                   disabled={generatingImage}

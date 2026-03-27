@@ -26,6 +26,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
   addedShortLabel,
   locale = 'es',
   defaultLocale = 'es',
+  priority = false,
 }: ProductCardProps) {
   const isEn = locale === 'en';
   const labelSoldOut = soldOutLabel ?? (isEn ? 'Sold out' : 'Agotado');
@@ -97,6 +98,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             alt={imgAlt}
             fill
             sizes="(max-width: 1280px) 50vw, 33vw"
+            priority={priority}
             unoptimized={product.image_url.includes('.supabase.co/storage/')}
             placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
             blurDataURL={getBlurUrl(product.image_url)}

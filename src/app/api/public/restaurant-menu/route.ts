@@ -24,9 +24,10 @@ export async function GET(request: NextRequest) {
     const adminDb = createAdminClient();
 
     // Step 1: Fetch restaurant (required — fail fast if not found)
+    // Exclude sensitive/internal fields: owner_user_id
     const { data: restaurant, error: restaurantError } = await adminDb
       .from('restaurants')
-      .select('*')
+      .select('id, name, slug, description, logo_url, cover_image_url, address, phone, email, currency, timezone, is_active, rating, delivery_time_minutes, estimated_delivery_minutes, delivery_fee, min_order_amount, max_order_amount, accepts_delivery, accepts_pickup, accepts_dine_in, table_ordering_enabled, custom_domain, primary_color, secondary_color, pause_orders, pause_message, locale, country_code, tax_rate, tip_enabled, tip_percentages, whatsapp_number, instagram_url, facebook_url, website_url, created_at')
       .eq('slug', slug)
       .eq('is_active', true)
       .maybeSingle();
@@ -50,14 +51,14 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       adminDb
         .from('categories')
-        .select('*')
+        .select('id, restaurant_id, name, name_en, description, description_en, image_url, sort_order, is_active, available_from, available_to')
         .eq('restaurant_id', restaurantId)
         .eq('is_active', true)
         .order('sort_order', { ascending: true }),
 
       adminDb
         .from('products')
-        .select('*')
+        .select('id, restaurant_id, category_id, name, name_en, description, description_en, price, image_url, sort_order, is_active, in_stock, is_popular, dietary_tags, calories, preparation_time_minutes, allergens')
         .eq('restaurant_id', restaurantId)
         .eq('is_active', true)
         .order('sort_order', { ascending: true }),
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
 
       adminDb
         .from('promotions')
-        .select('*')
+        .select('id, restaurant_id, title, title_en, description, description_en, discount_type, discount_value, code, is_active, start_date, end_date, min_order_amount, image_url')
         .eq('restaurant_id', restaurantId)
         .eq('is_active', true),
 
@@ -92,7 +93,7 @@ export async function GET(request: NextRequest) {
 
       adminDb
         .from('tables')
-        .select('*')
+        .select('id, restaurant_id, table_number, name, capacity, qr_code_url, is_active')
         .eq('restaurant_id', restaurantId),
 
       // Limit orders to last 500 for stats — avoids loading entire history
@@ -124,9 +125,9 @@ export async function GET(request: NextRequest) {
       { data: modifierGroupsData },
       { data: orderItemsData },
     ] = await Promise.all([
-      adminDb.from('product_variants').select('*').in('product_id', safeIds),
-      adminDb.from('product_extras').select('*').in('product_id', safeIds),
-      adminDb.from('modifier_groups').select('*').in('product_id', safeIds),
+      adminDb.from('product_variants').select('id, product_id, name, name_en, price, is_active, sort_order').in('product_id', safeIds),
+      adminDb.from('product_extras').select('id, product_id, name, name_en, price, is_active, sort_order').in('product_id', safeIds),
+      adminDb.from('modifier_groups').select('id, product_id, name, name_en, is_required, min_selections, max_selections, sort_order, display_type').in('product_id', safeIds),
       adminDb
         .from('order_items')
         .select('product_id')
@@ -145,7 +146,7 @@ export async function GET(request: NextRequest) {
 
     const { data: modifierOptionsData } = await adminDb
       .from('modifier_options')
-      .select('*')
+      .select('id, modifier_group_id, name, name_en, price, is_active, sort_order')
       .in('modifier_group_id', safeMgIds);
 
     const modifierOptions = modifierOptionsData ?? [];
