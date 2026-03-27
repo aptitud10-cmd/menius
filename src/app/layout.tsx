@@ -86,8 +86,8 @@ export const viewport: Viewport = {
   interactiveWidget: 'resizes-content',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const cookieStore = cookies();
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
   const locale = cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es';
 
   const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app';
