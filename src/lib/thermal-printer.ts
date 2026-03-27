@@ -1,9 +1,12 @@
 /**
- * ESC/POS thermal printer encoder + Web Serial API connection.
- * Supports 80mm and 58mm thermal printers via USB (Web Serial).
- * Falls back to browser print dialog with receipt-optimized CSS.
+ * ESC/POS thermal printer encoder.
+ * Supports 80mm and 58mm thermal printers via:
+ *   1. Web Bluetooth (Chrome Android — preferred for tablets)
+ *   2. Web Serial / USB (Chrome desktop)
+ *   3. Browser print dialog fallback (all browsers)
  */
 
+// ── Web Serial typings ────────────────────────────────────────────────────────
 declare global {
   interface Navigator {
     serial?: {
@@ -17,6 +20,50 @@ declare global {
     writable: WritableStream | null;
   }
 }
+
+// ── Web Bluetooth typings ─────────────────────────────────────────────────────
+declare global {
+  interface Navigator {
+    bluetooth?: {
+      requestDevice(options: {
+        filters?: Array<{ services?: string[] }>;
+        optionalServices?: string[];
+        acceptAllDevices?: boolean;
+      }): Promise<BluetoothDevice>;
+    };
+  }
+
+  interface BluetoothDevice {
+    gatt?: BluetoothRemoteGATTServer;
+    name?: string;
+    addEventListener(type: string, listener: EventListenerOrEventListenerObject): void;
+  }
+
+  interface BluetoothRemoteGATTServer {
+    connected: boolean;
+    connect(): Promise<BluetoothRemoteGATTServer>;
+    disconnect(): void;
+    getPrimaryService(service: string): Promise<BluetoothRemoteGATTService>;
+  }
+
+  interface BluetoothRemoteGATTService {
+    getCharacteristic(characteristic: string): Promise<BluetoothRemoteGATTCharacteristic>;
+  }
+
+  interface BluetoothRemoteGATTCharacteristic {
+    writeValueWithoutResponse(value: ArrayBuffer): Promise<void>;
+    writeValue(value: ArrayBuffer): Promise<void>;
+  }
+}
+
+// ESC/POS printers expose a serial-port-like GATT service.
+// These UUIDs cover the vast majority of generic BT thermal printers (Xprinter,
+// GOOJPRT, MUNBYN, etc.). Epson and Star use the same service.
+const BT_SERVICE_UUID        = '000018f0-0000-1000-8000-00805f9b34fb';
+const BT_CHARACTERISTIC_UUID = '00002af1-0000-1000-8000-00805f9b34fb';
+
+// Bluetooth MTU is typically 20-512 bytes; we chunk conservatively at 512.
+const BT_CHUNK_SIZE = 512;
 
 const ESC = 0x1b;
 const GS = 0x1d;
@@ -203,6 +250,7 @@ export function buildReceipt(data: ReceiptData): Uint8Array {
   return e.toUint8Array();
 }
 
+// ── USB / Web Serial ──────────────────────────────────────────────────────────
 let cachedPort: SerialPort | null = null;
 
 export function isWebSerialSupported(): boolean {
@@ -211,7 +259,6 @@ export function isWebSerialSupported(): boolean {
 
 export async function connectPrinter(): Promise<SerialPort | null> {
   if (!isWebSerialSupported()) return null;
-
   try {
     const port = await navigator.serial!.requestPort();
     await port.open({ baudRate: 9600 });
@@ -222,9 +269,83 @@ export async function connectPrinter(): Promise<SerialPort | null> {
   }
 }
 
-export async function printReceipt(data: ReceiptData): Promise<{ success: boolean; method: 'serial' | 'browser'; error?: string }> {
+export async function disconnectPrinter(): Promise<void> {
+  if (cachedPort) {
+    try { await cachedPort.close(); } catch { /* ignore */ }
+    cachedPort = null;
+  }
+}
+
+export function isPrinterConnected(): boolean {
+  return cachedPort !== null;
+}
+
+// ── Bluetooth ─────────────────────────────────────────────────────────────────
+let cachedBtChar: BluetoothRemoteGATTCharacteristic | null = null;
+
+export function isWebBluetoothSupported(): boolean {
+  return typeof navigator !== 'undefined' && 'bluetooth' in navigator;
+}
+
+export function isBluetoothPrinterConnected(): boolean {
+  return cachedBtChar !== null;
+}
+
+export async function connectBluetoothPrinter(): Promise<BluetoothRemoteGATTCharacteristic | null> {
+  if (!isWebBluetoothSupported()) return null;
+  try {
+    const device = await navigator.bluetooth!.requestDevice({
+      filters: [{ services: [BT_SERVICE_UUID] }],
+      optionalServices: [BT_SERVICE_UUID],
+    });
+    const server  = await device.gatt!.connect();
+    const service = await server.getPrimaryService(BT_SERVICE_UUID);
+    const char    = await service.getCharacteristic(BT_CHARACTERISTIC_UUID);
+    cachedBtChar  = char;
+    // Auto-clear cache when the device disconnects
+    device.addEventListener('gattserverdisconnected', () => { cachedBtChar = null; });
+    return char;
+  } catch {
+    return null;
+  }
+}
+
+export async function disconnectBluetoothPrinter(): Promise<void> {
+  cachedBtChar = null;
+}
+
+async function writeBluetooth(bytes: Uint8Array): Promise<void> {
+  if (!cachedBtChar) throw new Error('No BT char');
+  for (let offset = 0; offset < bytes.length; offset += BT_CHUNK_SIZE) {
+    const chunk = bytes.slice(offset, offset + BT_CHUNK_SIZE);
+    try {
+      await cachedBtChar.writeValueWithoutResponse(chunk.buffer);
+    } catch {
+      // Some printers only support writeValue (with response)
+      await cachedBtChar.writeValue(chunk.buffer);
+    }
+    // Small delay between chunks to avoid buffer overflow on slow printers
+    if (offset + BT_CHUNK_SIZE < bytes.length) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+  }
+}
+
+// ── Unified print entry point ─────────────────────────────────────────────────
+export async function printReceipt(data: ReceiptData): Promise<{ success: boolean; method: 'bluetooth' | 'serial' | 'browser'; error?: string }> {
   const receiptBytes = buildReceipt(data);
 
+  // 1. Cached Bluetooth
+  if (cachedBtChar) {
+    try {
+      await writeBluetooth(receiptBytes);
+      return { success: true, method: 'bluetooth' };
+    } catch {
+      cachedBtChar = null;
+    }
+  }
+
+  // 2. Cached Serial (USB)
   if (cachedPort) {
     try {
       const writer = cachedPort.writable?.getWriter();
@@ -238,6 +359,20 @@ export async function printReceipt(data: ReceiptData): Promise<{ success: boolea
     }
   }
 
+  // 3. Try new Bluetooth connection
+  if (isWebBluetoothSupported()) {
+    try {
+      const char = await connectBluetoothPrinter();
+      if (char) {
+        await writeBluetooth(receiptBytes);
+        return { success: true, method: 'bluetooth' };
+      }
+    } catch {
+      cachedBtChar = null;
+    }
+  }
+
+  // 4. Try new Serial connection
   if (isWebSerialSupported()) {
     try {
       const port = await connectPrinter();
@@ -250,24 +385,9 @@ export async function printReceipt(data: ReceiptData): Promise<{ success: boolea
         }
       }
     } catch {
-      // Fall through to browser print
+      // Fall through
     }
   }
 
-  return { success: false, method: 'browser', error: 'no_serial' };
-}
-
-export async function disconnectPrinter(): Promise<void> {
-  if (cachedPort) {
-    try {
-      await cachedPort.close();
-    } catch {
-      // ignore
-    }
-    cachedPort = null;
-  }
-}
-
-export function isPrinterConnected(): boolean {
-  return cachedPort !== null;
+  return { success: false, method: 'browser', error: 'no_printer' };
 }

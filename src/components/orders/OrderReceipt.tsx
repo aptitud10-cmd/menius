@@ -1,13 +1,17 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Printer, X, Usb, Check, Loader2 } from 'lucide-react';
+import { Printer, X, Usb, Check, Loader2, Bluetooth, BluetoothOff } from 'lucide-react';
 import {
   printReceipt,
   isWebSerialSupported,
+  isWebBluetoothSupported,
   connectPrinter,
   isPrinterConnected,
   disconnectPrinter,
+  connectBluetoothPrinter,
+  isBluetoothPrinterConnected,
+  disconnectBluetoothPrinter,
   type ReceiptData,
 } from '@/lib/thermal-printer';
 import { formatPrice, cn } from '@/lib/utils';
@@ -73,6 +77,7 @@ export function OrderReceipt({
   const [printing, setPrinting] = useState(false);
   const [printResult, setPrintResult] = useState<string | null>(null);
   const [printerConnected, setPrinterConnected] = useState(isPrinterConnected());
+  const [btConnected, setBtConnected] = useState(isBluetoothPrinterConnected());
 
   const fmtPrice = (n: number) => formatPrice(n, currency);
 
@@ -89,12 +94,23 @@ export function OrderReceipt({
     const result = await printReceipt(data);
 
     if (result.success) {
-      setPrintResult('thermal');
-      setPrinterConnected(true);
+      setPrintResult(result.method);
+      if (result.method === 'serial') setPrinterConnected(true);
+      if (result.method === 'bluetooth') setBtConnected(true);
     } else {
       handleBrowserPrint();
     }
     setPrinting(false);
+  };
+
+  const handleBtConnect = async () => {
+    const char = await connectBluetoothPrinter();
+    setBtConnected(!!char);
+  };
+
+  const handleBtDisconnect = async () => {
+    await disconnectBluetoothPrinter();
+    setBtConnected(false);
   };
 
   const handleBrowserPrint = () => {
@@ -234,13 +250,13 @@ export function OrderReceipt({
 
         {/* Actions */}
         <div className="px-5 py-3 border-t border-gray-200 space-y-2">
-          {/* Printer connection */}
+          {/* USB connection row */}
           {isWebSerialSupported() && (
-            <div className="flex items-center justify-between text-xs mb-2">
+            <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-1.5">
                 <Usb className="w-3 h-3 text-gray-400" />
                 <span className={printerConnected ? 'text-emerald-600 font-medium' : 'text-gray-500'}>
-                  {printerConnected ? 'Impresora conectada' : 'Sin impresora USB'}
+                  {printerConnected ? 'Impresora USB conectada' : 'Sin impresora USB'}
                 </span>
               </div>
               <button
@@ -257,8 +273,33 @@ export function OrderReceipt({
             </div>
           )}
 
-          {printResult === 'thermal' && (
-            <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium mb-2">
+          {/* Bluetooth connection row */}
+          {isWebBluetoothSupported() && (
+            <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5">
+                {btConnected
+                  ? <Bluetooth className="w-3 h-3 text-emerald-500" />
+                  : <BluetoothOff className="w-3 h-3 text-gray-400" />}
+                <span className={btConnected ? 'text-emerald-600 font-medium' : 'text-gray-500'}>
+                  {btConnected ? 'Impresora BT conectada' : 'Sin impresora Bluetooth'}
+                </span>
+              </div>
+              <button
+                onClick={btConnected ? handleBtDisconnect : handleBtConnect}
+                className={cn(
+                  'px-2 py-1 rounded text-xs font-medium transition-colors',
+                  btConnected
+                    ? 'text-red-500 hover:bg-red-50'
+                    : 'text-indigo-600 hover:bg-indigo-50',
+                )}
+              >
+                {btConnected ? 'Desconectar' : 'Conectar'}
+              </button>
+            </div>
+          )}
+
+          {(printResult === 'serial' || printResult === 'bluetooth') && (
+            <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
               <Check className="w-3.5 h-3.5" /> Enviado a impresora
             </div>
           )}
@@ -270,7 +311,7 @@ export function OrderReceipt({
             >
               <Printer className="w-4 h-4" /> Imprimir (navegador)
             </button>
-            {isWebSerialSupported() && (
+            {(isWebSerialSupported() || isWebBluetoothSupported()) && (
               <button
                 onClick={handleThermalPrint}
                 disabled={printing}
@@ -278,6 +319,8 @@ export function OrderReceipt({
               >
                 {printing ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Enviando...</>
+                ) : btConnected ? (
+                  <><Bluetooth className="w-4 h-4" /> Impresora térmica</>
                 ) : (
                   <><Usb className="w-4 h-4" /> Impresora térmica</>
                 )}

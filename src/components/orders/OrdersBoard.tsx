@@ -176,6 +176,23 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
 
   useEffect(() => { updateTabTitle(pendingCount); }, [pendingCount, updateTabTitle]);
 
+  // Keep the screen awake while the counter is open (re-acquire after tab comes back)
+  useEffect(() => {
+    let lock: WakeLockSentinel | null = null;
+    const acquire = async () => {
+      if ('wakeLock' in navigator) {
+        try { lock = await (navigator as Navigator & { wakeLock: { request(type: string): Promise<WakeLockSentinel> } }).wakeLock.request('screen'); }
+        catch { /* non-fatal — browser may deny (e.g. low battery) */ }
+      }
+    };
+    acquire();
+    document.addEventListener('visibilitychange', acquire);
+    return () => {
+      document.removeEventListener('visibilitychange', acquire);
+      lock?.release();
+    };
+  }, []);
+
   const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
     updateOrderLocally(orderId, { status: newStatus });
     startTransition(async () => { await updateOrderStatus(orderId, newStatus); });
