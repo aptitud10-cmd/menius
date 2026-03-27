@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
     ] = await Promise.all([
       adminDb.from('product_variants').select('id, product_id, name, name_en, price, is_active, sort_order').in('product_id', safeIds),
       adminDb.from('product_extras').select('id, product_id, name, name_en, price, is_active, sort_order').in('product_id', safeIds),
-      adminDb.from('modifier_groups').select('id, product_id, name, name_en, is_required, min_selections, max_selections, sort_order, display_type').in('product_id', safeIds),
+      adminDb.from('modifier_groups').select('id, product_id, name, selection_type, is_required, min_select, max_select, sort_order, display_type').in('product_id', safeIds),
       adminDb
         .from('order_items')
         .select('product_id')
@@ -146,8 +146,8 @@ export async function GET(request: NextRequest) {
 
     const { data: modifierOptionsData } = await adminDb
       .from('modifier_options')
-      .select('id, modifier_group_id, name, name_en, price, is_active, sort_order')
-      .in('modifier_group_id', safeMgIds);
+      .select('id, group_id, name, price_delta, is_default, sort_order')
+      .in('group_id', safeMgIds);
 
     const modifierOptions = modifierOptionsData ?? [];
 

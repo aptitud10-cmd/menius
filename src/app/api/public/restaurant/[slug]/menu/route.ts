@@ -100,13 +100,13 @@ export async function GET(
     // 6. Fetch modifier groups and options
     const { data: modGroupsData } = await adminDb
       .from('modifier_groups')
-      .select('id, product_id, name, is_required, sort_order, allow_multiple')
+      .select('id, product_id, name, selection_type, is_required, min_select, max_select, sort_order, display_type')
       .in('product_id', productsData?.map((p) => p.id) ?? []);
 
     const { data: modOptionsData } = await adminDb
       .from('modifier_options')
-      .select('id, modifier_group_id, name, price_delta, sort_order, is_default')
-      .in('modifier_group_id', modGroupsData?.map((mg) => mg.id) ?? []);
+      .select('id, group_id, name, price_delta, is_default, sort_order')
+      .in('group_id', modGroupsData?.map((mg) => mg.id) ?? []);
 
     // 7. Fetch reviews
     const { data: reviewsData } = await adminDb
