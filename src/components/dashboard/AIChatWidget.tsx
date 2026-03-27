@@ -72,7 +72,8 @@ export function AIChatWidget() {
   const lastAiMsgRef = useRef<HTMLDivElement>(null);
   const lastRoleRef = useRef<'user' | 'assistant' | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { t } = useDashboardLocale();
+  const { t, locale } = useDashboardLocale();
+  const isEn = locale === 'en';
 
   const quickQuestions = [t.chat_q1, t.chat_q2, t.chat_q3, t.chat_q4, t.chat_q5, t.chat_q6, t.chat_q7, t.chat_q8];
 
@@ -153,10 +154,16 @@ export function AIChatWidget() {
 
       const data = await res.json();
 
+      const replyText = res.status === 403
+        ? (isEn
+            ? '🔒 MENIUS AI is available from the **Starter plan** ($39/mo). [Upgrade your plan](/app/billing) to unlock the AI assistant, unlimited orders, and more.'
+            : '🔒 MENIUS AI está disponible desde el **plan Starter** ($39/mes). [Mejora tu plan](/app/billing) para desbloquear el asistente IA, pedidos ilimitados y más.')
+        : (data.reply ?? data.error ?? t.chat_errorConnection);
+
       const assistantMsg: Message = {
         id: `a-${Date.now()}`,
         role: 'assistant',
-        text: data.reply ?? data.error ?? t.chat_errorConnection,
+        text: replyText,
         timestamp: new Date(),
       };
 

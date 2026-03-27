@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { hasPlanAccess } from '@/lib/auth/check-plan';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
 
@@ -13,6 +14,14 @@ export async function POST(request: NextRequest) {
     const tenant = await getTenant();
     if (!tenant) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
+    const canUseImageAI = await hasPlanAccess(tenant.restaurantId, 'starter');
+    if (!canUseImageAI) {
+      return NextResponse.json(
+        { error: 'La generación de imágenes con IA requiere el plan Starter o superior.' },
+        { status: 403 }
+      );
     }
 
     const { allowed } = await checkRateLimitAsync(`ai:${tenant.userId}`, { limit: 20, windowSec: 3600 });

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { hasPlanAccess } from '@/lib/auth/check-plan';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { createClient } from '@/lib/supabase/server';
 import { callTextAI } from '@/lib/ai-text';
@@ -10,6 +11,14 @@ export async function POST(request: NextRequest) {
   try {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+
+    const canUseCampaigns = await hasPlanAccess(tenant.restaurantId, 'pro');
+    if (!canUseCampaigns) {
+      return NextResponse.json(
+        { error: 'La generación de campañas con IA requiere el plan Pro o superior.' },
+        { status: 403 }
+      );
+    }
 
     const { allowed } = await checkRateLimitAsync(`ai-campaign:${tenant.userId}`, { limit: 20, windowSec: 3600 });
     if (!allowed) {

@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
+import { hasPlanAccess } from '@/lib/auth/check-plan';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { getPlan } from '@/lib/plans';
 import { createLogger } from '@/lib/logger';
@@ -467,6 +468,14 @@ export async function POST(request: NextRequest) {
     const tenant = await getTenant();
     if (!tenant) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
+    const canUseAIChat = await hasPlanAccess(tenant.restaurantId, 'starter');
+    if (!canUseAIChat) {
+      return NextResponse.json(
+        { error: 'El asistente MENIUS AI requiere el plan Starter o superior.' },
+        { status: 403 }
+      );
     }
 
     const { allowed } = await checkRateLimitAsync(`ai-chat:${tenant.userId}`, { limit: 60, windowSec: 3600 });
