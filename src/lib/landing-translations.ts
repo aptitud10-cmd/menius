@@ -257,13 +257,6 @@ const es = {
     annualYearSuffix: '/año',
     plans: [
       {
-        name: 'Free',
-        price: 0,
-        desc: 'Empieza gratis. Sin tarjeta de crédito.',
-        cta: 'Crear cuenta gratis',
-        features: ['Menú digital + QR (hasta 5 mesas)', 'Solo dine-in', '50 pedidos / mes', 'Importar menú desde foto con IA', 'Soporte por email'],
-      },
-      {
         name: 'Starter',
         price: 39,
         desc: 'Para restaurantes que inician su digitalización.',
@@ -610,13 +603,6 @@ const en: LandingT = {
     annualMonthSuffix: '/mo',
     annualYearSuffix: '/yr',
     plans: [
-      {
-        name: 'Free',
-        price: 0,
-        desc: 'Start free. No credit card required.',
-        cta: 'Create free account',
-        features: ['Digital menu + QR (up to 5 tables)', 'Dine-in only', '50 orders / month', 'Import menu from photo (AI)', 'Email support'],
-      },
       {
         name: 'Starter',
         price: 39,
