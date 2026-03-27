@@ -625,8 +625,8 @@ export function buildWelcomeEmail(params: {
   const body = `
   <p style="margin:0 0 24px;font-size:15px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
     ${en
-      ? `Hi <strong>${ownerName}</strong> — your restaurant is now live on MENIUS. You have a <strong>14-day free trial</strong> with all features unlocked. No credit card required.`
-      : `Hola <strong>${ownerName}</strong> — tu restaurante ya está activo en MENIUS. Tienes <strong>14 días de prueba gratis</strong> con todas las funciones desbloqueadas. Sin tarjeta de crédito.`}
+      ? `Hi <strong>${ownerName}</strong> — your restaurant is now live on MENIUS. You are on the <strong>Free plan</strong> — upgrade anytime to unlock more features. No credit card required.`
+      : `Hola <strong>${ownerName}</strong> — tu restaurante ya está activo en MENIUS. Estás en el <strong>plan gratuito</strong> — mejora tu plan en cualquier momento para desbloquear más funciones. Sin tarjeta de crédito.`}
   </p>
 
   <!-- Trial badge -->
@@ -634,7 +634,7 @@ export function buildWelcomeEmail(params: {
     <tr>
       <td style="background-color:#f3f0ff;border-radius:12px;padding:16px 20px;border-left:4px solid #7c3aed;">
         <p style="margin:0;font-size:14px;font-weight:700;color:#7c3aed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-          ${en ? '✨ 14-day free trial · All features included' : '✨ 14 días gratis · Todas las funciones incluidas'}
+          ${en ? '✨ Forever free plan · Upgrade anytime' : '✨ Plan gratis para siempre · Mejora cuando quieras'}
         </p>
         <p style="margin:4px 0 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
           ${en ? 'Digital menu · Real-time orders · QR codes · Analytics · WhatsApp alerts' : 'Menú digital · Pedidos en tiempo real · QR codes · Analytics · Alertas WhatsApp'}
@@ -692,8 +692,8 @@ export function buildTrialEndingEmail(params: {
   const body = `
   <p style="margin:0 0 24px;font-size:15px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
     ${en
-      ? `Hi <strong>${ownerName}</strong> — your free trial is almost over. Activate a plan to keep your digital menu, orders, and data fully operational.`
-      : `Hola <strong>${ownerName}</strong> — tu prueba gratuita está por vencer. Activa un plan para mantener tu menú digital, pedidos y datos funcionando normalmente.`}
+      ? `Hi <strong>${ownerName}</strong> — you're on the free plan. Upgrade to unlock unlimited orders, WhatsApp notifications, delivery, and more.`
+      : `Hola <strong>${ownerName}</strong> — estás en el plan gratuito. Mejora tu plan para desbloquear pedidos ilimitados, notificaciones WhatsApp, delivery y mucho más.`}
   </p>
 
   <!-- Warning box -->
@@ -702,8 +702,8 @@ export function buildTrialEndingEmail(params: {
       <td style="background-color:#fef3c7;border-radius:12px;padding:16px 20px;border-left:4px solid #d97706;">
         <p style="margin:0;font-size:13px;color:#92400e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
           ${en
-            ? "If you don't activate a plan, your dashboard will be locked — but <strong>your data won't be deleted</strong>. You can reactivate anytime."
-            : 'Si no activas un plan, tu panel quedará bloqueado — pero <strong>tus datos no se eliminarán</strong>. Puedes reactivarlo cuando quieras.'}
+            ? "On the free plan you're limited to 50 orders/month and dine-in only. Upgrade to remove limits and get delivery, WhatsApp alerts, and priority support."
+            : 'En el plan gratuito tienes un límite de 50 pedidos/mes y solo dine-in. Mejora tu plan para eliminar límites y obtener delivery, alertas WhatsApp y soporte prioritario.'}
         </p>
       </td>
     </tr>

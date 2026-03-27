@@ -52,25 +52,49 @@ describe('isWithinLimit', () => {
 });
 
 describe('PLANS structure', () => {
-  it('has three plans', () => {
-    expect(Object.keys(PLANS)).toHaveLength(3);
+  it('has four plans (free, starter, pro, business)', () => {
+    expect(Object.keys(PLANS)).toHaveLength(4);
+    expect(PLANS.free).toBeDefined();
+    expect(PLANS.starter).toBeDefined();
+    expect(PLANS.pro).toBeDefined();
+    expect(PLANS.business).toBeDefined();
   });
 
   it('all plans have required fields', () => {
     for (const plan of Object.values(PLANS)) {
       expect(plan.id).toBeTruthy();
       expect(plan.name).toBeTruthy();
-      expect(plan.price.monthly).toBeGreaterThan(0);
-      expect(plan.price.annual).toBeGreaterThan(0);
+      expect(plan.price.monthly).toBeGreaterThanOrEqual(0);
+      expect(plan.price.annual).toBeGreaterThanOrEqual(0);
       expect(plan.limits.maxProducts).toBeDefined();
       expect(plan.features.length).toBeGreaterThan(0);
     }
   });
 
-  it('annual price is cheaper per month than monthly', () => {
+  it('free plan has $0 price', () => {
+    expect(PLANS.free.price.monthly).toBe(0);
+    expect(PLANS.free.price.annual).toBe(0);
+    expect(PLANS.free.isFree).toBe(true);
+  });
+
+  it('paid plans have positive price', () => {
+    expect(PLANS.starter.price.monthly).toBeGreaterThan(0);
+    expect(PLANS.pro.price.monthly).toBeGreaterThan(0);
+    expect(PLANS.business.price.monthly).toBeGreaterThan(0);
+  });
+
+  it('annual price is cheaper per month than monthly (paid plans)', () => {
     for (const plan of Object.values(PLANS)) {
+      if (plan.isFree) continue;
       expect(plan.price.annual / 12).toBeLessThan(plan.price.monthly);
     }
+  });
+
+  it('free plan limits are correct', () => {
+    expect(PLANS.free.limits.maxTables).toBe(5);
+    expect(PLANS.free.limits.maxUsers).toBe(1);
+    expect(PLANS.free.limits.maxOrdersPerMonth).toBe(50);
+    expect(PLANS.free.limits.maxProducts).toBe(-1);
   });
 
   it('starter plan limits are correct', () => {

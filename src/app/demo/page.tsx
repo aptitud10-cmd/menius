@@ -67,7 +67,7 @@ const t = {
     ],
     poweredBy: 'Both demos use sample data. No real payments are processed.',
     cta: 'Ready to digitize your restaurant?',
-    ctaBtn: 'Start free trial',
+    ctaBtn: 'Get started for free',
   },
 } as const;
 

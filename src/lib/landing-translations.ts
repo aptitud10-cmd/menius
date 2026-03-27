@@ -91,7 +91,7 @@ const es = {
     menuLabel: 'Menú',
   },
   hero: {
-    badge: '0% comisiones · 14 días gratis',
+    badge: '0% comisiones · Plan gratis para siempre',
     titleLine1: 'Menú digital y ',
     titleHighlight: 'pedidos directos',
     subtitle: 'QR por mesa, pedidos online, cocina KDS y asistente IA. Sin comisiones. Configura en 2 minutos.',
@@ -239,14 +239,14 @@ const es = {
     perYear: 'al año',
     midCta: {
       text: 'Ese ahorro podría ser tuyo.',
-      highlight: '14 días gratis. Sin tarjeta. Sin compromisos.',
+      highlight: 'Plan gratis para siempre. Sin tarjeta. Sin compromisos.',
       cta: 'Empieza ahora →',
     },
   },
   pricing: {
     sectionLabel: 'Precios',
     sectionTitle: 'Sin comisiones. Sin sorpresas.',
-    sectionDesc: '14 días gratis. Sin tarjeta. Cancela cuando quieras.',
+    sectionDesc: 'Plan gratis para siempre. Sin tarjeta. Cancela cuando quieras.',
     popularBadge: 'Popular',
     perMonth: '/mes',
     billingMonthly: 'Mensual',
@@ -326,7 +326,7 @@ const es = {
   finalCta: {
     line1: 'Tu menú digital.',
     line2: 'Disponible hoy.',
-    subtitle: '14 días gratis. Sin tarjeta. Configura tu menú en minutos.',
+    subtitle: 'Plan gratis para siempre. Sin tarjeta. Configura tu menú en minutos.',
     ctaPrimary: 'Empezar gratis',
     ctaSecondary: 'Ver demo en vivo',
   },
@@ -593,7 +593,7 @@ const en: LandingT = {
     perYear: 'per year',
     midCta: {
       text: 'Those savings could be yours.',
-      highlight: '14 days free. No credit card. No commitment.',
+      highlight: 'Forever free plan. No credit card. No commitment.',
       cta: 'Start now →',
     },
   },
@@ -680,7 +680,7 @@ const en: LandingT = {
   finalCta: {
     line1: 'Your digital menu.',
     line2: 'Available today.',
-    subtitle: '14 days free. No credit card. Set up your menu in minutes.',
+    subtitle: 'Forever free plan. No credit card. Set up your menu in minutes.',
     ctaPrimary: 'Start free',
     ctaSecondary: 'View live demo',
   },

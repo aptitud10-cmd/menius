@@ -2051,7 +2051,7 @@ Este checklist cubre todo lo que debes tener listo antes de abrir tus puertas �
 - [ ] Fotos de al menos los 10 productos más importantes
 
 ### Configuración MENIUS (1-2 horas)
-- [ ] Cuenta creada en MENIUS (gratis, 14 días de prueba)
+- [ ] Cuenta creada en MENIUS (plan gratuito, sin tarjeta de crédito)
 - [ ] Nombre, logo y descripción del restaurante
 - [ ] Dirección completa configurada
 - [ ] Horarios de operación
@@ -2165,7 +2165,7 @@ MENIUS reemplaza varias herramientas que los restaurantes nuevos suelen pagar po
 | Asistente IA | $50-200 | Incluido |
 | **Total** | **$230-830/mes** | **$39-149/mes** |
 
-La prueba gratuita de 14 días es suficiente para tener todo tu restaurante configurado antes de abrir.
+El plan gratuito de MENIUS es más que suficiente para tener todo tu restaurante configurado antes de abrir — sin tarjeta de crédito.
 
 ## Conclusión
 
@@ -2189,7 +2189,7 @@ This checklist covers everything you need ready before opening your doors — an
 
 ## Phase 2: Menu & Operations (2-4 weeks before)
 - Finalized menu with 15-30 products for launch
-- MENIUS account set up (free 14-day trial)
+- MENIUS account set up (free plan — no credit card needed)
 - All products with names, prices, descriptions, photos
 - QR codes printed and tested
 
