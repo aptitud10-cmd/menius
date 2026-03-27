@@ -18,6 +18,7 @@ interface CartPanelProps {
   t: Translations;
   onEdit: (index: number) => void;
   onCheckout: () => void;
+  onClose?: () => void;
   estimatedMinutes?: number;
   deliveryFee?: number;
   locale?: string;
@@ -64,6 +65,7 @@ export function CartPanel({
   t,
   onEdit,
   onCheckout,
+  onClose,
   estimatedMinutes,
   deliveryFee,
   locale = 'es',
@@ -162,19 +164,22 @@ export function CartPanel({
   return (
     <div className="flex flex-col h-full">
 
-      {/* ── Header: item count + clear-cart icon ── */}
-      <div className="px-4 pt-3 pb-2 flex items-center justify-between flex-shrink-0">
-        <AnimatePresence mode="popLayout">
-          <motion.span
-            key={items.reduce((s, i) => s + i.qty, 0)}
-            initial={{ scale: 1.2, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 22 }}
-            className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full tabular-nums font-semibold"
-          >
-            {items.reduce((s, i) => s + i.qty, 0)} {t.items}
-          </motion.span>
-        </AnimatePresence>
+      {/* ── Header: drag pill + item count + clear + close ── */}
+      <div className="px-4 pt-2 pb-2 flex items-center gap-2 flex-shrink-0">
+        {/* Drag handle pill centered */}
+        <div className="flex-1 flex justify-start">
+          <AnimatePresence mode="popLayout">
+            <motion.span
+              key={items.reduce((s, i) => s + i.qty, 0)}
+              initial={{ scale: 1.2, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+              className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full tabular-nums font-semibold"
+            >
+              {items.reduce((s, i) => s + i.qty, 0)} {t.items}
+            </motion.span>
+          </AnimatePresence>
+        </div>
         <button
           onClick={handleClearTap}
           title={t.clearCart}
@@ -187,6 +192,15 @@ export function CartPanel({
         >
           <Trash2 className="w-4 h-4" />
         </button>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-all duration-150"
+            aria-label={locale === 'en' ? 'Close cart' : 'Cerrar carrito'}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* ── Scrollable items only ── */}

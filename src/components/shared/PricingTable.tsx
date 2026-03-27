@@ -215,7 +215,7 @@ export function PricingTable({ onSelect, currentPlan, loading, compact, hideFree
                   >
                     {isCurrent
                       ? (locale === 'en' ? 'Current plan' : 'Plan actual')
-                      : (locale === 'en' ? 'Your current plan' : 'Tu plan actual')}
+                      : (locale === 'en' ? 'Downgrade to Free' : 'Bajar a gratuito')}
                   </button>
                 ) : (
                   <button

@@ -1554,22 +1554,13 @@ export function MenuShell({
               <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
                 <div className="w-10 h-1.5 rounded-full bg-gray-300" />
               </div>
-              {/* Close button row — CartPanel already renders its own header/title */}
-              <div className="flex justify-end px-4 pt-1 flex-shrink-0">
-                <button
-                  onClick={() => setOpen(false)}
-                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl active:bg-gray-100 transition-colors"
-                  aria-label={locale === 'en' ? 'Close cart' : 'Cerrar carrito'}
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
               <div className="flex-1 overflow-hidden min-h-0">
                 <CartPanel
                   fmtPrice={fmtPrice}
                   t={t}
                   onEdit={(idx) => { setOpen(false); handleEditCartItem(idx); }}
                   onCheckout={handleOpenCheckout}
+                  onClose={() => setOpen(false)}
                   estimatedMinutes={restaurant.estimated_delivery_minutes ?? undefined}
                   deliveryFee={restaurant.delivery_fee ?? undefined}
                   locale={locale}
