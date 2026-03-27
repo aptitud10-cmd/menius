@@ -838,7 +838,7 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
 
   const { data: order } = await supabase
     .from('orders')
-    .select('id, status, order_number, restaurant_id, customer_name, customer_email, customer_phone, restaurants ( slug, name )')
+    .select('id, status, order_number, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address, restaurants ( slug, name )')
     .eq('id', orderId)
     .eq('restaurant_id', restaurantId)
     .maybeSingle();
@@ -874,23 +874,8 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
     } catch { /* table may not exist yet — safe to ignore */ }
   })();
 
-  // Fire push notification (local browser, non-blocking)
-  const pushMessages: Record<string, { title: string; body: string }> = {
-    confirmed: { title: 'Pedido confirmado', body: `Tu pedido #${order.order_number} fue confirmado` },
-    preparing: { title: 'Preparando tu pedido', body: `Tu pedido #${order.order_number} se esta preparando` },
-    ready: { title: '¡Tu pedido esta listo!', body: `Pedido #${order.order_number} listo para recoger` },
-    delivered: { title: '¡Buen provecho!', body: `Pedido #${order.order_number} entregado` },
-    cancelled: { title: 'Pedido cancelado', body: `Tu pedido #${order.order_number} fue cancelado` },
-  };
-  const pushMsg = pushMessages[status];
-  if (pushMsg) {
-    const slug = (order as any).restaurants?.slug;
-    import('@/lib/notifications/push').then(({ sendPushToOrder }) => {
-      sendPushToOrder(orderId, { ...pushMsg, url: slug ? `/${slug}/orden/${order.order_number}` : '/' });
-    }).catch(() => {});
-  }
-
-  // Send transactional notification to customer (WhatsApp primary, email fallback)
+  // Send transactional notification to customer (WhatsApp primary, email fallback).
+  // notifyStatusChange internally fires the push notification — no duplicate call needed here.
   let notificationResult: { channel: string; success: boolean; error?: string } = { channel: 'none', success: false };
   if (['confirmed', 'preparing', 'ready', 'cancelled', 'delivered'].includes(status)) {
     try {
@@ -903,6 +888,8 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
         customerName: order.customer_name,
         customerEmail: order.customer_email || undefined,
         customerPhone: order.customer_phone || undefined,
+        orderType: (order as any).order_type || undefined,
+        deliveryAddress: (order as any).delivery_address || undefined,
       });
     } catch {
       notificationResult = { channel: 'none', success: false, error: 'internal_error' };
@@ -919,7 +906,7 @@ export async function sendOrderNotification(orderId: string, eventType: string) 
 
   const { data: order } = await supabase
     .from('orders')
-    .select('id, order_number, customer_name, customer_email, customer_phone, restaurant_id')
+    .select('id, order_number, customer_name, customer_email, customer_phone, restaurant_id, order_type, delivery_address')
     .eq('id', orderId)
     .eq('restaurant_id', restaurantId)
     .maybeSingle();
@@ -936,6 +923,8 @@ export async function sendOrderNotification(orderId: string, eventType: string) 
       customerName: order.customer_name,
       customerEmail: order.customer_email || undefined,
       customerPhone: order.customer_phone || undefined,
+      orderType: (order as any).order_type || undefined,
+      deliveryAddress: (order as any).delivery_address || undefined,
     });
     return { success: true, notification };
   } catch {

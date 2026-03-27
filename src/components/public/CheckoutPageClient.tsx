@@ -77,7 +77,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [step, setStep] = useState<CheckoutStep>('form');
   const [orderType, setOrderType] = useState<OrderType>(enabledOrderTypes[0]);
   useEffect(() => {
-    const correct: OrderType = tableName ? 'dine_in' : welcomeOrderType ?? enabledOrderTypes[0];
+    // When there is no table context and no stored preference, prefer pickup (or delivery)
+    // over dine_in so walk-in orders don't accidentally become dine-in orders.
+    const noTableDefault: OrderType =
+      enabledOrderTypes.find((t) => t !== 'dine_in') ?? enabledOrderTypes[0];
+    const correct: OrderType = tableName ? 'dine_in' : welcomeOrderType ?? noTableDefault;
     setOrderType((prev) => (prev !== correct ? correct : prev));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableName, welcomeOrderType]);

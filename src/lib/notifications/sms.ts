@@ -65,6 +65,7 @@ export function formatStatusUpdateSMS(
   restaurantName: string,
   trackingUrl?: string,
   reviewUrl?: string,
+  orderType?: string,
 ): string {
   if (status === 'delivered') {
     const ctaUrl = reviewUrl ?? trackingUrl;
@@ -72,10 +73,17 @@ export function formatStatusUpdateSMS(
       return `✨ Order #${orderNumber} delivered at ${restaurantName}. Enjoy! Rate your experience: ${ctaUrl}`;
     }
   }
+
+  const readyMsg = (() => {
+    if (orderType === 'delivery') return `🛵 Order #${orderNumber} is ready — driver picking up soon at ${restaurantName}!`;
+    if (orderType === 'pickup') return `🥡 Order #${orderNumber} is ready for pickup at ${restaurantName}!`;
+    return `🔔 Order #${orderNumber} is ready — we\'ll bring it to your table at ${restaurantName}!`;
+  })();
+
   const messages: Record<string, string> = {
     confirmed: `✅ Order #${orderNumber} confirmed at ${restaurantName}.`,
     preparing: `👨‍🍳 Order #${orderNumber} is being prepared at ${restaurantName}.`,
-    ready: `🔔 Order #${orderNumber} is ready for pickup at ${restaurantName}!`,
+    ready: readyMsg,
     delivered: `✨ Order #${orderNumber} delivered. Enjoy your meal!`,
     cancelled: `❌ Order #${orderNumber} was cancelled by ${restaurantName}.`,
   };

@@ -57,9 +57,17 @@ export function getStatusPushPayload(
   orderNumber: string,
   restaurantName: string,
   trackingUrl: string,
-  locale: string
+  locale: string,
+  orderType?: string,
 ): PushPayload {
   const en = locale === 'en';
+
+  const readyBody = (() => {
+    if (orderType === 'delivery') return en ? `Order #${orderNumber} is ready — driver picking up soon` : `Pedido #${orderNumber} listo — el repartidor lo tomará pronto`;
+    if (orderType === 'pickup') return en ? `Order #${orderNumber} is ready for pickup!` : `¡Pedido #${orderNumber} listo para recoger!`;
+    return en ? `Order #${orderNumber} is ready — coming to your table` : `Pedido #${orderNumber} listo — ya te lo llevamos`;
+  })();
+
   const statusMessages: Record<string, { title: string; body: string }> = {
     confirmed: {
       title: en ? `✅ Order confirmed!` : `✅ ¡Pedido confirmado!`,
@@ -71,7 +79,7 @@ export function getStatusPushPayload(
     },
     ready: {
       title: en ? `🔔 Your order is ready!` : `🔔 ¡Tu pedido está listo!`,
-      body: en ? `Order #${orderNumber} is ready for pickup` : `Pedido #${orderNumber} listo para recoger`,
+      body: readyBody,
     },
     delivered: {
       title: en ? `📦 Order delivered!` : `📦 ¡Pedido entregado!`,

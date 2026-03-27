@@ -16,6 +16,7 @@ export default async function OrdersPage() {
       .from('orders')
       .select(`
         *,
+        table:tables ( name ),
         order_items (
           id, qty, unit_price, line_total, notes,
           product:products ( name, image_url ),
@@ -31,6 +32,7 @@ export default async function OrdersPage() {
 
   const mappedOrders = (orders ?? []).map((o: any) => ({
     ...o,
+    table_name: o.table?.name ?? o.table_name ?? null,
     items: o.order_items ?? [],
   }));
 

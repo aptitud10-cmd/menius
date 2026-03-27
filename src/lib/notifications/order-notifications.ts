@@ -29,6 +29,7 @@ interface OrderNotificationPayload {
   customerEmail?: string;
   customerPhone?: string;
   orderType?: string;
+  deliveryAddress?: string | null;
   paymentMethod?: string;
   tableNumber?: string | null;
   notes?: string | null;
@@ -89,7 +90,7 @@ async function fetchRichItems(orderId: string, currency: string): Promise<OrderE
  * Non-blocking — errors are logged but don't affect the order flow.
  */
 export async function notifyNewOrder(payload: OrderNotificationPayload) {
-  const { orderId, orderNumber, restaurantId, restaurantData, customerName, customerEmail, customerPhone, orderType, paymentMethod, tableNumber, notes, includeUtensils, total, items } = payload;
+  const { orderId, orderNumber, restaurantId, restaurantData, customerName, customerEmail, customerPhone, orderType, deliveryAddress, paymentMethod, tableNumber, notes, includeUtensils, total, items } = payload;
 
   try {
     let restaurant = restaurantData ?? null;
@@ -134,7 +135,7 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
         .join('\n');
       const utensilsNote = includeUtensils === false ? undefined : '🍴 Incluir cubiertos';
       const fullNotes = [notes, utensilsNote].filter(Boolean).join('\n') || undefined;
-      const text = formatNewOrderWhatsApp(orderNumber, customerName, totalFormatted, itemsSummary, orderType, tableNumber ?? undefined, fullNotes);
+      const text = formatNewOrderWhatsApp(orderNumber, customerName, totalFormatted, itemsSummary, orderType, tableNumber ?? undefined, fullNotes, deliveryAddress ?? undefined);
       sendWhatsApp({ to: restaurant.notification_whatsapp, text }).catch(() => {});
     }
 
@@ -250,8 +251,10 @@ export async function notifyStatusChange(params: {
   customerName: string;
   customerEmail?: string;
   customerPhone?: string;
+  orderType?: string;
+  deliveryAddress?: string;
 }): Promise<NotifyStatusResult> {
-  const { orderId, orderNumber, restaurantId, status, customerName, customerEmail, customerPhone } = params;
+  const { orderId, orderNumber, restaurantId, status, customerName, customerEmail, customerPhone, orderType } = params;
 
   try {
     const adminDb = createAdminClient();
@@ -279,7 +282,7 @@ export async function notifyStatusChange(params: {
 
       if (primaryChannel === 'sms') {
         // US/Canada: SMS primary
-        const text = formatStatusUpdateSMS(orderNumber, status, restaurant.name, trackingUrl, reviewUrl);
+        const text = formatStatusUpdateSMS(orderNumber, status, restaurant.name, trackingUrl, reviewUrl, orderType);
         const smsResult = await sendSMS({ to: customerPhone, text });
         if (smsResult.success) {
           if (customerEmail) {
@@ -297,7 +300,7 @@ export async function notifyStatusChange(params: {
         }
       } else {
         // LATAM + rest of world: WhatsApp primary
-        const text = formatStatusUpdateWhatsApp(orderNumber, status, restaurant.name, rLocale, trackingUrl, reviewUrl);
+        const text = formatStatusUpdateWhatsApp(orderNumber, status, restaurant.name, rLocale, trackingUrl, reviewUrl, orderType);
         const waResult = await sendWhatsApp({ to: customerPhone, text });
         if (waResult.success) {
           if (customerEmail) {
@@ -330,7 +333,7 @@ export async function notifyStatusChange(params: {
       import('./push').then(({ sendPushToOrder, getStatusPushPayload }) => {
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
         const trackUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}`;
-        const payload = getStatusPushPayload(status, orderNumber, restaurant.name, trackUrl, rLocale);
+        const payload = getStatusPushPayload(status, orderNumber, restaurant.name, trackUrl, rLocale, orderType);
         sendPushToOrder(orderId, payload).catch(() => {});
       }).catch(() => {});
     }
@@ -355,6 +358,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
     .from('orders')
     .select(`
       id, order_number, total, customer_name, customer_email, customer_phone,
+      order_type, delivery_address,
       restaurants ( name, slug, currency, locale, notification_email, notifications_enabled ),
       order_items ( qty, unit_price, line_total, products ( name ) )
     `)
@@ -413,7 +417,8 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
       orderNumber: order.order_number,
       restaurantName: restaurant.name,
       customerName: order.customer_name,
-      orderType: 'dine_in',
+      orderType: (order as any).order_type ?? 'dine_in',
+      deliveryAddress: (order as any).delivery_address ?? undefined,
       total: totalFormatted,
       items: emailItems,
       dashboardUrl: `${appUrl}/app/orders`,

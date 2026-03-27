@@ -35,10 +35,18 @@ function getT(locale?: string, orderType?: string) {
     paymentConfirmedDesc: en ? "If you left your email, you'll receive a receipt." : 'Si dejaste tu email, recibirás un comprobante.',
     orderDetails: en ? 'Order details' : 'Detalles del pedido',
     customer: en ? 'Customer' : 'Cliente',
+    phone: en ? 'Phone' : 'Teléfono',
+    email: en ? 'Email' : 'Correo',
+    table: en ? 'Table' : 'Mesa',
     type: en ? 'Type' : 'Tipo',
     payment: en ? 'Payment' : 'Pago',
-    address: en ? 'Address' : 'Dirección',
+    address: en ? 'Delivery address' : 'Dirección de entrega',
     notes: en ? 'Notes' : 'Notas',
+    subtotal: en ? 'Subtotal' : 'Subtotal',
+    taxes: en ? 'Taxes' : 'Impuestos',
+    tip: en ? 'Tip' : 'Propina',
+    deliveryFee: en ? 'Delivery fee' : 'Costo de envío',
+    discount: en ? 'Discount' : 'Descuento',
     total: 'Total',
     viewPreviousOrders: en ? 'View all my previous orders →' : 'Ver todos mis pedidos anteriores →',
     reorder: en ? '🔄 Order the same again' : '🔄 Volver a pedir lo mismo',
@@ -520,12 +528,58 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             <h3 className="text-sm font-bold text-gray-900">{t.orderDetails}</h3>
           </div>
 
-          {/* Customer info rows */}
+          {/* Customer info rows — structured per order type */}
           <div className="px-5 py-4 space-y-3">
+            {/* Name */}
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-400">{t.customer}</span>
               <span className="text-sm font-semibold text-gray-800">{order.customer_name}</span>
             </div>
+
+            {/* Phone */}
+            {order.customer_phone && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-400">{t.phone}</span>
+                <a
+                  href={`tel:${order.customer_phone}`}
+                  className="flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:underline"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  {order.customer_phone}
+                </a>
+              </div>
+            )}
+
+            {/* Email */}
+            {order.customer_email && (
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-sm text-gray-400 flex-shrink-0">{t.email}</span>
+                <span className="text-sm font-semibold text-gray-800 text-right truncate">{order.customer_email}</span>
+              </div>
+            )}
+
+            {/* Delivery address — prominent */}
+            {order.order_type === 'delivery' && order.delivery_address && (
+              <div className="mt-1 rounded-2xl bg-violet-50 border border-violet-200 px-4 py-3 flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-violet-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[11px] font-bold text-violet-500 uppercase tracking-wide mb-0.5">{t.address}</p>
+                  <p className="text-sm font-semibold text-violet-900">{order.delivery_address}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Table name — dine-in */}
+            {order.order_type === 'dine_in' && order.table_name && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-400">{t.table}</span>
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-800">
+                  <Utensils className="w-3.5 h-3.5 text-gray-400" /> {order.table_name}
+                </span>
+              </div>
+            )}
+
+            {/* Order type */}
             {t.orderTypes[order.order_type as keyof typeof t.orderTypes] && (() => {
               const ot = t.orderTypes[order.order_type as keyof typeof t.orderTypes];
               return (
@@ -537,6 +591,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 </div>
               );
             })()}
+
+            {/* Payment method */}
             {t.paymentMethods[order.payment_method as keyof typeof t.paymentMethods] && (() => {
               const pm = t.paymentMethods[order.payment_method as keyof typeof t.paymentMethods];
               return (
@@ -548,15 +604,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 </div>
               );
             })()}
-            {order.delivery_address && (
-              <div className="flex items-start justify-between gap-4">
-                <span className="text-sm text-gray-400 flex-shrink-0">{t.address}</span>
-                <span className="text-sm font-semibold text-gray-800 text-right flex items-start gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
-                  {order.delivery_address}
-                </span>
-              </div>
-            )}
+
+            {/* Notes */}
             {order.notes && (
               <div className="flex items-start justify-between gap-4">
                 <span className="text-sm text-gray-400 flex-shrink-0">{t.notes}</span>
@@ -567,35 +616,85 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
           {/* Items list */}
           <div className="px-5 py-4 border-t border-gray-50 space-y-3">
-            {order.order_items?.map((item: any) => (
-              <div key={item.id} className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-800">
-                    <span className="text-brand-600 font-bold">{item.qty}×</span>{' '}
-                    {item.products?.name ?? (t.en ? 'Item' : 'Producto')}
-                    {item.product_variants?.name && (
-                      <span className="text-gray-400 font-normal text-xs ml-1">({item.product_variants.name})</span>
-                    )}
-                  </p>
-                  {(item.order_item_extras ?? []).length > 0 && (
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      + {(item.order_item_extras ?? []).map((ex: any) => ex.product_extras?.name).filter(Boolean).join(', ')}
+            {order.order_items?.map((item: any) => {
+              // Support both RPC flat format (product_name) and nested format (products?.name)
+              const productName = item.product_name ?? item.products?.name ?? (t.en ? 'Item' : 'Producto');
+              const variantName = item.variant_name ?? item.product_variants?.name;
+              return (
+                <div key={item.id} className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800">
+                      <span className="text-brand-600 font-bold">{item.qty}×</span>{' '}
+                      {productName}
+                      {variantName && (
+                        <span className="text-gray-400 font-normal text-xs ml-1">({variantName})</span>
+                      )}
                     </p>
-                  )}
-                  {(item.order_item_modifiers ?? []).map((mod: any, i: number) => (
-                    <p key={i} className="text-xs text-gray-400">{mod.group_name}: {mod.option_name}</p>
-                  ))}
-                  {item.notes && <p className="text-xs text-amber-600 italic mt-0.5">&quot;{item.notes}&quot;</p>}
+                    {(item.order_item_extras ?? []).length > 0 && (
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        + {(item.order_item_extras ?? []).map((ex: any) => ex.product_extras?.name).filter(Boolean).join(', ')}
+                      </p>
+                    )}
+                    {(item.order_item_modifiers ?? []).map((mod: any, i: number) => (
+                      <p key={i} className="text-xs text-gray-400">{mod.group_name}: {mod.option_name}</p>
+                    ))}
+                    {item.notes && <p className="text-xs text-amber-600 italic mt-0.5">&quot;{item.notes}&quot;</p>}
+                  </div>
+                  <span className="text-sm font-semibold text-gray-800 flex-shrink-0">{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
                 </div>
-                <span className="text-sm font-semibold text-gray-800 flex-shrink-0">{formatPrice(Number(item.line_total), currency)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {/* Total */}
-          <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
-            <span className="text-base font-bold text-gray-900">{t.total}</span>
-            <span className="text-2xl font-black text-brand-600">{formatPrice(Number(order.total), currency)}</span>
+          {/* Price breakdown */}
+          <div className="px-5 py-4 border-t border-gray-100 space-y-2">
+            {/* Subtotal — only shown when there are additional line items to explain */}
+            {(Number(order.tax_amount) > 0 || Number(order.tip_amount) > 0 || Number(order.delivery_fee) > 0 || Number(order.discount_amount) > 0) && (() => {
+              const subtotal = Number(order.total)
+                - Number(order.tax_amount ?? 0)
+                - Number(order.tip_amount ?? 0)
+                - Number(order.delivery_fee ?? 0)
+                + Number(order.discount_amount ?? 0);
+              return (
+                <div className="flex items-center justify-between text-sm text-gray-500">
+                  <span>{t.subtotal}</span>
+                  <span>{formatPrice(subtotal, currency)}</span>
+                </div>
+              );
+            })()}
+
+            {Number(order.discount_amount) > 0 && (
+              <div className="flex items-center justify-between text-sm text-emerald-600">
+                <span>{t.discount}</span>
+                <span>-{formatPrice(Number(order.discount_amount), currency)}</span>
+              </div>
+            )}
+
+            {order.order_type === 'delivery' && Number(order.delivery_fee) > 0 && (
+              <div className="flex items-center justify-between text-sm text-gray-500">
+                <span>{t.deliveryFee}</span>
+                <span>{formatPrice(Number(order.delivery_fee), currency)}</span>
+              </div>
+            )}
+
+            {Number(order.tax_amount) > 0 && (
+              <div className="flex items-center justify-between text-sm text-gray-500">
+                <span>{t.taxes}</span>
+                <span>{formatPrice(Number(order.tax_amount), currency)}</span>
+              </div>
+            )}
+
+            {Number(order.tip_amount) > 0 && (
+              <div className="flex items-center justify-between text-sm text-gray-500">
+                <span>{t.tip}</span>
+                <span>{formatPrice(Number(order.tip_amount), currency)}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+              <span className="text-base font-bold text-gray-900">{t.total}</span>
+              <span className="text-2xl font-black text-brand-600">{formatPrice(Number(order.total), currency)}</span>
+            </div>
           </div>
         </div>
 
@@ -640,11 +739,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             onClick={() => {
               const reorderItems = order.order_items.map((item: any) => ({
                 product_id: item.product_id,
-                name: item.products?.name ?? (t.en ? 'Item' : 'Producto'),
+                name: item.product_name ?? item.products?.name ?? (t.en ? 'Item' : 'Producto'),
                 qty: item.qty,
                 price: Number(item.unit_price),
                 variant_id: item.variant_id,
-                variant_name: item.product_variants?.name,
+                variant_name: item.variant_name ?? item.product_variants?.name,
                 image_url: item.products?.image_url,
               }));
               localStorage.setItem('menius-reorder', JSON.stringify(reorderItems));

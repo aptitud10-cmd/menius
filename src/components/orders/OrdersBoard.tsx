@@ -519,6 +519,13 @@ function OrderCard({
         </div>
       )}
 
+      {order.order_type === 'dine_in' && order.table_name && (
+        <div className="flex items-center gap-1.5 text-xs text-blue-600 mb-1.5">
+          <Utensils className="w-3 h-3 flex-shrink-0" />
+          <span className="font-medium truncate">{order.table_name}</span>
+        </div>
+      )}
+
       {order.delivery_address && (
         <div className="flex items-start gap-1.5 text-xs text-gray-500 mb-1.5">
           <MapPin className="w-3 h-3 text-gray-400 flex-shrink-0 mt-0.5" />

@@ -1,11 +1,12 @@
 /**
  * Driver status update — public endpoint (no auth).
  * Uses the per-delivery token to identify the order.
- * POST { token, action: 'picked_up' | 'at_door' | 'delivered' }
+ * POST { token, action: 'picked_up' | 'at_door' | 'delivered' | 'notify_outside' }
  *
- * picked_up  → sets driver_picked_up_at, notifies customer "Your order is on its way"
- * at_door    → sets driver_at_door_at, notifies customer "Your driver is at the door"
- * delivered  → sets driver_delivered_at, updates order status to 'delivered'
+ * picked_up      → sets driver_picked_up_at, notifies customer "Your order is on its way"
+ * at_door        → sets driver_at_door_at, notifies customer "Your driver is at the door"
+ * delivered      → sets driver_delivered_at, updates order status to 'delivered', full notification stack
+ * notify_outside → sends "your order is outside" message without changing any DB state
  */
 export const dynamic = 'force-dynamic';
 
@@ -14,15 +15,17 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendWhatsApp } from '@/lib/notifications/whatsapp';
 import { sendSMS, resolveChannel } from '@/lib/notifications/sms';
 
-type DriverAction = 'picked_up' | 'at_door' | 'delivered';
+type DriverAction = 'picked_up' | 'at_door' | 'delivered' | 'notify_outside';
+
+const ALLOWED_ACTIONS: DriverAction[] = ['picked_up', 'at_door', 'delivered', 'notify_outside'];
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const { token, action } = body as { token?: string; action?: DriverAction };
 
   if (!token) return NextResponse.json({ error: 'token is required' }, { status: 400 });
-  if (!action || !['picked_up', 'at_door', 'delivered'].includes(action)) {
-    return NextResponse.json({ error: 'action must be picked_up | at_door | delivered' }, { status: 400 });
+  if (!action || !ALLOWED_ACTIONS.includes(action)) {
+    return NextResponse.json({ error: 'action must be picked_up | at_door | delivered | notify_outside' }, { status: 400 });
   }
 
   const supabase = createAdminClient();
@@ -30,7 +33,7 @@ export async function POST(req: NextRequest) {
   // Fetch the order by token
   const { data: order, error: fetchErr } = await supabase
     .from('orders')
-    .select('id, status, customer_phone, customer_name, order_number, delivery_address, restaurants(name, locale, slug, currency)')
+    .select('id, status, order_type, customer_phone, customer_name, customer_email, order_number, restaurant_id, delivery_address, restaurants(name, locale, slug, currency)')
     .eq('driver_tracking_token', token)
     .maybeSingle();
 
@@ -69,6 +72,14 @@ export async function POST(req: NextRequest) {
       : `${restaurantName}: ¡Tu repartidor está en la puerta! 🚪 Por favor acércate a la puerta.`;
   }
 
+  if (action === 'notify_outside') {
+    // Fire-and-forget message — no DB state change
+    shouldNotify = true;
+    notificationText = en
+      ? `${restaurantName}: Your order is outside! Please come to receive it. 📦`
+      : `${restaurantName}: ¡Tu pedido está afuera! Por favor sal a recibirlo. 📦`;
+  }
+
   if (action === 'delivered') {
     // Only update if not already delivered/cancelled
     if (order.status === 'delivered' || order.status === 'cancelled') {
@@ -82,10 +93,25 @@ export async function POST(req: NextRequest) {
 
     if (statusErr) return NextResponse.json({ error: statusErr.message }, { status: 500 });
 
-    shouldNotify = true;
-    notificationText = en
-      ? `${restaurantName}: Your order has been delivered. Enjoy your meal! 🍽️`
-      : `${restaurantName}: ¡Tu pedido ha sido entregado! Buen provecho 🍽️`;
+    // Full notification stack (WhatsApp + email + push + log) via notifyStatusChange
+    try {
+      const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
+      await notifyStatusChange({
+        orderId: order.id,
+        orderNumber: order.order_number,
+        restaurantId: order.restaurant_id,
+        status: 'delivered',
+        customerName: order.customer_name,
+        customerEmail: (order as any).customer_email || undefined,
+        customerPhone: order.customer_phone || undefined,
+        orderType: (order as any).order_type || undefined,
+        deliveryAddress: (order as any).delivery_address || undefined,
+      });
+    } catch (err) {
+      console.error('[DriverStatus] notifyStatusChange error on delivered:', err);
+    }
+
+    return NextResponse.json({ ok: true, action });
   }
 
   // Update driver timestamp fields (picked_up / at_door only — delivered handled above)

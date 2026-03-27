@@ -524,6 +524,7 @@ export async function POST(request: NextRequest) {
         customerEmail: customer_email || undefined,
         customerPhone: parsed.data.customer_phone || undefined,
         orderType: order_type || 'dine_in',
+        deliveryAddress: delivery_address || null,
         paymentMethod: parsed.data.payment_method || undefined,
         tableNumber: table_name || undefined,
         notes: parsed.data.notes || null,

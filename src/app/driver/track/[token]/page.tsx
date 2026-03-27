@@ -56,6 +56,9 @@ function getT(lang: string) {
     sending:    en ? 'Sending…'                           : 'Enviando…',
     notified:   en ? 'Customer notified'                  : 'Cliente notificado',
     errSend:    en ? 'Error — please try again'           : 'Error — intenta de nuevo',
+    // Notify outside
+    notifyOutsideBtn: en ? '📦 Notify: order is outside' : '📦 Avisar: pedido está afuera',
+    outsideSent:      en ? '✓ Customer notified'          : '✓ Cliente avisado',
   };
 }
 
@@ -76,6 +79,9 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState('');
+
+  const [notifyOutsideSent, setNotifyOutsideSent] = useState(false);
+  const notifyOutsideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // GPS helpers
   const sendLocation = async (lat: number, lng: number) => {
@@ -117,7 +123,34 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
     setGpsStatus('idle');
   };
 
-  useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
+  useEffect(() => () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (notifyOutsideTimerRef.current) clearTimeout(notifyOutsideTimerRef.current);
+  }, []);
+
+  const handleNotifyOutside = async () => {
+    setActionLoading(true);
+    setActionFeedback('');
+    try {
+      const res = await fetch('/api/driver/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, action: 'notify_outside' }),
+      });
+      if (res.ok) {
+        setNotifyOutsideSent(true);
+        setActionFeedback(t.outsideSent);
+        notifyOutsideTimerRef.current = setTimeout(() => setNotifyOutsideSent(false), 30_000);
+      } else {
+        const d = await res.json().catch(() => ({}));
+        setActionFeedback(d.error ?? t.errSend);
+      }
+    } catch {
+      setActionFeedback(t.errSend);
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   // Call /api/driver/status for a given action — returns true on success
   const callDriverStatus = async (action: 'picked_up' | 'at_door' | 'delivered'): Promise<boolean> => {
@@ -271,6 +304,14 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
                 <ActionButton loading={actionLoading} onClick={handleAtDoor} color="amber">
                   <DoorOpen className="w-5 h-5" /> {t.step2Btn}
                 </ActionButton>
+                {/* Notify outside — available from picked_up onwards */}
+                <button
+                  disabled={notifyOutsideSent || actionLoading}
+                  onClick={handleNotifyOutside}
+                  className="w-full py-3 rounded-2xl border-2 border-amber-500/60 text-amber-400 font-semibold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
+                >
+                  {notifyOutsideSent ? t.outsideSent : t.notifyOutsideBtn}
+                </button>
               </>
             )}
 
@@ -280,6 +321,14 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
                 <ActionButton loading={actionLoading} onClick={handleDelivered} color="emerald">
                   <CheckCircle className="w-5 h-5" /> {t.step3Btn}
                 </ActionButton>
+                {/* Notify outside */}
+                <button
+                  disabled={notifyOutsideSent || actionLoading}
+                  onClick={handleNotifyOutside}
+                  className="w-full py-3 rounded-2xl border-2 border-amber-500/60 text-amber-400 font-semibold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
+                >
+                  {notifyOutsideSent ? t.outsideSent : t.notifyOutsideBtn}
+                </button>
               </>
             )}
 

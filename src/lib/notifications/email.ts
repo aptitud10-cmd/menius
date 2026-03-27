@@ -488,6 +488,7 @@ export function buildOwnerNewOrderEmail(params: {
   customerPhone?: string;
   customerEmail?: string;
   orderType: string;
+  deliveryAddress?: string | null;
   total: string;
   items: OrderEmailItem[];
   dashboardUrl: string;
@@ -495,7 +496,7 @@ export function buildOwnerNewOrderEmail(params: {
   tableNumber?: string | null;
   locale?: string;
 }): string {
-  const { orderNumber, restaurantName, customerName, customerPhone, customerEmail, orderType, total, items, dashboardUrl, notes, tableNumber, locale } = params;
+  const { orderNumber, restaurantName, customerName, customerPhone, customerEmail, orderType, deliveryAddress, total, items, dashboardUrl, notes, tableNumber, locale } = params;
   const en = locale === 'en';
 
   const orderTypeLabels: Record<string, { en: string; es: string; color: string; bg: string }> = {
@@ -538,6 +539,7 @@ export function buildOwnerNewOrderEmail(params: {
   if (customerEmail) metaRows.push(metaRow('Email', customerEmail));
   metaRows.push(metaRow(en ? 'Type' : 'Tipo', pill(en ? ot.en : ot.es, ot.bg, ot.color)));
   if (tableNumber) metaRows.push(metaRow(en ? 'Table' : 'Mesa', tableNumber));
+  if (orderType === 'delivery' && deliveryAddress) metaRows.push(metaRow(en ? 'Delivery address' : 'Dirección de entrega', deliveryAddress));
   if (notes) metaRows.push(metaRow(en ? 'Notes' : 'Notas', `<em style="color:#d97706;">"${notes}"</em>`));
 
   const body = `

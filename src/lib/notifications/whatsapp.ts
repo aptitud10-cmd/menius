@@ -66,14 +66,23 @@ export function formatNewOrderWhatsApp(
   orderType?: string,
   tableNumber?: string,
   notes?: string,
+  deliveryAddress?: string,
 ): string {
-  const typeLabel = orderType === 'delivery' ? '🛵 Delivery' : orderType === 'takeaway' ? '🥡 Para llevar' : '🪑 Mesa';
-  const tableStr = tableNumber ? `\n🪑 Mesa: ${tableNumber}` : '';
+  // Build the order-type line, merging table number into the dine-in label to avoid repetition
+  let typeLabel: string;
+  if (orderType === 'delivery') {
+    typeLabel = '🛵 Delivery';
+  } else if (orderType === 'pickup') {
+    typeLabel = '🥡 Para llevar';
+  } else {
+    typeLabel = tableNumber ? `🪑 Mesa: ${tableNumber}` : '🪑 En restaurante';
+  }
+  const addrStr = deliveryAddress ? `\n📍 Dirección: ${deliveryAddress}` : '';
   const notesStr = notes ? `\n📝 Notas: ${notes}` : '';
   return `🍽️ *Nueva orden #${orderNumber}*
 
 👤 Cliente: ${customerName}
-${typeLabel}${tableStr}${notesStr}
+${typeLabel}${addrStr}${notesStr}
 💰 Total: ${total}
 
 📋 Productos:
@@ -130,7 +139,15 @@ Pedido *#${orderNumber}* en *${restaurantName}* — pago recibido.
 Sigue tu pedido aquí: ${trackingUrl}`;
 }
 
-export function formatStatusUpdateWhatsApp(orderNumber: string, status: string, restaurantName: string, locale = 'es', trackingUrl?: string, reviewUrl?: string): string {
+export function formatStatusUpdateWhatsApp(
+  orderNumber: string,
+  status: string,
+  restaurantName: string,
+  locale = 'es',
+  trackingUrl?: string,
+  reviewUrl?: string,
+  orderType?: string,
+): string {
   const en = locale === 'en';
 
   if (status === 'delivered') {
@@ -142,23 +159,36 @@ export function formatStatusUpdateWhatsApp(orderNumber: string, status: string, 
     }
   }
 
+  // 'ready' message varies by order type
+  const readyMsg = (() => {
+    if (status !== 'ready') return null;
+    if (orderType === 'delivery') {
+      return en ? '🛵 Your order is ready and will be picked up by the driver soon!' : '🛵 ¡Tu pedido está listo! El repartidor lo tomará pronto.';
+    }
+    if (orderType === 'pickup') {
+      return en ? '🥡 Your order is ready! Come pick it up.' : '🥡 ¡Tu pedido está listo! Pasa a recogerlo.';
+    }
+    return en ? '🔔 Your order is ready! We\'ll bring it to your table.' : '🔔 ¡Tu pedido está listo! Ya te lo llevamos a la mesa.';
+  })();
+
   const statusMessages: Record<string, string> = en
     ? {
         confirmed: '✅ Your order has been confirmed',
         preparing: '👨‍🍳 Your order is being prepared',
-        ready: '🔔 Your order is ready!',
+        ready: readyMsg ?? '🔔 Your order is ready!',
         delivered: '✨ Your order has been delivered. Enjoy!',
         cancelled: '❌ Your order has been cancelled',
       }
     : {
         confirmed: '✅ Tu pedido ha sido confirmado',
         preparing: '👨‍🍳 Tu pedido se está preparando',
-        ready: '🔔 ¡Tu pedido está listo!',
+        ready: readyMsg ?? '🔔 ¡Tu pedido está listo!',
         delivered: '✨ Tu pedido ha sido entregado. ¡Buen provecho!',
         cancelled: '❌ Tu pedido ha sido cancelado',
       };
 
-  const base = `${statusMessages[status] ?? `Estado actualizado: ${status}`}\n\n📋 ${en ? 'Order' : 'Pedido'} #${orderNumber}\n🏪 ${restaurantName}`;
+  const fallback = en ? `Order update: ${status}` : `Estado actualizado: ${status}`;
+  const base = `${statusMessages[status] ?? fallback}\n\n📋 ${en ? 'Order' : 'Pedido'} #${orderNumber}\n🏪 ${restaurantName}`;
   if (trackingUrl && ['confirmed', 'preparing', 'ready'].includes(status)) {
     return `${base}\n\n${en ? 'Track your order' : 'Sigue tu pedido'}: ${trackingUrl}`;
   }
