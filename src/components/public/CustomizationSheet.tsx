@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { X, Minus, Plus, Check, ArrowLeft } from 'lucide-react';
-import { motion, useMotionValue, useTransform, useDragControls, type PanInfo } from 'framer-motion';
+import { motion, useDragControls, type PanInfo } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import type { Product, ModifierGroup, ModifierOption, ModifierSelection } from '@/types';
@@ -143,12 +143,11 @@ export function CustomizationSheet({
 
   const [selections, setSelections] = useState<Record<string, ModifierOption[]>>(initSelections);
   const [qty, setQty] = useState(editItem?.qty ?? 1);
-  const [notes, setNotes] = useState(editItem?.notes ?? '');
   const [added, setAdded] = useState(false);
-  const [justAddedSuggestId, setJustAddedSuggestId] = useState<string | null>(null);
   const dragControls = useDragControls();
 
-  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
+  // Sync initialization — avoids the null → value re-render flash
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
     setIsDesktop(mq.matches);
@@ -156,11 +155,6 @@ export function CustomizationSheet({
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
   }, []);
-
-  const scrollY = useMotionValue(0);
-  const imageY = useTransform(scrollY, [0, 300], [0, 120]);
-  const imageScale = useTransform(scrollY, [0, 300], [1, 1.15]);
-  const imageOpacity = useTransform(scrollY, [0, 250], [1, 0.3]);
 
   // Validation — use Set to ensure each group name appears at most once
   const validationErrorSet = new Set<string>();
@@ -178,33 +172,8 @@ export function CustomizationSheet({
   const modifiersDelta = Object.values(selections).flat().reduce((sum, opt) => sum + Number(opt.price_delta), 0);
   const unitPrice = Number(product.price) + modifiersDelta;
 
-  const [vvH, setVvH] = useState<string>('96vh');
-  const [kbOffset, setKbOffset] = useState(0);
-  const [notesFocused, setNotesFocused] = useState(false);
-  const sheetBodyRef = useRef<HTMLDivElement>(null);
-  const notesRef = useRef<HTMLTextAreaElement>(null);
-
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    const vv = window.visualViewport;
-    if (vv) {
-      const sync = () => {
-        // Keyboard height: difference between layout and visual viewport heights
-        const kb = Math.max(0, window.innerHeight - vv.height);
-        setKbOffset(kb);
-        // Sheet height = visual viewport minus 52px gap at top
-        const h = Math.min(vv.height - 52, vv.height * 0.97);
-        setVvH(`${h}px`);
-      };
-      sync();
-      vv.addEventListener('resize', sync);
-      vv.addEventListener('scroll', sync);
-      return () => {
-        document.body.style.overflow = '';
-        vv.removeEventListener('resize', sync);
-        vv.removeEventListener('scroll', sync);
-      };
-    }
     return () => { document.body.style.overflow = ''; };
   }, []);
 
@@ -249,9 +218,9 @@ export function CustomizationSheet({
       : [];
 
     if (isEditing && editIndex !== null) {
-      replaceItem(editIndex, product, legacyVariant, legacyExtras, qty, notes, modifierSelections);
+      replaceItem(editIndex, product, legacyVariant, legacyExtras, qty, '', modifierSelections);
     } else {
-      addItem(product, legacyVariant, legacyExtras, qty, notes, modifierSelections);
+      addItem(product, legacyVariant, legacyExtras, qty, '', modifierSelections);
       onAddToCart?.(displayName);
     }
     setAdded(true);
@@ -271,21 +240,14 @@ export function CustomizationSheet({
     return locale === 'es' ? `Hasta ${g.max_select} (opcional)` : `Up to ${g.max_select} (optional)`;
   };
 
-  const springTransition = { type: 'tween' as const, duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] as const };
+  const springTransition = { type: 'tween' as const, duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] as const };
 
   const sheetBody = (
-    <div
-      ref={sheetBodyRef}
-      className="flex-1 overflow-y-auto overscroll-contain"
-      onScroll={(e) => scrollY.set(e.currentTarget.scrollTop)}
-    >
+    <div className="flex-1 overflow-y-auto overscroll-contain">
       {product.image_url && (
         <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />
-          <motion.div
-            className="absolute inset-0"
-            style={{ y: imageY, scale: imageScale, opacity: imageOpacity }}
-          >
+          <div className="absolute inset-0">
             <Image
               src={product.image_url}
               alt={product.name}
@@ -294,11 +256,11 @@ export function CustomizationSheet({
               unoptimized={product.image_url.includes('.supabase.co/storage/')}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
-              className="object-cover opacity-0 transition-opacity duration-500"
+              className="object-cover opacity-0 transition-opacity duration-150"
               onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
               priority
             />
-          </motion.div>
+          </div>
         </div>
       )}
       <div className="px-5 pt-4 pb-2">
@@ -429,40 +391,9 @@ export function CustomizationSheet({
         );
       })}
 
-
-      <div className="px-5 pt-5 pb-4">
-        <label className="text-xs font-bold text-gray-900 uppercase tracking-wide block mb-2">
-          {t.specialNotes}
-          <span className="text-gray-400 font-normal normal-case ml-1">
-            ({locale === 'es' ? 'max 120 caracteres' : 'max 120 chars'})
-          </span>
-        </label>
-        <textarea
-          ref={notesRef}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value.slice(0, 120))}
-          placeholder={t.specialNotesPlaceholder}
-          rows={3}
-          maxLength={120}
-          className="w-full px-4 py-2.5 rounded-xl bg-gray-50 text-base text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 resize-none border border-gray-100"
-          onFocus={() => {
-            setNotesFocused(true);
-            setTimeout(() => {
-              const body = sheetBodyRef.current;
-              const el = notesRef.current;
-              if (body && el) {
-                body.scrollTo({ top: el.offsetTop - 16, behavior: 'smooth' });
-              }
-            }, 450);
-          }}
-          onBlur={() => setNotesFocused(false)}
-        />
-        <p className="text-[10px] text-gray-300 text-right mt-1">{notes.length}/120</p>
-      </div>
-
-      {/* ── Smart complementary suggestions (always visible, below notes) ── */}
+      {/* ── Smart complementary suggestions ── */}
       {!isEditing && (suggestedProducts ?? []).length > 0 && (
-        <div className="px-5 pt-1 pb-6">
+        <div className="px-5 pt-5 pb-6">
           <div className="flex items-center gap-1.5 mb-3">
             <span className="text-sm" aria-hidden>✨</span>
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
@@ -473,46 +404,30 @@ export function CustomizationSheet({
             className="flex gap-2.5 overflow-x-auto scrollbar-hide"
             style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
           >
-            {(suggestedProducts ?? []).slice(0, 4).map((p) => {
-              const isAddedSuggest = justAddedSuggestId === p.id;
-              return (
-                <div
-                  key={p.id}
-                  className="flex-shrink-0 w-[130px] bg-gray-50 rounded-2xl overflow-hidden border border-gray-100"
-                >
-                  {p.image_url && (
-                    <div className="relative w-full h-[80px] bg-gray-100">
-                      <Image src={p.image_url} alt={tName(p, locale, defaultLocale)} fill sizes="130px" className="object-cover" />
-                    </div>
-                  )}
-                  <div className="p-2.5">
-                    <p className="text-[11px] font-semibold text-gray-800 line-clamp-2 leading-tight mb-2">
-                      {tName(p, locale, defaultLocale)}
-                    </p>
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-[11px] font-bold text-gray-900 tabular-nums">{fmtPrice(Number(p.price))}</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (onSuggestAdd) {
-                            onSuggestAdd(p);
-                            setJustAddedSuggestId(p.id);
-                            setTimeout(() => setJustAddedSuggestId(null), 1500);
-                          }
-                        }}
-                        className={cn(
-                          'w-6 h-6 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90 flex-shrink-0',
-                          isAddedSuggest ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-600'
-                        )}
-                        aria-label={isAddedSuggest ? (locale === 'es' ? 'Agregado' : 'Added') : (locale === 'es' ? 'Agregar' : 'Add')}
-                      >
-                        {isAddedSuggest ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                      </button>
+            {(suggestedProducts ?? []).slice(0, 4).map((p) => (
+              <div
+                key={p.id}
+                onClick={() => onSuggestAdd?.(p)}
+                className="flex-shrink-0 w-[130px] bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 cursor-pointer active:scale-[0.97] transition-transform"
+              >
+                {p.image_url && (
+                  <div className="relative w-full h-[80px] bg-gray-100">
+                    <Image src={p.image_url} alt={tName(p, locale, defaultLocale)} fill sizes="130px" className="object-cover" />
+                  </div>
+                )}
+                <div className="p-2.5">
+                  <p className="text-[11px] font-semibold text-gray-800 line-clamp-2 leading-tight mb-2">
+                    {tName(p, locale, defaultLocale)}
+                  </p>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[11px] font-bold text-gray-900 tabular-nums">{fmtPrice(Number(p.price))}</span>
+                    <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                      <Plus className="w-3 h-3 text-emerald-600" />
                     </div>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -571,14 +486,14 @@ export function CustomizationSheet({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.15 }}
+        transition={{ duration: 0.12 }}
         onClick={onClose}
       />
 
       {/* Desktop: slide from right — polished side panel */}
-      {isDesktop !== false && (
+      {isDesktop && (
       <motion.div
-        className={isDesktop === null ? 'hidden lg:flex fixed top-0 bottom-0 right-0 w-[520px] bg-white flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)] border-l border-gray-100' : 'flex fixed top-0 bottom-0 right-0 w-[520px] bg-white flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)] border-l border-gray-100'}
+        className="flex fixed top-0 bottom-0 right-0 w-[520px] bg-white flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)] border-l border-gray-100"
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
@@ -613,11 +528,11 @@ export function CustomizationSheet({
       </motion.div>
       )}
 
-      {/* Mobile: slide from bottom with drag-to-dismiss */}
-      {isDesktop !== true && (
+      {/* Mobile: full-screen sheet from bottom with drag-to-dismiss */}
+      {!isDesktop && (
       <motion.div
-        className={isDesktop === null ? 'lg:hidden fixed left-0 right-0 bg-white flex flex-col shadow-2xl rounded-t-2xl' : 'fixed left-0 right-0 bg-white flex flex-col shadow-2xl rounded-t-2xl'}
-        style={{ maxHeight: notesFocused ? '98dvh' : vvH, bottom: kbOffset, transition: 'max-height 0.2s ease-out, bottom 0.25s ease-out' }}
+        className="fixed left-0 right-0 bottom-0 bg-white flex flex-col shadow-2xl rounded-t-2xl"
+        style={{ height: '100dvh' }}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
@@ -631,57 +546,29 @@ export function CustomizationSheet({
       >
         {/* Drag handle */}
         <div
-          className="flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing"
+          className="flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing flex-shrink-0"
           onPointerDown={(e) => dragControls.start(e)}
           style={{ touchAction: 'none' }}
         >
           <div className="w-10 h-1 rounded-full bg-gray-300" />
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 flex-shrink-0 bg-white z-10">
-          <div className="flex items-center gap-2 min-w-0">
-            {!isPreview && (
-              <button onClick={onClose} className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg active:bg-gray-100 transition-colors flex-shrink-0">
-                <ArrowLeft className="w-5 h-5 text-gray-700" />
-                <span className="text-sm font-medium text-gray-500">{locale === 'es' ? 'Menú' : 'Menu'}</span>
-              </button>
-            )}
+        {/* Header — large X, no back arrow */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0 bg-white z-10">
+          <div className="min-w-0 flex-1">
             {isPreview && previewBadge}
             <h2 className="text-base font-bold text-gray-900 truncate">
               {isEditing ? t.editItem : displayName}
             </h2>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg active:bg-gray-100 transition-colors flex-shrink-0">
-            <X className="w-5 h-5 text-gray-400" />
+          <button onClick={onClose} className="p-2 -mr-1 ml-3 rounded-xl active:bg-gray-100 transition-colors flex-shrink-0">
+            <X className="w-6 h-6 text-gray-700" />
           </button>
         </div>
 
         {sheetBody}
         {sheetFooter}
       </motion.div>
-      )}
-
-      {/* Floating "Listo" bar above keyboard when notes textarea is focused */}
-      {notesFocused && (
-        <div
-          className="lg:hidden fixed left-0 right-0 z-[200] flex items-center justify-between px-4 py-2 bg-gray-800 border-t border-gray-700"
-          style={{ bottom: kbOffset > 0 ? kbOffset : 0, paddingBottom: kbOffset > 0 ? 0 : 'env(safe-area-inset-bottom)' }}
-        >
-          <span className="text-sm text-gray-300">
-            {locale === 'es' ? 'Instrucciones especiales' : 'Special instructions'}
-          </span>
-          <button
-            onMouseDown={(e) => {
-              e.preventDefault(); // prevent blur before tap registers
-              notesRef.current?.blur();
-            }}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-emerald-500 text-white text-sm font-bold active:bg-emerald-600"
-          >
-            <Check className="w-4 h-4" />
-            {locale === 'es' ? 'Listo' : 'Done'}
-          </button>
-        </div>
       )}
     </div>
   );

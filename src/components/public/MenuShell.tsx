@@ -277,7 +277,7 @@ export function MenuShell({
       const sectionOffsetTop = section.offsetTop;
       const offset = Math.max(0, sectionOffsetTop - HEADER_HEIGHT - pillsHeight);
       mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
-      setTimeout(() => { isScrollingRef.current = false; }, 900);
+      setTimeout(() => { isScrollingRef.current = false; }, 1400);
     }
   }, [isLargeCatalog]);
 
@@ -498,7 +498,8 @@ export function MenuShell({
         for (const { category } of itemsByCategory) {
           const el = sectionRefs.current.get(category.id);
           if (!el) continue;
-          if (el.offsetTop - scrollTop <= 130) {
+          const pillsH = mobilePillsRef.current?.offsetHeight ?? 52;
+          if (el.offsetTop - scrollTop <= HEADER_HEIGHT + pillsH - 8) {
             current = category.id;
           } else {
             break;
@@ -614,7 +615,7 @@ export function MenuShell({
       onClick={() => handleCategorySelect(id)}
       style={{ touchAction: 'manipulation' }}
       className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors whitespace-nowrap',
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap',
         id === POPULAR_ID
           ? isActive
             ? 'bg-amber-500 text-white shadow-sm'
@@ -638,7 +639,7 @@ export function MenuShell({
       onClick={() => { setShowFavs(!showFavs); if (!showFavs) setActiveCategory(null); }}
       style={{ touchAction: 'manipulation' }}
       className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors whitespace-nowrap',
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap',
         showFavs
           ? 'bg-red-500 text-white shadow-sm'
           : 'bg-white border border-gray-200 text-gray-600 active:bg-gray-50'
@@ -661,7 +662,7 @@ export function MenuShell({
       }}
       style={{ touchAction: 'manipulation' }}
       className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors whitespace-nowrap',
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap',
         activeDiet === dt.id
           ? 'bg-emerald-500 text-white shadow-sm'
           : 'bg-white border border-gray-200 text-gray-600 active:bg-gray-50'
@@ -678,7 +679,7 @@ export function MenuShell({
 
   const mobileCategoryPills = (
     <div className="lg:hidden sticky z-40 bg-white border-b border-gray-200" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
-      <div ref={mobilePillsRef} className="py-2.5 px-4 flex gap-2 overflow-x-auto scrollbar-hide" style={{ touchAction: 'pan-x' }}>
+      <div ref={mobilePillsRef} className="py-1.5 px-4 flex gap-2 overflow-x-auto scrollbar-hide" style={{ touchAction: 'pan-x' }}>
         {/* Large catalog: "Todos" pill */}
         {isLargeCatalog && (
           <button
@@ -686,7 +687,7 @@ export function MenuShell({
             onClick={() => { setActiveCatFilter(null); setActiveCategory(null); mainRef.current?.scrollTo({ top: 0, behavior: 'auto' }); }}
             style={{ touchAction: 'manipulation' }}
             className={cn(
-              'flex-shrink-0 inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold transition-colors whitespace-nowrap',
+              'flex-shrink-0 inline-flex items-center px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap',
               !activeCatFilter && !showFavs && !activeDiet
                 ? 'bg-emerald-500 text-white shadow-sm'
                 : 'bg-white border border-gray-200 text-gray-600 active:bg-gray-50'
@@ -765,7 +766,7 @@ export function MenuShell({
 
             {/* Mobile: nombre + rating overlaid at bottom of banner */}
             <div className="lg:hidden absolute bottom-0 left-0 right-0 px-4 pb-4">
-              <h1 className="text-2xl font-extrabold text-white drop-shadow-lg leading-tight">
+              <h1 className="text-3xl font-black text-white drop-shadow-lg leading-tight">
                 {restaurant.name}
               </h1>
               {restaurant.description && (
@@ -783,7 +784,7 @@ export function MenuShell({
             {/* Desktop: nombre + info a la izquierda, rating a la derecha */}
             <div className="hidden lg:flex absolute bottom-0 left-0 right-0 px-8 pb-5 items-end justify-between gap-4">
               <div className="min-w-0">
-                <h1 className="text-3xl font-extrabold text-white tracking-tight drop-shadow-sm leading-tight truncate">
+                <h1 className="text-4xl font-black text-white drop-shadow-sm leading-tight truncate">
                   {restaurant.name}
                 </h1>
                 {restaurant.description && (
@@ -872,7 +873,7 @@ export function MenuShell({
           {!restaurant.cover_image_url && (
             <div className="lg:hidden px-4 pt-4 pb-2">
               <div className="flex items-center justify-between gap-3">
-                <h1 className="text-lg font-extrabold text-gray-900 tracking-tight truncate">{restaurant.name}</h1>
+                <h1 className="text-2xl font-black text-gray-950 leading-tight">{restaurant.name}</h1>
                 {reviewStats && reviewStats.total > 0 && (
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
@@ -924,7 +925,7 @@ export function MenuShell({
             <div className="hidden lg:block mb-8">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">{restaurant.name}</h1>
+                  <h1 className="text-3xl font-black text-gray-950">{restaurant.name}</h1>
                   {restaurant.description && (
                     <p className="text-base text-gray-500 mt-1.5 max-w-xl">{restaurant.description}</p>
                   )}
@@ -1526,7 +1527,16 @@ export function MenuShell({
             locale={locale}
             defaultLocale={defaultLocale}
             suggestedProducts={suggestedProducts}
-            onSuggestAdd={handleQuickAdd}
+            onSuggestAdd={(p) => {
+              const hasReqModifiers =
+                (p.modifier_groups ?? []).some((g) => g.is_required) ||
+                (p.variants ?? []).length > 0;
+              if (hasReqModifiers) {
+                setCustomization({ product: p, editIndex: null });
+              } else {
+                handleQuickAdd(p);
+              }
+            }}
           />
         )}
       </AnimatePresence>

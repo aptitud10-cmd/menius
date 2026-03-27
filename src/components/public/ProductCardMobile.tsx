@@ -72,7 +72,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
     <div
       onClick={handleCardClick}
       className={cn(
-        'flex flex-col bg-white rounded-2xl border border-gray-200 shadow-[0_2px_10px_rgba(0,0,0,0.09)] overflow-hidden transition-all duration-150',
+        'flex flex-col bg-white rounded-2xl border border-gray-300 shadow-[0_4px_16px_rgba(0,0,0,0.12)] overflow-hidden transition-all duration-150',
         outOfStock ? 'opacity-60 cursor-default' : 'cursor-pointer active:scale-[0.97] active:shadow-sm'
       )}
     >
@@ -89,7 +89,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
               unoptimized={product.image_url.includes('.supabase.co/storage/')}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
-              className={cn('object-cover transition-opacity duration-300', imgLoaded ? 'opacity-100' : 'opacity-0', outOfStock && 'grayscale')}
+              className={cn('object-cover transition-opacity duration-150', imgLoaded ? 'opacity-100' : 'opacity-0', outOfStock && 'grayscale')}
               onLoad={() => setImgLoaded(true)}
               onError={() => setImgError(true)}
             />
@@ -134,11 +134,11 @@ export const ProductCardMobile = memo(function ProductCardMobile({
 
       {/* Content */}
       <div className="p-3 flex flex-col flex-1">
-        <h3 className={cn('font-bold text-[13px] line-clamp-2 leading-snug', outOfStock ? 'text-gray-400' : 'text-gray-900')}>
+        <h3 className={cn('font-bold text-[15px] line-clamp-2 leading-snug', outOfStock ? 'text-gray-400' : 'text-gray-950')}>
           {displayName}
         </h3>
         {product.description && !outOfStock && (
-          <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5 leading-snug">
+          <p className="text-xs text-gray-600 line-clamp-1 mt-0.5 leading-snug">
             {product.description}
           </p>
         )}
@@ -158,7 +158,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           </div>
         )}
         <div className="flex items-center justify-between mt-auto pt-2.5">
-          <span className={cn('text-[15px] font-extrabold tabular-nums leading-none', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
+          <span className={cn('text-base font-black tabular-nums leading-none', outOfStock ? 'text-gray-300 line-through' : 'text-gray-950')}>
             {fmtPrice(Number(product.price))}
           </span>
           {outOfStock ? (

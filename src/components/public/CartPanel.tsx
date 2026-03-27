@@ -162,22 +162,19 @@ export function CartPanel({
   return (
     <div className="flex flex-col h-full">
 
-      {/* ── Header: compact with clear-cart icon ── */}
+      {/* ── Header: item count + clear-cart icon ── */}
       <div className="px-4 pt-3 pb-2 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <h2 className="text-[15px] font-bold text-gray-900">{t.myOrder}</h2>
-          <AnimatePresence mode="popLayout">
-            <motion.span
-              key={items.reduce((s, i) => s + i.qty, 0)}
-              initial={{ scale: 1.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 22 }}
-              className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full tabular-nums font-medium"
-            >
-              {items.reduce((s, i) => s + i.qty, 0)} {t.items}
-            </motion.span>
-          </AnimatePresence>
-        </div>
+        <AnimatePresence mode="popLayout">
+          <motion.span
+            key={items.reduce((s, i) => s + i.qty, 0)}
+            initial={{ scale: 1.2, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+            className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full tabular-nums font-semibold"
+          >
+            {items.reduce((s, i) => s + i.qty, 0)} {t.items}
+          </motion.span>
+        </AnimatePresence>
         <button
           onClick={handleClearTap}
           title={t.clearCart}
@@ -216,7 +213,10 @@ export function CartPanel({
                 className="overflow-hidden mb-2"
               >
                 <SwipeableItem onRemove={() => removeItem(idx)}>
-                  <div className="flex gap-3 p-3 bg-white border border-gray-100 rounded-xl">
+                  <div
+                    className="flex gap-3 p-3 bg-white border border-gray-100 rounded-xl cursor-pointer active:bg-gray-50 transition-colors"
+                    onClick={() => onEdit(idx)}
+                  >
                     {/* Thumbnail */}
                     {item.product.image_url ? (
                       <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
@@ -246,15 +246,13 @@ export function CartPanel({
                             </span>
                           )}
                         </div>
-                        {(item.variant || item.extras.length > 0 || (item.modifierSelections ?? []).length > 0) && (
-                          <button
-                            onClick={() => onEdit(idx)}
-                            className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-medium flex-shrink-0 min-h-[44px] min-w-[44px] px-1 justify-end"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                            {t.edit}
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onEdit(idx); }}
+                          className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 font-medium flex-shrink-0 min-h-[44px] min-w-[44px] px-1 justify-end"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          {t.edit}
+                        </button>
                       </div>
 
                       {/* Modifier selections */}
@@ -276,7 +274,7 @@ export function CartPanel({
                       <div className="flex items-center justify-between mt-2">
                         <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
                           <button
-                            onClick={() => handleMinusTap(idx, item.qty)}
+                            onClick={(e) => { e.stopPropagation(); handleMinusTap(idx, item.qty); }}
                             className={cn(
                               'w-11 h-11 flex items-center justify-center transition-all duration-150',
                               isPendingRemove
@@ -292,7 +290,7 @@ export function CartPanel({
                           </button>
                           <span className="w-7 text-center text-sm font-bold tabular-nums">{item.qty}</span>
                           <button
-                            onClick={() => updateQty(idx, item.qty + 1)}
+                            onClick={(e) => { e.stopPropagation(); updateQty(idx, item.qty + 1); }}
                             className="w-11 h-11 flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors text-gray-600"
                           >
                             <Plus className="w-4 h-4" />
@@ -303,7 +301,7 @@ export function CartPanel({
                             {fmtPrice(item.lineTotal)}
                           </span>
                           <button
-                            onClick={() => removeItem(idx)}
+                            onClick={(e) => { e.stopPropagation(); removeItem(idx); }}
                             className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
                             aria-label={`${locale === 'en' ? 'Remove' : 'Eliminar'} ${item.product.name}`}
                           >
