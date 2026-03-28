@@ -74,7 +74,7 @@ function mapOrderToReceipt(
     paymentMethod: order.payment_method ?? undefined,
     deliveryAddress: order.delivery_address ?? undefined,
     items,
-    subtotal: Number(order.total) - (Number(order.tip_amount) || 0) - (taxAmt && !(order as any).tax_included ? taxAmt : 0),
+    subtotal: Number(order.total) - (Number(order.tip_amount) || 0) - (taxAmt && !taxIncluded ? taxAmt : 0),
     tip: Number(order.tip_amount) || undefined,
     tax: taxAmt,
     taxLabel: taxAmt ? (taxLabel ?? 'Tax') : undefined,

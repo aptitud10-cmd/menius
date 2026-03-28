@@ -119,6 +119,11 @@ ${en ? 'WhatsApp notifications' : 'WhatsApp notificaciones'}: ${restaurant?.noti
 ${en ? 'Active order types' : 'Tipos de orden activos'}: ${(restaurant?.order_types_enabled as string[] ?? ['dine_in']).join(', ')}
 ${en ? 'Payment methods' : 'Métodos de pago'}: ${(restaurant?.payment_methods_enabled as string[] ?? ['cash']).join(', ')}
 ${en ? 'Schedule' : 'Horario'}: ${restaurant?.operating_hours ? JSON.stringify(restaurant.operating_hours) : na}
+${en ? 'Tax configuration' : 'Configuración de impuesto'}: ${
+  (restaurant as any)?.tax_rate
+    ? `${(restaurant as any).tax_rate}% (${(restaurant as any).tax_label ?? 'Tax'}) — ${(restaurant as any).tax_included ? (en ? 'included in price' : 'incluido en el precio') : (en ? 'added on top' : 'agregado al total')}${(restaurant as any).country_code ? ` — ${(restaurant as any).country_code}${(restaurant as any).state_code ? `/${(restaurant as any).state_code}` : ''}` : ''}`
+    : (en ? 'No tax configured' : 'Sin impuesto configurado')
+}
 
 === ${en ? 'SUBSCRIPTION' : 'SUSCRIPCIÓN'} ===
 ${en ? 'Plan' : 'Plan'}: ${plan?.name ?? 'Free'}
@@ -295,6 +300,7 @@ DASHBOARD GUIDE (step-by-step for each section):
   • **Stripe Connect**: Connect your Stripe account to accept online card payments. Click "Connect with Stripe" > complete Stripe onboarding > receive payments directly to your bank. Green badge shows when connected.
   • **Operating Hours**: Set open/close times for each day of the week. Toggle "Closed" for days off. Toggle "24 hours" for non-stop operation.
   • **Notifications**: Master toggle to enable/disable all notifications. When enabled, configure: WhatsApp number (for order alerts) and email address (for order alerts). Both channels receive new order alerts, status changes, etc.
+  • **Taxes / Impuestos**: Configure the tax rate applied to orders. Select your country to auto-fill the preset (rate, label, and whether it's included in price or added on top). For USA, also select the state to get the state sales tax rate. Tax label examples: IVA (Mexico, Spain, Colombia, Argentina), Sales Tax (USA), VAT (UK), GST (Canada, Australia), IGV (Peru), ITBMS (Panama). Toggle "Included in price" (tax is embedded in item prices, the system extracts it for display on receipts — total does NOT change) vs "Added on top" (tax is calculated on the subtotal and added at checkout — total increases). A live preview shows the exact tax amount and total for a $100 order. Tax is stored on each order (tax_amount field) for reporting and receipts. To disable taxes: set rate to 0%.
   • **Printers** (per-device setting, stored in browser): Configure what each device prints when an order is accepted. Toggle "Customer receipt" (full ticket with prices) and/or "Kitchen ticket" (items only, no prices, large order number for the kitchen). Settings are saved per device — a tablet used as a kitchen display can be configured to only print kitchen tickets, while the cashier tablet prints the customer receipt.
 
 - **Billing**: Current plan name and status (free, active, past_due). Usage meter showing products, tables, etc. vs plan limits. Available plans: Free ($0/mo — 5 tables, 50 orders/month, dine-in only, MENIUS branding), Starter ($39/mo — 15 tables, unlimited orders, dine-in + pickup, no branding, chat support), Pro ($79/mo — 50 tables, delivery, WhatsApp 500 msgs/mo, KDS, analytics, 5 users, chat 24h), Business ($149/mo — unlimited tables/users, 3 locations, WhatsApp 2000 msgs/mo, custom domain, API, account manager, tickets SLA <1h). Annual billing saves ~17%. Upgrade or downgrade directly — changes apply immediately, prorated. Invoice history with download links. "Manage subscription" button opens Stripe portal.

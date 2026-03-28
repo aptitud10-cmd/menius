@@ -16,6 +16,7 @@ import {
 } from '@/lib/thermal-printer';
 import { formatPrice, cn } from '@/lib/utils';
 import type { Order } from '@/types';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface OrderReceiptProps {
   order: Order;
@@ -94,10 +95,12 @@ export function OrderReceipt({
   const [btConnected, setBtConnected] = useState(isBluetoothPrinterConnected());
 
   const fmtPrice = (n: number) => formatPrice(n, currency);
+  const { locale } = useDashboardLocale();
+  const en = locale === 'en';
 
   const orderTypeLabels: Record<string, string> = {
-    dine_in: 'En local',
-    pickup: 'Para llevar',
+    dine_in: en ? 'Dine-in' : 'En local',
+    pickup: en ? 'Pickup' : 'Para llevar',
     delivery: 'Delivery',
   };
 
@@ -190,7 +193,7 @@ export function OrderReceipt({
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <Printer className="w-4 h-4 text-gray-500" />
-            <h3 className="font-semibold text-sm text-gray-900">Imprimir ticket</h3>
+            <h3 className="font-semibold text-sm text-gray-900">{en ? 'Print ticket' : 'Imprimir ticket'}</h3>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400">
             <X className="w-4 h-4" />
@@ -209,21 +212,21 @@ export function OrderReceipt({
 
             <div className="line" />
 
-            <div className="center bold big">ORDEN #{order.order_number}</div>
+            <div className="center bold big">{en ? 'ORDER' : 'ORDEN'} #{order.order_number}</div>
             <div className="center mt">
-              {new Date(order.created_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}
+              {new Date(order.created_at).toLocaleString(en ? 'en-US' : 'es-MX', { dateStyle: 'short', timeStyle: 'short' })}
             </div>
 
             <div className="line" />
 
             {order.customer_name && (
-              <div className="row"><span>Cliente:</span><span>{order.customer_name}</span></div>
+              <div className="row"><span>{en ? 'Customer' : 'Cliente'}:</span><span>{order.customer_name}</span></div>
             )}
             {order.customer_phone && (
-              <div className="row"><span>Tel:</span><span>{order.customer_phone}</span></div>
+              <div className="row"><span>{en ? 'Phone' : 'Tel'}:</span><span>{order.customer_phone}</span></div>
             )}
             {order.order_type && (
-              <div className="row"><span>Tipo:</span><span>{orderTypeLabels[order.order_type] || order.order_type}</span></div>
+              <div className="row"><span>{en ? 'Type' : 'Tipo'}:</span><span>{orderTypeLabels[order.order_type] || order.order_type}</span></div>
             )}
 
             <div className="line" />
@@ -232,9 +235,9 @@ export function OrderReceipt({
               const prod = item.product as { name: string } | undefined;
               return (
                 <div key={i} className="mb">
-                  <div className="bold">{item.qty}x {prod?.name ?? 'Producto'}</div>
+                  <div className="bold">{item.qty}x {prod?.name ?? (en ? 'Product' : 'Producto')}</div>
                   <div className="row">
-                    <span>&nbsp;&nbsp;{fmtPrice(Number(item.unit_price))} c/u</span>
+                    <span>&nbsp;&nbsp;{fmtPrice(Number(item.unit_price))} {en ? 'ea.' : 'c/u'}</span>
                     <span>{fmtPrice(Number(item.line_total))}</span>
                   </div>
                   {item.notes && <div className="item-note">&gt; {item.notes}</div>}
@@ -246,7 +249,7 @@ export function OrderReceipt({
 
             {order.tip_amount && Number(order.tip_amount) > 0 && (
               <div className="row">
-                <span>Propina</span>
+                <span>{en ? 'Tip' : 'Propina'}</span>
                 <span>{fmtPrice(Number(order.tip_amount))}</span>
               </div>
             )}
@@ -264,12 +267,12 @@ export function OrderReceipt({
             {order.notes && (
               <>
                 <div className="line" />
-                <div>Notas: {order.notes}</div>
+                <div>{en ? 'Notes' : 'Notas'}: {order.notes}</div>
               </>
             )}
 
             <div className="line" />
-            <div className="center mt">¡Gracias por tu compra!</div>
+            <div className="center mt">{en ? 'Thank you for your order!' : '¡Gracias por tu compra!'}</div>
             <div className="center" style={{ fontSize: '9px', color: '#999' }}>Powered by MENIUS</div>
           </div>
         </div>
@@ -282,7 +285,7 @@ export function OrderReceipt({
               <div className="flex items-center gap-1.5">
                 <Usb className="w-3 h-3 text-gray-400" />
                 <span className={printerConnected ? 'text-emerald-600 font-medium' : 'text-gray-500'}>
-                  {printerConnected ? 'Impresora USB conectada' : 'Sin impresora USB'}
+                  {printerConnected ? (en ? 'USB printer connected' : 'Impresora USB conectada') : (en ? 'No USB printer' : 'Sin impresora USB')}
                 </span>
               </div>
               <button
@@ -294,7 +297,7 @@ export function OrderReceipt({
                     : 'text-indigo-600 hover:bg-indigo-50',
                 )}
               >
-                {printerConnected ? 'Desconectar' : 'Conectar'}
+                {printerConnected ? (en ? 'Disconnect' : 'Desconectar') : (en ? 'Connect' : 'Conectar')}
               </button>
             </div>
           )}
@@ -307,7 +310,7 @@ export function OrderReceipt({
                   ? <Bluetooth className="w-3 h-3 text-emerald-500" />
                   : <BluetoothOff className="w-3 h-3 text-gray-400" />}
                 <span className={btConnected ? 'text-emerald-600 font-medium' : 'text-gray-500'}>
-                  {btConnected ? 'Impresora BT conectada' : 'Sin impresora Bluetooth'}
+                  {btConnected ? (en ? 'BT printer connected' : 'Impresora BT conectada') : (en ? 'No Bluetooth printer' : 'Sin impresora Bluetooth')}
                 </span>
               </div>
               <button
@@ -319,14 +322,14 @@ export function OrderReceipt({
                     : 'text-indigo-600 hover:bg-indigo-50',
                 )}
               >
-                {btConnected ? 'Desconectar' : 'Conectar'}
+                {btConnected ? (en ? 'Disconnect' : 'Desconectar') : (en ? 'Connect' : 'Conectar')}
               </button>
             </div>
           )}
 
           {(printResult === 'serial' || printResult === 'bluetooth') && (
             <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
-              <Check className="w-3.5 h-3.5" /> Enviado a impresora
+              <Check className="w-3.5 h-3.5" /> {en ? 'Sent to printer' : 'Enviado a impresora'}
             </div>
           )}
 
@@ -335,7 +338,7 @@ export function OrderReceipt({
               onClick={handleBrowserPrint}
               className="flex-1 dash-btn-secondary justify-center"
             >
-              <Printer className="w-4 h-4" /> Imprimir (navegador)
+              <Printer className="w-4 h-4" /> {en ? 'Print (browser)' : 'Imprimir (navegador)'}
             </button>
             {(isWebSerialSupported() || isWebBluetoothSupported()) && (
               <button
@@ -344,11 +347,11 @@ export function OrderReceipt({
                 className="flex-1 dash-btn-primary justify-center"
               >
                 {printing ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Enviando...</>
+                  <><Loader2 className="w-4 h-4 animate-spin" /> {en ? 'Sending...' : 'Enviando...'}</>
                 ) : btConnected ? (
-                  <><Bluetooth className="w-4 h-4" /> Impresora térmica</>
+                  <><Bluetooth className="w-4 h-4" /> {en ? 'Thermal printer' : 'Impresora térmica'}</>
                 ) : (
-                  <><Usb className="w-4 h-4" /> Impresora térmica</>
+                  <><Usb className="w-4 h-4" /> {en ? 'Thermal printer' : 'Impresora térmica'}</>
                 )}
               </button>
             )}
@@ -382,25 +385,30 @@ export async function quickPrintOrder(
 }
 
 function buildBrowserReceiptHtml(data: ReceiptData): string {
+  const isEn = data.locale?.startsWith('en') ?? false;
   const fmt = (n: number) => {
-    try { return new Intl.NumberFormat('es-MX', { style: 'currency', currency: data.currency }).format(n); }
+    try { return new Intl.NumberFormat(isEn ? 'en-US' : 'es-MX', { style: 'currency', currency: data.currency }).format(n); }
     catch { return `$${n.toFixed(2)}`; }
   };
 
-  const orderTypeLabels: Record<string, string> = { dine_in: 'En local', pickup: 'Para llevar', delivery: 'Delivery' };
+  const orderTypeLabels: Record<string, string> = {
+    dine_in: isEn ? 'Dine-in' : 'En local',
+    pickup: isEn ? 'Pickup' : 'Para llevar',
+    delivery: 'Delivery',
+  };
 
   const itemsHtml = data.items.map(item => `
     <div style="margin-bottom:4px">
       <b>${item.qty}x ${item.name}</b>
       <div style="display:flex;justify-content:space-between">
-        <span>&nbsp;&nbsp;${fmt(item.unitPrice)} c/u</span>
+        <span>&nbsp;&nbsp;${fmt(item.unitPrice)} ${isEn ? 'ea.' : 'c/u'}</span>
         <span>${fmt(item.lineTotal)}</span>
       </div>
       ${item.notes ? `<div style="font-size:10px;color:#666;padding-left:16px">&gt; ${item.notes}</div>` : ''}
     </div>
   `).join('');
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Orden #${data.orderNumber}</title>
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${isEn ? 'Order' : 'Orden'} #${data.orderNumber}</title>
     <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;font-size:12px;width:80mm;padding:4mm}
     .c{text-align:center}.b{font-weight:bold}.bg{font-size:16px}.ln{border-top:1px dashed #000;margin:6px 0}
     .r{display:flex;justify-content:space-between}.mt{margin-top:4px}
@@ -410,22 +418,22 @@ function buildBrowserReceiptHtml(data: ReceiptData): string {
     ${data.restaurantAddress ? `<div class="c">${data.restaurantAddress}</div>` : ''}
     ${data.restaurantPhone ? `<div class="c">Tel: ${data.restaurantPhone}</div>` : ''}
     <div class="ln"></div>
-    <div class="c b bg">ORDEN #${data.orderNumber}</div>
+    <div class="c b bg">${isEn ? 'ORDER' : 'ORDEN'} #${data.orderNumber}</div>
     <div class="c mt">${data.date}</div>
     <div class="ln"></div>
-    ${data.customerName ? `<div class="r"><span>Cliente:</span><span>${data.customerName}</span></div>` : ''}
-    ${data.customerPhone ? `<div class="r"><span>Tel:</span><span>${data.customerPhone}</span></div>` : ''}
-    ${data.orderType ? `<div class="r"><span>Tipo:</span><span>${orderTypeLabels[data.orderType] || data.orderType}</span></div>` : ''}
-    ${data.tableName ? `<div class="r"><span>Mesa:</span><span>${data.tableName}</span></div>` : ''}
+    ${data.customerName ? `<div class="r"><span>${isEn ? 'Customer' : 'Cliente'}:</span><span>${data.customerName}</span></div>` : ''}
+    ${data.customerPhone ? `<div class="r"><span>${isEn ? 'Phone' : 'Tel'}:</span><span>${data.customerPhone}</span></div>` : ''}
+    ${data.orderType ? `<div class="r"><span>${isEn ? 'Type' : 'Tipo'}:</span><span>${orderTypeLabels[data.orderType] || data.orderType}</span></div>` : ''}
+    ${data.tableName ? `<div class="r"><span>${isEn ? 'Table' : 'Mesa'}:</span><span>${data.tableName}</span></div>` : ''}
     <div class="ln"></div>
     ${itemsHtml}
     <div class="ln"></div>
-    ${data.tip && data.tip > 0 ? `<div class="r"><span>Propina</span><span>${fmt(data.tip)}</span></div>` : ''}
+    ${data.tip && data.tip > 0 ? `<div class="r"><span>${isEn ? 'Tip' : 'Propina'}</span><span>${fmt(data.tip)}</span></div>` : ''}
     ${data.tax && data.tax > 0 ? `<div class="r"><span>${data.taxLabel ?? 'Tax'}${data.taxIncluded ? ' (inc.)' : ''}</span><span>${fmt(data.tax)}</span></div>` : ''}
     <div class="r b bg"><span>TOTAL</span><span>${fmt(data.total)}</span></div>
-    ${data.notes ? `<div class="ln"></div><div>Notas: ${data.notes}</div>` : ''}
+    ${data.notes ? `<div class="ln"></div><div>${isEn ? 'Notes' : 'Notas'}: ${data.notes}</div>` : ''}
     <div class="ln"></div>
-    <div class="c mt">¡Gracias por tu compra!</div>
+    <div class="c mt">${isEn ? 'Thank you for your order!' : '¡Gracias por tu compra!'}</div>
     <div class="c" style="font-size:9px;color:#999">Powered by MENIUS</div>
     <script>window.onload=function(){window.print();window.onafterprint=function(){window.close()}}</script>
     </body></html>`;
