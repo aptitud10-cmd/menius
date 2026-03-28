@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useTransition, useRef, useCallback, useMemo } from 'react';
+import { useState, useTransition, useRef, useCallback, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Save, Loader2, Check, Camera, Trash2, X,
-  ImagePlus, Eye, EyeOff, PackageCheck, PackageX, Languages, Sparkles, Link2, ExternalLink,
+  ImagePlus, Eye, EyeOff, PackageCheck, PackageX, Languages, Sparkles, Link2, ExternalLink, Anchor,
 } from 'lucide-react';
 import { createProduct, updateProduct, deleteProduct, deleteVariant, deleteExtra } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
@@ -171,6 +171,74 @@ export function ProductEditor({
   const [showPreview, setShowPreview] = useState(false);
   const [showLiveLink, setShowLiveLink] = useState(false);
 
+  // Style anchor state
+  const [anchorUrl, setAnchorUrl] = useState<string | null>(null);
+  const [anchorSaving, setAnchorSaving] = useState(false);
+  const [lastGeneratedUrl, setLastGeneratedUrl] = useState<string | null>(null);
+  const anchorsCache = useRef<Map<string, string>>(new Map());
+  const anchorsCacheLoaded = useRef(false);
+
+  // Load all anchors once and cache them; resolve by category name
+  const loadAnchor = useCallback(async (categoryName: string | undefined) => {
+    if (!categoryName) { setAnchorUrl(null); return; }
+    try {
+      if (!anchorsCacheLoaded.current) {
+        const res = await fetch('/api/ai/anchors');
+        if (res.ok) {
+          const data = await res.json();
+          anchorsCache.current = new Map(
+            (data.anchors ?? []).map((a: { category_name: string; anchor_url: string }) => [a.category_name, a.anchor_url])
+          );
+          anchorsCacheLoaded.current = true;
+        }
+      }
+      setAnchorUrl(anchorsCache.current.get(categoryName) ?? null);
+    } catch {
+      // non-blocking
+    }
+  }, []);
+
+  const handleSetAnchor = useCallback(async () => {
+    if (!lastGeneratedUrl || !selectedCategory?.name) return;
+    setAnchorSaving(true);
+    try {
+      const res = await fetch('/api/ai/anchors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category_name: selectedCategory.name,
+          anchor_url: lastGeneratedUrl,
+          style: 'professional',
+        }),
+      });
+      if (res.ok) {
+        anchorsCache.current.set(selectedCategory.name, lastGeneratedUrl);
+        setAnchorUrl(lastGeneratedUrl);
+        toastSuccess(dashLocale === 'en'
+          ? `Reference set for "${selectedCategory.name}"`
+          : `Referencia definida para "${selectedCategory.name}"`);
+      }
+    } catch {
+      toastError(dashLocale === 'en' ? 'Could not save reference' : 'No se pudo guardar la referencia');
+    } finally {
+      setAnchorSaving(false);
+    }
+  }, [lastGeneratedUrl, selectedCategory?.name, dashLocale, toastSuccess, toastError]);
+
+  const handleRemoveAnchor = useCallback(async () => {
+    if (!selectedCategory?.name) return;
+    try {
+      const res = await fetch(`/api/ai/anchors?category=${encodeURIComponent(selectedCategory.name)}`, { method: 'DELETE' });
+      if (res.ok) {
+        anchorsCache.current.delete(selectedCategory.name);
+        setAnchorUrl(null);
+        toastSuccess(dashLocale === 'en' ? 'Reference removed' : 'Referencia eliminada');
+      }
+    } catch {
+      // non-blocking
+    }
+  }, [selectedCategory?.name, dashLocale, toastSuccess]);
+
   const liveProduct = useMemo<Product>(() => ({
     ...(product ?? {
       id: '__preview__',
@@ -202,9 +270,15 @@ export function ProductEditor({
   const selectedCategory = categories.find(c => c.id === form.category_id);
   const busy = uploading || isPending || aiGenerating;
 
+  // Load anchor whenever category changes
+  useEffect(() => {
+    loadAnchor(selectedCategory?.name);
+  }, [selectedCategory?.name, loadAnchor]);
+
   const handleAIGenerate = useCallback(async () => {
     if (!form.name.trim()) { setError(t.editor_nameRequired); return; }
     setAiGenerating(true);
+    setLastGeneratedUrl(null);
     setError('');
     try {
       const res = await fetch('/api/ai/generate-image', {
@@ -220,6 +294,7 @@ export function ProductEditor({
       if (!res.ok) throw new Error(data.error || t.editor_errorGeneratingImage);
       setGalleryUrl(data.url);
       setImagePreview(data.url);
+      setLastGeneratedUrl(data.url);
       setImageFile(null);
       if (fileRef.current) fileRef.current.value = '';
     } catch (err) {
@@ -613,6 +688,62 @@ export function ProductEditor({
                     </div>
                   )}
                   <span className="text-xs text-gray-400">{t.editor_fileFormats}</span>
+                </div>
+              )}
+
+              {/* Anchor controls — shown after AI generation */}
+              {selectedCategory?.name && (lastGeneratedUrl || anchorUrl) && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  {anchorUrl ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-md overflow-hidden flex-shrink-0">
+                          <img src={anchorUrl} alt="anchor" className="w-full h-full object-cover" />
+                        </div>
+                        <span className="text-xs text-emerald-700 font-medium flex items-center gap-1">
+                          <Anchor className="w-3 h-3" />
+                          {dashLocale === 'en'
+                            ? `Style reference active for "${selectedCategory.name}"`
+                            : `Referencia de estilo activa para "${selectedCategory.name}"`}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {lastGeneratedUrl && lastGeneratedUrl !== anchorUrl && (
+                          <button
+                            onClick={handleSetAnchor}
+                            disabled={anchorSaving}
+                            className="px-2 py-1 text-[11px] font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-md hover:bg-purple-100 transition-colors disabled:opacity-50"
+                          >
+                            {anchorSaving ? <Loader2 className="w-3 h-3 animate-spin inline" /> : dashLocale === 'en' ? 'Update reference' : 'Actualizar referencia'}
+                          </button>
+                        )}
+                        <button
+                          onClick={handleRemoveAnchor}
+                          className="px-2 py-1 text-[11px] font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-colors"
+                        >
+                          {dashLocale === 'en' ? 'Remove' : 'Eliminar'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : lastGeneratedUrl ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-gray-500">
+                        {dashLocale === 'en'
+                          ? `Set this image as the visual style reference for all "${selectedCategory.name}" products?`
+                          : `¿Usar esta imagen como referencia de estilo para todos los productos de "${selectedCategory.name}"?`}
+                      </p>
+                      <button
+                        onClick={handleSetAnchor}
+                        disabled={anchorSaving}
+                        className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
+                      >
+                        {anchorSaving
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : <Anchor className="w-3 h-3" />}
+                        {dashLocale === 'en' ? 'Set as reference' : 'Definir como referencia'}
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>

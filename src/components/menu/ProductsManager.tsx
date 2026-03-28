@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   Plus, Trash2, Eye, EyeOff, Search, Package, Sparkles,
   ChevronRight, X, GripVertical,
-  PackageX, PackageCheck, ImagePlus, Copy, SlidersHorizontal,
+  PackageX, PackageCheck, ImagePlus, Copy, SlidersHorizontal, Zap,
 } from 'lucide-react';
 import {
   DndContext,
@@ -34,6 +34,9 @@ import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 const MenuImportLazy = lazy(() => import('./MenuImport').then(m => ({ default: m.MenuImport })));
 const BulkImageUploadLazy = lazy(() => import('./BulkImageUpload').then(m => ({ default: m.BulkImageUpload })));
 const BulkAIImageGenerateLazy = lazy(() => import('./BulkAIImageGenerate').then(m => ({ default: m.BulkAIImageGenerate })));
+const AdminBulkRegenerateLazy = lazy(() => import('./AdminBulkRegenerate').then(m => ({ default: m.AdminBulkRegenerate })));
+
+const BUCCANEER_ID = 'a1f5af6a-1805-49d2-b494-f074ac657357';
 
 // ─── Inline price cell ──────────────────────────────────────────
 
@@ -135,6 +138,7 @@ export function ProductsManager({
   const [showImport, setShowImport] = useState(false);
   const [showBulkImages, setShowBulkImages] = useState(false);
   const [showBulkAI, setShowBulkAI] = useState(false);
+  const [showAdminRegen, setShowAdminRegen] = useState(false);
   const { t } = useDashboardLocale();
 
   const toggleCat = (id: string) => {
@@ -358,6 +362,16 @@ export function ProductsManager({
           <button onClick={() => setShowImport(true)} className="dash-btn-secondary">
             <Sparkles className="w-4 h-4" /> {t.products_importAI}
           </button>
+          {restaurantId === BUCCANEER_ID && (
+            <button
+              onClick={() => setShowAdminRegen(true)}
+              className="dash-btn-secondary border-amber-300 text-amber-700 hover:bg-amber-50"
+              title="Admin: regenerar todas las imágenes con Imagen 4"
+            >
+              <Zap className="w-4 h-4 text-amber-500" />
+              <span className="hidden sm:inline">Regen. masiva</span>
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400 hidden sm:inline">
@@ -595,6 +609,16 @@ export function ProductsManager({
               );
             }}
             onClose={() => setShowBulkAI(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* Admin bulk image regeneration (only for Buccaneer) */}
+      {showAdminRegen && restaurantId && (
+        <Suspense fallback={null}>
+          <AdminBulkRegenerateLazy
+            restaurantId={restaurantId}
+            onClose={() => setShowAdminRegen(false)}
           />
         </Suspense>
       )}

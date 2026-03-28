@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { Sparkles, X, Check, AlertCircle, Loader2, ImageIcon, Zap } from 'lucide-react';
+import { Sparkles, X, Check, AlertCircle, Loader2, ImageIcon, Zap, Anchor } from 'lucide-react';
 import { updateProduct } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
 import type { Product, Category } from '@/types';
@@ -37,9 +37,20 @@ export function BulkAIImageGenerate({ products, categories, onComplete, onClose 
   const [finished, setFinished] = useState(false);
   const cancelRef = useRef(false);
   const updatedRef = useRef(new Map<string, string>());
+  const [anchoredCategories, setAnchoredCategories] = useState<Set<string>>(new Set());
 
   const getCategoryName = (categoryId: string | null | undefined) =>
     categoryId ? categories.find(c => c.id === categoryId)?.name : undefined;
+
+  // Load which categories have anchors
+  useEffect(() => {
+    fetch('/api/ai/anchors')
+      .then(r => r.ok ? r.json() : { anchors: [] })
+      .then((data: { anchors: { category_name: string }[] }) => {
+        setAnchoredCategories(new Set((data.anchors ?? []).map((a) => a.category_name)));
+      })
+      .catch(() => {/* non-blocking */});
+  }, []);
 
   const doneCount = items.filter(i => i.status === 'done').length;
   const errorCount = items.filter(i => i.status === 'error').length;
@@ -150,7 +161,7 @@ export function BulkAIImageGenerate({ products, categories, onComplete, onClose 
               </div>
 
               {/* Stats row */}
-              <div className="flex items-center gap-3 mb-4 text-xs">
+              <div className="flex items-center gap-3 mb-4 text-xs flex-wrap">
                 <span className="px-2 py-1 bg-gray-100 rounded-md text-gray-600 font-medium">
                   {S.countLabel}
                 </span>
@@ -158,6 +169,14 @@ export function BulkAIImageGenerate({ products, categories, onComplete, onClose 
                   <Zap className="w-3 h-3" />
                   {S.rateNote}
                 </span>
+                {anchoredCategories.size > 0 && (
+                  <span className="px-2 py-1 bg-purple-50 text-purple-700 rounded-md font-medium flex items-center gap-1">
+                    <Anchor className="w-3 h-3" />
+                    {isEs
+                      ? `${anchoredCategories.size} ${anchoredCategories.size === 1 ? 'categoría con referencia' : 'categorías con referencia'}`
+                      : `${anchoredCategories.size} ${anchoredCategories.size === 1 ? 'category with reference' : 'categories with reference'}`}
+                  </span>
+                )}
                 {doneCount > 0 && (
                   <span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-md font-medium">
                     {S.done}
@@ -196,7 +215,19 @@ export function BulkAIImageGenerate({ products, categories, onComplete, onClose 
 
                     {/* Name */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">{item.product.name}</p>
+                      {(() => {
+                        const catName = getCategoryName(item.product.category_id);
+                        return (
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">{item.product.name}</p>
+                            {catName && anchoredCategories.has(catName) && (
+                              <span title={isEs ? 'Categoría con referencia de estilo' : 'Category has style reference'}>
+                                <Anchor className="w-3 h-3 text-purple-500 flex-shrink-0" />
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                       {item.error && (
                         <p className="text-[11px] text-red-500 truncate">{item.error}</p>
                       )}
