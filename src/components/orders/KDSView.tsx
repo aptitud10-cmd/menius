@@ -165,7 +165,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       setTimeout(() => setNewIds(p => { const n = new Set(p); n.delete(o.id); return n; }), 8000);
       setOverlayCount(c => c + 1);
       setShowOverlay(true);
-      if (autoPrint) import('./OrderReceipt').then(({ quickPrintOrder }) => quickPrintOrder(o, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded));
+      if (autoPrint) import('./OrderReceipt').then(({ quickPrintOrder }) => quickPrintOrder(o, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded, locale));
     }, [autoPrint, currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress]),
   });
   localRef.current = updateOrderLocally;

@@ -371,11 +371,12 @@ export async function quickPrintOrder(
   currency: string,
   taxLabel?: string,
   taxIncluded?: boolean,
+  locale?: string,
 ): Promise<void> {
   const data = buildReceiptData(order, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded);
   const result = await printReceipt(data);
   if (!result.success) {
-    const receiptHtml = buildBrowserReceiptHtml(data);
+    const receiptHtml = buildBrowserReceiptHtml(data, locale?.startsWith('en') ?? false);
     const printWindow = window.open('', '_blank', 'width=320,height=600');
     if (printWindow) {
       printWindow.document.write(receiptHtml);
@@ -384,8 +385,7 @@ export async function quickPrintOrder(
   }
 }
 
-function buildBrowserReceiptHtml(data: ReceiptData): string {
-  const isEn = data.locale?.startsWith('en') ?? false;
+function buildBrowserReceiptHtml(data: ReceiptData, isEn = false): string {
   const fmt = (n: number) => {
     try { return new Intl.NumberFormat(isEn ? 'en-US' : 'es-MX', { style: 'currency', currency: data.currency }).format(n); }
     catch { return `$${n.toFixed(2)}`; }
