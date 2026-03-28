@@ -178,6 +178,8 @@ export function ProductEditor({
   const anchorsCache = useRef<Map<string, string>>(new Map());
   const anchorsCacheLoaded = useRef(false);
 
+  const selectedCategory = categories.find(c => c.id === form.category_id);
+
   // Load all anchors once and cache them; resolve by category name
   const loadAnchor = useCallback(async (categoryName: string | undefined) => {
     if (!categoryName) { setAnchorUrl(null); return; }
@@ -267,7 +269,6 @@ export function ProductEditor({
     return `${sym}${n.toFixed(2)}`;
   }, [currency]);
 
-  const selectedCategory = categories.find(c => c.id === form.category_id);
   const busy = uploading || isPending || aiGenerating;
 
   // Load anchor whenever category changes
