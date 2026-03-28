@@ -28,6 +28,15 @@ const angleMap: Record<string, string> = {
   Chicken:      '30-degree angle — crispy skin texture and golden char fully visible',
   Sushi:        '15-degree tilt — pieces in a diagonal line, rice grain texture and fish color fully visible',
   Pasta:        '38-degree angle — bowl depth, sauce coating every strand, garnish on top',
+  Grills:       '28-degree hero angle — full steak/grill surface visible, every crosshatch sear mark and crust texture exposed, cut section revealing perfect internal doneness',
+  Steaks:       '28-degree hero angle — full steak surface dominant, crosshatch sear marks razor-sharp, cut showing internal color gradient from crust to center',
+  Beef:         '28-degree hero angle — full cut surface visible with dramatic char marks, sauce pooling naturally at the base',
+  Carnes:       '28-degree hero angle — protein fills the frame, sear marks and crust texture fully visible, sides arranged behind',
+  BBQ:          '30-degree angle — smoky char and caramelized crust fully exposed, sauce glistening under the light',
+  Meat:         '28-degree hero angle — full protein surface visible, every texture of the crust and char clearly defined',
+  Seafood:      '32-degree angle — full seafood surface visible, glisten of butter and natural ocean colors fully exposed',
+  Fish:         '30-degree angle — full fillet or whole fish visible, crispy skin texture and natural flesh color clearly showing',
+  Shrimp:       '25-degree angle — shrimp arranged in a natural arc, vibrant pink-orange color and char marks exposed',
 };
 
 const dofMap: Record<string, string> = {
@@ -46,6 +55,15 @@ const dofMap: Record<string, string> = {
   Breakfast:    'f/3.5 — entire plate in focus, every ingredient crisp',
   Tacos:        'f/3.2 — all tacos in focus, fillings razor-sharp',
   Bowls:        'f/4.0 — all ingredient sections in clear focus',
+  Grills:       'f/4.0 — entire steak/grill surface in critical sharp focus, every sear mark and crust texture razor-crisp, NO part of the protein out of focus',
+  Steaks:       'f/4.0 — full steak surface sharp from crust edge to crust edge, internal cut cross-section fully in focus',
+  Beef:         'f/3.5 — entire cut surface sharp, char marks and crust texture rendered with maximum detail',
+  Carnes:       'f/3.5 — full protein piece sharp throughout, NO shallow focus on meat dishes',
+  BBQ:          'f/4.0 — full surface and char detail sharp, sauce gloss rendered with clarity',
+  Meat:         'f/3.5 — full protein surface in sharp focus throughout',
+  Seafood:      'f/3.2 — full seafood piece sharp, glistening surface texture and color fully resolved',
+  Fish:         'f/4.0 — full fillet sharp from head to tail, skin texture and flesh color fully in focus',
+  Shrimp:       'f/4.0 — all shrimp in sharp focus, vibrant color and char detail clear',
 };
 
 const surfaceMap: Record<string, string> = {
@@ -65,6 +83,15 @@ const surfaceMap: Record<string, string> = {
   Dinner:       'polished dark slate restaurant surface. Background: deep charcoal.',
   Appetizers:   'rustic wooden serving board or dark ceramic tile. Background: warm dark tones.',
   Sandwiches:   'rustic weathered wooden board. Background: warm natural ambient.',
+  Grills:       'matte black slate stone surface with subtle rough grain. A steak knife resting diagonally to the right of the plate. Background: deep dramatic charcoal black, completely smooth.',
+  Steaks:       'honed dark basalt stone surface, rough and matte. A sharp steak knife visible at the edge. Background: near-black charcoal with subtle depth.',
+  Beef:         'dark matte slate surface. Background: deep charcoal, moody and dramatic.',
+  Carnes:       'dark matte slate or black ceramic tile surface. Background: deep charcoal, no distractions.',
+  BBQ:          'worn dark wood board with a natural grain, slight char stains visible for authenticity. Background: warm deep dark tones.',
+  Meat:         'matte dark slate surface. Background: deep charcoal black.',
+  Seafood:      'white Carrara marble surface with cool gray veining. A lemon wedge and fresh herb sprig to the side. Background: soft cool gray, elegant and clean.',
+  Fish:         'white ceramic tile or light marble surface. A lemon wedge and dill sprig to the side. Background: soft neutral gray.',
+  Shrimp:       'dark polished slate surface. A halved lemon beside the plate. Background: deep charcoal.',
 };
 
 const latinCuisineMap: Record<string, string> = {
@@ -100,6 +127,11 @@ function getContainer(lowerName: string, isDrink: boolean): string {
   if (/café|coffee|espresso|latte|cappuccino|olla/.test(lowerName)) return 'a beautiful ceramic coffee mug or artisan clay pot, steam gently curling upward';
   if (/tea|té/.test(lowerName)) return 'a delicate ceramic mug or clear glass cup showing the tea color';
   if (/hot chocolate|chocolate caliente/.test(lowerName)) return 'a large ceramic mug topped with a cloud of whipped cream and a dusting of cocoa powder';
+  if (/steak|ribeye|filete|t-bone|strip|sirloin|porterhouse|wagyu|chulet/.test(lowerName)) return 'a matte black or dark ceramic plate, or a thick slate serving stone';
+  if (/salmon/.test(lowerName)) return 'a wide white ceramic plate with a generous rim, a lemon wedge and fresh herb to the side';
+  if (/shrimp|camarón|langostino/.test(lowerName)) return 'a wide dark ceramic plate or cast iron skillet, a halved lemon beside it';
+  if (/lobster|langosta/.test(lowerName)) return 'a large oval white ceramic plate, drawn butter in a small ramekin to the side';
+  if (/fish|tilapia|mahi|bass|sea bass|branzino|trucha/.test(lowerName)) return 'a wide white ceramic plate, lemon wedge and fresh herb beside it';
   if (/burger|hamburguesa/.test(lowerName)) return 'a matte black ceramic plate or a rustic wooden board';
   if (/taco/.test(lowerName)) return 'a traditional handcrafted ceramic plate or oval serving tray';
   if (/pizza/.test(lowerName)) return 'a round worn rustic wooden pizza board with a dark grain';
