@@ -76,9 +76,11 @@ interface OrdersBoardProps {
   restaurantName: string;
   restaurantPhone?: string;
   restaurantAddress?: string;
+  taxLabel?: string;
+  taxIncluded?: boolean;
 }
 
-export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, currency, restaurantName, restaurantPhone, restaurantAddress }: OrdersBoardProps) {
+export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, currency, restaurantName, restaurantPhone, restaurantAddress, taxLabel, taxIncluded }: OrdersBoardProps) {
   const { t } = useDashboardLocale();
   const [isPending, startTransition] = useTransition();
   const [newOrderIds, setNewOrderIds] = useState<Set<string>>(new Set());
@@ -128,7 +130,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
       }, 12000);
       if (localStorage.getItem('menius-auto-print') === 'true') {
         import('./OrderReceipt').then(({ quickPrintOrder }) => {
-          quickPrintOrder(order, restaurantName, restaurantPhone, restaurantAddress, currency);
+          quickPrintOrder(order, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded);
         });
       }
     }, [currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress]),
@@ -470,6 +472,8 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
           restaurantPhone={restaurantPhone}
           restaurantAddress={restaurantAddress}
           currency={currency}
+          taxLabel={taxLabel}
+          taxIncluded={taxIncluded}
           onClose={() => setPrintOrder(null)}
         />
       )}

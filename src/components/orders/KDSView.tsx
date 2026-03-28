@@ -71,6 +71,8 @@ interface Props {
   restaurantPhone?: string;
   restaurantAddress?: string;
   restaurantSlug: string;
+  taxLabel?: string;
+  taxIncluded?: boolean;
 }
 
 interface Undo { orderId: string; num: string; prev: OrderStatus; next: OrderStatus; ts: number }
@@ -78,7 +80,7 @@ interface Undo { orderId: string; num: string; prev: OrderStatus; next: OrderSta
 /* ══════════════════════════════════════════════════════════════════════
    KDSView — Toast / Fresh KDS style
    ══════════════════════════════════════════════════════════════════════ */
-export function KDSView({ initialOrders, restaurantId, restaurantName, currency, restaurantPhone, restaurantAddress, restaurantSlug }: Props) {
+export function KDSView({ initialOrders, restaurantId, restaurantName, currency, restaurantPhone, restaurantAddress, restaurantSlug, taxLabel, taxIncluded }: Props) {
   const { t, locale } = useDashboardLocale();
   const isEn = locale === 'en';
   const [tab, setTab] = useState<Tab>('active');
@@ -163,7 +165,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       setTimeout(() => setNewIds(p => { const n = new Set(p); n.delete(o.id); return n; }), 8000);
       setOverlayCount(c => c + 1);
       setShowOverlay(true);
-      if (autoPrint) import('./OrderReceipt').then(({ quickPrintOrder }) => quickPrintOrder(o, restaurantName, restaurantPhone, restaurantAddress, currency));
+      if (autoPrint) import('./OrderReceipt').then(({ quickPrintOrder }) => quickPrintOrder(o, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded));
     }, [autoPrint, currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress]),
   });
   localRef.current = updateOrderLocally;
@@ -570,7 +572,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
         </>
       )}
 
-      {printOrder && <OrderReceipt order={printOrder} restaurantName={restaurantName} restaurantPhone={restaurantPhone} restaurantAddress={restaurantAddress} currency={currency} onClose={() => setPrintOrder(null)} />}
+      {printOrder && <OrderReceipt order={printOrder} restaurantName={restaurantName} restaurantPhone={restaurantPhone} restaurantAddress={restaurantAddress} currency={currency} taxLabel={taxLabel} taxIncluded={taxIncluded} onClose={() => setPrintOrder(null)} />}
 
       {smsOrder && <SMSQuickSend order={smsOrder} restaurantName={restaurantName} onClose={() => setSmsOrder(null)} />}
     </>

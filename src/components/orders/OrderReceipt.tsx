@@ -24,6 +24,7 @@ interface OrderReceiptProps {
   restaurantAddress?: string;
   currency: string;
   taxLabel?: string;
+  taxIncluded?: boolean;
   onClose: () => void;
 }
 
@@ -34,6 +35,7 @@ function buildReceiptData(
   restaurantAddress: string | undefined,
   currency: string,
   taxLabel?: string,
+  taxIncluded?: boolean,
 ): ReceiptData {
   const items = (order.items ?? []).map((item) => {
     const prod = item.product as { name: string } | undefined;
@@ -47,6 +49,9 @@ function buildReceiptData(
   });
 
   const taxAmt = order.tax_amount ? Number(order.tax_amount) : undefined;
+  const tipAmt = Number(order.tip_amount) || 0;
+  const deliveryFeeAmt = Number(order.delivery_fee) || 0;
+  const subtotal = Number(order.total) - tipAmt - deliveryFeeAmt - (taxAmt && !taxIncluded ? taxAmt : 0);
 
   return {
     restaurantName,
@@ -62,9 +67,10 @@ function buildReceiptData(
     orderType: order.order_type || undefined,
     tableName: order.table?.name || undefined,
     items,
-    subtotal: Number(order.total),
+    subtotal,
     tax: taxAmt,
     taxLabel: taxAmt ? (taxLabel ?? 'Tax') : undefined,
+    taxIncluded,
     total: Number(order.total),
     notes: order.notes || undefined,
     currency,
@@ -78,6 +84,7 @@ export function OrderReceipt({
   restaurantAddress,
   currency,
   taxLabel,
+  taxIncluded,
   onClose,
 }: OrderReceiptProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -97,7 +104,7 @@ export function OrderReceipt({
   const handleThermalPrint = async () => {
     setPrinting(true);
     setPrintResult(null);
-    const data = buildReceiptData(order, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel);
+    const data = buildReceiptData(order, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded);
     const result = await printReceipt(data);
 
     if (result.success) {
@@ -360,8 +367,9 @@ export async function quickPrintOrder(
   restaurantAddress: string | undefined,
   currency: string,
   taxLabel?: string,
+  taxIncluded?: boolean,
 ): Promise<void> {
-  const data = buildReceiptData(order, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel);
+  const data = buildReceiptData(order, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded);
   const result = await printReceipt(data);
   if (!result.success) {
     const receiptHtml = buildBrowserReceiptHtml(data);

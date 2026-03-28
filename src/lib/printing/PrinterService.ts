@@ -31,6 +31,8 @@ function mapOrderToReceipt(
   restaurantName: string,
   currency: string,
   locale?: string,
+  taxLabel?: string,
+  taxIncluded?: boolean,
 ): ReceiptData {
   const items: ReceiptLineItem[] = (order.items ?? []).map((item: OrderItem) => {
     const raw = item as any;
@@ -75,8 +77,8 @@ function mapOrderToReceipt(
     subtotal: Number(order.total) - (Number(order.tip_amount) || 0) - (taxAmt && !(order as any).tax_included ? taxAmt : 0),
     tip: Number(order.tip_amount) || undefined,
     tax: taxAmt,
-    taxLabel: taxAmt ? ((order as any).tax_label ?? 'Tax') : undefined,
-    taxIncluded: (order as any).tax_included ?? false,
+    taxLabel: taxAmt ? (taxLabel ?? 'Tax') : undefined,
+    taxIncluded: taxIncluded ?? false,
     total: order.total,
     notes: order.notes ?? undefined,
     etaMinutes,
@@ -196,6 +198,8 @@ class PrinterServiceImpl {
     restaurantName: string,
     currency: string,
     locale?: string,
+    taxLabel?: string,
+    taxIncluded?: boolean,
   ): Promise<PrintJob> {
     // Create job
     const job: PrintJob = {
@@ -210,7 +214,7 @@ class PrinterServiceImpl {
     this.jobs.set(job.id, job);
     this.notify(job);
 
-    return this._execute(job, order, etaMinutes, restaurantName, currency, locale);
+    return this._execute(job, order, etaMinutes, restaurantName, currency, locale, taxLabel, taxIncluded);
   }
 
   async retryJob(
@@ -220,13 +224,15 @@ class PrinterServiceImpl {
     restaurantName: string,
     currency: string,
     locale?: string,
+    taxLabel?: string,
+    taxIncluded?: boolean,
   ): Promise<PrintJob | null> {
     const job = this.jobs.get(jobId);
     if (!job || job.state !== 'failed') return null;
     if (job.attempts >= job.maxAttempts) return job;
 
     const retrying = this.transition(job, 'retrying');
-    return this._execute(retrying, order, etaMinutes, restaurantName, currency, locale);
+    return this._execute(retrying, order, etaMinutes, restaurantName, currency, locale, taxLabel, taxIncluded);
   }
 
   private async _execute(
@@ -236,6 +242,8 @@ class PrinterServiceImpl {
     restaurantName: string,
     currency: string,
     locale?: string,
+    taxLabel?: string,
+    taxIncluded?: boolean,
   ): Promise<PrintJob> {
     // Transition → printing
     let current = this.transition(job, 'printing');
@@ -244,7 +252,7 @@ class PrinterServiceImpl {
     this.notify(current);
 
     try {
-      const receiptData = mapOrderToReceipt(order, etaMinutes, restaurantName, currency, locale);
+      const receiptData = mapOrderToReceipt(order, etaMinutes, restaurantName, currency, locale, taxLabel, taxIncluded);
       const cfg = PrinterConfig.config;
 
       // Android Counter app: native Bluetooth ESC/POS (no browser print dialog)

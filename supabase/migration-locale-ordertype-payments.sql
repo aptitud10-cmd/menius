@@ -5,6 +5,7 @@
 -- Restaurant settings: locale, order types, payment methods
 ALTER TABLE restaurants
   ADD COLUMN IF NOT EXISTS locale TEXT DEFAULT 'es',
+  ADD COLUMN IF NOT EXISTS available_locales JSONB DEFAULT NULL,
   ADD COLUMN IF NOT EXISTS order_types_enabled JSONB DEFAULT '["dine_in","pickup"]'::jsonb,
   ADD COLUMN IF NOT EXISTS payment_methods_enabled JSONB DEFAULT '["cash"]'::jsonb;
 

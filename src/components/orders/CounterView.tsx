@@ -298,6 +298,8 @@ interface CounterViewProps {
   locale?: Locale;
   restaurantLat?: number | null;
   restaurantLng?: number | null;
+  taxLabel?: string;
+  taxIncluded?: boolean;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -306,7 +308,7 @@ interface CounterViewProps {
 
 export function CounterView({
   initialOrders, restaurantId, restaurantName, currency, locale = 'es',
-  restaurantLat, restaurantLng,
+  restaurantLat, restaurantLng, taxLabel, taxIncluded,
 }: CounterViewProps) {
   const t = getT(locale);
 
@@ -574,7 +576,7 @@ export function CounterView({
     (async () => {
       await updateOrderETA(firstNew.id, effectiveEta).catch(() => {});
       await updateOrderStatus(firstNew.id, 'confirmed').catch(() => {});
-      PrinterService.printOrder(firstNew, effectiveEta, restaurantName, currency, locale).catch(() => {});
+      PrinterService.printOrder(firstNew, effectiveEta, restaurantName, currency, locale, taxLabel, taxIncluded).catch(() => {});
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newOrders.map(o => o.id).join(',')]);
@@ -625,7 +627,7 @@ export function CounterView({
       playAcceptSound();
       // dine_in always prints so the kitchen gets the ticket even if global auto-print is off
       const shouldPrint = autoPrint || order.order_type === 'dine_in';
-      if (shouldPrint) PrinterService.printOrder(order, eff, restaurantName, currency, locale).catch(() => {});
+      if (shouldPrint) PrinterService.printOrder(order, eff, restaurantName, currency, locale, taxLabel, taxIncluded).catch(() => {});
       setActiveTab('prep');
       setSelectedId(order.id);
       setShowDetailMobile(true);
@@ -1031,7 +1033,7 @@ export function CounterView({
                 setCancelReason('');
               }}
               onPrint={() => PrinterService.printOrder(
-                selectedOrder, selectedOrder.estimated_ready_minutes ?? effectiveEta, restaurantName, currency, locale
+                selectedOrder, selectedOrder.estimated_ready_minutes ?? effectiveEta, restaurantName, currency, locale, taxLabel, taxIncluded
               ).catch(() => {})}
               onAssignDriver={() => {
                 setDriverModal({
@@ -1988,7 +1990,7 @@ function OrderDetail({
               )}
               {(order.tax_amount ?? 0) > 0 && (
                 <div className="flex justify-between text-xs text-[#888]">
-                  <span>{t.en ? 'Tax' : 'Impuestos'}</span>
+                  <span>{taxLabel ?? (t.en ? 'Tax' : 'Impuestos')}</span>
                   <span>{fmt(order.tax_amount!, currency)}</span>
                 </div>
               )}

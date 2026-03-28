@@ -7,7 +7,7 @@ export default async function KDSFullscreenPage() {
   const [{ data: restaurant }, { data: orders }] = await Promise.all([
     supabase
       .from('restaurants')
-      .select('name, currency, phone, address, slug')
+      .select('name, currency, phone, address, slug, tax_label, tax_included')
       .eq('id', restaurantId)
       .maybeSingle(),
     supabase
@@ -43,6 +43,8 @@ export default async function KDSFullscreenPage() {
       restaurantPhone={restaurant?.phone ?? undefined}
       restaurantAddress={restaurant?.address ?? undefined}
       restaurantSlug={restaurant?.slug ?? ''}
+      taxLabel={(restaurant as any)?.tax_label ?? undefined}
+      taxIncluded={(restaurant as any)?.tax_included ?? false}
     />
   );
 }

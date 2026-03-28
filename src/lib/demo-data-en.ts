@@ -43,6 +43,11 @@ export const grillHouseRestaurant: Restaurant = {
     saturday: { open: '08:00', close: '23:30' },
     sunday: { open: '08:00', close: '21:00' },
   },
+  country_code: 'US',
+  state_code: 'CA',
+  tax_rate: 7.25,
+  tax_included: false,
+  tax_label: 'Sales Tax',
   created_at: older,
 };
 

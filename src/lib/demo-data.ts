@@ -42,6 +42,10 @@ export const demoRestaurant: Restaurant = {
     saturday: { open: '09:00', close: '23:30' },
     sunday: { open: '09:00', close: '21:00' },
   },
+  country_code: 'MX',
+  tax_rate: 16,
+  tax_included: true,
+  tax_label: 'IVA',
   created_at: older,
 };
 

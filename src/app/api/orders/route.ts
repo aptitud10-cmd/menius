@@ -12,6 +12,7 @@ import { sanitizeText, sanitizeEmail, sanitizeMultiline } from '@/lib/sanitize';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 import { getStripe } from '@/lib/stripe';
+import { computeTaxAmount } from '@/lib/tax-presets';
 
 const logger = createLogger('orders');
 
@@ -329,13 +330,7 @@ export async function POST(request: NextRequest) {
     const taxRate = Number((restaurant as any).tax_rate) || 0;
     const taxIncluded = (restaurant as any).tax_included ?? false;
     const taxableBase = Math.max(0, subtotal - discountAmt);
-    let taxAmt = 0;
-    if (taxRate > 0) {
-      taxAmt = taxIncluded
-        ? taxableBase - taxableBase / (1 + taxRate / 100)
-        : taxableBase * (taxRate / 100);
-      taxAmt = Math.round(taxAmt * 100) / 100;
-    }
+    const taxAmt = computeTaxAmount(taxableBase, taxRate, taxIncluded);
 
     const total = Math.max(0, subtotal - discountAmt + tipAmt + deliveryFeeAmt + (taxIncluded ? 0 : taxAmt));
 

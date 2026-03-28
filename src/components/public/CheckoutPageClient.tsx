@@ -12,6 +12,7 @@ import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, OrderType, PaymentMethod } from '@/types';
 import { trackEvent } from '@/lib/analytics';
 import { playSuccessChime, spawnConfetti } from '@/lib/celebration';
+import { computeTaxAmount } from '@/lib/tax-presets';
 
 const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl border border-gray-200 bg-gray-100 animate-pulse" />;
 
@@ -134,11 +135,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const taxIncluded = restaurant.tax_included ?? false;
   const taxLabel = restaurant.tax_label ?? 'Tax';
   const taxableBase = Math.max(0, cartTotal - discount);
-  const taxAmount = taxRate > 0
-    ? Math.round((taxIncluded
-        ? taxableBase - taxableBase / (1 + taxRate / 100)
-        : taxableBase * (taxRate / 100)) * 100) / 100
-    : 0;
+  const taxAmount = computeTaxAmount(taxableBase, taxRate, taxIncluded);
 
   const finalTotal = Math.max(0, cartTotal - discount + deliveryFee + tipAmount + (taxIncluded ? 0 : taxAmount));
 
