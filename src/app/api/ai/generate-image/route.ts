@@ -372,10 +372,30 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
       });
     }
 
-    // ─── FALLBACK: gemini-2.5-flash-image ─────────────────────────────────────
-    // Triggers when primary threw an error OR returned a response without image parts
+    // ─── FALLBACK 1: Imagen 4 Ultra ────────────────────────────────────────────
+    // Single-image calls don't hit rate limits — Imagen 4 produces high quality
     if (!imageBase64) {
-      logger.warn('gemini-3-pro-image-preview returned no image, falling back to gemini-2.5-flash-image');
+      logger.warn('gemini-3-pro-image-preview returned no image, trying Imagen 4');
+      try {
+        const imagenResponse = await ai.models.generateImages({
+          model: 'imagen-4.0-generate-001',
+          prompt,
+          config: { numberOfImages: 1, aspectRatio },
+        });
+        const firstImage = imagenResponse.generatedImages?.[0];
+        if (firstImage?.image?.imageBytes) {
+          imageBase64 = firstImage.image.imageBytes as string;
+        }
+      } catch (imagenErr) {
+        logger.warn('Imagen 4 failed', {
+          error: imagenErr instanceof Error ? imagenErr.message : String(imagenErr),
+        });
+      }
+    }
+
+    // ─── FALLBACK 2: gemini-2.5-flash-image ───────────────────────────────────
+    if (!imageBase64) {
+      logger.warn('Imagen 4 returned no image, trying gemini-2.5-flash-image');
       try {
         const flashResponse = await ai.models.generateContent({
           model: 'gemini-2.5-flash-image',
