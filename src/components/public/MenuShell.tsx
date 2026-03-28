@@ -676,7 +676,7 @@ export function MenuShell({
     catScrollRef.current?.scrollBy({ left: dir === 'left' ? -200 : 200, behavior: 'smooth' });
   };
 
-  // Shared pill renderer — premium style, works for both desktop and mobile
+  // Shared pill renderer — desktop only
   const categoryPill = (id: string, label: string, isActive: boolean) => (
     <button
       key={id}
@@ -699,8 +699,32 @@ export function MenuShell({
     </button>
   );
 
+  // Mobile pill renderer — modern squircle style, premium dark active state
+  const mobileCategoryPill = (id: string, label: string, isActive: boolean) => (
+    <button
+      key={id}
+      data-pill-id={id}
+      onClick={() => handleCategorySelect(id)}
+      style={{ touchAction: 'manipulation' }}
+      className={cn(
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap',
+        id === POPULAR_ID
+          ? isActive
+            ? 'bg-amber-500 text-white'
+            : 'bg-white/70 text-gray-500 active:bg-gray-200'
+          : isActive
+            ? 'bg-gray-900 text-white'
+            : 'bg-white/70 text-gray-500 active:bg-gray-200'
+      )}
+    >
+      {id === POPULAR_ID && <span className="text-[13px] leading-none">🔥</span>}
+      {label}
+    </button>
+  );
+
   const visibleCats = itemsByCategory.map((g) => g.category);
 
+  // Desktop fav / diet pills
   const favPill = hasMounted && favIds.length > 0 && (
     <button
       key="__favs__"
@@ -742,13 +766,55 @@ export function MenuShell({
     </button>
   ));
 
+  // Mobile fav / diet pills — squircle premium style
+  const mobileFavPill = hasMounted && favIds.length > 0 && (
+    <button
+      key="__favs__"
+      data-pill-id="__favs__"
+      onClick={() => { setShowFavs(!showFavs); if (!showFavs) setActiveCategory(null); }}
+      style={{ touchAction: 'manipulation' }}
+      className={cn(
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap',
+        showFavs
+          ? 'bg-gray-900 text-white'
+          : 'bg-white/70 text-gray-500 active:bg-gray-200'
+      )}
+    >
+      <Heart className={cn('w-3.5 h-3.5', showFavs ? 'fill-white' : '')} />
+      {favIds.length}
+    </button>
+  );
+
+  const mobileDietPills = availableDiets.length > 0 && availableDiets.map((dt) => (
+    <button
+      key={dt.id}
+      data-pill-id={`diet-${dt.id}`}
+      onClick={() => {
+        const next = activeDiet === dt.id ? null : dt.id;
+        setActiveDiet(next);
+        setShowFavs(false);
+        if (next) setActiveCategory(null);
+      }}
+      style={{ touchAction: 'manipulation' }}
+      className={cn(
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap',
+        activeDiet === dt.id
+          ? 'bg-gray-900 text-white'
+          : 'bg-white/70 text-gray-500 active:bg-gray-200'
+      )}
+    >
+      <span className="text-[13px]">{dt.emoji}</span>
+      {locale === 'en' ? dt.labelEn : dt.labelEs}
+    </button>
+  ));
+
   const filterDivider = (availableDiets.length > 0 || (hasMounted && favIds.length > 0)) && (
     <div className="flex-shrink-0 self-center w-px h-5 bg-gray-200 mx-1" aria-hidden />
   );
 
   const mobileCategoryPills = (
-    <div className="lg:hidden sticky z-40 bg-white border-b border-gray-200" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
-      <div ref={mobilePillsRef} className="py-1.5 px-4 flex gap-2 overflow-x-auto scrollbar-hide" style={{ touchAction: 'pan-x' }}>
+    <div className="lg:hidden sticky z-40 bg-[#f5f5f3] border-b border-gray-100" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
+      <div ref={mobilePillsRef} className="py-2 px-3 flex gap-1.5 overflow-x-auto scrollbar-hide" style={{ touchAction: 'pan-x' }}>
         {/* Large catalog: "Todos" pill */}
         {isLargeCatalog && (
           <button
@@ -756,16 +822,16 @@ export function MenuShell({
             onClick={() => { setActiveCatFilter(null); setActiveCategory(null); mainRef.current?.scrollTo({ top: 0, behavior: 'auto' }); }}
             style={{ touchAction: 'manipulation' }}
             className={cn(
-              'flex-shrink-0 inline-flex items-center px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap',
+              'flex-shrink-0 inline-flex items-center px-3.5 py-[7px] rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap',
               !activeCatFilter && !showFavs && !activeDiet
-                ? 'bg-emerald-500 text-white shadow-sm'
-                : 'bg-white border border-gray-200 text-gray-600 active:bg-gray-50'
+                ? 'bg-gray-900 text-white'
+                : 'bg-white/70 text-gray-500 active:bg-gray-200'
             )}
           >
             {t.filterAll}
           </button>
         )}
-        {visibleCats.map((cat) => categoryPill(
+        {visibleCats.map((cat) => mobileCategoryPill(
           cat.id,
           tName(cat, locale, defaultLocale),
           isLargeCatalog
@@ -773,20 +839,20 @@ export function MenuShell({
             : activeCategory === cat.id && !showFavs && !activeDiet
         ))}
         {filterDivider}
-        {dietPills}
-        {favPill}
+        {mobileDietPills}
+        {mobileFavPill}
         {/* Spacer so last pill doesn't sit under the fade */}
         <div className="w-8 flex-shrink-0" aria-hidden="true" />
       </div>
-      {/* Right-side fade gradient indicating more content */}
-      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-white to-transparent" aria-hidden="true" />
+      {/* Right-side fade gradient */}
+      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#f5f5f3] to-transparent" aria-hidden="true" />
     </div>
   );
 
   const ordersLeft = limitedMode ? Math.max(0, limitedMode.dailyLimit - limitedMode.ordersToday) : null;
 
   return (
-    <div className="relative h-[100dvh] flex flex-col bg-white lg:bg-[#f8f8f8] overflow-hidden overscroll-none touch-pan-y">
+    <div className="relative h-[100dvh] flex flex-col bg-[#f5f5f3] lg:bg-[#f8f8f8] overflow-hidden overscroll-none touch-pan-y">
       {/* Fixed header — absolute over banner on mobile when hasCover */}
       <div className={cn(
         'lg:flex-shrink-0 lg:relative',

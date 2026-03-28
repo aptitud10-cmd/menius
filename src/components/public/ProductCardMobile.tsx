@@ -73,8 +73,8 @@ export const ProductCardMobile = memo(function ProductCardMobile({
     <div
       onClick={handleCardClick}
       className={cn(
-        'flex flex-col bg-white rounded-2xl border border-gray-300 shadow-[0_4px_16px_rgba(0,0,0,0.12)] overflow-hidden transition-all duration-150',
-        outOfStock ? 'opacity-60 cursor-default' : 'cursor-pointer active:scale-[0.97] active:shadow-sm'
+        'flex flex-col bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(20,15,10,0.07)] overflow-hidden transition-all duration-150',
+        outOfStock ? 'opacity-60 cursor-default' : 'cursor-pointer active:scale-[0.97] active:shadow-[0_1px_4px_rgba(20,15,10,0.04)]'
       )}
     >
       {/* Image */}
@@ -88,7 +88,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
               fill
               sizes="50vw"
               priority={priority}
-              unoptimized={product.image_url.includes('.supabase.co/storage/')}
+              unoptimized={false}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
               className={cn('object-cover transition-opacity duration-150', imgLoaded ? 'opacity-100' : 'opacity-0', outOfStock && 'grayscale')}
@@ -117,7 +117,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
         )}
 
         {!outOfStock && cartQty > 0 && (
-          <span className="absolute bottom-2 left-2 min-w-[24px] h-[24px] px-1.5 rounded-full bg-emerald-500 text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none">
+          <span className="absolute bottom-2 left-2 min-w-[24px] h-[24px] px-1.5 rounded-full bg-[#05c8a7] text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none">
             {cartQty}
           </span>
         )}
@@ -172,7 +172,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
               onClick={handleAddClick}
               className={cn(
                 'w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 flex-shrink-0 shadow-md',
-                justAdded ? 'bg-emerald-600 text-white scale-110' : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                justAdded ? 'bg-[#00a189] text-white scale-110' : 'bg-[#00a189] text-white hover:bg-[#058070]'
               )}
             >
               {justAdded ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
