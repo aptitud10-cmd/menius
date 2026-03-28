@@ -8,7 +8,8 @@ import { buildFoodPrompt } from '@/lib/ai/food-prompt';
 
 const logger = createLogger('admin-regenerate-images');
 
-const BATCH_SIZE = 5;
+const BATCH_SIZE = 3;
+const BATCH_DELAY_MS = 800;
 
 export type RegenEvent =
   | { type: 'start'; total: number }
@@ -119,20 +120,52 @@ export async function POST(request: NextRequest) {
               });
 
               try {
-                // ─── Imagen 4 — text-only, no fallback chain ───────────────
-                const imagenResponse = await ai.models.generateImages({
-                  model: 'imagen-4.0-generate-001',
-                  prompt,
-                  config: { numberOfImages: 1, aspectRatio: '1:1' },
-                });
+                // ─── PRIMARY: gemini-2.5-flash-image (high quota, proven) ──
+                let imageBase64: string | null = null;
 
-                const firstImage = imagenResponse.generatedImages?.[0];
-                if (!firstImage?.image?.imageBytes) {
-                  logger.warn('No image bytes returned', { productId: product.id, name: product.name });
+                try {
+                  const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash-image',
+                    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                    config: { responseModalities: ['TEXT', 'IMAGE'] as any } as any,
+                  });
+                  const parts = (response as any).candidates?.[0]?.content?.parts ?? [];
+                  for (const part of parts) {
+                    if (part.inlineData?.data) { imageBase64 = part.inlineData.data; break; }
+                  }
+                } catch (flashErr) {
+                  logger.warn('gemini-2.5-flash-image failed, trying gemini-3-pro-image-preview', {
+                    productId: product.id,
+                    error: flashErr instanceof Error ? flashErr.message : String(flashErr),
+                  });
+                }
+
+                // ─── FALLBACK: gemini-3-pro-image-preview ─────────────────
+                if (!imageBase64) {
+                  try {
+                    const response = await ai.models.generateContent({
+                      model: 'gemini-3-pro-image-preview',
+                      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                      config: { responseModalities: ['TEXT', 'IMAGE'] as any } as any,
+                    });
+                    const parts = (response as any).candidates?.[0]?.content?.parts ?? [];
+                    for (const part of parts) {
+                      if (part.inlineData?.data) { imageBase64 = part.inlineData.data; break; }
+                    }
+                  } catch (proErr) {
+                    logger.warn('gemini-3-pro-image-preview fallback also failed', {
+                      productId: product.id,
+                      error: proErr instanceof Error ? proErr.message : String(proErr),
+                    });
+                  }
+                }
+
+                if (!imageBase64) {
+                  logger.warn('All models returned no image', { productId: product.id, name: product.name });
                   return false;
                 }
 
-                const buffer = Buffer.from(firstImage.image.imageBytes as string, 'base64');
+                const buffer = Buffer.from(imageBase64, 'base64');
                 const fileName = `admin-regen/${restaurantId}/${product.id}-${Date.now()}.jpg`;
 
                 const { error: uploadError } = await adminSupabase.storage
@@ -181,6 +214,10 @@ export async function POST(request: NextRequest) {
           }
 
           send({ type: 'progress', processed, total, generated, failed, currentBatch: '' });
+
+          if (i + BATCH_SIZE < total) {
+            await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
+          }
         }
 
         send({ type: 'done', processed, total, generated, failed });

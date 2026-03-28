@@ -366,40 +366,33 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
           break;
         }
       }
-    } catch {
-      // Fallback 1: Imagen 4
-      logger.warn('gemini-3-pro-image-preview failed, falling back to Imagen 4');
+    } catch (primaryErr) {
+      logger.warn('gemini-3-pro-image-preview failed', {
+        error: primaryErr instanceof Error ? primaryErr.message : String(primaryErr),
+      });
+    }
+
+    // ─── FALLBACK: gemini-2.5-flash-image ─────────────────────────────────────
+    // Triggers when primary threw an error OR returned a response without image parts
+    if (!imageBase64) {
+      logger.warn('gemini-3-pro-image-preview returned no image, falling back to gemini-2.5-flash-image');
       try {
-        // Imagen 4 is text-only — always use the full world-class prompt
-        const imagenResponse = await ai.models.generateImages({
-          model: 'imagen-4.0-generate-001',
-          prompt,
-          config: { numberOfImages: 1, aspectRatio },
-        });
-        const firstImage = imagenResponse.generatedImages?.[0];
-        if (firstImage?.image?.imageBytes) imageBase64 = firstImage.image.imageBytes as string;
-      } catch (imagenErr) {
-        // Fallback 2: gemini-2.5-flash-image
-        logger.warn('Imagen 4 failed, falling back to gemini-2.5-flash-image', {
-          error: imagenErr instanceof Error ? imagenErr.message : String(imagenErr),
-        });
-        const { GoogleGenerativeAI } = await import('@google/generative-ai');
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({
+        const flashResponse = await ai.models.generateContent({
           model: 'gemini-2.5-flash-image',
-          generationConfig: { responseModalities: ['TEXT', 'IMAGE'] as any } as any,
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          config: { responseModalities: ['TEXT', 'IMAGE'] as any } as any,
         });
-        // Fallback models are text-only — always use the full world-class prompt
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-        if (response.candidates?.[0]?.content?.parts) {
-          for (const part of response.candidates[0].content.parts) {
-            if ((part as any).inlineData) {
-              imageBase64 = (part as any).inlineData.data;
-              break;
-            }
+        const flashParts = (flashResponse as any).candidates?.[0]?.content?.parts ?? [];
+        for (const part of flashParts) {
+          if (part.inlineData?.data) {
+            imageBase64 = part.inlineData.data;
+            break;
           }
         }
+      } catch (flashErr) {
+        logger.warn('gemini-2.5-flash-image also failed', {
+          error: flashErr instanceof Error ? flashErr.message : String(flashErr),
+        });
       }
     }
 
