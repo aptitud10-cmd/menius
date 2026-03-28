@@ -21,7 +21,7 @@ export const grillHouseRestaurant: Restaurant = {
   currency: 'USD',
   locale: 'en',
   logo_url: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=200&h=200&fit=crop&q=80',
-  cover_image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1400&h=600&fit=crop&q=80',
+  cover_image_url: '/demo/cover-the-grill-house.jpg',
   description: 'Premium grilled meats and fresh ingredients. A modern dining experience since 2020.',
   address: '742 Harbor Blvd, Oceanside, CA 92054',
   latitude: 33.1959,

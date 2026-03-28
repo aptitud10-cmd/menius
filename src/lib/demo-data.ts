@@ -20,7 +20,7 @@ export const demoRestaurant: Restaurant = {
   timezone: 'America/Mexico_City',
   currency: 'USD',
   logo_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=200&h=200&fit=crop&q=80',
-  cover_image_url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1400&h=600&fit=crop&q=80',
+  cover_image_url: '/demo/cover-la-casa-del-sabor.jpg',
   description: 'Sabores auténticos mexicanos con un toque contemporáneo. Ingredientes frescos, recetas de la abuela.',
   address: 'Av. Paseo de la Reforma 456, Col. Juárez, CDMX',
   latitude: 19.4284,
