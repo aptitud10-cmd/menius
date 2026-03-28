@@ -1050,6 +1050,7 @@ export function CounterView({
                 if (res?.notification) showNotif(res.notification, order.id);
               }}
               lastNotif={notifStatus[selectedOrder.id]}
+              taxLabel={taxLabel}
             />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
@@ -1626,6 +1627,7 @@ function OrderDetail({
   order, currency, restaurantName, tab, eta, busyExtra, suggestedEta, isUpdating, t,
   onBack, onSetEta, onAdjustEta, onAccept, onMarkPreparing, onMarkReady, onDeliver,
   onCancelRequest, onPrint, onAssignDriver, onTipSaved, onNotify, lastNotif,
+  taxLabel,
 }: {
   order: Order; currency: string; restaurantName: string; tab: Tab;
   eta: number; busyExtra: number; suggestedEta?: number | null; isUpdating: boolean;
@@ -1643,6 +1645,7 @@ function OrderDetail({
   onTipSaved?: (orderId: string, tip: number) => void;
   onNotify: (order: Order) => Promise<void>;
   lastNotif?: { channel: string; success: boolean; error?: string; time: number };
+  taxLabel?: string;
 }) {
   const secs = elapsedSecs(order.created_at);
   const mins = elapsedMins(order.created_at);
