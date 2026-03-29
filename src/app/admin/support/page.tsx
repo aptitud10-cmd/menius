@@ -4,32 +4,83 @@ import { useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft, Mail, MessageSquare, Send, Loader2,
-  ExternalLink, CheckCircle, AlertCircle, Clock, Users,
+  ExternalLink, CheckCircle, AlertCircle, Users, Clock,
+  Zap,
 } from 'lucide-react';
 
-interface ContactEntry {
-  id: string;
-  restaurant: string;
-  email: string;
-  subject: string;
-  message: string;
-  status: 'open' | 'answered' | 'closed';
-  created_at: string;
+interface SendState {
+  status: 'idle' | 'loading' | 'done' | 'error';
+  msg?: string;
 }
 
-const MOCK_CONTACTS: ContactEntry[] = [];
+const RETENTION_USERS = [
+  {
+    key: 'rosario',
+    type: 'trial_ending' as const,
+    to: 'ros.june252823@gmail.com',
+    ownerName: 'Rosario Quispe Villaneva',
+    restaurantName: 'EL SABOR',
+    restaurantSlug: 'el-sabor',
+    trialEndDate: '31 de marzo de 2026',
+    daysLeft: 2,
+    badge: '⚠️ Trial vence en 2 días',
+    badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+    description: 'Email de transición: le explica que pasa a Free Forever con lo que incluye y la opción de quedarse en Starter.',
+  },
+  {
+    key: 'noelia',
+    type: 'engagement' as const,
+    to: 'noelia700@outlook.com',
+    ownerName: 'Noelia Larios',
+    restaurantName: 'Hot dogs perrones',
+    restaurantSlug: 'hot-dogs-perrones',
+    trialEndDate: '10 de abril de 2026',
+    daysLeft: 12,
+    badge: '🟢 Trial activo — 12 días',
+    badgeColor: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+    description: 'Email de engagement: tips de funciones que quizás no ha explorado + link a su menú público.',
+  },
+];
 
 export default function AdminSupportPage() {
+  const [sendStates, setSendStates] = useState<Record<string, SendState>>({});
   const [composeTo, setComposeTo] = useState('');
   const [composeSubject, setComposeSubject] = useState('');
   const [composeBody, setComposeBody] = useState('');
-  const [sending, setSending] = useState(false);
-  const [sendResult, setSendResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [customSend, setCustomSend] = useState<SendState>({ status: 'idle' });
 
-  const sendManualEmail = async () => {
+  const sendRetentionEmail = async (user: typeof RETENTION_USERS[0]) => {
+    setSendStates(prev => ({ ...prev, [user.key]: { status: 'loading' } }));
+    try {
+      const res = await fetch('/api/admin/retention-emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: user.type,
+          to: user.to,
+          ownerName: user.ownerName,
+          restaurantName: user.restaurantName,
+          restaurantSlug: user.restaurantSlug,
+          trialEndDate: user.trialEndDate,
+          daysLeft: user.daysLeft,
+        }),
+      });
+      const data = await res.json();
+      setSendStates(prev => ({
+        ...prev,
+        [user.key]: {
+          status: data.ok ? 'done' : 'error',
+          msg: data.ok ? `✓ Enviado a ${user.to}` : (data.error ?? 'Error al enviar'),
+        },
+      }));
+    } catch (e) {
+      setSendStates(prev => ({ ...prev, [user.key]: { status: 'error', msg: String(e) } }));
+    }
+  };
+
+  const sendCustomEmail = async () => {
     if (!composeTo || !composeSubject || !composeBody) return;
-    setSending(true);
-    setSendResult(null);
+    setCustomSend({ status: 'loading' });
     try {
       const res = await fetch('/api/admin/test-email', {
         method: 'POST',
@@ -37,12 +88,11 @@ export default function AdminSupportPage() {
         body: JSON.stringify({ to: composeTo, subject: composeSubject, body: composeBody }),
       });
       const data = await res.json();
-      setSendResult({ ok: data.ok, msg: data.ok ? 'Email enviado correctamente' : (data.error ?? 'Error al enviar') });
+      setCustomSend({ status: data.ok ? 'done' : 'error', msg: data.ok ? `✓ Enviado a ${composeTo}` : (data.error ?? 'Error') });
       if (data.ok) { setComposeTo(''); setComposeSubject(''); setComposeBody(''); }
     } catch (e) {
-      setSendResult({ ok: false, msg: String(e) });
+      setCustomSend({ status: 'error', msg: String(e) });
     }
-    setSending(false);
   };
 
   return (
@@ -58,19 +108,77 @@ export default function AdminSupportPage() {
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
               <MessageSquare className="w-6 h-6 text-blue-400" /> Centro de Soporte
             </h1>
-            <p className="text-sm text-gray-500 mt-1">Comunícate con tus usuarios directamente</p>
+            <p className="text-sm text-gray-500 mt-1">Emails de retención y comunicación con usuarios</p>
+          </div>
+        </div>
+
+        {/* Retention emails */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Zap className="w-4 h-4 text-amber-400" />
+            <h2 className="text-sm font-semibold text-white">Emails de seguimiento — usuarios activos</h2>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {RETENTION_USERS.map(user => {
+              const state = sendStates[user.key] ?? { status: 'idle' };
+              return (
+                <div key={user.key} className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div>
+                      <p className="text-white font-semibold">{user.restaurantName}</p>
+                      <p className="text-gray-500 text-xs mt-0.5">{user.ownerName} · {user.to}</p>
+                    </div>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full border flex-shrink-0 ${user.badgeColor}`}>
+                      {user.badge}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-gray-500 mb-4 leading-relaxed">{user.description}</p>
+
+                  {state.status === 'done' && (
+                    <div className="flex items-center gap-2 text-sm text-emerald-400 mb-3">
+                      <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                      {state.msg}
+                    </div>
+                  )}
+                  {state.status === 'error' && (
+                    <div className="flex items-center gap-2 text-sm text-red-400 mb-3">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      {state.msg}
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => sendRetentionEmail(user)}
+                      disabled={state.status === 'loading' || state.status === 'done'}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-sm text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {state.status === 'loading' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                      {state.status === 'loading' ? 'Enviando…' : state.status === 'done' ? '✓ Enviado' : 'Enviar email'}
+                    </button>
+                    <a
+                      href={`https://menius.app/${user.restaurantSlug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-gray-400 hover:text-white transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3" /> Ver menú
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* Compose email */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Custom email composer */}
+          <div className="lg:col-span-2">
             <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-6">
               <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <Send className="w-4 h-4 text-blue-400" /> Enviar email a usuario
+                <Send className="w-4 h-4 text-blue-400" /> Enviar email personalizado
               </h2>
-
               <div className="space-y-3">
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">Para (email)</label>
@@ -102,62 +210,29 @@ export default function AdminSupportPage() {
                     className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none focus:border-blue-500/50 transition-colors resize-none"
                   />
                 </div>
-
-                {sendResult && (
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm ${sendResult.ok ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
-                    {sendResult.ok ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
-                    {sendResult.msg}
+                {customSend.status !== 'idle' && (
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm ${customSend.status === 'done' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : customSend.status === 'error' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : ''}`}>
+                    {customSend.status === 'done' ? <CheckCircle className="w-4 h-4 flex-shrink-0" /> : customSend.status === 'error' ? <AlertCircle className="w-4 h-4 flex-shrink-0" /> : <Loader2 className="w-4 h-4 animate-spin" />}
+                    {customSend.msg ?? 'Enviando…'}
                   </div>
                 )}
-
                 <button
-                  onClick={sendManualEmail}
-                  disabled={sending || !composeTo || !composeSubject || !composeBody}
+                  onClick={sendCustomEmail}
+                  disabled={customSend.status === 'loading' || !composeTo || !composeSubject || !composeBody}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-sm text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  {sending ? 'Enviando…' : 'Enviar email'}
+                  {customSend.status === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {customSend.status === 'loading' ? 'Enviando…' : 'Enviar email'}
                 </button>
               </div>
             </div>
-
-            {/* Contacts log placeholder */}
-            <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-6">
-              <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-gray-500" /> Historial de contactos
-              </h2>
-              {MOCK_CONTACTS.length === 0 ? (
-                <div className="text-center py-8">
-                  <MessageSquare className="w-8 h-8 text-gray-700 mx-auto mb-3" />
-                  <p className="text-sm text-gray-600">Aún no hay contactos registrados.</p>
-                  <p className="text-xs text-gray-700 mt-1">Los mensajes de soporte aparecerán aquí cuando implementes el formulario de contacto.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {MOCK_CONTACTS.map(c => (
-                    <div key={c.id} className="border border-white/[0.06] rounded-xl p-4">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div>
-                          <p className="text-white text-sm font-medium">{c.subject}</p>
-                          <p className="text-gray-500 text-xs">{c.restaurant} · {c.email}</p>
-                        </div>
-                        <span className={`text-xs px-2 py-0.5 rounded-full border ${c.status === 'open' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : c.status === 'answered' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-gray-500 bg-white/[0.04] border-white/[0.08]'}`}>
-                          {c.status === 'open' ? 'Abierto' : c.status === 'answered' ? 'Respondido' : 'Cerrado'}
-                        </span>
-                      </div>
-                      <p className="text-gray-500 text-xs line-clamp-2">{c.message}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
 
-          {/* Sidebar: quick links and tips */}
+          {/* Sidebar */}
           <div className="space-y-4">
             <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
               <h3 className="text-sm font-semibold text-white mb-3">Accesos rápidos</h3>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Link href="/admin/users" className="flex items-center gap-2 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors text-sm text-gray-400 hover:text-white">
                   <Users className="w-4 h-4 text-indigo-400" /> Ver todos los usuarios
                 </Link>
@@ -172,34 +247,17 @@ export default function AdminSupportPage() {
 
             <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5">
               <h3 className="text-sm font-semibold text-amber-300 mb-2 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" /> Diagnóstico de emails
+                <Clock className="w-4 h-4" /> Diagnóstico de emails
               </h3>
-              <p className="text-xs text-amber-400/70 mb-3 leading-relaxed">
-                Si no recibes notificaciones de nuevos registros, verifica:
-              </p>
               <ol className="text-xs text-amber-400/70 space-y-1.5 list-decimal list-inside">
-                <li><strong className="text-amber-400">ADMIN_EMAIL</strong> está configurada en Vercel con tu email</li>
-                <li><strong className="text-amber-400">RESEND_API_KEY</strong> está activa y válida</li>
-                <li>El dominio <code className="text-amber-300">menius.app</code> está verificado en Resend</li>
-                <li>Revisa los logs de Vercel en el deployment más reciente</li>
+                <li><strong className="text-amber-400">ADMIN_EMAIL</strong> en Vercel env vars</li>
+                <li><strong className="text-amber-400">RESEND_API_KEY</strong> activa y válida</li>
+                <li>Dominio <code className="text-amber-300">menius.app</code> verificado en Resend</li>
               </ol>
-              <Link href="/admin" className="inline-flex items-center gap-1.5 mt-3 text-xs text-amber-400 hover:text-amber-300">
-                Probar email desde Admin <ExternalLink className="w-3 h-3" />
-              </Link>
-            </div>
-
-            <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-5">
-              <h3 className="text-sm font-semibold text-white mb-2">Canal de soporte actual</h3>
-              <p className="text-xs text-gray-500 leading-relaxed mb-3">
-                Tus usuarios actualmente pueden contactarte a través del chat Crisp integrado en el dashboard y por email a <strong className="text-gray-400">soporte@menius.app</strong>.
-              </p>
-              <p className="text-xs text-gray-600">
-                Para tickets más avanzados considera integrar Linear, Notion o un formulario de contacto en la app.
-              </p>
             </div>
           </div>
-
         </div>
+
       </div>
     </div>
   );

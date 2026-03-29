@@ -25,13 +25,14 @@ export interface OrderEmailItem {
 interface EmailMessage {
   to: string;
   from?: string;           // overrides default sender
+  replyTo?: string;        // reply-to address
   subject: string;
   html: string;
 }
 
 // ---------- Transport ----------
 
-export async function sendEmail({ to, from, subject, html }: EmailMessage): Promise<boolean> {
+export async function sendEmail({ to, from, replyTo, subject, html }: EmailMessage): Promise<boolean> {
   const apiKey = (process.env.RESEND_API_KEY ?? '').trim();
   if (!apiKey) {
     console.log('[Email] Resend not configured — skipping email to:', to);
@@ -39,18 +40,21 @@ export async function sendEmail({ to, from, subject, html }: EmailMessage): Prom
   }
 
   try {
+    const payload: Record<string, unknown> = {
+      from: from ?? 'MENIUS <noreply@menius.app>',
+      to: [to],
+      subject,
+      html,
+    };
+    if (replyTo) payload.reply_to = [replyTo];
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: from ?? 'MENIUS <noreply@menius.app>',
-        to: [to],
-        subject,
-        html,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
