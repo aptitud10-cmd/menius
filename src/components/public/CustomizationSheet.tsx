@@ -393,41 +393,59 @@ export function CustomizationSheet({
 
       {/* ── Smart complementary suggestions ── */}
       {!isEditing && (suggestedProducts ?? []).length > 0 && (
-        <div className="px-5 pt-5 pb-6">
-          <div className="flex items-center gap-1.5 mb-3">
+        <div className="pt-5 pb-6">
+          <div className="flex items-center gap-1.5 mb-3 px-5">
             <span className="text-sm" aria-hidden>✨</span>
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
               {locale === 'es' ? 'Agregar al pedido' : 'Add to your order'}
             </p>
           </div>
-          <div
-            className="flex gap-2.5 overflow-x-auto scrollbar-hide"
-            style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
-          >
-            {(suggestedProducts ?? []).slice(0, 4).map((p) => (
-              <div
-                key={p.id}
-                onClick={() => onSuggestAdd?.(p)}
-                className="flex-shrink-0 w-[130px] bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 cursor-pointer active:scale-[0.97] transition-transform"
-              >
-                {p.image_url && (
-                  <div className="relative w-full h-[80px] bg-gray-100">
-                    <Image src={p.image_url} alt={tName(p, locale, defaultLocale)} fill sizes="130px" className="object-cover" />
-                  </div>
-                )}
-                <div className="p-2.5">
-                  <p className="text-[11px] font-semibold text-gray-800 line-clamp-2 leading-tight mb-2">
-                    {tName(p, locale, defaultLocale)}
-                  </p>
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[11px] font-bold text-gray-900 tabular-nums">{fmtPrice(Number(p.price))}</span>
-                    <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                      <Plus className="w-3 h-3 text-emerald-600" />
+          {/* Outer wrapper is relative so the fade overlay can be positioned over the scroll area */}
+          <div className="relative">
+            <div
+              className="flex gap-2.5 overflow-x-auto"
+              style={{
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                paddingLeft: '20px',
+                paddingRight: '20px',
+              } as React.CSSProperties}
+            >
+              {(suggestedProducts ?? []).slice(0, 8).map((p) => (
+                <div
+                  key={p.id}
+                  onClick={() => onSuggestAdd?.(p)}
+                  className="flex-shrink-0 w-[120px] bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 cursor-pointer active:scale-[0.97] transition-transform"
+                >
+                  {p.image_url ? (
+                    <div className="relative w-full h-[76px] bg-gray-100">
+                      <Image src={p.image_url} alt={tName(p, locale, defaultLocale)} fill sizes="120px" className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-full h-[76px] bg-gray-100 flex items-center justify-center text-2xl">🍽️</div>
+                  )}
+                  <div className="p-2.5">
+                    <p className="text-[11px] font-semibold text-gray-800 line-clamp-2 leading-tight mb-2">
+                      {tName(p, locale, defaultLocale)}
+                    </p>
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-[11px] font-bold text-gray-900 tabular-nums">{fmtPrice(Number(p.price))}</span>
+                      <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                        <Plus className="w-3 h-3 text-emerald-600" />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+            {/* Fade gradient on the right edge to signal more scrollable content */}
+            {(suggestedProducts ?? []).length > 3 && (
+              <div
+                className="pointer-events-none absolute top-0 right-0 h-full w-10"
+                style={{ background: 'linear-gradient(to right, transparent, white)' }}
+              />
+            )}
           </div>
         </div>
       )}

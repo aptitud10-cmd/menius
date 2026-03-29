@@ -384,9 +384,12 @@ export function MenuShell({
     const items = useCartStore.getState().items;
     const item = items[index];
     if (item) {
-      setCustomization({ product: item.product, editIndex: index });
+      // Use the fresh product from the menu (includes up-to-date modifier_groups)
+      // falling back to the cart snapshot if not found (e.g. product was deleted)
+      const freshProduct = products.find((p) => p.id === item.product.id) ?? item.product;
+      setCustomization({ product: freshProduct, editIndex: index });
     }
-  }, []);
+  }, [products]);
 
   const handleCloseCustomization = useCallback(() => {
     setCustomization(null);
@@ -439,9 +442,9 @@ export function MenuShell({
   // Classifier shared between suggestedProducts and the data-merge below
   const classifyProduct = useCallback((catName: string, productName: string): 'drink' | 'dessert' | 'side' | 'main' => {
     const text = `${catName} ${productName}`.toLowerCase();
-    if (/bebida|drink|refresco|soda|agua\b|jugo|juice|cerveza|beer|vino|wine|shake|batido|caf[eé]|coffee|t[eé]\b|smoothie|limon|milkshake|horchata|margarita|coctel|cocktail|limonada|frapp[eé]|cappuccino|latte|espresso|gatorade|red bull|energy|agua mineral|sparkling|kombucha|infusion|chai|matcha|mojito|sangria|michelada|tepache|agua fresca|jamaica|tamarindo|hibiscus|lemonade|limeade|iced tea/i.test(text)) return 'drink';
-    if (/postre|dessert|helado|ice cream|pastel|cake|brownie|dulce|sweet|cookie|tiramisú|flan|churro|cheesecake|mousse|pudding|gelato|sorbet|donut|muffin|crepe|waffle|tarta|pie|eclair|profiterole|macaron|tres leches|panna cotta|tiramisu|cannoli|semifreddo/i.test(text)) return 'dessert';
-    if (/acompañ|side|ensalada|salad|sopa|soup|papa|fries|chips|guarnición|arroz|rice|wings|alitas|nachos|onion ring|mozzarella stick|guacamole|dip|coleslaw|breadstick|garlic bread|pan de ajo|bastones|elote|corn|coliflor|cauliflower|brócoli|broccoli|jalapeño|poppers|tater tot|yuca|plantain|patacón|tostón|boniato|camote|edamame|dumplings|gyoza|spring roll|rollo/i.test(text)) return 'side';
+    if (/bebida|bebidas|drink|drinks|refresco|soda|agua\b|jugo|jugos|juice|juices|cerveza|beer|vino|wine|shake|batido|batidos|caf[eé]|coffee|t[eé]\b|smoothie|smoothies|limon|milkshake|horchata|margarita|coctel|cocktail|limonada|frapp[eé]|cappuccino|latte|espresso|gatorade|red bull|energy|agua mineral|sparkling|kombucha|infusion|chai|matcha|mojito|sangria|michelada|tepache|agua fresca|jamaica|tamarindo|hibiscus|lemonade|limeade|iced tea|naranjada|fresco|fresca|refresco|zumo|beber|brebaje/i.test(text)) return 'drink';
+    if (/postre|postres|dessert|desserts|helado|helados|ice cream|pastel|cake|brownie|dulce|sweet|cookie|tiramisú|flan|churro|cheesecake|mousse|pudding|gelato|sorbet|donut|muffin|crepe|waffle|tarta|pie|eclair|profiterole|macaron|tres leches|panna cotta|tiramisu|cannoli|semifreddo|paleta|gelatina|mazapán/i.test(text)) return 'dessert';
+    if (/acompañ|acompañamiento|side|sides|ensalada|salad|sopa|soup|papa|fries|chips|guarnición|arroz|rice|wings|alitas|nachos|onion ring|mozzarella stick|guacamole|dip|coleslaw|breadstick|garlic bread|pan de ajo|bastones|elote|corn|coliflor|cauliflower|brócoli|broccoli|jalapeño|poppers|tater tot|yuca|plantain|patacón|tostón|boniato|camote|edamame|dumplings|gyoza|spring roll|rollo|extras?|adicional|complemento|entrante|entrada|appetizer|starter/i.test(text)) return 'side';
     return 'main';
   }, []);
 
@@ -461,13 +464,15 @@ export function MenuShell({
     const isAlcohol = (p: Product) =>
       alcoholRegex.test(`${p.name} ${categories.find((c) => c.id === p.category_id)?.name ?? ''}`);
 
+    const MAX_SUGGESTIONS = 6;
+
     // 1. Data-driven: pairings first, then co-occurrence
     const dataProducts: Product[] = dataBasedSuggestionIds
       .map((id) => productMap.get(id))
       .filter((p): p is Product => !!p && isEligible(p) && !(isBreakfastHour && isAlcohol(p)))
-      .slice(0, 4);
+      .slice(0, MAX_SUGGESTIONS);
 
-    if (dataProducts.length >= 4) return dataProducts;
+    if (dataProducts.length >= MAX_SUGGESTIONS) return dataProducts;
 
     // 2. Regex fallback to pad remaining slots
     const seen = new Set(dataProducts.map((p) => p.id));
@@ -476,10 +481,13 @@ export function MenuShell({
 
     const wantOrder: Array<'drink' | 'dessert' | 'side' | 'main'> = (() => {
       if (mainType === 'main')    return ['drink', 'side', 'dessert'];
-      if (mainType === 'side')    return ['drink', 'main'];
-      if (mainType === 'dessert') return ['drink'];
+      if (mainType === 'side')    return ['drink', 'main', 'dessert'];
+      if (mainType === 'dessert') return ['drink', 'main'];
+      // drink → suggest food
       return ['main', 'side', 'dessert'];
     })();
+
+    const remaining = MAX_SUGGESTIONS - dataProducts.length;
 
     const fallback = products
       .filter((p) => isEligible(p) && !seen.has(p.id) && !(isBreakfastHour && isAlcohol(p)))
@@ -487,14 +495,14 @@ export function MenuShell({
         const cat = categories.find((c) => c.id === p.category_id);
         const pType = classifyProduct(cat?.name ?? '', p.name);
         const typeRank = wantOrder.indexOf(pType);
-        if (typeRank === -1) return null;
-        const marginBoost = pType === 'drink' ? 0 : pType === 'side' ? 1 : 2;
-        const score = typeRank * 10 + marginBoost + (p.is_featured ? 0 : 3);
+        // Products that don't match any wanted type get a low-priority score instead of being excluded
+        const baseRank = typeRank === -1 ? wantOrder.length + 1 : typeRank;
+        const featuredBoost = p.is_featured ? 0 : 3;
+        const score = baseRank * 10 + featuredBoost;
         return { product: p, score };
       })
-      .filter((x): x is { product: Product; score: number } => x !== null)
       .sort((a, b) => a.score - b.score)
-      .slice(0, 4 - dataProducts.length)
+      .slice(0, remaining)
       .map(({ product }) => product);
 
     return [...dataProducts, ...fallback];

@@ -29,6 +29,7 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
   const [showPicker, setShowPicker] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const pairedIds = useMemo(() => new Set(pairings.map((p) => p.paired_id)), [pairings]);
   const eligibleProducts = useMemo(
@@ -45,38 +46,61 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
 
   const load = useCallback(async () => {
     setLoading(true);
+    setErrorMsg(null);
     const supabase = getSupabaseBrowser();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('product_pairings')
       .select('id, paired_id, sort_order')
       .eq('product_id', productId)
       .order('sort_order', { ascending: true });
-    setPairings((data as Pairing[]) ?? []);
+    if (error) {
+      setErrorMsg(
+        isEn
+          ? 'Could not load pairings. Make sure the product_pairings table exists in Supabase (run supabase/migration-suggestions.sql).'
+          : 'No se pudieron cargar las sugerencias. Asegúrate de haber ejecutado supabase/migration-suggestions.sql en Supabase.',
+      );
+    } else {
+      setPairings((data as Pairing[]) ?? []);
+    }
     setLoading(false);
-  }, [productId]);
+  }, [productId, isEn]);
 
   useEffect(() => { load(); }, [load]);
 
   const addPairing = async (paired: Product) => {
     const supabase = getSupabaseBrowser();
     setSaving(true);
+    setErrorMsg(null);
     const nextOrder = pairings.length;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('product_pairings')
       .insert({ product_id: productId, paired_id: paired.id, restaurant_id: restaurantId, sort_order: nextOrder })
       .select('id, paired_id, sort_order')
       .single();
-    if (data) setPairings((prev) => [...prev, data as Pairing]);
-    setSearch('');
-    setShowPicker(false);
+    if (error) {
+      setErrorMsg(
+        isEn
+          ? 'Could not save pairing. Make sure the product_pairings table exists in Supabase.'
+          : 'No se pudo guardar. Verifica que la tabla product_pairings exista en Supabase.',
+      );
+    } else if (data) {
+      setPairings((prev) => [...prev, data as Pairing]);
+      setSearch('');
+      setShowPicker(false);
+    }
     setSaving(false);
   };
 
   const removePairing = async (pairingId: string) => {
     const supabase = getSupabaseBrowser();
     setSaving(true);
-    await supabase.from('product_pairings').delete().eq('id', pairingId);
-    setPairings((prev) => prev.filter((p) => p.id !== pairingId));
+    setErrorMsg(null);
+    const { error } = await supabase.from('product_pairings').delete().eq('id', pairingId);
+    if (error) {
+      setErrorMsg(isEn ? 'Could not remove pairing.' : 'No se pudo eliminar la sugerencia.');
+    } else {
+      setPairings((prev) => prev.filter((p) => p.id !== pairingId));
+    }
     setSaving(false);
   };
 
@@ -220,6 +244,12 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
               {isEn
                 ? 'No pairings yet. Add products that go well with this item.'
                 : 'Sin sugerencias aún. Agrega productos que combinen bien con este artículo.'}
+            </p>
+          )}
+
+          {errorMsg && (
+            <p className="text-xs text-red-500 mt-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+              {errorMsg}
             </p>
           )}
         </>
