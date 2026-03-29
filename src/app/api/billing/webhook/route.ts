@@ -144,6 +144,15 @@ export async function POST(request: NextRequest) {
         }
 
         await auditLog(resolvedId, `webhook_${event.type}`, previousStatus, status, { plan_id: plan?.id, interval });
+
+        // Auto-seed style anchors when restaurant activates Pro or Business plan
+        if (resolvedId && ['pro', 'business'].includes(plan?.id ?? '') && ['active', 'trialing'].includes(status)) {
+          try {
+            const { seedStyleAnchors } = await import('@/lib/seed-style-anchors');
+            seedStyleAnchors(supabase, resolvedId).catch(() => {});
+          } catch { /* non-blocking — anchor seeding never blocks the webhook response */ }
+        }
+
         break;
       }
 
