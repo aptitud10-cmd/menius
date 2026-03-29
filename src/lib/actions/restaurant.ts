@@ -98,10 +98,12 @@ export async function createRestaurant(data: CreateRestaurantInput) {
 
   // Notify SaaS admin about new registration
   const adminEmail = process.env.ADMIN_EMAIL;
-  if (adminEmail) {
+  if (!adminEmail) {
+    console.warn('[createRestaurant] ADMIN_EMAIL env var is not set — admin notification skipped');
+  } else {
     try {
       const { sendEmail } = await import('@/lib/notifications/email');
-      sendEmail({
+      const sent = await sendEmail({
         to: adminEmail,
         subject: `🚀 Nuevo restaurante registrado: ${data.name}`,
         html: `
@@ -113,16 +115,20 @@ export async function createRestaurant(data: CreateRestaurantInput) {
               <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Email</td><td style="padding:8px 0;font-size:14px;">${user.email}</td></tr>
               <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Nombre</td><td style="padding:8px 0;font-size:14px;">${user.user_metadata?.full_name || 'N/A'}</td></tr>
               <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Moneda</td><td style="padding:8px 0;font-size:14px;">${data.currency}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Timezone</td><td style="padding:8px 0;font-size:14px;">${data.timezone}</td></tr>
               <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Fecha</td><td style="padding:8px 0;font-size:14px;">${new Date().toLocaleString('es')}</td></tr>
             </table>
             <div style="margin-top:20px;">
               <a href="${appUrl}/${data.slug}" style="display:inline-block;padding:10px 20px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;">Ver menú</a>
-              <a href="${appUrl}/admin" style="display:inline-block;padding:10px 20px;background:#059669;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;margin-left:8px;">Admin Panel</a>
+              <a href="${appUrl}/admin/users" style="display:inline-block;padding:10px 20px;background:#059669;color:#fff;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;margin-left:8px;">Admin Panel</a>
             </div>
           </div>`,
-      }).catch(() => {});
-    } catch {
-      // Admin notification failure should not block onboarding
+      });
+      if (!sent) {
+        console.error('[createRestaurant] Admin notification email failed to send — check RESEND_API_KEY and domain verification');
+      }
+    } catch (e) {
+      console.error('[createRestaurant] Admin notification error:', e);
     }
   }
 

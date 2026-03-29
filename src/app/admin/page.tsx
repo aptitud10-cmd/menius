@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  Store, ShoppingBag, Users, TrendingUp, Clock, AlertTriangle,
-  ExternalLink, Loader2, Shield, Megaphone, Sparkles, Activity, Wrench,
+  Store, ShoppingBag, TrendingUp, Clock, AlertTriangle,
+  ExternalLink, Loader2, Shield, Megaphone, Sparkles, Activity, Wrench, UserPlus, Mail,
 } from 'lucide-react';
 
 interface AdminStats {
@@ -12,6 +12,7 @@ interface AdminStats {
   totalOrders: number;
   todayOrders: number;
   weekOrders: number;
+  newThisWeek: number;
   planCounts: Record<string, number>;
   statusCounts: Record<string, number>;
   trialExpiringSoon: number;
@@ -24,6 +25,9 @@ interface AdminStats {
     plan: string;
     status: string;
     trial_end: string | null;
+    currency: string;
+    owner_email: string;
+    owner_name: string;
   }[];
 }
 
@@ -114,6 +118,12 @@ export default function AdminPage() {
             <p className="text-sm text-gray-500 mt-1">Panel de administración del SaaS</p>
           </div>
           <div className="flex items-center gap-2">
+            <Link href="/admin/users" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm text-white font-medium transition-colors">
+              <UserPlus className="w-4 h-4" /> Usuarios
+            </Link>
+            <Link href="/admin/support" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-sm text-white font-medium transition-colors">
+              <Mail className="w-4 h-4" /> Soporte
+            </Link>
             <Link href="/admin/health" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-sm text-white font-medium transition-colors">
               <Activity className="w-4 h-4" /> Salud
             </Link>
@@ -130,8 +140,9 @@ export default function AdminPage() {
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <StatCard icon={<Store className="w-5 h-5" />} label="Restaurantes" value={data.totalRestaurants} color="purple" />
+          <StatCard icon={<UserPlus className="w-5 h-5" />} label="Nuevos esta semana" value={data.newThisWeek ?? 0} color="indigo" />
           <StatCard icon={<ShoppingBag className="w-5 h-5" />} label="Pedidos totales" value={data.totalOrders} color="blue" />
           <StatCard icon={<TrendingUp className="w-5 h-5" />} label="Pedidos hoy" value={data.todayOrders} color="emerald" />
           <StatCard icon={<Clock className="w-5 h-5" />} label="Pedidos semana" value={data.weekOrders} color="amber" />
@@ -212,6 +223,7 @@ export default function AdminPage() {
               <thead>
                 <tr className="border-b border-white/[0.06] text-gray-500 text-xs uppercase tracking-wider">
                   <th className="text-left px-5 py-3 font-medium">Restaurante</th>
+                  <th className="text-left px-5 py-3 font-medium">Dueño</th>
                   <th className="text-left px-5 py-3 font-medium">Plan</th>
                   <th className="text-left px-5 py-3 font-medium">Estado</th>
                   <th className="text-right px-5 py-3 font-medium">Trial</th>
@@ -223,11 +235,27 @@ export default function AdminPage() {
                 {data.restaurants.map(r => {
                   const info = STATUS_LABELS[r.status] ?? STATUS_LABELS.none;
                   const trial = daysLeft(r.trial_end);
+                  const isNew = (Date.now() - new Date(r.created_at).getTime()) < 7 * 24 * 60 * 60 * 1000;
                   return (
                     <tr key={r.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
                       <td className="px-5 py-3">
-                        <p className="text-white font-medium">{r.name}</p>
-                        <p className="text-gray-600 text-xs">/{r.slug}</p>
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <p className="text-white font-medium flex items-center gap-1.5">
+                              {r.name}
+                              {isNew && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-semibold">NUEVO</span>}
+                            </p>
+                            <p className="text-gray-600 text-xs">/{r.slug} · {r.currency}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3">
+                        {r.owner_name && <p className="text-gray-300 text-sm">{r.owner_name}</p>}
+                        {r.owner_email && (
+                          <a href={`mailto:${r.owner_email}`} className="text-gray-500 text-xs hover:text-purple-400 transition-colors">
+                            {r.owner_email}
+                          </a>
+                        )}
                       </td>
                       <td className="px-5 py-3 text-gray-400">{PLAN_LABELS[r.plan] ?? r.plan}</td>
                       <td className="px-5 py-3">
@@ -376,6 +404,7 @@ function EmailTestButton() {
 function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color: string }) {
   const colors: Record<string, { bg: string; text: string }> = {
     purple: { bg: 'bg-purple-500/10', text: 'text-purple-400' },
+    indigo: { bg: 'bg-indigo-500/10', text: 'text-indigo-400' },
     blue: { bg: 'bg-blue-500/10', text: 'text-blue-400' },
     emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
     amber: { bg: 'bg-amber-500/10', text: 'text-amber-400' },
