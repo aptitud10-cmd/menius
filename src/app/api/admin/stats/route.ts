@@ -37,7 +37,7 @@ export async function GET() {
     ]);
 
     // Fetch auth users to get emails and names (requires service role)
-    const ownerIds = [...new Set((recentRestaurants ?? []).map(r => r.owner_user_id).filter(Boolean))];
+    const ownerIds = Array.from(new Set((recentRestaurants ?? []).map(r => r.owner_user_id).filter(Boolean)));
     const userMap = new Map<string, { email: string; full_name: string }>();
     if (ownerIds.length > 0) {
       try {
