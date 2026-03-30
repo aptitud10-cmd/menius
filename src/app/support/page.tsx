@@ -1,10 +1,18 @@
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import PublicSupportPage from './PublicSupportPage';
 
-export async function generateMetadata(): Promise<Metadata> {
+async function resolveLocale(): Promise<'en' | 'es'> {
   const cookieStore = await cookies();
-  const locale = cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es';
+  const cookieLocale = cookieStore.get('menius_locale')?.value;
+  if (cookieLocale === 'en') return 'en';
+  if (cookieLocale === 'es') return 'es';
+  const acceptLang = (await headers()).get('accept-language') ?? '';
+  return acceptLang.toLowerCase().startsWith('en') ? 'en' : 'es';
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await resolveLocale();
   return locale === 'en'
     ? {
         title: 'Support — MENIUS',
@@ -17,7 +25,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function SupportPage() {
-  const cookieStore = await cookies();
-  const locale = cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es';
+  const locale = await resolveLocale();
   return <PublicSupportPage locale={locale} />;
 }

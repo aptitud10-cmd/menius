@@ -165,13 +165,14 @@ export function DashboardNav({ slug, mobile, planId = 'free' }: DashboardNavProp
           <ExternalLink className="w-[18px] h-[18px] text-gray-400" />
           {t.nav_viewMenu}
         </Link>
-        <a
-          href={`mailto:soporte@menius.app?subject=Soporte%20MENIUS&body=Hola%2C%20necesito%20ayuda%20con%3A%0A%0A`}
+        <Link
+          href="/support"
+          onClick={() => setOpen(false)}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
         >
           <LifeBuoy className="w-[18px] h-[18px] text-gray-400" />
           {t.nav_support}
-        </a>
+        </Link>
         <button
           onClick={() => setLocale(locale === 'es' ? 'en' : 'es')}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors w-full text-left"
