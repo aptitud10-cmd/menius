@@ -133,7 +133,7 @@ export function PricingTable({ onSelect, currentPlan, loading, compact, hideFree
                   'text-sm mt-1',
                   isBusiness ? 'text-gray-400' : 'text-gray-500',
                 )}>
-                  {plan.description}
+                  {locale === 'en' ? (plan.description_en ?? plan.description) : plan.description}
                 </p>
 
                 {/* Price */}
@@ -170,42 +170,48 @@ export function PricingTable({ onSelect, currentPlan, loading, compact, hideFree
                 </div>
 
                 {/* Features */}
-                <ul className="space-y-2.5 flex-1 mb-6">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5">
-                      <Check
-                        className={cn(
-                          'w-4 h-4 flex-shrink-0 mt-0.5',
-                          isPopular ? 'text-emerald-600' : isBusiness ? 'text-emerald-400' : 'text-emerald-600',
-                        )}
-                        strokeWidth={2.5}
-                      />
-                      <span className={cn(
-                        'text-sm leading-snug',
-                        isBusiness ? 'text-gray-300' : 'text-gray-600',
-                      )}>
-                        {f}
-                      </span>
-                    </li>
-                  ))}
-                  {plan.excluded.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5 opacity-50">
-                      <X
-                        className={cn(
-                          'w-4 h-4 flex-shrink-0 mt-0.5',
-                          isBusiness ? 'text-gray-500' : 'text-gray-400',
-                        )}
-                        strokeWidth={2}
-                      />
-                      <span className={cn(
-                        'text-sm leading-snug line-through',
-                        isBusiness ? 'text-gray-500' : 'text-gray-400',
-                      )}>
-                        {f}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                {(() => {
+                  const planFeatures = locale === 'en' ? (plan.features_en ?? plan.features) : plan.features;
+                  const planExcluded = locale === 'en' ? (plan.excluded_en ?? plan.excluded) : plan.excluded;
+                  return (
+                    <ul className="space-y-2.5 flex-1 mb-6">
+                      {planFeatures.map((f) => (
+                        <li key={f} className="flex items-start gap-2.5">
+                          <Check
+                            className={cn(
+                              'w-4 h-4 flex-shrink-0 mt-0.5',
+                              isPopular ? 'text-emerald-600' : isBusiness ? 'text-emerald-400' : 'text-emerald-600',
+                            )}
+                            strokeWidth={2.5}
+                          />
+                          <span className={cn(
+                            'text-sm leading-snug',
+                            isBusiness ? 'text-gray-300' : 'text-gray-600',
+                          )}>
+                            {f}
+                          </span>
+                        </li>
+                      ))}
+                      {planExcluded.map((f) => (
+                        <li key={f} className="flex items-start gap-2.5 opacity-50">
+                          <X
+                            className={cn(
+                              'w-4 h-4 flex-shrink-0 mt-0.5',
+                              isBusiness ? 'text-gray-500' : 'text-gray-400',
+                            )}
+                            strokeWidth={2}
+                          />
+                          <span className={cn(
+                            'text-sm leading-snug line-through',
+                            isBusiness ? 'text-gray-500' : 'text-gray-400',
+                          )}>
+                            {f}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                })()}
 
                 {/* CTA */}
                 {isFree ? (

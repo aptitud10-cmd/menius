@@ -272,7 +272,7 @@ export default function BillingPage() {
     ? Math.max(0, Math.ceil((new Date(sub.trial_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0;
   const periodEnd = sub?.current_period_end
-    ? new Date(sub.current_period_end).toLocaleDateString('es-MX', {
+    ? new Date(sub.current_period_end).toLocaleDateString(locale === 'en' ? 'en-US' : 'es-MX', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -422,7 +422,7 @@ export default function BillingPage() {
                 {/* Top 4 features */}
                 <div className="mt-5 pt-5 border-t border-gray-100">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {planInfo.features.slice(0, 6).map((f) => (
+                    {(locale === 'en' ? (planInfo.features_en ?? planInfo.features) : planInfo.features).slice(0, 6).map((f) => (
                       <div key={f} className="flex items-center gap-2 text-sm text-gray-600">
                         <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                         {f}

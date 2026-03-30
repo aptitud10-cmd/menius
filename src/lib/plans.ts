@@ -9,6 +9,7 @@ export interface PlanConfig {
   id: PlanId;
   name: string;
   description: string;
+  description_en?: string;
   /** $0 for the free plan */
   price: { monthly: number; annual: number };
   /** Empty strings for the free plan (no Stripe product) */
@@ -22,7 +23,9 @@ export interface PlanConfig {
     maxOrdersPerMonth: number;
   };
   features: string[];
+  features_en?: string[];
   excluded: string[];
+  excluded_en?: string[];
   popular?: boolean;
   /** True for the plan that requires no payment card */
   isFree?: boolean;
@@ -39,6 +42,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     id: 'free',
     name: 'Free',
     description: 'Empieza gratis. Sin tarjeta de crédito.',
+    description_en: 'Start for free. No credit card required.',
     price: { monthly: 0, annual: 0 },
     stripePriceId: { monthly: '', annual: '' },
     limits: {
@@ -55,6 +59,13 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Importar menú desde foto con IA',
       'Soporte por email',
     ],
+    features_en: [
+      'Digital menu + QR (up to 5 tables)',
+      'Dine-in only',
+      '50 orders / month',
+      'Import menu from photo with AI',
+      'Email support',
+    ],
     excluded: [
       'Sin marca "Powered by MENIUS"',
       'Pickup y Delivery',
@@ -63,12 +74,21 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Analytics',
       'Pagos online',
     ],
+    excluded_en: [
+      'No "Powered by MENIUS" branding',
+      'Pickup & Delivery',
+      'MENIUS AI assistant',
+      'WhatsApp / email notifications',
+      'Analytics',
+      'Online payments',
+    ],
     isFree: true,
   },
   starter: {
     id: 'starter',
     name: 'Starter',
     description: 'Para restaurantes que inician su digitalización.',
+    description_en: 'For restaurants starting their digital journey.',
     price: { monthly: 39, annual: 390 },
     stripePriceId: {
       monthly: (process.env.STRIPE_PRICE_STARTER_MONTHLY ?? '').trim(),
@@ -95,6 +115,20 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       '2 usuarios administradores',
       'Soporte por chat',
     ],
+    features_en: [
+      'Unlimited products & categories',
+      'Digital menu with photos',
+      'QR for up to 15 tables',
+      'Online orders (dine-in + pickup)',
+      'No MENIUS branding on menu',
+      'MENIUS AI (business assistant)',
+      'Import menu from photo with AI',
+      'AI image generation',
+      'Basic analytics (last 30 days)',
+      'Sound notifications',
+      '2 admin users',
+      'Chat support',
+    ],
     excluded: [
       'Delivery',
       'Notificaciones WhatsApp',
@@ -104,11 +138,21 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Gestión de equipo',
       'Exportar reportes',
     ],
+    excluded_en: [
+      'Delivery',
+      'WhatsApp notifications',
+      'Advanced analytics',
+      'Promotions & coupons',
+      'Customer reviews',
+      'Team management',
+      'Export reports',
+    ],
   },
   pro: {
     id: 'pro',
     name: 'Pro',
     description: 'Para restaurantes que quieren crecer y vender más.',
+    description_en: 'For restaurants ready to grow and sell more.',
     price: { monthly: 79, annual: 790 },
     stripePriceId: {
       monthly: (process.env.STRIPE_PRICE_PRO_MONTHLY ?? '').trim(),
@@ -136,13 +180,30 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Pagos online con tarjeta (Stripe)',
       'Chat prioritario 24h',
     ],
+    features_en: [
+      'Everything in Starter',
+      'Up to 50 tables',
+      'Delivery + delivery address',
+      'WhatsApp notifications (500 msgs/mo)',
+      'Email notifications',
+      'Real-time kitchen KDS',
+      'Advanced analytics (full history)',
+      'Promotions & discount coupons',
+      'Customer reviews',
+      'Team management (5 users)',
+      'Export PDF / CSV reports',
+      'Online card payments (Stripe)',
+      'Priority chat 24h',
+    ],
     excluded: [],
+    excluded_en: [],
     popular: true,
   },
   business: {
     id: 'business',
     name: 'Business',
     description: 'Para cadenas y franquicias con múltiples ubicaciones.',
+    description_en: 'For chains & franchises with multiple locations.',
     price: { monthly: 149, annual: 1490 },
     stripePriceId: {
       monthly: (process.env.STRIPE_PRICE_BUSINESS_MONTHLY ?? '').trim(),
@@ -166,7 +227,19 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Account manager dedicado (chat)',
       'Tickets SLA < 1h',
     ],
+    features_en: [
+      'Everything in Pro',
+      'Unlimited tables & users',
+      'Up to 3 branches included',
+      'WhatsApp notifications (2,000 msgs/mo)',
+      'Custom domain',
+      'Full data export (CSV / Excel)',
+      'API access',
+      'Dedicated account manager (chat)',
+      'SLA tickets < 1h',
+    ],
     excluded: [],
+    excluded_en: [],
   },
 };
 
