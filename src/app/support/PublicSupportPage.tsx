@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   MessageSquare, Mail, ChevronDown, ChevronUp, Send,
   Loader2, CheckCircle, AlertCircle, ArrowRight, Zap,
-  BookOpen, HelpCircle, Shield, Clock,
+  BookOpen, HelpCircle, Shield, Clock, Search, Bot, X,
 } from 'lucide-react';
 
 type Locale = 'es' | 'en';
@@ -94,29 +94,51 @@ const GUIDES_EN = [
   { icon: '📊', title: 'View analytics', desc: 'Discover your most popular dishes', href: 'https://menius.app/app' },
 ];
 
+const CATEGORIES_ES = [
+  { id: 'billing', label: 'Facturación / Planes' },
+  { id: 'technical', label: 'Problema técnico' },
+  { id: 'menu', label: 'Mi menú o productos' },
+  { id: 'account', label: 'Mi cuenta' },
+  { id: 'feature', label: 'Sugerencia o mejora' },
+  { id: 'other', label: 'Otro' },
+];
+
+const CATEGORIES_EN = [
+  { id: 'billing', label: 'Billing / Plans' },
+  { id: 'technical', label: 'Technical issue' },
+  { id: 'menu', label: 'My menu or products' },
+  { id: 'account', label: 'My account' },
+  { id: 'feature', label: 'Feature request' },
+  { id: 'other', label: 'Other' },
+];
+
 const T = {
   es: {
     helpBadge: 'Centro de ayuda',
     heroTitle1: '¿En qué te podemos',
     heroTitle2: 'ayudar hoy?',
-    heroSub: 'Respondemos en menos de 24 horas. También puedes chatear con nosotros en tiempo real.',
+    heroSub: 'Respondemos en menos de 24 horas. El asistente IA en tu dashboard puede resolver dudas al instante.',
     sendMsg: 'Enviar mensaje',
     channelsTitle: 'Canales de atención',
-    chatTitle: 'Chat en vivo',
-    chatDesc: 'Habla con el equipo en tiempo real desde el dashboard.',
-    chatCta: 'Ir al dashboard',
+    chatTitle: 'Asistente IA',
+    chatDesc: 'Resuelve dudas al instante con el asistente IA disponible en tu dashboard.',
+    chatCta: 'Abrir asistente',
     emailTitle: 'Email',
     emailDesc: 'Enviamos respuesta en menos de 24 horas hábiles.',
     scheduleTitle: 'Horario',
     scheduleDesc: 'Lunes a viernes, 9:00 am – 7:00 pm (GMT-5). Fines de semana por email.',
-    available: 'Estamos disponibles 🟢',
+    available: 'Disponibles ahora 🟢',
     guidesTitle: 'Guías rápidas',
     faqTitle: 'Preguntas frecuentes',
+    faqSearch: 'Buscar preguntas…',
+    faqNoResults: 'No encontramos resultados para esa búsqueda.',
+    categoryLabel: 'Tipo de consulta',
+    categoryPlaceholder: 'Selecciona una categoría (opcional)',
     contactTeam: 'Contacta al equipo',
     contactDesc: '¿Necesitas ayuda con tu cuenta, un bug o tienes una idea para mejorar MENIUS? Escríbenos y te respondemos en menos de 24 horas.',
     privacy: 'Tu información es privada y nunca se comparte.',
     responseTime: 'Respondemos en menos de 24 horas hábiles.',
-    urgency: 'Para urgencias, usa el chat desde tu dashboard.',
+    urgency: 'Para respuesta rápida, usa el Asistente IA en tu dashboard.',
     namePlaceholder: 'María García',
     nameLabel: 'Tu nombre',
     emailLabel: 'Tu email',
@@ -128,7 +150,7 @@ const T = {
     successTitle: '¡Mensaje enviado!',
     successMsg: '¡Mensaje recibido! Te respondemos en menos de 24 horas.',
     anotherMsg: 'Enviar otro mensaje',
-    errorDefault: 'Error al enviar. Por favor intenta por WhatsApp o email directo.',
+    errorDefault: 'Error al enviar. Por favor escríbenos a soporte@menius.app directamente.',
     errorNetwork: 'Error de red. Escríbenos a soporte@menius.app directamente.',
     footerCopy: 'Menús digitales para restaurantes',
     myDashboard: 'Mi dashboard',
@@ -137,24 +159,28 @@ const T = {
     helpBadge: 'Help Center',
     heroTitle1: 'How can we',
     heroTitle2: 'help you today?',
-    heroSub: 'We respond in under 24 hours. You can also chat with us in real time.',
+    heroSub: 'We respond in under 24 hours. The AI assistant in your dashboard can resolve questions instantly.',
     sendMsg: 'Send a message',
     channelsTitle: 'Support channels',
-    chatTitle: 'Live chat',
-    chatDesc: 'Talk to the team in real time from the dashboard.',
-    chatCta: 'Go to dashboard',
+    chatTitle: 'AI Assistant',
+    chatDesc: 'Resolve questions instantly with the AI assistant available in your dashboard.',
+    chatCta: 'Open assistant',
     emailTitle: 'Email',
     emailDesc: 'We reply within 24 business hours.',
     scheduleTitle: 'Hours',
     scheduleDesc: 'Monday–Friday, 9:00 am – 7:00 pm (GMT-5). Weekends by email.',
-    available: 'We are available 🟢',
+    available: 'Available now 🟢',
     guidesTitle: 'Quick guides',
     faqTitle: 'Frequently asked questions',
+    faqSearch: 'Search questions…',
+    faqNoResults: 'No results found for that search.',
+    categoryLabel: 'Topic',
+    categoryPlaceholder: 'Select a category (optional)',
     contactTeam: 'Contact the team',
     contactDesc: 'Need help with your account, found a bug, or have an idea to improve MENIUS? Write to us and we\'ll respond in under 24 hours.',
     privacy: 'Your information is private and never shared.',
     responseTime: 'We respond in under 24 business hours.',
-    urgency: 'For urgent issues, use the chat from your dashboard.',
+    urgency: 'For a quick response, use the AI Assistant in your dashboard.',
     namePlaceholder: 'John Smith',
     nameLabel: 'Your name',
     emailLabel: 'Your email',
@@ -166,7 +192,7 @@ const T = {
     successTitle: 'Message sent!',
     successMsg: 'Message received! We\'ll get back to you within 24 hours.',
     anotherMsg: 'Send another message',
-    errorDefault: 'Error sending. Please try via email directly.',
+    errorDefault: 'Error sending. Please email us at soporte@menius.app directly.',
     errorNetwork: 'Network error. Email us at soporte@menius.app directly.',
     footerCopy: 'Digital menus for restaurants',
     myDashboard: 'My dashboard',
@@ -177,29 +203,42 @@ export default function PublicSupportPage({ locale = 'es' }: { locale?: Locale }
   const t = T[locale];
   const FAQS = locale === 'en' ? FAQS_EN : FAQS_ES;
   const GUIDES = locale === 'en' ? GUIDES_EN : GUIDES_ES;
+  const CATEGORIES = locale === 'en' ? CATEGORIES_EN : CATEGORIES_ES;
 
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [faqSearch, setFaqSearch] = useState('');
+  const [category, setCategory] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [sendState, setSendState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [sendMsg, setSendMsg] = useState('');
 
+  const filteredFaqs = useMemo(() => {
+    const q = faqSearch.trim().toLowerCase();
+    if (!q) return FAQS;
+    return FAQS.filter(
+      (f) => f.q.toLowerCase().includes(q) || f.a.toLowerCase().includes(q),
+    );
+  }, [faqSearch, FAQS]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !message) return;
     setSendState('loading');
+    const categoryLabel = CATEGORIES.find((c) => c.id === category)?.label ?? '';
+    const fullMessage = categoryLabel ? `[${categoryLabel}] ${message}` : message;
     try {
       const res = await fetch('/api/support/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, message }),
+        body: JSON.stringify({ name, email, message: fullMessage }),
       });
       const data = await res.json();
       if (data.ok) {
         setSendState('done');
         setSendMsg(t.successMsg);
-        setName(''); setEmail(''); setMessage('');
+        setName(''); setEmail(''); setMessage(''); setCategory('');
       } else {
         setSendState('error');
         setSendMsg(data.error ?? t.errorDefault);
@@ -217,7 +256,7 @@ export default function PublicSupportPage({ locale = 'es' }: { locale?: Locale }
       <nav className="border-b border-white/[0.06] sticky top-0 bg-[#050505]/90 backdrop-blur-xl z-10">
         <div className="max-w-6xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
           <Link href="/" className="text-xl font-bold text-white tracking-tight">
-            MENIUS<span className="text-purple-500">.</span>
+            MENIUS<span style={{ color: '#05c8a7' }}>.</span>
           </Link>
           <div className="flex items-center gap-2">
             <Link href="/app" className="hidden sm:flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors">
@@ -230,12 +269,12 @@ export default function PublicSupportPage({ locale = 'es' }: { locale?: Locale }
       {/* Hero */}
       <section className="border-b border-white/[0.06]">
         <div className="max-w-6xl mx-auto px-4 md:px-8 py-20 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-semibold mb-6 tracking-wide uppercase">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-6 tracking-wide uppercase border" style={{ background: 'rgba(5,200,167,0.08)', borderColor: 'rgba(5,200,167,0.2)', color: '#05c8a7' }}>
             <HelpCircle className="w-3.5 h-3.5" /> {t.helpBadge}
           </div>
           <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-4">
-            {t.heroTitle1}<br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-violet-300">
+            {t.heroTitle1}<br />
+            <span className="text-gradient">
               {t.heroTitle2}
             </span>
           </h1>
@@ -245,7 +284,10 @@ export default function PublicSupportPage({ locale = 'es' }: { locale?: Locale }
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
             <a
               href="#contact"
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold transition-colors"
+              className="flex items-center gap-2 px-5 py-3 rounded-xl text-white text-sm font-semibold transition-colors"
+              style={{ background: '#05c8a7' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#04a88c')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#05c8a7')}
             >
               <Send className="w-4 h-4" /> {t.sendMsg}
             </a>
@@ -265,13 +307,14 @@ export default function PublicSupportPage({ locale = 'es' }: { locale?: Locale }
         <section>
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6">{t.channelsTitle}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-2xl p-6 hover:border-purple-500/30 transition-colors group">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-4">
-                <MessageSquare className="w-5 h-5 text-purple-400" />
+            {/* AI Assistant — honest replacement for "live chat" */}
+            <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-2xl p-6 transition-colors group" style={{ ['--hover-border' as string]: 'rgba(5,200,167,0.3)' }} onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(5,200,167,0.3)')} onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)')}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 border" style={{ background: 'rgba(5,200,167,0.08)', borderColor: 'rgba(5,200,167,0.2)' }}>
+                <Bot className="w-5 h-5" style={{ color: '#05c8a7' }} />
               </div>
               <h3 className="font-semibold text-white mb-1">{t.chatTitle}</h3>
               <p className="text-sm text-gray-500 mb-4">{t.chatDesc}</p>
-              <a href="/app" className="text-sm text-purple-400 font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
+              <a href="/app" className="text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all" style={{ color: '#05c8a7' }}>
                 {t.chatCta} <ArrowRight className="w-3.5 h-3.5" />
               </a>
             </div>
@@ -317,34 +360,65 @@ export default function PublicSupportPage({ locale = 'es' }: { locale?: Locale }
           </div>
         </section>
 
-        {/* FAQ */}
+        {/* FAQ with search */}
         <section>
-          <div className="flex items-center gap-2 mb-6">
-            <Zap className="w-4 h-4 text-purple-400" />
-            <h2 className="text-sm font-bold text-white">{t.faqTitle}</h2>
-          </div>
-          <div className="space-y-2">
-            {FAQS.map((faq, i) => (
-              <div key={i} className="bg-[#0a0a0a] border border-white/[0.06] rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4" style={{ color: '#05c8a7' }} />
+              <h2 className="text-sm font-bold text-white">{t.faqTitle}</h2>
+            </div>
+            {/* Search bar */}
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500 pointer-events-none" />
+              <input
+                type="text"
+                value={faqSearch}
+                onChange={e => { setFaqSearch(e.target.value); setOpenFaq(null); }}
+                placeholder={t.faqSearch}
+                className="w-full pl-8 pr-8 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none transition-colors"
+                style={{ ['--tw-ring-color' as string]: '#05c8a7' }}
+                onFocus={e => (e.currentTarget.style.borderColor = 'rgba(5,200,167,0.4)')}
+                onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
+              />
+              {faqSearch && (
                 <button
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-medium text-white hover:text-purple-400 transition-colors"
+                  onClick={() => setFaqSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
                 >
-                  <span>{faq.q}</span>
-                  {openFaq === i ? (
-                    <ChevronUp className="w-4 h-4 text-gray-500 flex-shrink-0 ml-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-500 flex-shrink-0 ml-4" />
-                  )}
+                  <X className="w-3.5 h-3.5" />
                 </button>
-                {openFaq === i && (
-                  <div className="px-5 pb-5 border-t border-white/[0.06]">
-                    <p className="text-sm text-gray-400 leading-relaxed pt-4">{faq.a}</p>
-                  </div>
-                )}
-              </div>
-            ))}
+              )}
+            </div>
           </div>
+
+          {filteredFaqs.length === 0 ? (
+            <div className="text-center py-12 text-gray-500 text-sm">
+              {t.faqNoResults}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredFaqs.map((faq, i) => (
+                <div key={i} className="bg-[#0a0a0a] border border-white/[0.06] rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                    className="w-full flex items-center justify-between px-5 py-4 text-left text-sm font-medium text-white transition-colors hover:opacity-80"
+                  >
+                    <span>{faq.q}</span>
+                    {openFaq === i ? (
+                      <ChevronUp className="w-4 h-4 text-gray-500 flex-shrink-0 ml-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-gray-500 flex-shrink-0 ml-4" />
+                    )}
+                  </button>
+                  {openFaq === i && (
+                    <div className="px-5 pb-5 border-t border-white/[0.06]">
+                      <p className="text-sm text-gray-400 leading-relaxed pt-4">{faq.a}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Contact form */}
@@ -379,10 +453,38 @@ export default function PublicSupportPage({ locale = 'es' }: { locale?: Locale }
                   <CheckCircle className="w-12 h-12 text-emerald-400 mb-4" />
                   <h3 className="text-white font-semibold text-lg mb-2">{t.successTitle}</h3>
                   <p className="text-gray-400 text-sm">{sendMsg}</p>
-                  <button onClick={() => setSendState('idle')} className="mt-6 text-sm text-purple-400 hover:text-purple-300">{t.anotherMsg}</button>
+                  <button
+                    onClick={() => setSendState('idle')}
+                    className="mt-6 text-sm transition-colors hover:opacity-80"
+                    style={{ color: '#05c8a7' }}
+                  >
+                    {t.anotherMsg}
+                  </button>
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] p-6 space-y-4">
+                  {/* Category selector */}
+                  <div>
+                    <label className="text-xs text-gray-500 mb-2 block">{t.categoryLabel}</label>
+                    <div className="flex flex-wrap gap-2">
+                      {CATEGORIES.map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setCategory(category === cat.id ? '' : cat.id)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
+                          style={
+                            category === cat.id
+                              ? { background: 'rgba(5,200,167,0.12)', borderColor: 'rgba(5,200,167,0.4)', color: '#05c8a7' }
+                              : { background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.08)', color: '#6b7280' }
+                          }
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-gray-500 mb-1 block">{t.nameLabel}</label>
@@ -392,7 +494,9 @@ export default function PublicSupportPage({ locale = 'es' }: { locale?: Locale }
                         onChange={e => setName(e.target.value)}
                         required
                         placeholder={t.namePlaceholder}
-                        className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none focus:border-purple-500/50 transition-colors"
+                        className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none transition-colors"
+                        onFocus={e => (e.currentTarget.style.borderColor = 'rgba(5,200,167,0.4)')}
+                        onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
                       />
                     </div>
                     <div>
@@ -403,7 +507,9 @@ export default function PublicSupportPage({ locale = 'es' }: { locale?: Locale }
                         onChange={e => setEmail(e.target.value)}
                         required
                         placeholder={t.emailPlaceholder}
-                        className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none focus:border-purple-500/50 transition-colors"
+                        className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none transition-colors"
+                        onFocus={e => (e.currentTarget.style.borderColor = 'rgba(5,200,167,0.4)')}
+                        onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
                       />
                     </div>
                   </div>
@@ -415,7 +521,9 @@ export default function PublicSupportPage({ locale = 'es' }: { locale?: Locale }
                       required
                       rows={5}
                       placeholder={t.messagePlaceholder}
-                      className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none focus:border-purple-500/50 transition-colors resize-none"
+                      className="w-full px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder-gray-600 outline-none transition-colors resize-none"
+                      onFocus={e => (e.currentTarget.style.borderColor = 'rgba(5,200,167,0.4)')}
+                      onBlur={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
                     />
                   </div>
                   {sendState === 'error' && (
@@ -426,7 +534,10 @@ export default function PublicSupportPage({ locale = 'es' }: { locale?: Locale }
                   <button
                     type="submit"
                     disabled={sendState === 'loading'}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm transition-colors disabled:opacity-60"
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold text-sm transition-colors disabled:opacity-60"
+                    style={{ background: '#05c8a7' }}
+                    onMouseEnter={e => { if (sendState !== 'loading') e.currentTarget.style.background = '#04a88c'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = '#05c8a7'; }}
                   >
                     {sendState === 'loading' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     {sendState === 'loading' ? t.sending : t.send}
@@ -442,7 +553,7 @@ export default function PublicSupportPage({ locale = 'es' }: { locale?: Locale }
       <footer className="border-t border-white/[0.06] mt-8">
         <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <Link href="/" className="text-lg font-bold text-white tracking-tight">
-            MENIUS<span className="text-purple-500">.</span>
+            MENIUS<span style={{ color: '#05c8a7' }}>.</span>
           </Link>
           <p className="text-xs text-gray-600">© {new Date().getFullYear()} MENIUS · {t.footerCopy}</p>
           <div className="flex items-center gap-4 text-xs text-gray-500">
