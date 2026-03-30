@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, DM_Sans, Bricolage_Grotesque } from 'next/font/google';
+import { Inter, Bricolage_Grotesque } from 'next/font/google';
 import './globals.css';
 import { Suspense } from 'react';
 import { cookies } from 'next/headers';
@@ -7,16 +7,9 @@ import CookieConsent from '@/components/CookieConsent';
 import { PostHogProvider } from '@/components/PostHogProvider';
 
 const inter = Inter({
-  subsets: ['latin'],
+  subsets: ['latin', 'latin-ext'],
   variable: '--font-inter',
   display: 'swap',
-});
-
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  variable: '--font-dm-sans',
-  display: 'swap',
-  weight: ['400', '500', '600', '700'],
 });
 
 const bricolage = Bricolage_Grotesque({
@@ -106,7 +99,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   };
 
   return (
-    <html lang={locale} className={`${inter.variable} ${dmSans.variable} ${bricolage.variable}`} suppressHydrationWarning>
+    <html lang={locale} className={`${inter.variable} ${bricolage.variable}`} suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
