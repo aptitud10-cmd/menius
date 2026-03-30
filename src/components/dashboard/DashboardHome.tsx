@@ -122,6 +122,9 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
                   : t.home_trialEnjoy
                 }
               </p>
+              {trialDaysLeft > 3 && (
+                <p className="text-xs text-emerald-500/70 mt-0.5">{t.home_trialDowngradeNote}</p>
+              )}
             </div>
           </div>
           <Link

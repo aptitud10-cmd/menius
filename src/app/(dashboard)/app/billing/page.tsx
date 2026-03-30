@@ -379,28 +379,31 @@ export default function BillingPage() {
 
                 {/* Trial bar */}
                 {isTrialing && (
-                  <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-100">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm font-semibold text-blue-800">{t.billing_trialPeriod}</span>
+                  <div className="mb-4 space-y-2">
+                    <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm font-semibold text-blue-800">{t.billing_trialPeriod}</span>
+                        </div>
+                        <span className={cn(
+                          'text-sm font-bold',
+                          daysLeft <= 3 ? 'text-amber-600' : 'text-blue-700',
+                        )}>
+                          {daysLeft} {daysLeft === 1 ? t.billing_dayRemaining : t.billing_daysRemaining}
+                        </span>
                       </div>
-                      <span className={cn(
-                        'text-sm font-bold',
-                        daysLeft <= 3 ? 'text-amber-600' : 'text-blue-700',
-                      )}>
-                        {daysLeft} {daysLeft === 1 ? t.billing_dayRemaining : t.billing_daysRemaining}
-                      </span>
+                      <div className="h-2 rounded-full bg-blue-100 overflow-hidden">
+                        <div
+                          className={cn(
+                            'h-full rounded-full transition-all duration-500',
+                            daysLeft <= 3 ? 'bg-amber-500' : 'bg-blue-500',
+                          )}
+                          style={{ width: `${Math.max(5, (daysLeft / 14) * 100)}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-2 rounded-full bg-blue-100 overflow-hidden">
-                      <div
-                        className={cn(
-                          'h-full rounded-full transition-all duration-500',
-                          daysLeft <= 3 ? 'bg-amber-500' : 'bg-blue-500',
-                        )}
-                        style={{ width: `${Math.max(5, (daysLeft / 14) * 100)}%` }}
-                      />
-                    </div>
+                    <p className="text-xs text-gray-500 px-1">{t.billing_trialDowngradeNote}</p>
                   </div>
                 )}
 

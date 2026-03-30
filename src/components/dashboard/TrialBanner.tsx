@@ -46,11 +46,16 @@ export function TrialBanner() {
       >
         <Clock className="w-3.5 h-3.5 flex-shrink-0" />
         <span className="flex-1 leading-snug">
-          {daysLeft === 0
-            ? (isEn ? 'Trial ends today' : 'La prueba termina hoy')
-            : isEn
-              ? `${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} of trial left`
-              : `${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} de prueba restantes`}
+          <span className="block">
+            {daysLeft === 0
+              ? (isEn ? 'Trial ends today' : 'La prueba termina hoy')
+              : isEn
+                ? `${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} of Starter trial left`
+                : `${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} de prueba Starter`}
+          </span>
+          <span className="block text-[10px] opacity-70 font-normal mt-0.5">
+            {isEn ? 'Then → Free plan forever' : 'Después → Plan Free para siempre'}
+          </span>
         </span>
         <ArrowRight className="w-3 h-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
       </Link>

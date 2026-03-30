@@ -112,6 +112,7 @@ export interface DashboardTranslations {
   home_trialDays: string;
   home_trialChoosePlan: string;
   home_trialEnjoy: string;
+  home_trialDowngradeNote: string;
   home_viewPlans: string;
   home_dailyGoal: string;
   home_completed: string;
@@ -1001,6 +1002,7 @@ export interface DashboardTranslations {
   billing_nextBilling: string;
   billing_cancelsAt: string;
   billing_cancelEnd: string;
+  billing_trialDowngradeNote: string;
   billing_currentUsage: string;
   billing_productsLabel: string;
   billing_tablesLabel: string;
@@ -1224,8 +1226,9 @@ const es: DashboardTranslations = {
   home_trialDaysLeft: 'días restantes de prueba gratis',
   home_trialDay: 'día',
   home_trialDays: 'días',
-  home_trialChoosePlan: 'Elige un plan para no perder acceso',
-  home_trialEnjoy: 'Disfruta todas las funciones mientras exploras MENIUS',
+  home_trialChoosePlan: 'Suscríbete ahora para conservar el acceso completo',
+  home_trialEnjoy: 'Estás probando el plan Starter gratis. Al terminar, pasarás al plan Free sin cobros.',
+  home_trialDowngradeNote: 'Sin suscripción, continuarás en el plan Free (gratis para siempre).',
   home_viewPlans: 'Ver planes',
   home_dailyGoal: 'Meta del día',
   home_completed: 'completado',
@@ -2115,6 +2118,7 @@ const es: DashboardTranslations = {
   billing_nextBilling: 'Próxima facturación:',
   billing_cancelsAt: 'Se cancela el',
   billing_cancelEnd: 'Tu plan se cancelará al final del periodo',
+  billing_trialDowngradeNote: 'Al finalizar tu prueba, tu cuenta cambiará automáticamente al plan Free. Sin cobros automáticos, sin tarjeta de crédito requerida.',
   billing_currentUsage: 'Uso actual',
   billing_productsLabel: 'Productos',
   billing_tablesLabel: 'Mesas',
@@ -2338,8 +2342,9 @@ const en: DashboardTranslations = {
   home_trialDaysLeft: 'days left of free trial',
   home_trialDay: 'day',
   home_trialDays: 'days',
-  home_trialChoosePlan: 'Choose a plan to keep access',
-  home_trialEnjoy: 'Enjoy all features while exploring MENIUS',
+  home_trialChoosePlan: 'Subscribe now to keep full access',
+  home_trialEnjoy: 'You\'re trying the Starter plan for free. When it ends, you\'ll move to the Free plan — no charges.',
+  home_trialDowngradeNote: 'Without a subscription, you\'ll continue on the Free plan (free forever).',
   home_viewPlans: 'View plans',
   home_dailyGoal: 'Daily goal',
   home_completed: 'completed',
@@ -3229,6 +3234,7 @@ const en: DashboardTranslations = {
   billing_nextBilling: 'Next billing:',
   billing_cancelsAt: 'Cancels on',
   billing_cancelEnd: 'Your plan will cancel at the end of the period',
+  billing_trialDowngradeNote: 'When your trial ends, your account will automatically switch to the Free plan. No automatic charges, no credit card required.',
   billing_currentUsage: 'Current usage',
   billing_productsLabel: 'Products',
   billing_tablesLabel: 'Tables',
