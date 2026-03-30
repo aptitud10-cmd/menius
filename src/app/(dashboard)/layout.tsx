@@ -116,7 +116,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
         <CommandPalette slug={restaurant?.slug ?? ''} />
         <AIChatWidget />
-        <CrispChat userEmail={user?.email ?? undefined} userName={profile?.full_name ?? undefined} />
+        <CrispChat userEmail={user?.email ?? undefined} userName={profile?.full_name ?? undefined} hideWidget />
         <OrderNotifier restaurantId={restaurantId} currency={restaurant?.currency || 'USD'} />
         <IdentifyUser
           userId={userId}
