@@ -1519,7 +1519,7 @@ export function MenuShell({
       {ordersLeft === 0 ? (
         /* Limit reached — generic "paused" bar, no mention of billing */
         <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden pointer-events-none">
-          <div className="px-4 pt-8 pb-[max(env(safe-area-inset-bottom),12px)] bg-gradient-to-t from-white via-white/95 to-transparent">
+          <div className="px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-gradient-to-t from-white via-white/95 to-transparent">
             <div className="max-w-lg mx-auto pointer-events-auto">
               <div className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-gray-100 text-gray-500 text-sm font-semibold">
                 <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -1532,7 +1532,7 @@ export function MenuShell({
         </div>
       ) : cartCount > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden pointer-events-none">
-          <div className="px-4 pt-8 pb-[max(env(safe-area-inset-bottom),12px)] bg-gradient-to-t from-white via-white/95 to-transparent">
+          <div className="px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-gradient-to-t from-white via-white/95 to-transparent">
             <div className="max-w-lg mx-auto pointer-events-auto">
               <button
                 onClick={() => setOpen(true)}
