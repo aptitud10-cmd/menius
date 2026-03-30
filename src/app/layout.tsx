@@ -16,8 +16,6 @@ const bricolage = Bricolage_Grotesque({
   subsets: ['latin', 'latin-ext'],
   variable: '--font-display',
   display: 'swap',
-  weight: ['400', '800'],
-  axes: ['wght'],
 });
 
 export const metadata: Metadata = {
