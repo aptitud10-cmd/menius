@@ -8,7 +8,7 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
     <section className="relative min-h-[100vh] min-h-[100dvh] flex items-center overflow-clip">
       <div className="hero-gradient" />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-6 w-full pt-20 pb-6 md:py-0">
+      <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-6 w-full pt-24 pb-16 md:py-0">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
 
           <div className="text-center lg:text-left">
@@ -45,9 +45,9 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
               </Link>
             </div>
 
-            <div className="d-fade-up d-delay-4 mt-12 md:mt-14 w-full flex items-center justify-center lg:justify-start gap-8 sm:gap-10">
+            <div className="d-fade-up d-delay-4 mt-12 md:mt-14 w-full flex items-center justify-center lg:justify-start gap-5 sm:gap-8">
               {h.stats.map((s) => (
-                <div key={s.label} className="text-center lg:text-left">
+                <div key={s.label} className="text-center lg:text-left min-w-0">
                   <p className="text-3xl sm:text-3xl font-semibold text-white tracking-tight">{s.value}</p>
                   <p className="text-sm text-gray-400 mt-1.5 font-medium">{s.label}</p>
                 </div>

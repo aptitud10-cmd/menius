@@ -20,10 +20,11 @@ const dmSans = DM_Sans({
 });
 
 const bricolage = Bricolage_Grotesque({
-  subsets: ['latin'],
+  subsets: ['latin', 'latin-ext'],
   variable: '--font-display',
   display: 'swap',
-  weight: ['400', '500', '600', '700', '800'],
+  weight: ['400', '800'],
+  axes: ['wght'],
 });
 
 export const metadata: Metadata = {
@@ -56,11 +57,7 @@ export const metadata: Metadata = {
     images: ['/opengraph-image'],
   },
   alternates: {
-    languages: {
-      'es': 'https://menius.app/',
-      'en': 'https://menius.app/',
-      'x-default': 'https://menius.app/',
-    },
+    canonical: 'https://menius.app',
   },
   robots: {
     index: true,

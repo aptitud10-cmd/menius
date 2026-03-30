@@ -262,6 +262,27 @@ a, button, [role="button"] {
   .d-delay-3 { animation-delay: 280ms; }
   .d-delay-4 { animation-delay: 400ms; }
   .d-delay-5 { animation-delay: 550ms; }
+
+  /* Scroll-driven reveal — desktop only, progressive enhancement */
+  @supports (animation-timeline: scroll()) {
+    .scroll-reveal {
+      animation: fadeInUp linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 25%;
+    }
+  }
+}
+
+/* Accessibility: respect OS reduced-motion preference.
+   Kills all animations and transitions system-wide — no exceptions.
+   Placed AFTER the desktop animation block so it always wins. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Skeleton loading */
@@ -594,6 +615,20 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   background: #050505;
   background-image:
     radial-gradient(ellipse 80% 50% at 50% 0%, var(--brand-10) 0%, transparent 50%);
+}
+
+/* Subtle noise grain overlay — desktop only, pure CSS (no network request).
+   Adds depth and premium feel without any JS or extra image files. */
+@media (min-width: 768px) {
+  .landing-bg::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.028;
+    pointer-events: none;
+    z-index: 0;
+  }
 }
 
 /* Hero mesh gradient — single brand color, two intensities */
