@@ -409,14 +409,6 @@ export function MenuShell({
     });
   }, [router, restaurant.slug, restaurant.id, rawCartCount, rawCartTotal, setOpen]);
 
-  const availableDiets = useMemo(() => {
-    const tagSet = new Set<string>();
-    for (const p of products) {
-      for (const t of p.dietary_tags ?? []) tagSet.add(t);
-    }
-    return DIETARY_TAGS.filter((dt) => tagSet.has(dt.id));
-  }, [products]);
-
   const filteredProducts = useMemo(() => {
     if (!activeDiet) return products;
     return products.filter((p) => p.dietary_tags?.includes(activeDiet));
@@ -751,29 +743,6 @@ export function MenuShell({
     </button>
   );
 
-  const dietPills = availableDiets.length > 0 && availableDiets.map((dt) => (
-    <button
-      key={dt.id}
-      data-pill-id={`diet-${dt.id}`}
-      onClick={() => {
-        const next = activeDiet === dt.id ? null : dt.id;
-        setActiveDiet(next);
-        setShowFavs(false);
-        if (next) setActiveCategory(null);
-      }}
-      style={{ touchAction: 'manipulation' }}
-      className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold transition-colors whitespace-nowrap',
-        activeDiet === dt.id
-          ? 'bg-emerald-500 text-white shadow-sm'
-          : 'bg-white border border-gray-200 text-gray-600 active:bg-gray-50'
-      )}
-    >
-      <span className="text-xs">{dt.emoji}</span>
-      {locale === 'en' ? dt.labelEn : dt.labelEs}
-    </button>
-  ));
-
   // Mobile fav / diet pills — squircle premium style
   const mobileFavPill = hasMounted && favIds.length > 0 && (
     <button
@@ -793,30 +762,7 @@ export function MenuShell({
     </button>
   );
 
-  const mobileDietPills = availableDiets.length > 0 && availableDiets.map((dt) => (
-    <button
-      key={dt.id}
-      data-pill-id={`diet-${dt.id}`}
-      onClick={() => {
-        const next = activeDiet === dt.id ? null : dt.id;
-        setActiveDiet(next);
-        setShowFavs(false);
-        if (next) setActiveCategory(null);
-      }}
-      style={{ touchAction: 'manipulation' }}
-      className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap',
-        activeDiet === dt.id
-          ? 'bg-gray-900 text-white'
-          : 'bg-white/70 text-gray-500 active:bg-gray-200'
-      )}
-    >
-      <span className="text-[13px]">{dt.emoji}</span>
-      {locale === 'en' ? dt.labelEn : dt.labelEs}
-    </button>
-  ));
-
-  const filterDivider = (availableDiets.length > 0 || (hasMounted && favIds.length > 0)) && (
+  const filterDivider = (hasMounted && favIds.length > 0) && (
     <div className="flex-shrink-0 self-center w-px h-5 bg-gray-200 mx-1" aria-hidden />
   );
 
@@ -847,7 +793,6 @@ export function MenuShell({
             : activeCategory === cat.id && !showFavs && !activeDiet
         ))}
         {filterDivider}
-        {mobileDietPills}
         {mobileFavPill}
         {/* Spacer so last pill doesn't sit under the fade */}
         <div className="w-8 flex-shrink-0" aria-hidden="true" />
@@ -1000,7 +945,6 @@ export function MenuShell({
             <div ref={catScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5">
               {visibleCats.map((cat) => categoryPill(cat.id, tName(cat, locale, defaultLocale), activeCategory === cat.id && !showFavs && !activeDiet))}
               {filterDivider}
-              {dietPills}
               {favPill}
             </div>
             <button onClick={() => scrollCats('right')} className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end" aria-label={locale === 'en' ? 'Scroll right' : 'Desplazar derecha'}>

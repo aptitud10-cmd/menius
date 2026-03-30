@@ -74,7 +74,7 @@ export const demoProducts: Product[] = [
     name: 'Chilaquiles Verdes',
     description: 'Totopos bañados en salsa verde con crema, queso fresco, cebolla y huevo estrellado.',
     price: 9.99, image_url: '/seed/es/chilaquiles.webp',
-    is_active: true, is_featured: true, sort_order: 1, created_at: older,
+    is_active: true, is_featured: true, sort_order: 1, created_at: older, dietary_tags: ['vegetarian'],
     variants: [
       { id: 'v-chil-huevo', product_id: P_CHILAQUILES, name: 'Con huevo estrellado', price_delta: 0, sort_order: 1 },
       { id: 'v-chil-pollo', product_id: P_CHILAQUILES, name: 'Con pollo deshebrado', price_delta: 2.50, sort_order: 2 },
@@ -96,7 +96,7 @@ export const demoProducts: Product[] = [
     name: 'Huevos Rancheros',
     description: 'Huevos estrellados sobre tortilla con salsa roja, frijoles refritos y aguacate.',
     price: 8.99, image_url: '/seed/es/huevos-rancheros.webp',
-    is_active: true, sort_order: 2, created_at: older, variants: [], extras: [],
+    is_active: true, sort_order: 2, created_at: older, dietary_tags: ['vegetarian'], variants: [], extras: [],
   },
   {
     id: 'demo-p-hotcakes', restaurant_id: RID, category_id: CAT_DESAYUNOS,
@@ -110,7 +110,7 @@ export const demoProducts: Product[] = [
     name: 'Molletes Especiales',
     description: 'Bolillo abierto con frijoles refritos, queso gratinado, pico de gallo y aguacate.',
     price: 7.49, image_url: '/seed/es/molletes.webp',
-    is_active: true, sort_order: 4, created_at: older, variants: [], extras: [],
+    is_active: true, sort_order: 4, created_at: older, dietary_tags: ['vegetarian'], variants: [], extras: [],
   },
   {
     id: 'demo-p-omelette', restaurant_id: RID, category_id: CAT_DESAYUNOS,
@@ -175,7 +175,7 @@ export const demoProducts: Product[] = [
     name: 'Ensalada César',
     description: 'Lechuga romana, crutones, parmesano y aderezo césar casero.',
     price: 11.49, image_url: '/seed/es/ensalada.webp',
-    is_active: true, sort_order: 3, created_at: older, dietary_tags: ['vegetarian'], variants: [], extras: [],
+    is_active: true, sort_order: 3, created_at: older, dietary_tags: ['vegetarian', 'gluten_free'], variants: [], extras: [],
   },
   {
     id: 'demo-p-tacos', restaurant_id: RID, category_id: CAT_ALMUERZOS,
@@ -189,7 +189,7 @@ export const demoProducts: Product[] = [
     name: 'Pasta Alfredo',
     description: 'Fettuccine en cremosa salsa alfredo con parmesano, acompañado de pan de ajo.',
     price: 13.99, image_url: '/seed/es/pasta.webp',
-    is_active: true, sort_order: 5, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 5, created_at: now, dietary_tags: ['vegetarian'], variants: [], extras: [],
   },
   {
     id: 'demo-p-club', restaurant_id: RID, category_id: CAT_ALMUERZOS,
@@ -212,7 +212,7 @@ export const demoProducts: Product[] = [
     name: 'Pizza Margherita',
     description: 'Masa artesanal, salsa de tomate San Marzano, mozzarella fresca y albahaca.',
     price: 15.99, image_url: '/seed/es/pizza.webp',
-    is_active: true, sort_order: 2, created_at: older,
+    is_active: true, sort_order: 2, created_at: older, dietary_tags: ['vegetarian'],
     variants: [
       { id: 'v-pizza-ind', product_id: P_PIZZA, name: 'Individual (20 cm)', price_delta: 0, sort_order: 1 },
       { id: 'v-pizza-med', product_id: P_PIZZA, name: 'Mediana (30 cm)', price_delta: 5.00, sort_order: 2 },
@@ -265,21 +265,21 @@ export const demoProducts: Product[] = [
     name: 'Ceviche de Camarón',
     description: 'Camarones frescos marinados en limón con pepino, cebolla morada y aguacate.',
     price: 12.99, image_url: '/seed/es/ensalada.webp',
-    is_active: true, sort_order: 2, created_at: now, variants: [], extras: [],
+    is_active: true, sort_order: 2, created_at: now, dietary_tags: ['gluten_free'], variants: [], extras: [],
   },
   {
     id: 'demo-p-nachos', restaurant_id: RID, category_id: CAT_APERITIVOS,
     name: 'Nachos Supremos',
     description: 'Totopos con queso fundido, jalapeños, crema, guacamole y pico de gallo.',
     price: 11.99, image_url: '/seed/es/nachos.webp',
-    is_active: true, sort_order: 3, created_at: older, variants: [], extras: [],
+    is_active: true, sort_order: 3, created_at: older, dietary_tags: ['vegetarian'], variants: [], extras: [],
   },
   {
     id: 'demo-p-empanadas', restaurant_id: RID, category_id: CAT_APERITIVOS,
     name: 'Empanadas de Queso',
     description: 'Tres empanadas crujientes rellenas de queso con salsa ranchera.',
     price: 7.99, image_url: '/seed/es/empanadas.webp',
-    is_active: true, sort_order: 4, created_at: older, variants: [], extras: [],
+    is_active: true, sort_order: 4, created_at: older, dietary_tags: ['vegetarian'], variants: [], extras: [],
   },
   {
     id: 'demo-p-aros', restaurant_id: RID, category_id: CAT_APERITIVOS,
@@ -326,14 +326,14 @@ export const demoProducts: Product[] = [
     name: 'Agua de Horchata',
     description: 'Agua fresca de arroz con canela y un toque de vainilla.',
     price: 4.00, image_url: '/seed/es/horchata.webp',
-    is_active: true, sort_order: 3, created_at: older, variants: [], extras: [],
+    is_active: true, sort_order: 3, created_at: older, dietary_tags: ['vegan', 'dairy_free', 'gluten_free'], variants: [], extras: [],
   },
   {
     id: 'demo-p-jugo', restaurant_id: RID, category_id: CAT_BEBIDAS,
     name: 'Jugo Natural',
     description: 'Jugo recién exprimido de naranja, zanahoria o verde.',
     price: 5.49, image_url: '/seed/es/jugo.webp',
-    is_active: true, sort_order: 4, created_at: older, variants: [], extras: [],
+    is_active: true, sort_order: 4, created_at: older, dietary_tags: ['vegan', 'gluten_free'], variants: [], extras: [],
   },
   {
     id: 'demo-p-refresco', restaurant_id: RID, category_id: CAT_BEBIDAS,
@@ -397,7 +397,7 @@ export const demoProducts: Product[] = [
     name: 'Michelada Clásica',
     description: 'Cerveza con jugo de limón, sal, salsa picante y chamoy.',
     price: 7.49, image_url: '/seed/es/cerveza.webp',
-    is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
+    is_active: true, sort_order: 6, created_at: older, dietary_tags: ['spicy'], variants: [], extras: [],
   },
 
   // ── Tortas (Postres) ──
@@ -406,14 +406,14 @@ export const demoProducts: Product[] = [
     name: 'Flan Napolitano',
     description: 'Flan cremoso de vainilla con caramelo casero.',
     price: 6.99, image_url: '/seed/es/flan.webp',
-    is_active: true, sort_order: 1, created_at: older, variants: [], extras: [],
+    is_active: true, sort_order: 1, created_at: older, dietary_tags: ['vegetarian', 'gluten_free'], variants: [], extras: [],
   },
   {
     id: P_CHURROS, restaurant_id: RID, category_id: CAT_TORTAS,
     name: 'Churros con Chocolate',
     description: 'Churros crujientes espolvoreados con azúcar y canela, con salsa de chocolate belga.',
     price: 7.49, image_url: '/seed/es/churros.webp',
-    is_active: true, sort_order: 2, created_at: now,
+    is_active: true, sort_order: 2, created_at: now, dietary_tags: ['vegetarian'],
     variants: [],
     extras: [
       { id: 'e-churros-helado', product_id: P_CHURROS, name: 'Bola de helado', price: 2.49, sort_order: 1 },
@@ -439,7 +439,7 @@ export const demoProducts: Product[] = [
     name: 'Helado Artesanal',
     description: 'Dos bolas de helado artesanal. Sabores: vainilla, chocolate, fresa o mango.',
     price: 5.99, image_url: '/seed/es/helado.webp',
-    is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
+    is_active: true, sort_order: 5, created_at: older, dietary_tags: ['vegetarian', 'gluten_free'], variants: [], extras: [],
   },
   {
     id: 'demo-p-pay', restaurant_id: RID, category_id: CAT_TORTAS,
