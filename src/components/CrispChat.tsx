@@ -32,30 +32,14 @@ export default function CrispChat({
     document.head.appendChild(script);
   }, []);
 
-  // Identify logged-in user to Crisp once script is ready
+  // Identify logged-in user — $crisp acts as a command queue, safe to push before script loads
   useEffect(() => {
     if (!CRISP_WEBSITE_ID || typeof window === 'undefined') return;
     if (!userEmail && !userName) return;
+    if (!window.$crisp) return;
 
-    const identify = () => {
-      if (!window.$crisp) return;
-      if (userEmail) window.$crisp.push(['set', 'user:email', [userEmail]]);
-      if (userName) window.$crisp.push(['set', 'user:nickname', [userName]]);
-    };
-
-    // If Crisp is already loaded, identify immediately
-    if (typeof (window as unknown as { CRISP_IS_LOADED?: boolean }).CRISP_IS_LOADED !== 'undefined') {
-      identify();
-    } else {
-      // Wait for Crisp to load
-      const interval = setInterval(() => {
-        if (window.$crisp?.push) {
-          identify();
-          clearInterval(interval);
-        }
-      }, 500);
-      return () => clearInterval(interval);
-    }
+    if (userEmail) window.$crisp.push(['set', 'user:email', [userEmail]]);
+    if (userName) window.$crisp.push(['set', 'user:nickname', [userName]]);
   }, [userEmail, userName]);
 
   return null;
