@@ -3,12 +3,12 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/auth/verify-admin';
 import { sendEmail } from '@/lib/notifications/email';
-import { buildTrialEndingEmail, buildEngagementEmail } from '@/lib/notifications/retention-emails';
+import { buildTrialEndingEmail, buildEngagementEmail, buildOnboardingGuideEmail } from '@/lib/notifications/retention-emails';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
 interface RetentionEmailPayload {
-  type: 'trial_ending' | 'engagement';
+  type: 'trial_ending' | 'engagement' | 'onboarding_guide';
   to: string;
   ownerName: string;
   restaurantName: string;
@@ -57,6 +57,16 @@ export async function POST(request: NextRequest) {
       menuUrl: `${APP_URL}/${restaurantSlug}`,
     });
     subject = `${ownerName.split(' ')[0]}, ¿ya exploraste todo lo que MENIUS puede hacer por ${restaurantName}? ✨`;
+  } else if (type === 'onboarding_guide') {
+    html = buildOnboardingGuideEmail({
+      ownerName,
+      restaurantName,
+      restaurantSlug: restaurantSlug ?? '',
+      dashboardUrl: `${APP_URL}/app`,
+      menuUrl: `${APP_URL}/${restaurantSlug}`,
+      tablesUrl: `${APP_URL}/app/tables`,
+    });
+    subject = `${ownerName.split(' ')[0]}, aquí están tus 3 primeros pasos en MENIUS 🚀`;
   } else {
     return NextResponse.json({ error: 'Invalid email type' }, { status: 400 });
   }

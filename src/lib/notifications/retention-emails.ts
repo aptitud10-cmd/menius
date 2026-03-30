@@ -215,6 +215,135 @@ export function buildTrialEndingEmail(params: {
 }
 
 // ─────────────────────────────────────────────
+// EMAIL 3: Onboarding guide — "Cómo empezar"
+// ─────────────────────────────────────────────
+export function buildOnboardingGuideEmail(params: {
+  ownerName: string;
+  restaurantName: string;
+  restaurantSlug: string;
+  dashboardUrl: string;
+  menuUrl: string;
+  tablesUrl: string;
+}): string {
+  const { ownerName, restaurantName, restaurantSlug, dashboardUrl, menuUrl, tablesUrl } = params;
+  const firstName = ownerName.split(' ')[0];
+
+  function stepBlock(num: string, icon: string, title: string, desc: string, linkLabel: string, href: string): string {
+    return `
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:16px;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;">
+      <tr>
+        <td style="padding:20px 24px;">
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              <td width="44" style="vertical-align:top;">
+                <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#8b5cf6);text-align:center;line-height:36px;">
+                  <span style="color:#fff;font-size:16px;font-weight:800;font-family:Arial,sans-serif;">${num}</span>
+                </div>
+              </td>
+              <td style="vertical-align:top;padding-left:12px;">
+                <p style="margin:0 0 2px;font-size:16px;font-weight:800;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+                  ${icon} ${title}
+                </p>
+                <p style="margin:0 0 12px;font-size:13px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.6;">
+                  ${desc}
+                </p>
+                <a href="${href}" style="display:inline-block;padding:8px 18px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;font-size:13px;font-weight:700;color:#7c3aed;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+                  ${linkLabel} →
+                </a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>`;
+  }
+
+  const content = `
+    <!-- Hero -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td style="padding:40px 40px 32px;text-align:center;border-bottom:1px solid #f3f4f6;">
+          <div style="display:inline-block;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;padding:8px 16px;margin-bottom:20px;">
+            <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:12px;font-weight:700;color:#7c3aed;letter-spacing:0.06em;text-transform:uppercase;">
+              🚀 Guía de inicio — MENIUS
+            </span>
+          </div>
+          <h1 style="margin:0 0 12px;font-size:26px;font-weight:800;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;letter-spacing:-0.03em;line-height:1.2;">
+            ${firstName}, en 3 pasos<br/>tu restaurante está listo 🍽️
+          </h1>
+          <p style="margin:0 auto;font-size:15px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.6;max-width:400px;">
+            <strong style="color:#111827;">${restaurantName}</strong> ya tiene su espacio digital. Solo faltan estos pasos para empezar a recibir pedidos.
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Steps -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td style="padding:28px 40px 0;">
+          ${stepBlock('1', '🍔', 'Agrega tus platillos',
+            'Entra a <strong>Menú → Productos</strong> y añade cada platillo con su nombre, precio y foto. ¿No tienes fotos? MENIUS puede generarlas automáticamente con IA — solo haz clic en "Generar imagen" en cada producto.',
+            'Ir a Menú → Productos', `${dashboardUrl}/menu/products`
+          )}
+          ${stepBlock('2', '📱', 'Crea tus mesas y genera el QR',
+            'Entra a <strong>Mesas</strong>, crea una mesa y haz clic en "Ver QR". Descarga el código QR e imprímelo para ponerlo en tu mesa. Cuando un cliente lo escanee, verá tu menú y podrá hacer su pedido directamente.',
+            'Ir a Mesas → QR', tablesUrl
+          )}
+          ${stepBlock('3', '📣', 'Comparte tu menú con tus clientes',
+            'Tu menú digital ya está disponible en <strong>menius.app/${restaurantSlug}</strong>. Comparte ese enlace por WhatsApp, Instagram o ponlo en tu perfil. También puedes compartirlo desde el botón "Compartir" en tu dashboard.',
+            'Ver mi menú público', menuUrl
+          )}
+        </td>
+      </tr>
+    </table>
+
+    <!-- Extra tip -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td style="padding:16px 40px 0;">
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:16px 20px;">
+            <p style="margin:0 0 4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#d97706;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">💡 Tip importante</p>
+            <p style="margin:0;font-size:13px;color:#92400e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.6;">
+              Completa primero el <strong>perfil de tu restaurante</strong> en Configuración: agrega tu logo, horario de atención y número de teléfono. Esto hace que tu menú luzca más profesional y genera más confianza en tus clientes.
+            </p>
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- CTA -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td style="padding:28px 40px 40px;text-align:center;">
+          ${cta(dashboardUrl, '🚀 Ir a mi dashboard ahora', '#7c3aed')}
+          <p style="margin:16px 0 0;font-size:13px;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+            ¿Tienes alguna duda? Responde este correo y te ayudo personalmente.
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Sign-off -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td style="padding:24px 40px 32px;border-top:1px solid #f3f4f6;">
+          <p style="margin:0;font-size:14px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.7;">
+            ¡Éxito con <strong>${restaurantName}</strong>! 🎉<br/><br/>
+            — William<br/>
+            <span style="color:#9ca3af;font-size:13px;">Fundador, MENIUS · soporte@menius.app</span>
+          </p>
+        </td>
+      </tr>
+    </table>`;
+
+  return emailShell(
+    'linear-gradient(90deg, #7c3aed, #06b6d4)',
+    content,
+  );
+}
+
+// ─────────────────────────────────────────────
 // EMAIL 2: Engagement / Onboarding tips
 // ─────────────────────────────────────────────
 export function buildEngagementEmail(params: {

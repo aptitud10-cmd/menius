@@ -190,10 +190,12 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
     );
   }
 
+  const isNewUser = completedCount === 0;
   const nextStep = coreSteps.find((s) => !s.completed);
 
   const renderStep = (step: OnboardingStep, i: number, list: OnboardingStep[], isOptional = false) => {
     const isNext = !isOptional && nextStep?.id === step.id;
+    const accentColor = isNewUser ? 'violet' : 'emerald';
     const LinkComponent = step.external ? 'a' : Link;
     const linkProps = step.external
       ? { href: step.href, target: '_blank', rel: 'noopener noreferrer' }
@@ -209,7 +211,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
           step.completed
             ? 'opacity-60'
             : isNext
-              ? 'bg-emerald-50'
+              ? accentColor === 'violet' ? 'bg-violet-50' : 'bg-emerald-50'
               : 'hover:bg-gray-50'
         )}
       >
@@ -218,13 +220,17 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
           step.completed
             ? 'bg-emerald-500/[0.12]'
             : isNext
-              ? 'bg-emerald-50'
+              ? accentColor === 'violet' ? 'bg-violet-100' : 'bg-emerald-50'
               : 'bg-gray-50'
         )}>
           {step.completed ? (
             <Check className="w-4 h-4 text-emerald-400" />
           ) : (
-            <span className={cn(isNext ? 'text-emerald-600' : 'text-gray-600')}>
+            <span className={cn(
+              isNext
+                ? accentColor === 'violet' ? 'text-violet-600' : 'text-emerald-600'
+                : 'text-gray-600'
+            )}>
               {step.icon}
             </span>
           )}
@@ -234,10 +240,20 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
           <div className="flex items-center gap-2">
             <p className={cn(
               'text-sm font-medium',
-              step.completed ? 'text-gray-500 line-through' : 'text-gray-700'
+              step.completed ? 'text-gray-500 line-through' : isNext ? 'text-gray-900 font-semibold' : 'text-gray-700'
             )}>
               {step.title}
             </p>
+            {isNext && !isOptional && (
+              <span className={cn(
+                "text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0",
+                accentColor === 'violet'
+                  ? 'text-violet-700 bg-violet-100'
+                  : 'text-emerald-700 bg-emerald-100'
+              )}>
+                Siguiente
+              </span>
+            )}
             {isOptional && (
               <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
                 Opcional
@@ -256,7 +272,9 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
           <ChevronRight className={cn(
             'w-4 h-4 flex-shrink-0 transition-all',
             isNext
-              ? 'text-emerald-600 group-hover:translate-x-0.5'
+              ? accentColor === 'violet'
+                ? 'text-violet-600 group-hover:translate-x-0.5'
+                : 'text-emerald-600 group-hover:translate-x-0.5'
               : 'text-gray-700 group-hover:text-gray-500 group-hover:translate-x-0.5'
           )} />
         )}
@@ -265,17 +283,36 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
   };
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+    <div className={cn(
+      "rounded-2xl border overflow-hidden",
+      isNewUser ? "border-violet-200 bg-white shadow-sm shadow-violet-100" : "border-gray-200 bg-white"
+    )}>
       {/* Header */}
-      <div className="p-5 pb-4">
+      <div className={cn("p-5 pb-4", isNewUser && "bg-gradient-to-br from-violet-50 to-white")}>
+        {isNewUser && (
+          <div className="flex items-center gap-2 mb-3">
+            <span className="inline-flex items-center gap-1.5 bg-violet-100 text-violet-700 text-[11px] font-bold px-2.5 py-1 rounded-full tracking-wide uppercase">
+              <Sparkles className="w-3 h-3" /> Primeros pasos
+            </span>
+          </div>
+        )}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-              <Sparkles className="w-4.5 h-4.5 text-emerald-600" />
+            <div className={cn(
+              "w-9 h-9 rounded-xl flex items-center justify-center",
+              isNewUser ? "bg-violet-100" : "bg-emerald-50"
+            )}>
+              <Sparkles className={cn("w-4.5 h-4.5", isNewUser ? "text-violet-600" : "text-emerald-600")} />
             </div>
             <div>
-              <h3 className="font-semibold text-sm text-gray-900">{t.onboarding_title}</h3>
-              <p className="text-xs text-gray-500 mt-0.5">{completedCount} {t.onboarding_stepsOf} {totalSteps}</p>
+              <h3 className="font-semibold text-sm text-gray-900">
+                {isNewUser ? '¡Configura tu restaurante!' : t.onboarding_title}
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {isNewUser
+                  ? 'Sigue estos pasos para recibir tu primer pedido'
+                  : `${completedCount} ${t.onboarding_stepsOf} ${totalSteps}`}
+              </p>
             </div>
           </div>
           {canDismiss && (
@@ -292,10 +329,18 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
         {/* Progress bar */}
         <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
           <div
-            className="h-full bg-emerald-500 rounded-full transition-all duration-700 ease-out"
-            style={{ width: `${progress}%` }}
+            className={cn(
+              "h-full rounded-full transition-all duration-700 ease-out",
+              isNewUser ? "bg-violet-500" : "bg-emerald-500"
+            )}
+            style={{ width: isNewUser ? '4%' : `${progress}%` }}
           />
         </div>
+        {isNewUser && (
+          <p className="text-[11px] text-gray-400 mt-1.5">
+            0 de {totalSteps} pasos completados · ¡Empieza ahora!
+          </p>
+        )}
       </div>
 
       {/* Core steps */}
