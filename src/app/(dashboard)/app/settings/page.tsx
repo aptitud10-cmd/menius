@@ -23,7 +23,9 @@ export default async function SettingsPage() {
         <h1 className="dash-heading mb-5">{restaurant?.locale === 'en' ? 'Settings' : 'Configuración'}</h1>
         <RestaurantSettings initialData={restaurant} />
       </div>
-      <PrinterSettingsSection locale={restaurant?.locale ?? 'es'} />
+      <div id="printer">
+        <PrinterSettingsSection locale={restaurant?.locale ?? 'es'} />
+      </div>
       {isMxn && (
         <div>
           <h2 className="dash-heading mb-4">{restaurant?.locale === 'en' ? 'CFDI Invoicing' : 'Facturación CFDI'}</h2>

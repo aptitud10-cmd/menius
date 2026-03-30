@@ -1015,6 +1015,10 @@ export interface DashboardTranslations {
   billing_subscribeNow: string;
   billing_upgradeTitle: string;
   billing_upgradeDesc: string;
+  billing_freePlanLabel: string;
+  billing_freePrice: string;
+  billing_upgradeHeading: string;
+  billing_upgradeHeadingDesc: string;
   billing_noSubscription: string;
   billing_choosePlan: string;
   billing_perMonth: string;
@@ -2125,6 +2129,10 @@ const es: DashboardTranslations = {
   billing_subscribeNow: 'Suscribirse ahora',
   billing_upgradeTitle: 'Potencia tu restaurante',
   billing_upgradeDesc: 'Compara los planes y elige el que mejor se adapte a las necesidades de tu negocio.',
+  billing_freePlanLabel: 'Plan gratuito',
+  billing_freePrice: 'Gratis',
+  billing_upgradeHeading: 'Elige un plan',
+  billing_upgradeHeadingDesc: 'Elimina los límites y desbloquea todas las funciones.',
   billing_noSubscription: 'Sin suscripción activa',
   billing_choosePlan: 'Elige un plan para comenzar a usar MENIUS y digitalizar tu restaurante.',
   billing_perMonth: 'mes',
@@ -3235,6 +3243,10 @@ const en: DashboardTranslations = {
   billing_subscribeNow: 'Subscribe now',
   billing_upgradeTitle: 'Power up your restaurant',
   billing_upgradeDesc: 'Compare plans and choose the one that best fits your business needs.',
+  billing_freePlanLabel: 'Free plan',
+  billing_freePrice: 'Free',
+  billing_upgradeHeading: 'Upgrade your plan',
+  billing_upgradeHeadingDesc: 'Remove limits and unlock all features.',
   billing_noSubscription: 'No active subscription',
   billing_choosePlan: 'Choose a plan to start using MENIUS and digitize your restaurant.',
   billing_perMonth: 'month',

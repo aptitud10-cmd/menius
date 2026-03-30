@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
 
   const sent = await sendEmail({
     to: adminEmail,
-    subject: `[Soporte MENIUS] Nuevo mensaje de ${name}`,
+    from: 'Soporte MENIUS <soporte@menius.app>',
+    subject: `[MENIUS Support] New message from ${name}`,
     html,
     replyTo: email,
   });

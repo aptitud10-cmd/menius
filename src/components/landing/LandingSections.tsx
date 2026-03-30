@@ -225,11 +225,19 @@ function IntegrationsGrid({ t }: { t: LandingT['integrations'] }) {
   );
 }
 
+function getRecommendedPlan(revenue: number) {
+  if (revenue < 8000) return PLANS.starter;
+  if (revenue <= 40000) return PLANS.pro;
+  return PLANS.business;
+}
+
 function SavingsCalculator({ t }: { t: LandingT['savings'] }) {
   const [revenue, setRevenue] = useState(15000);
   const commissionLoss = Math.round(revenue * 0.25);
-  const meniusCost = PLANS.pro.price.monthly;
+  const recommendedPlan = getRecommendedPlan(revenue);
+  const meniusCost = recommendedPlan.price.monthly;
   const annualSavings = (commissionLoss - meniusCost) * 12;
+  const withMeniusLabel = `${t.withMeniusPrefix ?? 'Con MENIUS'} ${recommendedPlan.name}`;
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -261,7 +269,7 @@ function SavingsCalculator({ t }: { t: LandingT['savings'] }) {
           <p className="text-sm text-gray-500 mt-1.5">{t.commissionsLabel}</p>
         </div>
         <div className="rounded-2xl border border-[#05c8a7]/20 bg-[#05c8a7]/[0.04] p-6 text-center">
-          <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">{t.withMenius}</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">{withMeniusLabel}</p>
           <p className="text-3xl md:text-4xl font-bold text-[#05c8a7]">${meniusCost}</p>
           <p className="text-sm text-gray-500 mt-1.5">{t.flatFeeLabel}</p>
         </div>

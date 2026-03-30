@@ -297,7 +297,7 @@ export default function AnalyticsPage() {
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
           <h2 className="font-semibold text-sm mb-1 text-gray-900">{locale === 'en' ? 'Order heatmap' : 'Heatmap de órdenes'}</h2>
           <p className="text-xs text-gray-400 mb-4">{locale === 'en' ? 'Intensity by day of week and hour' : 'Intensidad por día de semana y hora'}</p>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-w-full">
             <div className="min-w-[520px]">
               {/* Hour labels */}
               <div className="flex mb-1 pl-8">

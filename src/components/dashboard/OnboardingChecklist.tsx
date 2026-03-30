@@ -138,7 +138,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
       title: t.onboarding_configurePrinter ?? 'Conecta una impresora',
       description: t.onboarding_configurePrinterDesc ?? 'Imprime tickets automáticamente con una impresora térmica',
       completed: hasPrinterConfigured,
-      href: '/app/settings',
+      href: '/app/settings#printer',
       icon: <Printer className="w-4 h-4" />,
     },
     {

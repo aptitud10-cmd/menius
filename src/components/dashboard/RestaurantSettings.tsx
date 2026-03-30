@@ -186,13 +186,29 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     return data.url;
   };
 
+  const autoSaveImageField = async (field: 'logo_url' | 'cover_image_url', url: string) => {
+    try {
+      const res = await fetch('/api/tenant/restaurant', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: url }),
+      });
+      if (res.ok) setSaved(true);
+    } catch {
+      // silent — user can still save manually
+    }
+  };
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingLogo(true);
     setError('');
     const url = await uploadImage(file);
-    if (url) { setLogoUrl(url); setSaved(false); }
+    if (url) {
+      setLogoUrl(url);
+      await autoSaveImageField('logo_url', url);
+    }
     setUploadingLogo(false);
     if (logoRef.current) logoRef.current.value = '';
   };
@@ -213,7 +229,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t.settings_uploadError);
       setCoverUrl(data.url);
-      setSaved(false);
+      await autoSaveImageField('cover_image_url', data.url);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t.settings_uploadError);
     } finally {
@@ -227,7 +243,10 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     setUploadingCover(true);
     setError('');
     const url = await uploadImage(file);
-    if (url) { setCoverUrl(url); setSaved(false); }
+    if (url) {
+      setCoverUrl(url);
+      await autoSaveImageField('cover_image_url', url);
+    }
     setUploadingCover(false);
     if (coverRef.current) coverRef.current.value = '';
   };

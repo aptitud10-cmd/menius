@@ -61,10 +61,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <aside className="hidden md:flex flex-col w-[260px] bg-white border-r border-gray-200 sticky top-0 h-screen">
           {/* Logo + restaurant */}
           <div className="px-5 pt-5 pb-4 border-b border-gray-100">
-            <Link href="/app" className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-sm font-bold">M</span>
-              </div>
+            <Link href="/app" className="flex items-center gap-2.5 min-w-0">
               <div className="min-w-0">
                 <p className="text-sm font-bold tracking-tight text-gray-900 truncate">MENIUS</p>
                 <p className="text-[11px] text-gray-400 truncate leading-tight">{restaurant?.name ?? 'Mi Restaurante'}</p>
@@ -99,9 +96,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {/* Mobile header */}
           <header className="md:hidden bg-white border-b border-gray-200 px-4 h-14 flex items-center justify-between sticky top-0 z-30">
             <Link href="/app" className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md bg-emerald-600 flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-xs font-bold">M</span>
-              </div>
               <span className="text-sm font-bold tracking-tight text-gray-900">MENIUS</span>
             </Link>
             <div className="flex items-center gap-2">
@@ -114,7 +108,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <TrialBanner />
           </div>
 
-          <main id="main-content" className="flex-1 p-4 md:p-6 lg:p-8 max-w-6xl w-full mx-auto">
+          <main id="main-content" className="flex-1 p-4 md:p-6 lg:p-8 max-w-6xl w-full mx-auto overflow-x-hidden">
             <Breadcrumbs />
             {children}
           </main>

@@ -261,7 +261,7 @@ export default function BillingPage() {
   const planInfo = resolvedId ? (PLANS[resolvedId] ?? PLANS.free) : PLANS.free;
   const isFreePlan = !sub || sub.plan_id === 'free' || sub.status === 'free' || sub.status === 'canceled';
   const statusInfo = isFreePlan
-    ? { label: locale === 'en' ? 'Free plan' : 'Plan gratuito', color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', dot: 'bg-gray-400' }
+    ? { label: t.billing_freePlanLabel, color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', dot: 'bg-gray-400' }
     : sub ? (STATUS_MAP[sub.status] ?? STATUS_MAP.incomplete) : null;
   const isTrialing = sub?.status === 'trialing';
   const isActive = sub?.status === 'active';
@@ -358,7 +358,7 @@ export default function BillingPage() {
                 <div className="mb-4">
                   {isFreePlan ? (
                     <span className="text-4xl font-extrabold text-gray-900 tracking-tight">
-                      {locale === 'en' ? 'Free' : 'Gratis'}
+                      {t.billing_freePrice}
                     </span>
                   ) : (
                     <>
@@ -553,16 +553,10 @@ export default function BillingPage() {
       <div className="mt-10 mb-8">
         <div className="text-center mb-8">
           <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
-            {isFreePlan
-              ? (locale === 'en' ? 'Upgrade your plan' : 'Elige un plan')
-              : t.billing_upgradeTitle}
+            {isFreePlan ? t.billing_upgradeHeading : t.billing_upgradeTitle}
           </h2>
           <p className="text-gray-500 mt-2 max-w-lg mx-auto">
-            {isFreePlan
-              ? (locale === 'en'
-                  ? 'Remove limits and unlock all features.'
-                  : 'Elimina los límites y desbloquea todas las funciones.')
-              : t.billing_upgradeDesc}
+            {isFreePlan ? t.billing_upgradeHeadingDesc : t.billing_upgradeDesc}
           </p>
         </div>
         <PricingTable
