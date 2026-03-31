@@ -70,22 +70,13 @@ export const ProductCardMobile = memo(function ProductCardMobile({
   }, [outOfStock, hasModifiers, onSelect, onQuickAdd, product]);
 
   return (
-    /* Card uses the "overlay button" pattern: an absolutely-positioned <button> covers
-       the entire card for the "open/select" action; fav & add buttons sit above it (z-10). */
     <article
+      onClick={outOfStock ? undefined : handleCardClick}
       className={cn(
         'relative flex flex-col bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(20,15,10,0.07)] overflow-hidden transition-all duration-150',
-        outOfStock ? 'opacity-60' : ''
+        outOfStock ? 'opacity-60' : 'cursor-pointer active:opacity-80'
       )}
     >
-      {/* Full-card accessible open button (behind other interactive elements) */}
-      {!outOfStock && (
-        <button
-          onClick={handleCardClick}
-          aria-label={hasModifiers ? (isEn ? `Customize ${displayName}` : `Personalizar ${displayName}`) : (isEn ? `Add ${displayName}` : `Agregar ${displayName}`)}
-          className="absolute inset-0 z-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#05c8a7] active:opacity-80"
-        />
-      )}
 
       {/* Image */}
       <div className="relative w-full aspect-square bg-gray-100 flex-shrink-0 overflow-hidden">

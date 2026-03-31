@@ -81,23 +81,15 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
   }, [outOfStock, hasModifiers, onSelect, onQuickAdd, product]);
 
   return (
-    /* Card uses the "overlay button" pattern: full-card <button> at z-0, secondary
-       actions (fav, add) above it at z-10. This keeps valid HTML with no nested buttons. */
     <article
+      onClick={outOfStock ? undefined : handleCardClick}
       className={cn(
         'group relative bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-[transform,box-shadow] duration-300 ease-out will-change-transform',
         outOfStock
           ? 'opacity-75'
-          : 'hover:shadow-[0_12px_40px_rgba(0,0,0,0.14)] hover:-translate-y-1'
+          : 'cursor-pointer hover:shadow-[0_12px_40px_rgba(0,0,0,0.14)] hover:-translate-y-1 active:scale-[0.98]'
       )}
     >
-      {!outOfStock && (
-        <button
-          onClick={handleCardClick}
-          aria-label={hasModifiers ? (isEn ? `Customize ${displayName}` : `Personalizar ${displayName}`) : (isEn ? `Add ${displayName}` : `Agregar ${displayName}`)}
-          className="absolute inset-0 z-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#05c8a7] active:scale-[0.98] rounded-2xl"
-        />
-      )}
       {showImage ? (
         <div className="relative w-full aspect-[16/9] bg-gray-100 overflow-hidden">
           {!imgLoaded && <div className="absolute inset-0 bg-gray-100 animate-pulse" />}
