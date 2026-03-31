@@ -124,7 +124,6 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
 
     (async () => {
       const mapboxgl = (await import('mapbox-gl')).default;
-      // @ts-expect-error — mapbox-gl types quirk
       mapboxgl.accessToken = MAPBOX_TOKEN;
 
       // Inject mapbox CSS
