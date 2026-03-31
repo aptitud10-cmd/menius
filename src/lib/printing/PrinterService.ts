@@ -259,6 +259,15 @@ class PrinterServiceImpl {
 
     try {
       const receiptData = mapOrderToReceipt(order, etaMinutes, restaurantName, currency, locale, taxLabel, taxIncluded);
+
+      // Generate QR locally (offline) when order is a delivery with a tracking URL
+      if (receiptData.driverTrackingUrl) {
+        try {
+          const { generateQRDataUrl } = await import('@/lib/styled-qr');
+          receiptData.driverQrDataUrl = await generateQRDataUrl(receiptData.driverTrackingUrl, 160);
+        } catch { /* non-critical — will fall back to external URL in the HTML template */ }
+      }
+
       const cfg = PrinterConfig.config;
 
       // Android Counter app: native Bluetooth ESC/POS (no browser print dialog)

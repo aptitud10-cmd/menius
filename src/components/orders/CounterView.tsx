@@ -2006,10 +2006,19 @@ export function CounterView({
             {/* Print driver sheet with QR */}
             {driverModal?.trackingToken && (
               <button
-                onClick={() => {
+                onClick={async () => {
                   const appUrl = window.location.origin;
                   const trackingUrl = `${appUrl}/driver/track/${driverModal.trackingToken}`;
-                  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&ecc=M&data=${encodeURIComponent(trackingUrl)}`;
+
+                  // Generate QR locally — no internet required
+                  let qrSrc = '';
+                  try {
+                    const { generateQRDataUrl } = await import('@/lib/styled-qr');
+                    qrSrc = await generateQRDataUrl(trackingUrl, 200);
+                  } catch {
+                    qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&ecc=M&data=${encodeURIComponent(trackingUrl)}`;
+                  }
+
                   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Driver Sheet</title>
                     <style>@page{size:80mm auto;margin:6mm}body{font-family:monospace;font-size:11px;text-align:center;width:70mm}
                     .title{font-size:14px;font-weight:bold;margin-bottom:8px}.qr img{margin:8px auto;display:block}

@@ -17,6 +17,38 @@ export interface StyledQROptions {
   bgColor?: string;
 }
 
+/**
+ * Generates a QR code as a PNG data URL entirely in the browser — no internet required.
+ * Uses the canvas that qr-code-styling renders internally.
+ */
+export async function generateQRDataUrl(data: string, size = 200): Promise<string> {
+  const QR = await getQRModule();
+  const qr = new QR({
+    width: size,
+    height: size,
+    data,
+    dotsOptions: { color: '#000000', type: 'square' },
+    backgroundOptions: { color: '#ffffff' },
+    qrOptions: { errorCorrectionLevel: 'M' },
+  });
+
+  return new Promise<string>((resolve) => {
+    const tempDiv = document.createElement('div');
+    tempDiv.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
+    document.body.appendChild(tempDiv);
+    qr.append(tempDiv);
+    // Allow the library one animation frame to render to canvas
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const canvas = tempDiv.querySelector('canvas');
+        const dataUrl = canvas ? canvas.toDataURL('image/png') : '';
+        document.body.removeChild(tempDiv);
+        resolve(dataUrl);
+      });
+    });
+  });
+}
+
 export async function renderStyledQR(
   container: HTMLElement,
   { data, size = 220, dotColor = '#111827', cornerColor = '#059669', bgColor = '#ffffff' }: StyledQROptions

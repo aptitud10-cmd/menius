@@ -51,4 +51,5 @@ export interface ReceiptData {
   timestamp: Date;
   locale?: string;
   driverTrackingUrl?: string;
+  driverQrDataUrl?: string;
 }

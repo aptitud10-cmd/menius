@@ -378,9 +378,7 @@ export async function POST(request: NextRequest) {
 
     // Pre-generate tracking token for delivery orders so QR can be printed on initial ticket
     const isDelivery = parsed.data.order_type === 'delivery';
-    const preToken = isDelivery
-      ? `${restaurant_id.slice(0, 8)}-${Math.random().toString(36).slice(2, 10)}`
-      : null;
+    const preToken = isDelivery ? crypto.randomUUID() : null;
 
     const orderInsert: Record<string, any> = {
       restaurant_id,

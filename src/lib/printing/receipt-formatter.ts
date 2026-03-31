@@ -124,6 +124,7 @@ export function buildReceiptHTML(data: ReceiptData): string {
     timestamp,
     locale,
     driverTrackingUrl,
+    driverQrDataUrl,
   } = data;
 
   const L = getLabels(locale);
@@ -309,7 +310,7 @@ export function buildReceiptHTML(data: ReceiptData): string {
   <div class="driver-section">
     <div class="driver-title">🛵 ${isEn(locale) ? 'Driver / Tracking' : 'Repartidor / Rastreo'}</div>
     <div class="driver-qr">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&ecc=M&data=${encodeURIComponent(driverTrackingUrl)}" alt="QR tracking" crossorigin="anonymous" />
+      <img src="${driverQrDataUrl || `https://api.qrserver.com/v1/create-qr-code/?size=120x120&ecc=M&data=${encodeURIComponent(driverTrackingUrl)}`}" alt="QR tracking" />
     </div>
     <div class="driver-url">${driverTrackingUrl}</div>
     <div class="driver-hint">${isEn(locale) ? 'Scan to share live location with customer' : 'Escanea para compartir ubicación en tiempo real'}</div>

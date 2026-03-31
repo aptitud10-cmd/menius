@@ -1028,9 +1028,7 @@ export async function assignDriver(
   if (authErr) return { error: authErr };
 
   // Generate a unique tracking token for this delivery
-  const token = driverName.trim()
-    ? `${orderId.slice(0, 8)}-${Math.random().toString(36).slice(2, 10)}`
-    : null;
+  const token = driverName.trim() ? crypto.randomUUID() : null;
 
   const { error } = await supabase
     .from('orders')
