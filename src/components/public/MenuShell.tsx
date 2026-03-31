@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe, RotateCcw, AlertCircle } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe, RotateCcw, AlertCircle, AlignJustify } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
@@ -181,6 +181,7 @@ export function MenuShell({
   const cartTotal = hasMounted ? rawCartTotal : 0;
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [showCatSheet, setShowCatSheet] = useState(false);
   const CATEGORY_PREVIEW = 8; // kept for potential future use
   const isLargeCatalog = false;
   const [activeCatFilter, setActiveCatFilter] = useState<string | null>(null);
@@ -803,7 +804,19 @@ export function MenuShell({
 
   const mobileCategoryPills = (
     <div className="lg:hidden sticky z-40 bg-[#f5f5f3] border-b border-gray-100" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
-      <div ref={mobilePillsRef} className="py-2 px-3 flex gap-1.5 overflow-x-auto scrollbar-hide" style={{ touchAction: 'pan-x' }}>
+      <div className="flex items-center">
+      {/* Hamburger — opens category bottom sheet */}
+      <button
+        onClick={() => setShowCatSheet(true)}
+        style={{ touchAction: 'manipulation' }}
+        className="flex-shrink-0 flex items-center justify-center w-9 h-9 ml-2 rounded-lg text-gray-500 active:bg-gray-200 transition-colors"
+        aria-label={locale === 'en' ? 'Browse categories' : 'Ver categorías'}
+      >
+        <AlignJustify className="w-[18px] h-[18px]" />
+      </button>
+      {/* Vertical divider */}
+      <div className="w-px h-5 bg-gray-200 mx-1 flex-shrink-0" aria-hidden />
+      <div ref={mobilePillsRef} className="py-2 px-2 flex gap-1.5 overflow-x-auto scrollbar-hide flex-1" style={{ touchAction: 'pan-x' }}>
         {/* Large catalog: "Todos" pill */}
         {isLargeCatalog && (
           <button
@@ -832,6 +845,7 @@ export function MenuShell({
         {/* Spacer so last pill doesn't sit under the fade */}
         <div className="w-8 flex-shrink-0" aria-hidden="true" />
       </div>
+      </div>{/* end flex items-center wrapper */}
       {/* Right-side fade gradient */}
       <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#f5f5f3] to-transparent" aria-hidden="true" />
     </div>
@@ -1911,6 +1925,79 @@ export function MenuShell({
           </button>
         </>
       )}
+
+      {/* ── CATEGORY BOTTOM SHEET (mobile only) ── */}
+      <AnimatePresence>
+        {showCatSheet && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              className="lg:hidden fixed inset-0 z-[80] bg-black/40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCatSheet(false)}
+            />
+            {/* Sheet */}
+            <motion.div
+              className="lg:hidden fixed bottom-0 left-0 right-0 z-[81] bg-white rounded-t-3xl overflow-hidden flex flex-col"
+              style={{ maxHeight: '80dvh' }}
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 320 }}
+            >
+              {/* Drag indicator pill */}
+              <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+                <div className="w-10 h-1 rounded-full bg-gray-200" />
+              </div>
+
+              {/* Restaurant name header */}
+              <div className="text-center px-6 pt-2 pb-4 flex-shrink-0">
+                <p className="font-bold text-[18px] text-gray-900 leading-tight">{restaurant.name}</p>
+              </div>
+
+              {/* Category list — scrollable */}
+              <div className="overflow-y-auto flex-1 pb-4">
+                <p className="px-6 py-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                  {locale === 'en' ? 'Explore Menu' : 'Explorar Menú'}
+                </p>
+                {visibleCats.map((cat) => {
+                  const label = tName(cat, locale, defaultLocale);
+                  const isActive = isLargeCatalog
+                    ? activeCatFilter === cat.id
+                    : activeCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => { handleCategorySelect(cat.id); setShowCatSheet(false); }}
+                      className={cn(
+                        'w-full text-left px-6 py-3.5 text-[15px] transition-colors flex items-center justify-between',
+                        isActive
+                          ? 'font-semibold text-gray-900 bg-gray-50'
+                          : 'font-normal text-gray-700 active:bg-gray-50'
+                      )}
+                    >
+                      <span>{label}</span>
+                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Dismiss button */}
+              <div className="flex-shrink-0 px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2 border-t border-gray-100">
+                <button
+                  onClick={() => setShowCatSheet(false)}
+                  className="w-full py-3.5 rounded-2xl bg-gray-900 text-white font-bold text-[15px] active:bg-gray-700 transition-colors"
+                >
+                  {locale === 'en' ? 'Dismiss' : 'Cerrar'}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
     </div>
   );
