@@ -956,6 +956,18 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
    Applied inside the hidden iframe used by PrinterService.
    Also hides everything on the main page if window.print() is ever called
    outside of the iframe context. */
+/* Hide Crisp widget on mobile — also resets the body padding Crisp injects */
+@media (max-width: 768px) {
+  #crisp-chatbox,
+  .crisp-client {
+    display: none !important;
+  }
+  body {
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+  }
+}
+
 @media print {
   /* Hide all main-page UI */
   body > *:not(#menius-receipt-frame) {
