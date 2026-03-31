@@ -249,7 +249,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Mini stats row */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <MiniStat icon={<Clock className="w-3.5 h-3.5" />} label={t.analytics_peakHourLabel} value={summary.peakHour} />
         <MiniStat icon={<XCircle className="w-3.5 h-3.5" />} label={t.analytics_cancellationsLabel} value={String(summary.cancelledOrders)} />
         <MiniStat icon={<Flame className="w-3.5 h-3.5" />} label={t.analytics_discountsLabel} value={fmt(summary.totalDiscount)} />
@@ -295,7 +295,10 @@ export default function AnalyticsPage() {
       {/* Hourly Heatmap */}
       {weeklyHeatmap ? (
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <h2 className="font-semibold text-sm mb-1 text-gray-900">{locale === 'en' ? 'Order heatmap' : 'Heatmap de órdenes'}</h2>
+          <div className="flex items-start justify-between mb-1">
+            <h2 className="font-semibold text-sm text-gray-900">{locale === 'en' ? 'Order heatmap' : 'Heatmap de órdenes'}</h2>
+            <span className="sm:hidden text-[10px] text-gray-400 flex items-center gap-1">← {locale === 'en' ? 'scroll' : 'desliza'} →</span>
+          </div>
           <p className="text-xs text-gray-400 mb-4">{locale === 'en' ? 'Intensity by day of week and hour' : 'Intensidad por día de semana y hora'}</p>
           <div className="overflow-x-auto max-w-full">
             <div className="min-w-[520px]">

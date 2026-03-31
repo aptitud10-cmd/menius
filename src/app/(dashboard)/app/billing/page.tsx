@@ -248,7 +248,7 @@ export default function BillingPage() {
       <div className="max-w-5xl mx-auto space-y-6 animate-pulse">
         <div className="h-8 w-48 rounded-lg bg-gray-100" />
         <div className="h-56 rounded-2xl bg-gray-100" />
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="h-24 rounded-xl bg-gray-100" />
           <div className="h-24 rounded-xl bg-gray-100" />
           <div className="h-24 rounded-xl bg-gray-100" />
@@ -518,18 +518,30 @@ export default function BillingPage() {
             {invoices.slice(0, 5).map((inv) => {
               const st = INV_STATUS[inv.status ?? ''] ?? INV_STATUS.draft;
               return (
-                <div key={inv.id} className="px-6 py-3.5 flex items-center gap-4 hover:bg-gray-50/50 transition-colors">
+                <div key={inv.id} className="px-4 sm:px-6 py-3.5 flex items-center gap-3 hover:bg-gray-50/50 transition-colors">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
                       {inv.number || t.billing_invoice}
                     </p>
-                    <p className="text-xs text-gray-400">{formatDate(inv.created, locale)}</p>
+                    <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                      <p className="text-xs text-gray-400">{formatDate(inv.created, locale)}</p>
+                      <span className="hidden sm:inline text-gray-300">·</span>
+                      <span className="sm:hidden text-sm font-semibold text-gray-900 tabular-nums">
+                        {formatCurrency(inv.amount_paid, inv.currency, locale)}
+                      </span>
+                      <span className={cn(
+                        'sm:hidden inline-flex px-2 py-0.5 rounded-full text-xs font-medium border',
+                        st.cls,
+                      )}>
+                        {st.label}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-sm font-semibold text-gray-900 tabular-nums">
+                  <span className="hidden sm:inline text-sm font-semibold text-gray-900 tabular-nums">
                     {formatCurrency(inv.amount_paid, inv.currency, locale)}
                   </span>
                   <span className={cn(
-                    'inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium border',
+                    'hidden sm:inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium border',
                     st.cls,
                   )}>
                     {st.label}

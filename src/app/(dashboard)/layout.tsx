@@ -95,8 +95,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="flex-1 flex flex-col min-w-0">
           {/* Mobile header */}
           <header className="md:hidden bg-white border-b border-gray-200 px-4 h-14 flex items-center justify-between sticky top-0 z-30">
-            <Link href="/app" className="flex items-center gap-2">
-              <span className="text-sm font-bold tracking-tight text-gray-900">MENIUS</span>
+            <Link href="/app" className="flex items-center gap-2 min-w-0">
+              <span className="text-sm font-bold tracking-tight text-gray-900 flex-shrink-0">MENIUS</span>
+              {restaurant?.name && (
+                <span className="text-[11px] text-gray-400 truncate max-w-[120px]">· {restaurant.name}</span>
+              )}
             </Link>
             <div className="flex items-center gap-2">
               <SidebarSoundButton mobile />

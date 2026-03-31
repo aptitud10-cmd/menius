@@ -232,10 +232,10 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
         </div>
       </div>
 
-      {/* Controls bar */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
+      {/* Controls bar — row 1: search + utility buttons */}
+      <div className="flex items-center gap-2 mb-2">
         {/* Search */}
-        <div className="relative flex-1 min-w-[200px] max-w-xs">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
@@ -246,6 +246,49 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
           />
         </div>
 
+        {/* History toggle */}
+        <button
+          onClick={() => setShowHistory((s) => !s)}
+          className={cn(
+            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0',
+            showHistory ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
+          )}
+        >
+          {showHistory ? <LayoutGrid className="w-3.5 h-3.5" /> : <History className="w-3.5 h-3.5" />}
+          <span className="hidden sm:inline">{showHistory ? t.orders_kanban : `${t.orders_history} (${historyOrders.length})`}</span>
+        </button>
+
+        {/* Notification + print controls */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {!hasPermission && (
+            <button onClick={requestPermission} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-600 border border-amber-200">
+              <BellRing className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <button
+            onClick={() => toggleAutoPrint(!autoPrint)}
+            className={cn('flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors',
+              autoPrint ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'bg-gray-50 text-gray-500 border border-gray-200'
+            )}
+          >
+            <Printer className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            className={cn('flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors',
+              soundEnabled ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-gray-50 text-gray-500 border border-gray-200'
+            )}
+          >
+            {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+          </button>
+          <div className="flex items-center gap-1 text-xs text-gray-400 ml-0.5">
+            <Wifi className="w-3 h-3 text-emerald-500" />
+          </div>
+        </div>
+      </div>
+
+      {/* Controls bar — row 2: filters + export */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
         {/* Date filter */}
         <div className="flex gap-1 rounded-lg border border-gray-200 bg-white p-1">
           {(['today', '7', '30', 'all'] as const).map((key) => (
@@ -254,7 +297,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
               type="button"
               onClick={() => setDateRange(key)}
               className={cn(
-                'px-2.5 py-1 rounded-md text-sm font-medium transition-colors',
+                'px-2.5 py-1 rounded-md text-xs sm:text-sm font-medium transition-colors',
                 dateRange === key
                   ? 'bg-emerald-600 text-white'
                   : 'text-gray-600 hover:bg-gray-100'
@@ -277,19 +320,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
           <option value="delivery">{t.orders_delivery}</option>
         </select>
 
-        {/* History toggle */}
-        <button
-          onClick={() => setShowHistory((s) => !s)}
-          className={cn(
-            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors',
-            showHistory ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
-          )}
-        >
-          {showHistory ? <LayoutGrid className="w-3.5 h-3.5" /> : <History className="w-3.5 h-3.5" />}
-          {showHistory ? t.orders_kanban : `${t.orders_history} (${historyOrders.length})`}
-        </button>
-
-        {/* Export */}
+        {/* Export — hidden on mobile to save space */}
         <button
           onClick={() => {
             import('@/lib/export-csv').then(({ downloadCSV }) => {
@@ -308,41 +339,11 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
               downloadCSV(rows, `ordenes-${new Date().toISOString().slice(0, 10)}`);
             });
           }}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 transition-colors"
+          className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 transition-colors"
         >
           <FileDown className="w-3.5 h-3.5" />
           CSV
         </button>
-
-        <div className="flex-1" />
-
-        {/* Notification + print controls */}
-        <div className="flex items-center gap-1.5">
-          {!hasPermission && (
-            <button onClick={requestPermission} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-600 border border-amber-200">
-              <BellRing className="w-3.5 h-3.5" /> {t.orders_notify}
-            </button>
-          )}
-          <button
-            onClick={() => toggleAutoPrint(!autoPrint)}
-            className={cn('flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors',
-              autoPrint ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' : 'bg-gray-50 text-gray-500 border border-gray-200'
-            )}
-          >
-            <Printer className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            className={cn('flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors',
-              soundEnabled ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-gray-50 text-gray-500 border border-gray-200'
-            )}
-          >
-            {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-          </button>
-          <div className="flex items-center gap-1 text-xs text-gray-400 ml-1">
-            <Wifi className="w-3 h-3 text-emerald-500" />
-          </div>
-        </div>
       </div>
 
       {/* Main content */}
@@ -405,12 +406,13 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
         </div>
       ) : (
         /* ── Kanban board ── */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 overflow-x-auto pb-2 md:overflow-x-visible -mx-4 px-4 md:mx-0 md:px-0">
+
           {COLUMNS.map(({ status, icon: Icon }) => {
             const config = ORDER_STATUS_CONFIG[status];
             const columnOrders = activeOrders.filter((o) => o.status === status);
             return (
-              <div key={status} className="space-y-3">
+              <div key={status} className="space-y-3 min-w-[280px] md:min-w-0 flex-shrink-0 md:flex-shrink">
                 <div className="flex items-center gap-2 mb-2">
                   <Icon className={`w-4 h-4 ${config.color}`} />
                   <span className="text-sm font-semibold text-gray-900">{statusLabel(t, status)}</span>
