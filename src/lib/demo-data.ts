@@ -195,7 +195,7 @@ export const demoProducts: Product[] = [
     id: 'demo-p-club', restaurant_id: RID, category_id: CAT_ALMUERZOS,
     name: 'Club Sándwich',
     description: 'Triple piso con pollo, tocino, lechuga, tomate, aguacate y papas a la francesa.',
-    price: 13.49, image_url: '/seed/es/molletes.webp',
+    price: 13.49, image_url: '/seed/en/club-sandwich.webp',
     is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
@@ -234,7 +234,7 @@ export const demoProducts: Product[] = [
     id: 'demo-p-enchiladas', restaurant_id: RID, category_id: CAT_CENAS,
     name: 'Enchiladas Suizas',
     description: 'Tortillas rellenas de pollo bañadas en salsa verde con crema y queso gratinado.',
-    price: 14.99, image_url: '/seed/es/chilaquiles.webp',
+    price: 14.99, image_url: '/seed/es/enchiladas.webp',
     is_active: true, sort_order: 4, created_at: older, variants: [], extras: [],
   },
   {
@@ -264,7 +264,7 @@ export const demoProducts: Product[] = [
     id: 'demo-p-ceviche', restaurant_id: RID, category_id: CAT_APERITIVOS,
     name: 'Ceviche de Camarón',
     description: 'Camarones frescos marinados en limón con pepino, cebolla morada y aguacate.',
-    price: 12.99, image_url: '/seed/es/ensalada.webp',
+    price: 12.99, image_url: '/seed/en/shrimp.webp',
     is_active: true, sort_order: 2, created_at: now, dietary_tags: ['gluten_free'], variants: [], extras: [],
   },
   {
@@ -339,14 +339,14 @@ export const demoProducts: Product[] = [
     id: 'demo-p-refresco', restaurant_id: RID, category_id: CAT_BEBIDAS,
     name: 'Refresco',
     description: 'Coca-Cola, Sprite, Fanta o agua mineral con gas.',
-    price: 2.99, image_url: '/seed/es/limonada.webp',
+    price: 2.99, image_url: '/seed/es/jugo.webp',
     is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-agua', restaurant_id: RID, category_id: CAT_BEBIDAS,
     name: 'Agua Mineral',
     description: 'Botella de agua purificada o mineral de 500ml.',
-    price: 2.49, image_url: '/seed/es/limonada.webp',
+    price: 2.49, image_url: '/seed/en/water.webp',
     is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
@@ -389,7 +389,7 @@ export const demoProducts: Product[] = [
     id: 'demo-p-vino', restaurant_id: RID, category_id: CAT_LICORES,
     name: 'Copa de Vino Tinto',
     description: 'Selección de vino tinto de casa del Valle de Guadalupe.',
-    price: 9.99, image_url: '/seed/es/cerveza.webp',
+    price: 9.99, image_url: '/seed/en/wine.webp',
     is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
   {
