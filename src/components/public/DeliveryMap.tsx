@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MapPin, ExternalLink } from 'lucide-react';
 
 interface Coords {
@@ -32,12 +32,8 @@ async function geocode(address: string): Promise<Coords | null> {
   }
 }
 
-function MapFallback({ restaurantAddress, deliveryAddress, restaurantName }: DeliveryMapProps) {
-  const query = deliveryAddress
-    ? `${deliveryAddress} to ${restaurantAddress}`
-    : restaurantAddress;
+function MapFallback({ deliveryAddress, restaurantAddress, restaurantName }: DeliveryMapProps) {
   const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(deliveryAddress ?? restaurantAddress)}`;
-
   return (
     <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200">
       <div className="flex items-center gap-2.5">
@@ -49,114 +45,154 @@ function MapFallback({ restaurantAddress, deliveryAddress, restaurantName }: Del
           <p className="text-[10px] text-gray-400">{restaurantName}</p>
         </div>
       </div>
-      <a
-        href={gmapsUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium flex-shrink-0 ml-2"
-      >
+      <a href={gmapsUrl} target="_blank" rel="noopener noreferrer"
+        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium flex-shrink-0 ml-2">
         Ver mapa <ExternalLink className="w-3 h-3" />
       </a>
     </div>
   );
 }
 
-function LeafletMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoords }: {
+interface LiveMapProps {
   restaurantCoords: Coords;
   deliveryCoords: Coords | null;
   restaurantName: string;
   driverCoords: Coords | null;
-}) {
-  const [MapComponents, setMapComponents] = useState<any>(null);
+}
 
+function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoords }: LiveMapProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const driverMarkerRef = useRef<any>(null);
+  const [ready, setReady] = useState(false);
+
+  // Initialize map once
   useEffect(() => {
-    // Dynamically import to avoid SSR issues
-    Promise.all([
-      import('react-leaflet'),
-      import('leaflet'),
-    ]).then(([rl, L]) => {
-      // Fix default marker icons (leaflet CSS path issue in Next.js)
-      delete (L.default.Icon.Default.prototype as any)._getIconUrl;
-      L.default.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    if (!containerRef.current || mapRef.current) return;
+
+    let cancelled = false;
+
+    Promise.all([import('leaflet'), import('leaflet/dist/leaflet.css' as any)]).catch(() => {}).then(async () => {
+      const L = (await import('leaflet')).default;
+
+      // Load CSS manually
+      if (!document.querySelector('#leaflet-css')) {
+        const link = document.createElement('link');
+        link.id = 'leaflet-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+        link.crossOrigin = '';
+        document.head.appendChild(link);
+      }
+
+      if (cancelled || !containerRef.current) return;
+
+      // Center: prefer driver → delivery → restaurant
+      const center: [number, number] = driverCoords
+        ? [driverCoords.lat, driverCoords.lon]
+        : deliveryCoords
+        ? [deliveryCoords.lat, deliveryCoords.lon]
+        : [restaurantCoords.lat, restaurantCoords.lon];
+
+      const zoom = deliveryCoords ? 14 : 15;
+
+      const map = L.map(containerRef.current, {
+        center,
+        zoom,
+        zoomControl: false,
+        attributionControl: false,
       });
-      setMapComponents({ ...rl, L: L.default });
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+      }).addTo(map);
+
+      // Restaurant marker — fork & knife emoji
+      const restaurantIcon = L.divIcon({
+        html: `<div style="width:32px;height:32px;border-radius:50%;background:#059669;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;">🍽️</div>`,
+        className: '',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+      });
+      L.marker([restaurantCoords.lat, restaurantCoords.lon], { icon: restaurantIcon })
+        .addTo(map)
+        .bindPopup(restaurantName);
+
+      // Delivery address marker — pin
+      if (deliveryCoords) {
+        const destIcon = L.divIcon({
+          html: `<div style="width:32px;height:32px;border-radius:50%;background:#2563eb;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;">📍</div>`,
+          className: '',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+        });
+        L.marker([deliveryCoords.lat, deliveryCoords.lon], { icon: destIcon })
+          .addTo(map)
+          .bindPopup('Dirección de entrega');
+
+        // Dashed line between restaurant and delivery
+        L.polyline(
+          [[restaurantCoords.lat, restaurantCoords.lon], [deliveryCoords.lat, deliveryCoords.lon]],
+          { color: '#10b981', weight: 3, dashArray: '8 6', opacity: 0.6 }
+        ).addTo(map);
+      }
+
+      // Driver marker — moto icon (only if we have coords)
+      const motoIcon = L.divIcon({
+        html: `<div style="width:40px;height:40px;border-radius:50%;background:#f97316;border:3px solid white;box-shadow:0 3px 12px rgba(249,115,22,0.5);display:flex;align-items:center;justify-content:center;font-size:20px;transition:all 0.3s ease;">🛵</div>`,
+        className: '',
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+      });
+
+      if (driverCoords) {
+        const driverMarker = L.marker([driverCoords.lat, driverCoords.lon], { icon: motoIcon, zIndexOffset: 1000 })
+          .addTo(map)
+          .bindPopup('🛵 Repartidor en camino');
+        driverMarkerRef.current = driverMarker;
+      } else {
+        // Place marker off-screen (hidden) so we can move it when coords arrive
+        const driverMarker = L.marker([0, 0], { icon: motoIcon, zIndexOffset: 1000, opacity: 0 }).addTo(map);
+        driverMarkerRef.current = driverMarker;
+      }
+
+      mapRef.current = map;
+      setReady(true);
     });
-  }, []);
 
+    return () => {
+      cancelled = true;
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+        driverMarkerRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // init once
+
+  // Smooth driver position updates — the Uber-like part
   useEffect(() => {
-    // Load leaflet CSS
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
-    link.crossOrigin = '';
-    document.head.appendChild(link);
-    return () => { document.head.removeChild(link); };
-  }, []);
+    if (!ready || !mapRef.current || !driverMarkerRef.current) return;
+    if (driverCoords == null) return;
 
-  if (!MapComponents) {
-    return (
-      <div className="w-full h-48 rounded-2xl bg-gray-100 animate-pulse flex items-center justify-center">
-        <MapPin className="w-6 h-6 text-gray-300" />
-      </div>
-    );
-  }
+    const newLatLng: [number, number] = [driverCoords.lat, driverCoords.lon];
 
-  const { MapContainer, TileLayer, Marker, Popup, Polyline } = MapComponents;
+    // Move marker smoothly
+    driverMarkerRef.current.setOpacity(1);
+    driverMarkerRef.current.setLatLng(newLatLng);
 
-  // Center between restaurant and delivery (or just restaurant)
-  const centerLat = deliveryCoords
-    ? (restaurantCoords.lat + deliveryCoords.lat) / 2
-    : restaurantCoords.lat;
-  const centerLon = deliveryCoords
-    ? (restaurantCoords.lon + deliveryCoords.lon) / 2
-    : restaurantCoords.lon;
-
-  const zoom = deliveryCoords ? 13 : 15;
-
-  const lineCoords: [number, number][] = deliveryCoords
-    ? [[restaurantCoords.lat, restaurantCoords.lon], [deliveryCoords.lat, deliveryCoords.lon]]
-    : [];
+    // Pan map to follow driver (smooth)
+    mapRef.current.panTo(newLatLng, { animate: true, duration: 0.8 });
+  }, [ready, driverCoords?.lat, driverCoords?.lon]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="w-full h-52 rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
-      <MapContainer
-        center={[centerLat, centerLon]}
-        zoom={zoom}
-        style={{ height: '100%', width: '100%' }}
-        zoomControl={false}
-        attributionControl={false}
-      >
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-
-        {/* Restaurant pin */}
-        <Marker position={[restaurantCoords.lat, restaurantCoords.lon]}>
-          <Popup>{restaurantName}</Popup>
-        </Marker>
-
-        {/* Delivery address pin */}
-        {deliveryCoords && (
-          <Marker position={[deliveryCoords.lat, deliveryCoords.lon]}>
-            <Popup>Delivery address</Popup>
-          </Marker>
-        )}
-
-        {/* Driver pin */}
-        {driverCoords && (
-          <Marker position={[driverCoords.lat, driverCoords.lon]}>
-            <Popup>🛵 Driver</Popup>
-          </Marker>
-        )}
-
-        {/* Line between restaurant and delivery */}
-        {lineCoords.length === 2 && (
-          <Polyline positions={lineCoords} color="#10b981" weight={3} dashArray="6 6" opacity={0.7} />
-        )}
-      </MapContainer>
-    </div>
+    <div
+      ref={containerRef}
+      className="w-full h-56 rounded-2xl overflow-hidden border border-gray-200 shadow-sm"
+      style={{ minHeight: 224 }}
+    />
   );
 }
 
@@ -171,7 +207,6 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
 
   useEffect(() => {
     if (!restaurantAddress) return;
-
     Promise.all([
       geocode(restaurantAddress),
       deliveryAddress ? geocode(deliveryAddress) : Promise.resolve(null),
@@ -183,9 +218,7 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
   }, [restaurantAddress, deliveryAddress]);
 
   if (!geocodingDone) {
-    return (
-      <div className="w-full h-48 rounded-2xl bg-gray-100 animate-pulse" />
-    );
+    return <div className="w-full h-56 rounded-2xl bg-gray-100 animate-pulse" />;
   }
 
   if (!restaurantCoords) {
@@ -200,13 +233,18 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
 
   return (
     <div className="space-y-2">
-      <LeafletMap
+      <LiveMap
         restaurantCoords={restaurantCoords}
         deliveryCoords={deliveryCoords}
         restaurantName={restaurantName}
         driverCoords={driverCoords}
       />
-      {/* Google Maps fallback link */}
+      {driverCoords && (
+        <div className="flex items-center gap-1.5 justify-center">
+          <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+          <p className="text-xs text-gray-500 font-medium">Repartidor en camino · ubicación en tiempo real</p>
+        </div>
+      )}
       <a
         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(deliveryAddress ?? restaurantAddress)}`}
         target="_blank"
