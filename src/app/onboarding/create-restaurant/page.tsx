@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createRestaurant, createCategory, createProduct } from '@/lib/actions/restaurant';
@@ -60,6 +60,9 @@ export default function CreateRestaurantPage() {
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
 
+  const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
+  const slugDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Step 2 state
   const [categoryName, setCategoryName] = useState('');
   const [categoryError, setCategoryError] = useState('');
@@ -74,8 +77,27 @@ export default function CreateRestaurantPage() {
 
   const handleNameChange = (val: string) => {
     setName(val);
-    setSlug(slugify(val));
+    const newSlug = slugify(val);
+    setSlug(newSlug);
+    triggerSlugCheck(newSlug);
   };
+
+  const triggerSlugCheck = (s: string) => {
+    if (slugDebounce.current) clearTimeout(slugDebounce.current);
+    if (!s || s.length < 2) { setSlugStatus('idle'); return; }
+    setSlugStatus('checking');
+    slugDebounce.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/public/slug-check?slug=${encodeURIComponent(s)}`);
+        const data = await res.json();
+        setSlugStatus(data.available ? 'available' : 'taken');
+      } catch {
+        setSlugStatus('idle');
+      }
+    }, 500);
+  };
+
+  useEffect(() => () => { if (slugDebounce.current) clearTimeout(slugDebounce.current); }, []);
 
   const handleStep1Submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,24 +239,57 @@ export default function CreateRestaurantPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">URL de tu menú</label>
-                  <div className={`flex items-center rounded-xl overflow-hidden transition-all duration-300 ${focused === 'slug' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-400">URL de tu menú</label>
+                    {slugStatus === 'checking' && (
+                      <span className="text-[11px] text-gray-500 flex items-center gap-1">
+                        <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                        Verificando...
+                      </span>
+                    )}
+                    {slugStatus === 'available' && (
+                      <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                        Disponible
+                      </span>
+                    )}
+                    {slugStatus === 'taken' && (
+                      <span className="text-[11px] text-red-400 flex items-center gap-1 font-medium">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        No disponible
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center rounded-xl overflow-hidden transition-all duration-300 ${
+                    focused === 'slug' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' :
+                    slugStatus === 'available' ? 'ring-1 ring-emerald-500/20' :
+                    slugStatus === 'taken' ? 'ring-1 ring-red-500/20' : ''
+                  }`}>
                     <span className="px-3.5 py-3.5 text-[15px] md:text-sm text-gray-500 border-r border-white/[0.08] bg-white/[0.04] flex-shrink-0">
                       menius.app/
                     </span>
                     <input
                       type="text"
                       value={slug}
-                      onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                      onChange={(e) => {
+                        const v = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                        setSlug(v);
+                        triggerSlugCheck(v);
+                      }}
                       onFocus={() => setFocused('slug')}
                       onBlur={() => setFocused(null)}
                       className="flex-1 px-3 py-3.5 text-[15px] md:text-sm bg-white/[0.04] border-y border-r border-white/[0.08] rounded-r-xl text-white placeholder-gray-500 focus:outline-none"
                       placeholder="mi-restaurante"
                     />
                   </div>
-                  {slug && (
+                  {slug && slugStatus !== 'taken' && (
                     <p className="text-[11px] text-gray-600 mt-1.5 ml-1">
                       Tu menú estará en: <span className="text-gray-400">menius.app/{slug}</span>
+                    </p>
+                  )}
+                  {slugStatus === 'taken' && (
+                    <p className="text-[11px] text-red-400 mt-1.5 ml-1">
+                      Esta URL ya está en uso. Prueba con otra.
                     </p>
                   )}
                 </div>
@@ -476,37 +531,42 @@ export default function CreateRestaurantPage() {
           </>
         )}
 
-        {/* ── STEP 4: Open Counter ── */}
+        {/* ── STEP 4: First win celebration ── */}
         {step === 4 && (
           <>
             <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0H3" />
-                </svg>
+              {/* Animated success icon with pulsing ring */}
+              <div className="relative w-24 h-24 mx-auto mb-6">
+                <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" style={{ animationDuration: '2s' }} />
+                <div className="absolute inset-2 rounded-full bg-emerald-500/10 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.3s' }} />
+                <div className="relative w-24 h-24 rounded-full bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center">
+                  <svg className="w-12 h-12 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
               </div>
               <h1 className="text-3xl font-black text-white leading-tight tracking-tight">¡Tu restaurante está listo!</h1>
-              <p className="text-gray-400 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
-                El Counter es donde gestionas tus órdenes en tiempo real. Puedes abrirlo desde cualquier dispositivo — celular, tablet o computadora.
+              <p className="text-gray-400 text-sm mt-3 max-w-sm mx-auto leading-relaxed">
+                Ya puedes recibir pedidos, gestionar tu menú y ver todo en tiempo real desde el Counter.
               </p>
             </div>
 
-            <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
+            <div className="rounded-2xl p-[1px] bg-gradient-to-b from-emerald-500/[0.12] to-white/[0.02]">
               <div className="bg-[#0a0a0a] rounded-2xl p-8 space-y-4">
-                <div className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                  <span className="text-2xl">📱</span>
-                  <div>
-                    <p className="text-sm font-semibold text-white">Desde tu celular o tablet</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Abre menius.app/counter en el navegador</p>
+                {/* Quick wins */}
+                {[
+                  { icon: '✅', title: 'Menú de ejemplo creado', sub: 'Listo para personalizar desde el dashboard' },
+                  { icon: '📱', title: 'Counter en cualquier dispositivo', sub: 'Celular, tablet o computadora' },
+                  { icon: '🔗', title: `menius.app/${slug || 'tu-restaurante'}`, sub: 'Tu QR ya está activo' },
+                ].map((item) => (
+                  <div key={item.icon} className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+                    <span className="text-xl flex-shrink-0">{item.icon}</span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{item.title}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{item.sub}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                  <span className="text-2xl">🖥️</span>
-                  <div>
-                    <p className="text-sm font-semibold text-white">Desde tu computadora</p>
-                    <p className="text-xs text-gray-400 mt-0.5">Ve a menius.app/counter desde el navegador</p>
-                  </div>
-                </div>
+                ))}
 
                 <a
                   href="/app/counter/tablet"

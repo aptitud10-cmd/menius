@@ -2,13 +2,28 @@
 
 import { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff, Sparkles } from 'lucide-react';
+import { Eye, EyeOff, Sparkles, Check } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { signup } from '@/lib/actions/auth';
 import { signupSchema } from '@/lib/validations';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { useLocale } from '@/providers/locale-provider';
 import { getLandingT } from '@/lib/landing-translations';
+
+function getPasswordStrength(pw: string): 0 | 1 | 2 | 3 | 4 {
+  if (!pw) return 0;
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  return Math.min(4, score) as 0 | 1 | 2 | 3 | 4;
+}
+
+function isEmailShape(e: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+}
 
 function PlanBadge({ locale }: { locale: string }) {
   const searchParams = useSearchParams();
@@ -38,6 +53,7 @@ export default function SignupPage() {
   const [confirmEmail, setConfirmEmail] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,11 +198,16 @@ export default function SignupPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onFocus={() => setFocused('email')}
-                    onBlur={() => setFocused(null)}
-                    className="w-full px-4 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
+                    onBlur={() => { setFocused(null); setTouched(p => ({ ...p, email: true })); }}
+                    className="w-full px-4 py-3.5 pr-10 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
                     placeholder="tu@email.com"
                     autoComplete="email"
                   />
+                  {touched.email && isEmailShape(email) && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Check className="w-4 h-4 text-emerald-400" />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -199,7 +220,7 @@ export default function SignupPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onFocus={() => setFocused('password')}
-                    onBlur={() => setFocused(null)}
+                    onBlur={() => { setFocused(null); setTouched(p => ({ ...p, password: true })); }}
                     className="w-full px-4 pr-12 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
                     placeholder={t.passwordPlaceholder}
                     autoComplete="new-password"
@@ -213,6 +234,32 @@ export default function SignupPage() {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {/* Password strength bar — aparece al empezar a escribir */}
+                {(touched.password || password.length > 0) && password.length > 0 && (() => {
+                  const strength = getPasswordStrength(password);
+                  const labels = locale === 'es'
+                    ? ['', 'Muy débil', 'Débil', 'Buena', 'Fuerte']
+                    : ['', 'Too weak', 'Weak', 'Good', 'Strong'];
+                  const colors = ['', 'bg-red-500', 'bg-orange-400', 'bg-yellow-400', 'bg-emerald-500'];
+                  const textColors = ['', 'text-red-400', 'text-orange-400', 'text-yellow-400', 'text-emerald-400'];
+                  return (
+                    <div className="mt-2.5 space-y-1.5">
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4].map((i) => (
+                          <div
+                            key={i}
+                            className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                              i <= strength ? colors[strength] : 'bg-white/[0.07]'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <p className={`text-[11px] font-medium transition-colors ${textColors[strength]}`}>
+                        {labels[strength]}
+                      </p>
+                    </div>
+                  );
+                })()}
               </div>
 
               <label className="flex items-start gap-3 cursor-pointer group">
