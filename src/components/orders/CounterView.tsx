@@ -1318,6 +1318,7 @@ export function CounterView({
               onEditItems={openEditItems}
               onRemoveItem={handleRemoveItem}
               editSaving={editSaving}
+              onPhotoClick={setPhotoLightbox}
             />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
@@ -2286,7 +2287,7 @@ function OrderDetail({
   order, currency, restaurantName, tab, eta, busyExtra, suggestedEta, isUpdating, t,
   onBack, onSetEta, onAdjustEta, onAccept, onMarkPreparing, onMarkReady, onDeliver,
   onCancelRequest, onPrint, onAssignDriver, onTipSaved, onNotify, lastNotif,
-  taxLabel, onEditItems, onRemoveItem, editSaving,
+  taxLabel, onEditItems, onRemoveItem, editSaving, onPhotoClick,
 }: {
   order: Order; currency: string; restaurantName: string; tab: Tab;
   eta: number; busyExtra: number; suggestedEta?: number | null; isUpdating: boolean;
@@ -2308,6 +2309,7 @@ function OrderDetail({
   onEditItems?: (orderId: string) => void;
   onRemoveItem?: (orderId: string, itemId: string) => void;
   editSaving?: boolean;
+  onPhotoClick?: (url: string) => void;
 }) {
   const secs = elapsedSecs(order.created_at);
   const mins = elapsedMins(order.created_at);
@@ -2646,7 +2648,7 @@ function OrderDetail({
                     {(order as any).delivery_photo_url && (
                       <div className="mt-2 flex items-center gap-3">
                         <button
-                          onClick={() => setPhotoLightbox((order as any).delivery_photo_url)}
+                          onClick={() => onPhotoClick?.((order as any).delivery_photo_url)}
                           className="relative w-14 h-14 rounded-xl overflow-hidden border-2 border-[#E8E8E8] hover:border-[#06C167] transition-colors flex-shrink-0 group"
                           title={t.en ? 'View delivery proof' : 'Ver foto de entrega'}
                         >
@@ -2654,7 +2656,7 @@ function OrderDetail({
                         </button>
                         <div className="min-w-0">
                           <p className="text-[10px] font-bold text-[#888] uppercase tracking-wider">📷 {t.en ? 'Delivery proof' : 'Foto de entrega'}</p>
-                          <button onClick={() => setPhotoLightbox((order as any).delivery_photo_url)} className="text-xs text-[#06C167] font-semibold mt-0.5">
+                          <button onClick={() => onPhotoClick?.((order as any).delivery_photo_url)} className="text-xs text-[#06C167] font-semibold mt-0.5">
                             {t.en ? 'View full photo →' : 'Ver foto completa →'}
                           </button>
                         </div>
