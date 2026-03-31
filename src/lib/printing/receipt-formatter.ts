@@ -123,6 +123,7 @@ export function buildReceiptHTML(data: ReceiptData): string {
     currency,
     timestamp,
     locale,
+    driverTrackingUrl,
   } = data;
 
   const L = getLabels(locale);
@@ -225,6 +226,13 @@ export function buildReceiptHTML(data: ReceiptData): string {
     }
     .notes-label { font-weight: bold; font-size: 9px; letter-spacing: 0.5px; text-transform: uppercase; }
     .table-badge { font-size: 20px; font-weight: 900; text-align: center; border: 3px solid #000; padding: 4px 0; margin: 4px 0; letter-spacing: 1px; }
+
+    /* Driver QR section */
+    .driver-section { border: 2px dashed #000; padding: 6px 4px; margin: 6px 0; text-align: center; }
+    .driver-title { font-size: 11px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+    .driver-qr img { width: 120px; height: 120px; display: block; margin: 0 auto 4px; }
+    .driver-url { font-size: 7px; word-break: break-all; color: #333; }
+    .driver-hint { font-size: 9px; color: #555; margin-top: 2px; }
   </style>
 </head>
 <body>
@@ -295,6 +303,17 @@ export function buildReceiptHTML(data: ReceiptData): string {
 
   <!-- ETA -->
   ${etaMinutes ? `<div class="eta">⏱ ${L.eta}: ${etaMinutes} min</div>` : ''}
+
+  <!-- DRIVER TRACKING QR (delivery orders only) -->
+  ${driverTrackingUrl ? `
+  <div class="driver-section">
+    <div class="driver-title">🛵 ${isEn(locale) ? 'Driver / Tracking' : 'Repartidor / Rastreo'}</div>
+    <div class="driver-qr">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&ecc=M&data=${encodeURIComponent(driverTrackingUrl)}" alt="QR tracking" crossorigin="anonymous" />
+    </div>
+    <div class="driver-url">${driverTrackingUrl}</div>
+    <div class="driver-hint">${isEn(locale) ? 'Scan to share live location with customer' : 'Escanea para compartir ubicación en tiempo real'}</div>
+  </div>` : ''}
 
   <!-- FOOTER -->
   <div class="footer">

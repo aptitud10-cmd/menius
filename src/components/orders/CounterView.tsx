@@ -392,7 +392,7 @@ export function CounterView({
   const [cancelReason, setCancelReason] = useState('');
 
   // ── Driver modal ──
-  const [driverModal, setDriverModal] = useState<{ orderId: string; address?: string } | null>(null);
+  const [driverModal, setDriverModal] = useState<{ orderId: string; address?: string; trackingToken?: string } | null>(null);
   const [driverName, setDriverName] = useState('');
   const [driverPhone, setDriverPhone] = useState('');
   const [assigningDriver, setAssigningDriver] = useState(false);
@@ -868,7 +868,11 @@ export function CounterView({
     try {
       const res = await assignDriver(driverModal.orderId, driverName, driverPhone);
       if (res?.error) { showError(res.error); return; }
-      setDriverModal(null);
+      // Update modal with new tracking token (returned by server) so print button works
+      const newToken = (res as any)?.trackingUrl
+        ? (res as any).trackingUrl.split('/').pop()
+        : driverModal.trackingToken;
+      setDriverModal(prev => prev ? { ...prev, trackingToken: newToken } : null);
       setDriverName(''); setDriverPhone('');
       showSuccess(t.en ? 'Driver assigned' : 'Repartidor asignado');
     } catch {
@@ -1296,11 +1300,12 @@ export function CounterView({
                 selectedOrder, selectedOrder.estimated_ready_minutes ?? effectiveEta, restaurantName, currency, locale, taxLabel, taxIncluded
               ).catch(() => {})}
               onAssignDriver={() => {
+                const o = selectedOrder as any;
                 setDriverModal({
                   orderId: selectedOrder.id,
                   address: selectedOrder.delivery_address ?? undefined,
+                  trackingToken: o.driver_tracking_token ?? undefined,
                 });
-                const o = selectedOrder as any;
                 setDriverName(o.driver_name ?? '');
                 setDriverPhone(o.driver_phone ?? '');
               }}
@@ -1998,6 +2003,32 @@ export function CounterView({
                 {assigningDriver ? '…' : driverPhone ? `📲 ${t.assignDriver}` : t.assignDriver}
               </button>
             </div>
+            {/* Print driver sheet with QR */}
+            {driverModal?.trackingToken && (
+              <button
+                onClick={() => {
+                  const appUrl = window.location.origin;
+                  const trackingUrl = `${appUrl}/driver/track/${driverModal.trackingToken}`;
+                  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&ecc=M&data=${encodeURIComponent(trackingUrl)}`;
+                  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Driver Sheet</title>
+                    <style>@page{size:80mm auto;margin:6mm}body{font-family:monospace;font-size:11px;text-align:center;width:70mm}
+                    .title{font-size:14px;font-weight:bold;margin-bottom:8px}.qr img{margin:8px auto;display:block}
+                    .url{font-size:7px;word-break:break-all;margin-top:4px;color:#333}
+                    .hint{font-size:9px;color:#555;margin-top:6px}</style></head>
+                    <body><div class="title">🛵 ${t.en ? 'DRIVER SHEET' : 'FICHA DEL REPARTIDOR'}</div>
+                    <div>${driverModal.address ?? ''}</div>
+                    <div class="qr"><img src="${qrSrc}" width="180" height="180" /></div>
+                    <div class="url">${trackingUrl}</div>
+                    <div class="hint">${t.en ? 'Scan to start live tracking' : 'Escanea para activar rastreo'}</div>
+                    <script>window.onload=()=>{window.print();window.close();}</script></body></html>`;
+                  const w = window.open('', '_blank', 'width=320,height=480');
+                  if (w) { w.document.write(html); w.document.close(); }
+                }}
+                className="mt-2 w-full py-2.5 rounded-xl text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 flex items-center justify-center gap-1.5"
+              >
+                🖨️ {t.en ? 'Print driver sheet (QR)' : 'Imprimir ficha del driver (QR)'}
+              </button>
+            )}
           </div>
         </>
       )}

@@ -376,6 +376,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Pre-generate tracking token for delivery orders so QR can be printed on initial ticket
+    const isDelivery = parsed.data.order_type === 'delivery';
+    const preToken = isDelivery
+      ? `${restaurant_id.slice(0, 8)}-${Math.random().toString(36).slice(2, 10)}`
+      : null;
+
     const orderInsert: Record<string, any> = {
       restaurant_id,
       order_number: orderNumber,
@@ -394,6 +400,7 @@ export async function POST(request: NextRequest) {
       idempotency_key: idempotencyKey || null,
       scheduled_for: scheduledFor,
       include_utensils: body.include_utensils !== false,
+      driver_tracking_token: preToken,
     };
     if (tipAmt > 0) orderInsert.tip_amount = tipAmt;
     if (deliveryFeeAmt > 0) orderInsert.delivery_fee = deliveryFeeAmt;
@@ -671,11 +678,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+    const driverTrackingUrl = preToken
+      ? `${appUrl}/driver/track/${preToken}`
+      : null;
+
     return NextResponse.json({
       order_number: order.order_number,
       order_id: order.id,
       slug: restaurant.slug,
       stripe_url: stripeUrl,
+      driver_tracking_url: driverTrackingUrl,
     });
   } catch (err) {
     captureError(err, { route: '/api/orders' });

@@ -50,4 +50,5 @@ export interface ReceiptData {
   currency: string;
   timestamp: Date;
   locale?: string;
+  driverTrackingUrl?: string;
 }

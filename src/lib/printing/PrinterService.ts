@@ -64,13 +64,18 @@ function mapOrderToReceipt(
 
   const taxAmt = order.tax_amount ? Number(order.tax_amount) : undefined;
 
+  const rawOrder = order as any;
+  const trackingToken = rawOrder.driver_tracking_token ?? null;
+  const appUrl = (typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app'));
+  const driverTrackingUrl = trackingToken ? `${appUrl}/driver/track/${trackingToken}` : undefined;
+
   return {
     restaurantName,
     orderNumber: order.order_number ?? order.id.slice(-6).toUpperCase(),
     customerName: order.customer_name ?? '',
     customerPhone: order.customer_phone ?? undefined,
     orderType: order.order_type ?? undefined,
-    tableName: (order as any).table?.name ?? order.table_name ?? undefined,
+    tableName: rawOrder.table?.name ?? order.table_name ?? undefined,
     paymentMethod: order.payment_method ?? undefined,
     deliveryAddress: order.delivery_address ?? undefined,
     items,
@@ -85,6 +90,7 @@ function mapOrderToReceipt(
     currency,
     timestamp: new Date(order.created_at),
     locale,
+    driverTrackingUrl,
   };
 }
 
