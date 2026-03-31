@@ -869,10 +869,8 @@ export function CounterView({
     try {
       const res = await assignDriver(driverModal.orderId, driverName, driverPhone);
       if (res?.error) { showError(res.error); return; }
-      // Update modal with new tracking token (returned by server) so print button works
-      const newToken = (res as any)?.trackingUrl
-        ? (res as any).trackingUrl.split('/').pop()
-        : driverModal.trackingToken;
+      // Update modal with new tracking token returned by server so print sheet works
+      const newToken = (res as any)?.trackingToken ?? driverModal.trackingToken;
       setDriverModal(prev => prev ? { ...prev, trackingToken: newToken } : null);
       setDriverName(''); setDriverPhone('');
       showSuccess(t.en ? 'Driver assigned' : 'Repartidor asignado');

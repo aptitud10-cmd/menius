@@ -37,15 +37,13 @@ export async function generateQRDataUrl(data: string, size = 200): Promise<strin
     tempDiv.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
     document.body.appendChild(tempDiv);
     qr.append(tempDiv);
-    // Allow the library one animation frame to render to canvas
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const canvas = tempDiv.querySelector('canvas');
-        const dataUrl = canvas ? canvas.toDataURL('image/png') : '';
-        document.body.removeChild(tempDiv);
-        resolve(dataUrl);
-      });
-    });
+    // Wait 300 ms — same approach used by generateBrandedCard to ensure canvas is ready
+    setTimeout(() => {
+      const canvas = tempDiv.querySelector('canvas');
+      const dataUrl = canvas ? canvas.toDataURL('image/png') : '';
+      document.body.removeChild(tempDiv);
+      resolve(dataUrl);
+    }, 300);
   });
 }
 
