@@ -302,14 +302,14 @@ export async function notifyStatusChange(params: {
         const smsResult = await sendSMS({ to: customerPhone, text });
         if (smsResult.success) {
           if (customerEmail) {
-            const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale });
-            sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale), html }).catch(() => {});
+            const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale, orderType });
+            sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale, orderType), html }).catch(() => {});
           }
           result = { channel: 'sms', success: true };
         } else if (customerEmail) {
           // SMS failed — fallback to email
-          const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale });
-          const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale), html });
+          const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale, orderType });
+          const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale, orderType), html });
           result = { channel: 'email', success: emailOk, error: 'sms_failed_fallback_email' };
         } else {
           result = { channel: 'sms', success: false, error: 'sms_failed_no_fallback' };
@@ -320,14 +320,14 @@ export async function notifyStatusChange(params: {
         const waResult = await sendWhatsApp({ to: customerPhone, text });
         if (waResult.success) {
           if (customerEmail) {
-            const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale });
-            sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale), html }).catch(() => {});
+            const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale, orderType });
+            sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale, orderType), html }).catch(() => {});
           }
           result = { channel: 'whatsapp', success: true };
         } else if (customerEmail) {
           // WhatsApp failed — fallback to email
-          const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale });
-          const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale), html });
+          const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale, orderType });
+          const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale, orderType), html });
           result = { channel: 'email', success: emailOk, error: 'whatsapp_failed_fallback_email' };
         } else {
           result = { channel: 'whatsapp', success: false, error: 'whatsapp_failed_no_fallback' };
@@ -335,8 +335,8 @@ export async function notifyStatusChange(params: {
       }
     } else if (customerEmail) {
       // No phone — email only
-      const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale });
-      const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale), html });
+      const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale, orderType });
+      const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale, orderType), html });
       result = { channel: 'email', success: emailOk };
     } else {
       result = { channel: 'none', success: false, error: 'no_contact_info' };
@@ -467,21 +467,31 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
   }
 }
 
-function getStatusSubject(status: string, orderNumber: string, restaurantName: string, locale = 'es'): string {
+function getStatusSubject(status: string, orderNumber: string, restaurantName: string, locale = 'es', orderType?: string): string {
   const en = locale === 'en';
+  const deliveredEn = orderType === 'pickup'
+    ? `Order #${orderNumber} picked up — Enjoy!`
+    : orderType === 'dine_in'
+      ? `Order #${orderNumber} served — Enjoy!`
+      : `Order #${orderNumber} delivered — Enjoy!`;
+  const deliveredEs = orderType === 'pickup'
+    ? `Pedido #${orderNumber} recogido — ¡Buen provecho!`
+    : orderType === 'dine_in'
+      ? `Pedido #${orderNumber} servido — ¡Buen provecho!`
+      : `Pedido #${orderNumber} entregado — ¡Buen provecho!`;
   const subjects: Record<string, string> = en
     ? {
         confirmed: `Order #${orderNumber} confirmed`,
         preparing: `Your order #${orderNumber} is being prepared`,
         ready: `Your order #${orderNumber} is ready!`,
-        delivered: `Order #${orderNumber} delivered — Enjoy!`,
+        delivered: deliveredEn,
         cancelled: `Order #${orderNumber} cancelled`,
       }
     : {
         confirmed: `Pedido #${orderNumber} confirmado`,
         preparing: `Tu pedido #${orderNumber} se está preparando`,
         ready: `¡Tu pedido #${orderNumber} está listo!`,
-        delivered: `Pedido #${orderNumber} entregado — ¡Buen provecho!`,
+        delivered: deliveredEs,
         cancelled: `Pedido #${orderNumber} cancelado`,
       };
   const fallback = en ? `Order #${orderNumber} update` : `Actualización pedido #${orderNumber}`;

@@ -29,7 +29,11 @@ function getT(locale?: string, orderType?: string) {
     live: en ? 'Live' : 'En vivo',
     orderCancelled: en ? 'Order cancelled' : 'Pedido cancelado',
     orderCancelledDesc: en ? 'This order was cancelled.' : 'Este pedido fue cancelado.',
-    orderDelivered: en ? 'Order delivered!' : '¡Pedido entregado!',
+    orderDelivered: orderType === 'pickup'
+      ? (en ? 'Order picked up!' : '¡Pedido recogido!')
+      : orderType === 'dine_in'
+        ? (en ? 'Order served!'  : '¡Pedido servido!')
+        : (en ? 'Order delivered!' : '¡Pedido entregado!'),
     orderDeliveredDesc: en ? 'Enjoy your meal!' : 'Esperamos que disfrutes tu comida.',
     estimatedTime: en ? 'Estimated time' : 'Tiempo estimado',
     paymentConfirmed: en ? 'Payment confirmed!' : '¡Pago confirmado!',
@@ -78,14 +82,29 @@ function getT(locale?: string, orderType?: string) {
       confirmed: { label: en ? 'Preparing'   : 'En preparación', desc: en ? 'Your order is being prepared'     : 'Tu pedido se está preparando' },
       preparing: { label: en ? 'Preparing'   : 'En preparación', desc: en ? 'Your order is being prepared'     : 'Tu pedido se está preparando' },
       ready:     { label: en ? 'Ready'       : 'Listo',          desc: isDelivery ? (en ? 'Your order is on its way!' : '¡Tu pedido está en camino!') : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!') },
-      delivered: { label: en ? 'Delivered'   : 'Entregado',      desc: en ? 'Order delivered. Enjoy your meal!' : 'Pedido entregado. ¡Buen provecho!' },
+      delivered: {
+        label: orderType === 'pickup'
+          ? (en ? 'Picked up'  : 'Recogido')
+          : orderType === 'dine_in'
+            ? (en ? 'Served'   : 'Servido')
+            : (en ? 'Delivered': 'Entregado'),
+        desc: orderType === 'pickup'
+          ? (en ? 'Order picked up. Enjoy your meal!'  : '¡Pedido recogido. Buen provecho!')
+          : orderType === 'dine_in'
+            ? (en ? 'Order served. Enjoy your meal!'   : '¡Pedido servido. Buen provecho!')
+            : (en ? 'Order delivered. Enjoy your meal!': 'Pedido entregado. ¡Buen provecho!'),
+      },
     },
     // 4-step progress bar labels (customer-facing simplified)
     customerSteps: {
       pending:   en ? 'Received'    : 'Recibido',
       preparing: en ? 'Preparing'   : 'Preparando',
       ready:     isDelivery ? (en ? 'On its way' : 'En camino') : (en ? 'Ready'   : 'Listo'),
-      delivered: en ? 'Delivered'   : 'Entregado',
+      delivered: orderType === 'pickup'
+        ? (en ? 'Picked up' : 'Recogido')
+        : orderType === 'dine_in'
+          ? (en ? 'Served'  : 'Servido')
+          : (en ? 'Delivered': 'Entregado'),
     },
     orderTypes: {
       dine_in:  { icon: Utensils,  label: en ? 'Dine-in'  : 'En restaurante' },
@@ -516,6 +535,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           </>
         )}
 
+        {/* ── WAITER CALL BUTTON (dine-in only, while order is active) ── */}
+        {order.order_type === 'dine_in' && !isCancelled && !isComplete && (
+          <WaiterCallButton orderId={order.id} tableName={(order as any).table_name} locale={locale} />
+        )}
+
         {/* Push notification prompt */}
         {!isCancelled && !isComplete && (
           <PushSubscriptionPrompt orderId={order.id} locale={locale} />
@@ -837,6 +861,69 @@ function ComingOutButton({ orderId, locale }: { orderId: string; locale?: string
           : (en ? '🚶 I\'m coming out!' : '🚶 ¡Ya salgo!')}
       </button>
     </div>
+  );
+}
+
+function WaiterCallButton({ orderId, tableName, locale }: { orderId: string; tableName?: string | null; locale?: string }) {
+  const en = locale === 'en';
+  const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [cooldown, setCooldown] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handlePress = async () => {
+    if (state !== 'idle' || cooldown > 0) return;
+    setState('sending');
+    try {
+      await fetch('/api/public/waiter-call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      });
+    } catch { /* silent */ }
+    setState('sent');
+    // 3-minute cooldown to avoid spamming
+    let secs = 180;
+    setCooldown(secs);
+    timerRef.current = setInterval(() => {
+      secs -= 1;
+      setCooldown(secs);
+      if (secs <= 0) {
+        clearInterval(timerRef.current!);
+        setState('idle');
+        setCooldown(0);
+      }
+    }, 1000);
+  };
+
+  const label = tableName
+    ? (en ? `Table ${tableName} needs attention` : `Mesa ${tableName} necesita atención`)
+    : (en ? 'Waiter needed' : 'Mesero necesita atención');
+
+  if (state === 'sent' && cooldown > 0) {
+    const mins = Math.floor(cooldown / 60);
+    const secs = cooldown % 60;
+    const timeStr = mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`;
+    return (
+      <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-violet-50 border border-violet-200">
+        <p className="text-sm font-semibold text-violet-700">
+          {en ? '✓ Staff notified!' : '✓ ¡Personal avisado!'}
+        </p>
+        <p className="text-xs text-violet-400">{en ? `Again in ${timeStr}` : `De nuevo en ${timeStr}`}</p>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={handlePress}
+      disabled={state === 'sending' || cooldown > 0}
+      className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-violet-50 border border-violet-200 text-violet-700 font-semibold text-sm hover:bg-violet-100 active:scale-[0.98] transition-all disabled:opacity-50"
+    >
+      <span className="text-base">🙋</span>
+      {state === 'sending'
+        ? (en ? 'Notifying staff…' : 'Avisando al personal…')
+        : (en ? 'Call waiter' : 'Llamar al mesero')}
+    </button>
   );
 }
 

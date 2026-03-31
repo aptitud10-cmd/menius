@@ -90,6 +90,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [manualTableName, setManualTableName] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(enabledPaymentMethods[0]);
 
@@ -253,7 +254,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           order_type: orderType,
           payment_method: paymentMethod,
           delivery_address: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
-          table_name: orderType === 'dine_in' && tableName ? tableName : undefined,
+          table_name: orderType === 'dine_in' ? (tableName || manualTableName.trim() || undefined) : undefined,
           promo_code: promoResult?.valid ? promoCode.trim() : undefined,
           discount_amount: discount,
           loyalty_points_redeemed: loyaltyPointsToRedeem > 0 ? loyaltyPointsToRedeem : undefined,
@@ -1015,6 +1016,21 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 {fieldErrors.delivery_address && (
                   <p className="text-xs text-red-500 mt-1">{fieldErrors.delivery_address}</p>
                 )}
+              </div>
+            )}
+            {orderType === 'dine_in' && !tableName && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  {locale === 'es' ? '¿En qué mesa estás?' : 'Which table are you at?'}
+                  <span className="ml-1 text-gray-400 font-normal">({locale === 'es' ? 'opcional' : 'optional'})</span>
+                </label>
+                <input
+                  type="text"
+                  value={manualTableName}
+                  onChange={(e) => setManualTableName(e.target.value)}
+                  placeholder={locale === 'es' ? 'Ej: Mesa 4, Terraza, Barra…' : 'E.g. Table 4, Patio, Bar…'}
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
+                />
               </div>
             )}
           </div>

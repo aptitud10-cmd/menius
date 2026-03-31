@@ -81,10 +81,20 @@ export function getStatusPushPayload(
       title: en ? `🔔 Your order is ready!` : `🔔 ¡Tu pedido está listo!`,
       body: readyBody,
     },
-    delivered: {
-      title: en ? `📦 Order delivered!` : `📦 ¡Pedido entregado!`,
-      body: en ? `Order #${orderNumber} has been delivered. Enjoy!` : `Pedido #${orderNumber} entregado. ¡Buen provecho!`,
-    },
+    delivered: (() => {
+      if (orderType === 'pickup') return {
+        title: en ? `🥡 Order picked up!` : `🥡 ¡Pedido recogido!`,
+        body: en ? `Order #${orderNumber} picked up. Enjoy!` : `Pedido #${orderNumber} recogido. ¡Buen provecho!`,
+      };
+      if (orderType === 'dine_in') return {
+        title: en ? `🍽️ Order served!` : `🍽️ ¡Pedido servido!`,
+        body: en ? `Order #${orderNumber} served. Enjoy your meal!` : `Pedido #${orderNumber} servido. ¡Buen provecho!`,
+      };
+      return {
+        title: en ? `📦 Order delivered!` : `📦 ¡Pedido entregado!`,
+        body: en ? `Order #${orderNumber} has been delivered. Enjoy!` : `Pedido #${orderNumber} entregado. ¡Buen provecho!`,
+      };
+    })(),
     cancelled: {
       title: en ? `❌ Order cancelled` : `❌ Pedido cancelado`,
       body: en ? `Order #${orderNumber} was cancelled` : `Pedido #${orderNumber} fue cancelado`,

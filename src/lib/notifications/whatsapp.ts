@@ -148,10 +148,14 @@ export function formatStatusUpdateWhatsApp(
 
   if (status === 'delivered') {
     const ctaUrl = reviewUrl ?? trackingUrl;
+    const isPickup = orderType === 'pickup';
+    const isDineIn = orderType === 'dine_in';
+    const titleEn = isPickup ? `🥡 *Order #${orderNumber} picked up!*` : isDineIn ? `🍽️ *Order #${orderNumber} served!*` : `✨ *Order #${orderNumber} delivered!*`;
+    const titleEs = isPickup ? `🥡 *¡Pedido #${orderNumber} recogido!*` : isDineIn ? `🍽️ *¡Pedido #${orderNumber} servido!*` : `✨ *¡Pedido #${orderNumber} entregado!*`;
     if (ctaUrl) {
       return en
-        ? `✨ *Order #${orderNumber} delivered!*\n\n🏪 ${restaurantName}\n\nEnjoy your meal! We'd love to hear what you think 🌟\n👉 Rate your experience: ${ctaUrl}`
-        : `✨ *¡Pedido #${orderNumber} entregado!*\n\n🏪 ${restaurantName}\n\n¡Buen provecho! Nos encantaría saber qué te pareció 🌟\n👉 Deja tu reseña aquí: ${ctaUrl}`;
+        ? `${titleEn}\n\n🏪 ${restaurantName}\n\nEnjoy your meal! We'd love to hear what you think 🌟\n👉 Rate your experience: ${ctaUrl}`
+        : `${titleEs}\n\n🏪 ${restaurantName}\n\n¡Buen provecho! Nos encantaría saber qué te pareció 🌟\n👉 Deja tu reseña aquí: ${ctaUrl}`;
     }
   }
 
@@ -167,19 +171,30 @@ export function formatStatusUpdateWhatsApp(
     return en ? '🔔 Your order is ready! We\'ll bring it to your table.' : '🔔 ¡Tu pedido está listo! Ya te lo llevamos a la mesa.';
   })();
 
+  const deliveredMsgEn = orderType === 'pickup'
+    ? '🥡 Your order has been picked up. Enjoy!'
+    : orderType === 'dine_in'
+      ? '🍽️ Your order has been served. Enjoy your meal!'
+      : '✨ Your order has been delivered. Enjoy!';
+  const deliveredMsgEs = orderType === 'pickup'
+    ? '🥡 Tu pedido fue recogido. ¡Buen provecho!'
+    : orderType === 'dine_in'
+      ? '🍽️ Tu pedido fue servido. ¡Buen provecho!'
+      : '✨ Tu pedido ha sido entregado. ¡Buen provecho!';
+
   const statusMessages: Record<string, string> = en
     ? {
         confirmed: '✅ Your order has been confirmed',
         preparing: '👨‍🍳 Your order is being prepared',
         ready: readyMsg ?? '🔔 Your order is ready!',
-        delivered: '✨ Your order has been delivered. Enjoy!',
+        delivered: deliveredMsgEn,
         cancelled: '❌ Your order has been cancelled',
       }
     : {
         confirmed: '✅ Tu pedido ha sido confirmado',
         preparing: '👨‍🍳 Tu pedido se está preparando',
         ready: readyMsg ?? '🔔 ¡Tu pedido está listo!',
-        delivered: '✨ Tu pedido ha sido entregado. ¡Buen provecho!',
+        delivered: deliveredMsgEs,
         cancelled: '❌ Tu pedido ha sido cancelado',
       };
 

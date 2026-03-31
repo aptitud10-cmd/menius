@@ -397,8 +397,9 @@ export function buildStatusUpdateEmail(params: {
   trackingUrl: string;
   reviewUrl?: string;
   locale?: string;
+  orderType?: string;
 }): string {
-  const { customerName, orderNumber, restaurantName, status, trackingUrl, reviewUrl, locale } = params;
+  const { customerName, orderNumber, restaurantName, status, trackingUrl, reviewUrl, locale, orderType } = params;
   const en = locale === 'en';
 
   type StatusInfo = { icon: string; titleEn: string; titleEs: string; msgEn: string; msgEs: string; color: string };
@@ -424,13 +425,29 @@ export function buildStatusUpdateEmail(params: {
       msgEs:   'Tu pedido está listo y te espera. ¡Pásalo a recoger!',
       color: '#d97706',
     },
-    delivered: {
-      icon: '🎉',
-      titleEn: 'Order delivered — enjoy!', titleEs: '¡Pedido entregado — buen provecho!',
-      msgEn:   'We hope everything was perfect. It would mean a lot to us if you shared your experience!',
-      msgEs:   'Esperamos que todo haya estado perfecto. ¡Nos encantaría saber qué te pareció!',
-      color: '#059669',
-    },
+    delivered: (() => {
+      if (orderType === 'pickup') return {
+        icon: '🥡',
+        titleEn: 'Order picked up — enjoy!', titleEs: '¡Pedido recogido — buen provecho!',
+        msgEn:   'We hope everything was perfect. It would mean a lot to us if you shared your experience!',
+        msgEs:   'Esperamos que todo haya estado perfecto. ¡Nos encantaría saber qué te pareció!',
+        color: '#059669',
+      };
+      if (orderType === 'dine_in') return {
+        icon: '🍽️',
+        titleEn: 'Order served — enjoy!', titleEs: '¡Pedido servido — buen provecho!',
+        msgEn:   'We hope everything was perfect. It would mean a lot to us if you shared your experience!',
+        msgEs:   'Esperamos que todo haya estado perfecto. ¡Nos encantaría saber qué te pareció!',
+        color: '#059669',
+      };
+      return {
+        icon: '🎉',
+        titleEn: 'Order delivered — enjoy!', titleEs: '¡Pedido entregado — buen provecho!',
+        msgEn:   'We hope everything was perfect. It would mean a lot to us if you shared your experience!',
+        msgEs:   'Esperamos que todo haya estado perfecto. ¡Nos encantaría saber qué te pareció!',
+        color: '#059669',
+      };
+    })(),
     cancelled: {
       icon: '❌',
       titleEn: 'Order cancelled',    titleEs: 'Pedido cancelado',
