@@ -27,10 +27,23 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createAdminClient();
+
+  // Verify token exists and has not expired
+  const { data: order } = await supabase
+    .from('orders')
+    .select('id, driver_token_expires_at')
+    .eq('driver_tracking_token', token)
+    .maybeSingle();
+
+  if (!order) return NextResponse.json({ error: 'Invalid token' }, { status: 404 });
+  if (order.driver_token_expires_at && new Date(order.driver_token_expires_at) < new Date()) {
+    return NextResponse.json({ error: 'Token expired' }, { status: 410 });
+  }
+
   const { error } = await supabase
     .from('orders')
     .update({ driver_lat: lat, driver_lng: lng, driver_updated_at: new Date().toISOString() })
-    .eq('driver_tracking_token', token);
+    .eq('id', order.id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });

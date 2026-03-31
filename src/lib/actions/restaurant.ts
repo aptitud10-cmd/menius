@@ -1030,6 +1030,10 @@ export async function assignDriver(
   // Generate a unique tracking token for this delivery
   const token = driverName.trim() ? crypto.randomUUID() : null;
 
+  const tokenExpiresAt = token
+    ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    : null;
+
   const { error } = await supabase
     .from('orders')
     .update({
@@ -1037,6 +1041,7 @@ export async function assignDriver(
       driver_phone: driverPhone.trim() || null,
       driver_assigned_at: driverName.trim() ? new Date().toISOString() : null,
       driver_tracking_token: token,
+      driver_token_expires_at: tokenExpiresAt,
       // Reset GPS on new assignment
       driver_lat: null,
       driver_lng: null,

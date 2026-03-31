@@ -52,6 +52,7 @@ function getT(lang: string) {
     photoAlt:   en ? 'Delivery proof'                     : 'Foto de entrega',
     photoErr:   en ? 'Upload failed — try again'          : 'Error al subir — intenta de nuevo',
     connErr:    en ? 'Connection error'                   : 'Error de conexión',
+    tokenExp:   en ? 'This tracking link has expired'     : 'Este enlace de rastreo ha expirado',
     // Action feedback
     sending:    en ? 'Sending…'                           : 'Enviando…',
     notified:   en ? 'Customer notified'                  : 'Cliente notificado',
@@ -86,11 +87,13 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
   // GPS helpers
   const sendLocation = async (lat: number, lng: number) => {
     try {
-      await fetch('/api/driver/location', {
+      const res = await fetch('/api/driver/location', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, lat, lng }),
       });
+      // Token expired — stop GPS sharing automatically
+      if (res.status === 410) stopGps();
     } catch { /* silent — will retry on next interval */ }
   };
 
@@ -167,7 +170,7 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
         return true;
       }
       const d = await res.json().catch(() => ({}));
-      setActionFeedback(d.error ?? t.errSend);
+      setActionFeedback(res.status === 410 ? t.tokenExp : (d.error ?? t.errSend));
       return false;
     } catch {
       setActionFeedback(t.errSend);

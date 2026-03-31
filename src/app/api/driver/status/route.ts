@@ -33,12 +33,18 @@ export async function POST(req: NextRequest) {
   // Fetch the order by token
   const { data: order, error: fetchErr } = await supabase
     .from('orders')
-    .select('id, status, order_type, customer_phone, customer_name, customer_email, order_number, restaurant_id, delivery_address, restaurants(name, locale, slug, currency)')
+    .select('id, status, order_type, customer_phone, customer_name, customer_email, order_number, restaurant_id, delivery_address, driver_token_expires_at, restaurants(name, locale, slug, currency)')
     .eq('driver_tracking_token', token)
     .maybeSingle();
 
   if (fetchErr || !order) {
     return NextResponse.json({ error: 'Order not found for this token' }, { status: 404 });
+  }
+
+  // Reject expired tokens (allow 'delivered' action even if expired so driver can still complete)
+  const expiry = (order as any).driver_token_expires_at;
+  if (action !== 'delivered' && expiry && new Date(expiry) < new Date()) {
+    return NextResponse.json({ error: 'Token expired' }, { status: 410 });
   }
 
   const restaurant = (order as any).restaurants as {

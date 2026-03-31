@@ -379,6 +379,10 @@ export async function POST(request: NextRequest) {
     // Pre-generate tracking token for delivery orders so QR can be printed on initial ticket
     const isDelivery = parsed.data.order_type === 'delivery';
     const preToken = isDelivery ? crypto.randomUUID() : null;
+    // Token expires 24 h after order creation
+    const preTokenExpiresAt = preToken
+      ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      : null;
 
     const orderInsert: Record<string, any> = {
       restaurant_id,
@@ -399,6 +403,7 @@ export async function POST(request: NextRequest) {
       scheduled_for: scheduledFor,
       include_utensils: body.include_utensils !== false,
       driver_tracking_token: preToken,
+      driver_token_expires_at: preTokenExpiresAt,
     };
     if (tipAmt > 0) orderInsert.tip_amount = tipAmt;
     if (deliveryFeeAmt > 0) orderInsert.delivery_fee = deliveryFeeAmt;
