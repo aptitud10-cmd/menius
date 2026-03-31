@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2, Languages, Plus, X, Sparkles, Receipt } from 'lucide-react';
-import { COUNTRY_LIST, US_STATE_LIST, COUNTRY_TAX_PRESETS, US_STATE_TAX_RATES, computeTaxAmount } from '@/lib/tax-presets';
+import { COUNTRY_LIST, US_STATE_LIST, COUNTRY_TAX_PRESETS, US_STATE_TAX_RATES, US_CITY_TAX_RATES, computeTaxAmount } from '@/lib/tax-presets';
 import { SUPPORTED_LOCALES, getLocaleFlag } from '@/lib/i18n';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -591,8 +591,47 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                   </option>
                 ))}
               </select>
-              <p className="text-[11px] text-gray-500 mt-1">
-                Base state rate. Add county/city surcharge manually below if needed.
+            </div>
+          )}
+
+          {/* US City (only shown when US + state with known cities selected) */}
+          {form.country_code === 'US' && form.state_code && US_CITY_TAX_RATES[form.state_code] && (
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                City — combined rate (state + county + city)
+              </label>
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  const rate = parseFloat(e.target.value);
+                  if (!isNaN(rate)) {
+                    setForm((prev) => ({ ...prev, tax_rate: rate }));
+                    setSaved(false);
+                  }
+                }}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              >
+                <option value="">— Select your city to auto-fill combined rate —</option>
+                {US_CITY_TAX_RATES[form.state_code].map((c) => (
+                  <option key={c.name} value={c.rate}>
+                    {c.name} — {c.rate}%
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2 flex gap-1.5 items-start">
+                <span className="flex-shrink-0 mt-0.5">⚠️</span>
+                <span>
+                  Rates are approximate and may change. Verify your exact combined rate at{' '}
+                  <a
+                    href="https://www.taxjar.com/rates/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline font-medium"
+                  >
+                    taxjar.com/rates
+                  </a>{' '}
+                  (free lookup by ZIP code). Your accountant is the final authority.
+                </span>
               </p>
             </div>
           )}
