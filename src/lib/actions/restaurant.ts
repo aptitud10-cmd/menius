@@ -1053,10 +1053,11 @@ export async function assignDriver(
   if (error) return { error: error.message };
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app').replace(/\/$/, '');
-  const driverTrackingUrl = token ? `${appUrl}/driver/track/${token}${locale === 'en' ? '?lang=en' : ''}` : null;
+  // Base URL without lang param — overridden with ?lang=en once locale is known
+  const baseTrackingUrl = token ? `${appUrl}/driver/track/${token}` : null;
 
   // Auto-send WhatsApp/SMS to the driver with their tracking link
-  if (token && driverPhone.trim() && driverTrackingUrl) {
+  if (token && driverPhone.trim() && baseTrackingUrl) {
     // Fetch order + restaurant for context (delivery address, locale, restaurant name)
     const { data: orderRow } = await supabase
       .from('orders')
@@ -1069,6 +1070,7 @@ export async function assignDriver(
     const en = locale === 'en';
     const restaurantName = restaurant?.name ?? '';
     const address = (orderRow as any)?.delivery_address ?? '';
+    const driverTrackingUrl = en ? `${baseTrackingUrl}?lang=en` : baseTrackingUrl;
 
     const driverMsg = en
       ? `${restaurantName ? `[${restaurantName}] ` : ''}New delivery assignment!\n📍 Address: ${address}\n\nOpen your driver page to start tracking:\n${driverTrackingUrl}`
@@ -1085,7 +1087,7 @@ export async function assignDriver(
   return {
     success: true,
     trackingToken: token,
-    trackingUrl: driverTrackingUrl,
+    trackingUrl: baseTrackingUrl,
   };
 }
 
