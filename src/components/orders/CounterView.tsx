@@ -2944,20 +2944,10 @@ function ItemRow({ item, currency, canRemove, onRemove, removing }: {
 
   return (
     <div className="flex items-start gap-3 py-3.5">
-      {canRemove ? (
-        <button
-          onClick={onRemove}
-          disabled={removing}
-          className="flex-none w-8 h-8 rounded-lg border-2 border-red-200 bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors disabled:opacity-40"
-          title="Remove item"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      ) : (
-        <span className="flex-none w-8 h-8 rounded-lg border-2 border-[#E0E0E0] bg-[#FAFAFA] flex items-center justify-center text-sm font-black text-[#111]">
-          {item.qty}
-        </span>
-      )}
+      {/* Qty badge always visible */}
+      <span className="flex-none w-8 h-8 rounded-lg border-2 border-[#E0E0E0] bg-[#FAFAFA] flex items-center justify-center text-sm font-black text-[#111]">
+        {item.qty}
+      </span>
       <div className="flex-1 min-w-0">
         <p className="text-[#111] text-sm font-bold leading-tight">{item.product?.name ?? '—'}</p>
         {hasCustomization && (
@@ -2984,9 +2974,22 @@ function ItemRow({ item, currency, canRemove, onRemove, removing }: {
         )}
         {item.notes && <p className="text-amber-600 text-xs mt-1 italic font-medium">★ {item.notes}</p>}
       </div>
-      <span className="flex-none text-sm font-bold text-[#111]">
-        {fmt(item.line_total ?? item.unit_price * item.qty, currency)}
-      </span>
+      <div className="flex-none flex items-center gap-2">
+        <span className="text-sm font-bold text-[#111]">
+          {fmt(item.line_total ?? item.unit_price * item.qty, currency)}
+        </span>
+        {/* Remove button — only visible in edit mode, on the right */}
+        {canRemove && (
+          <button
+            onClick={onRemove}
+            disabled={removing}
+            className="w-7 h-7 rounded-lg border border-red-200 bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-100 hover:text-red-600 transition-colors disabled:opacity-40"
+            title="Remove item"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
