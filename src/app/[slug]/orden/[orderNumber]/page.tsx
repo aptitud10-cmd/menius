@@ -52,13 +52,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
       const { data: orderData, error: orderErr } = await adminDb
         .from('orders')
         .select(`
-          id, order_number, status, order_type, payment_method,
-          customer_name, customer_phone, customer_email,
-          delivery_address, notes, total, tax_amount, tip_amount,
-          delivery_fee, discount_amount, estimated_ready_minutes,
-          created_at, updated_at, scheduled_for,
-          driver_name, driver_phone, driver_lat, driver_lng,
-          driver_updated_at, driver_tracking_token, delivery_photo_url,
+          *,
           table:table_id(name),
           order_items(
             id, qty, unit_price, line_total, notes,
