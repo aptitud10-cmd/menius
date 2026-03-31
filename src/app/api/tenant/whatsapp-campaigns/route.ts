@@ -5,6 +5,26 @@ import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { sendWhatsApp } from '@/lib/notifications/whatsapp';
 
+export async function GET() {
+  try {
+    const tenant = await getTenant();
+    if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('campaigns')
+      .select('id, type, audience, message_preview, sent_count, failed_count, created_at')
+      .eq('restaurant_id', tenant.restaurantId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (error) return NextResponse.json({ campaigns: [] });
+    return NextResponse.json({ campaigns: data ?? [] });
+  } catch {
+    return NextResponse.json({ campaigns: [] });
+  }
+}
+
 type Audience = 'all' | 'inactive_30' | 'inactive_60' | 'vip';
 
 async function getCustomers(supabase: ReturnType<typeof createClient>, restaurantId: string, audience: Audience) {

@@ -193,7 +193,9 @@ export function MenuShell({
   // Ordered list of product IDs from data-driven suggestions (pairings + co-occurrence)
   const [dataBasedSuggestionIds, setDataBasedSuggestionIds] = useState<string[]>([]);
   const [toastName, setToastName] = useState<string | null>(null);
+  const [stockOutAlert, setStockOutAlert] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const stockAlertTimer = useRef<ReturnType<typeof setTimeout>>();
   const audioCtxRef = useRef<AudioContext | null>(null);
   const catScrollRef = useRef<HTMLDivElement>(null);
   const bannerRef = useRef<HTMLDivElement>(null);
@@ -218,6 +220,39 @@ export function MenuShell({
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
+  // Realtime: notify customer if a cart item goes out of stock (86'd)
+  useEffect(() => {
+    const cartItems = useCartStore.getState().items;
+    if (!restaurant.id || cartItems.length === 0) return;
+
+    const supabase = getSupabaseBrowser();
+    const channel = supabase
+      .channel(`products-stock-${restaurant.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'products',
+        filter: `restaurant_id=eq.${restaurant.id}`,
+      }, (payload) => {
+        const updated = payload.new as { id: string; name: string; in_stock: boolean };
+        if (updated.in_stock === false) {
+          const storeState = useCartStore.getState();
+          const idxToRemove = storeState.items.map((i, idx) => ({ id: i.product.id, idx })).filter(x => x.id === updated.id);
+          if (idxToRemove.length > 0) {
+            // Remove in reverse order to preserve indices
+            [...idxToRemove].reverse().forEach(({ idx }) => storeState.removeItem(idx));
+            clearTimeout(stockAlertTimer.current);
+            setStockOutAlert(updated.name);
+            stockAlertTimer.current = setTimeout(() => setStockOutAlert(null), 6000);
+          }
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurant.id]);
+
   // Fetch data-driven suggestions (manual pairings first, then co-occurrence)
   useEffect(() => {
     const productId = customization?.product?.id;
@@ -1752,6 +1787,20 @@ export function MenuShell({
         <div className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:bottom-6 lg:left-auto lg:right-6 pointer-events-none" aria-hidden="true">
           <div className="px-4 py-2.5 rounded-full bg-gray-900 text-white text-sm font-medium shadow-lg">
             {toastName} {t.addedCartSuffix}
+          </div>
+        </div>
+      )}
+
+      {/* ── Stock-out alert: item in cart just went 86'd ── */}
+      {stockOutAlert && (
+        <div className="fixed top-4 left-4 right-4 z-[70] flex justify-center pointer-events-none">
+          <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-red-600 text-white text-sm font-semibold shadow-xl max-w-sm w-full">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            <span className="flex-1">
+              {locale === 'es'
+                ? `"${stockOutAlert}" ya no está disponible y fue removido de tu carrito.`
+                : `"${stockOutAlert}" is no longer available and was removed from your cart.`}
+            </span>
           </div>
         </div>
       )}

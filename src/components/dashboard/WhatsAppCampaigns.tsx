@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { MessageCircle, Users, Send, Clock, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { MessageCircle, Users, Send, Clock, AlertCircle, CheckCircle, ChevronDown, ChevronUp, Loader2, BarChart2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
@@ -99,6 +99,14 @@ export function WhatsAppCampaigns({ restaurantName, menuSlug, restaurantLocale, 
   const [showPreview, setShowPreview] = useState(false);
   const [estimatedCount, setEstimatedCount] = useState<number | null>(null);
   const [loadingCount, setLoadingCount] = useState(false);
+  const [campaigns, setCampaigns] = useState<{ id: string; audience: string; message_preview: string; sent_count: number; failed_count: number; created_at: string }[]>([]);
+
+  useEffect(() => {
+    fetch('/api/tenant/whatsapp-campaigns')
+      .then(r => r.json())
+      .then(d => setCampaigns(d.campaigns ?? []))
+      .catch(() => {});
+  }, [result]); // reload after each send
 
   const currentTemplate = templates.find(t => t.id === selectedTemplate);
   const messageText = customMessage.trim() !== ''
@@ -311,6 +319,42 @@ export function WhatsAppCampaigns({ restaurantName, menuSlug, restaurantLocale, 
           )}
         </div>
       </div>
+
+      {/* Campaign history */}
+      {campaigns.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 mb-4">
+            <BarChart2 className="w-4 h-4 text-gray-400" />
+            {isEs ? 'Historial de campañas' : 'Campaign history'}
+          </h3>
+          <div className="space-y-3">
+            {campaigns.map(c => {
+              const audienceLabel = isEs
+                ? c.audience === 'all' ? 'Todos' : c.audience === 'inactive_30' ? 'Inactivos 30d' : c.audience === 'inactive_60' ? 'Inactivos 60d' : 'VIP'
+                : c.audience === 'all' ? 'All' : c.audience === 'inactive_30' ? 'Inactive 30d' : c.audience === 'inactive_60' ? 'Inactive 60d' : 'VIP';
+              const total = c.sent_count + c.failed_count;
+              const successRate = total > 0 ? Math.round((c.sent_count / total) * 100) : 0;
+              return (
+                <div key={c.id} className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                  <MessageCircle className="w-4 h-4 text-[#25D366] flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-500 truncate">{c.message_preview}</p>
+                    <div className="flex items-center gap-3 mt-1">
+                      <span className="text-xs text-gray-400">{audienceLabel}</span>
+                      <span className="text-xs font-semibold text-emerald-600">✓ {c.sent_count}</span>
+                      {c.failed_count > 0 && <span className="text-xs text-red-400">✗ {c.failed_count}</span>}
+                      <span className="text-xs text-gray-400">{successRate}%</span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-gray-400 flex-shrink-0">
+                    {new Date(c.created_at).toLocaleDateString(isEs ? 'es-MX' : 'en-US', { month: 'short', day: 'numeric' })}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

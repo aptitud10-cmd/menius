@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Gift, Star, Users, TrendingUp, Settings2, RefreshCw, Check, Plus, Minus } from 'lucide-react';
+import { Gift, Star, Users, TrendingUp, Settings2, RefreshCw, Check, Plus, Minus, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
@@ -30,7 +30,7 @@ export default function LoyaltyPage() {
   const [accounts, setAccounts] = useState<LoyaltyAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'config' | 'members'>('config');
+  const [activeTab, setActiveTab] = useState<'config' | 'members' | 'leaderboard'>('config');
   const [adjustId, setAdjustId] = useState<string | null>(null);
   const [adjustPoints, setAdjustPoints] = useState('');
   const [adjustNote, setAdjustNote] = useState('');
@@ -153,16 +153,16 @@ export default function LoyaltyPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
-        {(['config', 'members'] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all', activeTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500')}
-          >
-            {tab === 'config' ? <span className="flex items-center gap-1.5"><Settings2 className="w-3.5 h-3.5" /> {en ? 'Settings' : 'Configuración'}</span> : <span className="flex items-center gap-1.5"><Gift className="w-3.5 h-3.5" /> {en ? 'Members' : 'Miembros'} ({totalMembers})</span>}
-          </button>
-        ))}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit flex-wrap">
+        <button onClick={() => setActiveTab('config')} className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all', activeTab === 'config' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500')}>
+          <span className="flex items-center gap-1.5"><Settings2 className="w-3.5 h-3.5" /> {en ? 'Settings' : 'Configuración'}</span>
+        </button>
+        <button onClick={() => setActiveTab('members')} className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all', activeTab === 'members' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500')}>
+          <span className="flex items-center gap-1.5"><Gift className="w-3.5 h-3.5" /> {en ? 'Members' : 'Miembros'} ({totalMembers})</span>
+        </button>
+        <button onClick={() => setActiveTab('leaderboard')} className={cn('px-4 py-2 rounded-lg text-sm font-semibold transition-all', activeTab === 'leaderboard' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500')}>
+          <span className="flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5" /> {en ? 'Top Customers' : 'Top Clientes'}</span>
+        </button>
       </div>
 
       {activeTab === 'config' && config && (
@@ -237,6 +237,50 @@ export default function LoyaltyPage() {
           >
             {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : saved ? <><Check className="w-4 h-4" /> {en ? 'Saved' : 'Guardado'}</> : (en ? 'Save changes' : 'Guardar cambios')}
           </button>
+        </div>
+      )}
+
+      {activeTab === 'leaderboard' && (
+        <div className="space-y-3">
+          {accounts.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-200 flex flex-col items-center justify-center py-16 gap-3 text-gray-400">
+              <Trophy className="w-10 h-10 opacity-30" />
+              <p className="text-sm">{en ? 'No members yet' : 'Sin miembros todavía'}</p>
+            </div>
+          ) : (
+            accounts.slice(0, 10).map((a, i) => {
+              const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : null;
+              const maxPts = accounts[0]?.lifetime_points || 1;
+              const pct = Math.round((a.lifetime_points / maxPts) * 100);
+              return (
+                <div key={a.id} className={cn('bg-white rounded-2xl border p-4 flex items-center gap-4', i === 0 ? 'border-amber-200 bg-amber-50/40' : i === 1 ? 'border-gray-200' : 'border-gray-100')}>
+                  <div className="w-10 flex-shrink-0 text-center">
+                    {medal ? (
+                      <span className="text-2xl">{medal}</span>
+                    ) : (
+                      <span className="text-base font-black text-gray-300">#{i + 1}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm font-bold text-gray-900 truncate">{a.customer_name ?? (en ? 'No name' : 'Sin nombre')}</p>
+                      <p className="text-sm font-black text-amber-600 tabular-nums ml-2 flex-shrink-0">⭐ {a.lifetime_points.toLocaleString()}</p>
+                    </div>
+                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-xs text-gray-400">{a.customer_phone}</p>
+                      <p className="text-xs text-gray-400">{en ? `${a.points.toLocaleString()} pts available` : `${a.points.toLocaleString()} pts disponibles`}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+          {accounts.length > 10 && (
+            <p className="text-xs text-center text-gray-400">{en ? `Showing top 10 of ${accounts.length} members` : `Mostrando top 10 de ${accounts.length} miembros`}</p>
+          )}
         </div>
       )}
 
