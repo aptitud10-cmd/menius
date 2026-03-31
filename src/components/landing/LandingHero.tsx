@@ -5,7 +5,7 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
   const h = getLandingT(locale).hero;
 
   return (
-    <section className="relative min-h-[100vh] min-h-[100dvh] flex items-center overflow-clip">
+    <section className="relative min-h-[100vh] min-h-[100dvh] flex items-start md:items-center overflow-clip">
       <div className="hero-gradient" />
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-6 w-full pt-24 pb-16 md:py-0">
@@ -45,7 +45,7 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
               </Link>
             </div>
 
-            <div className="d-fade-up d-delay-4 mt-12 md:mt-14 w-full flex items-center justify-center lg:justify-start gap-5 sm:gap-8">
+            <div className="d-fade-up d-delay-4 mt-12 md:mt-14 w-full flex items-start justify-center lg:justify-start gap-4 sm:gap-8">
               {h.stats.map((s) => (
                 <div key={s.label} className="text-center lg:text-left min-w-0">
                   <p className="text-xl sm:text-3xl font-semibold text-white tracking-tight">{s.value}</p>
