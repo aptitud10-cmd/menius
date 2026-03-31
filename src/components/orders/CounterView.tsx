@@ -649,7 +649,7 @@ export function CounterView({
     const effectiveEta = eta + busyExtra;
     (async () => {
       await updateOrderETA(firstNew.id, effectiveEta).catch(() => {});
-      await updateOrderStatus(firstNew.id, 'confirmed').catch(() => {});
+      await updateOrderStatus(firstNew.id, 'preparing').catch(() => {});
       PrinterService.printOrder(firstNew, effectiveEta, restaurantName, currency, locale, taxLabel, taxIncluded).catch(() => {});
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -707,7 +707,7 @@ export function CounterView({
     try {
       const etaRes = await updateOrderETA(order.id, eff);
       if (etaRes?.error) { showError(etaRes.error); return; }
-      const res = await updateOrderStatus(order.id, 'confirmed');
+      const res = await updateOrderStatus(order.id, 'preparing');
       if (res?.error) { showError(res.error); return; }
       playAcceptSound();
       // dine_in always prints so the kitchen gets the ticket even if global auto-print is off
@@ -723,17 +723,6 @@ export function CounterView({
     } finally { setUpdatingId(null); }
   }, [eta, busyExtra, restaurantName, currency, autoPrint, t]);
 
-  const handleMarkPreparing = useCallback(async (order: Order) => {
-    setUpdatingId(order.id);
-    try {
-      const res = await updateOrderStatus(order.id, 'preparing');
-      if (res?.error) { showError(res.error); return; }
-      if (res.notification) showNotif(res.notification, order.id);
-    } catch {
-      showError(t.en ? 'Unexpected error' : 'Error inesperado');
-    } finally { setUpdatingId(null); }
-  }, [t]);
-
   const handleMarkReady = useCallback(async (order: Order) => {
     setUpdatingId(order.id);
     try {
@@ -742,6 +731,20 @@ export function CounterView({
       setActiveTab('ready');
       setSelectedId(order.id);
       setShowDetailMobile(true);
+      if (res.notification) showNotif(res.notification, order.id);
+    } catch {
+      showError(t.en ? 'Unexpected error' : 'Error inesperado');
+    } finally { setUpdatingId(null); }
+  }, [t]);
+
+  const handleMarkServed = useCallback(async (order: Order) => {
+    setUpdatingId(order.id);
+    try {
+      const res = await updateOrderStatus(order.id, 'delivered');
+      if (res?.error) { showError(res.error); return; }
+      setActiveTab('history');
+      setSelectedId(null);
+      setShowDetailMobile(false);
       if (res.notification) showNotif(res.notification, order.id);
     } catch {
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
@@ -1313,8 +1316,8 @@ export function CounterView({
               onSetEta={setEta}
               onAdjustEta={handleAdjustEta}
               onAccept={handleAccept}
-              onMarkPreparing={handleMarkPreparing}
               onMarkReady={handleMarkReady}
+              onMarkServed={handleMarkServed}
               onDeliver={handleDeliver}
               onCancelRequest={(type) => {
                 setCancelModal({ orderId: selectedOrder.id, type });
@@ -2333,7 +2336,7 @@ function EmptyState({ tab, t }: { tab: Tab; t: ReturnType<typeof getT> }) {
 
 function OrderDetail({
   order, currency, restaurantName, tab, eta, busyExtra, suggestedEta, isUpdating, t,
-  onBack, onSetEta, onAdjustEta, onAccept, onMarkPreparing, onMarkReady, onDeliver,
+  onBack, onSetEta, onAdjustEta, onAccept, onMarkReady, onMarkServed, onDeliver,
   onCancelRequest, onPrint, onAssignDriver, onTipSaved, onNotify, lastNotif,
   taxLabel, onEditItems, onRemoveItem, editSaving, onPhotoClick,
 }: {
@@ -2344,8 +2347,8 @@ function OrderDetail({
   onSetEta: (v: number) => void;
   onAdjustEta: (o: Order, v: number) => void;
   onAccept: (o: Order) => void;
-  onMarkPreparing: (o: Order) => void;
   onMarkReady: (o: Order) => void;
+  onMarkServed: (o: Order) => void;
   onDeliver: (o: Order) => void;
   onCancelRequest: (type: 'reject' | 'cancel') => void;
   onPrint: () => void;
@@ -2501,14 +2504,22 @@ function OrderDetail({
       {tab !== 'history' && (
         <div className="flex-none px-5 py-2.5 bg-[#FAFAFA] border-b border-[#F0F0F0]">
           <div className="flex items-center gap-1">
-            {[
-              { key: 'pending',   label: t.tabNew,  color: '#EF4444' },
-              { key: 'confirmed', label: t.en ? 'Confirmed' : 'Confirmada', color: '#F59E0B' },
-              { key: 'preparing', label: t.tabPrep, color: '#8B5CF6' },
-              { key: 'ready',     label: t.tabReady, color: '#06C167' },
-              { key: 'delivered', label: t.deliveredBtn, color: '#111' },
-            ].map((step, i, arr) => {
-              const statuses = ['pending', 'confirmed', 'preparing', 'ready', 'delivered'];
+            {(order.order_type === 'dine_in'
+              ? [
+                  { key: 'pending',   label: t.tabNew,  color: '#EF4444' },
+                  { key: 'preparing', label: t.tabPrep, color: '#8B5CF6' },
+                  { key: 'delivered', label: t.en ? 'Served' : 'Servido', color: '#111' },
+                ]
+              : [
+                  { key: 'pending',   label: t.tabNew,  color: '#EF4444' },
+                  { key: 'preparing', label: t.tabPrep, color: '#8B5CF6' },
+                  { key: 'ready',     label: t.tabReady, color: '#06C167' },
+                  { key: 'delivered', label: t.deliveredBtn, color: '#111' },
+                ]
+            ).map((step, i, arr) => {
+              const statuses = order.order_type === 'dine_in'
+                ? ['pending', 'confirmed', 'preparing', 'delivered']
+                : ['pending', 'confirmed', 'preparing', 'ready', 'delivered'];
               const currentIdx = statuses.indexOf(order.status);
               const stepIdx = statuses.indexOf(step.key);
               const isDone = stepIdx < currentIdx;
@@ -2851,21 +2862,20 @@ function OrderDetail({
           </button>
         )}
 
-        {/* PREP tab: mark preparing (only if still confirmed) + mark ready */}
+        {/* PREP tab: dine-in → serve directly; pickup/delivery → mark ready */}
         {tab === 'prep' && (
-          <>
-            {order.status === 'confirmed' && (
-              <button
-                disabled={isUpdating}
-                onClick={() => onMarkPreparing(order)}
-                className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-sm font-bold border-2 transition-all active:scale-[0.97] disabled:opacity-50"
-                style={{ background: '#EDE9FE', borderColor: '#C4B5FD', color: '#6D28D9' }}
-              >
-                {isUpdating
-                  ? <span className="w-4 h-4 border-2 border-violet-400/40 border-t-violet-600 rounded-full animate-spin" />
-                  : <>{t.en ? '👨‍🍳 Start preparing' : '👨‍🍳 Iniciar preparación'}</>}
-              </button>
-            )}
+          order.order_type === 'dine_in' ? (
+            <button
+              disabled={isUpdating}
+              onClick={() => onMarkServed(order)}
+              className="w-full h-16 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
+              style={{ background: isUpdating ? '#AAA' : '#111' }}
+            >
+              {isUpdating
+                ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                : <><Check className="w-6 h-6" /> {t.en ? 'Serve to table' : 'Servir a la mesa'} <ChevronRight className="w-5 h-5" /></>}
+            </button>
+          ) : (
             <button
               disabled={isUpdating}
               onClick={() => onMarkReady(order)}
@@ -2876,7 +2886,7 @@ function OrderDetail({
                 ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 : <><CheckCircle className="w-6 h-6" /> {t.readyBtn(order.order_type)} <ChevronRight className="w-5 h-5" /></>}
             </button>
-          </>
+          )
         )}
 
         {/* READY tab: resend notification + delivered */}
