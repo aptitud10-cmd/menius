@@ -17,7 +17,7 @@ const LABELS: Record<string, string> = {
   staff: 'Equipo',
   analytics: 'Analytics',
   marketing: 'Marketing',
-  billing: 'Facturación',
+  billing: 'Billing',
   settings: 'Configuración',
 };
 
