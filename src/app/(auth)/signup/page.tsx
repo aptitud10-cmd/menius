@@ -238,10 +238,10 @@ export default function SignupPage() {
                 {(touched.password || password.length > 0) && password.length > 0 && (() => {
                   const strength = getPasswordStrength(password);
                   const labels = locale === 'es'
-                    ? ['', 'Muy débil', 'Débil', 'Buena', 'Fuerte']
-                    : ['', 'Too weak', 'Weak', 'Good', 'Strong'];
-                  const colors = ['', 'bg-red-500', 'bg-orange-400', 'bg-yellow-400', 'bg-emerald-500'];
-                  const textColors = ['', 'text-red-400', 'text-orange-400', 'text-yellow-400', 'text-emerald-400'];
+                    ? ['Muy corta', 'Muy débil', 'Débil', 'Buena', 'Fuerte']
+                    : ['Too short', 'Too weak', 'Weak', 'Good', 'Strong'];
+                  const colors = ['bg-red-500/50', 'bg-red-500', 'bg-orange-400', 'bg-yellow-400', 'bg-emerald-500'];
+                  const textColors = ['text-red-400/60', 'text-red-400', 'text-orange-400', 'text-yellow-400', 'text-emerald-400'];
                   return (
                     <div className="mt-2.5 space-y-1.5">
                       <div className="flex gap-1">
