@@ -74,6 +74,8 @@ export async function POST(request: NextRequest) {
     const items = body.items;
     const promo_code = sanitizeText(body.promo_code, 50);
     const discount_amount = body.discount_amount;
+    const loyalty_points_redeemed = Number(body.loyalty_points_redeemed) || 0;
+    const loyalty_account_id = typeof body.loyalty_account_id === 'string' ? body.loyalty_account_id : null;
     const order_type = sanitizeText(body.order_type, 20);
     const payment_method = sanitizeText(body.payment_method, 20);
     const delivery_address = sanitizeMultiline(body.delivery_address, 300);
@@ -327,12 +329,43 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Validate and apply loyalty points redemption
+    let loyaltyDiscountAmt = 0;
+    let validatedLoyaltyPoints = 0;
+    if (loyalty_points_redeemed > 0 && loyalty_account_id) {
+      const { data: loyaltyConfig } = await adminDb
+        .from('loyalty_configs')
+        .select('enabled, min_redeem_points, peso_per_point')
+        .eq('restaurant_id', restaurant_id)
+        .maybeSingle();
+
+      if (loyaltyConfig?.enabled) {
+        const { data: account } = await adminDb
+          .from('loyalty_accounts')
+          .select('id, points')
+          .eq('id', loyalty_account_id)
+          .eq('restaurant_id', restaurant_id)
+          .maybeSingle();
+
+        if (account && account.points >= loyaltyConfig.min_redeem_points) {
+          // Clamp to what the customer actually has
+          const pointsToRedeem = Math.min(loyalty_points_redeemed, account.points);
+          loyaltyDiscountAmt = Math.min(
+            Math.floor(pointsToRedeem * loyaltyConfig.peso_per_point * 100) / 100,
+            subtotal - discountAmt // cannot exceed remaining subtotal
+          );
+          validatedLoyaltyPoints = pointsToRedeem;
+        }
+      }
+    }
+
     const taxRate = Number((restaurant as any).tax_rate) || 0;
     const taxIncluded = (restaurant as any).tax_included ?? false;
-    const taxableBase = Math.max(0, subtotal - discountAmt);
+    const totalDiscountAmt = discountAmt + loyaltyDiscountAmt;
+    const taxableBase = Math.max(0, subtotal - totalDiscountAmt);
     const taxAmt = computeTaxAmount(taxableBase, taxRate, taxIncluded);
 
-    const total = Math.max(0, subtotal - discountAmt + tipAmt + deliveryFeeAmt + (taxIncluded ? 0 : taxAmt));
+    const total = Math.max(0, subtotal - totalDiscountAmt + tipAmt + deliveryFeeAmt + (taxIncluded ? 0 : taxAmt));
 
     // scheduled_for: parse ISO string from body, validate, reject if in the past
     let scheduledFor: string | null = null;
@@ -357,7 +390,7 @@ export async function POST(request: NextRequest) {
       delivery_address: delivery_address || null,
       table_name: table_name || null,
       promo_code: promo_code || '',
-      discount_amount: discountAmt,
+      discount_amount: totalDiscountAmt,
       idempotency_key: idempotencyKey || null,
       scheduled_for: scheduledFor,
       include_utensils: body.include_utensils !== false,
@@ -365,6 +398,10 @@ export async function POST(request: NextRequest) {
     if (tipAmt > 0) orderInsert.tip_amount = tipAmt;
     if (deliveryFeeAmt > 0) orderInsert.delivery_fee = deliveryFeeAmt;
     if (taxAmt > 0) orderInsert.tax_amount = taxAmt;
+    if (loyaltyDiscountAmt > 0) {
+      orderInsert.loyalty_discount = loyaltyDiscountAmt;
+      orderInsert.loyalty_points_redeemed = validatedLoyaltyPoints;
+    }
 
     const { data: order, error: orderError } = await adminDb
       .from('orders')
@@ -396,6 +433,33 @@ export async function POST(request: NextRequest) {
       const { error: rollbackErr } = await adminDb.from('orders').delete().eq('id', order.id);
       if (rollbackErr) logger.error('rollback delete failed', { order_id: order.id, error: rollbackErr.message });
       return NextResponse.json({ error: 'Error guardando items' }, { status: 500 });
+    }
+
+    // Deduct loyalty points after successful order creation (non-blocking)
+    if (validatedLoyaltyPoints > 0 && loyalty_account_id) {
+      void (async () => {
+        try {
+          const { data: account } = await adminDb
+            .from('loyalty_accounts')
+            .select('points, lifetime_points')
+            .eq('id', loyalty_account_id)
+            .maybeSingle();
+          if (account) {
+            const newPoints = Math.max(0, account.points - validatedLoyaltyPoints);
+            await Promise.all([
+              adminDb.from('loyalty_accounts').update({ points: newPoints }).eq('id', loyalty_account_id),
+              adminDb.from('loyalty_transactions').insert({
+                restaurant_id,
+                account_id: loyalty_account_id,
+                order_id: order.id,
+                type: 'redeem',
+                points: -validatedLoyaltyPoints,
+                description: `Redeemed at checkout — order #${order.order_number}`,
+              }),
+            ]);
+          }
+        } catch { /* non-critical */ }
+      })();
     }
 
     const orderedItems = insertedItems ?? [];

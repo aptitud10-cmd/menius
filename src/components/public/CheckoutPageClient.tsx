@@ -98,6 +98,28 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [promoError, setPromoError] = useState('');
   const [promoResult, setPromoResult] = useState<{ valid: boolean; discount: number; description?: string } | null>(null);
 
+  // Loyalty points
+  const [loyaltyBalance, setLoyaltyBalance] = useState<{ points: number; account_id: string | null; config: { min_redeem_points: number; peso_per_point: number } | null } | null>(null);
+  const [loyaltyApplied, setLoyaltyApplied] = useState(false);
+  const loyaltyLookupTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // Look up loyalty balance when phone changes (debounced)
+  useEffect(() => {
+    clearTimeout(loyaltyLookupTimer.current);
+    setLoyaltyApplied(false);
+    const digits = customerPhone.replace(/\D/g, '');
+    if (digits.length < 7) { setLoyaltyBalance(null); return; }
+    loyaltyLookupTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/public/loyalty/balance?phone=${encodeURIComponent(customerPhone)}&restaurant_id=${restaurant.id}`);
+        const data = await res.json();
+        setLoyaltyBalance(data);
+      } catch { setLoyaltyBalance(null); }
+    }, 700);
+    return () => clearTimeout(loyaltyLookupTimer.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerPhone, restaurant.id]);
+
   const [includeUtensils, setIncludeUtensils] = useState(true);
 
   // Pre-order / scheduled
@@ -128,7 +150,20 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [demoPayProcessing, setDemoPayProcessing] = useState(false);
   const tipAmount = tipPercent !== null ? Math.round(cartTotal * tipPercent) / 100 : 0;
 
-  const discount = promoResult?.valid ? promoResult.discount : 0;
+  const promoDiscount = promoResult?.valid ? promoResult.discount : 0;
+
+  // Loyalty discount derived from applied points
+  const loyaltyPointsToRedeem = (loyaltyApplied && loyaltyBalance?.config && loyaltyBalance.points >= loyaltyBalance.config.min_redeem_points)
+    ? loyaltyBalance.points
+    : 0;
+  const loyaltyDiscount = loyaltyPointsToRedeem > 0 && loyaltyBalance?.config
+    ? Math.min(
+        Math.floor(loyaltyPointsToRedeem * loyaltyBalance.config.peso_per_point * 100) / 100,
+        Math.max(0, cartTotal - promoDiscount)
+      )
+    : 0;
+
+  const discount = promoDiscount + loyaltyDiscount;
   const deliveryFee = (orderType === 'delivery' && restaurant.delivery_fee) ? restaurant.delivery_fee : 0;
 
   const taxRate = restaurant.tax_rate ?? 0;
@@ -221,6 +256,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           table_name: orderType === 'dine_in' && tableName ? tableName : undefined,
           promo_code: promoResult?.valid ? promoCode.trim() : undefined,
           discount_amount: discount,
+          loyalty_points_redeemed: loyaltyPointsToRedeem > 0 ? loyaltyPointsToRedeem : undefined,
+          loyalty_account_id: loyaltyPointsToRedeem > 0 ? loyaltyBalance?.account_id : undefined,
           tip_amount: tipAmount > 0 ? tipAmount : undefined,
           include_utensils: includeUtensils,
           scheduled_for: scheduleEnabled && scheduledFor ? scheduledFor : undefined,
@@ -895,10 +932,16 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 </div>
               </div>
             ))}
-            {discount > 0 && (
+            {promoDiscount > 0 && (
               <div className="flex justify-between text-[15px] text-emerald-600 pt-1">
                 <span>{t.discount}</span>
-                <span className="font-semibold">-{fmtPrice(discount)}</span>
+                <span className="font-semibold">-{fmtPrice(promoDiscount)}</span>
+              </div>
+            )}
+            {loyaltyDiscount > 0 && (
+              <div className="flex justify-between text-[15px] text-emerald-600 pt-1">
+                <span>⭐ {locale === 'es' ? 'Puntos' : 'Points'}</span>
+                <span className="font-semibold">-{fmtPrice(loyaltyDiscount)}</span>
               </div>
             )}
             {deliveryFee > 0 && (
@@ -1120,6 +1163,39 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               ))}
             </div>
           </div>
+
+          {/* Loyalty points redemption */}
+          {loyaltyBalance?.config && loyaltyBalance.points >= loyaltyBalance.config.min_redeem_points && (
+            <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-200 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">⭐</span>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {locale === 'es' ? 'Tienes' : 'You have'} {loyaltyBalance.points} {locale === 'es' ? 'puntos' : 'points'}
+                    </p>
+                    <p className="text-xs text-emerald-700">
+                      = {fmtPrice(Math.floor(loyaltyBalance.points * loyaltyBalance.config.peso_per_point * 100) / 100)} {locale === 'es' ? 'de descuento' : 'discount'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLoyaltyApplied((v) => !v)}
+                  className={cn(
+                    'px-4 py-2 rounded-xl text-sm font-semibold transition-all',
+                    loyaltyApplied
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'bg-white text-emerald-700 border border-emerald-300 hover:bg-emerald-100'
+                  )}
+                >
+                  {loyaltyApplied
+                    ? (locale === 'es' ? '✓ Aplicado' : '✓ Applied')
+                    : (locale === 'es' ? 'Canjear' : 'Redeem')}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Promo code */}
           <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
