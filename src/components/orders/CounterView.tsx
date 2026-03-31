@@ -690,6 +690,7 @@ export function CounterView({
     if (order.payment_method === 'cash' || !order.payment_method) {
       setSplitCash('');
       setSplitCard('');
+      setSavingSplit(false);
       setSplitPayModal({ order });
       return;
     }
@@ -714,6 +715,7 @@ export function CounterView({
       setSelectedId(null);
       setShowDetailMobile(false);
       setSplitPayModal(null);
+      setSavingSplit(false);
     } catch {
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
@@ -1234,7 +1236,7 @@ export function CounterView({
               </SidebarSection>
 
               {/* 86 / Stock */}
-              <SidebarSection title={t.en ? '86 / Stock' : '86 / Stock'} icon={<span className="text-[11px] font-black text-red-400">86</span>}>
+              <SidebarSection title="86 / Stock" icon={<span className="text-[11px] font-black text-red-400">86</span>}>
                 {stockLoading ? (
                   <div className="flex items-center justify-center py-4">
                     <span className="w-4 h-4 border-2 border-[#DDD] border-t-[#06C167] rounded-full animate-spin" />

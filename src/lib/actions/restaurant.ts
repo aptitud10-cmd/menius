@@ -1071,7 +1071,7 @@ export async function updatePaymentBreakdown(
 
   const { error } = await supabase
     .from('orders')
-    .update({ payment_breakdown: breakdown, payment_method: 'cash' })
+    .update({ payment_breakdown: breakdown })
     .eq('id', orderId)
     .eq('restaurant_id', restaurantId);
 
