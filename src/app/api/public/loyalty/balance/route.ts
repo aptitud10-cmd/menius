@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch loyalty config for this restaurant
     const { data: config } = await adminDb
-      .from('loyalty_configs')
+      .from('loyalty_config')
       .select('enabled, min_redeem_points, peso_per_point')
       .eq('restaurant_id', restaurantId)
       .maybeSingle();

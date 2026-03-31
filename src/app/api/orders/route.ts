@@ -334,7 +334,7 @@ export async function POST(request: NextRequest) {
     let validatedLoyaltyPoints = 0;
     if (loyalty_points_redeemed > 0 && loyalty_account_id) {
       const { data: loyaltyConfig } = await adminDb
-        .from('loyalty_configs')
+        .from('loyalty_config')
         .select('enabled, min_redeem_points, peso_per_point')
         .eq('restaurant_id', restaurant_id)
         .maybeSingle();
