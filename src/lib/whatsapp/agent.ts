@@ -22,7 +22,7 @@ interface CartItem {
   unitPrice: number;
 }
 
-type ConversationStep = 'browsing' | 'awaiting_name' | 'awaiting_confirm';
+type ConversationStep = 'browsing' | 'awaiting_name' | 'awaiting_confirm' | 'awaiting_order_confirm';
 
 interface ConversationSession {
   restaurantId: string;
@@ -34,6 +34,8 @@ interface ConversationSession {
   step?: ConversationStep;
   cart?: CartItem[];
   customerName?: string;
+  pendingOrderId?: string;
+  pendingOrderNumber?: string;
 }
 
 // Sessions stored in Redis when available, falling back to in-process Map for local dev.
@@ -86,6 +88,31 @@ async function clearSession(from: string): Promise<void> {
   localSessions.delete(from);
 }
 
+/** Called from order-notifications after placing an order, to set up bidirectional WA confirmation */
+export async function storeOrderAwaitingConfirmation(
+  customerPhone: string,
+  orderId: string,
+  orderNumber: string,
+  restaurantId: string,
+  restaurantName: string,
+  slug: string,
+  locale: string,
+  currency: string,
+): Promise<void> {
+  const session: ConversationSession = {
+    restaurantId,
+    restaurantName,
+    slug,
+    locale,
+    currency,
+    lastActivity: Date.now(),
+    step: 'awaiting_order_confirm',
+    pendingOrderId: orderId,
+    pendingOrderNumber: orderNumber,
+  };
+  await setSession(customerPhone, session);
+}
+
 async function findRestaurantByPhone(phone: string) {
   const supabase = getAdminClient();
   const { data } = await supabase
@@ -107,8 +134,12 @@ async function getMenuForRestaurant(restaurantId: string) {
 
 // ── Intent detection ──
 
-function detectIntent(text: string): 'menu' | 'hours' | 'order_status' | 'help' | 'greeting' | 'order' | 'unknown' {
+function detectIntent(text: string): 'menu' | 'hours' | 'order_status' | 'help' | 'greeting' | 'order' | 'confirm_order' | 'cancel_order' | 'unknown' {
   const lower = text.toLowerCase().trim();
+
+  // Quick order confirmation/cancellation responses
+  if (/^(1|si|sí|yes|confirmar|confirm)[\s!.]*$/i.test(lower)) return 'confirm_order';
+  if (/^(2|no|cancelar|cancel|anular)[\s!.]*$/i.test(lower)) return 'cancel_order';
 
   if (/^(hola|hi|hello|hey|buenos?\s*d[ií]as?|buenas?\s*tardes?|buenas?\s*noches?|qu[eé]\s*tal)/i.test(lower)) {
     return 'greeting';
@@ -518,6 +549,47 @@ export async function handleIncomingMessage({ from, text, name }: IncomingMessag
     return;
   }
 
+  // ── Bidirectional order confirmation ──
+  // Customer responds 1/YES to confirm their placed order, 2/NO to cancel
+  if (session.step === 'awaiting_order_confirm' && session.pendingOrderId) {
+    const supabase = getAdminClient();
+    const intent = detectIntent(text);
+
+    if (intent === 'confirm_order') {
+      // Mark order as confirmed
+      await supabase.from('orders').update({ status: 'confirmed' }).eq('id', session.pendingOrderId);
+      session.step = 'browsing';
+      session.pendingOrderId = undefined;
+      session.pendingOrderNumber = undefined;
+      await setSession(from, session);
+      reply = isEn
+        ? `✅ Order *#${session.pendingOrderNumber}* confirmed! We'll notify you when it's ready. 🙌`
+        : `✅ ¡Orden *#${session.pendingOrderNumber}* confirmada! Te avisamos cuando esté lista. 🙌`;
+      await sendWhatsApp({ to: from, text: reply });
+      return;
+    }
+
+    if (intent === 'cancel_order') {
+      await supabase.from('orders').update({ status: 'cancelled', cancellation_reason: isEn ? 'Cancelled by customer via WhatsApp' : 'Cancelado por cliente via WhatsApp' }).eq('id', session.pendingOrderId);
+      session.step = 'browsing';
+      session.pendingOrderId = undefined;
+      session.pendingOrderNumber = undefined;
+      await setSession(from, session);
+      reply = isEn
+        ? `❌ Order *#${session.pendingOrderNumber}* has been cancelled. Let us know if you need anything else!`
+        : `❌ Orden *#${session.pendingOrderNumber}* cancelada. ¡Avísanos si necesitas algo más!`;
+      await sendWhatsApp({ to: from, text: reply });
+      return;
+    }
+
+    // Unrecognized — remind
+    reply = isEn
+      ? `Reply *1* to confirm your order or *2* to cancel.`
+      : `Responde *1* para confirmar tu orden o *2* para cancelarla.`;
+    await sendWhatsApp({ to: from, text: reply });
+    return;
+  }
+
   // ── Normal intent detection (step === 'browsing' or undefined) ──
 
   const intent = detectIntent(text);
@@ -587,9 +659,43 @@ export async function handleIncomingMessage({ from, text, name }: IncomingMessag
     }
 
     case 'order_status': {
+      // Look up most recent order by this customer phone
+      const supabase = getAdminClient();
+      const { data: lastOrder } = await supabase
+        .from('orders')
+        .select('order_number, status, created_at')
+        .eq('customer_phone', from)
+        .eq('restaurant_id', session.restaurantId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (lastOrder) {
+        const statusMap: Record<string, { es: string; en: string }> = {
+          pending: { es: 'Pendiente', en: 'Pending' },
+          confirmed: { es: 'Confirmada', en: 'Confirmed' },
+          preparing: { es: 'En preparación', en: 'Preparing' },
+          ready: { es: 'Lista para entrega', en: 'Ready for pickup' },
+          delivered: { es: 'Entregada', en: 'Delivered' },
+          cancelled: { es: 'Cancelada', en: 'Cancelled' },
+        };
+        const s = statusMap[lastOrder.status] ?? { es: lastOrder.status, en: lastOrder.status };
+        reply = isEn
+          ? `📦 Your last order *#${lastOrder.order_number}* is: *${s.en}*\n\nFull tracking: ${menuUrl}`
+          : `📦 Tu última orden *#${lastOrder.order_number}* está: *${s.es}*\n\nSeguimiento completo: ${menuUrl}`;
+      } else {
+        reply = isEn
+          ? `No recent orders found for your number. Want to order? 👉 ${menuUrl}`
+          : `No encontré órdenes recientes para tu número. ¿Quieres pedir? 👉 ${menuUrl}`;
+      }
+      break;
+    }
+
+    case 'confirm_order':
+    case 'cancel_order': {
+      // No pending order to confirm/cancel — generic response
       reply = isEn
-        ? `To check your order status, use the tracking link you received when placing your order.\n\nWant to place a new order? 👉 ${menuUrl}`
-        : `Para ver el estado de tu pedido, usa el enlace de seguimiento que recibiste al hacer tu pedido.\n\n¿Quieres hacer un nuevo pedido? 👉 ${menuUrl}`;
+        ? `To check your order, use your tracking link or visit: ${menuUrl}`
+        : `Para ver tu orden, usa tu enlace de seguimiento o visita: ${menuUrl}`;
       break;
     }
 

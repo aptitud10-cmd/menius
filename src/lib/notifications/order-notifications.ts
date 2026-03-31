@@ -146,8 +146,23 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
         const text = formatOrderConfirmationSMS(orderNumber, restaurant.name, totalFormatted, trackingUrl);
         sendSMS({ to: customerPhone, text }).catch(() => {});
       } else {
-        const text = formatCustomerOrderConfirmationWhatsApp(orderNumber, restaurant.name, totalFormatted, trackingUrl, locale);
-        sendWhatsApp({ to: customerPhone, text }).catch(() => {});
+        const en = locale === 'en';
+        const confirmText = formatCustomerOrderConfirmationWhatsApp(orderNumber, restaurant.name, totalFormatted, trackingUrl, locale);
+        // Append bidirectional confirmation prompt
+        const biText = en
+          ? `${confirmText}\n\nReply *1* to confirm your order or *2* to cancel it.`
+          : `${confirmText}\n\nResponde *1* para confirmar tu orden o *2* para cancelarla.`;
+        sendWhatsApp({ to: customerPhone, text: biText }).catch(() => {});
+
+        // Store pending order in WhatsApp agent session so replies "1"/"2" are routed correctly
+        if (orderId) {
+          (async () => {
+            try {
+              const { storeOrderAwaitingConfirmation } = await import('@/lib/whatsapp/agent');
+              await storeOrderAwaitingConfirmation(customerPhone, orderId, orderNumber, restaurant.id, restaurant.name, restaurant.slug, locale, restaurant.currency ?? 'MXN');
+            } catch { /* non-critical */ }
+          })();
+        }
       }
     }
 

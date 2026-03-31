@@ -11,7 +11,7 @@ import {
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import {
   updateOrderStatus, updateOrderETA, setPauseOrders, assignDriver, updateOrderTip,
-  sendOrderNotification, updatePaymentBreakdown,
+  sendOrderNotification, updatePaymentBreakdown, openShift, closeShift,
 } from '@/lib/actions/restaurant';
 import { AutoAcceptService } from '@/lib/counter/AutoAcceptService';
 import { PrinterService } from '@/lib/printing/PrinterService';
@@ -127,6 +127,24 @@ function getT(locale?: string) {
     filterPickup:    en ? 'Pickup'    : 'Recoger',
     filterDineIn:    en ? 'Dine-in'   : 'Mesa',
     results:     (n: number) => en ? `${n} order${n !== 1 ? 's' : ''}` : `${n} ${n === 1 ? 'orden' : 'órdenes'}`,
+    // Shift
+    shiftTitle:      en ? 'Cash Register'       : 'Caja / Turno',
+    shiftOpen:       en ? 'Open shift'           : 'Abrir turno',
+    shiftClose:      en ? 'Close shift'          : 'Cerrar turno',
+    shiftOpened:     en ? 'Shift open'           : 'Turno abierto',
+    shiftOpeningCash: en ? 'Opening cash'        : 'Efectivo inicial',
+    shiftClosingCash: en ? 'Closing cash counted' : 'Efectivo contado al cierre',
+    shiftNotes:      en ? 'Notes (optional)'     : 'Notas (opcional)',
+    shiftReportZ:    en ? 'Z Report'             : 'Reporte Z',
+    shiftPrint:      en ? 'Print report'         : 'Imprimir reporte',
+    shiftDuration:   (h: number, m: number) => en ? `${h}h ${m}m` : `${h}h ${m}m`,
+    shiftRevenue:    en ? 'Total revenue'        : 'Total ventas',
+    shiftCash:       en ? 'Cash sales'           : 'Ventas efectivo',
+    shiftCard:       en ? 'Card / Online'        : 'Tarjeta / Online',
+    shiftOrders:     en ? 'Completed orders'     : 'Órdenes completadas',
+    shiftExpected:   en ? 'Expected cash'        : 'Efectivo esperado',
+    shiftDiff:       en ? 'Difference'           : 'Diferencia',
+    shiftNoActive:   en ? 'No shift open'        : 'Sin turno activo',
   };
 }
 
@@ -300,6 +318,7 @@ interface CounterViewProps {
   restaurantLng?: number | null;
   taxLabel?: string;
   taxIncluded?: boolean;
+  tabletMode?: boolean;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -308,7 +327,7 @@ interface CounterViewProps {
 
 export function CounterView({
   initialOrders, restaurantId, restaurantName, currency, locale = 'es',
-  restaurantLat, restaurantLng, taxLabel, taxIncluded,
+  restaurantLat, restaurantLng, taxLabel, taxIncluded, tabletMode = false,
 }: CounterViewProps) {
   const t = getT(locale);
 
@@ -395,6 +414,28 @@ export function CounterView({
   const [splitCash, setSplitCash] = useState('');
   const [splitCard, setSplitCard] = useState('');
   const [savingSplit, setSavingSplit] = useState(false);
+
+  // ── Shift management ──
+  interface ActiveShift { id: string; opening_cash: number; opened_at: string }
+  const [activeShift, setActiveShift] = useState<ActiveShift | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem(`counter-shift-${restaurantId}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  });
+  const [shiftModal, setShiftModal] = useState<'open' | 'close' | 'report' | null>(null);
+  const [shiftOpenCash, setShiftOpenCash] = useState('0');
+  const [shiftCloseCash, setShiftCloseCash] = useState('');
+  const [shiftNotes, setShiftNotes] = useState('');
+  const [shiftSaving, setShiftSaving] = useState(false);
+  interface ShiftReport {
+    totalOrders: number; totalRevenue: number; totalCash: number;
+    totalCard: number; expectedCash: number; cashDifference: number;
+    openingCash: number; closingCash: number;
+    openedAt: string; closedAt: string;
+  }
+  const [shiftReport, setShiftReport] = useState<ShiftReport | null>(null);
 
   // ── Toasts ──
   const [errorToast, setErrorToast] = useState<string | null>(null);
@@ -808,6 +849,56 @@ export function CounterView({
     finally { setStockUpdating(null); }
   }, []);
 
+  // ── Shift handlers ──
+  const handleOpenShift = useCallback(async () => {
+    setShiftSaving(true);
+    try {
+      const result = await openShift(parseFloat(shiftOpenCash) || 0);
+      if (result.error) { showError(result.error); return; }
+      const shift = result.shift as ActiveShift;
+      setActiveShift(shift);
+      localStorage.setItem(`counter-shift-${restaurantId}`, JSON.stringify(shift));
+      setShiftModal(null);
+      showSuccess(t.en ? 'Shift opened' : 'Turno abierto');
+    } catch { showError(t.en ? 'Error opening shift' : 'Error al abrir turno'); }
+    finally { setShiftSaving(false); }
+  }, [shiftOpenCash, restaurantId, t]);
+
+  const handleCloseShift = useCallback(async () => {
+    setShiftSaving(true);
+    try {
+      const result = await closeShift(parseFloat(shiftCloseCash) || 0, shiftNotes || undefined);
+      if (result.error) { showError(result.error); return; }
+      setActiveShift(null);
+      localStorage.removeItem(`counter-shift-${restaurantId}`);
+      const s = result.summary as any;
+      const shift = result.shift as any;
+      setShiftReport({
+        totalOrders: s.totalOrders,
+        totalRevenue: s.totalRevenue,
+        totalCash: s.totalCash,
+        totalCard: s.totalCard,
+        expectedCash: s.expectedCash,
+        cashDifference: s.cashDifference,
+        openingCash: s.openingCash,
+        closingCash: s.closingCash,
+        openedAt: shift.opened_at,
+        closedAt: shift.closed_at,
+      });
+      setShiftModal('report');
+    } catch { showError(t.en ? 'Error closing shift' : 'Error al cerrar turno'); }
+    finally { setShiftSaving(false); }
+  }, [shiftCloseCash, shiftNotes, restaurantId, t]);
+
+  const shiftDuration = activeShift
+    ? (() => {
+        const ms = Date.now() - new Date(activeShift.opened_at).getTime();
+        const h = Math.floor(ms / 3_600_000);
+        const m = Math.floor((ms % 3_600_000) / 60_000);
+        return `${h}h ${String(m).padStart(2, '0')}m`;
+      })()
+    : null;
+
   // ── Tab change helper ──
   const changeTab = (tab: Tab) => {
     setActiveTab(tab);
@@ -899,6 +990,12 @@ export function CounterView({
             setSplashQueue(q => q.slice(1));
             handleAccept(current);
           }}
+          onReject={() => {
+            const current = splashQueue[0];
+            setSplashQueue(q => q.slice(1));
+            setCancelModal({ orderId: current.id, type: 'reject' });
+            setCancelReason('');
+          }}
         />
       )}
 
@@ -916,6 +1013,22 @@ export function CounterView({
           <Pause className="w-3.5 h-3.5" />
           {t.paused_status} — {pauseLeftMins} min
           <button onClick={doUnpause} className="ml-2 underline">{t.resumeOrders}</button>
+        </div>
+      )}
+
+      {/* ── Active shift banner ── */}
+      {activeShift && (
+        <div className="flex-none bg-[#06C167] text-white text-xs font-bold py-1.5 px-4 flex items-center gap-2 z-20">
+          <span>💰</span>
+          <span>{t.shiftOpened} · {shiftDuration}</span>
+          <span className="opacity-60">·</span>
+          <span>{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</span>
+          <button
+            onClick={() => { setShiftCloseCash(''); setShiftNotes(''); setShiftModal('close'); }}
+            className="ml-auto underline text-white/80 hover:text-white"
+          >
+            {t.shiftClose}
+          </button>
         </div>
       )}
 
@@ -973,13 +1086,24 @@ export function CounterView({
           </span>
         </div>
 
+        {/* Tablet mode link (only in normal mode) */}
+        {!tabletMode && (
+          <a
+            href="/app/counter/tablet"
+            title={t.en ? 'Tablet mode' : 'Modo tablet'}
+            className="w-9 h-9 rounded-xl items-center justify-center text-[#555] hover:bg-[#F5F5F5] transition-colors flex-shrink-0 hidden lg:flex"
+          >
+            <Settings2 className="w-4 h-4" />
+          </a>
+        )}
+
         {/* Printer settings button */}
         <button
           onClick={() => setPrinterModalOpen(true)}
           title={t.en ? 'Printer settings' : 'Configurar impresora'}
           className="w-9 h-9 rounded-xl flex items-center justify-center text-[#555] hover:bg-[#F5F5F5] transition-colors flex-shrink-0"
         >
-          <Printer className="w-4.5 h-4.5" />
+          <Printer className="w-4 h-4" />
         </button>
       </header>
 
@@ -1283,6 +1407,31 @@ export function CounterView({
                   </div>
                 </div>
               </SidebarSection>
+
+              {/* Cash Register / Shift */}
+              <SidebarSection title={t.shiftTitle} icon={<span className="text-base">💰</span>}>
+                {activeShift ? (
+                  <div className="space-y-2">
+                    <div className="px-3 py-3 rounded-xl bg-green-50 border border-green-200 space-y-1">
+                      <p className="text-xs font-bold text-green-700">{t.shiftOpened} · {shiftDuration}</p>
+                      <p className="text-xs text-green-600">{t.shiftOpeningCash}: {fmt(Number(activeShift.opening_cash), currency)}</p>
+                    </div>
+                    <button
+                      onClick={() => { setShiftCloseCash(''); setShiftNotes(''); setShiftModal('close'); }}
+                      className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors"
+                    >
+                      {t.shiftClose}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => { setShiftOpenCash('0'); setShiftModal('open'); }}
+                    className="w-full py-2.5 rounded-xl text-sm font-bold text-white bg-[#06C167] hover:bg-[#05a857] transition-colors"
+                  >
+                    {t.shiftOpen}
+                  </button>
+                )}
+              </SidebarSection>
             </div>
           </aside>
         </>
@@ -1536,6 +1685,132 @@ export function CounterView({
                 {savingSplit || updatingId
                   ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
                   : <>{t.deliveredBtn} ✓</>}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ══ SHIFT MODALS ══ */}
+      {shiftModal === 'open' && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShiftModal(null)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#F0F0F0]">
+              <p className="text-base font-black text-[#111]">💰 {t.shiftOpen}</p>
+              <p className="text-xs text-[#888] mt-0.5">{t.en ? 'Enter opening cash in the register' : 'Ingresa el efectivo inicial en caja'}</p>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <div>
+                <label className="text-xs font-bold text-[#888] uppercase tracking-wide mb-1 block">{t.shiftOpeningCash}</label>
+                <input
+                  type="number" min="0" step="0.01"
+                  value={shiftOpenCash}
+                  onChange={e => setShiftOpenCash(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] bg-white"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="px-5 pb-5 flex gap-2">
+              <button onClick={() => setShiftModal(null)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">{t.no}</button>
+              <button
+                onClick={handleOpenShift}
+                disabled={shiftSaving}
+                className="flex-1 py-3 rounded-xl text-white text-sm font-black transition-all disabled:opacity-50 bg-[#06C167]"
+              >
+                {shiftSaving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" /> : t.shiftOpen}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {shiftModal === 'close' && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShiftModal(null)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#F0F0F0]">
+              <p className="text-base font-black text-[#111]">🔒 {t.shiftClose}</p>
+              <p className="text-xs text-[#888] mt-0.5">{t.en ? 'Count the cash in the register' : 'Cuenta el efectivo en la caja'}</p>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <div>
+                <label className="text-xs font-bold text-[#888] uppercase tracking-wide mb-1 block">💵 {t.shiftClosingCash}</label>
+                <input
+                  type="number" min="0" step="0.01"
+                  value={shiftCloseCash}
+                  onChange={e => setShiftCloseCash(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] bg-white"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-[#888] uppercase tracking-wide mb-1 block">{t.shiftNotes}</label>
+                <textarea
+                  value={shiftNotes}
+                  onChange={e => setShiftNotes(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] bg-white resize-none"
+                />
+              </div>
+            </div>
+            <div className="px-5 pb-5 flex gap-2">
+              <button onClick={() => setShiftModal(null)} className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]">{t.no}</button>
+              <button
+                onClick={handleCloseShift}
+                disabled={shiftSaving}
+                className="flex-1 py-3 rounded-xl text-white text-sm font-black transition-all disabled:opacity-50 bg-red-500"
+              >
+                {shiftSaving ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" /> : t.shiftClose}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {shiftModal === 'report' && shiftReport && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShiftModal(null)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden max-h-[85vh] flex flex-col">
+            <div className="px-5 py-4 border-b border-[#F0F0F0] flex items-center justify-between flex-shrink-0">
+              <div>
+                <p className="text-base font-black text-[#111]">📋 {t.shiftReportZ}</p>
+                <p className="text-xs text-[#888] mt-0.5">
+                  {new Date(shiftReport.openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} → {new Date(shiftReport.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+              <button onClick={() => setShiftModal(null)} className="p-1.5 rounded-lg hover:bg-[#F5F5F5]"><X className="w-5 h-5 text-[#AAAAAA]" /></button>
+            </div>
+            <div className="px-5 py-4 space-y-2 overflow-y-auto flex-1">
+              {[
+                { label: t.shiftOrders, value: String(shiftReport.totalOrders) },
+                { label: t.shiftRevenue, value: fmt(shiftReport.totalRevenue, currency) },
+                { label: t.shiftCash, value: fmt(shiftReport.totalCash, currency) },
+                { label: t.shiftCard, value: fmt(shiftReport.totalCard, currency) },
+                { label: t.shiftOpeningCash, value: fmt(shiftReport.openingCash, currency) },
+                { label: t.shiftExpected, value: fmt(shiftReport.expectedCash, currency) },
+                { label: t.shiftClosingCash, value: fmt(shiftReport.closingCash, currency) },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex justify-between items-center py-2 border-b border-[#F0F0F0]">
+                  <span className="text-sm text-[#888]">{label}</span>
+                  <span className="text-sm font-bold text-[#111]">{value}</span>
+                </div>
+              ))}
+              <div className={cn('flex justify-between items-center py-2.5 px-3 rounded-xl font-bold',
+                Math.abs(shiftReport.cashDifference) < 0.01 ? 'bg-green-50 text-green-700' : shiftReport.cashDifference < 0 ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700'
+              )}>
+                <span className="text-sm">{t.shiftDiff}</span>
+                <span className="text-sm">{shiftReport.cashDifference >= 0 ? '+' : ''}{fmt(shiftReport.cashDifference, currency)}</span>
+              </div>
+            </div>
+            <div className="px-5 pb-5 flex-shrink-0">
+              <button
+                onClick={() => { window.print(); }}
+                className="w-full py-3 rounded-xl text-sm font-bold text-white bg-[#111]"
+              >
+                🖨️ {t.shiftPrint}
               </button>
             </div>
           </div>
@@ -2434,10 +2709,11 @@ const RING_R = 30;
 const RING_CIRC = 2 * Math.PI * RING_R;
 
 function NewOrderSplash({
-  order, currency, queueCount, eta, t, onView, onAutoAccept,
+  order, currency, queueCount, eta, t, onView, onAutoAccept, onReject,
 }: {
   order: Order; currency: string; queueCount: number; eta: number;
   t: ReturnType<typeof getT>; onView: () => void; onAutoAccept: () => void;
+  onReject?: () => void;
 }) {
   const totalQty = (order.items ?? []).reduce((s, i) => s + i.qty, 0);
   const [secsLeft, setSecsLeft] = useState(SPLASH_SECS);
@@ -2466,19 +2742,19 @@ function NewOrderSplash({
   const progress = Math.max(0, secsLeft / SPLASH_SECS);
   const dash = RING_CIRC * progress;
 
+  // Top 3 items for preview
+  const previewItems = (order.items ?? []).slice(0, 3);
+
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center cursor-pointer"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center"
       style={{ background: GREEN }}
-      onClick={onView}
     >
       {/* Countdown ring */}
-      <div className="relative mb-6" style={{ width: RING_SIZE, height: RING_SIZE }}>
+      <div className="relative mb-4" style={{ width: RING_SIZE, height: RING_SIZE }}>
         <svg width={RING_SIZE} height={RING_SIZE} style={{ transform: 'rotate(-90deg)' }}>
-          {/* Track */}
           <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R}
             fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="5" />
-          {/* Progress */}
           <circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R}
             fill="none" stroke="white" strokeWidth="5"
             strokeDasharray={`${dash} ${RING_CIRC}`}
@@ -2500,30 +2776,68 @@ function NewOrderSplash({
         )}
       </div>
 
-      <p className="text-white font-black mb-1 text-center px-6" style={{ fontSize: 52, lineHeight: 1.1 }}>
+      <p className="text-white font-black mb-1 text-center px-6" style={{ fontSize: 48, lineHeight: 1.1 }}>
         {order.customer_name || 'Cliente'}
       </p>
       <p className="text-white/80 text-2xl font-bold mb-1">#{order.order_number}</p>
 
-      <div className="flex items-center gap-3 text-white/70 text-base mt-1 mb-2">
+      <div className="flex items-center gap-3 text-white/70 text-base mt-1 mb-3">
         <span>{t.items(totalQty)}</span>
         {order.order_type && (
           <><span>·</span><span>{getTypeLabel(order.order_type, t)}</span></>
         )}
       </div>
 
-      <p className="text-white font-black mt-2" style={{ fontSize: 44 }}>
+      {/* Item preview cards */}
+      {previewItems.length > 0 && (
+        <div className="flex gap-2 mb-4 px-4 max-w-sm w-full">
+          {previewItems.map((item, i) => {
+            const img = (item as any).product?.image_url;
+            const name = (item as any).product?.name ?? 'Item';
+            return (
+              <div key={i} className="flex-1 bg-white/20 rounded-xl p-2.5 flex items-center gap-2 min-w-0">
+                {img ? (
+                  <img src={img} alt={name} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-8 h-8 rounded-lg bg-white/30 flex-shrink-0 flex items-center justify-center text-base">🍽️</div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-white text-[11px] font-bold truncate">{item.qty}x {name}</p>
+                </div>
+              </div>
+            );
+          })}
+          {(order.items ?? []).length > 3 && (
+            <div className="bg-white/20 rounded-xl px-3 flex items-center">
+              <span className="text-white text-sm font-bold">+{(order.items ?? []).length - 3}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      <p className="text-white font-black mb-6" style={{ fontSize: 40 }}>
         {fmt(order.total, currency)}
       </p>
 
-      <button
-        onClick={onView}
-        className="mt-10 h-16 px-12 rounded-2xl bg-white font-extrabold text-xl flex items-center gap-3 shadow-xl active:scale-[0.97] transition-transform"
-        style={{ color: GREEN }}
-      >
-        {queueCount > 1 ? `${t.viewOrder} (${queueCount - 1}+)` : t.viewOrder}
-        <ChevronRight className="w-6 h-6" />
-      </button>
+      {/* Accept / Reject buttons — Uber Eats style */}
+      <div className="flex gap-4 px-6 w-full max-w-sm">
+        {onReject && (
+          <button
+            onClick={e => { e.stopPropagation(); onReject(); }}
+            className="flex-1 h-16 rounded-2xl bg-black/30 font-extrabold text-lg text-white border-2 border-white/30 active:scale-[0.97] transition-transform"
+          >
+            {t.en ? 'Reject' : 'Rechazar'}
+          </button>
+        )}
+        <button
+          onClick={e => { e.stopPropagation(); onView(); }}
+          className="flex-[2] h-16 rounded-2xl bg-white font-extrabold text-xl flex items-center justify-center gap-3 shadow-xl active:scale-[0.97] transition-transform"
+          style={{ color: GREEN }}
+        >
+          {queueCount > 1 ? `${t.viewOrder} (${queueCount - 1}+)` : t.viewOrder}
+          <ChevronRight className="w-6 h-6" />
+        </button>
+      </div>
 
       <p className="text-white/50 text-xs mt-5">
         {t.tapAnywhere} {secsLeft}s

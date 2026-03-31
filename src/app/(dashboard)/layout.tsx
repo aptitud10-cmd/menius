@@ -11,6 +11,7 @@ import { SidebarSoundButton } from '@/components/dashboard/SidebarSoundButton';
 import { IdentifyUser } from '@/components/dashboard/IdentifyUser';
 import { TrialBanner } from '@/components/dashboard/TrialBanner';
 import { DashToastProvider } from '@/components/dashboard/DashToast';
+import { RestaurantSwitcher } from '@/components/dashboard/RestaurantSwitcher';
 import { redirect } from 'next/navigation';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -61,12 +62,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <aside className="hidden md:flex flex-col w-[260px] bg-white border-r border-gray-200 sticky top-0 h-screen">
           {/* Logo + restaurant */}
           <div className="px-5 pt-5 pb-4 border-b border-gray-100">
-            <Link href="/app" className="flex items-center gap-2.5 min-w-0">
+            <Link href="/app" className="flex items-center gap-2.5 min-w-0 mb-2">
               <div className="min-w-0">
                 <p className="text-sm font-bold tracking-tight text-gray-900 truncate">MENIUS</p>
                 <p className="text-[11px] text-gray-400 truncate leading-tight">{restaurant?.name ?? 'Mi Restaurante'}</p>
               </div>
             </Link>
+            <RestaurantSwitcher
+              currentRestaurantId={restaurantId}
+              currentName={restaurant?.name ?? 'Mi Restaurante'}
+              isEn={restaurant?.locale === 'en'}
+            />
           </div>
 
           {/* Navigation */}
@@ -95,12 +101,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="flex-1 flex flex-col min-w-0">
           {/* Mobile header */}
           <header className="md:hidden bg-white border-b border-gray-200 px-4 h-14 flex items-center justify-between sticky top-0 z-30">
-            <Link href="/app" className="flex items-center gap-2 min-w-0">
-              <span className="text-sm font-bold tracking-tight text-gray-900 flex-shrink-0">MENIUS</span>
-              {restaurant?.name && (
-                <span className="text-[11px] text-gray-400 truncate max-w-[120px]">· {restaurant.name}</span>
-              )}
-            </Link>
+            <div className="flex items-center gap-2 min-w-0">
+              <Link href="/app" className="flex items-center gap-2 min-w-0">
+                <span className="text-sm font-bold tracking-tight text-gray-900 flex-shrink-0">MENIUS</span>
+              </Link>
+              <RestaurantSwitcher
+                currentRestaurantId={restaurantId}
+                currentName={restaurant?.name ?? 'Mi Restaurante'}
+                isEn={restaurant?.locale === 'en'}
+              />
+            </div>
             <div className="flex items-center gap-2">
               <SidebarSoundButton mobile />
               <DashboardNav slug={restaurant?.slug ?? ''} mobile planId={resolvedPlanId} />

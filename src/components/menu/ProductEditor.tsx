@@ -21,6 +21,12 @@ import { MediaPicker } from './MediaPicker';
 import { CustomizationSheet } from '@/components/public/CustomizationSheet';
 import { PairingsEditor } from './PairingsEditor';
 
+interface KDSStation {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface Props {
   product: Product | null;
   categories: Category[];
@@ -30,6 +36,7 @@ interface Props {
   slug?: string;
   allProducts?: Product[];
   restaurantId?: string;
+  kdsStations?: KDSStation[];
 }
 
 function LegacyOptionsSection({
@@ -130,6 +137,7 @@ export function ProductEditor({
   slug,
   allProducts = [],
   restaurantId,
+  kdsStations = [],
 }: Props) {
   const router = useRouter();
   const { success: toastSuccess, error: toastError } = useToast();
@@ -148,6 +156,7 @@ export function ProductEditor({
     is_new: product?.is_new ?? false,
     prep_time_minutes: product?.prep_time_minutes ? String(product.prep_time_minutes) : '',
     dietary_tags: (product?.dietary_tags ?? []) as DietaryTag[],
+    station_id: (product as any)?.station_id ?? '',
   });
 
   const [translations, setTranslations] = useState<Record<string, ContentTranslation>>(
@@ -386,6 +395,7 @@ export function ProductEditor({
             prep_time_minutes: !isNaN(prepTime as number) && prepTime !== null && prepTime > 0 ? prepTime : null,
             dietary_tags: form.dietary_tags,
             translations: Object.keys(translations).length > 0 ? translations : null,
+            station_id: form.station_id || null,
           };
           if (imageUrl) data.image_url = imageUrl;
           const res = await updateProduct(product.id, data);
@@ -404,8 +414,9 @@ export function ProductEditor({
             is_new: form.is_new,
             prep_time_minutes: !isNaN(prepTime as number) && prepTime !== null && prepTime > 0 ? prepTime : null,
             dietary_tags: form.dietary_tags,
+            ...(form.station_id ? { station_id: form.station_id } : {}),
             ...(imageUrl ? { image_url: imageUrl } : {}),
-          });
+          } as any);
           if (res.error) { setError(res.error); toastError(res.error); return; }
           setSaved(true);
           toastSuccess(t.editor_productCreated);
@@ -1015,6 +1026,30 @@ export function ProductEditor({
                 })}
               </div>
             </div>
+
+            {/* KDS Station card */}
+            {kdsStations.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <h2 className="text-sm font-semibold text-gray-900 mb-1">
+                  {dashLocale === 'en' ? '🍳 KDS Station' : '🍳 Estación KDS'}
+                </h2>
+                <p className="text-xs text-gray-500 mb-3">
+                  {dashLocale === 'en'
+                    ? 'Assign this product to a kitchen station'
+                    : 'Asignar este producto a una estación de cocina'}
+                </p>
+                <select
+                  value={form.station_id}
+                  onChange={e => setForm(prev => ({ ...prev, station_id: e.target.value }))}
+                  className="dash-input"
+                >
+                  <option value="">{dashLocale === 'en' ? 'No station (all)' : 'Sin estación (todas)'}</option>
+                  {kdsStations.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Pairings card — only for existing products */}
             {isEditing && product && restaurantId && allProducts.length > 0 && (

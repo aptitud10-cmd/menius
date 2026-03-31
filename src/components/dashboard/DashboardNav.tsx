@@ -64,6 +64,7 @@ function buildNavSections(t: DashboardTranslations, locale: string): { title: st
       items: [
         { href: '/app/analytics', label: t.nav_analytics, icon: BarChart3, minPlan: 'starter', badge: 'Starter' },
         { href: '/app/marketing', label: t.nav_marketing, icon: Megaphone, minPlan: 'pro', badge: 'Pro' },
+        { href: '/app/business', label: locale === 'es' ? 'Mi Negocio' : 'My Business', icon: LayoutDashboard },
         { href: '/app/branches', label: t.nav_branches, icon: Building2, minPlan: 'business', badge: 'Business' },
         { href: '/app/billing', label: t.nav_billing, icon: CreditCard },
         { href: '/app/settings', label: t.nav_settings, icon: Settings },

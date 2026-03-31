@@ -4,7 +4,7 @@ import { KDSView } from '@/components/orders/KDSView';
 export default async function KDSFullscreenPage() {
   const { supabase, restaurantId } = await getDashboardContext();
 
-  const [{ data: restaurant }, { data: orders }] = await Promise.all([
+  const [{ data: restaurant }, { data: orders }, { data: kdsStations }] = await Promise.all([
     supabase
       .from('restaurants')
       .select('name, currency, phone, address, slug, tax_label, tax_included')
@@ -17,7 +17,7 @@ export default async function KDSFullscreenPage() {
         table:tables ( name ),
         order_items (
           id, qty, unit_price, line_total, notes,
-          product:products ( id, name, image_url, dietary_tags ),
+          product:products ( id, name, image_url, dietary_tags, station_id ),
           variant:product_variants ( name ),
           order_item_extras ( price, product_extras ( name ) ),
           order_item_modifiers ( group_name, option_name, price_delta )
@@ -27,6 +27,7 @@ export default async function KDSFullscreenPage() {
       .gte('created_at', new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString())
       .order('created_at', { ascending: false })
       .limit(200),
+    supabase.from('kds_stations').select('*').eq('restaurant_id', restaurantId).order('position'),
   ]);
 
   const mappedOrders = (orders ?? []).map((o: any) => ({
@@ -45,6 +46,7 @@ export default async function KDSFullscreenPage() {
       restaurantSlug={restaurant?.slug ?? ''}
       taxLabel={(restaurant as any)?.tax_label ?? undefined}
       taxIncluded={(restaurant as any)?.tax_included ?? false}
+      kdsStations={(kdsStations ?? []) as { id: string; name: string; color: string; position: number }[]}
     />
   );
 }

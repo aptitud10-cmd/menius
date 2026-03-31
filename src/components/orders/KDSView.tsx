@@ -63,6 +63,13 @@ function urgency(createdAt: string, busyExtra = 0) {
 type Tab = 'active' | 'history';
 type Filter = 'all' | 'dine_in' | 'pickup' | 'delivery';
 
+interface KDSStation {
+  id: string;
+  name: string;
+  color: string;
+  position: number;
+}
+
 interface Props {
   initialOrders: Order[];
   restaurantId: string;
@@ -73,6 +80,7 @@ interface Props {
   restaurantSlug: string;
   taxLabel?: string;
   taxIncluded?: boolean;
+  kdsStations?: KDSStation[];
 }
 
 interface Undo { orderId: string; num: string; prev: OrderStatus; next: OrderStatus; ts: number }
@@ -80,13 +88,14 @@ interface Undo { orderId: string; num: string; prev: OrderStatus; next: OrderSta
 /* ══════════════════════════════════════════════════════════════════════
    KDSView — Toast / Fresh KDS style
    ══════════════════════════════════════════════════════════════════════ */
-export function KDSView({ initialOrders, restaurantId, restaurantName, currency, restaurantPhone, restaurantAddress, restaurantSlug, taxLabel, taxIncluded }: Props) {
+export function KDSView({ initialOrders, restaurantId, restaurantName, currency, restaurantPhone, restaurantAddress, restaurantSlug, taxLabel, taxIncluded, kdsStations = [] }: Props) {
   const { t, locale } = useDashboardLocale();
   const isEn = locale === 'en';
   const [tab, setTab] = useState<Tab>('active');
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [filter, setFilter] = useState<Filter>('all');
+  const [stationFilter, setStationFilter] = useState<string>('all');
   const [printOrder, setPrintOrder] = useState<Order | null>(null);
   const [smsOrder, setSmsOrder] = useState<Order | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -175,9 +184,12 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
     // KDS only shows confirmed+ orders; pending orders must be accepted by Counter first
     let r = orders.filter(o => !['pending', 'delivered', 'cancelled'].includes(o.status) && (Date.now() - new Date(o.created_at).getTime()) / 60000 <= AUTO_ARCHIVE_MIN);
     if (filter !== 'all') r = r.filter(o => o.order_type === filter);
+    if (stationFilter !== 'all') {
+      r = r.filter(o => (o.items ?? []).some((item: any) => item.product?.station_id === stationFilter));
+    }
     if (search.trim()) { const q = search.toLowerCase(); r = r.filter(o => o.order_number?.toLowerCase().includes(q) || o.customer_name?.toLowerCase().includes(q) || o.customer_phone?.includes(q)); }
     return r;
-  }, [orders, search, filter]);
+  }, [orders, search, filter, stationFilter]);
 
   const history = useMemo(() => {
     let r = orders.filter(o => ['delivered', 'cancelled'].includes(o.status) || (Date.now() - new Date(o.created_at).getTime()) / 60000 > AUTO_ARCHIVE_MIN);
@@ -407,15 +419,37 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
           <History className="w-4 h-4" /> {t.kds_history} ({history.length}){tab === 'history' && <div className="absolute bottom-0 inset-x-0 h-[2px] bg-emerald-500" />}
         </button>
         {tab === 'active' && (
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-1 overflow-x-auto">
             {(['all', 'dine_in', 'pickup', 'delivery'] as const).map(f => (
-              <button key={f} onClick={() => setFilter(f)} className={cn('px-3 py-1.5 rounded-lg text-xs font-bold touch-manipulation', filter === f ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300')}>
+              <button key={f} onClick={() => setFilter(f)} className={cn('px-3 py-1.5 rounded-lg text-xs font-bold touch-manipulation flex-shrink-0', filter === f ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300')}>
                 {f === 'all' ? t.kds_all : f === 'dine_in' ? t.kds_table : f === 'pickup' ? t.kds_pickup : t.kds_delivery}
               </button>
             ))}
           </div>
         )}
       </div>
+
+      {/* ════ STATION TABS ════ */}
+      {kdsStations.length > 0 && tab === 'active' && (
+        <div className="flex items-center gap-1 px-3 py-2 bg-gray-950 border-b border-gray-800 flex-shrink-0 overflow-x-auto">
+          <button
+            onClick={() => setStationFilter('all')}
+            className={cn('px-3 py-1.5 rounded-lg text-xs font-bold touch-manipulation flex-shrink-0 transition-colors', stationFilter === 'all' ? 'bg-white text-gray-900' : 'text-gray-400 hover:text-white hover:bg-gray-800')}
+          >
+            {isEn ? 'All stations' : 'Todas'}
+          </button>
+          {kdsStations.map(s => (
+            <button
+              key={s.id}
+              onClick={() => setStationFilter(stationFilter === s.id ? 'all' : s.id)}
+              className={cn('px-3 py-1.5 rounded-lg text-xs font-bold touch-manipulation flex-shrink-0 transition-colors border', stationFilter === s.id ? 'text-gray-900 border-transparent' : 'text-gray-400 border-gray-700 hover:text-white hover:bg-gray-800')}
+              style={stationFilter === s.id ? { backgroundColor: s.color, borderColor: s.color } : {}}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ════ GRID ════ */}
       <div className="flex-1 overflow-y-auto p-3 scrollbar-hide bg-gray-100">

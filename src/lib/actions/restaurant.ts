@@ -1078,3 +1078,153 @@ export async function updatePaymentBreakdown(
   if (error) return { error: error.message };
   return { success: true };
 }
+
+// ── Multi-store switcher ────────────────────────────────────────────────
+
+export async function switchRestaurant(restaurantId: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'No autenticado' };
+
+  // Verify the user owns this restaurant
+  const { data: restaurant } = await supabase
+    .from('restaurants')
+    .select('id, name')
+    .eq('id', restaurantId)
+    .eq('owner_user_id', user.id)
+    .maybeSingle();
+
+  if (!restaurant) return { error: 'Restaurante no encontrado' };
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ default_restaurant_id: restaurantId })
+    .eq('user_id', user.id);
+
+  if (error) return { error: error.message };
+  revalidatePath('/app', 'layout');
+  return { success: true };
+}
+
+// ── Shifts (Cierre de Caja) ─────────────────────────────────────────────
+
+export async function openShift(openingCash: number) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Close any existing open shift for this restaurant first
+  await supabase
+    .from('shifts')
+    .update({ closed_at: new Date().toISOString() })
+    .eq('restaurant_id', restaurantId)
+    .is('closed_at', null);
+
+  const { data, error } = await supabase
+    .from('shifts')
+    .insert({
+      restaurant_id: restaurantId,
+      opened_by: user?.id,
+      opening_cash: openingCash,
+    })
+    .select('id, opening_cash, opened_at')
+    .single();
+
+  if (error) return { error: error.message };
+  return { success: true, shift: data };
+}
+
+export async function closeShift(closingCash: number, notes?: string) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Find open shift
+  const { data: shift, error: shiftErr } = await supabase
+    .from('shifts')
+    .select('id, opening_cash, opened_at')
+    .eq('restaurant_id', restaurantId)
+    .is('closed_at', null)
+    .order('opened_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (shiftErr || !shift) return { error: 'No open shift found' };
+
+  // Aggregate orders since shift opened
+  const { data: orders } = await supabase
+    .from('orders')
+    .select('total, payment_method, payment_breakdown')
+    .eq('restaurant_id', restaurantId)
+    .eq('status', 'delivered')
+    .gte('created_at', shift.opened_at);
+
+  const totalRevenue = (orders ?? []).reduce((sum: number, o: any) => sum + Number(o.total ?? 0), 0);
+  const totalCash = (orders ?? []).reduce((sum: number, o: any) => {
+    const bd = o.payment_breakdown;
+    if (bd?.cash) return sum + Number(bd.cash);
+    if (o.payment_method === 'cash') return sum + Number(o.total ?? 0);
+    return sum;
+  }, 0);
+  const totalCard = (orders ?? []).reduce((sum: number, o: any) => {
+    const bd = o.payment_breakdown;
+    if (bd?.card) return sum + Number(bd.card);
+    if (o.payment_method === 'online' || o.payment_method === 'card') return sum + Number(o.total ?? 0);
+    return sum;
+  }, 0);
+
+  const expectedCash = Number(shift.opening_cash) + totalCash;
+  const cashDifference = closingCash - expectedCash;
+
+  const { data: closed, error: closeErr } = await supabase
+    .from('shifts')
+    .update({
+      closed_by: user?.id,
+      closed_at: new Date().toISOString(),
+      closing_cash: closingCash,
+      expected_cash: expectedCash,
+      cash_difference: cashDifference,
+      total_orders: (orders ?? []).length,
+      total_revenue: totalRevenue,
+      total_cash: totalCash,
+      total_card: totalCard,
+      notes: notes ?? null,
+    })
+    .eq('id', shift.id)
+    .select()
+    .single();
+
+  if (closeErr) return { error: closeErr.message };
+  return {
+    success: true,
+    shift: closed,
+    summary: {
+      totalOrders: (orders ?? []).length,
+      totalRevenue,
+      totalCash,
+      totalCard,
+      expectedCash,
+      cashDifference,
+      openingCash: shift.opening_cash,
+      closingCash,
+    },
+  };
+}
+
+export async function getActiveShift() {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { data } = await supabase
+    .from('shifts')
+    .select('id, opening_cash, opened_at')
+    .eq('restaurant_id', restaurantId)
+    .is('closed_at', null)
+    .order('opened_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return { shift: data ?? null };
+}
