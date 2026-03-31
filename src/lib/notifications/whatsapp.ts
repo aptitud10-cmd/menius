@@ -21,9 +21,8 @@ export async function sendWhatsApp({ to, text }: WhatsAppMessage): Promise<{ suc
     return { success: false };
   }
 
-  // Normalize to E.164
+  // Normalize to digits only (Meta API expects no '+' prefix)
   const digits = to.replace(/[^0-9]/g, '');
-  const e164 = to.trim().startsWith('+') ? digits : digits;
 
   const url = `${apiBase}/${phoneId}/messages`;
 
@@ -36,7 +35,7 @@ export async function sendWhatsApp({ to, text }: WhatsAppMessage): Promise<{ suc
       },
       body: JSON.stringify({
         messaging_product: 'whatsapp',
-        to: e164,
+        to: digits,
         type: 'text',
         text: { body: text },
       }),
