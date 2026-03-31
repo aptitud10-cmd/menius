@@ -505,7 +505,7 @@ export default function CreateRestaurantPage() {
                 </div>
 
                 <a
-                  href="/counter"
+                  href="/app/counter/tablet"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full py-3.5 rounded-xl bg-emerald-500 text-white font-semibold text-[15px] md:text-sm hover:bg-emerald-400 transition-colors flex items-center justify-center gap-2"
