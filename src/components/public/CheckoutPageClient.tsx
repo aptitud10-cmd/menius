@@ -91,6 +91,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [customerEmail, setCustomerEmail] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [manualTableName, setManualTableName] = useState('');
+  const [arrivalTime, setArrivalTime] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(enabledPaymentMethods[0]);
 
@@ -250,7 +251,12 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           customer_name: customerName.trim(),
           customer_phone: customerPhone.trim(),
           customer_email: customerEmail.trim() || undefined,
-          notes: orderNotes.trim(),
+          notes: (() => {
+            const arrival = orderType === 'dine_in' && !tableName && arrivalTime
+              ? `[${locale === 'es' ? 'Llega' : 'Arrives'}: ${arrivalTime}] `
+              : '';
+            return arrival + orderNotes.trim() || undefined;
+          })(),
           order_type: orderType,
           payment_method: paymentMethod,
           delivery_address: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
@@ -1019,18 +1025,32 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </div>
             )}
             {orderType === 'dine_in' && !tableName && (
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  {locale === 'es' ? '¿En qué mesa estás?' : 'Which table are you at?'}
-                  <span className="ml-1 text-gray-400 font-normal">({locale === 'es' ? 'opcional' : 'optional'})</span>
-                </label>
-                <input
-                  type="text"
-                  value={manualTableName}
-                  onChange={(e) => setManualTableName(e.target.value)}
-                  placeholder={locale === 'es' ? 'Ej: Mesa 4, Terraza, Barra…' : 'E.g. Table 4, Patio, Bar…'}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
-                />
+              <div className="mt-4 space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    {locale === 'es' ? '¿En qué mesa estás?' : 'Which table are you at?'}
+                    <span className="ml-1 text-gray-400 font-normal">({locale === 'es' ? 'opcional' : 'optional'})</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={manualTableName}
+                    onChange={(e) => setManualTableName(e.target.value)}
+                    placeholder={locale === 'es' ? 'Ej: Mesa 4, Terraza, Barra…' : 'E.g. Table 4, Patio, Bar…'}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    {locale === 'es' ? '¿A qué hora planeas llegar?' : 'What time do you plan to arrive?'}
+                    <span className="ml-1 text-gray-400 font-normal">({locale === 'es' ? 'opcional' : 'optional'})</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={arrivalTime}
+                    onChange={(e) => setArrivalTime(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
+                  />
+                </div>
               </div>
             )}
           </div>
