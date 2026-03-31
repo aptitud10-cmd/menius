@@ -2788,16 +2788,6 @@ function OrderDetail({
                 <span className="text-sm font-bold text-[#111]">{t.total}</span>
                 <span className="text-2xl font-black text-[#111]">{fmt(Number(order.total), currency)}</span>
               </div>
-              {order.payment_method && (
-                <div className="flex items-center gap-1.5 pt-1">
-                  <span className="text-[10px] text-[#AAAAAA] uppercase tracking-wide font-semibold">{t.payment}:</span>
-                  <span className="text-[11px] font-bold text-[#555]">
-                    {order.payment_method === 'cash' ? `💵 ${t.cash}` :
-                     order.payment_method === 'online' ? `💳 ${t.online}` :
-                     `📱 ${t.wallet}`}
-                  </span>
-                </div>
-              )}
               {/* Cash tip input — only for cash payment orders in active tabs */}
               {order.payment_method === 'cash' && tab !== 'history' && (
                 <div className="pt-2 border-t border-[#EEEEEE]">
