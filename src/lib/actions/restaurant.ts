@@ -1053,7 +1053,7 @@ export async function assignDriver(
   if (error) return { error: error.message };
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app').replace(/\/$/, '');
-  const driverTrackingUrl = token ? `${appUrl}/driver/track/${token}` : null;
+  const driverTrackingUrl = token ? `${appUrl}/driver/track/${token}${locale === 'en' ? '?lang=en' : ''}` : null;
 
   // Auto-send WhatsApp/SMS to the driver with their tracking link
   if (token && driverPhone.trim() && driverTrackingUrl) {
