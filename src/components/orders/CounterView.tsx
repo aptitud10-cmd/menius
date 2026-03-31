@@ -1719,11 +1719,16 @@ export function CounterView({
               ) : (
                 <div className="space-y-2">
                   {editProducts
-                    .filter(p => p.in_stock !== false && (editSearch.trim() === '' || p.name.toLowerCase().includes(editSearch.toLowerCase())))
+                    .filter(p => editSearch.trim() === '' || p.name.toLowerCase().includes(editSearch.toLowerCase()))
                     .map(p => (
-                      <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-[#F0F0F0] bg-white">
+                      <div key={p.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border bg-white ${p.in_stock === false ? 'border-[#F5F5F5] opacity-60' : 'border-[#F0F0F0]'}`}>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[#111] truncate">{p.name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-semibold text-[#111] truncate">{p.name}</p>
+                            {p.in_stock === false && (
+                              <span className="flex-shrink-0 text-[9px] font-bold uppercase tracking-wide bg-red-100 text-red-500 px-1.5 py-0.5 rounded">86</span>
+                            )}
+                          </div>
                           <p className="text-xs text-[#888]">{fmt(Number(p.price), currency)}</p>
                         </div>
                         <button
@@ -1735,7 +1740,7 @@ export function CounterView({
                         </button>
                       </div>
                     ))}
-                  {editProducts.filter(p => p.in_stock !== false && (editSearch.trim() === '' || p.name.toLowerCase().includes(editSearch.toLowerCase()))).length === 0 && (
+                  {editProducts.filter(p => editSearch.trim() === '' || p.name.toLowerCase().includes(editSearch.toLowerCase())).length === 0 && (
                     <p className="text-center text-sm text-[#AAAAAA] py-8">{t.en ? 'No products found' : 'Sin resultados'}</p>
                   )}
                 </div>
@@ -2366,6 +2371,7 @@ function OrderDetail({
   const subtotal = (order.items ?? []).reduce((s, i) => s + (i.line_total ?? i.unit_price * i.qty), 0);
   const [tipInput, setTipInput] = useState('');
   const [savingTip, setSavingTip] = useState(false);
+  const [isEditingItems, setIsEditingItems] = useState(false);
 
   // Header bg color
   const headerBg =
@@ -2626,13 +2632,35 @@ function OrderDetail({
                 {t.items((order.items ?? []).reduce((s, i) => s + i.qty, 0))}
               </p>
               {onEditItems && !['delivered', 'completed', 'cancelled'].includes(order.status) && (
-                <button
-                  onClick={() => onEditItems(order.id)}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#F5F5F5] text-[#555] text-[11px] font-semibold hover:bg-[#EAEAEA] transition-colors"
-                >
-                  <span className="text-xs font-bold">+</span>
-                  {t.en ? 'Edit' : 'Editar'}
-                </button>
+                <div className="flex items-center gap-1.5">
+                  {isEditingItems ? (
+                    <>
+                      <button
+                        onClick={() => { onEditItems(order.id); }}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#06C167]/10 text-[#06C167] text-[11px] font-semibold hover:bg-[#06C167]/20 transition-colors"
+                      >
+                        <span className="text-xs font-bold">+</span>
+                        {t.en ? 'Add' : 'Agregar'}
+                      </button>
+                      <button
+                        onClick={() => setIsEditingItems(false)}
+                        className="px-2.5 py-1 rounded-lg bg-[#111] text-white text-[11px] font-semibold hover:bg-[#333] transition-colors"
+                      >
+                        {t.en ? 'Done' : 'Listo'}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setIsEditingItems(true)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#F5F5F5] text-[#555] text-[11px] font-semibold hover:bg-[#EAEAEA] transition-colors"
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                      </svg>
+                      {t.en ? 'Edit' : 'Editar'}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
             <div className="px-5 divide-y divide-[#F5F5F5]">
@@ -2641,7 +2669,7 @@ function OrderDetail({
                   key={item.id ?? idx}
                   item={item}
                   currency={currency}
-                  canRemove={!!onRemoveItem && !['delivered', 'completed', 'cancelled'].includes(order.status) && (order.items ?? []).length > 1}
+                  canRemove={isEditingItems && !!onRemoveItem && !['delivered', 'completed', 'cancelled'].includes(order.status) && (order.items ?? []).length > 1}
                   onRemove={() => item.id && onRemoveItem?.(order.id, item.id)}
                   removing={editSaving}
                 />
