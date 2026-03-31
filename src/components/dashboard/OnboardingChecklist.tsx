@@ -76,7 +76,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
       title: t.onboarding_uploadLogo,
       description: t.onboarding_uploadLogoDesc,
       completed: steps.hasLogo,
-      href: '/app/settings',
+      href: '/app/settings#logo',
       icon: <Camera className="w-4 h-4" />,
     },
     {
@@ -84,7 +84,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
       title: t.onboarding_completeProfile,
       description: t.onboarding_completeProfileDesc,
       completed: steps.hasProfile,
-      href: '/app/settings',
+      href: '/app/settings#profile',
       icon: <FileText className="w-4 h-4" />,
     },
     {
@@ -92,7 +92,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
       title: t.onboarding_setSchedule,
       description: t.onboarding_setScheduleDesc,
       completed: steps.hasHours,
-      href: '/app/settings',
+      href: '/app/settings#profile',
       icon: <Clock className="w-4 h-4" />,
     },
     {
@@ -146,7 +146,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
       title: t.onboarding_installPWA ?? 'Instala MENIUS como app',
       description: t.onboarding_installPWADesc ?? 'Agrega la app a tu pantalla de inicio para acceso rápido',
       completed: hasInstalledPWA,
-      href: '/app/settings',
+      href: '/app/settings#install',
       icon: <Smartphone className="w-4 h-4" />,
     },
   ];

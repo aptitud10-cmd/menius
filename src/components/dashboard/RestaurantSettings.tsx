@@ -292,7 +292,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
   return (
     <div className="space-y-6 max-w-2xl">
       {/* Logo */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+      <div id="logo" className="bg-white rounded-2xl border border-gray-200 p-5 scroll-mt-20">
         <h2 className="font-semibold text-sm text-gray-900 mb-1">{t.settings_logo}</h2>
         <p className="text-xs text-gray-500 mb-4">{t.settings_logoDesc}</p>
         <input ref={logoRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
@@ -418,7 +418,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       />
 
       {/* Basic info */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+      <div id="profile" className="bg-white rounded-2xl border border-gray-200 p-5 scroll-mt-20">
         <h2 className="font-semibold text-sm mb-4 text-gray-900">{t.settings_basicInfo}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label={t.settings_restaurantName} value={form.name} onChange={(v) => handleChange('name', v)} />

@@ -24,7 +24,7 @@ export default async function SettingsPage() {
         <h1 className="dash-heading mb-5">{isEn ? 'Settings' : 'Configuración'}</h1>
         <RestaurantSettings initialData={restaurant} />
       </div>
-      <div id="printer">
+      <div id="printer" className="scroll-mt-20">
         <PrinterSettingsSection locale={restaurant?.locale ?? 'es'} />
       </div>
       <div id="kds-stations">
@@ -34,6 +34,20 @@ export default async function SettingsPage() {
           restaurantId={restaurantId}
         />
       </div>
+      <div id="install" className="scroll-mt-20 bg-white rounded-2xl border border-gray-200 p-5">
+        <h2 className="dash-heading mb-2">{isEn ? 'Install MENIUS as App' : 'Instala MENIUS como App'}</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          {isEn
+            ? 'Add MENIUS to your home screen for quick access — works on iPhone, Android, and desktop browsers.'
+            : 'Agrega MENIUS a tu pantalla de inicio para acceso rápido — funciona en iPhone, Android y navegadores de escritorio.'}
+        </p>
+        <ol className="space-y-2 text-sm text-gray-600">
+          <li className="flex gap-2"><span className="font-semibold text-gray-900">1.</span>{isEn ? 'Open this page in Safari (iPhone) or Chrome (Android / Desktop).' : 'Abre esta página en Safari (iPhone) o Chrome (Android / Escritorio).'}</li>
+          <li className="flex gap-2"><span className="font-semibold text-gray-900">2.</span>{isEn ? 'Tap the Share button (iPhone) or the menu ⋮ (Android) or the ⊕ icon in the address bar (Desktop).' : 'Toca el botón Compartir (iPhone), el menú ⋮ (Android) o el ícono ⊕ en la barra de direcciones (Escritorio).'}</li>
+          <li className="flex gap-2"><span className="font-semibold text-gray-900">3.</span>{isEn ? 'Select "Add to Home Screen" and confirm.' : 'Selecciona "Agregar a pantalla de inicio" y confirma.'}</li>
+        </ol>
+      </div>
+
       {isMxn && (
         <div>
           <h2 className="dash-heading mb-4">{isEn ? 'CFDI Invoicing' : 'Facturación CFDI'}</h2>
