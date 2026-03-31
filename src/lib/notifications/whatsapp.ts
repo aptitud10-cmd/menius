@@ -1,9 +1,9 @@
 /**
- * Send WhatsApp messages via Twilio REST API.
+ * Send WhatsApp messages via Meta WhatsApp Cloud API.
  * Required env vars:
- *   TWILIO_ACCOUNT_SID   — your Twilio Account SID
- *   TWILIO_AUTH_TOKEN    — your Twilio Auth Token
- *   TWILIO_WHATSAPP_FROM — your Twilio WhatsApp sender, e.g. "whatsapp:+14155238886"
+ *   WHATSAPP_TOKEN    — Meta access token (same one used by the WhatsApp agent)
+ *   WHATSAPP_PHONE_ID — Meta Phone Number ID
+ *   WHATSAPP_API_URL  — optional, defaults to https://graph.facebook.com/v19.0
  */
 
 interface WhatsAppMessage {
@@ -12,48 +12,45 @@ interface WhatsAppMessage {
 }
 
 export async function sendWhatsApp({ to, text }: WhatsAppMessage): Promise<{ success: boolean }> {
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_WHATSAPP_FROM;
+  const token = process.env.WHATSAPP_TOKEN;
+  const phoneId = process.env.WHATSAPP_PHONE_ID;
+  const apiBase = (process.env.WHATSAPP_API_URL ?? 'https://graph.facebook.com/v19.0').replace(/\/$/, '');
 
-  if (!accountSid || !authToken || !from) {
-    console.warn('[WhatsApp] Twilio env vars not set — skipping message');
+  if (!token || !phoneId) {
+    console.warn('[WhatsApp] WHATSAPP_TOKEN or WHATSAPP_PHONE_ID not set — skipping message');
     return { success: false };
   }
 
-  // Normalize to E.164 with whatsapp: prefix
+  // Normalize to E.164
   const digits = to.replace(/[^0-9]/g, '');
-  const e164 = to.trim().startsWith('+') ? `+${digits}` : `+${digits}`;
-  const toWhatsApp = `whatsapp:${e164}`;
+  const e164 = to.trim().startsWith('+') ? digits : digits;
 
-  const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-  const credentials = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
-
-  const body = new URLSearchParams({
-    From: from,
-    To: toWhatsApp,
-    Body: text,
-  });
+  const url = `${apiBase}/${phoneId}/messages`;
 
   try {
     const res = await fetch(url, {
       method: 'POST',
       headers: {
-        Authorization: `Basic ${credentials}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
-      body: body.toString(),
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: e164,
+        type: 'text',
+        text: { body: text },
+      }),
     });
 
     if (!res.ok) {
       const err = await res.text();
-      console.error('[WhatsApp] Twilio API error:', err);
+      console.error('[WhatsApp] Meta API error:', err);
       return { success: false };
     }
 
     return { success: true };
   } catch (err) {
-    console.error('[WhatsApp] Twilio send error:', err);
+    console.error('[WhatsApp] Meta API send error:', err);
     return { success: false };
   }
 }
