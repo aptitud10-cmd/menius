@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { cn } from '@/lib/utils';
-import { CalendarDays, Clock, Users, Phone, Mail, Check, X, AlertCircle, Plus, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { CalendarDays, Clock, Users, Phone, Mail, Check, X, AlertCircle, ChevronLeft, ChevronRight, Settings, List, Grid3X3, MessageCircle, Send } from 'lucide-react';
 
 type ReservationStatus = 'pending' | 'confirmed' | 'cancelled' | 'no_show';
 
@@ -76,9 +76,31 @@ export function ReservationsManager({ restaurantId, initialReservations, setting
 
     if (!error) {
       setReservations(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+
+      // Auto-send confirmation notification when status becomes 'confirmed'
+      if (status === 'confirmed') {
+        const reservation = reservations.find(r => r.id === id);
+        if (reservation && (reservation.customer_email || reservation.customer_phone)) {
+          fetch('/api/reservations/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              reservationId: id,
+              status: 'confirmed',
+              restaurantId,
+              customerName: reservation.customer_name,
+              customerEmail: reservation.customer_email,
+              customerPhone: reservation.customer_phone,
+              date: reservation.reserved_date,
+              time: reservation.reserved_time,
+              partySize: reservation.party_size,
+            }),
+          }).catch(() => {});
+        }
+      }
     }
     setUpdating(null);
-  }, [supabase, restaurantId]);
+  }, [supabase, restaurantId, reservations]);
 
   const saveSettings = useCallback(async () => {
     setSavingSettings(true);
@@ -114,6 +136,23 @@ export function ReservationsManager({ restaurantId, initialReservations, setting
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+            <button
+              onClick={() => setView('list')}
+              className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors', view === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700')}
+            >
+              <List className="w-3.5 h-3.5" />
+              {isEs ? 'Lista' : 'List'}
+            </button>
+            <button
+              onClick={() => setView('calendar')}
+              className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-colors', view === 'calendar' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700')}
+            >
+              <Grid3X3 className="w-3.5 h-3.5" />
+              {isEs ? 'Calendario' : 'Calendar'}
+            </button>
+          </div>
           <button
             onClick={() => setShowSettings(!showSettings)}
             className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -179,6 +218,16 @@ export function ReservationsManager({ restaurantId, initialReservations, setting
           </p>
         </div>
       </div>
+
+      {/* ── CALENDAR VIEW ── */}
+      {view === 'calendar' && (
+        <CalendarGrid
+          reservations={reservations}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+          locale={locale}
+        />
+      )}
 
       {/* Date navigation */}
       <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-200 px-4 py-3">
@@ -275,14 +324,27 @@ export function ReservationsManager({ restaurantId, initialReservations, setting
                     </div>
                   )}
                   {r.status === 'confirmed' && (
-                    <button
-                      onClick={() => updateStatus(r.id, 'no_show')}
-                      disabled={updating === r.id}
-                      className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                    >
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      No-show
-                    </button>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {r.customer_phone && (
+                        <a
+                          href={`https://wa.me/${r.customer_phone.replace(/\D/g, '')}?text=${encodeURIComponent(isEs ? `Hola ${r.customer_name}, te recordamos que tienes una reservación hoy a las ${formatTime(r.reserved_time)} para ${r.party_size} personas. ¡Te esperamos!` : `Hi ${r.customer_name}, reminder: your reservation is today at ${formatTime(r.reserved_time)} for ${r.party_size} guest(s). See you then!`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-2.5 py-1.5 bg-green-50 text-green-700 border border-green-200 text-xs font-semibold rounded-lg hover:bg-green-100 transition-colors"
+                          title={isEs ? 'Enviar recordatorio WhatsApp' : 'Send WhatsApp reminder'}
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                        </a>
+                      )}
+                      <button
+                        onClick={() => updateStatus(r.id, 'no_show')}
+                        disabled={updating === r.id}
+                        className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
+                      >
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        No-show
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -326,6 +388,121 @@ export function ReservationsManager({ restaurantId, initialReservations, setting
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Calendar Grid component ─────────────────────────────────────────────────
+
+function CalendarGrid({ reservations, selectedDate, onSelectDate, locale }: {
+  reservations: Reservation[];
+  selectedDate: string;
+  onSelectDate: (d: string) => void;
+  locale: string;
+}) {
+  const [calMonth, setCalMonth] = useState(() => {
+    const d = new Date(selectedDate);
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+
+  const days = useMemo(() => {
+    const year = calMonth.getFullYear();
+    const month = calMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells: (string | null)[] = [];
+    for (let i = 0; i < firstDay; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      cells.push(dateStr);
+    }
+    return cells;
+  }, [calMonth]);
+
+  const reservationsByDate = useMemo(() => {
+    const map = new Map<string, Reservation[]>();
+    for (const r of reservations) {
+      if (!map.has(r.reserved_date)) map.set(r.reserved_date, []);
+      map.get(r.reserved_date)!.push(r);
+    }
+    return map;
+  }, [reservations]);
+
+  const today = new Date().toISOString().split('T')[0];
+  const dayNames = locale === 'es'
+    ? ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+    : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const monthLabel = calMonth.toLocaleDateString(locale === 'es' ? 'es-CO' : 'en-US', { month: 'long', year: 'numeric' });
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4">
+      {/* Month nav */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4 text-gray-600" />
+        </button>
+        <p className="text-sm font-bold text-gray-900 capitalize">{monthLabel}</p>
+        <button
+          onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <ChevronRight className="w-4 h-4 text-gray-600" />
+        </button>
+      </div>
+
+      {/* Day names */}
+      <div className="grid grid-cols-7 mb-1">
+        {dayNames.map(d => (
+          <div key={d} className="text-center text-[10px] font-bold text-gray-400 py-1">{d}</div>
+        ))}
+      </div>
+
+      {/* Day cells */}
+      <div className="grid grid-cols-7 gap-0.5">
+        {days.map((dateStr, i) => {
+          if (!dateStr) return <div key={i} />;
+          const rsvs = reservationsByDate.get(dateStr) ?? [];
+          const isToday = dateStr === today;
+          const isSelected = dateStr === selectedDate;
+          const pending = rsvs.filter(r => r.status === 'pending').length;
+          const confirmed = rsvs.filter(r => r.status === 'confirmed').length;
+
+          return (
+            <button
+              key={dateStr}
+              onClick={() => onSelectDate(dateStr)}
+              className={cn(
+                'relative flex flex-col items-center justify-start py-1.5 min-h-[52px] rounded-lg text-xs font-semibold transition-colors',
+                isSelected ? 'bg-[#05c8a7] text-white' : isToday ? 'bg-emerald-50 text-emerald-700' : 'hover:bg-gray-50 text-gray-700'
+              )}
+            >
+              <span>{parseInt(dateStr.split('-')[2], 10)}</span>
+              {rsvs.length > 0 && (
+                <div className="flex items-center gap-0.5 mt-1 flex-wrap justify-center">
+                  {pending > 0 && (
+                    <span className={cn('px-1 py-0.5 rounded text-[9px] font-bold', isSelected ? 'bg-white/30 text-white' : 'bg-amber-100 text-amber-700')}>
+                      {pending}P
+                    </span>
+                  )}
+                  {confirmed > 0 && (
+                    <span className={cn('px-1 py-0.5 rounded text-[9px] font-bold', isSelected ? 'bg-white/30 text-white' : 'bg-emerald-100 text-emerald-700')}>
+                      {confirmed}C
+                    </span>
+                  )}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <p className="text-[10px] text-gray-400 mt-3 text-center">
+        {locale === 'es' ? 'P = Pendiente · C = Confirmada' : 'P = Pending · C = Confirmed'}
+      </p>
     </div>
   );
 }

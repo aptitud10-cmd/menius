@@ -6,7 +6,7 @@ import {
   Menu, X, Bell, Check, CheckCircle, Clock, ChevronLeft,
   Truck, ShoppingBag, Utensils, MessageCircle, Phone,
   MapPin, Pause, Flame, Printer, History, AlertTriangle,
-  Wifi, WifiOff, ChevronRight, User, Settings2, Calendar,
+  Wifi, WifiOff, ChevronRight, User, Settings2, Calendar, Plus,
 } from 'lucide-react';
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import {
@@ -442,6 +442,13 @@ export function CounterView({
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const [notifToast, setNotifToast] = useState<{ text: string; ok: boolean } | null>(null);
 
+  // Edit order items
+  const [editItemsModal, setEditItemsModal] = useState<{ orderId: string } | null>(null);
+  const [editSearch, setEditSearch] = useState('');
+  const [editProducts, setEditProducts] = useState<{ id: string; name: string; price: number; image_url?: string; in_stock: boolean }[]>([]);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+
   // ── Notification history (per order, in-memory) ──
   const [notifStatus, setNotifStatus] = useState<Record<string, { channel: string; success: boolean; error?: string; time: number }>>({});
 
@@ -551,7 +558,7 @@ export function CounterView({
     setSplashQueue(q => [...q, order]);
   }, [restaurantName, currency, t.newOrder]);
 
-  const { orders } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
+  const { orders, updateOrderLocally } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
   // ── Derived lists ──
   const scheduledOrders = useMemo(() =>
@@ -725,6 +732,58 @@ export function CounterView({
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
   }, [t]);
+
+  // ── Edit order items ──────────────────────────────────────────────────────
+  const openEditItems = useCallback(async (orderId: string) => {
+    setEditItemsModal({ orderId });
+    setEditSearch('');
+    setEditLoading(true);
+    try {
+      const res = await fetch('/api/products/stock');
+      const data = await res.json();
+      setEditProducts(data.products ?? []);
+    } catch { /* ignore */ }
+    setEditLoading(false);
+  }, []);
+
+  const handleAddItem = useCallback(async (orderId: string, productId: string) => {
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/tenant/orders/${orderId}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: productId, qty: 1 }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setErrorToast(data.error ?? 'Error'); return; }
+      // Update local orders state
+      const existingOrder = orders.find(o => o.id === orderId);
+      if (existingOrder) {
+        const newItem = { ...data.item, product: data.item.product };
+        updateOrderLocally(orderId, { items: [...(existingOrder.items ?? []), newItem as any], total: data.newTotal });
+      }
+      setSuccessToast(t.en ? 'Item added' : 'Producto agregado');
+    } catch { setErrorToast(t.en ? 'Error adding item' : 'Error al agregar'); }
+    setEditSaving(false);
+  }, [t.en]);
+
+  const handleRemoveItem = useCallback(async (orderId: string, itemId: string) => {
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/tenant/orders/${orderId}/items`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_id: itemId }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setErrorToast(data.error ?? 'Error'); return; }
+      const existingOrder = orders.find(o => o.id === orderId);
+      if (existingOrder) {
+        updateOrderLocally(orderId, { items: (existingOrder.items ?? []).filter(i => i.id !== itemId), total: data.newTotal });
+      }
+    } catch { setErrorToast(t.en ? 'Error removing item' : 'Error al eliminar'); }
+    setEditSaving(false);
+  }, [t.en]);
 
   const handleDeliver = useCallback(async (order: Order) => {
     // For cash or unset payment, offer split/mixed payment before marking delivered
@@ -1252,6 +1311,9 @@ export function CounterView({
               }}
               lastNotif={notifStatus[selectedOrder.id]}
               taxLabel={taxLabel}
+              onEditItems={openEditItems}
+              onRemoveItem={handleRemoveItem}
+              editSaving={editSaving}
             />
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
@@ -1576,6 +1638,67 @@ export function CounterView({
               >
                 <Printer className="w-4 h-4" />
                 {t.en ? 'Print test ticket' : 'Imprimir ticket de prueba'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ══ EDIT ORDER ITEMS MODAL ══ */}
+      {editItemsModal && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setEditItemsModal(null)} />
+          <div className="fixed inset-x-3 top-[5%] bottom-[5%] max-w-md mx-auto bg-white rounded-2xl z-50 shadow-2xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0F0F0] flex-shrink-0">
+              <p className="text-base font-bold text-[#111]">{t.en ? 'Add items to order' : 'Agregar productos a la orden'}</p>
+              <button onClick={() => setEditItemsModal(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-[#888] hover:bg-[#F5F5F5]">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="px-4 py-3 border-b border-[#F5F5F5] flex-shrink-0">
+              <input
+                type="search"
+                value={editSearch}
+                onChange={e => setEditSearch(e.target.value)}
+                placeholder={t.en ? 'Search products…' : 'Buscar productos…'}
+                className="w-full px-3 py-2 text-sm rounded-xl border border-[#E8E8E8] bg-[#F8F8F8] focus:outline-none focus:ring-2 focus:ring-[#05c8a7]/30"
+                autoFocus
+              />
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-3">
+              {editLoading ? (
+                <div className="flex items-center justify-center h-32 text-[#AAAAAA] text-sm">{t.en ? 'Loading…' : 'Cargando…'}</div>
+              ) : (
+                <div className="space-y-2">
+                  {editProducts
+                    .filter(p => p.in_stock !== false && (editSearch.trim() === '' || p.name.toLowerCase().includes(editSearch.toLowerCase())))
+                    .map(p => (
+                      <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-[#F0F0F0] bg-white">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-[#111] truncate">{p.name}</p>
+                          <p className="text-xs text-[#888]">{fmt(Number(p.price), currency)}</p>
+                        </div>
+                        <button
+                          onClick={() => handleAddItem(editItemsModal.orderId, p.id)}
+                          disabled={editSaving}
+                          className="w-8 h-8 rounded-full bg-[#05c8a7] text-white flex items-center justify-center hover:bg-[#04b096] transition-colors disabled:opacity-40 flex-shrink-0"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  {editProducts.filter(p => p.in_stock !== false && (editSearch.trim() === '' || p.name.toLowerCase().includes(editSearch.toLowerCase()))).length === 0 && (
+                    <p className="text-center text-sm text-[#AAAAAA] py-8">{t.en ? 'No products found' : 'Sin resultados'}</p>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="px-4 py-3 border-t border-[#F0F0F0] flex-shrink-0">
+              <button
+                onClick={() => setEditItemsModal(null)}
+                className="w-full py-3 rounded-xl text-sm font-semibold text-[#555] border border-[#E8E8E8] hover:bg-[#F5F5F5] transition-colors"
+              >
+                {t.en ? 'Done' : 'Listo'}
               </button>
             </div>
           </div>
@@ -2087,7 +2210,7 @@ function OrderDetail({
   order, currency, restaurantName, tab, eta, busyExtra, suggestedEta, isUpdating, t,
   onBack, onSetEta, onAdjustEta, onAccept, onMarkPreparing, onMarkReady, onDeliver,
   onCancelRequest, onPrint, onAssignDriver, onTipSaved, onNotify, lastNotif,
-  taxLabel,
+  taxLabel, onEditItems, onRemoveItem, editSaving,
 }: {
   order: Order; currency: string; restaurantName: string; tab: Tab;
   eta: number; busyExtra: number; suggestedEta?: number | null; isUpdating: boolean;
@@ -2106,6 +2229,9 @@ function OrderDetail({
   onNotify: (order: Order) => Promise<void>;
   lastNotif?: { channel: string; success: boolean; error?: string; time: number };
   taxLabel?: string;
+  onEditItems?: (orderId: string) => void;
+  onRemoveItem?: (orderId: string, itemId: string) => void;
+  editSaving?: boolean;
 }) {
   const secs = elapsedSecs(order.created_at);
   const mins = elapsedMins(order.created_at);
@@ -2374,14 +2500,30 @@ function OrderDetail({
 
           {/* Items */}
           <div className="bg-white rounded-2xl border-2 border-[#E8E8E8] overflow-hidden">
-            <div className="px-5 py-3 border-b border-[#F5F5F5]">
+            <div className="px-5 py-3 border-b border-[#F5F5F5] flex items-center justify-between">
               <p className="text-[11px] font-bold text-[#AAAAAA] uppercase tracking-widest">
                 {t.items((order.items ?? []).reduce((s, i) => s + i.qty, 0))}
               </p>
+              {onEditItems && !['delivered', 'completed', 'cancelled'].includes(order.status) && (
+                <button
+                  onClick={() => onEditItems(order.id)}
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#F5F5F5] text-[#555] text-[11px] font-semibold hover:bg-[#EAEAEA] transition-colors"
+                >
+                  <span className="text-xs font-bold">+</span>
+                  {t.en ? 'Edit' : 'Editar'}
+                </button>
+              )}
             </div>
             <div className="px-5 divide-y divide-[#F5F5F5]">
               {(order.items ?? []).map((item, idx) => (
-                <ItemRow key={item.id ?? idx} item={item} currency={currency} />
+                <ItemRow
+                  key={item.id ?? idx}
+                  item={item}
+                  currency={currency}
+                  canRemove={!!onRemoveItem && !['delivered', 'completed', 'cancelled'].includes(order.status) && (order.items ?? []).length > 1}
+                  onRemove={() => item.id && onRemoveItem?.(order.id, item.id)}
+                  removing={editSaving}
+                />
               ))}
             </div>
 
@@ -2621,7 +2763,10 @@ function OrderDetail({
 // ItemRow
 // ══════════════════════════════════════════════════════════════════════════════
 
-function ItemRow({ item, currency }: { item: OrderItem; currency: string }) {
+function ItemRow({ item, currency, canRemove, onRemove, removing }: {
+  item: OrderItem; currency: string;
+  canRemove?: boolean; onRemove?: () => void; removing?: boolean;
+}) {
   const raw = item as any;
   const variantName = item.variant?.name ?? null;
 
@@ -2643,9 +2788,20 @@ function ItemRow({ item, currency }: { item: OrderItem; currency: string }) {
 
   return (
     <div className="flex items-start gap-3 py-3.5">
-      <span className="flex-none w-8 h-8 rounded-lg border-2 border-[#E0E0E0] bg-[#FAFAFA] flex items-center justify-center text-sm font-black text-[#111]">
-        {item.qty}
-      </span>
+      {canRemove ? (
+        <button
+          onClick={onRemove}
+          disabled={removing}
+          className="flex-none w-8 h-8 rounded-lg border-2 border-red-200 bg-red-50 flex items-center justify-center text-red-500 hover:bg-red-100 transition-colors disabled:opacity-40"
+          title="Remove item"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      ) : (
+        <span className="flex-none w-8 h-8 rounded-lg border-2 border-[#E0E0E0] bg-[#FAFAFA] flex items-center justify-center text-sm font-black text-[#111]">
+          {item.qty}
+        </span>
+      )}
       <div className="flex-1 min-w-0">
         <p className="text-[#111] text-sm font-bold leading-tight">{item.product?.name ?? '—'}</p>
         {hasCustomization && (

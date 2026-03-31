@@ -902,6 +902,30 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
     }
   }
 
+  // Auto-earn loyalty points when order is delivered/completed
+  if (['delivered', 'completed'].includes(status)) {
+    void (async () => {
+      try {
+        const { data: fullOrder } = await supabase
+          .from('orders')
+          .select('total, customer_name, customer_phone, customer_email')
+          .eq('id', orderId)
+          .maybeSingle();
+        if (fullOrder) {
+          const { earnLoyaltyPoints } = await import('@/lib/loyalty/earn');
+          await earnLoyaltyPoints({
+            restaurantId,
+            customerName: fullOrder.customer_name,
+            customerPhone: fullOrder.customer_phone,
+            customerEmail: fullOrder.customer_email,
+            orderTotal: Number(fullOrder.total),
+            orderId,
+          });
+        }
+      } catch { /* non-critical */ }
+    })();
+  }
+
   revalidatePath('/app/orders');
   return { success: true, notification: notificationResult };
 }

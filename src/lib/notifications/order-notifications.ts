@@ -11,6 +11,7 @@ import { sendEmail, buildOrderConfirmationEmail, buildStatusUpdateEmail, buildOw
 import { formatPrice } from '@/lib/utils';
 
 interface RestaurantNotificationData {
+  id?: string;
   name: string;
   slug: string;
   currency?: string | null;
@@ -159,7 +160,7 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
           (async () => {
             try {
               const { storeOrderAwaitingConfirmation } = await import('@/lib/whatsapp/agent');
-              await storeOrderAwaitingConfirmation(customerPhone, orderId, orderNumber, restaurant.id, restaurant.name, restaurant.slug, locale, restaurant.currency ?? 'MXN');
+              await storeOrderAwaitingConfirmation(customerPhone, orderId, orderNumber, restaurant.id ?? '', restaurant.name, restaurant.slug, locale, restaurant.currency ?? 'MXN');
             } catch { /* non-critical */ }
           })();
         }
