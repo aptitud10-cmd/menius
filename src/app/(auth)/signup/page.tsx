@@ -25,6 +25,20 @@ function isEmailShape(e: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
 }
 
+function mapAuthError(msg: string, locale: string): string {
+  const m = msg.toLowerCase();
+  const es = locale === 'es';
+  if (m.includes('already registered') || m.includes('already exists'))
+    return es ? 'Este email ya está registrado.' : 'This email is already registered.';
+  if (m.includes('rate limit') || m.includes('too many'))
+    return es ? 'Demasiados intentos. Espera unos minutos.' : 'Too many attempts. Please wait.';
+  if (m.includes('invalid') && m.includes('email'))
+    return es ? 'El formato del email no es válido.' : 'Invalid email format.';
+  if (m.includes('password'))
+    return es ? 'La contraseña no cumple los requisitos mínimos.' : 'Password does not meet minimum requirements.';
+  return msg;
+}
+
 function PlanBadge({ locale }: { locale: string }) {
   const searchParams = useSearchParams();
   const selectedPlan = searchParams.get('plan');
@@ -73,7 +87,7 @@ export default function SignupPage() {
     setLoading(true);
     const result = await signup(parsed.data);
     if (result?.error) {
-      setError(result.error);
+      setError(mapAuthError(result.error, locale));
       setLoading(false);
     } else if ((result as any)?.success === 'confirm_email') {
       setConfirmEmail(true);
@@ -131,7 +145,17 @@ export default function SignupPage() {
             <span className="text-white">MENIUS</span>
           </Link>
           <h1 className="text-2xl md:text-3xl font-black text-white mt-4 leading-tight tracking-tight">{t.subtitle}</h1>
-          <p className="text-gray-500 text-sm mt-2">~2 min · {locale === 'es' ? 'sin tarjeta de crédito' : 'no credit card needed'}</p>
+          <div className="flex items-center justify-center gap-4 mt-3 flex-wrap">
+            {(locale === 'es'
+              ? ['Gratis para siempre', 'Sin contrato', '2 min para empezar']
+              : ['Free forever', 'No contract', 'Start in 2 min']
+            ).map((chip) => (
+              <span key={chip} className="inline-flex items-center gap-1.5 text-[11px] text-gray-500">
+                <span className="w-1 h-1 rounded-full bg-emerald-500/60 inline-block flex-shrink-0" />
+                {chip}
+              </span>
+            ))}
+          </div>
           <Suspense fallback={null}>
             <PlanBadge locale={locale} />
           </Suspense>
@@ -164,11 +188,18 @@ export default function SignupPage() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/[0.06] border border-red-500/[0.1]">
-                  <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/[0.06] border border-red-500/[0.1]">
+                  <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
                   </svg>
-                  <span className="text-red-400 text-sm">{error}</span>
+                  <span className="text-red-400 text-sm">
+                    {error}
+                    {(error.includes('registrado') || error.includes('registered')) && (
+                      <Link href="/login" className="text-white underline underline-offset-2 ml-1.5 hover:text-emerald-400 transition-colors">
+                        {locale === 'es' ? 'Iniciar sesión →' : 'Sign in →'}
+                      </Link>
+                    )}
+                  </span>
                 </div>
               )}
 
@@ -316,6 +347,16 @@ export default function SignupPage() {
           <Link href="/" className="inline-block text-[12px] text-gray-600 hover:text-gray-400 transition-colors">
             {t.backHome}
           </Link>
+          <div>
+            <a
+              href="/la-casa-del-sabor"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block text-[12px] text-gray-600 hover:text-emerald-400 transition-colors"
+            >
+              {locale === 'es' ? 'Ver demo del menú →' : 'View menu demo →'}
+            </a>
+          </div>
         </div>
       </div>
     </div>

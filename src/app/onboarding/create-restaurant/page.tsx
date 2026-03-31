@@ -49,8 +49,9 @@ const CATEGORY_SUGGESTIONS = [
 export default function CreateRestaurantPage() {
   const router = useRouter();
 
-  // Step 1 state
-  const [step, setStep] = useState(1);
+  // Step 0 (intent) + Step 1–4 state
+  const [step, setStep] = useState(0);
+  const [businessType, setBusinessType] = useState('');
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [locale, setLocale] = useState('es');
@@ -184,23 +185,68 @@ export default function CreateRestaurantPage() {
             <span className="text-white">MENIUS</span>
           </Link>
 
-          {/* Step indicator */}
-          <div className="flex items-center justify-center gap-2 mt-6 mb-4">
-            {[1, 2, 3, 4].map((s) => (
-              <div
-                key={s}
-                className={`h-1 rounded-full transition-all duration-300 ${
-                  s === step ? 'w-10 bg-emerald-500' : s < step ? 'w-8 bg-emerald-500/40' : 'w-8 bg-white/[0.08]'
-                }`}
-              />
-            ))}
-          </div>
-          <div className="flex items-center justify-center gap-3">
-            <p className="text-xs text-gray-600 tabular-nums">Paso {Math.min(step, 4)} de 4</p>
-            <span className="text-[10px] text-gray-700">·</span>
-            <p className="text-[10px] text-gray-600">~2 min</p>
-          </div>
+          {/* Step indicator — oculto en paso 0 */}
+          {step > 0 && (
+            <>
+              <div className="flex items-center justify-center gap-2 mt-6 mb-4">
+                {[1, 2, 3, 4].map((s) => (
+                  <div
+                    key={s}
+                    className={`h-1 rounded-full transition-all duration-300 ${
+                      s === step ? 'w-10 bg-emerald-500' : s < step ? 'w-8 bg-emerald-500/40' : 'w-8 bg-white/[0.08]'
+                    }`}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center justify-center gap-3">
+                <p className="text-xs text-gray-600 tabular-nums">Paso {Math.min(step, 4)} de 4</p>
+                <span className="text-[10px] text-gray-700">·</span>
+                <p className="text-[10px] text-gray-600">~2 min</p>
+              </div>
+            </>
+          )}
         </div>
+
+        {/* ── STEP 0: Intención / tipo de negocio ── */}
+        {step === 0 && (
+          <>
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-black text-white leading-tight tracking-tight">¿Qué tipo de negocio tienes?</h1>
+              <p className="text-gray-400 text-sm mt-3 max-w-sm mx-auto leading-relaxed">
+                Así preparamos la mejor experiencia para ti.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {[
+                { type: 'restaurante', icon: '🍽', label: 'Restaurante' },
+                { type: 'cafeteria', icon: '☕', label: 'Cafetería / Bar' },
+                { type: 'foodtruck', icon: '🚚', label: 'Food Truck' },
+                { type: 'otro', icon: '🛒', label: 'Otro' },
+              ].map(({ type, icon, label }) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => { setBusinessType(type); setStep(1); }}
+                  className="flex flex-col items-center gap-3 p-5 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] hover:border-emerald-500/30 transition-all duration-200 group"
+                >
+                  <span className="text-3xl">{icon}</span>
+                  <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">{label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="text-[12px] text-gray-600 hover:text-gray-400 transition-colors"
+              >
+                Omitir →
+              </button>
+            </div>
+          </>
+        )}
 
         {/* ── STEP 1: Restaurant info ── */}
         {step === 1 && (
