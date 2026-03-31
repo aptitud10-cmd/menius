@@ -9,11 +9,11 @@
  */
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Image from 'next/image';
 import {
   CheckCircle, Camera, Upload,
-  Loader2, Package, DoorOpen, MapPin, Bike,
+  Loader2, Package, DoorOpen, MapPin, Bike, Navigation,
 } from 'lucide-react';
 
 interface PageProps {
@@ -55,6 +55,10 @@ function getT(lang: string) {
     connErr:    en ? 'Connection error'             : 'Error de conexión',
     tokenExp:   en ? 'Link expired'                 : 'Enlace expirado',
     errSend:    en ? 'Error — try again'            : 'Error — intenta de nuevo',
+    navigateTo: en ? 'Navigate to'                  : 'Navegar a',
+    openInMaps: en ? 'Open in Google Maps'          : 'Abrir en Google Maps',
+    openInWaze: en ? 'Open in Waze'                 : 'Abrir en Waze',
+    deliverTo:  en ? 'Deliver to'                   : 'Entregar en',
   };
 }
 
@@ -75,6 +79,20 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState<string | null>(null);
+
+  // Fetch order info (delivery address) on mount
+  const fetchOrderInfo = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/driver/order?token=${encodeURIComponent(token)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDeliveryAddress(data.deliveryAddress ?? null);
+      }
+    } catch { /* silent */ }
+  }, [token]);
+
+  useEffect(() => { fetchOrderInfo(); }, [fetchOrderInfo]);
 
   // GPS helpers
   const sendLocation = async (lat: number, lng: number) => {
@@ -262,6 +280,39 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
             <StepDot icon={<MapPin className="w-4 h-4" />} label={t.step3Label} done={stepIndex > 2} active={stepIndex === 2} />
           </div>
         </div>
+
+        {/* Navigation card — shown once driver picks up */}
+        {deliveryAddress && deliveryStep !== 'start' && (
+          <div className="bg-gray-900 rounded-2xl p-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">{t.deliverTo}</p>
+                <p className="text-sm text-white leading-snug">{deliveryAddress}</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(deliveryAddress)}&travelmode=driving`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white text-xs font-bold transition-colors"
+              >
+                <Navigation className="w-3.5 h-3.5" />
+                Google Maps
+              </a>
+              <a
+                href={`https://waze.com/ul?q=${encodeURIComponent(deliveryAddress)}&navigate=yes`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#33CCFF] hover:bg-[#00BBEE] active:bg-[#0099CC] text-white text-xs font-bold transition-colors"
+              >
+                <Navigation className="w-3.5 h-3.5" />
+                Waze
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* ONE primary button — the only action available at each step */}
         <div className="space-y-3">
