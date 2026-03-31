@@ -1,14 +1,22 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { MapPin, ExternalLink } from 'lucide-react';
+/**
+ * DeliveryMap — Mapbox GL JS professional live tracking map.
+ * Uses Mapbox Geocoding v6 (reliable, fast, accurate) instead of Nominatim.
+ * Smooth driver marker animation via CSS transitions + requestAnimationFrame.
+ */
+
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { ExternalLink, MapPin } from 'lucide-react';
+
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? '';
 
 interface Coords {
+  lng: number;
   lat: number;
-  lon: number;
 }
 
-interface DeliveryMapProps {
+export interface DeliveryMapProps {
   restaurantAddress: string;
   deliveryAddress?: string | null;
   restaurantName: string;
@@ -16,42 +24,50 @@ interface DeliveryMapProps {
   driverLng?: number | null;
 }
 
-async function geocode(address: string): Promise<Coords | null> {
+// ── Mapbox Geocoding v6 ──────────────────────────────────────────────────────
+
+async function geocodeMapbox(address: string): Promise<Coords | null> {
+  if (!MAPBOX_TOKEN || !address) return null;
   try {
-    const encoded = encodeURIComponent(address);
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1`,
-      { headers: { 'Accept-Language': 'es', 'User-Agent': 'menius-app/1.0' } }
-    );
+    const url = `https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(address)}&access_token=${MAPBOX_TOKEN}&limit=1`;
+    const res = await fetch(url);
     if (!res.ok) return null;
     const data = await res.json();
-    if (!data.length) return null;
-    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+    const feature = data?.features?.[0];
+    if (!feature) return null;
+    const [lng, lat] = feature.geometry.coordinates;
+    return { lng, lat };
   } catch {
     return null;
   }
 }
 
-function MapFallback({ deliveryAddress, restaurantAddress, restaurantName }: DeliveryMapProps) {
-  const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(deliveryAddress ?? restaurantAddress)}`;
+// ── Fallback (no geocode or no token) ────────────────────────────────────────
+
+function MapFallback({ deliveryAddress, restaurantAddress }: DeliveryMapProps) {
+  const address = deliveryAddress ?? restaurantAddress;
+  const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
   return (
     <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200">
       <div className="flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
           <MapPin className="w-4 h-4 text-blue-600" />
         </div>
-        <div>
-          <p className="text-xs font-semibold text-gray-700">{deliveryAddress ?? restaurantAddress}</p>
-          <p className="text-[10px] text-gray-400">{restaurantName}</p>
-        </div>
+        <p className="text-xs font-semibold text-gray-700 break-words">{address}</p>
       </div>
-      <a href={gmapsUrl} target="_blank" rel="noopener noreferrer"
-        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium flex-shrink-0 ml-2">
+      <a
+        href={gmapsUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium flex-shrink-0 ml-2"
+      >
         Ver mapa <ExternalLink className="w-3 h-3" />
       </a>
     </div>
   );
 }
+
+// ── Live Mapbox Map ───────────────────────────────────────────────────────────
 
 interface LiveMapProps {
   restaurantCoords: Coords;
@@ -64,137 +80,199 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const driverMarkerRef = useRef<any>(null);
+  const driverElRef = useRef<HTMLDivElement | null>(null);
+  const currentDriverPos = useRef<Coords | null>(null);
+  const animFrameRef = useRef<number | null>(null);
   const [ready, setReady] = useState(false);
 
-  // Initialize map once
+  // Smooth linear interpolation between two positions
+  const animateMarkerTo = useCallback((target: Coords) => {
+    if (!driverMarkerRef.current || !driverElRef.current) return;
+
+    const start = currentDriverPos.current ?? target;
+    const startTime = performance.now();
+    const duration = 1500; // 1.5s smooth animation
+
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      // Ease out cubic for natural deceleration
+      const eased = 1 - Math.pow(1 - t, 3);
+
+      const lat = start.lat + (target.lat - start.lat) * eased;
+      const lng = start.lng + (target.lng - start.lng) * eased;
+
+      driverMarkerRef.current?.setLngLat([lng, lat]);
+
+      if (t < 1) {
+        animFrameRef.current = requestAnimationFrame(step);
+      } else {
+        currentDriverPos.current = target;
+      }
+    };
+
+    animFrameRef.current = requestAnimationFrame(step);
+  }, []);
+
+  // Initialize map
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    if (!containerRef.current || mapRef.current || !MAPBOX_TOKEN) return;
 
     let cancelled = false;
 
-    Promise.all([import('leaflet'), import('leaflet/dist/leaflet.css' as any)]).catch(() => {}).then(async () => {
-      const L = (await import('leaflet')).default;
+    (async () => {
+      const mapboxgl = (await import('mapbox-gl')).default;
+      // @ts-expect-error — mapbox-gl types quirk
+      mapboxgl.accessToken = MAPBOX_TOKEN;
 
-      // Load CSS manually
-      if (!document.querySelector('#leaflet-css')) {
+      // Inject mapbox CSS
+      if (!document.getElementById('mapbox-gl-css')) {
         const link = document.createElement('link');
-        link.id = 'leaflet-css';
+        link.id = 'mapbox-gl-css';
         link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
-        link.crossOrigin = '';
+        link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css';
         document.head.appendChild(link);
       }
 
       if (cancelled || !containerRef.current) return;
 
-      // Center: prefer driver → delivery → restaurant
-      const center: [number, number] = driverCoords
-        ? [driverCoords.lat, driverCoords.lon]
-        : deliveryCoords
-        ? [deliveryCoords.lat, deliveryCoords.lon]
-        : [restaurantCoords.lat, restaurantCoords.lon];
+      // Determine initial center and bounds
+      const points: [number, number][] = [[restaurantCoords.lng, restaurantCoords.lat]];
+      if (deliveryCoords) points.push([deliveryCoords.lng, deliveryCoords.lat]);
+      if (driverCoords) points.push([driverCoords.lng, driverCoords.lat]);
 
-      const zoom = deliveryCoords ? 14 : 15;
-
-      const map = L.map(containerRef.current, {
-        center,
-        zoom,
-        zoomControl: false,
+      const map = new mapboxgl.Map({
+        container: containerRef.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: driverCoords
+          ? [driverCoords.lng, driverCoords.lat]
+          : deliveryCoords
+          ? [deliveryCoords.lng, deliveryCoords.lat]
+          : [restaurantCoords.lng, restaurantCoords.lat],
+        zoom: 14,
         attributionControl: false,
+        logoPosition: 'bottom-right',
       });
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-      }).addTo(map);
+      // Fit map to show all markers
+      if (points.length > 1) {
+        const lngs = points.map(p => p[0]);
+        const lats = points.map(p => p[1]);
+        const bounds: [[number, number], [number, number]] = [
+          [Math.min(...lngs), Math.min(...lats)],
+          [Math.max(...lngs), Math.max(...lats)],
+        ];
+        map.fitBounds(bounds, { padding: 60, maxZoom: 15, duration: 0 });
+      }
 
-      // Restaurant marker — fork & knife emoji
-      const restaurantIcon = L.divIcon({
-        html: `<div style="width:32px;height:32px;border-radius:50%;background:#059669;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;">🍽️</div>`,
-        className: '',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
-      });
-      L.marker([restaurantCoords.lat, restaurantCoords.lon], { icon: restaurantIcon })
-        .addTo(map)
-        .bindPopup(restaurantName);
+      // Restaurant marker
+      const restaurantEl = document.createElement('div');
+      restaurantEl.innerHTML = `<div style="width:36px;height:36px;border-radius:50%;background:#059669;border:2.5px solid white;box-shadow:0 2px 10px rgba(5,150,105,0.4);display:flex;align-items:center;justify-content:center;font-size:16px;">🍽️</div>`;
+      new mapboxgl.Marker({ element: restaurantEl, anchor: 'center' })
+        .setLngLat([restaurantCoords.lng, restaurantCoords.lat])
+        .setPopup(new mapboxgl.Popup({ offset: 20 }).setText(restaurantName))
+        .addTo(map);
 
-      // Delivery address marker — pin
+      // Delivery address marker
       if (deliveryCoords) {
-        const destIcon = L.divIcon({
-          html: `<div style="width:32px;height:32px;border-radius:50%;background:#2563eb;border:2.5px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;font-size:14px;">📍</div>`,
-          className: '',
-          iconSize: [32, 32],
-          iconAnchor: [16, 32],
+        const destEl = document.createElement('div');
+        destEl.innerHTML = `<div style="width:36px;height:36px;border-radius:50%;background:#2563eb;border:2.5px solid white;box-shadow:0 2px 10px rgba(37,99,235,0.4);display:flex;align-items:center;justify-content:center;font-size:16px;">📍</div>`;
+        new mapboxgl.Marker({ element: destEl, anchor: 'center' })
+          .setLngLat([deliveryCoords.lng, deliveryCoords.lat])
+          .setPopup(new mapboxgl.Popup({ offset: 20 }).setText('Dirección de entrega'))
+          .addTo(map);
+
+        // Dashed route line between restaurant and delivery
+        map.on('load', () => {
+          map.addSource('route', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'LineString',
+                coordinates: [
+                  [restaurantCoords.lng, restaurantCoords.lat],
+                  [deliveryCoords.lng, deliveryCoords.lat],
+                ],
+              },
+            },
+          });
+          map.addLayer({
+            id: 'route',
+            type: 'line',
+            source: 'route',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: {
+              'line-color': '#10b981',
+              'line-width': 3,
+              'line-dasharray': [2, 2],
+              'line-opacity': 0.7,
+            },
+          });
         });
-        L.marker([deliveryCoords.lat, deliveryCoords.lon], { icon: destIcon })
-          .addTo(map)
-          .bindPopup('Dirección de entrega');
-
-        // Dashed line between restaurant and delivery
-        L.polyline(
-          [[restaurantCoords.lat, restaurantCoords.lon], [deliveryCoords.lat, deliveryCoords.lon]],
-          { color: '#10b981', weight: 3, dashArray: '8 6', opacity: 0.6 }
-        ).addTo(map);
       }
 
-      // Driver marker — moto icon (only if we have coords)
-      const motoIcon = L.divIcon({
-        html: `<div style="width:40px;height:40px;border-radius:50%;background:#f97316;border:3px solid white;box-shadow:0 3px 12px rgba(249,115,22,0.5);display:flex;align-items:center;justify-content:center;font-size:20px;transition:all 0.3s ease;">🛵</div>`,
-        className: '',
-        iconSize: [40, 40],
-        iconAnchor: [20, 20],
-      });
+      // Driver marker (moto) — always created, hidden if no coords yet
+      const driverEl = document.createElement('div');
+      driverEl.style.cssText = 'width:44px;height:44px;border-radius:50%;background:#f97316;border:3px solid white;box-shadow:0 3px 14px rgba(249,115,22,0.5);display:flex;align-items:center;justify-content:center;font-size:22px;transition:opacity 0.3s ease;';
+      driverEl.textContent = '🛵';
+      driverElRef.current = driverEl;
 
-      if (driverCoords) {
-        const driverMarker = L.marker([driverCoords.lat, driverCoords.lon], { icon: motoIcon, zIndexOffset: 1000 })
-          .addTo(map)
-          .bindPopup('🛵 Repartidor en camino');
-        driverMarkerRef.current = driverMarker;
-      } else {
-        // Place marker off-screen (hidden) so we can move it when coords arrive
-        const driverMarker = L.marker([0, 0], { icon: motoIcon, zIndexOffset: 1000, opacity: 0 }).addTo(map);
-        driverMarkerRef.current = driverMarker;
-      }
+      const initPos: [number, number] = driverCoords
+        ? [driverCoords.lng, driverCoords.lat]
+        : [restaurantCoords.lng, restaurantCoords.lat];
+
+      driverEl.style.opacity = driverCoords ? '1' : '0';
+
+      const driverMarker = new mapboxgl.Marker({ element: driverEl, anchor: 'center' })
+        .setLngLat(initPos)
+        .addTo(map);
+
+      driverMarkerRef.current = driverMarker;
+      if (driverCoords) currentDriverPos.current = driverCoords;
 
       mapRef.current = map;
       setReady(true);
-    });
+    })();
 
     return () => {
       cancelled = true;
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-        driverMarkerRef.current = null;
-      }
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // init once
+  }, []);
 
-  // Smooth driver position updates — the Uber-like part
+  // Smooth driver position updates (Uber-like)
   useEffect(() => {
     if (!ready || !mapRef.current || !driverMarkerRef.current) return;
     if (driverCoords == null) return;
 
-    const newLatLng: [number, number] = [driverCoords.lat, driverCoords.lon];
+    if (driverElRef.current) driverElRef.current.style.opacity = '1';
+    animateMarkerTo(driverCoords);
 
-    // Move marker smoothly
-    driverMarkerRef.current.setOpacity(1);
-    driverMarkerRef.current.setLatLng(newLatLng);
-
-    // Pan map to follow driver (smooth)
-    mapRef.current.panTo(newLatLng, { animate: true, duration: 0.8 });
-  }, [ready, driverCoords?.lat, driverCoords?.lon]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Smoothly pan map to follow driver
+    mapRef.current.easeTo({
+      center: [driverCoords.lng, driverCoords.lat],
+      duration: 1000,
+      easing: (t: number) => t * (2 - t), // ease out quad
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, driverCoords?.lat, driverCoords?.lng]);
 
   return (
     <div
       ref={containerRef}
-      className="w-full h-56 rounded-2xl overflow-hidden border border-gray-200 shadow-sm"
-      style={{ minHeight: 224 }}
+      className="w-full h-60 rounded-2xl overflow-hidden border border-gray-200 shadow-sm"
+      style={{ minHeight: 240 }}
     />
   );
 }
+
+// ── Main export ───────────────────────────────────────────────────────────────
 
 export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName, driverLat, driverLng }: DeliveryMapProps) {
   const [restaurantCoords, setRestaurantCoords] = useState<Coords | null>(null);
@@ -202,14 +280,14 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
   const [geocodingDone, setGeocodingDone] = useState(false);
 
   const driverCoords: Coords | null = (driverLat != null && driverLng != null)
-    ? { lat: driverLat, lon: driverLng }
+    ? { lat: driverLat, lng: driverLng }
     : null;
 
   useEffect(() => {
     if (!restaurantAddress) return;
     Promise.all([
-      geocode(restaurantAddress),
-      deliveryAddress ? geocode(deliveryAddress) : Promise.resolve(null),
+      geocodeMapbox(restaurantAddress),
+      deliveryAddress ? geocodeMapbox(deliveryAddress) : Promise.resolve(null),
     ]).then(([rCoords, dCoords]) => {
       setRestaurantCoords(rCoords);
       setDeliveryCoords(dCoords);
@@ -218,10 +296,10 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
   }, [restaurantAddress, deliveryAddress]);
 
   if (!geocodingDone) {
-    return <div className="w-full h-56 rounded-2xl bg-gray-100 animate-pulse" />;
+    return <div className="w-full h-60 rounded-2xl bg-gray-100 animate-pulse" />;
   }
 
-  if (!restaurantCoords) {
+  if (!restaurantCoords || !MAPBOX_TOKEN) {
     return (
       <MapFallback
         restaurantAddress={restaurantAddress}

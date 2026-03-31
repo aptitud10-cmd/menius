@@ -2728,7 +2728,16 @@ function OrderDetail({
                           {(order as any).driver_phone ? ` · ${(order as any).driver_phone}` : ''}
                         </p>
                       </div>
-                      <span className="text-[10px] text-[#888]">{t.editDriver}</span>
+                      {/* Driver live status badge */}
+                      {order.status === 'delivered' ? (
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex-shrink-0">✓ {t.en ? 'Delivered' : 'Entregado'}</span>
+                      ) : (order as any).driver_at_door_at ? (
+                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex-shrink-0">🚪 {t.en ? 'At door' : 'En la puerta'}</span>
+                      ) : (order as any).driver_picked_up_at ? (
+                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0 animate-pulse">🛵 {t.en ? 'On the way' : 'En camino'}</span>
+                      ) : (
+                        <span className="text-[10px] text-[#888]">{t.editDriver}</span>
+                      )}
                     </button>
                     {(order as any).delivery_photo_url && (
                       <div className="mt-2 flex items-center gap-3">

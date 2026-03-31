@@ -1,7 +1,11 @@
 /**
- * Driver GPS tracking page — opened by the delivery driver on their phone.
+ * Driver tracking page — opened by the delivery driver on their phone.
  * Uses a per-delivery token (no auth required).
- * Step flow: Start → Picked up → At door → Delivered
+ *
+ * Uber-like flow: ONE primary button at each step.
+ * Step 1 → "Ya tengo el pedido"   (starts GPS)
+ * Step 2 → "Estoy en la puerta"
+ * Step 3 → "Entregado ✓"          + photo upload
  */
 'use client';
 
@@ -24,42 +28,33 @@ function getT(lang: string) {
   const en = lang === 'en';
   return {
     en,
-    title:      en ? 'MENIUS Driver'                      : 'MENIUS Repartidor',
-    subtitle:   en ? 'Delivery tracking'                  : 'Seguimiento de entrega',
+    title:      en ? 'MENIUS Driver'              : 'MENIUS Repartidor',
+    subtitle:   en ? 'Delivery tracking'           : 'Seguimiento de entrega',
     // Steps
-    step1Label: en ? 'Start delivery'                     : 'Iniciar entrega',
-    step1Desc:  en ? 'Tap to pick up the order and start GPS sharing.' : 'Toca para recoger el pedido e iniciar GPS.',
-    step1Btn:   en ? 'I picked up the order'              : 'Recogí el pedido',
-    step2Label: en ? 'At the door'                        : 'En la puerta',
-    step2Desc:  en ? 'Tap when you arrive at the delivery address.' : 'Toca cuando llegues a la dirección de entrega.',
-    step2Btn:   en ? "I'm at the door"                   : 'Estoy en la puerta',
-    step3Label: en ? 'Delivered'                          : 'Entregado',
-    step3Desc:  en ? 'Tap to confirm the order was delivered.' : 'Toca para confirmar que el pedido fue entregado.',
-    step3Btn:   en ? 'Order delivered'                    : 'Pedido entregado',
+    step1Label: en ? 'Pick up order'               : 'Recoger pedido',
+    step2Label: en ? 'At the door'                 : 'En la puerta',
+    step3Label: en ? 'Delivered'                   : 'Entregado',
+    step1Btn:   en ? '📦  I picked up the order'   : '📦  Ya tengo el pedido',
+    step2Btn:   en ? '🚪  I\'m at the door'        : '🚪  Estoy en la puerta',
+    step3Btn:   en ? '✅  Order delivered'          : '✅  Pedido entregado',
     // GPS
-    gpsSharing: en ? 'GPS sharing active'                 : 'GPS activo',
-    gpsEvery:   en ? 'Updated every 10 s — keep page open' : 'Actualizado cada 10 s — mantén la página abierta',
-    gpsErr:     en ? 'Could not get your location'        : 'No se pudo obtener tu ubicación',
-    gpsUnsupported: en ? 'GPS not available on this device' : 'GPS no disponible en este dispositivo',
-    tryAgain:   en ? 'Try again'                          : 'Intentar de nuevo',
+    gpsSharing: en ? '📡 GPS active'               : '📡 GPS activo',
+    gpsEvery:   en ? 'Keep this page open'          : 'Mantén esta página abierta',
+    gpsErr:     en ? 'Could not get your location'  : 'No se pudo obtener tu ubicación',
+    gpsUnsupported: en ? 'GPS not available'        : 'GPS no disponible',
+    tryAgain:   en ? 'Try again'                    : 'Intentar de nuevo',
     // Done
-    doneTitle:  en ? 'Delivery complete!'                 : '¡Entrega completada!',
-    doneSub:    en ? 'Thank you for your delivery.'       : 'Gracias por tu entrega.',
+    doneTitle:  en ? 'Delivery complete!'           : '¡Entrega completada!',
+    doneSub:    en ? 'Thank you!'                   : '¡Gracias!',
     // Photo
-    photoTitle: en ? 'Proof of delivery photo'            : 'Foto de prueba de entrega',
-    photoTap:   en ? 'Tap to take or upload photo'        : 'Toca para tomar o subir foto',
-    photoOk:    en ? 'Photo uploaded'                     : 'Foto subida',
-    photoAlt:   en ? 'Delivery proof'                     : 'Foto de entrega',
-    photoErr:   en ? 'Upload failed — try again'          : 'Error al subir — intenta de nuevo',
-    connErr:    en ? 'Connection error'                   : 'Error de conexión',
-    tokenExp:   en ? 'This tracking link has expired'     : 'Este enlace de rastreo ha expirado',
-    // Action feedback
-    sending:    en ? 'Sending…'                           : 'Enviando…',
-    notified:   en ? 'Customer notified'                  : 'Cliente notificado',
-    errSend:    en ? 'Error — please try again'           : 'Error — intenta de nuevo',
-    // Notify outside
-    notifyOutsideBtn: en ? '📦 Notify: order is outside' : '📦 Avisar: pedido está afuera',
-    outsideSent:      en ? '✓ Customer notified'          : '✓ Cliente avisado',
+    photoTitle: en ? 'Proof of delivery'            : 'Foto de prueba',
+    photoTap:   en ? 'Tap to take photo'            : 'Toca para tomar la foto',
+    photoOk:    en ? '✓ Photo uploaded'             : '✓ Foto enviada',
+    photoAlt:   en ? 'Delivery proof'               : 'Foto de entrega',
+    photoErr:   en ? 'Upload failed — try again'    : 'Error al subir — intenta de nuevo',
+    connErr:    en ? 'Connection error'             : 'Error de conexión',
+    tokenExp:   en ? 'Link expired'                 : 'Enlace expirado',
+    errSend:    en ? 'Error — try again'            : 'Error — intenta de nuevo',
   };
 }
 
@@ -74,15 +69,12 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
   const [gpsError, setGpsError] = useState('');
   const [deliveryStep, setDeliveryStep] = useState<DeliveryStep>('start');
   const [actionLoading, setActionLoading] = useState(false);
-  const [actionFeedback, setActionFeedback] = useState('');
+  const [actionError, setActionError] = useState('');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState('');
-
-  const [notifyOutsideSent, setNotifyOutsideSent] = useState(false);
-  const notifyOutsideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // GPS helpers
   const sendLocation = async (lat: number, lng: number) => {
@@ -92,16 +84,12 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, lat, lng }),
       });
-      // Token expired — stop GPS sharing automatically
       if (res.status === 410) stopGps();
-    } catch { /* silent — will retry on next interval */ }
+    } catch { /* silent — retries on next interval */ }
   };
 
   const startGps = () => {
-    if (!navigator.geolocation) {
-      setGpsStatus('unsupported');
-      return;
-    }
+    if (!navigator.geolocation) { setGpsStatus('unsupported'); return; }
     setGpsStatus('sharing');
     setGpsError('');
     navigator.geolocation.getCurrentPosition(
@@ -111,7 +99,6 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
     intervalRef.current = setInterval(() => {
       navigator.geolocation.getCurrentPosition(
         pos => {
-          // Recover from a previous GPS error automatically
           setGpsStatus('sharing');
           setGpsError('');
           sendLocation(pos.coords.latitude, pos.coords.longitude);
@@ -126,61 +113,29 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
     setGpsStatus('idle');
   };
 
-  useEffect(() => () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    if (notifyOutsideTimerRef.current) clearTimeout(notifyOutsideTimerRef.current);
-  }, []);
+  useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
 
-  const handleNotifyOutside = async () => {
-    setActionLoading(true);
-    setActionFeedback('');
-    try {
-      const res = await fetch('/api/driver/status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, action: 'notify_outside' }),
-      });
-      if (res.ok) {
-        setNotifyOutsideSent(true);
-        setActionFeedback(t.outsideSent);
-        notifyOutsideTimerRef.current = setTimeout(() => setNotifyOutsideSent(false), 30_000);
-      } else {
-        const d = await res.json().catch(() => ({}));
-        setActionFeedback(d.error ?? t.errSend);
-      }
-    } catch {
-      setActionFeedback(t.errSend);
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Call /api/driver/status for a given action — returns true on success
   const callDriverStatus = async (action: 'picked_up' | 'at_door' | 'delivered'): Promise<boolean> => {
     setActionLoading(true);
-    setActionFeedback('');
+    setActionError('');
     try {
       const res = await fetch('/api/driver/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, action }),
       });
-      if (res.ok) {
-        setActionFeedback(t.notified);
-        return true;
-      }
+      if (res.ok) return true;
       const d = await res.json().catch(() => ({}));
-      setActionFeedback(res.status === 410 ? t.tokenExp : (d.error ?? t.errSend));
+      setActionError(res.status === 410 ? t.tokenExp : (d.error ?? t.errSend));
       return false;
     } catch {
-      setActionFeedback(t.errSend);
+      setActionError(t.connErr);
       return false;
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Step handlers — only advance step if API call succeeded
   const handlePickedUp = async () => {
     startGps();
     const ok = await callDriverStatus('picked_up');
@@ -194,10 +149,7 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
 
   const handleDelivered = async () => {
     const ok = await callDriverStatus('delivered');
-    if (ok) {
-      stopGps();
-      setDeliveryStep('delivered');
-    }
+    if (ok) { stopGps(); setDeliveryStep('delivered'); }
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -222,6 +174,51 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
 
   const stepIndex = STEPS.indexOf(deliveryStep);
 
+  // ── Delivered screen ──────────────────────────────────────────────────────
+  if (deliveryStep === 'delivered') {
+    return (
+      <div className="min-h-[100dvh] bg-gray-950 flex flex-col items-center justify-center p-6 text-white">
+        <div className="w-full max-w-sm space-y-6 text-center">
+          <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto">
+            <CheckCircle className="w-14 h-14 text-emerald-400" />
+          </div>
+          <div>
+            <p className="text-2xl font-black text-emerald-400">{t.doneTitle}</p>
+            <p className="text-gray-400 text-sm mt-1">{t.doneSub}</p>
+          </div>
+
+          {/* Photo upload — only shown at delivered step */}
+          <div className="bg-gray-900 rounded-2xl p-5 space-y-3 text-left">
+            <div className="flex items-center gap-2">
+              <Camera className="w-5 h-5 text-gray-400" />
+              <p className="text-sm font-semibold text-gray-300">{t.photoTitle}</p>
+            </div>
+            {photoUrl ? (
+              <div className="space-y-2">
+                <div className="relative w-full h-48 rounded-xl overflow-hidden">
+                  <Image src={photoUrl} alt={t.photoAlt} fill className="object-cover" sizes="(max-width: 640px) 100vw, 640px" />
+                </div>
+                <p className="text-sm text-emerald-400 text-center font-semibold">{t.photoOk}</p>
+              </div>
+            ) : (
+              <label className={`flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-700 rounded-xl p-6 cursor-pointer hover:border-emerald-500/60 transition-colors ${photoUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                {photoUploading
+                  ? <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                  : <Upload className="w-8 h-8 text-gray-400" />}
+                <span className="text-sm text-gray-400">{photoUploading ? '…' : t.photoTap}</span>
+                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} disabled={photoUploading} />
+              </label>
+            )}
+            {photoError && <p className="text-red-400 text-xs">{photoError}</p>}
+          </div>
+
+          <p className="text-gray-700 text-xs">Powered by MENIUS · {token.slice(0, 8)}…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Active delivery screen ────────────────────────────────────────────────
   return (
     <div className="min-h-[100dvh] bg-gray-950 flex flex-col items-center p-5 pb-10 text-white">
       <div className="w-full max-w-sm space-y-5 mt-8">
@@ -232,14 +229,14 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
             <Bike className="w-8 h-8 text-emerald-400" />
           </div>
           <h1 className="text-2xl font-black">{t.title}</h1>
-          <p className="text-gray-400 text-sm">{t.subtitle}</p>
         </div>
 
-        {/* GPS indicator — shown while sharing */}
+        {/* GPS status bar */}
         {gpsStatus === 'sharing' && (
-          <div className="flex items-center justify-center gap-2 py-2">
+          <div className="flex items-center justify-center gap-2 bg-emerald-950/50 border border-emerald-900 rounded-xl py-2.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
             <span className="text-emerald-400 text-sm font-semibold">{t.gpsSharing}</span>
+            <span className="text-emerald-600 text-xs">· {t.gpsEvery}</span>
           </div>
         )}
         {gpsStatus === 'error' && (
@@ -255,120 +252,39 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
           </div>
         )}
 
-        {/* Progress steps */}
-        {deliveryStep !== 'delivered' && (
-          <div className="bg-gray-900 rounded-2xl p-4 space-y-3">
-            {/* Step 1 */}
-            <StepRow
-              icon={<Package className="w-5 h-5" />}
-              label={t.step1Label}
-              done={stepIndex > 0}
-              active={deliveryStep === 'start'}
-            />
-            {/* Step 2 */}
-            <StepRow
-              icon={<MapPin className="w-5 h-5" />}
-              label={t.step2Label}
-              done={stepIndex > 1}
-              active={deliveryStep === 'picked_up'}
-            />
-            {/* Step 3 */}
-            <StepRow
-              icon={<DoorOpen className="w-5 h-5" />}
-              label={t.step3Label}
-              done={stepIndex > 2}
-              active={deliveryStep === 'at_door'}
-            />
+        {/* Progress bar — 3 steps */}
+        <div className="bg-gray-900 rounded-2xl p-4">
+          <div className="flex items-center gap-0">
+            <StepDot icon={<Package className="w-4 h-4" />} label={t.step1Label} done={stepIndex > 0} active={stepIndex === 0} />
+            <StepLine done={stepIndex > 0} />
+            <StepDot icon={<DoorOpen className="w-4 h-4" />} label={t.step2Label} done={stepIndex > 1} active={stepIndex === 1} />
+            <StepLine done={stepIndex > 1} />
+            <StepDot icon={<MapPin className="w-4 h-4" />} label={t.step3Label} done={stepIndex > 2} active={stepIndex === 2} />
           </div>
-        )}
+        </div>
 
-        {/* Action area */}
-        {deliveryStep === 'delivered' ? (
-          <div className="text-center space-y-3 py-4">
-            <CheckCircle className="w-16 h-16 text-emerald-400 mx-auto" />
-            <p className="text-xl font-black text-emerald-400">{t.doneTitle}</p>
-            <p className="text-gray-400 text-sm">{t.doneSub}</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {deliveryStep === 'start' && (
-              <>
-                <p className="text-gray-400 text-sm text-center">{t.step1Desc}</p>
-                <ActionButton loading={actionLoading} onClick={handlePickedUp} color="emerald">
-                  <Package className="w-5 h-5" /> {t.step1Btn}
-                </ActionButton>
-              </>
-            )}
+        {/* ONE primary button — the only action available at each step */}
+        <div className="space-y-3">
+          {deliveryStep === 'start' && (
+            <BigButton loading={actionLoading} onClick={handlePickedUp} color="emerald">
+              {t.step1Btn}
+            </BigButton>
+          )}
+          {deliveryStep === 'picked_up' && (
+            <BigButton loading={actionLoading} onClick={handleAtDoor} color="amber">
+              {t.step2Btn}
+            </BigButton>
+          )}
+          {deliveryStep === 'at_door' && (
+            <BigButton loading={actionLoading} onClick={handleDelivered} color="emerald">
+              {t.step3Btn}
+            </BigButton>
+          )}
 
-            {deliveryStep === 'picked_up' && (
-              <>
-                <div className="text-center text-xs text-gray-500">{t.gpsEvery}</div>
-                <p className="text-gray-400 text-sm text-center">{t.step2Desc}</p>
-                <ActionButton loading={actionLoading} onClick={handleAtDoor} color="amber">
-                  <DoorOpen className="w-5 h-5" /> {t.step2Btn}
-                </ActionButton>
-                {/* Notify outside — available from picked_up onwards */}
-                <button
-                  disabled={notifyOutsideSent || actionLoading}
-                  onClick={handleNotifyOutside}
-                  className="w-full py-3 rounded-2xl border-2 border-amber-500/60 text-amber-400 font-semibold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
-                >
-                  {notifyOutsideSent ? t.outsideSent : t.notifyOutsideBtn}
-                </button>
-              </>
-            )}
-
-            {deliveryStep === 'at_door' && (
-              <>
-                <p className="text-gray-400 text-sm text-center">{t.step3Desc}</p>
-                <ActionButton loading={actionLoading} onClick={handleDelivered} color="emerald">
-                  <CheckCircle className="w-5 h-5" /> {t.step3Btn}
-                </ActionButton>
-                {/* Notify outside */}
-                <button
-                  disabled={notifyOutsideSent || actionLoading}
-                  onClick={handleNotifyOutside}
-                  className="w-full py-3 rounded-2xl border-2 border-amber-500/60 text-amber-400 font-semibold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40"
-                >
-                  {notifyOutsideSent ? t.outsideSent : t.notifyOutsideBtn}
-                </button>
-              </>
-            )}
-
-            {actionFeedback && (
-              <p className={`text-xs text-center ${actionFeedback === t.notified ? 'text-emerald-400' : 'text-red-400'}`}>
-                {actionFeedback}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Proof of delivery photo — shown after picked up */}
-        {(deliveryStep === 'picked_up' || deliveryStep === 'at_door' || deliveryStep === 'delivered') && (
-          <div className="border border-gray-800 rounded-2xl p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <Camera className="w-5 h-5 text-gray-400" />
-              <p className="text-sm font-semibold text-gray-300">{t.photoTitle}</p>
-            </div>
-            {photoUrl ? (
-              <div className="space-y-2">
-                <div className="relative w-full h-48 rounded-xl overflow-hidden">
-                  <Image src={photoUrl} alt={t.photoAlt} fill className="object-cover" sizes="(max-width: 640px) 100vw, 640px" />
-                </div>
-                <p className="text-xs text-emerald-400 text-center">✓ {t.photoOk}</p>
-              </div>
-            ) : (
-              <label className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-700 rounded-xl p-5 cursor-pointer hover:border-gray-500 transition-colors ${photoUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                {photoUploading
-                  ? <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                  : <Upload className="w-6 h-6 text-gray-400" />}
-                <span className="text-xs text-gray-400">{photoUploading ? '…' : t.photoTap}</span>
-                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} disabled={photoUploading} />
-              </label>
-            )}
-            {photoError && <p className="text-red-400 text-xs">{photoError}</p>}
-          </div>
-        )}
+          {actionError && (
+            <p className="text-red-400 text-sm text-center">{actionError}</p>
+          )}
+        </div>
 
         <p className="text-gray-700 text-xs text-center">
           Powered by MENIUS · {token.slice(0, 8)}…
@@ -380,36 +296,49 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
 
 // ── Sub-components ──────────────────────────────────────────────────────────
 
-function StepRow({ icon, label, done, active }: {
+function StepDot({ icon, label, done, active }: {
   icon: React.ReactNode; label: string; done: boolean; active: boolean;
 }) {
   return (
-    <div className={`flex items-center gap-3 py-2 px-1 rounded-xl transition-all ${active ? 'opacity-100' : done ? 'opacity-60' : 'opacity-30'}`}>
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${done ? 'bg-emerald-500/20 text-emerald-400' : active ? 'bg-emerald-500 text-white' : 'bg-gray-800 text-gray-500'}`}>
-        {done ? <CheckCircle className="w-4 h-4" /> : icon}
+    <div className="flex flex-col items-center gap-1.5 flex-1">
+      <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+        done ? 'bg-emerald-500 text-white' :
+        active ? 'bg-emerald-500 text-white ring-4 ring-emerald-500/25' :
+        'bg-gray-800 text-gray-500'
+      }`}>
+        {done ? <CheckCircle className="w-5 h-5" /> : icon}
       </div>
-      <span className={`text-sm font-semibold ${done ? 'text-emerald-400' : active ? 'text-white' : 'text-gray-500'}`}>
+      <span className={`text-[10px] font-semibold text-center leading-tight ${
+        done ? 'text-emerald-400' : active ? 'text-white' : 'text-gray-600'
+      }`}>
         {label}
       </span>
-      {done && <span className="ml-auto text-emerald-500 text-xs">✓</span>}
     </div>
   );
 }
 
-function ActionButton({ children, loading, onClick, color }: {
+function StepLine({ done }: { done: boolean }) {
+  return (
+    <div className={`flex-1 h-0.5 mb-5 transition-colors ${done ? 'bg-emerald-500' : 'bg-gray-800'}`} />
+  );
+}
+
+function BigButton({ children, loading, onClick, color }: {
   children: React.ReactNode;
   loading: boolean;
   onClick: () => void;
   color: 'emerald' | 'amber';
 }) {
-  const bg = color === 'emerald' ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-amber-500 hover:bg-amber-400';
+  const bg = color === 'emerald'
+    ? 'bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600'
+    : 'bg-amber-500 hover:bg-amber-400 active:bg-amber-600';
   return (
     <button
       onClick={onClick}
       disabled={loading}
-      className={`w-full py-4 rounded-2xl ${bg} text-white font-black text-base flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-60`}
+      className={`w-full py-5 rounded-2xl ${bg} text-white font-black text-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-60 shadow-lg`}
     >
-      {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : children}
+      {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : children}
     </button>
   );
 }
