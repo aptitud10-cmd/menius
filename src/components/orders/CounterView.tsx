@@ -444,6 +444,7 @@ export function CounterView({
 
   // Edit order items
   const [editItemsModal, setEditItemsModal] = useState<{ orderId: string } | null>(null);
+  const [photoLightbox, setPhotoLightbox] = useState<string | null>(null);
   const [editSearch, setEditSearch] = useState('');
   const [editProducts, setEditProducts] = useState<{ id: string; name: string; price: number; image_url?: string; in_stock: boolean }[]>([]);
   const [editLoading, setEditLoading] = useState(false);
@@ -2042,6 +2043,43 @@ export function CounterView({
         </>
       )}
 
+      {/* ══ PHOTO LIGHTBOX ══ */}
+      {photoLightbox && (
+        <>
+          <div className="fixed inset-0 bg-black/80 z-[60] backdrop-blur-sm" onClick={() => setPhotoLightbox(null)} />
+          <div className="fixed inset-0 z-[61] flex items-center justify-center p-4" onClick={() => setPhotoLightbox(null)}>
+            <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
+              {/* Close button */}
+              <button
+                onClick={() => setPhotoLightbox(null)}
+                className="absolute -top-10 right-0 text-white/70 hover:text-white flex items-center gap-1.5 text-sm font-semibold"
+              >
+                <X className="w-5 h-5" /> {t.en ? 'Close' : 'Cerrar'}
+              </button>
+              {/* Photo — square 1:1 */}
+              <div className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+                <Image
+                  src={photoLightbox}
+                  alt="Delivery proof"
+                  fill
+                  className="object-contain bg-black"
+                  sizes="(max-width: 640px) 100vw, 512px"
+                />
+              </div>
+              {/* Download link */}
+              <a
+                href={photoLightbox}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 flex items-center justify-center gap-2 text-white/60 hover:text-white text-xs font-semibold transition-colors"
+              >
+                ↗ {t.en ? 'Open original' : 'Abrir original'}
+              </a>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* ══ TOASTS ══ */}
       {errorToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-2xl bg-red-600 text-white text-sm font-bold shadow-xl animate-in fade-in slide-in-from-bottom-4 max-w-sm text-center">
@@ -2608,13 +2646,20 @@ function OrderDetail({
                       <span className="text-[10px] text-[#888]">{t.editDriver}</span>
                     </button>
                     {(order as any).delivery_photo_url && (
-                      <div className="mt-2">
-                        <p className="text-[10px] font-bold text-[#888] uppercase tracking-wider mb-1">📷 {t.en ? 'Delivery proof' : 'Foto de entrega'}</p>
-                        <a href={(order as any).delivery_photo_url} target="_blank" rel="noopener noreferrer">
-                          <div className="relative w-full h-36 rounded-xl overflow-hidden border border-[#E8E8E8]">
-                            <Image src={(order as any).delivery_photo_url} alt="Delivery proof" fill className="object-cover" sizes="(max-width: 480px) 100vw, 480px" />
-                          </div>
-                        </a>
+                      <div className="mt-2 flex items-center gap-3">
+                        <button
+                          onClick={() => setPhotoLightbox((order as any).delivery_photo_url)}
+                          className="relative w-14 h-14 rounded-xl overflow-hidden border-2 border-[#E8E8E8] hover:border-[#06C167] transition-colors flex-shrink-0 group"
+                          title={t.en ? 'View delivery proof' : 'Ver foto de entrega'}
+                        >
+                          <Image src={(order as any).delivery_photo_url} alt="Delivery proof" fill className="object-cover group-hover:scale-105 transition-transform" sizes="56px" />
+                        </button>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-bold text-[#888] uppercase tracking-wider">📷 {t.en ? 'Delivery proof' : 'Foto de entrega'}</p>
+                          <button onClick={() => setPhotoLightbox((order as any).delivery_photo_url)} className="text-xs text-[#06C167] font-semibold mt-0.5">
+                            {t.en ? 'View full photo →' : 'Ver foto completa →'}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </>
