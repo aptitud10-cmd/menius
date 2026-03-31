@@ -70,7 +70,7 @@ export default function SignupPage() {
       <div className="min-h-[100dvh] flex items-center justify-center px-4 landing-bg noise-overlay relative overflow-hidden">
         <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/[0.06] rounded-full blur-[180px]" />
 
-        <div className="relative z-10 w-full max-w-[380px] text-center">
+        <div className="relative z-10 w-full max-w-[440px] text-center">
           <div className="text-center mb-8">
             <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
               <span className="text-white">MENIUS</span>
@@ -109,134 +109,22 @@ export default function SignupPage() {
       <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-emerald-500/[0.06] rounded-full blur-[180px]" />
       <div className="absolute bottom-[-15%] left-[-5%] w-[350px] h-[350px] bg-blue-500/[0.08] rounded-full blur-[120px]" />
 
-      <div className="relative z-10 w-full max-w-[380px] mx-auto pt-14 md:pt-0">
+      <div className="relative z-10 w-full max-w-[440px] mx-auto pt-14 md:pt-0">
         <div className="text-center mb-6 md:mb-10">
           <Link href="/" className="text-2xl font-bold tracking-tight font-heading inline-block">
             <span className="text-white">MENIUS</span>
           </Link>
-          <p className="text-gray-400 md:text-gray-500 text-sm md:text-[13px] mt-2 tracking-wide">{t.subtitle}</p>
+          <h1 className="text-2xl md:text-3xl font-black text-white mt-4 leading-tight tracking-tight">{t.subtitle}</h1>
+          <p className="text-gray-500 text-sm mt-2">~2 min · {locale === 'es' ? 'sin tarjeta de crédito' : 'no credit card needed'}</p>
           <Suspense fallback={null}>
             <PlanBadge locale={locale} />
           </Suspense>
         </div>
 
         <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
-          <form onSubmit={handleSubmit} className="bg-[#0a0a0a] rounded-2xl p-7 space-y-5">
-            {error && (
-              <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/[0.06] border border-red-500/[0.1]">
-                <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-                </svg>
-                <span className="text-red-400 text-[13px]">{error}</span>
-              </div>
-            )}
+          <div className="bg-[#0a0a0a] rounded-2xl p-8 md:p-10 space-y-6">
 
-            <div>
-              <label htmlFor="signup-name" className="block text-[13px] font-medium text-gray-400 mb-2">{t.fullName}</label>
-              <div className={`relative rounded-xl transition-all duration-300 ${focused === 'name' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
-                <input
-                  id="signup-name"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  onFocus={() => setFocused('name')}
-                  onBlur={() => setFocused(null)}
-                  className="w-full px-4 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
-                  placeholder={t.namePlaceholder}
-                  autoComplete="name"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="signup-email" className="block text-[13px] font-medium text-gray-400 mb-2">{t.email}</label>
-              <div className={`relative rounded-xl transition-all duration-300 ${focused === 'email' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
-                <input
-                  id="signup-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onFocus={() => setFocused('email')}
-                  onBlur={() => setFocused(null)}
-                  className="w-full px-4 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
-                  placeholder="tu@email.com"
-                  autoComplete="email"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="signup-password" className="block text-[13px] font-medium text-gray-400 mb-2">{t.password}</label>
-              <div className={`relative rounded-xl transition-all duration-300 ${focused === 'password' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
-                <input
-                  id="signup-password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => setFocused('password')}
-                  onBlur={() => setFocused(null)}
-                  className="w-full px-4 pr-12 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
-                  placeholder={t.passwordPlaceholder}
-                  autoComplete="new-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-300 transition-colors"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <label className="flex items-start gap-3 cursor-pointer group">
-              <div className="relative mt-0.5">
-                <input
-                  type="checkbox"
-                  checked={acceptedTerms}
-                  onChange={(e) => setAcceptedTerms(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-4 h-4 rounded border border-white/[0.12] bg-white/[0.04] peer-checked:bg-emerald-500 peer-checked:border-emerald-500 transition-all flex items-center justify-center">
-                  {acceptedTerms && (
-                    <svg className="w-2.5 h-2.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                </div>
-              </div>
-              <span className="text-[12px] text-gray-500 leading-relaxed group-hover:text-gray-400 transition-colors">
-                {t.termsPrefix}{' '}
-                <Link href="/terms" target="_blank" className="text-gray-300 hover:text-white underline underline-offset-2 transition-colors">
-                  {t.termsLink}
-                </Link>{' '}
-                {t.termsAnd}{' '}
-                <Link href="/privacy" target="_blank" className="text-gray-300 hover:text-white underline underline-offset-2 transition-colors">
-                  {t.privacyLink}
-                </Link>
-              </span>
-            </label>
-
-            <button
-              type="submit"
-              disabled={loading || !acceptedTerms}
-              className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] md:text-sm hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed mt-1"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                  {t.loading}
-                </span>
-              ) : t.submit}
-            </button>
-
-            <div className="flex items-center gap-4 py-1">
-              <div className="flex-1 h-px bg-white/[0.06]" />
-              <span className="text-[11px] text-gray-600 uppercase tracking-widest">{t.or}</span>
-              <div className="flex-1 h-px bg-white/[0.06]" />
-            </div>
-
+            {/* Google first — como Vercel / Linear */}
             <button
               type="button"
               onClick={async () => {
@@ -251,7 +139,124 @@ export default function SignupPage() {
               <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
               {t.google}
             </button>
-          </form>
+
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-white/[0.06]" />
+              <span className="text-[11px] text-gray-600 uppercase tracking-widest">{t.or}</span>
+              <div className="flex-1 h-px bg-white/[0.06]" />
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {error && (
+                <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/[0.06] border border-red-500/[0.1]">
+                  <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                  </svg>
+                  <span className="text-red-400 text-sm">{error}</span>
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="signup-name" className="block text-sm font-medium text-gray-400 mb-2">{t.fullName}</label>
+                <div className={`relative rounded-xl transition-all duration-300 ${focused === 'name' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
+                  <input
+                    id="signup-name"
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    onFocus={() => setFocused('name')}
+                    onBlur={() => setFocused(null)}
+                    className="w-full px-4 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
+                    placeholder={t.namePlaceholder}
+                    autoComplete="name"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="signup-email" className="block text-sm font-medium text-gray-400 mb-2">{t.email}</label>
+                <div className={`relative rounded-xl transition-all duration-300 ${focused === 'email' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
+                  <input
+                    id="signup-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onFocus={() => setFocused('email')}
+                    onBlur={() => setFocused(null)}
+                    className="w-full px-4 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
+                    placeholder="tu@email.com"
+                    autoComplete="email"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="signup-password" className="block text-sm font-medium text-gray-400 mb-2">{t.password}</label>
+                <div className={`relative rounded-xl transition-all duration-300 ${focused === 'password' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
+                  <input
+                    id="signup-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onFocus={() => setFocused('password')}
+                    onBlur={() => setFocused(null)}
+                    className="w-full px-4 pr-12 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
+                    placeholder={t.passwordPlaceholder}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-300 transition-colors"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="relative mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-4 h-4 rounded border border-white/[0.12] bg-white/[0.04] peer-checked:bg-emerald-500 peer-checked:border-emerald-500 transition-all flex items-center justify-center">
+                    {acceptedTerms && (
+                      <svg className="w-2.5 h-2.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="text-[12px] text-gray-500 leading-relaxed group-hover:text-gray-400 transition-colors">
+                  {t.termsPrefix}{' '}
+                  <Link href="/terms" target="_blank" className="text-gray-300 hover:text-white underline underline-offset-2 transition-colors">
+                    {t.termsLink}
+                  </Link>{' '}
+                  {t.termsAnd}{' '}
+                  <Link href="/privacy" target="_blank" className="text-gray-300 hover:text-white underline underline-offset-2 transition-colors">
+                    {t.privacyLink}
+                  </Link>
+                </span>
+              </label>
+
+              <button
+                type="submit"
+                disabled={loading || !acceptedTerms}
+                className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] md:text-sm hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                    {t.loading}
+                  </span>
+                ) : t.submit}
+              </button>
+            </form>
+          </div>
         </div>
 
         <div className="mt-8 space-y-3 text-center">

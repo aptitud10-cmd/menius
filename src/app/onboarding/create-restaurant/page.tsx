@@ -173,21 +173,25 @@ export default function CreateRestaurantPage() {
               />
             ))}
           </div>
-          <p className="text-xs text-gray-600 tabular-nums">Paso {Math.min(step, 4)} de 4</p>
+          <div className="flex items-center justify-center gap-3">
+            <p className="text-xs text-gray-600 tabular-nums">Paso {Math.min(step, 4)} de 4</p>
+            <span className="text-[10px] text-gray-700">·</span>
+            <p className="text-[10px] text-gray-600">~2 min</p>
+          </div>
         </div>
 
         {/* ── STEP 1: Restaurant info ── */}
         {step === 1 && (
           <>
             <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-white">Crea tu restaurante</h1>
+              <h1 className="text-3xl font-black text-white leading-tight tracking-tight">Crea tu restaurante</h1>
               <p className="text-gray-400 text-base mt-3 max-w-sm mx-auto leading-relaxed">
                 Configura lo básico y te prepararemos un menú de ejemplo listo para editar.
               </p>
             </div>
 
             <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
-              <form onSubmit={handleStep1Submit} className="bg-[#0a0a0a] rounded-2xl p-7 space-y-5">
+              <form onSubmit={handleStep1Submit} className="bg-[#0a0a0a] rounded-2xl p-8 space-y-6">
                 {error && (
                   <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/[0.06] border border-red-500/[0.1]">
                     <svg className="w-4 h-4 text-red-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -198,7 +202,7 @@ export default function CreateRestaurantPage() {
                 )}
 
                 <div>
-                  <label className="block text-[13px] font-medium text-gray-400 mb-2">Nombre del restaurante</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Nombre del restaurante</label>
                   <div className={wrapClass('name')}>
                     <input
                       type="text"
@@ -213,7 +217,7 @@ export default function CreateRestaurantPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[13px] font-medium text-gray-400 mb-2">URL de tu menú</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">URL de tu menú</label>
                   <div className={`flex items-center rounded-xl overflow-hidden transition-all duration-300 ${focused === 'slug' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
                     <span className="px-3.5 py-3.5 text-[15px] md:text-sm text-gray-500 border-r border-white/[0.08] bg-white/[0.04] flex-shrink-0">
                       menius.app/
@@ -236,7 +240,7 @@ export default function CreateRestaurantPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[13px] font-medium text-gray-400 mb-2">Idioma del menú / Menu language</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Idioma del menú / Menu language</label>
                   <div className="grid grid-cols-2 gap-2">
                     {LANGUAGES.map((l) => (
                       <button
@@ -257,7 +261,7 @@ export default function CreateRestaurantPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[13px] font-medium text-gray-400 mb-2">Moneda</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Moneda</label>
                     <select
                       value={currency}
                       onChange={(e) => setCurrency(e.target.value)}
@@ -269,7 +273,7 @@ export default function CreateRestaurantPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[13px] font-medium text-gray-400 mb-2">Zona horaria</label>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Zona horaria</label>
                     <select
                       value={timezone}
                       onChange={(e) => setTimezone(e.target.value)}
@@ -312,14 +316,14 @@ export default function CreateRestaurantPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-white">Agrega tu primera categoría</h1>
+              <h1 className="text-3xl font-black text-white leading-tight tracking-tight">Agrega tu primera categoría</h1>
               <p className="text-gray-400 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
                 Las categorías organizan tu menú. Puedes agregar más desde el dashboard.
               </p>
             </div>
 
             <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
-              <form onSubmit={handleStep2Submit} className="bg-[#0a0a0a] rounded-2xl p-7 space-y-5">
+              <form onSubmit={handleStep2Submit} className="bg-[#0a0a0a] rounded-2xl p-8 space-y-6">
                 {categoryError && (
                   <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/[0.06] border border-red-500/[0.1]">
                     <span className="text-red-400 text-[13px]">{categoryError}</span>
@@ -327,7 +331,7 @@ export default function CreateRestaurantPage() {
                 )}
 
                 <div>
-                  <label className="block text-[13px] font-medium text-gray-400 mb-2">Nombre de la categoría</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Nombre de la categoría</label>
                   <div className={wrapClass('cat')}>
                     <input
                       type="text"
@@ -397,7 +401,7 @@ export default function CreateRestaurantPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.871c1.355 0 2.697.056 4.024.166C17.155 8.51 18 9.473 18 10.608v2.513M15 8.25v-1.5m-6 1.5v-1.5m12 9.75-1.5.75a3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-1.5-.75M8.25 15l1.5.75M8.25 15l-1.5.75m0 0L5.25 15M15.75 15.75 14.25 15m1.5.75-1.5-.75M15.75 15.75l1.5-.75" />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-white">Agrega tu primer producto</h1>
+              <h1 className="text-3xl font-black text-white leading-tight tracking-tight">Agrega tu primer producto</h1>
               <p className="text-gray-400 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
                 {createdCategoryId
                   ? `Se agregará a la categoría "${categoryName}".`
@@ -407,7 +411,7 @@ export default function CreateRestaurantPage() {
             </div>
 
             <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
-              <form onSubmit={handleStep3Submit} className="bg-[#0a0a0a] rounded-2xl p-7 space-y-5">
+              <form onSubmit={handleStep3Submit} className="bg-[#0a0a0a] rounded-2xl p-8 space-y-6">
                 {productError && (
                   <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/[0.06] border border-red-500/[0.1]">
                     <span className="text-red-400 text-[13px]">{productError}</span>
@@ -415,7 +419,7 @@ export default function CreateRestaurantPage() {
                 )}
 
                 <div>
-                  <label className="block text-[13px] font-medium text-gray-400 mb-2">Nombre del producto</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Nombre del producto</label>
                   <div className={wrapClass('prod')}>
                     <input
                       type="text"
@@ -431,7 +435,7 @@ export default function CreateRestaurantPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[13px] font-medium text-gray-400 mb-2">Precio</label>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Precio</label>
                   <div className={wrapClass('price')}>
                     <input
                       type="number"
@@ -481,14 +485,14 @@ export default function CreateRestaurantPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0H3" />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-white">¡Tu restaurante está listo!</h1>
+              <h1 className="text-3xl font-black text-white leading-tight tracking-tight">¡Tu restaurante está listo!</h1>
               <p className="text-gray-400 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
                 El Counter es donde gestionas tus órdenes en tiempo real. Puedes abrirlo desde cualquier dispositivo — celular, tablet o computadora.
               </p>
             </div>
 
             <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
-              <div className="bg-[#0a0a0a] rounded-2xl p-7 space-y-4">
+              <div className="bg-[#0a0a0a] rounded-2xl p-8 space-y-4">
                 <div className="flex items-center gap-3 p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
                   <span className="text-2xl">📱</span>
                   <div>
