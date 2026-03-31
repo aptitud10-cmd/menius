@@ -382,10 +382,16 @@ export function CounterView({
   const [pausedUntil, setPausedUntil] = useState<number | null>(null);
   const [pauseModalOpen, setPauseModalOpen] = useState(false);
 
-  // ── Auto-print ──
+  // ── Auto-print on accept ──
   const [autoPrint, setAutoPrint] = useState(() =>
     typeof window !== 'undefined' && localStorage.getItem('counter-auto-print') === 'true'
   );
+  // ── Print on arrival (before accepting) ──
+  const [printOnArrival, setPrintOnArrival] = useState(() =>
+    typeof window !== 'undefined' && localStorage.getItem('counter-print-on-arrival') === 'true'
+  );
+  const printOnArrivalRef = useRef(printOnArrival);
+  printOnArrivalRef.current = printOnArrival;
 
   // ── Cancel/reject ──
   const [cancelModal, setCancelModal] = useState<{ orderId: string; type: 'reject' | 'cancel' } | null>(null);
@@ -557,7 +563,11 @@ export function CounterView({
       `${order.customer_name || 'Cliente'} · #${order.order_number} · ${fmt(order.total, currency)}`
     );
     setSplashQueue(q => [...q, order]);
-  }, [restaurantName, currency, t.newOrder]);
+    // Print immediately on arrival if enabled
+    if (printOnArrivalRef.current) {
+      PrinterService.printOrder(order, undefined, restaurantName, currency, locale, taxLabel, taxIncluded).catch(() => {});
+    }
+  }, [restaurantName, currency, locale, taxLabel, taxIncluded, t.newOrder]);
 
   const { orders, updateOrderLocally } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
@@ -1180,6 +1190,17 @@ export function CounterView({
           // Tablet/desktop: fixed sidebar width
           'sm:w-72 lg:w-80',
         )}>
+          {/* SLA overdue banner */}
+          {activeTab === 'new' && newOrders.filter(o => elapsedMins(o.created_at) >= SLA_WARN_MINS).length > 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-white animate-pulse flex-shrink-0" />
+              {t.en
+                ? `${newOrders.filter(o => elapsedMins(o.created_at) >= SLA_WARN_MINS).length} order${newOrders.filter(o => elapsedMins(o.created_at) >= SLA_WARN_MINS).length > 1 ? 's' : ''} waiting +${SLA_WARN_MINS} min — respond now!`
+                : `${newOrders.filter(o => elapsedMins(o.created_at) >= SLA_WARN_MINS).length} orden${newOrders.filter(o => elapsedMins(o.created_at) >= SLA_WARN_MINS).length > 1 ? 'es' : ''} esperando +${SLA_WARN_MINS} min — ¡responde ya!`
+              }
+            </div>
+          )}
+
           {/* History search + filters */}
           {activeTab === 'history' && (
             <div className="border-b border-[#F0F0F0]">
@@ -1413,13 +1434,31 @@ export function CounterView({
               {/* Auto-print */}
               <SidebarSection title={t.autoPrint} icon={<Printer className="w-4 h-4" />}>
                 <label className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-[#EEEEEE] cursor-pointer">
-                  <span className="text-sm font-medium text-[#111]">{t.autoPrint}</span>
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-[#111]">{t.autoPrint}</span>
+                    <p className="text-[10px] text-[#888] mt-0.5">{t.en ? 'Print when accepting' : 'Imprimir al aceptar'}</p>
+                  </div>
                   <input
                     type="checkbox"
                     checked={autoPrint}
                     onChange={e => {
                       setAutoPrint(e.target.checked);
                       localStorage.setItem('counter-auto-print', String(e.target.checked));
+                    }}
+                    style={{ accentColor: GREEN, width: 18, height: 18 }}
+                  />
+                </label>
+                <label className="flex items-center justify-between px-3 py-2.5 rounded-xl border border-[#EEEEEE] cursor-pointer mt-1">
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium text-[#111]">{t.en ? 'Print on arrival' : 'Imprimir al recibir'}</span>
+                    <p className="text-[10px] text-[#888] mt-0.5">{t.en ? 'Instant print when order arrives' : 'Ticket inmediato al llegar la orden'}</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={printOnArrival}
+                    onChange={e => {
+                      setPrintOnArrival(e.target.checked);
+                      localStorage.setItem('counter-print-on-arrival', String(e.target.checked));
                     }}
                     style={{ accentColor: GREEN, width: 18, height: 18 }}
                   />

@@ -31,6 +31,7 @@ export interface Restaurant {
   payment_methods_enabled?: PaymentMethod[];
   estimated_delivery_minutes?: number | null;
   delivery_fee?: number | null;
+  delivery_radius_km?: number | null;
   latitude?: number | null;
   longitude?: number | null;
   stripe_account_id?: string | null;

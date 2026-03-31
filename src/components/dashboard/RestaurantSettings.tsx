@@ -52,6 +52,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     payment_methods_enabled: initialData.payment_methods_enabled ?? ['cash'],
     estimated_delivery_minutes: initialData.estimated_delivery_minutes ?? '',
     delivery_fee: initialData.delivery_fee ?? '',
+    delivery_radius_km: initialData.delivery_radius_km ?? '',
     latitude: initialData.latitude ?? '',
     longitude: initialData.longitude ?? '',
     country_code: initialData.country_code ?? '',
@@ -267,6 +268,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           cover_image_url: coverUrl || null,
           estimated_delivery_minutes: form.estimated_delivery_minutes ? Number(form.estimated_delivery_minutes) : null,
           delivery_fee: form.delivery_fee ? Number(form.delivery_fee) : null,
+          delivery_radius_km: form.delivery_radius_km ? Number(form.delivery_radius_km) : null,
           latitude: form.latitude ? Number(form.latitude) : null,
           longitude: form.longitude ? Number(form.longitude) : null,
           country_code: form.country_code || null,
@@ -859,6 +861,74 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             <p className="text-[11px] text-gray-400 mt-2">
               {t.settings_deliveryFeeNote}
             </p>
+          </div>
+        )}
+
+        {/* Delivery zone radius */}
+        {form.order_types_enabled.includes('delivery') && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-base">📍</span>
+              <h3 className="text-xs font-semibold text-gray-700">{locale === 'en' ? 'Delivery zone radius' : 'Radio de zona de entrega'}</h3>
+            </div>
+            <p className="text-[11px] text-gray-400 mb-3">
+              {locale === 'en'
+                ? 'Set the maximum km from your restaurant where you accept delivery orders.'
+                : 'Define el radio máximo desde tu restaurante donde aceptas órdenes de entrega.'}
+            </p>
+            <div className="flex items-center gap-4">
+              <input
+                type="range"
+                min="0.5"
+                max="50"
+                step="0.5"
+                value={form.delivery_radius_km || 5}
+                onChange={e => { setForm(prev => ({ ...prev, delivery_radius_km: e.target.value })); setSaved(false); }}
+                className="flex-1 accent-emerald-500"
+              />
+              <div className="flex items-center gap-1 min-w-[70px]">
+                <input
+                  type="number"
+                  min="0.5"
+                  max="50"
+                  step="0.5"
+                  value={form.delivery_radius_km || ''}
+                  onChange={e => { setForm(prev => ({ ...prev, delivery_radius_km: e.target.value })); setSaved(false); }}
+                  placeholder="—"
+                  className="w-16 px-2 py-1.5 rounded-lg border border-gray-200 text-sm text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                />
+                <span className="text-xs text-gray-500">km</span>
+              </div>
+            </div>
+            {/* Visual zone indicator */}
+            <div className="mt-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3 flex items-center gap-3">
+              <div className="relative flex-shrink-0" style={{ width: 56, height: 56 }}>
+                <div className="absolute inset-0 rounded-full border-2 border-emerald-400 bg-emerald-100/60" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-lg">🏪</span>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-emerald-800">
+                  {form.delivery_radius_km
+                    ? (locale === 'en'
+                      ? `Coverage: ${form.delivery_radius_km} km radius`
+                      : `Cobertura: radio de ${form.delivery_radius_km} km`)
+                    : (locale === 'en' ? 'No radius defined (unlimited)' : 'Sin radio definido (ilimitado)')
+                  }
+                </p>
+                <p className="text-[10px] text-emerald-600 mt-0.5">
+                  {locale === 'en'
+                    ? 'Orders outside this radius can still be placed (advisory only)'
+                    : 'Las órdenes fuera de este radio aún se pueden hacer (solo referencial)'}
+                </p>
+              </div>
+            </div>
+            {form.latitude && form.longitude && (
+              <p className="text-[10px] text-gray-400 mt-2">
+                📍 {locale === 'en' ? 'Center:' : 'Centro:'} {Number(form.latitude).toFixed(4)}, {Number(form.longitude).toFixed(4)}
+              </p>
+            )}
           </div>
         )}
       </div>
