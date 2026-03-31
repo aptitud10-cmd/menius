@@ -1061,3 +1061,20 @@ export async function assignDriver(
     trackingUrl: driverTrackingUrl,
   };
 }
+
+export async function updatePaymentBreakdown(
+  orderId: string,
+  breakdown: { cash?: number; card?: number; [key: string]: number | undefined },
+) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { error } = await supabase
+    .from('orders')
+    .update({ payment_breakdown: breakdown, payment_method: 'cash' })
+    .eq('id', orderId)
+    .eq('restaurant_id', restaurantId);
+
+  if (error) return { error: error.message };
+  return { success: true };
+}

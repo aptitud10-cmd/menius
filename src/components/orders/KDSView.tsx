@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import {
-  Printer, CheckCircle, Package, Clock,
+  Printer, CheckCircle, Package, Clock, Check,
   ArrowRight, XCircle, X, Search, Wifi, WifiOff, Volume2, VolumeX,
   Pause, Utensils, ShoppingBag, Truck,
   CreditCard, Banknote, Phone, StickyNote, ChevronDown, ChevronUp,
@@ -618,7 +618,9 @@ function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected,
   onBump: () => void; onCancel: () => void; onPrint: () => void; onExpand: () => void;
   onOOS: (pid: string) => void; onSMS: () => void;
 }) {
-  const { t } = useDashboardLocale();
+  const { t, locale } = useDashboardLocale();
+  const isEn = locale === 'en';
+  const [bumped, setBumped] = useState<Set<string>>(new Set());
   const bumpLabel: Record<string, string> = { confirmed: t.kds_prepare, preparing: t.kds_markReady, ready: t.kds_deliver };
   const typeLabel: Record<string, string> = { dine_in: t.kds_table, pickup: t.kds_pickup, delivery: t.kds_delivery };
   const payLabel: Record<string, string> = { cash: t.kds_cash, online: t.kds_online };
@@ -632,6 +634,13 @@ function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected,
   const count = items.reduce((s, i: any) => s + i.qty, 0);
   const created = new Date(order.created_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
   const hasDetails = items.some((i: any) => i.variant || (i.order_item_extras?.length ?? 0) > 0 || (i.order_item_modifiers?.length ?? 0) > 0 || i.notes);
+  const isPreparing = order.status === 'preparing';
+  const allBumped = isPreparing && items.length > 0 && items.every((_, idx) => bumped.has(String(idx)));
+  const toggleItemBump = (idx: number) => setBumped(prev => {
+    const next = new Set(prev);
+    next.has(String(idx)) ? next.delete(String(idx)) : next.add(String(idx));
+    return next;
+  });
 
   return (
     <div className={cn(
@@ -699,28 +708,54 @@ function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected,
           const extras: any[] = item.order_item_extras ?? [];
           const mods: any[] = item.order_item_modifiers ?? [];
           const showSub = (isExpanded || isNew) && (variant || extras.length > 0 || mods.length > 0 || item.notes);
+          const isItemBumped = bumped.has(String(idx));
           return (
-            <div key={idx} className="py-0.5">
-              <div className="flex items-baseline justify-between">
-                <button onClick={() => item.product?.id && onOOS(item.product.id)} className="text-left group">
-                  <span className="text-sm text-gray-900 group-hover:text-red-500">
-                    <span className="font-black mr-1" style={{ color: '#06c167' }}>{item.qty}x</span>
-                    <span className="font-semibold">{name}</span>
-                    {variant && <span className="text-gray-400 font-normal ml-1">· {variant}</span>}
-                  </span>
+            <div key={idx} className={cn('py-0.5 transition-opacity', isItemBumped && 'opacity-40')}>
+              <div className="flex items-center gap-1.5">
+                {/* Per-item bump checkbox — visible during preparing */}
+                {isPreparing && (
+                  <button
+                    onClick={() => toggleItemBump(idx)}
+                    className={cn(
+                      'flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all touch-manipulation',
+                      isItemBumped ? 'border-green-500 bg-green-500' : 'border-gray-300 bg-white'
+                    )}
+                    title={isEn ? 'Mark item done' : 'Marcar ítem listo'}
+                  >
+                    {isItemBumped && <Check className="w-3 h-3 text-white" />}
+                  </button>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between">
+                    <span className={cn('text-sm text-gray-900', isItemBumped && 'line-through')}>
+                      <span className="font-black mr-1" style={{ color: '#06c167' }}>{item.qty}x</span>
+                      <span className="font-semibold">{name}</span>
+                      {variant && <span className="text-gray-400 font-normal ml-1">· {variant}</span>}
+                    </span>
+                    <span className="text-xs text-gray-400 tabular-nums ml-2 flex-shrink-0">{formatPrice(Number(item.line_total), currency)}</span>
+                  </div>
                   {item.product?.dietary_tags?.length > 0 && (
-                    <div className="flex gap-0.5 ml-1 flex-shrink-0">
+                    <div className="flex gap-0.5 mt-0.5">
                       {(item.product.dietary_tags as string[]).map((tag: string) => {
                         const d = DIET_BADGE[tag];
                         return d ? <span key={tag} className={cn('text-[8px] font-bold px-1 py-0.5 rounded border', d.cls)}>{dietLabel[tag] ?? d.label}</span> : null;
                       })}
                     </div>
                   )}
-                </button>
-                <span className="text-xs text-gray-400 tabular-nums ml-2">{formatPrice(Number(item.line_total), currency)}</span>
+                </div>
+                {/* 86 button — explicit, always visible */}
+                {item.product?.id && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onOOS(item.product.id); }}
+                    className="flex-shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded border border-red-200 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all touch-manipulation"
+                    title={isEn ? 'Mark out of stock (86)' : 'Marcar sin stock (86)'}
+                  >
+                    86
+                  </button>
+                )}
               </div>
               {showSub && (
-                <div className="ml-6 mt-0.5 space-y-0.5">
+                <div className={cn('mt-0.5 space-y-0.5', isPreparing ? 'ml-7' : 'ml-6')}>
                   {extras.map((e: any, i: number) => <p key={i} className="text-[11px] text-cyan-600">+ {e.product_extras?.name ?? 'Extra'}</p>)}
                   {mods.map((m: any, i: number) => <p key={i} className="text-[11px] text-gray-400">{m.group_name}: <span className="text-gray-600">{m.option_name}</span></p>)}
                   {item.notes && <p className="text-[11px] text-amber-700 font-medium bg-amber-50 rounded px-1.5 py-0.5 inline-block">&quot;{item.notes}&quot;</p>}
@@ -754,8 +789,12 @@ function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected,
         {nxt && bumpLabel[order.status] && (
           <button
             onClick={onBump}
-            className="flex-1 py-5 rounded-xl text-white font-black text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.97] touch-manipulation tracking-wide"
-            style={{ backgroundColor: order.status === 'confirmed' ? '#3b82f6' : order.status === 'preparing' ? '#7c3aed' : '#06c167' }}
+            className={cn(
+              'flex-1 py-5 rounded-xl text-white font-black text-lg flex items-center justify-center gap-2 transition-all active:scale-[0.97] touch-manipulation tracking-wide',
+              isPreparing && items.length > 0 && !allBumped ? 'opacity-50' : ''
+            )}
+            style={{ backgroundColor: allBumped ? '#06c167' : order.status === 'confirmed' ? '#3b82f6' : order.status === 'preparing' ? '#7c3aed' : '#06c167' }}
+            title={isPreparing && !allBumped ? (isEn ? 'Check off all items first' : 'Marca todos los ítems primero') : undefined}
           >
             {bumpLabel[order.status]} <ArrowRight className="w-5 h-5" />
           </button>

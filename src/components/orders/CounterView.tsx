@@ -11,7 +11,7 @@ import {
 import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
 import {
   updateOrderStatus, updateOrderETA, setPauseOrders, assignDriver, updateOrderTip,
-  sendOrderNotification,
+  sendOrderNotification, updatePaymentBreakdown,
 } from '@/lib/actions/restaurant';
 import { AutoAcceptService } from '@/lib/counter/AutoAcceptService';
 import { PrinterService } from '@/lib/printing/PrinterService';
@@ -385,6 +385,17 @@ export function CounterView({
     typeof window !== 'undefined' ? PrinterConfig.config : { receiptEnabled: true, kitchenEnabled: false }
   );
 
+  // ── 86 / Stock panel ──
+  const [stockProducts, setStockProducts] = useState<{ id: string; name: string; in_stock: boolean }[]>([]);
+  const [stockLoading, setStockLoading] = useState(false);
+  const [stockUpdating, setStockUpdating] = useState<string | null>(null);
+
+  // ── Split payment ──
+  const [splitPayModal, setSplitPayModal] = useState<{ order: Order } | null>(null);
+  const [splitCash, setSplitCash] = useState('');
+  const [splitCard, setSplitCard] = useState('');
+  const [savingSplit, setSavingSplit] = useState(false);
+
   // ── Toasts ──
   const [errorToast, setErrorToast] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
@@ -584,6 +595,17 @@ export function CounterView({
   // ── Derived ──
   const selectedOrder = orders.find(o => o.id === selectedId) ?? null;
 
+  // Load products for 86 / stock panel when sidebar opens
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    setStockLoading(true);
+    fetch('/api/products/stock')
+      .then(r => r.json())
+      .then(data => setStockProducts(data.products ?? []))
+      .catch(() => {})
+      .finally(() => setStockLoading(false));
+  }, [sidebarOpen]);
+
   // Dynamic ETA suggestion for delivery orders (must be after selectedOrder is defined)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -664,6 +686,13 @@ export function CounterView({
   }, [t]);
 
   const handleDeliver = useCallback(async (order: Order) => {
+    // For cash or unset payment, offer split/mixed payment before marking delivered
+    if (order.payment_method === 'cash' || !order.payment_method) {
+      setSplitCash('');
+      setSplitCard('');
+      setSplitPayModal({ order });
+      return;
+    }
     setUpdatingId(order.id);
     try {
       const res = await updateOrderStatus(order.id, 'delivered');
@@ -675,6 +704,37 @@ export function CounterView({
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
   }, [t]);
+
+  const doDeliver = useCallback(async (order: Order) => {
+    setUpdatingId(order.id);
+    try {
+      const res = await updateOrderStatus(order.id, 'delivered');
+      if (res?.error) { showError(res.error); return; }
+      setActiveTab('history');
+      setSelectedId(null);
+      setShowDetailMobile(false);
+      setSplitPayModal(null);
+    } catch {
+      showError(t.en ? 'Unexpected error' : 'Error inesperado');
+    } finally { setUpdatingId(null); }
+  }, [t]);
+
+  const handleSplitDeliver = useCallback(async () => {
+    if (!splitPayModal) return;
+    const order = splitPayModal.order;
+    const cash = parseFloat(splitCash) || 0;
+    const card = parseFloat(splitCard) || 0;
+    setSavingSplit(true);
+    try {
+      if (cash > 0 || card > 0) {
+        await updatePaymentBreakdown(order.id, { cash: cash || undefined, card: card || undefined });
+      }
+      await doDeliver(order);
+    } catch {
+      showError(t.en ? 'Unexpected error' : 'Error inesperado');
+      setSavingSplit(false);
+    }
+  }, [splitPayModal, splitCash, splitCard, doDeliver, t]);
 
   const handleAdjustEta = useCallback(async (order: Order, newEta: number) => {
     setUpdatingId(order.id);
@@ -729,6 +789,21 @@ export function CounterView({
   const doUnpause = useCallback(async () => {
     setPausedUntil(null);
     await setPauseOrders(null).catch(() => {});
+  }, []);
+
+  const toggleStock = useCallback(async (productId: string, currentInStock: boolean) => {
+    setStockUpdating(productId);
+    try {
+      const res = await fetch('/api/products/stock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: productId, in_stock: !currentInStock }),
+      });
+      if (res.ok) {
+        setStockProducts(prev => prev.map(p => p.id === productId ? { ...p, in_stock: !currentInStock } : p));
+      }
+    } catch { /* ignore */ }
+    finally { setStockUpdating(null); }
   }, []);
 
   // ── Tab change helper ──
@@ -1158,6 +1233,41 @@ export function CounterView({
                 </label>
               </SidebarSection>
 
+              {/* 86 / Stock */}
+              <SidebarSection title={t.en ? '86 / Stock' : '86 / Stock'} icon={<span className="text-[11px] font-black text-red-400">86</span>}>
+                {stockLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <span className="w-4 h-4 border-2 border-[#DDD] border-t-[#06C167] rounded-full animate-spin" />
+                  </div>
+                ) : stockProducts.length === 0 ? (
+                  <p className="text-xs text-[#AAAAAA] text-center py-2">{t.en ? 'No products found' : 'Sin productos'}</p>
+                ) : (
+                  <div className="space-y-1 max-h-56 overflow-y-auto">
+                    {stockProducts.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => toggleStock(p.id, p.in_stock)}
+                        disabled={stockUpdating === p.id}
+                        className={cn(
+                          'w-full flex items-center justify-between px-3 py-2 rounded-xl border transition-colors text-left',
+                          p.in_stock
+                            ? 'border-[#EEEEEE] hover:border-[#CCCCCC]'
+                            : 'border-red-200 bg-red-50'
+                        )}
+                      >
+                        <span className={cn('text-sm font-medium truncate', p.in_stock ? 'text-[#111]' : 'text-red-600 line-through')}>{p.name}</span>
+                        <span className={cn(
+                          'flex-shrink-0 ml-2 text-[10px] font-black px-1.5 py-0.5 rounded',
+                          p.in_stock ? 'bg-[#06C167]/10 text-[#06C167]' : 'bg-red-500 text-white'
+                        )}>
+                          {stockUpdating === p.id ? '…' : p.in_stock ? (t.en ? 'OK' : 'OK') : '86'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </SidebarSection>
+
               {/* Today summary */}
               <SidebarSection title={t.todaySummary} icon={<History className="w-4 h-4" />}>
                 <div className="px-3 py-3 rounded-xl bg-[#F5F5F5] space-y-1">
@@ -1351,6 +1461,79 @@ export function CounterView({
                 className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-50"
               >
                 {t.confirmCancel}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ══ SPLIT PAYMENT MODAL ══ */}
+      {splitPayModal && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setSplitPayModal(null)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#F0F0F0]">
+              <p className="text-base font-black text-[#111]">{t.en ? '💳 Payment at delivery' : '💳 Cobro al entregar'}</p>
+              <p className="text-xs text-[#888] mt-0.5">{t.en ? 'Enter amounts (optional — split if mixed)' : 'Ingresa montos (opcional — divide si es mixto)'}</p>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <div className="flex justify-between items-center py-2 px-3 bg-[#F5F5F5] rounded-xl">
+                <span className="text-sm font-bold text-[#111]">{t.total}</span>
+                <span className="text-xl font-black text-[#111]">{fmt(Number(splitPayModal.order.total), currency)}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold text-[#888] uppercase tracking-wide mb-1 block">💵 {t.en ? 'Cash' : 'Efectivo'}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={splitCash}
+                    onChange={e => setSplitCash(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-[#888] uppercase tracking-wide mb-1 block">💳 {t.en ? 'Card' : 'Tarjeta'}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={splitCard}
+                    onChange={e => setSplitCard(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#E8E8E8] text-sm text-[#111] focus:outline-none focus:border-[#06C167] bg-white"
+                  />
+                </div>
+              </div>
+              {(parseFloat(splitCash) || 0) + (parseFloat(splitCard) || 0) > 0 && (
+                <div className={cn(
+                  'flex justify-between text-xs px-3 py-2 rounded-lg font-semibold',
+                  Math.abs(((parseFloat(splitCash) || 0) + (parseFloat(splitCard) || 0)) - Number(splitPayModal.order.total)) < 0.01
+                    ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
+                )}>
+                  <span>{t.en ? 'Sum' : 'Suma'}</span>
+                  <span>{fmt((parseFloat(splitCash) || 0) + (parseFloat(splitCard) || 0), currency)}</span>
+                </div>
+              )}
+            </div>
+            <div className="px-5 pb-5 flex gap-2">
+              <button
+                onClick={() => setSplitPayModal(null)}
+                className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]"
+              >
+                {t.no}
+              </button>
+              <button
+                onClick={handleSplitDeliver}
+                disabled={savingSplit || !!updatingId}
+                className="flex-1 py-3 rounded-xl text-white text-sm font-black transition-all disabled:opacity-50"
+                style={{ background: savingSplit || updatingId ? '#AAA' : '#111' }}
+              >
+                {savingSplit || updatingId
+                  ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+                  : <>{t.deliveredBtn} ✓</>}
               </button>
             </div>
           </div>

@@ -198,6 +198,7 @@ export interface Order {
   estimated_ready_minutes?: number;
   scheduled_for?: string | null;
   include_utensils?: boolean;
+  payment_breakdown?: { cash?: number; card?: number; [key: string]: number | undefined } | null;
   // joined
   items?: OrderItem[];
   table?: Table;
