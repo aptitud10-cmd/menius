@@ -1803,8 +1803,8 @@ export function MenuShell({
 
       {/* ── Toast: "X se ha agregado al carrito" — centrado en pantalla ── */}
       {toastName && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none" aria-hidden="true">
-          <div className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gray-900/95 text-white text-sm font-semibold shadow-2xl backdrop-blur-sm">
+        <div className="fixed bottom-[88px] left-0 right-0 lg:bottom-8 z-[60] flex justify-center pointer-events-none" aria-hidden="true">
+          <div className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gray-900/95 text-white text-sm font-semibold shadow-2xl">
             <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
               <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
