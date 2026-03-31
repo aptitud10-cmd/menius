@@ -69,7 +69,7 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
 
         {/* Center: Restaurant name — absolutely centered */}
         <span className={cn(
-          'absolute left-0 right-0 text-center font-bold text-base px-16 truncate pointer-events-none',
+          'absolute left-0 right-0 text-center font-bold text-[20px] px-16 truncate pointer-events-none',
           !showName && 'invisible',
           isTransparent ? 'text-white drop-shadow' : 'text-gray-900'
         )}>
