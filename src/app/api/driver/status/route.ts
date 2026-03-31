@@ -63,7 +63,8 @@ export async function POST(req: NextRequest) {
   let shouldNotify = false;
 
   if (action === 'picked_up') {
-    updateData = { driver_picked_up_at: now };
+    // Also advance status to 'ready' so the customer tracker shows "On its way"
+    updateData = { driver_picked_up_at: now, status: 'ready' };
     shouldNotify = true;
     notificationText = en
       ? `${restaurantName}: Your order is on its way! 🛵\nTrack your order: ${trackingUrl}`
