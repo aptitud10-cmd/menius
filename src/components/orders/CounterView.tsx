@@ -2717,50 +2717,44 @@ function OrderDetail({
                     </div>
                   </div>
                 )}
-                {(order as any).driver_name ? (
-                  <>
-                    <button onClick={onAssignDriver} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-[#06C167]/30 bg-[#06C167]/5 hover:bg-[#06C167]/10 transition-colors text-left">
-                      <span className="text-base">🛵</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-[#06C167]">{t.driver}</p>
+                {/* Driver live status — shown whenever driver has interacted via QR link */}
+                {((order as any).driver_picked_up_at || (order as any).driver_at_door_at || order.status === 'delivered' || (order as any).driver_name) && (
+                  <div className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-[#06C167]/30 bg-[#06C167]/5">
+                    <span className="text-base">🛵</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-[#06C167]">{t.driver}</p>
+                      {(order as any).driver_name && (
                         <p className="text-xs text-[#555] truncate">
                           {(order as any).driver_name}
                           {(order as any).driver_phone ? ` · ${(order as any).driver_phone}` : ''}
                         </p>
-                      </div>
-                      {/* Driver live status badge */}
-                      {order.status === 'delivered' ? (
-                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex-shrink-0">✓ {t.en ? 'Delivered' : 'Entregado'}</span>
-                      ) : (order as any).driver_at_door_at ? (
-                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex-shrink-0">🚪 {t.en ? 'At door' : 'En la puerta'}</span>
-                      ) : (order as any).driver_picked_up_at ? (
-                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0 animate-pulse">🛵 {t.en ? 'On the way' : 'En camino'}</span>
-                      ) : (
-                        <span className="text-[10px] text-[#888]">{t.editDriver}</span>
                       )}
+                    </div>
+                    {order.status === 'delivered' ? (
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex-shrink-0">✓ {t.en ? 'Delivered' : 'Entregado'}</span>
+                    ) : (order as any).driver_at_door_at ? (
+                      <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex-shrink-0">🚪 {t.en ? 'At door' : 'En la puerta'}</span>
+                    ) : (order as any).driver_picked_up_at ? (
+                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0 animate-pulse">🛵 {t.en ? 'On the way' : 'En camino'}</span>
+                    ) : null}
+                  </div>
+                )}
+                {(order as any).delivery_photo_url && (
+                  <div className="mt-2 flex items-center gap-3">
+                    <button
+                      onClick={() => onPhotoClick?.((order as any).delivery_photo_url)}
+                      className="relative w-14 h-14 rounded-xl overflow-hidden border-2 border-[#E8E8E8] hover:border-[#06C167] transition-colors flex-shrink-0 group"
+                      title={t.en ? 'View delivery proof' : 'Ver foto de entrega'}
+                    >
+                      <Image src={(order as any).delivery_photo_url} alt="Delivery proof" fill className="object-cover group-hover:scale-105 transition-transform" sizes="56px" />
                     </button>
-                    {(order as any).delivery_photo_url && (
-                      <div className="mt-2 flex items-center gap-3">
-                        <button
-                          onClick={() => onPhotoClick?.((order as any).delivery_photo_url)}
-                          className="relative w-14 h-14 rounded-xl overflow-hidden border-2 border-[#E8E8E8] hover:border-[#06C167] transition-colors flex-shrink-0 group"
-                          title={t.en ? 'View delivery proof' : 'Ver foto de entrega'}
-                        >
-                          <Image src={(order as any).delivery_photo_url} alt="Delivery proof" fill className="object-cover group-hover:scale-105 transition-transform" sizes="56px" />
-                        </button>
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-bold text-[#888] uppercase tracking-wider">📷 {t.en ? 'Delivery proof' : 'Foto de entrega'}</p>
-                          <button onClick={() => onPhotoClick?.((order as any).delivery_photo_url)} className="text-xs text-[#06C167] font-semibold mt-0.5">
-                            {t.en ? 'View full photo →' : 'Ver foto completa →'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <button onClick={onAssignDriver} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border-2 border-dashed border-[#DDDDDD] text-[#888] hover:border-[#06C167] hover:text-[#06C167] transition-colors text-sm font-semibold">
-                    🛵 {t.assignDriver}
-                  </button>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold text-[#888] uppercase tracking-wider">📷 {t.en ? 'Delivery proof' : 'Foto de entrega'}</p>
+                      <button onClick={() => onPhotoClick?.((order as any).delivery_photo_url)} className="text-xs text-[#06C167] font-semibold mt-0.5">
+                        {t.en ? 'View full photo →' : 'Ver foto completa →'}
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
