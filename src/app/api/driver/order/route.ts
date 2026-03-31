@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('orders')
-    .select('delivery_address, customer_name, order_number, driver_token_expires_at')
+    .select('delivery_address, customer_name, customer_phone, order_number, driver_token_expires_at')
     .eq('driver_tracking_token', token)
     .maybeSingle();
 
@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     deliveryAddress: data.delivery_address ?? null,
     customerName: data.customer_name ?? null,
+    customerPhone: data.customer_phone ?? null,
     orderNumber: data.order_number ?? null,
   });
 }

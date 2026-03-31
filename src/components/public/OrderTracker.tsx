@@ -492,22 +492,25 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
             {/* "Driver at door" banner — highest urgency */}
             {(order as any).driver_at_door_at && (
-              <div className="tracker-card flex items-center gap-4 px-5 py-4 rounded-3xl bg-orange-50 border-2 border-orange-300 shadow-sm">
-                <div className="relative w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center flex-shrink-0">
-                  <span className="absolute inset-0 rounded-2xl bg-orange-400 animate-ping opacity-20" />
-                  <DoorOpen className="w-6 h-6 text-orange-600 relative" />
+              <div className="tracker-card rounded-3xl bg-orange-50 border-2 border-orange-300 shadow-sm overflow-hidden">
+                <div className="flex items-center gap-4 px-5 py-4">
+                  <div className="relative w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+                    <span className="absolute inset-0 rounded-2xl bg-orange-400 animate-ping opacity-20" />
+                    <DoorOpen className="w-6 h-6 text-orange-600 relative" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold text-orange-600 uppercase tracking-wide">
+                      {t.en ? 'Driver arrived!' : '¡Repartidor llegó!'}
+                    </p>
+                    <p className="text-base font-black text-orange-800 leading-tight">
+                      {t.en ? 'Your driver is at the door' : 'Tu repartidor está en la puerta'}
+                    </p>
+                    <p className="text-xs text-orange-500 mt-0.5">
+                      {t.en ? 'Please come to the door' : 'Por favor acércate a la puerta'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[11px] font-bold text-orange-600 uppercase tracking-wide">
-                    {t.en ? 'Driver arrived!' : '¡Repartidor llegó!'}
-                  </p>
-                  <p className="text-base font-black text-orange-800 leading-tight">
-                    {t.en ? 'Your driver is at the door' : 'Tu repartidor está en la puerta'}
-                  </p>
-                  <p className="text-xs text-orange-500 mt-0.5">
-                    {t.en ? 'Please come to the door' : 'Por favor acércate a la puerta'}
-                  </p>
-                </div>
+                <ComingOutButton orderId={order.id} locale={locale} />
               </div>
             )}
           </>
@@ -791,6 +794,48 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {/* Save order to local history */}
         <OrderHistorySaver order={order} restaurantSlug={restaurantSlug} restaurantName={restaurantName} locale={locale} currency={currency} />
       </div>
+    </div>
+  );
+}
+
+function ComingOutButton({ orderId, locale }: { orderId: string; locale?: string }) {
+  const en = locale === 'en';
+  const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
+
+  const handlePress = async () => {
+    if (state !== 'idle') return;
+    setState('sending');
+    try {
+      await fetch('/api/public/customer-reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, action: 'coming_out' }),
+      });
+    } catch { /* silent */ }
+    setState('sent');
+  };
+
+  if (state === 'sent') {
+    return (
+      <div className="px-5 pb-4 text-center">
+        <p className="text-sm font-semibold text-orange-700">
+          {en ? '✓ Driver notified — on your way!' : '✓ Repartidor avisado — ¡ya voy!'}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-5 pb-4">
+      <button
+        onClick={handlePress}
+        disabled={state === 'sending'}
+        className="w-full py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 active:scale-[0.98] text-white font-bold text-sm transition-all disabled:opacity-60 shadow-md shadow-orange-500/30"
+      >
+        {state === 'sending'
+          ? (en ? 'Notifying driver…' : 'Avisando al repartidor…')
+          : (en ? '🚶 I\'m coming out!' : '🚶 ¡Ya salgo!')}
+      </button>
     </div>
   );
 }

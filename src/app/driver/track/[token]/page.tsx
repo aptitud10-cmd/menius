@@ -77,14 +77,16 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState<string | null>(null);
+  const [customerPhone, setCustomerPhone] = useState<string | null>(null);
 
-  // Fetch order info (delivery address) on mount
+  // Fetch order info (delivery address + customer phone) on mount
   const fetchOrderInfo = useCallback(async () => {
     try {
       const res = await fetch(`/api/driver/order?token=${encodeURIComponent(token)}`);
       if (res.ok) {
         const data = await res.json();
         setDeliveryAddress(data.deliveryAddress ?? null);
+        setCustomerPhone(data.customerPhone ?? null);
       }
     } catch { /* silent */ }
   }, [token]);
@@ -278,9 +280,9 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
           </div>
         </div>
 
-        {/* Delivery address — shown once driver picks up */}
+        {/* Delivery address + customer phone — shown once driver picks up */}
         {deliveryAddress && deliveryStep !== 'start' && (
-          <div className="bg-gray-900 rounded-2xl p-4">
+          <div className="bg-gray-900 rounded-2xl p-4 space-y-3">
             <div className="flex items-start gap-3">
               <MapPin className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
               <div className="min-w-0">
@@ -288,6 +290,17 @@ export default function DriverTrackPage({ params, searchParams }: PageProps) {
                 <p className="text-base font-semibold text-white leading-snug">{deliveryAddress}</p>
               </div>
             </div>
+            {customerPhone && (
+              <a
+                href={`tel:${customerPhone}`}
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-semibold hover:bg-emerald-500/20 active:scale-[0.98] transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                </svg>
+                {customerPhone}
+              </a>
+            )}
           </div>
         )}
 
