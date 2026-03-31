@@ -194,14 +194,15 @@ export function AIChatWidget() {
   const visibleMessages = messages.slice(-30);
 
   return (
-    <>
-      {/* Launcher button — hidden on mobile when chat is open (header X is enough) */}
+    /* Desktop-only wrapper — AI chat is not shown on mobile */
+    <div className="hidden md:contents">
+      {/* Launcher button */}
       <button
         onClick={() => setOpen(prev => !prev)}
-        className={`fixed bottom-4 right-4 z-50 w-14 h-14 rounded-2xl shadow-2xl items-center justify-center motion-reduce:transition-none transition-all duration-300 hover:scale-105 ${
+        className={`fixed bottom-4 right-4 z-50 w-14 h-14 rounded-2xl shadow-2xl flex items-center justify-center motion-reduce:transition-none transition-all duration-300 hover:scale-105 ${
           open
-            ? 'hidden sm:flex bg-[#1a1a1a] border border-white/[0.15] hover:bg-[#252525]'
-            : 'flex bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 shadow-purple-500/25'
+            ? 'bg-[#1a1a1a] border border-white/[0.15] hover:bg-[#252525]'
+            : 'bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 shadow-purple-500/25'
         }`}
         aria-label={open ? 'Close assistant' : 'Open AI assistant'}
       >
@@ -370,6 +371,6 @@ export function AIChatWidget() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
