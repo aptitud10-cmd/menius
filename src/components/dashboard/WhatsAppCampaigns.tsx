@@ -108,9 +108,21 @@ export function WhatsAppCampaigns({ restaurantName, menuSlug, restaurantLocale, 
   const fetchEstimate = useCallback(async (aud: Audience) => {
     setLoadingCount(true);
     try {
-      const res = await fetch(`/api/tenant/customers?audience=${aud}&countOnly=true`);
+      // Use the real customers API with sort/filter to estimate counts
+      let url = '/api/tenant/customers?limit=1';
+      if (aud === 'inactive_30') {
+        const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        url = `/api/tenant/customers?sort=last_order_at&limit=1&before=${cutoff}`;
+      } else if (aud === 'inactive_60') {
+        const cutoff = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
+        url = `/api/tenant/customers?sort=last_order_at&limit=1&before=${cutoff}`;
+      } else if (aud === 'vip') {
+        url = '/api/tenant/customers?sort=total_orders&limit=1';
+      }
+      const res = await fetch(url);
       const data = await res.json();
-      setEstimatedCount(data.count ?? customersWithPhone);
+      // 'total' is the count from the paginated API
+      setEstimatedCount(aud === 'all' ? customersWithPhone : (data.total ?? customersWithPhone));
     } catch {
       setEstimatedCount(customersWithPhone);
     }

@@ -15,9 +15,9 @@ async function getCustomers(supabase: ReturnType<typeof createClient>, restauran
     const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
     const { data } = await supabase
       .from('customers')
-      .select('id, customer_name, customer_phone, last_order_at')
+      .select('id, name, phone, last_order_at')
       .eq('restaurant_id', restaurantId)
-      .not('customer_phone', 'is', null)
+      .not('phone', 'is', null)
       .or(`last_order_at.lt.${cutoff},last_order_at.is.null`);
     return data ?? [];
   }
@@ -25,9 +25,9 @@ async function getCustomers(supabase: ReturnType<typeof createClient>, restauran
   if (audience === 'vip') {
     const { data } = await supabase
       .from('customers')
-      .select('id, customer_name, customer_phone, total_orders')
+      .select('id, name, phone, total_orders')
       .eq('restaurant_id', restaurantId)
-      .not('customer_phone', 'is', null)
+      .not('phone', 'is', null)
       .gte('total_orders', 5);
     return data ?? [];
   }
@@ -35,9 +35,9 @@ async function getCustomers(supabase: ReturnType<typeof createClient>, restauran
   // 'all'
   const { data } = await supabase
     .from('customers')
-    .select('id, customer_name, customer_phone')
+    .select('id, name, phone')
     .eq('restaurant_id', restaurantId)
-    .not('customer_phone', 'is', null);
+    .not('phone', 'is', null);
   return data ?? [];
 }
 
@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
 
     for (let i = 0; i < batchSize; i++) {
       const c = customers[i];
-      if (!c.customer_phone) continue;
-      const result = await sendWhatsApp({ to: c.customer_phone, text: message });
+      if (!c.phone) continue;
+      const result = await sendWhatsApp({ to: c.phone, text: message });
       if (result.success) sent++; else failed++;
       // Small delay to avoid Twilio rate limits
       if (i < batchSize - 1) await new Promise(r => setTimeout(r, 100));

@@ -28,7 +28,7 @@ export async function earnLoyaltyPoints({
     // Check if loyalty is enabled for this restaurant
     const { data: config } = await adminDb
       .from('loyalty_config')
-      .select('enabled, points_per_peso, min_redeem_points, welcome_points')
+      .select('enabled, points_per_peso')
       .eq('restaurant_id', restaurantId)
       .maybeSingle();
 
@@ -38,78 +38,85 @@ export async function earnLoyaltyPoints({
     const earnedPoints = Math.floor(orderTotal * pointsPerPeso);
     if (earnedPoints <= 0) return;
 
+    // Require at least a phone or email to identify the customer
+    if (!customerPhone && !customerEmail) return;
+
     // Prevent double-earn: check if points already credited for this order
     const { data: existing } = await adminDb
       .from('loyalty_transactions')
       .select('id')
       .eq('restaurant_id', restaurantId)
-      .eq('reference_id', orderId)
+      .eq('order_id', orderId)
       .maybeSingle();
 
     if (existing) return; // Already credited
 
-    // Upsert loyalty account
-    const { data: account, error: accErr } = await adminDb
-      .from('loyalty_accounts')
-      .upsert({
-        restaurant_id: restaurantId,
-        customer_name: customerName,
-        customer_phone: customerPhone || null,
-        customer_email: customerEmail || null,
-        points: earnedPoints,
-        lifetime_points: earnedPoints,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'restaurant_id,customer_phone',
-        ignoreDuplicates: false,
-      })
-      .select('id, points, lifetime_points')
-      .single();
+    // Find existing loyalty account (phone first, then email)
+    let accountId: string | null = null;
+    let currentPoints = 0;
+    let currentLifetime = 0;
 
-    if (accErr || !account) {
-      // Try upsert by email if phone failed
-      if (customerEmail) {
-        const { data: acctByEmail } = await adminDb
-          .from('loyalty_accounts')
-          .select('id, points, lifetime_points')
-          .eq('restaurant_id', restaurantId)
-          .eq('customer_email', customerEmail)
-          .maybeSingle();
-
-        if (acctByEmail) {
-          await adminDb
-            .from('loyalty_accounts')
-            .update({
-              points: acctByEmail.points + earnedPoints,
-              lifetime_points: acctByEmail.lifetime_points + earnedPoints,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', acctByEmail.id);
-
-          // Record transaction
-          await adminDb.from('loyalty_transactions').insert({
-            restaurant_id: restaurantId,
-            account_id: acctByEmail.id,
-            type: 'earn',
-            points: earnedPoints,
-            reference_id: orderId,
-            notes: `Order #${orderId.slice(-6).toUpperCase()}`,
-            created_at: new Date().toISOString(),
-          });
-        }
-      }
-      return;
+    if (customerPhone) {
+      const { data: acct } = await adminDb
+        .from('loyalty_accounts')
+        .select('id, points, lifetime_points')
+        .eq('restaurant_id', restaurantId)
+        .eq('customer_phone', customerPhone)
+        .maybeSingle();
+      if (acct) { accountId = acct.id; currentPoints = acct.points; currentLifetime = acct.lifetime_points; }
     }
 
-    // Record transaction
+    if (!accountId && customerEmail) {
+      const { data: acct } = await adminDb
+        .from('loyalty_accounts')
+        .select('id, points, lifetime_points')
+        .eq('restaurant_id', restaurantId)
+        .eq('customer_email', customerEmail)
+        .maybeSingle();
+      if (acct) { accountId = acct.id; currentPoints = acct.points; currentLifetime = acct.lifetime_points; }
+    }
+
+    if (accountId) {
+      // Update existing account — add points
+      await adminDb
+        .from('loyalty_accounts')
+        .update({
+          points: currentPoints + earnedPoints,
+          lifetime_points: currentLifetime + earnedPoints,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', accountId);
+    } else {
+      // Create new account — phone is required by DB constraint
+      if (!customerPhone) return;
+
+      const { data: newAcct, error: createErr } = await adminDb
+        .from('loyalty_accounts')
+        .insert({
+          restaurant_id: restaurantId,
+          customer_name: customerName,
+          customer_phone: customerPhone,
+          customer_email: customerEmail || null,
+          points: earnedPoints,
+          lifetime_points: earnedPoints,
+        })
+        .select('id')
+        .single();
+
+      if (createErr || !newAcct) return;
+      accountId = newAcct.id;
+    }
+
+    if (!accountId) return;
+
+    // Record transaction with correct column names (order_id, description)
     await adminDb.from('loyalty_transactions').insert({
       restaurant_id: restaurantId,
-      account_id: account.id,
+      account_id: accountId,
+      order_id: orderId,
       type: 'earn',
       points: earnedPoints,
-      reference_id: orderId,
-      notes: `Order #${orderId.slice(-6).toUpperCase()}`,
-      created_at: new Date().toISOString(),
+      description: `Auto-earn: order #${orderId.slice(-6).toUpperCase()}`,
     });
   } catch {
     // Non-critical — never throw

@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { cn } from '@/lib/utils';
-import { CalendarDays, Clock, Users, Phone, Mail, Check, X, AlertCircle, ChevronLeft, ChevronRight, Settings, List, Grid3X3, MessageCircle, Send } from 'lucide-react';
+import { CalendarDays, Clock, Users, Phone, Mail, Check, X, AlertCircle, ChevronLeft, ChevronRight, Settings, List, Grid3X3, MessageCircle } from 'lucide-react';
 
 type ReservationStatus = 'pending' | 'confirmed' | 'cancelled' | 'no_show';
 
