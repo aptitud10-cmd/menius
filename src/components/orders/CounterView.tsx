@@ -582,6 +582,10 @@ export function CounterView({
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
     [orders]);
 
+  const overdueCount = useMemo(() =>
+    newOrders.filter(o => elapsedMins(o.created_at) >= SLA_WARN_MINS).length,
+    [newOrders]);
+
   const prepOrders = useMemo(() =>
     orders.filter(o => ['confirmed', 'preparing'].includes(o.status))
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
@@ -1191,12 +1195,12 @@ export function CounterView({
           'sm:w-72 lg:w-80',
         )}>
           {/* SLA overdue banner */}
-          {activeTab === 'new' && newOrders.filter(o => elapsedMins(o.created_at) >= SLA_WARN_MINS).length > 0 && (
+          {activeTab === 'new' && overdueCount > 0 && (
             <div className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white text-xs font-bold">
               <span className="w-2 h-2 rounded-full bg-white animate-pulse flex-shrink-0" />
               {t.en
-                ? `${newOrders.filter(o => elapsedMins(o.created_at) >= SLA_WARN_MINS).length} order${newOrders.filter(o => elapsedMins(o.created_at) >= SLA_WARN_MINS).length > 1 ? 's' : ''} waiting +${SLA_WARN_MINS} min — respond now!`
-                : `${newOrders.filter(o => elapsedMins(o.created_at) >= SLA_WARN_MINS).length} orden${newOrders.filter(o => elapsedMins(o.created_at) >= SLA_WARN_MINS).length > 1 ? 'es' : ''} esperando +${SLA_WARN_MINS} min — ¡responde ya!`
+                ? `${overdueCount} order${overdueCount > 1 ? 's' : ''} waiting +${SLA_WARN_MINS} min — respond now!`
+                : `${overdueCount} orden${overdueCount > 1 ? 'es' : ''} esperando +${SLA_WARN_MINS} min — ¡responde ya!`
               }
             </div>
           )}
