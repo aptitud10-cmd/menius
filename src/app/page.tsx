@@ -4,6 +4,7 @@ import { LandingHero } from '@/components/landing/LandingHero';
 import { LandingSections } from '@/components/landing/LandingSections';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { LandingFooter } from '@/components/landing/LandingFooter';
+import CrispChat from '@/components/CrispChat';
 import type { LandingLocale } from '@/lib/landing-translations';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
@@ -109,6 +110,7 @@ export default async function LandingPage() {
         <LandingSections locale={locale} country={country} />
       </main>
       <LandingFooter locale={locale} />
+      <CrispChat desktopOnly />
     </div>
   );
 }

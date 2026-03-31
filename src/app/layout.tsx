@@ -5,8 +5,6 @@ import { Suspense } from 'react';
 import { cookies } from 'next/headers';
 import CookieConsent from '@/components/CookieConsent';
 import { PostHogProvider } from '@/components/PostHogProvider';
-import CrispChat from '@/components/CrispChat';
-
 const inter = Inter({
   subsets: ['latin', 'latin-ext'],
   variable: '--font-inter',
@@ -119,7 +117,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Suspense fallback={null}>
           <PostHogProvider>{children}</PostHogProvider>
         </Suspense>
-        <CrispChat />
         <CookieConsent />
         <ServiceWorkerRegister />
       </body>

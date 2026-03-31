@@ -15,10 +15,12 @@ export default function CrispChat({
   userEmail,
   userName,
   hideWidget = false,
+  desktopOnly = false,
 }: {
   userEmail?: string;
   userName?: string;
   hideWidget?: boolean;
+  desktopOnly?: boolean;
 } = {}) {
   useEffect(() => {
     if (!CRISP_WEBSITE_ID || typeof window === 'undefined') return;
@@ -34,12 +36,14 @@ export default function CrispChat({
     document.head.appendChild(script);
   }, []);
 
-  // Hide or show the widget bubble based on the page context
+  // Hide or show the widget bubble based on page context and viewport
   useEffect(() => {
     if (!CRISP_WEBSITE_ID || typeof window === 'undefined') return;
     if (!window.$crisp) return;
-    window.$crisp.push(['do', hideWidget ? 'chat:hide' : 'chat:show']);
-  }, [hideWidget]);
+    const isMobile = window.innerWidth < 768;
+    const shouldHide = hideWidget || (desktopOnly && isMobile);
+    window.$crisp.push(['do', shouldHide ? 'chat:hide' : 'chat:show']);
+  }, [hideWidget, desktopOnly]);
 
   // Identify logged-in user — $crisp acts as a command queue, safe to push before script loads
   useEffect(() => {
