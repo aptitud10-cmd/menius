@@ -44,6 +44,7 @@ const TIMEZONES = [
 const CATEGORY_SUGGESTIONS = [
   'Entradas', 'Platos principales', 'Bebidas', 'Postres', 'Ensaladas', 'Pizzas',
   'Hamburguesas', 'Tacos', 'Sushi', 'Desayunos', 'Snacks', 'Especiales del día',
+  'Sodas & Refrescos', 'Cervezas', 'Licores',
 ];
 
 export default function CreateRestaurantPage() {
