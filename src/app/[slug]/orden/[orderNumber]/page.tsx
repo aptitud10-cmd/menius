@@ -47,15 +47,43 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
         phone: (restaurantData as any).phone ?? null,
       };
 
-      // Fetch order server-side so the page renders with data immediately,
-      // even if client JS is slow/cached/failing.
+      // Fetch order server-side so the page renders with data immediately.
+      // Uses direct table query (admin client) to avoid dependency on RPC functions.
       const { data: orderData, error: orderErr } = await adminDb
-        .rpc('get_order_tracking' as any, {
-          p_order_number: params.orderNumber,
-          p_restaurant_id: restaurantData.id,
-        } as any);
+        .from('orders')
+        .select(`
+          id, order_number, status, order_type, payment_method,
+          customer_name, customer_phone, customer_email,
+          delivery_address, notes, total, tax_amount, tip_amount,
+          delivery_fee, discount_amount, estimated_ready_minutes,
+          created_at, updated_at, scheduled_for,
+          driver_name, driver_phone, driver_lat, driver_lng,
+          driver_updated_at, driver_tracking_token, delivery_photo_url,
+          table:table_id(name),
+          order_items(
+            id, qty, unit_price, line_total, notes,
+            product:product_id(name),
+            variant:variant_id(name)
+          )
+        `)
+        .eq('order_number', params.orderNumber)
+        .eq('restaurant_id', restaurantData.id)
+        .maybeSingle();
+
       if (!orderErr && orderData) {
-        initialOrder = Array.isArray(orderData) ? (orderData[0] ?? null) : orderData;
+        initialOrder = {
+          ...orderData,
+          table_name: (orderData.table as any)?.name ?? null,
+          order_items: ((orderData.order_items ?? []) as any[]).map((item: any) => ({
+            id: item.id,
+            qty: item.qty,
+            unit_price: item.unit_price,
+            line_total: item.line_total,
+            notes: item.notes,
+            product_name: item.product?.name ?? null,
+            variant_name: item.variant?.name ?? null,
+          })),
+        };
       }
     }
   } catch {
