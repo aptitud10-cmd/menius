@@ -806,6 +806,14 @@ export function MenuShell({
 
   return (
     <div className="relative h-[100dvh] flex flex-col bg-[#f5f5f3] lg:bg-[#f8f8f8] overflow-hidden overscroll-none touch-pan-y">
+      {/* Skip to main content — visible on keyboard focus only */}
+      <a
+        href="#menu-main"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-[200] focus:bg-white focus:text-gray-900 focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg focus:font-semibold focus:text-sm"
+      >
+        {locale === 'en' ? 'Skip to menu' : 'Ir al menú'}
+      </a>
+
       {/* Fixed header — absolute over banner on mobile when hasCover */}
       <div className={cn(
         'lg:flex-shrink-0 lg:relative',
@@ -954,7 +962,7 @@ export function MenuShell({
         </div>
 
         {/* Center: Products — natural flow, no independent scroll */}
-        <main className={`flex-1 min-w-0 pb-4 lg:pb-8`}>
+        <main id="menu-main" className={`flex-1 min-w-0 pb-4 lg:pb-8`}>
 
           {/* Mobile info bar (when no cover, show name/rating/description) */}
           {!restaurant.cover_image_url && (
@@ -1070,6 +1078,7 @@ export function MenuShell({
                 >
                   <motion.svg
                     width="64" height="64" viewBox="0 0 64 64" fill="none"
+                    aria-hidden="true"
                     initial={{ scale: 0.7, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
@@ -1229,8 +1238,8 @@ export function MenuShell({
                     <div className={cn('relative', isLocked && 'pointer-events-none')}>
                       {isLocked && (
                         <div className="absolute inset-0 z-10 rounded-2xl bg-white/70 backdrop-blur-[2px] flex items-center justify-center">
-                          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm">
-                            <Clock className="w-4 h-4 text-gray-400" />
+                          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm" role="status" aria-live="polite">
+                            <Clock className="w-4 h-4 text-gray-400" aria-hidden="true" />
                             <span className="text-sm font-semibold text-gray-500">
                               {locale === 'en'
                                 ? `Available ${category.available_from} – ${category.available_to}`
@@ -1242,6 +1251,7 @@ export function MenuShell({
                       <LazyProductGrid itemCount={items.length}>
                         <motion.div
                           className={cn('grid grid-cols-2 xl:grid-cols-3 gap-3', isLocked && 'opacity-40')}
+                          {...(isLocked ? { 'aria-hidden': true } : {})}
                           initial={isDesktopView ? 'hidden' : false}
                           whileInView={isDesktopView ? 'visible' : undefined}
                           viewport={isDesktopView ? { once: true, margin: '-40px' } : undefined}
@@ -1576,10 +1586,11 @@ export function MenuShell({
               exit={{ y: '100%' }}
               transition={{ type: 'tween' as const, duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] as const }}
             >
-              {/* Drag handle */}
+              {/* Drag handle + hidden title for screen readers */}
               <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-                <div className="w-10 h-1.5 rounded-full bg-gray-300" />
+                <div className="w-10 h-1.5 rounded-full bg-gray-300" aria-hidden="true" />
               </div>
+              <h2 id="cart-sheet-title" className="sr-only">{t.myOrder ?? (locale === 'en' ? 'Your order' : 'Tu orden')}</h2>
               <div className="flex-1 overflow-hidden min-h-0">
                 <CartPanel
                   fmtPrice={fmtPrice}
@@ -1638,26 +1649,32 @@ export function MenuShell({
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
           >
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100" role="search">
               <button
                 onClick={() => { setShowSearch(false); setSearchQuery(''); }}
-                className="p-1.5 -ml-1 rounded-lg active:bg-gray-100 transition-colors"
+                aria-label={locale === 'en' ? 'Close search' : 'Cerrar búsqueda'}
+                className="p-1.5 -ml-1 rounded-lg active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
               >
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
+                <ArrowLeft className="w-5 h-5 text-gray-600" aria-hidden="true" />
               </button>
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" aria-hidden="true" />
                 <input
-                  type="text"
+                  type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t.searchPlaceholder}
+                  aria-label={t.searchPlaceholder}
                   className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-[15px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 placeholder-gray-400"
                   autoFocus
                 />
                 {searchQuery && (
-                  <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <X className="w-4 h-4 text-gray-400" />
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    aria-label={locale === 'en' ? 'Clear search' : 'Borrar búsqueda'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] rounded"
+                  >
+                    <X className="w-4 h-4 text-gray-400" aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -1725,9 +1742,14 @@ export function MenuShell({
       </AnimatePresence>
 
 
+      {/* ── Live region for screen reader announcements ── */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only" role="status">
+        {toastName ? `${toastName} ${t.addedCartSuffix}` : ''}
+      </div>
+
       {/* ── Toast: "X se ha agregado al carrito" ── */}
       {toastName && (
-        <div className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:bottom-6 lg:left-auto lg:right-6 pointer-events-none">
+        <div className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:bottom-6 lg:left-auto lg:right-6 pointer-events-none" aria-hidden="true">
           <div className="px-4 py-2.5 rounded-full bg-gray-900 text-white text-sm font-medium shadow-lg">
             {toastName} {t.addedCartSuffix}
           </div>
@@ -1741,7 +1763,7 @@ export function MenuShell({
             className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-full bg-emerald-600 text-white text-sm font-semibold shadow-lg active:scale-95 transition-transform"
             onClick={() => { setCartResumeShown(false); setOpen(true); }}
           >
-            <ShoppingCart className="w-4 h-4" />
+            <ShoppingCart className="w-4 h-4" aria-hidden="true" />
             {locale === 'en' ? `Continue your order (${rawCartCount} items)` : `Continúa tu pedido (${rawCartCount} items)`}
           </button>
         </div>

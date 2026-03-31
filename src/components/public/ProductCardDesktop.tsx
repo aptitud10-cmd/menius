@@ -81,15 +81,23 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
   }, [outOfStock, hasModifiers, onSelect, onQuickAdd, product]);
 
   return (
-    <div
-      onClick={handleCardClick}
+    /* Card uses the "overlay button" pattern: full-card <button> at z-0, secondary
+       actions (fav, add) above it at z-10. This keeps valid HTML with no nested buttons. */
+    <article
       className={cn(
         'group relative bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-[transform,box-shadow] duration-300 ease-out will-change-transform',
         outOfStock
-          ? 'opacity-75 cursor-default'
-          : 'cursor-pointer hover:shadow-[0_12px_40px_rgba(0,0,0,0.14)] hover:-translate-y-1 active:scale-[0.98] active:translate-y-0'
+          ? 'opacity-75'
+          : 'hover:shadow-[0_12px_40px_rgba(0,0,0,0.14)] hover:-translate-y-1'
       )}
     >
+      {!outOfStock && (
+        <button
+          onClick={handleCardClick}
+          aria-label={hasModifiers ? (isEn ? `Customize ${displayName}` : `Personalizar ${displayName}`) : (isEn ? `Add ${displayName}` : `Agregar ${displayName}`)}
+          className="absolute inset-0 z-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#05c8a7] active:scale-[0.98] rounded-2xl"
+        />
+      )}
       {showImage ? (
         <div className="relative w-full aspect-[16/9] bg-gray-100 overflow-hidden">
           {!imgLoaded && <div className="absolute inset-0 bg-gray-100 animate-pulse" />}
@@ -119,7 +127,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             </div>
           )}
           {!outOfStock && product.is_featured && (
-            <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-bold shadow-sm">
+            <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-bold shadow-sm" aria-hidden="true">
               🔥 {popularLabel}
             </span>
           )}
@@ -140,22 +148,23 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           )}
           <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200"
-            aria-label={locale === 'en' ? 'Favorite' : 'Favorito'}
+            className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+            aria-label={isFav ? (isEn ? 'Remove from favorites' : 'Quitar de favoritos') : (isEn ? 'Add to favorites' : 'Agregar a favoritos')}
+            aria-pressed={isFav}
           >
             <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover:text-gray-500')} />
           </button>
         </div>
       ) : (
         <div className="relative w-full aspect-[16/9] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden">
-          <UtensilsCrossed className="w-10 h-10 text-gray-200 transition-transform duration-500 group-hover:scale-110" />
+          <UtensilsCrossed className="w-10 h-10 text-gray-200 transition-transform duration-500 group-hover:scale-110" aria-hidden="true" />
           {outOfStock && (
             <div className="absolute inset-0 bg-white/40 flex items-center justify-center">
               <span className="px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-bold">{labelSoldOut}</span>
             </div>
           )}
           {!outOfStock && product.is_featured && (
-            <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-bold">
+            <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-bold" aria-hidden="true">
               🔥 {popularLabel}
             </span>
           )}
@@ -176,8 +185,9 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           )}
           <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200"
-            aria-label={locale === 'en' ? 'Favorite' : 'Favorito'}
+            className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+            aria-label={isFav ? (isEn ? 'Remove from favorites' : 'Quitar de favoritos') : (isEn ? 'Add to favorites' : 'Agregar a favoritos')}
+            aria-pressed={isFav}
           >
             <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover:text-gray-500')} />
           </button>
@@ -198,7 +208,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               if (!tag) return null;
               return (
                 <span key={tagId} className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">
-                  <span>{tag.emoji}</span>
+                  <span aria-hidden="true">{tag.emoji}</span>
                   <span>{locale === 'en' ? tag.labelEn : tag.labelEs}</span>
                 </span>
               );
@@ -229,22 +239,23 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           ) : (
             <button
               onClick={handleAddClick}
+              aria-label={justAdded ? (isEn ? 'Added to cart' : 'Agregado al carrito') : (hasModifiers ? (isEn ? `Customize ${displayName}` : `Personalizar ${displayName}`) : (isEn ? `Add ${displayName}` : `Agregar ${displayName}`))}
               className={cn(
-                'flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 active:scale-95',
+                'relative z-10 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-emerald-500',
                 justAdded
                   ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/25 scale-105'
                   : 'bg-emerald-500 text-white hover:bg-emerald-600 hover:shadow-md'
               )}
             >
               {justAdded ? (
-                <><Check className="w-3.5 h-3.5" /> {labelAdded}</>
+                <><Check className="w-3.5 h-3.5" aria-hidden="true" /> {labelAdded}</>
               ) : (
-                <><Plus className="w-3.5 h-3.5" /> {addLabel}</>
+                <><Plus className="w-3.5 h-3.5" aria-hidden="true" /> {addLabel}</>
               )}
             </button>
           )}
         </div>
       </div>
-    </div>
+    </article>
   );
 });

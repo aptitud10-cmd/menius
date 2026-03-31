@@ -70,15 +70,26 @@ export const ProductCardMobile = memo(function ProductCardMobile({
   }, [outOfStock, hasModifiers, onSelect, onQuickAdd, product]);
 
   return (
-    <div
-      onClick={handleCardClick}
+    /* Card uses the "overlay button" pattern: an absolutely-positioned <button> covers
+       the entire card for the "open/select" action; fav & add buttons sit above it (z-10). */
+    <article
       className={cn(
-        'flex flex-col bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(20,15,10,0.07)] overflow-hidden transition-all duration-150',
-        outOfStock ? 'opacity-60 cursor-default' : 'cursor-pointer active:scale-[0.97] active:shadow-[0_1px_4px_rgba(20,15,10,0.04)]'
+        'relative flex flex-col bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(20,15,10,0.07)] overflow-hidden transition-all duration-150',
+        outOfStock ? 'opacity-60' : ''
       )}
     >
+      {/* Full-card accessible open button (behind other interactive elements) */}
+      {!outOfStock && (
+        <button
+          onClick={handleCardClick}
+          aria-label={hasModifiers ? (isEn ? `Customize ${displayName}` : `Personalizar ${displayName}`) : (isEn ? `Add ${displayName}` : `Agregar ${displayName}`)}
+          className="absolute inset-0 z-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#05c8a7] active:opacity-80"
+        />
+      )}
+
       {/* Image */}
       <div className="relative w-full aspect-square bg-gray-100 flex-shrink-0 overflow-hidden">
+
         {showImage ? (
           <>
             {!imgLoaded && <div className="absolute inset-0 bg-gray-100 animate-pulse" />}
@@ -98,7 +109,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           </>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-50">
-            <UtensilsCrossed className="w-8 h-8 text-gray-200" />
+            <UtensilsCrossed className="w-8 h-8 text-gray-200" aria-hidden="true" />
           </div>
         )}
 
@@ -110,7 +121,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           </div>
         )}
         {!outOfStock && product.is_featured && (
-          <span className="absolute top-2 left-2 text-base leading-none">🔥</span>
+          <span className="absolute top-2 left-2 text-base leading-none" aria-hidden="true">🔥</span>
         )}
         {!outOfStock && product.is_new && (
           <span className="absolute top-2 left-2 text-[11px] font-bold text-white bg-blue-500 px-2 py-0.5 rounded-full leading-none">{locale === 'es' ? 'NUEVO' : 'NEW'}</span>
@@ -125,8 +136,9 @@ export const ProductCardMobile = memo(function ProductCardMobile({
         {/* 44px touch target wrapping the visible 28px circle */}
         <button
           onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
-          className="absolute top-1 right-1 w-11 h-11 flex items-center justify-center"
-          aria-label={locale === 'en' ? 'Favorite' : 'Favorito'}
+          className="absolute top-1 right-1 w-11 h-11 flex items-center justify-center z-10"
+          aria-label={isFav ? (isEn ? 'Remove from favorites' : 'Quitar de favoritos') : (isEn ? 'Add to favorites' : 'Agregar a favoritos')}
+          aria-pressed={isFav}
         >
           <span className="w-7 h-7 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center shadow-sm">
             <Heart className={cn('w-3.5 h-3.5 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400')} />
@@ -155,7 +167,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
             {product.dietary_tags!.slice(0, 3).map((tagId) => {
               const tag = DIETARY_TAGS.find((t) => t.id === tagId);
               if (!tag) return null;
-              return <span key={tagId} className="text-sm">{tag.emoji}</span>;
+              return <span key={tagId} className="text-sm" aria-hidden="true">{tag.emoji}</span>;
             })}
           </div>
         )}
@@ -170,16 +182,17 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           ) : (
             <button
               onClick={handleAddClick}
+              aria-label={justAdded ? (isEn ? 'Added' : 'Agregado') : (hasModifiers ? (isEn ? `Customize ${displayName}` : `Personalizar ${displayName}`) : (isEn ? `Add ${displayName}` : `Agregar ${displayName}`))}
               className={cn(
-                'w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 flex-shrink-0 shadow-md',
+                'relative z-10 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 flex-shrink-0 shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#05c8a7]',
                 justAdded ? 'bg-[#00a189] text-white scale-110' : 'bg-[#00a189] text-white hover:bg-[#058070]'
               )}
             >
-              {justAdded ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+              {justAdded ? <Check className="w-4 h-4" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />}
             </button>
           )}
         </div>
       </div>
-    </div>
+    </article>
   );
 });
