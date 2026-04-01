@@ -17,14 +17,21 @@ export async function sendWhatsApp({ to, text }: WhatsAppMessage): Promise<{ suc
   const apiBase = (process.env.WHATSAPP_API_URL ?? 'https://graph.facebook.com/v19.0').replace(/\/$/, '');
 
   if (!token || !phoneId) {
-    console.warn('[WhatsApp] WHATSAPP_TOKEN or WHATSAPP_PHONE_ID not set — skipping message');
+    console.error('[WhatsApp] ❌ MISSING ENV VARS — WHATSAPP_TOKEN or WHATSAPP_PHONE_ID not configured in Vercel. Messages will NOT be sent until these are set.');
     return { success: false };
   }
 
   // Normalize to digits only (Meta API expects no '+' prefix)
   const digits = to.replace(/[^0-9]/g, '');
 
+  if (!digits || digits.length < 7) {
+    console.error(`[WhatsApp] ❌ Invalid phone number: "${to}" → digits="${digits}". Check that the customer entered a valid number with country code.`);
+    return { success: false };
+  }
+
   const url = `${apiBase}/${phoneId}/messages`;
+
+  console.info(`[WhatsApp] → Sending to ${digits} via phoneId=${phoneId}`);
 
   try {
     const res = await fetch(url, {
@@ -42,14 +49,20 @@ export async function sendWhatsApp({ to, text }: WhatsAppMessage): Promise<{ suc
     });
 
     if (!res.ok) {
-      const err = await res.text();
-      console.error('[WhatsApp] Meta API error:', err);
+      const errBody = await res.text();
+      console.error(`[WhatsApp] ❌ Meta API error (HTTP ${res.status}) to ${digits}:`, errBody);
+      // Common errors:
+      // 131047 = message failed to send because >24h since customer last message (need approved template)
+      // 131026 = recipient not a valid WhatsApp number
+      // 190    = token expired or invalid
       return { success: false };
     }
 
+    const responseBody = await res.json().catch(() => ({}));
+    console.info(`[WhatsApp] ✅ Sent to ${digits}. Message ID:`, (responseBody as any)?.messages?.[0]?.id ?? 'unknown');
     return { success: true };
   } catch (err) {
-    console.error('[WhatsApp] Meta API send error:', err);
+    console.error('[WhatsApp] ❌ Network error sending to', digits, ':', err);
     return { success: false };
   }
 }

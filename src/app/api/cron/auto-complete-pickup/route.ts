@@ -1,13 +1,15 @@
 /**
- * Auto-complete pickup orders when their ETA has passed.
+ * Auto-advance pickup orders through the correct status flow:
  *
- * Runs every 3 minutes. Finds pickup orders in 'preparing' status where
- * updated_at + estimated_ready_minutes (default 15) is in the past,
- * marks them as 'delivered', and sends customer notification.
+ * Step 1 — preparing → ready (when ETA passes):
+ *   Notifies the customer "your food is ready for pickup".
+ *   The counter must then press "Delivered" when the customer collects.
  *
- * Counter operators don't need to press any button — the order closes automatically.
- * The optional "Ready for pickup" button sends an early WhatsApp if the counter
- * guy wants to notify the customer before the auto-complete kicks in.
+ * Step 2 — ready → delivered (after READY_TIMEOUT_MINS without manual action):
+ *   If the counter forgets to press "Delivered" after the customer picks up,
+ *   the order auto-completes after 10 minutes in 'ready'.
+ *
+ * Runs every 3 minutes via Vercel Cron.
  */
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +17,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 const DEFAULT_ETA_MINS = 15;
+const READY_TIMEOUT_MINS = 10;
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization');
@@ -24,55 +27,94 @@ export async function GET(req: Request) {
 
   try {
     const adminDb = createAdminClient();
+    const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
 
-    // Fetch all pickup orders currently in 'preparing'
-    const { data: orders, error } = await adminDb
+    // ── Step 1: preparing → ready when ETA has passed ─────────────────────
+    const { data: preparingOrders, error: prepErr } = await adminDb
       .from('orders')
       .select('id, order_number, restaurant_id, updated_at, estimated_ready_minutes, customer_name, customer_email, customer_phone, order_type, delivery_address')
       .eq('status', 'preparing')
       .eq('order_type', 'pickup');
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (prepErr) return NextResponse.json({ error: prepErr.message }, { status: 500 });
 
     const now = Date.now();
-    const toComplete = (orders ?? []).filter(o => {
+
+    const toMarkReady = (preparingOrders ?? []).filter(o => {
       const etaMins = o.estimated_ready_minutes ?? DEFAULT_ETA_MINS;
       const preparingAt = new Date(o.updated_at).getTime();
       return now - preparingAt >= etaMins * 60 * 1000;
     });
 
-    if (toComplete.length === 0) {
-      return NextResponse.json({ completed: 0 });
+    let markedReady = 0;
+    if (toMarkReady.length > 0) {
+      const ids = toMarkReady.map(o => o.id);
+      const { error: readyErr } = await adminDb
+        .from('orders')
+        .update({ status: 'ready' })
+        .in('id', ids);
+
+      if (!readyErr) {
+        markedReady = ids.length;
+        for (const o of toMarkReady) {
+          notifyStatusChange({
+            orderId: o.id,
+            orderNumber: o.order_number,
+            restaurantId: o.restaurant_id,
+            status: 'ready',
+            customerName: o.customer_name,
+            customerEmail: o.customer_email || undefined,
+            customerPhone: o.customer_phone || undefined,
+            orderType: o.order_type || undefined,
+            deliveryAddress: o.delivery_address || undefined,
+          }).catch(() => {});
+        }
+        console.info(`[auto-complete-pickup] Marked ${markedReady} pickup orders as ready:`, ids);
+      }
     }
 
-    const ids = toComplete.map(o => o.id);
-
-    // Bulk update to delivered
-    const { error: updateErr } = await adminDb
+    // ── Step 2: ready → delivered after READY_TIMEOUT_MINS ────────────────
+    const { data: readyOrders, error: readyFetchErr } = await adminDb
       .from('orders')
-      .update({ status: 'delivered' })
-      .in('id', ids);
+      .select('id, order_number, restaurant_id, updated_at, customer_name, customer_email, customer_phone, order_type, delivery_address')
+      .eq('status', 'ready')
+      .eq('order_type', 'pickup');
 
-    if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
+    if (readyFetchErr) return NextResponse.json({ error: readyFetchErr.message }, { status: 500 });
 
-    // Send notifications (non-blocking, fire-and-forget per order)
-    const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
-    for (const o of toComplete) {
-      notifyStatusChange({
-        orderId: o.id,
-        orderNumber: o.order_number,
-        restaurantId: o.restaurant_id,
-        status: 'delivered',
-        customerName: o.customer_name,
-        customerEmail: o.customer_email || undefined,
-        customerPhone: o.customer_phone || undefined,
-        orderType: o.order_type || undefined,
-        deliveryAddress: o.delivery_address || undefined,
-      }).catch(() => {});
+    const toDeliver = (readyOrders ?? []).filter(o => {
+      const readyAt = new Date(o.updated_at).getTime();
+      return now - readyAt >= READY_TIMEOUT_MINS * 60 * 1000;
+    });
+
+    let markedDelivered = 0;
+    if (toDeliver.length > 0) {
+      const ids = toDeliver.map(o => o.id);
+      const { error: deliverErr } = await adminDb
+        .from('orders')
+        .update({ status: 'delivered' })
+        .in('id', ids);
+
+      if (!deliverErr) {
+        markedDelivered = ids.length;
+        for (const o of toDeliver) {
+          notifyStatusChange({
+            orderId: o.id,
+            orderNumber: o.order_number,
+            restaurantId: o.restaurant_id,
+            status: 'delivered',
+            customerName: o.customer_name,
+            customerEmail: o.customer_email || undefined,
+            customerPhone: o.customer_phone || undefined,
+            orderType: o.order_type || undefined,
+            deliveryAddress: o.delivery_address || undefined,
+          }).catch(() => {});
+        }
+        console.info(`[auto-complete-pickup] Auto-delivered ${markedDelivered} pickup orders after ${READY_TIMEOUT_MINS} min in ready:`, ids);
+      }
     }
 
-    console.info(`[auto-complete-pickup] Completed ${ids.length} pickup orders:`, ids);
-    return NextResponse.json({ completed: ids.length, ids });
+    return NextResponse.json({ markedReady, markedDelivered });
   } catch (err) {
     console.error('[auto-complete-pickup]', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });

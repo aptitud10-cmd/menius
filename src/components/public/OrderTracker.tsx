@@ -824,19 +824,22 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
 function ComingOutButton({ orderId, locale }: { orderId: string; locale?: string }) {
   const en = locale === 'en';
-  const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'sent_no_driver'>('idle');
 
   const handlePress = async () => {
     if (state !== 'idle') return;
     setState('sending');
     try {
-      await fetch('/api/public/customer-reply', {
+      const res = await fetch('/api/public/customer-reply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId, action: 'coming_out' }),
       });
-    } catch { /* silent */ }
-    setState('sent');
+      const data = await res.json().catch(() => ({}));
+      setState(data.notified === false ? 'sent_no_driver' : 'sent');
+    } catch {
+      setState('sent');
+    }
   };
 
   if (state === 'sent') {
@@ -844,6 +847,16 @@ function ComingOutButton({ orderId, locale }: { orderId: string; locale?: string
       <div className="px-5 pb-4 text-center">
         <p className="text-sm font-semibold text-orange-700">
           {en ? '✓ Driver notified — on your way!' : '✓ Repartidor avisado — ¡ya voy!'}
+        </p>
+      </div>
+    );
+  }
+
+  if (state === 'sent_no_driver') {
+    return (
+      <div className="px-5 pb-4 text-center">
+        <p className="text-sm font-semibold text-gray-600">
+          {en ? '✓ On your way! The restaurant has been notified.' : '✓ ¡Ya puedes salir! El restaurante fue notificado.'}
         </p>
       </div>
     );

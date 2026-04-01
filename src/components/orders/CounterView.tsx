@@ -2059,7 +2059,8 @@ export function CounterView({
               <button
                 onClick={async () => {
                   const appUrl = window.location.origin;
-                  const trackingUrl = `${appUrl}/driver/track/${driverModal.trackingToken}`;
+                  const baseToken = `${appUrl}/driver/track/${driverModal.trackingToken}`;
+                  const trackingUrl = locale === 'en' ? `${baseToken}?lang=en` : baseToken;
 
                   // Generate QR locally — no internet required
                   let qrSrc = '';
