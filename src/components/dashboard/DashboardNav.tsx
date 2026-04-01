@@ -35,7 +35,7 @@ function buildNavSections(t: DashboardTranslations, locale: string): { title: st
         { href: '/app', label: t.nav_home, icon: LayoutDashboard, exact: true },
         { href: '/app/orders', label: t.nav_orders, icon: ClipboardList },
         { href: '/kds', label: t.nav_kds, icon: Monitor, minPlan: 'pro', badge: 'Pro' },
-        { href: '/counter', label: t.nav_counter, icon: Store },
+        { href: '/app/counter', label: t.nav_counter, icon: Store },
       ],
     },
     {
