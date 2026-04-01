@@ -260,6 +260,48 @@ export function MenuShell({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurant.id]);
 
+  // Stale-cart guard: when fresh product data loads, check if any cart item is
+  // missing required modifier selections. If the product now has required groups
+  // that weren't configured when the item was added (stale localStorage data),
+  // remove those items silently so they don't cause "Selecciona al menos..." errors.
+  useEffect(() => {
+    if (!products || products.length === 0) return;
+    const freshProductMap = new Map(products.map((p) => [p.id, p]));
+    const store = useCartStore.getState();
+    const idxToRemove: number[] = [];
+
+    store.items.forEach((item, idx) => {
+      const fresh = freshProductMap.get(item.product.id);
+      if (!fresh) return;
+      const freshGroups = fresh.modifier_groups ?? [];
+      const requiredGroups = freshGroups.filter((g: any) => g.is_required && (g.options?.length ?? 0) > 0);
+      if (requiredGroups.length === 0) return;
+
+      // Check if any required group is missing from the item's modifier selections
+      const missingGroup = requiredGroups.some((g: any) => {
+        const sel = (item.modifierSelections ?? []).find(
+          (ms) => ms.group.id === g.id || ms.group.name === g.name
+        );
+        return !sel || sel.selectedOptions.length === 0;
+      });
+
+      if (missingGroup) idxToRemove.push(idx);
+    });
+
+    if (idxToRemove.length > 0) {
+      // Remove in reverse order to preserve indices
+      [...idxToRemove].reverse().forEach((idx) => store.removeItem(idx));
+      setStockOutAlert(
+        locale === 'en'
+          ? 'Some items were updated — please add them again to select the required options.'
+          : 'Algunos productos fueron actualizados — agrégalos nuevamente para elegir las opciones requeridas.'
+      );
+      stockAlertTimer.current = setTimeout(() => setStockOutAlert(null), 8000);
+    }
+  // Run once when products stabilize (restaurant load)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products.length]);
+
   // Fetch data-driven suggestions (manual pairings first, then co-occurrence)
   useEffect(() => {
     const productId = customization?.product?.id;

@@ -293,7 +293,12 @@ export async function POST(request: NextRequest) {
         // Skip validation if the group has no options — avoids blocking orders
         // when a required modifier group was created but has no options yet
         if (!groupsWithOptions.has(grp.id)) continue;
-        const selected = (item.modifiers ?? []).filter((m: any) => m.group_name === grp.name).length;
+        // Match by group_id (preferred) OR group_name (fallback for legacy/stale cart items).
+        // Using both avoids failures when the client has stale cart data or when group
+        // names differ by case/whitespace from the database value.
+        const selected = (item.modifiers ?? []).filter((m: any) =>
+          m.group_id === grp.id || m.group_name === grp.name
+        ).length;
         if (selected < grp.min_select) {
           return NextResponse.json({ error: `Selecciona al menos ${grp.min_select} opción(es) en "${grp.name}".` }, { status: 400 });
         }
