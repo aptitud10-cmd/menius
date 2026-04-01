@@ -33,26 +33,66 @@ async function enhanceWithFalAi(imageUrl: string, style: string): Promise<string
   const falKey = process.env.FAL_API_KEY;
   if (!falKey) return null;
 
+  const styleDetails: Record<string, { prompt: string; lighting: string }> = {
+    dark_moody: {
+      prompt: 'dark moody fine dining aesthetic, dramatic chiaroscuro single-source side lighting at 45 degrees, deep rich shadows with warm amber undertones, dark charcoal slate background, high micro-contrast revealing every texture detail',
+      lighting: 'dramatic Rembrandt lighting from the left, deep shadows, moody restaurant atmosphere',
+    },
+    bright_airy: {
+      prompt: 'bright airy natural light photography, large soft north-facing window light, pure white or very light cream background, fresh and inviting, food pops with vibrant colors, clean negative space',
+      lighting: 'soft diffused daylight, even and flattering, no harsh shadows',
+    },
+    natural: {
+      prompt: 'warm authentic restaurant ambiance, golden hour natural side lighting, warm wooden surface, cozy and inviting atmosphere, natural color palette, honest and appetizing',
+      lighting: 'warm golden hour window light from the left, natural and inviting',
+    },
+    editorial: {
+      prompt: 'Michelin-starred restaurant editorial magazine style, high contrast professional studio three-point lighting, sophisticated artistic plating, award-winning food photography in the style of Saveur magazine, cinematic color grading',
+      lighting: 'professional three-point studio setup, high contrast, magazine quality',
+    },
+    delivery: {
+      prompt: 'delivery app optimized product photography, pure clean white background, bright even overhead lighting, vibrant saturated colors, every ingredient clearly visible, professional e-commerce food photography, Uber Eats / DoorDash quality standard',
+      lighting: 'bright overhead studio lights, even and shadowless, product-focused',
+    },
+  };
+
+  const { prompt: stylePrompt, lighting } = styleDetails[style] ?? styleDetails.editorial;
+
+  const enhancementPrompt = `Award-winning professional food photograph. Transform this food photo into a studio-quality image.
+
+STYLE: ${stylePrompt}
+LIGHTING: ${lighting}
+CAMERA: Hasselblad H6D medium format, 80mm lens, f/2.8, ISO 200. 
+MANDATORY: Keep the EXACT same dish, same ingredients, same portion size, same plating arrangement. Do NOT add or remove any food items.
+TRANSFORM COMPLETELY: Replace background with professional photography setting. Dramatically improve lighting direction, quality and color. Enrich colors to be vibrant and deeply appetizing. Make textures visible — sauce gloss, herb edges, char marks, steam.
+RESULT: Photorealistic DSLR photograph indistinguishable from a $3,000 professional food photo shoot. NOT CGI, NOT illustration, NOT AI-looking.`;
+
   try {
     const { fal } = await import('@fal-ai/client');
     fal.config({ credentials: falKey });
 
-    const stylePrompts: Record<string, string> = {
-      dark_moody:    'dark moody fine dining, dramatic chiaroscuro lighting, rich deep shadows',
-      bright_airy:   'bright airy natural light, soft diffused sunlight, clean white background',
-      natural:       'warm natural light, authentic restaurant ambiance, inviting and cozy',
-      editorial:     'editorial magazine style, professional food photography, high contrast',
-      delivery:      'clean white background, bright and vibrant, delivery app optimized',
-    };
+    // Primary: FLUX.2 Pro Edit — multi-reference image editor (best for food enhancement)
+    try {
+      const result = await (fal as any).subscribe('fal-ai/flux-2-pro/edit', {
+        input: {
+          image_url: imageUrl,
+          prompt: enhancementPrompt,
+          guidance_scale: 4.0,
+          num_inference_steps: 40,
+        },
+      });
+      const url = (result as any)?.images?.[0]?.url ?? null;
+      if (url) return url;
+    } catch { /* fall through to secondary model */ }
 
-    const styleHint = stylePrompts[style] ?? 'professional food photography, studio quality lighting';
-
-    const result = await (fal as any).subscribe('fal-ai/flux/redux', {
+    // Secondary: FLUX Dev img2img — reliable img2img at high strength
+    const result = await (fal as any).subscribe('fal-ai/flux/dev/image-to-image', {
       input: {
         image_url: imageUrl,
-        prompt: `Professional food photo enhancement. ${styleHint}. Keep the exact same dish, ingredients, and plating. Only improve: lighting quality, background cleanliness, color vibrancy, and overall presentation. Photorealistic, no artificial look.`,
-        strength: 0.6,
-        num_inference_steps: 28,
+        prompt: enhancementPrompt,
+        strength: 0.88,
+        num_inference_steps: 35,
+        guidance_scale: 4.5,
       },
     });
 
