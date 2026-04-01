@@ -74,6 +74,7 @@ export function formatStatusUpdateSMS(
   reviewUrl?: string,
   orderType?: string,
   locale = 'es',
+  estimatedMinutes?: number,
 ): string {
   const en = locale === 'en';
 
@@ -86,6 +87,12 @@ export function formatStatusUpdateSMS(
         ? `${isPickup ? '🥡' : isDineIn ? '🍽️' : '✨'} Order #${orderNumber} ${isPickup ? 'picked up' : isDineIn ? 'served' : 'delivered'} at ${restaurantName}. Rate your experience: ${ctaUrl}`
         : `${isPickup ? '🥡' : isDineIn ? '🍽️' : '✨'} Pedido #${orderNumber} ${isPickup ? 'recogido' : isDineIn ? 'servido' : 'entregado'} en ${restaurantName}. Deja tu reseña: ${ctaUrl}`;
     }
+  }
+
+  if (status === 'preparing' && estimatedMinutes) {
+    return en
+      ? `👨‍🍳 Order #${orderNumber} is being prepared at ${restaurantName}. Ready in ~${estimatedMinutes} min!${trackingUrl ? ` Track: ${trackingUrl}` : ''}`
+      : `👨‍🍳 Pedido #${orderNumber} en preparación en ${restaurantName}. Listo en ~${estimatedMinutes} min!${trackingUrl ? ` Sigue tu pedido: ${trackingUrl}` : ''}`;
   }
 
   const readyMsg = (() => {

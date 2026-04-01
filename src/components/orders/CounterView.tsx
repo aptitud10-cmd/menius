@@ -2505,23 +2505,23 @@ function OrderDetail({
       {tab !== 'history' && (
         <div className="flex-none px-5 py-2.5 bg-[#FAFAFA] border-b border-[#F0F0F0]">
           <div className="flex items-center gap-1">
-            {(order.order_type === 'dine_in' || order.order_type === 'pickup'
+            {(order.order_type === 'dine_in'
               ? [
                   { key: 'pending',   label: t.tabNew,  color: '#EF4444' },
                   { key: 'preparing', label: t.tabPrep, color: '#8B5CF6' },
-                  { key: 'delivered', label: order.order_type === 'pickup'
-                      ? (t.en ? 'Picked up' : 'Recogido')
-                      : (t.en ? 'Served' : 'Servido'),
-                    color: '#111' },
+                  { key: 'delivered', label: t.en ? 'Served' : 'Servido', color: '#111' },
                 ]
               : [
                   { key: 'pending',   label: t.tabNew,  color: '#EF4444' },
                   { key: 'preparing', label: t.tabPrep, color: '#8B5CF6' },
                   { key: 'ready',     label: t.tabReady, color: '#06C167' },
-                  { key: 'delivered', label: t.deliveredBtn, color: '#111' },
+                  { key: 'delivered', label: order.order_type === 'pickup'
+                      ? (t.en ? 'Picked up' : 'Recogido')
+                      : t.deliveredBtn,
+                    color: '#111' },
                 ]
             ).map((step, i, arr) => {
-              const statuses = (order.order_type === 'dine_in' || order.order_type === 'pickup')
+              const statuses = order.order_type === 'dine_in'
                 ? ['pending', 'confirmed', 'preparing', 'delivered']
                 : ['pending', 'confirmed', 'preparing', 'ready', 'delivered'];
               const currentIdx = statuses.indexOf(order.status);
@@ -2873,10 +2873,10 @@ function OrderDetail({
                 : <><Check className="w-6 h-6" /> {t.en ? 'Serve to table' : 'Servir a la mesa'} <ChevronRight className="w-5 h-5" /></>}
             </button>
           ) : order.order_type === 'pickup' ? (
-            /* Pickup: optional notify + close. No auto-complete — counter guy presses when handing off food. */
+            /* Pickup: mark as ready → notifies customer "food is ready" → they come → counter marks picked up */
             <button
               disabled={isUpdating}
-              onClick={() => onMarkServed(order)}
+              onClick={() => onMarkReady(order)}
               className="w-full h-16 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
               style={{ background: isUpdating ? '#AAA' : GREEN }}
             >
@@ -2899,7 +2899,7 @@ function OrderDetail({
           )
         )}
 
-        {/* READY tab: resend notification + delivered */}
+        {/* READY tab: resend notification + delivered/picked-up */}
         {tab === 'ready' && (
           <>
             {order.customer_phone && (
@@ -2926,7 +2926,7 @@ function OrderDetail({
             >
               {isUpdating
                 ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : <><Check className="w-5 h-5" /> {t.deliveredBtn}</>}
+                : <><Check className="w-5 h-5" /> {order.order_type === 'pickup' ? (t.en ? 'Picked up ✓' : 'Recogido ✓') : t.deliveredBtn}</>}
             </button>
           </>
         )}

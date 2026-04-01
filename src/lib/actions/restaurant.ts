@@ -844,7 +844,7 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
 
   const { data: order } = await supabase
     .from('orders')
-    .select('id, status, order_number, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address, restaurants ( slug, name )')
+    .select('id, status, order_number, restaurant_id, customer_name, customer_email, customer_phone, order_type, delivery_address, estimated_ready_minutes, restaurants ( slug, name )')
     .eq('id', orderId)
     .eq('restaurant_id', restaurantId)
     .maybeSingle();
@@ -896,6 +896,7 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
         customerPhone: order.customer_phone || undefined,
         orderType: (order as any).order_type || undefined,
         deliveryAddress: (order as any).delivery_address || undefined,
+        estimatedMinutes: (order as any).estimated_ready_minutes ?? undefined,
       });
     } catch {
       notificationResult = { channel: 'none', success: false, error: 'internal_error' };

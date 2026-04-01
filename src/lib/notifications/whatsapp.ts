@@ -156,6 +156,7 @@ export function formatStatusUpdateWhatsApp(
   trackingUrl?: string,
   reviewUrl?: string,
   orderType?: string,
+  estimatedMinutes?: number,
 ): string {
   const en = locale === 'en';
 
@@ -195,17 +196,24 @@ export function formatStatusUpdateWhatsApp(
       ? '🍽️ Tu pedido fue servido. ¡Buen provecho!'
       : '✨ Tu pedido ha sido entregado. ¡Buen provecho!';
 
+  const preparingMsgEn = estimatedMinutes
+    ? `👨‍🍳 Your order is being prepared — ready in ~${estimatedMinutes} min!`
+    : '👨‍🍳 Your order is being prepared';
+  const preparingMsgEs = estimatedMinutes
+    ? `👨‍🍳 Tu pedido se está preparando — listo en ~${estimatedMinutes} min!`
+    : '👨‍🍳 Tu pedido se está preparando';
+
   const statusMessages: Record<string, string> = en
     ? {
         confirmed: '✅ Your order has been confirmed',
-        preparing: '👨‍🍳 Your order is being prepared',
+        preparing: preparingMsgEn,
         ready: readyMsg ?? '🔔 Your order is ready!',
         delivered: deliveredMsgEn,
         cancelled: '❌ Your order has been cancelled',
       }
     : {
         confirmed: '✅ Tu pedido ha sido confirmado',
-        preparing: '👨‍🍳 Tu pedido se está preparando',
+        preparing: preparingMsgEs,
         ready: readyMsg ?? '🔔 ¡Tu pedido está listo!',
         delivered: deliveredMsgEs,
         cancelled: '❌ Tu pedido ha sido cancelado',

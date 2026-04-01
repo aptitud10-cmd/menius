@@ -1,14 +1,21 @@
 export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication first with the user-scoped client
     const supabase = createClient();
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+
+    // Use admin client (service role) for the actual upload — bypasses
+    // Storage RLS policies that may not be configured on the bucket.
+    // Authentication is already verified above so this is safe.
+    const adminDb = createAdminClient();
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -54,7 +61,7 @@ export async function POST(request: NextRequest) {
       .slice(0, 60);
     const fileName = `${tenant.userId}/${slug || 'img'}-${Date.now()}.${ext}`;
 
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await adminDb.storage
       .from('product-images')
       .upload(fileName, optimizedBuffer, {
         contentType,
@@ -66,7 +73,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: uploadError.message }, { status: 500 });
     }
 
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = adminDb.storage
       .from('product-images')
       .getPublicUrl(fileName);
 

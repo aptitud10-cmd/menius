@@ -403,8 +403,9 @@ export function buildStatusUpdateEmail(params: {
   reviewUrl?: string;
   locale?: string;
   orderType?: string;
+  estimatedMinutes?: number;
 }): string {
-  const { customerName, orderNumber, restaurantName, status, trackingUrl, reviewUrl, locale, orderType } = params;
+  const { customerName, orderNumber, restaurantName, status, trackingUrl, reviewUrl, locale, orderType, estimatedMinutes } = params;
   const en = locale === 'en';
 
   type StatusInfo = { icon: string; titleEn: string; titleEs: string; msgEn: string; msgEs: string; color: string };
@@ -419,8 +420,12 @@ export function buildStatusUpdateEmail(params: {
     preparing: {
       icon: '👨‍🍳',
       titleEn: 'Being prepared…',    titleEs: 'En preparación…',
-      msgEn:   "The chef is working on your order right now. Won't be long!",
-      msgEs:   'El chef está trabajando en tu pedido ahora mismo. ¡Ya casi!',
+      msgEn:   estimatedMinutes
+        ? `The chef is working on your order right now. Ready in ~${estimatedMinutes} min!`
+        : "The chef is working on your order right now. Won't be long!",
+      msgEs:   estimatedMinutes
+        ? `El chef está trabajando en tu pedido ahora mismo. ¡Listo en ~${estimatedMinutes} min!`
+        : 'El chef está trabajando en tu pedido ahora mismo. ¡Ya casi!',
       color: '#7c3aed',
     },
     ready: {
