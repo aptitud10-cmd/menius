@@ -113,6 +113,8 @@ export interface DashboardTranslations {
   counter_hub_specConnValue: string;
   counter_hub_wifiLabel: string;
   counter_hub_wifiNote: string;
+  counter_hub_scanQr: string;
+  counter_hub_scanQrDesc: string;
 
   // Home
   home_welcome: string;
@@ -1268,6 +1270,8 @@ const es: DashboardTranslations = {
   counter_hub_specConnValue: 'Bluetooth 4.0+ o WiFi',
   counter_hub_wifiLabel: 'Conexión a internet:',
   counter_hub_wifiNote: 'La tablet debe estar conectada a WiFi para recibir órdenes en tiempo real. Se recomienda WiFi de 2.4 GHz o 5 GHz estable en el área de caja.',
+  counter_hub_scanQr: 'Escanea con la tablet',
+  counter_hub_scanQrDesc: 'Apunta la cámara de tu tablet Android al código QR para descargar la app.',
 
   // Home
   home_welcome: '¡Bienvenido!',
@@ -2423,6 +2427,8 @@ const en: DashboardTranslations = {
   counter_hub_specConnValue: 'Bluetooth 4.0+ or WiFi',
   counter_hub_wifiLabel: 'Internet connection:',
   counter_hub_wifiNote: 'The tablet must be connected to WiFi to receive orders in real time. A stable 2.4 GHz or 5 GHz WiFi is recommended in the cashier area.',
+  counter_hub_scanQr: 'Scan with your tablet',
+  counter_hub_scanQrDesc: 'Point your Android tablet camera at the QR code to download the app.',
 
   // Home
   home_welcome: 'Welcome!',

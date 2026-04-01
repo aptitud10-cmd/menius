@@ -1,8 +1,10 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Monitor, Smartphone, ExternalLink, Download, Tablet, Printer, Wifi, CheckCircle2 } from 'lucide-react';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
+import { renderStyledQR } from '@/lib/styled-qr';
 
 const APK_URL = 'https://expo.dev/artifacts/eas/dxPgSHGFe4YJUPDoFFrVfF.apk';
 
@@ -79,6 +81,14 @@ export default function CounterHubPage() {
             <Spec text={t.counter_hub_nativeSpec2} />
             <Spec text={t.counter_hub_nativeSpec3} />
           </ul>
+
+          {/* QR code for tablet download */}
+          <div className="flex flex-col items-center gap-2 py-2">
+            <ApkQRCode url={APK_URL} />
+            <p className="text-xs font-semibold text-gray-700">{t.counter_hub_scanQr}</p>
+            <p className="text-[11px] text-gray-400 text-center leading-relaxed">{t.counter_hub_scanQrDesc}</p>
+          </div>
+
           <div className="mt-auto">
             <a
               href={APK_URL}
@@ -154,6 +164,30 @@ export default function CounterHubPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ApkQRCode({ url }: { url: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    renderStyledQR(el, {
+      data: url,
+      size: 160,
+      dotColor: '#111827',
+      cornerColor: '#f97316',
+      bgColor: '#fff7ed',
+    });
+  }, [url]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="rounded-2xl overflow-hidden border border-orange-100 bg-orange-50 p-2"
+      style={{ width: 176, height: 176 }}
+    />
   );
 }
 
