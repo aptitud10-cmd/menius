@@ -18,12 +18,18 @@ export async function sendSMS({ to, text }: SmsMessage): Promise<{ success: bool
   const from = process.env.TWILIO_PHONE_NUMBER;
 
   if (!accountSid || !authToken || !from) {
-    console.warn('[SMS] Twilio SMS env vars not set — skipping');
+    console.error('[SMS] ❌ MISSING ENV VARS — TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN or TWILIO_PHONE_NUMBER not configured in Vercel. SMS will NOT be sent until these are set.');
     return { success: false };
   }
 
   const digits = to.replace(/[^0-9]/g, '');
-  const e164 = to.trim().startsWith('+') ? `+${digits}` : `+${digits}`;
+  if (!digits || digits.length < 7) {
+    console.error(`[SMS] ❌ Invalid phone number: "${to}"`);
+    return { success: false };
+  }
+  const e164 = `+${digits}`;
+
+  console.info(`[SMS] → Sending to ${e164} from ${from}`);
 
   const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
   const credentials = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
@@ -39,24 +45,25 @@ export async function sendSMS({ to, text }: SmsMessage): Promise<{ success: bool
     });
 
     if (!res.ok) {
-      console.error('[SMS] Twilio error:', await res.text());
+      const errBody = await res.text();
+      console.error(`[SMS] ❌ Twilio error (HTTP ${res.status}) to ${e164}:`, errBody);
       return { success: false };
     }
+    console.info(`[SMS] ✅ Sent to ${e164}`);
     return { success: true };
   } catch (err) {
-    console.error('[SMS] Send error:', err);
+    console.error('[SMS] ❌ Network error sending to', e164, ':', err);
     return { success: false };
   }
 }
 
 /**
- * Determines whether a phone number belongs to a WhatsApp-first market
- * or an SMS-first market (US/Canada).
+ * Primary notification channel.
+ * SMS (Twilio) is used as primary while WhatsApp Business API approval is pending.
+ * Switch back to 'whatsapp' once Meta approves the number.
  */
 export function resolveChannel(_phone: string): 'whatsapp' | 'sms' {
-  // WhatsApp is the primary channel for all markets worldwide.
-  // SMS (Twilio) is used as fallback if WhatsApp delivery fails.
-  return 'whatsapp';
+  return 'sms';
 }
 
 export function formatStatusUpdateSMS(
@@ -66,30 +73,47 @@ export function formatStatusUpdateSMS(
   trackingUrl?: string,
   reviewUrl?: string,
   orderType?: string,
+  locale = 'es',
 ): string {
+  const en = locale === 'en';
+
   if (status === 'delivered') {
     const ctaUrl = reviewUrl ?? trackingUrl;
+    const isPickup = orderType === 'pickup';
+    const isDineIn = orderType === 'dine_in';
     if (ctaUrl) {
-      return `✨ Order #${orderNumber} delivered at ${restaurantName}. Enjoy! Rate your experience: ${ctaUrl}`;
+      return en
+        ? `${isPickup ? '🥡' : isDineIn ? '🍽️' : '✨'} Order #${orderNumber} ${isPickup ? 'picked up' : isDineIn ? 'served' : 'delivered'} at ${restaurantName}. Rate your experience: ${ctaUrl}`
+        : `${isPickup ? '🥡' : isDineIn ? '🍽️' : '✨'} Pedido #${orderNumber} ${isPickup ? 'recogido' : isDineIn ? 'servido' : 'entregado'} en ${restaurantName}. Deja tu reseña: ${ctaUrl}`;
     }
   }
 
   const readyMsg = (() => {
-    if (orderType === 'delivery') return `🛵 Order #${orderNumber} is ready — driver picking up soon at ${restaurantName}!`;
-    if (orderType === 'pickup') return `🥡 Order #${orderNumber} is ready for pickup at ${restaurantName}!`;
-    return `🔔 Order #${orderNumber} is ready — we\'ll bring it to your table at ${restaurantName}!`;
+    if (status !== 'ready') return null;
+    if (orderType === 'delivery') return en ? `🛵 Order #${orderNumber} is ready — driver picking up soon at ${restaurantName}!` : `🛵 Pedido #${orderNumber} listo — el repartidor lo tomará pronto en ${restaurantName}!`;
+    if (orderType === 'pickup') return en ? `🥡 Order #${orderNumber} is ready for pickup at ${restaurantName}!` : `🥡 Pedido #${orderNumber} listo para recoger en ${restaurantName}!`;
+    return en ? `🔔 Order #${orderNumber} is ready at ${restaurantName}!` : `🔔 Pedido #${orderNumber} listo en ${restaurantName}!`;
   })();
 
-  const messages: Record<string, string> = {
-    confirmed: `✅ Order #${orderNumber} confirmed at ${restaurantName}.`,
-    preparing: `👨‍🍳 Order #${orderNumber} is being prepared at ${restaurantName}.`,
-    ready: readyMsg,
-    delivered: `✨ Order #${orderNumber} delivered. Enjoy your meal!`,
-    cancelled: `❌ Order #${orderNumber} was cancelled by ${restaurantName}.`,
-  };
-  const base = messages[status] ?? `Order #${orderNumber} update from ${restaurantName}.`;
+  const messages: Record<string, string> = en
+    ? {
+        confirmed: `✅ Order #${orderNumber} confirmed at ${restaurantName}.`,
+        preparing: `👨‍🍳 Order #${orderNumber} is being prepared at ${restaurantName}.`,
+        ready: readyMsg ?? `🔔 Order #${orderNumber} is ready!`,
+        delivered: `✨ Order #${orderNumber} delivered. Enjoy!`,
+        cancelled: `❌ Order #${orderNumber} cancelled by ${restaurantName}.`,
+      }
+    : {
+        confirmed: `✅ Pedido #${orderNumber} confirmado en ${restaurantName}.`,
+        preparing: `👨‍🍳 Pedido #${orderNumber} se está preparando en ${restaurantName}.`,
+        ready: readyMsg ?? `🔔 Pedido #${orderNumber} listo!`,
+        delivered: `✨ Pedido #${orderNumber} entregado. ¡Buen provecho!`,
+        cancelled: `❌ Pedido #${orderNumber} cancelado por ${restaurantName}.`,
+      };
+
+  const base = messages[status] ?? (en ? `Order #${orderNumber} update from ${restaurantName}.` : `Actualización pedido #${orderNumber} en ${restaurantName}.`);
   if (trackingUrl && ['confirmed', 'ready'].includes(status)) {
-    return `${base} Track: ${trackingUrl}`;
+    return `${base} ${en ? 'Track' : 'Sigue tu pedido'}: ${trackingUrl}`;
   }
   return base;
 }
@@ -99,6 +123,10 @@ export function formatOrderConfirmationSMS(
   restaurantName: string,
   total: string,
   trackingUrl: string,
+  locale = 'es',
 ): string {
-  return `✅ Order #${orderNumber} confirmed at ${restaurantName}. Total: ${total}. Track: ${trackingUrl}`;
+  const en = locale === 'en';
+  return en
+    ? `✅ Order #${orderNumber} confirmed at ${restaurantName}. Total: ${total}. Track: ${trackingUrl}`
+    : `✅ Pedido #${orderNumber} confirmado en ${restaurantName}. Total: ${total}. Sigue tu pedido: ${trackingUrl}`;
 }

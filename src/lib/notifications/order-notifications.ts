@@ -129,7 +129,7 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
           notes: i.notes,
         }));
 
-    // WhatsApp alert to restaurant
+    // Alert to restaurant — WhatsApp preferred, SMS fallback
     if (notificationsOn && restaurant.notification_whatsapp) {
       const itemsSummary = (richItems.length ? richItems : items.map(i => ({ name: i.name, qty: i.qty, price: formatPrice(i.price, currency) })))
         .map((i) => `• ${i.qty}x ${i.name} — ${i.price}`)
@@ -137,14 +137,20 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
       const utensilsNote = includeUtensils === false ? undefined : '🍴 Incluir cubiertos';
       const fullNotes = [notes, utensilsNote].filter(Boolean).join('\n') || undefined;
       const text = formatNewOrderWhatsApp(orderNumber, customerName, totalFormatted, itemsSummary, orderType, tableNumber ?? undefined, fullNotes, deliveryAddress ?? undefined);
-      sendWhatsApp({ to: restaurant.notification_whatsapp, text }).catch(() => {});
+
+      const restaurantChannel = resolveChannel(restaurant.notification_whatsapp);
+      if (restaurantChannel === 'sms') {
+        sendSMS({ to: restaurant.notification_whatsapp, text }).catch(() => {});
+      } else {
+        sendWhatsApp({ to: restaurant.notification_whatsapp, text }).catch(() => {});
+      }
     }
 
     // Customer order confirmation (channel routed by phone country)
     if (notificationsOn && customerPhone && paymentMethod !== 'online') {
       const channel = resolveChannel(customerPhone);
       if (channel === 'sms') {
-        const text = formatOrderConfirmationSMS(orderNumber, restaurant.name, totalFormatted, trackingUrl);
+        const text = formatOrderConfirmationSMS(orderNumber, restaurant.name, totalFormatted, trackingUrl, locale);
         sendSMS({ to: customerPhone, text }).catch(() => {});
       } else {
         const en = locale === 'en';
@@ -297,8 +303,8 @@ export async function notifyStatusChange(params: {
       const primaryChannel = resolveChannel(customerPhone);
 
       if (primaryChannel === 'sms') {
-        // US/Canada: SMS primary
-        const text = formatStatusUpdateSMS(orderNumber, status, restaurant.name, trackingUrl, reviewUrl, orderType);
+        // SMS primary channel
+        const text = formatStatusUpdateSMS(orderNumber, status, restaurant.name, trackingUrl, reviewUrl, orderType, rLocale);
         const smsResult = await sendSMS({ to: customerPhone, text });
         if (smsResult.success) {
           if (customerEmail) {

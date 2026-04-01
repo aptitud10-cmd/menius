@@ -35,9 +35,11 @@ interface EmailMessage {
 export async function sendEmail({ to, from, replyTo, subject, html }: EmailMessage): Promise<boolean> {
   const apiKey = (process.env.RESEND_API_KEY ?? '').trim();
   if (!apiKey) {
-    console.log('[Email] Resend not configured — skipping email to:', to);
+    console.error('[Email] ❌ MISSING ENV VAR — RESEND_API_KEY not configured in Vercel. Emails will NOT be sent until this is set.');
     return false;
   }
+
+  console.info(`[Email] → Sending "${subject}" to ${to}`);
 
   try {
     const payload: Record<string, unknown> = {
@@ -58,12 +60,15 @@ export async function sendEmail({ to, from, replyTo, subject, html }: EmailMessa
     });
 
     if (!res.ok) {
-      console.error('[Email] Resend error:', await res.text());
+      const errBody = await res.text();
+      console.error(`[Email] ❌ Resend error (HTTP ${res.status}) to ${to}:`, errBody);
       return false;
     }
+    const body = await res.json().catch(() => ({}));
+    console.info(`[Email] ✅ Sent to ${to}. ID:`, (body as any)?.id ?? 'unknown');
     return true;
   } catch (err) {
-    console.error('[Email] Send error:', err);
+    console.error('[Email] ❌ Network error sending to', to, ':', err);
     return false;
   }
 }
