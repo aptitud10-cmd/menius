@@ -209,6 +209,12 @@ export function MenuShell({
   const mobilePillsRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const isScrollingRef = useRef(false);
+  // Sidebar ref — used to auto-scroll sidebar to active category and to
+  // preserve sidebar scroll position when the user clicks a category.
+  const sidebarRef = useRef<HTMLElement | null>(null);
+  // True when activeCategory changed because the user CLICKED (not because of scroll-spy).
+  // Prevents the horizontal pill bar from auto-scrolling on click, which looks jarring.
+  const categoryClickedRef = useRef(false);
   // True while the banner element is at least partially visible in the scroll container.
   // Tracked by IntersectionObserver — always accurate, no timing issues.
   const bannerVisibleRef = useRef(true);
@@ -334,6 +340,10 @@ export function MenuShell({
     setShowSearch(false);
     setShowFavs(false);
     setActiveDiet(null);
+
+    // Mark as user-click so the horizontal pill bar doesn't auto-scroll
+    categoryClickedRef.current = true;
+
     setActiveCategory(catId);
 
     if (catId === null) {
@@ -343,8 +353,6 @@ export function MenuShell({
 
     if (isLargeCatalog) {
       setActiveCatFilter(catId);
-      // Only reset scroll if the banner is still visible (user is at top).
-      // If the banner is already off-screen, just swap the filter — no scroll needed.
       if (bannerVisibleRef.current) {
         mainRef.current?.scrollTo({ top: 0, behavior: 'auto' });
       }
@@ -353,13 +361,20 @@ export function MenuShell({
 
     const section = sectionRefs.current.get(catId);
     if (section && mainRef.current) {
+      // Save sidebar scroll position — some browsers reset it when the parent scrolls
+      const savedSidebarScroll = sidebarRef.current?.scrollTop ?? 0;
+
       isScrollingRef.current = true;
-      // Use offsetTop (absolute position from scroll container top) — avoids
-      // getBoundingClientRect() drift when the container is mid-scroll.
       const pillsHeight = mobilePillsRef.current?.offsetHeight ?? 0;
       const sectionOffsetTop = section.offsetTop;
       const offset = Math.max(0, sectionOffsetTop - HEADER_HEIGHT - pillsHeight);
       mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
+
+      // Restore sidebar scroll immediately after the browser may have reset it
+      requestAnimationFrame(() => {
+        if (sidebarRef.current) sidebarRef.current.scrollTop = savedSidebarScroll;
+      });
+
       setTimeout(() => { isScrollingRef.current = false; }, 1400);
     }
   }, [isLargeCatalog]);
@@ -675,35 +690,66 @@ export function MenuShell({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [showSearch, customization, isOpen, setOpen]);
 
-  // Auto-scroll pill bar to show active pill.
-  // In large-catalog mode the visible active pill is activeCatFilter; in normal mode it's activeCategory.
-  // Desktop uses manual scrollTo (catScrollRef). Mobile uses offsetLeft for reliability.
+  // Auto-scroll pill bar + sidebar to show active category.
+  // Pill bar: skipped when the change came from a user click (categoryClickedRef) to avoid
+  // the jarring "pills jumping back" effect. The sidebar always auto-scrolls so the active
+  // item stays visible (Uber Eats behavior: sidebar tracks scroll position).
   useEffect(() => {
     const catToShow = isLargeCatalog ? activeCatFilter : activeCategory;
     if (!catToShow) return;
+
+    const wasClick = categoryClickedRef.current;
+    categoryClickedRef.current = false; // reset for next update
+
     const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
-    if (isDesktop) {
-      const container = catScrollRef.current;
-      if (!container) return;
-      const pill = container.querySelector(`[data-pill-id="${catToShow}"]`) as HTMLElement;
-      if (pill) {
-        const containerRect = container.getBoundingClientRect();
-        const pillRect = pill.getBoundingClientRect();
-        const targetLeft =
-          container.scrollLeft +
-          pillRect.left -
-          containerRect.left -
-          (containerRect.width - pillRect.width) / 2;
-        container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+
+    // ── Horizontal pill bar (desktop + mobile top bar) ──
+    // Only auto-scroll when driven by scroll-spy, not by click.
+    if (!wasClick) {
+      if (isDesktop) {
+        const container = catScrollRef.current;
+        if (container) {
+          const pill = container.querySelector(`[data-pill-id="${catToShow}"]`) as HTMLElement;
+          if (pill) {
+            const containerRect = container.getBoundingClientRect();
+            const pillRect = pill.getBoundingClientRect();
+            const targetLeft =
+              container.scrollLeft +
+              pillRect.left -
+              containerRect.left -
+              (containerRect.width - pillRect.width) / 2;
+            container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+          }
+        }
+      } else {
+        const container = mobilePillsRef.current;
+        if (container) {
+          const pill = container.querySelector(`[data-pill-id="${catToShow}"]`) as HTMLElement;
+          if (pill) {
+            const targetLeft = pill.offsetLeft - (container.offsetWidth - pill.offsetWidth) / 2;
+            container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+          }
+        }
       }
-    } else {
-      const container = mobilePillsRef.current;
-      if (!container) return;
-      const pill = container.querySelector(`[data-pill-id="${catToShow}"]`) as HTMLElement;
-      if (pill) {
-        // offsetLeft is relative to container — only moves horizontal axis, never vertical
-        const targetLeft = pill.offsetLeft - (container.offsetWidth - pill.offsetWidth) / 2;
-        container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+    }
+
+    // ── Desktop sidebar: always auto-scroll to keep active item visible ──
+    // This is the Uber Eats pattern: sidebar tracks the active category as you scroll.
+    if (isDesktop) {
+      const sidebar = sidebarRef.current;
+      if (sidebar) {
+        const activeBtn = sidebar.querySelector(`[data-sidebar-cat="${catToShow}"]`) as HTMLElement;
+        if (activeBtn) {
+          const sidebarRect = sidebar.getBoundingClientRect();
+          const btnRect = activeBtn.getBoundingClientRect();
+          const isAbove = btnRect.top < sidebarRect.top + 16;
+          const isBelow = btnRect.bottom > sidebarRect.bottom - 16;
+          if (isAbove || isBelow) {
+            // Center the active item in the sidebar viewport
+            const targetTop = sidebar.scrollTop + btnRect.top - sidebarRect.top - (sidebarRect.height - btnRect.height) / 2;
+            sidebar.scrollTo({ top: Math.max(0, targetTop), behavior: wasClick ? 'auto' : 'smooth' });
+          }
+        }
       }
     }
   }, [activeCategory, activeCatFilter, isLargeCatalog]);
@@ -977,7 +1023,7 @@ export function MenuShell({
         <div className="flex min-h-[calc(100dvh-48px)]">
 
         {/* Left: Sidebar — sticky, stays in place while content scrolls */}
-        <aside className="hidden lg:flex flex-col w-[200px] flex-shrink-0 border-r border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
+        <aside ref={(el) => { sidebarRef.current = el; }} className="hidden lg:flex flex-col w-[200px] flex-shrink-0 border-r border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
           <CategorySidebar
             categories={categories}
             products={products}

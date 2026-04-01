@@ -49,6 +49,7 @@ export const CategorySidebar = memo(function CategorySidebar({
           return (
             <button
               key={cat.id}
+              data-sidebar-cat={cat.id}
               onClick={() => available ? onSelect(cat.id) : undefined}
               disabled={!available}
               className={cn(
