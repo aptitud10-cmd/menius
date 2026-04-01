@@ -136,8 +136,11 @@ export async function middleware(request: NextRequest) {
     .maybeSingle();
 
   const hasRestaurant = !profileError && !!profile?.default_restaurant_id;
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const isAdminUser = adminEmail && user.email === adminEmail;
+  const adminEmails = (process.env.ADMIN_EMAIL ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  const isAdminUser = adminEmails.length > 0 && adminEmails.includes((user.email ?? '').toLowerCase());
 
   if (isAuthPage) {
     if (hasRestaurant) {

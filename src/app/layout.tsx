@@ -5,6 +5,9 @@ import { Suspense } from 'react';
 import { cookies } from 'next/headers';
 import CookieConsent from '@/components/CookieConsent';
 import { PostHogProvider } from '@/components/PostHogProvider';
+import { validateEnv } from '@/lib/env';
+
+validateEnv();
 const inter = Inter({
   subsets: ['latin', 'latin-ext'],
   variable: '--font-inter',
