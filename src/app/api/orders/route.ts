@@ -237,6 +237,10 @@ export async function POST(request: NextRequest) {
       modGroupsByProduct.set(g.product_id, list);
     }
 
+    // Build a set of group IDs that have at least one option — used to skip
+    // required validation for groups with no options (avoids blocking orders)
+    const groupsWithOptions = new Set((dbModOptions ?? []).map((o) => o.group_id));
+
     for (const item of parsed.data.items) {
       const dbProduct = productMap.get(item.product_id);
       if (!dbProduct) {
@@ -286,6 +290,9 @@ export async function POST(request: NextRequest) {
       const groups = modGroupsByProduct.get(item.product_id) ?? [];
       for (const grp of groups) {
         if (!grp.is_required) continue;
+        // Skip validation if the group has no options — avoids blocking orders
+        // when a required modifier group was created but has no options yet
+        if (!groupsWithOptions.has(grp.id)) continue;
         const selected = (item.modifiers ?? []).filter((m: any) => m.group_name === grp.name).length;
         if (selected < grp.min_select) {
           return NextResponse.json({ error: `Selecciona al menos ${grp.min_select} opción(es) en "${grp.name}".` }, { status: 400 });
