@@ -1,21 +1,27 @@
-import Link from 'next/link';
-import { Monitor, Smartphone, ExternalLink, Download, Tablet, Printer, Wifi, CheckCircle2, ArrowRight } from 'lucide-react';
+'use client';
 
-export const metadata = {
-  title: 'Counter App — MENIUS',
-};
+import Link from 'next/link';
+import { Monitor, Smartphone, ExternalLink, Download, Tablet, Printer, Wifi, CheckCircle2 } from 'lucide-react';
+import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 const APK_URL = 'https://expo.dev/artifacts/eas/dxPgSHGFe4YJUPDoFFrVfF.apk';
 
 export default function CounterHubPage() {
+  const { t } = useDashboardLocale();
+
+  const installSteps = [
+    t.counter_hub_installStep1,
+    t.counter_hub_installStep2,
+    t.counter_hub_installStep3,
+    t.counter_hub_installStep4,
+  ];
+
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <h1 className="dash-heading">Counter / Caja</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Gestiona tus órdenes en tiempo real desde cualquier dispositivo
-        </p>
+        <h1 className="dash-heading">{t.nav_counter}</h1>
+        <p className="text-sm text-gray-500 mt-1">{t.counter_hub_subtitle}</p>
       </div>
 
       {/* Two options */}
@@ -27,15 +33,13 @@ export default function CounterHubPage() {
             <Monitor className="w-6 h-6 text-emerald-600" />
           </div>
           <div>
-            <p className="font-bold text-gray-900 text-base">Counter en navegador</p>
-            <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-              Funciona en cualquier celular, tablet o computadora con Chrome o Safari. Sin instalar nada.
-            </p>
+            <p className="font-bold text-gray-900 text-base">{t.counter_hub_browserTitle}</p>
+            <p className="text-sm text-gray-500 mt-1 leading-relaxed">{t.counter_hub_browserDesc}</p>
           </div>
           <ul className="space-y-2 text-sm text-gray-600">
-            <Spec text="Cualquier dispositivo con navegador" />
-            <Spec text="Impresión desde ajustes del navegador" />
-            <Spec text="Actualización instantánea" />
+            <Spec text={t.counter_hub_browserSpec1} />
+            <Spec text={t.counter_hub_browserSpec2} />
+            <Spec text={t.counter_hub_browserSpec3} />
           </ul>
           <div className="mt-auto flex flex-col gap-2">
             <Link
@@ -44,14 +48,14 @@ export default function CounterHubPage() {
               className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-colors"
             >
               <ExternalLink className="w-4 h-4" />
-              Abrir Counter
+              {t.counter_hub_openCounter}
             </Link>
             <Link
               href="/app/counter/tablet"
               className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors"
             >
               <Tablet className="w-4 h-4" />
-              Modo tablet (pantalla completa)
+              {t.counter_hub_tabletMode}
             </Link>
           </div>
         </div>
@@ -60,22 +64,20 @@ export default function CounterHubPage() {
         <div className="dash-card p-6 flex flex-col gap-4 ring-2 ring-orange-500/20 relative overflow-hidden">
           <div className="absolute top-3 right-3">
             <span className="text-[10px] font-bold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full uppercase tracking-wide">
-              Recomendado
+              {t.counter_hub_recommended}
             </span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center">
             <Smartphone className="w-6 h-6 text-orange-500" />
           </div>
           <div>
-            <p className="font-bold text-gray-900 text-base">App nativa Android</p>
-            <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-              Instala la app en tu tablet Android. Más rápida, con notificaciones y soporte completo de impresora Bluetooth.
-            </p>
+            <p className="font-bold text-gray-900 text-base">{t.counter_hub_nativeTitle}</p>
+            <p className="text-sm text-gray-500 mt-1 leading-relaxed">{t.counter_hub_nativeDesc}</p>
           </div>
           <ul className="space-y-2 text-sm text-gray-600">
-            <Spec text="Notificaciones de nuevas órdenes" />
-            <Spec text="Impresora Bluetooth sin diálogo" />
-            <Spec text="Funciona sin abrir el navegador" />
+            <Spec text={t.counter_hub_nativeSpec1} />
+            <Spec text={t.counter_hub_nativeSpec2} />
+            <Spec text={t.counter_hub_nativeSpec3} />
           </ul>
           <div className="mt-auto">
             <a
@@ -83,7 +85,7 @@ export default function CounterHubPage() {
               className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-orange-500 text-white text-sm font-bold hover:bg-orange-600 transition-colors"
             >
               <Download className="w-4 h-4" />
-              Descargar APK (Android)
+              {t.counter_hub_downloadApk}
             </a>
           </div>
         </div>
@@ -93,18 +95,13 @@ export default function CounterHubPage() {
       <div className="dash-card p-6">
         <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
           <Download className="w-4 h-4 text-orange-500" />
-          Cómo instalar la app en la tablet
+          {t.counter_hub_installTitle}
         </h2>
         <ol className="space-y-4">
-          {[
-            { n: '1', text: 'En la tablet Android, abre Chrome y ve al link de descarga del APK.' },
-            { n: '2', text: 'Si Android pregunta "¿Instalar de fuente desconocida?", acepta. Es seguro.' },
-            { n: '3', text: 'Una vez instalada, abre la app MENIUS Counter.' },
-            { n: '4', text: 'Inicia sesión con tu cuenta de MENIUS. La app se conecta automáticamente a tus órdenes.' },
-          ].map(({ n, text }) => (
-            <li key={n} className="flex gap-4">
+          {installSteps.map((text, i) => (
+            <li key={i} className="flex gap-4">
               <span className="w-7 h-7 rounded-full bg-orange-100 text-orange-600 font-bold text-sm flex items-center justify-center flex-shrink-0">
-                {n}
+                {i + 1}
               </span>
               <p className="text-sm text-gray-600 leading-relaxed pt-0.5">{text}</p>
             </li>
@@ -116,7 +113,7 @@ export default function CounterHubPage() {
       <div className="dash-card p-6">
         <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
           <Tablet className="w-4 h-4 text-gray-400" />
-          Hardware recomendado
+          {t.counter_hub_hardwareTitle}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
@@ -124,12 +121,12 @@ export default function CounterHubPage() {
           <div>
             <div className="flex items-center gap-2 mb-3">
               <Tablet className="w-4 h-4 text-blue-500" />
-              <p className="font-semibold text-sm text-gray-800">Tablet</p>
+              <p className="font-semibold text-sm text-gray-800">{t.counter_hub_tabletLabel}</p>
             </div>
             <ul className="space-y-2">
-              <HardwareSpec label="Sistema" value="Android 9 o superior" />
-              <HardwareSpec label="Pantalla" value='10" o más (orientación horizontal)' />
-              <HardwareSpec label="RAM" value="3 GB mínimo (4 GB recomendado)" />
+              <HardwareSpec label={t.counter_hub_specOS} value={t.counter_hub_specOSValue} />
+              <HardwareSpec label={t.counter_hub_specScreen} value={t.counter_hub_specScreenValue} />
+              <HardwareSpec label={t.counter_hub_specRAM} value={t.counter_hub_specRAMValue} />
             </ul>
           </div>
 
@@ -137,12 +134,12 @@ export default function CounterHubPage() {
           <div>
             <div className="flex items-center gap-2 mb-3">
               <Printer className="w-4 h-4 text-purple-500" />
-              <p className="font-semibold text-sm text-gray-800">Impresora térmica</p>
+              <p className="font-semibold text-sm text-gray-800">{t.counter_hub_printerLabel}</p>
             </div>
             <ul className="space-y-2">
-              <HardwareSpec label="Tipo" value="Térmica ESC/POS" />
-              <HardwareSpec label="Papel" value="58 mm o 80 mm" />
-              <HardwareSpec label="Conexión" value="Bluetooth 4.0+ o WiFi" />
+              <HardwareSpec label={t.counter_hub_specType} value={t.counter_hub_specTypeValue} />
+              <HardwareSpec label={t.counter_hub_specPaper} value={t.counter_hub_specPaperValue} />
+              <HardwareSpec label={t.counter_hub_specConn} value={t.counter_hub_specConnValue} />
             </ul>
           </div>
         </div>
@@ -151,7 +148,8 @@ export default function CounterHubPage() {
         <div className="mt-6 flex items-start gap-3 p-3.5 rounded-xl bg-blue-50 border border-blue-100">
           <Wifi className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
           <p className="text-xs text-blue-700 leading-relaxed">
-            <span className="font-semibold">Conexión a internet:</span> La tablet debe estar conectada a WiFi para recibir órdenes en tiempo real. Se recomienda WiFi de 2.4 GHz o 5 GHz estable en el área de caja.
+            <span className="font-semibold">{t.counter_hub_wifiLabel}</span>{' '}
+            {t.counter_hub_wifiNote}
           </p>
         </div>
       </div>

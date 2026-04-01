@@ -75,6 +75,45 @@ export interface DashboardTranslations {
   counter_printerError: string;
   counter_printerRetry: string;
 
+  // Counter Hub page
+  counter_hub_subtitle: string;
+  counter_hub_browserTitle: string;
+  counter_hub_browserDesc: string;
+  counter_hub_browserSpec1: string;
+  counter_hub_browserSpec2: string;
+  counter_hub_browserSpec3: string;
+  counter_hub_openCounter: string;
+  counter_hub_tabletMode: string;
+  counter_hub_recommended: string;
+  counter_hub_nativeTitle: string;
+  counter_hub_nativeDesc: string;
+  counter_hub_nativeSpec1: string;
+  counter_hub_nativeSpec2: string;
+  counter_hub_nativeSpec3: string;
+  counter_hub_downloadApk: string;
+  counter_hub_installTitle: string;
+  counter_hub_installStep1: string;
+  counter_hub_installStep2: string;
+  counter_hub_installStep3: string;
+  counter_hub_installStep4: string;
+  counter_hub_hardwareTitle: string;
+  counter_hub_tabletLabel: string;
+  counter_hub_printerLabel: string;
+  counter_hub_specOS: string;
+  counter_hub_specOSValue: string;
+  counter_hub_specScreen: string;
+  counter_hub_specScreenValue: string;
+  counter_hub_specRAM: string;
+  counter_hub_specRAMValue: string;
+  counter_hub_specType: string;
+  counter_hub_specTypeValue: string;
+  counter_hub_specPaper: string;
+  counter_hub_specPaperValue: string;
+  counter_hub_specConn: string;
+  counter_hub_specConnValue: string;
+  counter_hub_wifiLabel: string;
+  counter_hub_wifiNote: string;
+
   // Home
   home_welcome: string;
   home_subtitle: string;
@@ -1191,6 +1230,45 @@ const es: DashboardTranslations = {
   counter_printerError: 'Impresora no conectada',
   counter_printerRetry: 'Reintentar impresión',
 
+  // Counter Hub page
+  counter_hub_subtitle: 'Gestiona tus órdenes en tiempo real desde cualquier dispositivo',
+  counter_hub_browserTitle: 'Counter en navegador',
+  counter_hub_browserDesc: 'Funciona en cualquier celular, tablet o computadora con Chrome o Safari. Sin instalar nada.',
+  counter_hub_browserSpec1: 'Cualquier dispositivo con navegador',
+  counter_hub_browserSpec2: 'Impresión desde ajustes del navegador',
+  counter_hub_browserSpec3: 'Actualización instantánea',
+  counter_hub_openCounter: 'Abrir Counter',
+  counter_hub_tabletMode: 'Modo tablet (pantalla completa)',
+  counter_hub_recommended: 'Recomendado',
+  counter_hub_nativeTitle: 'App nativa Android',
+  counter_hub_nativeDesc: 'Instala la app en tu tablet Android. Más rápida, con notificaciones y soporte completo de impresora Bluetooth.',
+  counter_hub_nativeSpec1: 'Notificaciones de nuevas órdenes',
+  counter_hub_nativeSpec2: 'Impresora Bluetooth sin diálogo',
+  counter_hub_nativeSpec3: 'Funciona sin abrir el navegador',
+  counter_hub_downloadApk: 'Descargar APK (Android)',
+  counter_hub_installTitle: 'Cómo instalar la app en la tablet',
+  counter_hub_installStep1: 'En la tablet Android, abre Chrome y ve al link de descarga del APK.',
+  counter_hub_installStep2: 'Si Android pregunta "¿Instalar de fuente desconocida?", acepta. Es seguro.',
+  counter_hub_installStep3: 'Una vez instalada, abre la app MENIUS Counter.',
+  counter_hub_installStep4: 'Inicia sesión con tu cuenta de MENIUS. La app se conecta automáticamente a tus órdenes.',
+  counter_hub_hardwareTitle: 'Hardware recomendado',
+  counter_hub_tabletLabel: 'Tablet',
+  counter_hub_printerLabel: 'Impresora térmica',
+  counter_hub_specOS: 'Sistema',
+  counter_hub_specOSValue: 'Android 9 o superior',
+  counter_hub_specScreen: 'Pantalla',
+  counter_hub_specScreenValue: '10" o más (orientación horizontal)',
+  counter_hub_specRAM: 'RAM',
+  counter_hub_specRAMValue: '3 GB mínimo (4 GB recomendado)',
+  counter_hub_specType: 'Tipo',
+  counter_hub_specTypeValue: 'Térmica ESC/POS',
+  counter_hub_specPaper: 'Papel',
+  counter_hub_specPaperValue: '58 mm o 80 mm',
+  counter_hub_specConn: 'Conexión',
+  counter_hub_specConnValue: 'Bluetooth 4.0+ o WiFi',
+  counter_hub_wifiLabel: 'Conexión a internet:',
+  counter_hub_wifiNote: 'La tablet debe estar conectada a WiFi para recibir órdenes en tiempo real. Se recomienda WiFi de 2.4 GHz o 5 GHz estable en el área de caja.',
+
   // Home
   home_welcome: '¡Bienvenido!',
   home_subtitle: 'Aquí tienes un resumen de tu restaurante hoy.',
@@ -2306,6 +2384,45 @@ const en: DashboardTranslations = {
   counter_printed: 'Printed',
   counter_printerError: 'Printer not connected',
   counter_printerRetry: 'Retry print',
+
+  // Counter Hub page
+  counter_hub_subtitle: 'Manage your orders in real time from any device',
+  counter_hub_browserTitle: 'Counter in browser',
+  counter_hub_browserDesc: 'Works on any phone, tablet, or computer with Chrome or Safari. No installation needed.',
+  counter_hub_browserSpec1: 'Any device with a browser',
+  counter_hub_browserSpec2: 'Print from browser settings',
+  counter_hub_browserSpec3: 'Instant updates',
+  counter_hub_openCounter: 'Open Counter',
+  counter_hub_tabletMode: 'Tablet mode (full screen)',
+  counter_hub_recommended: 'Recommended',
+  counter_hub_nativeTitle: 'Android Native App',
+  counter_hub_nativeDesc: 'Install the app on your Android tablet. Faster, with notifications and full Bluetooth printer support.',
+  counter_hub_nativeSpec1: 'New order notifications',
+  counter_hub_nativeSpec2: 'Bluetooth printer without dialog',
+  counter_hub_nativeSpec3: 'Works without opening the browser',
+  counter_hub_downloadApk: 'Download APK (Android)',
+  counter_hub_installTitle: 'How to install the app on the tablet',
+  counter_hub_installStep1: 'On the Android tablet, open Chrome and go to the APK download link.',
+  counter_hub_installStep2: 'If Android asks "Install from unknown source?", accept. It\'s safe.',
+  counter_hub_installStep3: 'Once installed, open the MENIUS Counter app.',
+  counter_hub_installStep4: 'Sign in with your MENIUS account. The app connects automatically to your orders.',
+  counter_hub_hardwareTitle: 'Recommended hardware',
+  counter_hub_tabletLabel: 'Tablet',
+  counter_hub_printerLabel: 'Thermal printer',
+  counter_hub_specOS: 'OS',
+  counter_hub_specOSValue: 'Android 9 or higher',
+  counter_hub_specScreen: 'Screen',
+  counter_hub_specScreenValue: '10" or more (landscape orientation)',
+  counter_hub_specRAM: 'RAM',
+  counter_hub_specRAMValue: '3 GB minimum (4 GB recommended)',
+  counter_hub_specType: 'Type',
+  counter_hub_specTypeValue: 'Thermal ESC/POS',
+  counter_hub_specPaper: 'Paper',
+  counter_hub_specPaperValue: '58 mm or 80 mm',
+  counter_hub_specConn: 'Connection',
+  counter_hub_specConnValue: 'Bluetooth 4.0+ or WiFi',
+  counter_hub_wifiLabel: 'Internet connection:',
+  counter_hub_wifiNote: 'The tablet must be connected to WiFi to receive orders in real time. A stable 2.4 GHz or 5 GHz WiFi is recommended in the cashier area.',
 
   // Home
   home_welcome: 'Welcome!',
