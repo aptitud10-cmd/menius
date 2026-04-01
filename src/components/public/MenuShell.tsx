@@ -1986,7 +1986,7 @@ export function MenuShell({
               </div>
 
               {/* Dismiss button */}
-              <div className="flex-shrink-0 px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] pt-2 border-t border-gray-100">
+              <div className="flex-shrink-0 px-5 pb-5 pt-2 border-t border-gray-100">
                 <button
                   onClick={() => setShowCatSheet(false)}
                   className="w-full py-3.5 rounded-2xl bg-gray-900 text-white font-bold text-[15px] active:bg-gray-700 transition-colors"
@@ -1994,6 +1994,8 @@ export function MenuShell({
                   {locale === 'en' ? 'Dismiss' : 'Cerrar'}
                 </button>
               </div>
+              {/* Safe area spacer — decoupled to prevent reflow during slide-in animation */}
+              <div className="flex-shrink-0 pb-[env(safe-area-inset-bottom)]" />
             </motion.div>
           </>
         )}
