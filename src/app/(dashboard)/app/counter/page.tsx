@@ -130,7 +130,6 @@ export default function CounterHubPage() {
               <HardwareSpec label="Sistema" value="Android 9 o superior" />
               <HardwareSpec label="Pantalla" value='10" o más (orientación horizontal)' />
               <HardwareSpec label="RAM" value="3 GB mínimo (4 GB recomendado)" />
-              <HardwareSpec label="Ejemplo" value="Samsung Galaxy Tab A9+ 11"" highlight />
             </ul>
           </div>
 
@@ -144,7 +143,6 @@ export default function CounterHubPage() {
               <HardwareSpec label="Tipo" value="Térmica ESC/POS" />
               <HardwareSpec label="Papel" value="58 mm o 80 mm" />
               <HardwareSpec label="Conexión" value="Bluetooth 4.0+ o WiFi" />
-              <HardwareSpec label="Ejemplo" value="Epson TM-m30 · MUNBYN · Xprinter" highlight />
             </ul>
           </div>
         </div>
@@ -170,11 +168,11 @@ function Spec({ text }: { text: string }) {
   );
 }
 
-function HardwareSpec({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function HardwareSpec({ label, value }: { label: string; value: string }) {
   return (
     <li className="flex items-start justify-between gap-2 text-sm">
       <span className="text-gray-400 flex-shrink-0">{label}</span>
-      <span className={highlight ? 'font-semibold text-gray-800 text-right' : 'text-gray-700 text-right'}>{value}</span>
+      <span className="text-gray-700 text-right">{value}</span>
     </li>
   );
 }
