@@ -51,6 +51,9 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
           <Link href="/blog" className="text-sm text-gray-400 hover:text-white transition-colors">{n.blog}</Link>
           <Link href="/faq" className="text-sm text-gray-400 hover:text-white transition-colors">{n.faq}</Link>
           <Link href="/demo" className="text-sm text-gray-400 hover:text-white transition-colors">{n.demo}</Link>
+          <Link href="/ai-fotos" className="text-sm font-medium text-orange-400 hover:text-orange-300 transition-colors flex items-center gap-1">
+            <span>✦</span>{n.aiPhotos}
+          </Link>
         </nav>
 
         <div className="hidden md:flex items-center gap-4">
@@ -82,6 +85,7 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
             <Link href="/demo" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors">{n.demo}</Link>
             <Link href="/blog" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors">{n.blog}</Link>
             <Link href="/faq" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors">{n.faq}</Link>
+            <Link href="/ai-fotos" onClick={() => setOpen(false)} className="py-3 text-[15px] font-medium text-orange-400 hover:text-orange-300 transition-colors flex items-center gap-1.5"><span>✦</span>{n.aiPhotos}</Link>
             <div className="h-px bg-white/[0.06] my-2" />
             <div className="flex items-center gap-3 py-3">
               <button onClick={() => switchLocale('es')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'es' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}>ES</button>
