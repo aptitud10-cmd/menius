@@ -1,8 +1,17 @@
 import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { MarketingHub } from '@/components/dashboard/MarketingHub';
+import { checkPlanAccess } from '@/lib/plan-access';
+import { PlanUpgradeWall } from '@/components/dashboard/PlanUpgradeWall';
 
 export default async function MarketingPage() {
   const { supabase, restaurantId } = await getDashboardContext();
+
+  const hasAccess = await checkPlanAccess('pro');
+  if (!hasAccess) {
+    const { data: rest } = await supabase.from('restaurants').select('locale').eq('id', restaurantId).maybeSingle();
+    const locale = rest?.locale === 'en' ? 'en' : 'es';
+    return <PlanUpgradeWall requiredPlan="pro" locale={locale} featureEs="Marketing y Campañas" featureEn="Marketing & Campaigns" />;
+  }
 
   const [
     { data: restaurant },

@@ -1,8 +1,17 @@
 import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { ReviewsManager } from '@/components/dashboard/ReviewsManager';
+import { checkPlanAccess } from '@/lib/plan-access';
+import { PlanUpgradeWall } from '@/components/dashboard/PlanUpgradeWall';
 
 export default async function ReviewsPage() {
   const { supabase, restaurantId } = await getDashboardContext();
+
+  const hasAccess = await checkPlanAccess('pro');
+  if (!hasAccess) {
+    const { data: rest } = await supabase.from('restaurants').select('locale').eq('id', restaurantId).maybeSingle();
+    const locale = rest?.locale === 'en' ? 'en' : 'es';
+    return <PlanUpgradeWall requiredPlan="pro" locale={locale} featureEs="Reseñas de clientes" featureEn="Customer Reviews" />;
+  }
 
   const { data: reviews } = await supabase
     .from('reviews')

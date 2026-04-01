@@ -1,8 +1,17 @@
 import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { KDSView } from '@/components/orders/KDSView';
+import { checkPlanAccess } from '@/lib/plan-access';
+import { PlanUpgradeWall } from '@/components/dashboard/PlanUpgradeWall';
 
 export default async function KDSFullscreenPage() {
   const { supabase, restaurantId } = await getDashboardContext();
+
+  const hasAccess = await checkPlanAccess('pro');
+  if (!hasAccess) {
+    const { data: rest } = await supabase.from('restaurants').select('locale').eq('id', restaurantId).maybeSingle();
+    const locale = rest?.locale === 'en' ? 'en' : 'es';
+    return <PlanUpgradeWall requiredPlan="pro" locale={locale} featureEs="Pantalla de Cocina (KDS)" featureEn="Kitchen Display (KDS)" />;
+  }
 
   const [{ data: restaurant }, { data: orders }, { data: kdsStations }] = await Promise.all([
     supabase

@@ -5,14 +5,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
+import { getDashboardPlan, meetsMinPlan } from '@/lib/plan-access';
 
 const logger = createLogger('tenant-analytics');
+
+const STARTER_MAX_DAYS = 30;
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = createClient();
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+
+    const plan = await getDashboardPlan();
+    const isPro = meetsMinPlan(plan, 'pro');
 
     const { searchParams } = new URL(request.url);
     const startParam = searchParams.get('start');
@@ -29,6 +35,16 @@ export async function GET(request: NextRequest) {
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
         return NextResponse.json({ error: 'Rango de fechas inválido' }, { status: 400 });
       }
+
+      // Cap start date to 30 days ago for Starter plan
+      if (!isPro) {
+        const maxStart = new Date();
+        maxStart.setDate(maxStart.getDate() - STARTER_MAX_DAYS);
+        if (startDate < maxStart) {
+          startDate.setTime(maxStart.getTime());
+        }
+      }
+
       sinceISO = startDate.toISOString();
       endISO = endDate.toISOString();
       days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -39,6 +55,8 @@ export async function GET(request: NextRequest) {
       prevSinceISO = prevStart.toISOString();
     } else {
       days = Number(searchParams.get('days')) || 7;
+      // Cap to 30 days for Starter plan
+      if (!isPro && days > STARTER_MAX_DAYS) days = STARTER_MAX_DAYS;
       const since = new Date();
       since.setDate(since.getDate() - days);
       sinceISO = since.toISOString();
