@@ -158,6 +158,7 @@ export function MenuShell({
   const stockAlertTimer = useRef<ReturnType<typeof setTimeout>>();
   const audioCtxRef = useRef<AudioContext | null>(null);
   const catScrollRef = useRef<HTMLDivElement>(null);
+  const desktopPillsRef = useRef<HTMLDivElement>(null);
   const bannerRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement | null>(null);
   const [mainEl, setMainEl] = useState<HTMLElement | null>(null);
@@ -362,22 +363,34 @@ export function MenuShell({
 
     const section = sectionRefs.current.get(catId);
     if (section && mainRef.current) {
-      // Save sidebar scroll position — some browsers reset it when the parent scrolls
       const savedSidebarScroll = sidebarRef.current?.scrollTop ?? 0;
 
       isScrollingRef.current = true;
-      const pillsHeight = mobilePillsRef.current?.offsetHeight ?? 0;
-      const offset = Math.max(0, section.offsetTop - HEADER_HEIGHT - pillsHeight);
-      mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
 
-      // Restore sidebar scroll immediately after the browser may have reset it
+      // Compute how many px of sticky UI cover the top of the scroll container.
+      // Desktop: only the desktop pill bar (sticky top-0 inside mainRef).
+      // Mobile:  absolute header (when cover exists) + mobile pill bar.
+      const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
+      const margin = isDesktop
+        ? (desktopPillsRef.current?.offsetHeight ?? 44)
+        : (hasCover ? HEADER_HEIGHT : 0) + (mobilePillsRef.current?.offsetHeight ?? 52);
+
+      section.style.scrollMarginTop = `${margin}px`;
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
       requestAnimationFrame(() => {
         if (sidebarRef.current) sidebarRef.current.scrollTop = savedSidebarScroll;
       });
 
-      setTimeout(() => { isScrollingRef.current = false; }, 1400);
+      // Unlock scroll-spy when the animation ends; fall back to 2 s.
+      const unlock = () => { isScrollingRef.current = false; };
+      const timer = setTimeout(unlock, 2000);
+      mainRef.current.addEventListener('scrollend', () => {
+        clearTimeout(timer);
+        unlock();
+      }, { once: true });
     }
-  }, [isLargeCatalog]);
+  }, [isLargeCatalog, hasCover]);
 
   const handleProductSelect = useCallback((product: Product) => {
     setCustomization({ product, editIndex: null });
@@ -1022,7 +1035,7 @@ export function MenuShell({
         <div className="flex-1 min-w-0 flex flex-col">
 
         {/* Sticky category pills — desktop only, pins once banner scrolls away */}
-        <div className="hidden lg:block sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+        <div ref={desktopPillsRef} className="hidden lg:block sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-100">
           <div className="relative px-2 py-2">
             <button onClick={() => scrollCats('left')} className="absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-white via-white to-transparent flex items-center justify-start" aria-label={locale === 'en' ? 'Scroll left' : 'Desplazar izquierda'}>
               <ChevronLeft className="w-4 h-4 text-gray-400" />
