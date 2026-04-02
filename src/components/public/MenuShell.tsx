@@ -700,31 +700,30 @@ export function MenuShell({
     const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
 
     // ── Horizontal pill bar (desktop + mobile top bar) ──
-    // Only auto-scroll when driven by scroll-spy, not by click.
-    if (!wasClick) {
-      if (isDesktop) {
-        const container = catScrollRef.current;
-        if (container) {
-          const pill = container.querySelector(`[data-pill-id="${catToShow}"]`) as HTMLElement;
-          if (pill) {
-            const containerRect = container.getBoundingClientRect();
-            const pillRect = pill.getBoundingClientRect();
-            const targetLeft =
-              container.scrollLeft +
-              pillRect.left -
-              containerRect.left -
-              (containerRect.width - pillRect.width) / 2;
-            container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
-          }
+    // On click: instant jump so the pill appears selected immediately.
+    // On scroll-spy: smooth scroll to follow the reading position.
+    if (isDesktop) {
+      const container = catScrollRef.current;
+      if (container) {
+        const pill = container.querySelector(`[data-pill-id="${catToShow}"]`) as HTMLElement;
+        if (pill) {
+          const containerRect = container.getBoundingClientRect();
+          const pillRect = pill.getBoundingClientRect();
+          const targetLeft =
+            container.scrollLeft +
+            pillRect.left -
+            containerRect.left -
+            (containerRect.width - pillRect.width) / 2;
+          container.scrollTo({ left: Math.max(0, targetLeft), behavior: wasClick ? 'instant' : 'smooth' });
         }
-      } else {
-        const container = mobilePillsRef.current;
-        if (container) {
-          const pill = container.querySelector(`[data-pill-id="${catToShow}"]`) as HTMLElement;
-          if (pill) {
-            const targetLeft = pill.offsetLeft - (container.offsetWidth - pill.offsetWidth) / 2;
-            container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
-          }
+      }
+    } else {
+      const container = mobilePillsRef.current;
+      if (container) {
+        const pill = container.querySelector(`[data-pill-id="${catToShow}"]`) as HTMLElement;
+        if (pill) {
+          const targetLeft = pill.offsetLeft - (container.offsetWidth - pill.offsetWidth) / 2;
+          container.scrollTo({ left: Math.max(0, targetLeft), behavior: wasClick ? 'instant' : 'smooth' });
         }
       }
     }
