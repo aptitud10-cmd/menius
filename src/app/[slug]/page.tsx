@@ -33,7 +33,6 @@ const RESERVED_PATHS = new Set([
 
 interface PageProps {
   params: { slug: string };
-  searchParams: { table?: string };
 }
 
 const DEMO_SLUGS: Record<string, {
@@ -120,7 +119,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function SlugMenuPage({ params, searchParams }: PageProps) {
+export default async function SlugMenuPage({ params }: PageProps) {
   // Skip reserved paths — let Next.js handle them via their own routes
   if (RESERVED_PATHS.has(params.slug)) notFound();
 
@@ -134,7 +133,7 @@ export default async function SlugMenuPage({ params, searchParams }: PageProps) 
           restaurant={demoConfig.restaurant}
           categories={demoConfig.categories}
           products={demoConfig.products}
-          tableName={searchParams.table ?? null}
+          tableName={null}
           locale={demoConfig.locale}
           backUrl="/"
           reviewStats={{ average: 4.7, total: 128 }}
@@ -153,7 +152,7 @@ export default async function SlugMenuPage({ params, searchParams }: PageProps) 
         restaurant={data.restaurant}
         categories={data.categories}
         products={data.products}
-        tableName={searchParams.table ?? null}
+        tableName={null}
         locale={data.locale}
         availableLocales={data.availableLocales}
         reviewStats={data.reviewStats}

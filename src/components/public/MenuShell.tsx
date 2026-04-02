@@ -122,7 +122,9 @@ export function MenuShell({
   useEffect(() => {
     setHasMounted(true);
     setRestaurantId(restaurant.id);
-    setTableName(tableName);
+    // tableName comes from the server as null (page is static); read ?table= from URL on client
+    const resolvedTable = tableName ?? new URLSearchParams(window.location.search).get('table');
+    setTableName(resolvedTable);
     router.prefetch(`/${restaurant.slug}/checkout`);
 
     // If returning customer has items in cart, show a brief "resume cart" toast
