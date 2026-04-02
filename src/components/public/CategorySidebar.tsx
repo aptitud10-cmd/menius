@@ -68,7 +68,7 @@ export const CategorySidebar = memo(function CategorySidebar({
                   />
                   <motion.span
                     layoutId="sidebar-bar"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald-500"
+                    className="absolute inset-x-4 bottom-0 h-[2px] rounded-full bg-emerald-500"
                     transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                   />
                 </>
