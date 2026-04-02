@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { MenuShell } from '@/components/public/MenuShell';
-import { fetchMenuData } from './menu-data';
+import { fetchMenuData, fetchRestaurantMeta } from './menu-data';
 import { demoRestaurant, demoCategories, demoProducts } from '@/lib/demo-data';
 import { grillHouseRestaurant, grillHouseCategories, grillHouseProducts } from '@/lib/demo-data-en';
 import { JsonLdScript } from '@/components/public/JsonLdScript';
@@ -67,22 +67,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const data = await fetchMenuData(params.slug);
-  if (!data) return { title: 'Menú no encontrado | MENIUS', robots: { index: false, follow: false } };
+  // Use the lightweight fetch so this resolves quickly and streaming can start
+  // without waiting for the full categories/products/reviews queries.
+  const restaurant = await fetchRestaurantMeta(params.slug);
+  if (!restaurant) return { title: 'Menú no encontrado | MENIUS', robots: { index: false, follow: false } };
 
-  const { restaurant } = data;
-  const isEn = data.locale === 'en';
+  const isEn = (restaurant.locale ?? 'es') === 'en';
   const title = `${restaurant.name} — ${isEn ? 'Digital Menu' : 'Menú Digital'} | MENIUS`;
   const description = restaurant.description ?? (isEn ? `Order online from ${restaurant.name}.` : `Pide online en ${restaurant.name}. Menú digital con MENIUS.`);
   const url = `${APP_URL}/${restaurant.slug}`;
   const image = restaurant.cover_image_url || restaurant.logo_url || `${APP_URL}/opengraph-image`;
   const logoUrl = restaurant.logo_url ?? undefined;
 
-  // Build hreflang only when the restaurant explicitly supports multiple locales
-  const multiLang = data.availableLocales.length > 1;
+  const availableLocales: string[] = restaurant.available_locales ?? [restaurant.locale ?? 'es'];
+  const multiLang = availableLocales.length > 1;
   const langAlternates = multiLang
     ? Object.fromEntries([
-        ...data.availableLocales.map((lc) => [lc, url]),
+        ...availableLocales.map((lc: string) => [lc, url]),
         ['x-default', url],
       ])
     : undefined;

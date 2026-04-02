@@ -2,6 +2,24 @@ import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { Restaurant, Category, Product } from '@/types';
 
+/**
+ * Lightweight fetch — only the fields needed for <head> metadata.
+ * One single DB query so generateMetadata resolves fast and streaming can begin.
+ */
+export const fetchRestaurantMeta = cache(async function fetchRestaurantMeta(slug: string) {
+  try {
+    const db = createAdminClient();
+    const { data } = await db
+      .from('restaurants')
+      .select('name, description, cover_image_url, logo_url, slug, locale, available_locales')
+      .eq('slug', slug)
+      .single();
+    return data ?? null;
+  } catch {
+    return null;
+  }
+});
+
 export interface ReviewStats {
   average: number;
   total: number;
