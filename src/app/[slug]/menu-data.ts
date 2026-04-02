@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { Restaurant, Category, Product } from '@/types';
 
@@ -52,12 +53,9 @@ export interface MenuData {
 }
 
 /**
- * Load public menu data from the database.
- * Wrapped in React.cache() so generateMetadata and the page component share a single
- * Supabase request per slug per render pass — no duplicate queries.
- * Server actions call revalidatePublicMenu after edits; API routes that mutate products must too.
+ * Core database fetch — no cache layer here, called by the cached wrappers below.
  */
-export const fetchMenuData = cache(async function fetchMenuData(slug: string): Promise<MenuData | null> {
+async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
   try {
     // Admin client bypasses RLS for public menu reads (server-side only, never exposed to client)
     const db = createAdminClient();
@@ -223,4 +221,21 @@ export const fetchMenuData = cache(async function fetchMenuData(slug: string): P
     });
     return null;
   }
-});
+}
+
+/**
+ * Load public menu data with two-level caching:
+ *  1. unstable_cache  — persists the Supabase result in Next.js's data cache for 1 hour.
+ *                       Invalidated on-demand by revalidateTag('menu-data') whenever the
+ *                       restaurant edits products, categories, or settings.
+ *  2. React.cache()   — deduplicates calls within the same render pass (page + metadata).
+ *
+ * Result: Supabase is only hit once per real menu change, not on every ISR regeneration.
+ */
+const _fetchMenuDataCached = unstable_cache(
+  fetchMenuDataFromDB,
+  ['menu-data'],
+  { tags: ['menu-data'], revalidate: 3600 },
+);
+
+export const fetchMenuData = cache(_fetchMenuDataCached);
