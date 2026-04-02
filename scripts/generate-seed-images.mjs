@@ -13,7 +13,7 @@
  *   $env:GEMINI_API_KEY="your-key" ; node scripts/generate-seed-images.mjs
  */
 
-import { writeFileSync, readFileSync } from 'fs';
+import { writeFileSync, readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -60,6 +60,10 @@ const ES_IMAGES = [
   { file: 'seed/es/cafe.webp',             name: 'Café de Olla',                  description: 'Café de grano con piloncillo y canela, estilo tradicional mexicano',                  category: 'Hot drinks', cuisine: 'Mexican' },
   { file: 'seed/es/horchata.webp',         name: 'Agua de Horchata',              description: 'Agua fresca de arroz con canela y un toque de vainilla',                              category: 'Beverages',  cuisine: 'Mexican' },
   { file: 'seed/es/jugo.webp',             name: 'Jugo Natural de Naranja',       description: 'Jugo recién exprimido de naranja o zanahoria',                                        category: 'Beverages',  cuisine: 'Mexican' },
+  { file: 'seed/es/pepsi.webp',            name: 'Refresco de Cola',              description: 'Refresco de cola bien frío en lata con hielo y vaso',                                  category: 'Beverages',  cuisine: 'Mexican' },
+  { file: 'seed/es/sprite.webp',           name: 'Refresco de Limón',             description: 'Refresco de limón con gas, refrescante y sin cafeína en lata fría con hielo',          category: 'Beverages',  cuisine: 'Mexican' },
+  { file: 'seed/es/ginger-ale.webp',       name: 'Ginger Ale',                    description: 'Refresco de jengibre dorado suave con burbujas finas en lata fría',                    category: 'Beverages',  cuisine: 'Mexican' },
+  { file: 'seed/es/orange-soda.webp',      name: 'Refresco de Naranja',           description: 'Refresco de naranja dulce y con mucho gas en lata fría con vaso',                      category: 'Beverages',  cuisine: 'Mexican' },
   // Licores
   { file: 'seed/es/margarita.webp',        name: 'Margarita Clásica',             description: 'Tequila, triple sec, jugo de limón y sal en el borde',                               category: 'Cocktails',  cuisine: 'Mexican' },
   { file: 'seed/es/cerveza.webp',          name: 'Cerveza Artesanal',             description: 'Selección de cervezas artesanales locales, fría y espumosa',                         category: 'Cocktails',  cuisine: 'Mexican' },
@@ -149,6 +153,10 @@ function getContainer(name, category) {
   if (/smoothie/.test(lower)) return 'a tall frosted glass filled with colorful tropical smoothie, a straw and fruit garnish on the rim';
   if (/water|agua mineral/.test(lower)) return 'a clear glass bottle of mineral water with condensation droplets and a lemon slice beside it';
   if (/jugo|juice|naranja/.test(lower)) return 'a chilled glass filled with freshly squeezed bright orange juice';
+  if (/cola|pepsi|refresco de cola/.test(lower)) return 'a closed cold soda can with condensation droplets beside a tall glass with ice and dark cola poured in, bubbles rising';
+  if (/sprite|limón con gas|refresco de limón/.test(lower)) return 'a closed cold soda can with condensation droplets beside a tall glass with ice and clear lemon-lime soda, bubbles rising';
+  if (/ginger ale/.test(lower)) return 'a cold soda can with condensation beside a tall glass with ice and golden amber ginger ale, fine bubbles rising';
+  if (/orange soda|refresco de naranja/.test(lower)) return 'a closed cold orange soda can with condensation droplets beside a tall glass with ice and vibrant orange soda, bubbles rising';
 
   // ── Hot drinks ──
   if (/café|coffee|espresso|latte|cappuccino|olla/.test(lower)) return 'a beautiful ceramic coffee mug or clay pot (for café de olla), steam gently rising from the top';
@@ -268,6 +276,10 @@ function getStyling(name, description, category) {
     if (/horchata/.test(lower)) return 'Creamy white horchata with a cinnamon stick. Ice visible. Slight cinnamon powder dusted on top.';
     if (/smoothie/.test(lower)) return 'Thick, vibrant tropical smoothie. Fresh fruit garnish on the rim. Straw inserted at a natural angle.';
     if (/juice|jugo/.test(lower)) return 'Bright vibrant orange color, freshly squeezed look. Small pulp particles visible. Slice of orange on rim.';
+    if (/cola|pepsi|refresco de cola/.test(lower)) return 'Dark rich cola color in the glass, bubbles rising, condensation on the cold can, ice cubes glistening.';
+    if (/sprite|limón con gas|refresco de limón/.test(lower)) return 'Crystal-clear sparkling lemon-lime soda in the glass, bubbles rising rapidly, condensation on the cold can, fresh lemon slice on rim.';
+    if (/ginger ale/.test(lower)) return 'Golden amber ginger ale in the glass, fine delicate bubbles rising, condensation droplets on the cold can, no garnish.';
+    if (/orange soda|refresco de naranja/.test(lower)) return 'Vivid orange soda in the glass, thick rising bubbles, condensation on the cold can, orange slice on rim.';
     if (/coffee|café|espresso/.test(lower)) return 'Perfect latte art or rosette on top. Steam rising delicately from the cup. Crema golden-brown and smooth.';
     if (/water/.test(lower)) return 'Clear sparkling water in the bottle, condensation droplets on the glass, one lemon slice beside it on the counter.';
     return 'Drink looks fresh, vibrant, and perfectly prepared. Garnish precisely placed. Condensation on the glass.';
@@ -506,10 +518,14 @@ function replaceUnsplashUrls(content, urlMap) {
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 async function main() {
+  const onlyMissing = process.argv.includes('--only-missing');
+
   console.log('🚀 generate-seed-images v2 — gemini-3-pro-image-preview (nano banana)');
+  if (onlyMissing) console.log('⏩  Mode: --only-missing (skipping existing files)');
   console.log(`📦 Total: ${ALL_IMAGES.length} images\n`);
 
   let generated = 0;
+  let skipped = 0;
   let failed = 0;
 
   for (let i = 0; i < ALL_IMAGES.length; i++) {
@@ -517,6 +533,12 @@ async function main() {
     const outPath = join(ROOT, 'public', item.file);
 
     process.stdout.write(`[${String(i + 1).padStart(2)}/${ALL_IMAGES.length}] ${item.name}...`);
+
+    if (onlyMissing && existsSync(outPath)) {
+      skipped++;
+      console.log(' ⏭  (exists)');
+      continue;
+    }
 
     try {
       const prompt = buildPrompt(item);
@@ -532,7 +554,7 @@ async function main() {
     if (i < ALL_IMAGES.length - 1) await sleep(2500);
   }
 
-  console.log(`\n✅ Generated: ${generated} | ❌ Failed: ${failed}`);
+  console.log(`\n✅ Generated: ${generated} | ⏭  Skipped: ${skipped} | ❌ Failed: ${failed}`);
 
   // Update demo TypeScript files
   console.log('\n📝 Updating demo-data.ts...');
