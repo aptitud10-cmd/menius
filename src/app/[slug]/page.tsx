@@ -1,12 +1,27 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { MenuShell } from '@/components/public/MenuShell';
-import { fetchMenuData, fetchRestaurantMeta } from './menu-data';
+import { fetchMenuData, fetchRestaurantMeta, fetchAllSlugs } from './menu-data';
 import { demoRestaurant, demoCategories, demoProducts } from '@/lib/demo-data';
 import { grillHouseRestaurant, grillHouseCategories, grillHouseProducts } from '@/lib/demo-data-en';
 import { JsonLdScript } from '@/components/public/JsonLdScript';
 
 export const revalidate = 300;
+// Allow slugs not in generateStaticParams (new restaurants created after build) to work via ISR
+export const dynamicParams = true;
+
+/**
+ * Pre-generate all restaurant menu pages at build time.
+ * Vercel serves these as static files (< 100 ms) instead of running server code on each request.
+ * When a restaurant edits their menu, revalidatePath() triggers background regeneration.
+ */
+export async function generateStaticParams() {
+  const slugs = await fetchAllSlugs();
+  // Also include the demo slugs so they are always pre-built
+  const demoSlugs = ['la-casa-del-sabor', 'the-grill-house'];
+  const all = Array.from(new Set([...demoSlugs, ...slugs]));
+  return all.map((slug) => ({ slug }));
+}
 
 // Reserved paths that must NOT be matched by this catch-all slug route
 const RESERVED_PATHS = new Set([

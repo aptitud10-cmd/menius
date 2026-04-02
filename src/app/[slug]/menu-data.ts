@@ -4,6 +4,20 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import type { Restaurant, Category, Product } from '@/types';
 
 /**
+ * Fetch all active restaurant slugs for generateStaticParams.
+ * Called once at build time — no caching needed.
+ */
+export async function fetchAllSlugs(): Promise<string[]> {
+  try {
+    const db = createAdminClient();
+    const { data } = await db.from('restaurants').select('slug');
+    return (data ?? []).map((r: { slug: string }) => r.slug).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Lightweight fetch — only the fields needed for <head> metadata.
  * One single DB query so generateMetadata resolves fast and streaming can begin.
  */
