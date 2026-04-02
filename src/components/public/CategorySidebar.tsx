@@ -68,13 +68,10 @@ export const CategorySidebar = memo(function CategorySidebar({
                   />
                   <motion.span
                     layoutId="sidebar-bar"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald-500"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald-500 animate-pulse"
+                    style={{ boxShadow: '0 0 8px 2px rgba(16,185,129,0.6)' }}
                     transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-                  >
-                    {/* Live dot — ping expands and fades, solid dot stays visible */}
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-75" />
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500" />
-                  </motion.span>
+                  />
                 </>
               )}
               <div className="flex-1 text-left min-w-0 relative z-10">
