@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe, RotateCcw, AlertCircle, AlignJustify } from 'lucide-react';
@@ -61,47 +61,6 @@ interface CustomizationTarget {
 
 const POPULAR_ID = '__popular__';
 
-// Renders children only when the section scrolls near the viewport.
-// Once rendered, stays rendered (one-way latch) to avoid thrashing.
-// The wrapping <section> with sectionRef is unaffected — scroll-spy works normally.
-function SkeletonCard() {
-  return <div className="rounded-2xl bg-gray-100 aspect-square" />;
-}
-
-const LazyProductGrid = memo(function LazyProductGrid({
-  itemCount,
-  children,
-}: {
-  itemCount: number;
-  children: React.ReactNode;
-}) {
-  const [visible, setVisible] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (visible) return;
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setVisible(true); },
-      { rootMargin: '400px 0px' }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [visible]);
-
-  if (!visible) {
-    return (
-      <div ref={ref} className="grid grid-cols-2 xl:grid-cols-3 gap-3">
-        {Array.from({ length: Math.min(itemCount, 6) }).map((_, i) => (
-          <SkeletonCard key={i} />
-        ))}
-      </div>
-    );
-  }
-
-  return <div ref={ref}>{children}</div>;
-});
 
 export function MenuShell({
   restaurant,
@@ -407,14 +366,9 @@ export function MenuShell({
       const savedSidebarScroll = sidebarRef.current?.scrollTop ?? 0;
 
       isScrollingRef.current = true;
-
-      // Set scroll-margin-top so the browser respects the sticky header/pills offset.
-      // scrollIntoView (unlike scrollTo) tracks the element through layout shifts
-      // caused by LazyProductGrid expanding sections during scroll — this is the
-      // Uber Eats pattern and eliminates the "bounce back" bug.
       const pillsHeight = mobilePillsRef.current?.offsetHeight ?? 0;
-      section.style.scrollMarginTop = `${HEADER_HEIGHT + pillsHeight}px`;
-      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const offset = Math.max(0, section.offsetTop - HEADER_HEIGHT - pillsHeight);
+      mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
 
       // Restore sidebar scroll immediately after the browser may have reset it
       requestAnimationFrame(() => {
@@ -1371,50 +1325,48 @@ export function MenuShell({
                           </div>
                         </div>
                       )}
-                      <LazyProductGrid itemCount={items.length}>
-                        <motion.div
-                          className={cn('grid grid-cols-2 xl:grid-cols-3 gap-3', isLocked && 'opacity-40')}
-                          {...(isLocked ? { 'aria-hidden': true } : {})}
-                          initial={isDesktopView ? 'hidden' : false}
-                          whileInView={isDesktopView ? 'visible' : undefined}
-                          viewport={isDesktopView ? { once: true, margin: '-40px' } : undefined}
-                          variants={isDesktopView ? {
-                            hidden: {},
-                            visible: { transition: { staggerChildren: 0.06 } },
-                          } : undefined}
-                        >
-                          {items.map((product) => {
-                            const isPriority = globalProductIdx < 4;
-                            globalProductIdx++;
-                            return (
-                            <motion.div
-                              key={product.id}
-                              className="rounded-2xl overflow-hidden"
-                              variants={isDesktopView ? {
-                                hidden: { opacity: 0, y: 16 },
-                                visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
-                              } : undefined}
-                            >
-                              <ProductCard
-                                product={product}
-                                onSelect={handleProductSelect}
-                                onQuickAdd={handleQuickAdd}
-                                fmtPrice={fmtPrice}
-                                addLabel={t.addToCart}
-                                customizeLabel={t.customize}
-                                popularLabel={t.popular}
-                                soldOutLabel={t.soldOut}
-                                unavailableLabel={t.unavailable}
-                                addedShortLabel={t.addedShort}
-                                locale={locale}
-                                defaultLocale={defaultLocale}
-                                priority={isPriority}
-                              />
-                            </motion.div>
-                            );
-                          })}
-                        </motion.div>
-                      </LazyProductGrid>
+                      <motion.div
+                        className={cn('grid grid-cols-2 xl:grid-cols-3 gap-3', isLocked && 'opacity-40')}
+                        {...(isLocked ? { 'aria-hidden': true } : {})}
+                        initial={isDesktopView ? 'hidden' : false}
+                        whileInView={isDesktopView ? 'visible' : undefined}
+                        viewport={isDesktopView ? { once: true, margin: '-40px' } : undefined}
+                        variants={isDesktopView ? {
+                          hidden: {},
+                          visible: { transition: { staggerChildren: 0.06 } },
+                        } : undefined}
+                      >
+                        {items.map((product) => {
+                          const isPriority = globalProductIdx < 4;
+                          globalProductIdx++;
+                          return (
+                          <motion.div
+                            key={product.id}
+                            className="rounded-2xl overflow-hidden"
+                            variants={isDesktopView ? {
+                              hidden: { opacity: 0, y: 16 },
+                              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+                            } : undefined}
+                          >
+                            <ProductCard
+                              product={product}
+                              onSelect={handleProductSelect}
+                              onQuickAdd={handleQuickAdd}
+                              fmtPrice={fmtPrice}
+                              addLabel={t.addToCart}
+                              customizeLabel={t.customize}
+                              popularLabel={t.popular}
+                              soldOutLabel={t.soldOut}
+                              unavailableLabel={t.unavailable}
+                              addedShortLabel={t.addedShort}
+                              locale={locale}
+                              defaultLocale={defaultLocale}
+                              priority={isPriority}
+                            />
+                          </motion.div>
+                          );
+                        })}
+                      </motion.div>
                     </div>
                   </section>
                 );

@@ -68,8 +68,7 @@ export const CategorySidebar = memo(function CategorySidebar({
                   />
                   <motion.span
                     layoutId="sidebar-bar"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald-500 animate-pulse"
-                    style={{ boxShadow: '0 0 8px 2px rgba(16,185,129,0.6)' }}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald-500"
                     transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                   />
                 </>
