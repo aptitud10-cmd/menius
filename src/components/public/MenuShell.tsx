@@ -407,10 +407,14 @@ export function MenuShell({
       const savedSidebarScroll = sidebarRef.current?.scrollTop ?? 0;
 
       isScrollingRef.current = true;
+
+      // Set scroll-margin-top so the browser respects the sticky header/pills offset.
+      // scrollIntoView (unlike scrollTo) tracks the element through layout shifts
+      // caused by LazyProductGrid expanding sections during scroll — this is the
+      // Uber Eats pattern and eliminates the "bounce back" bug.
       const pillsHeight = mobilePillsRef.current?.offsetHeight ?? 0;
-      const sectionOffsetTop = section.offsetTop;
-      const offset = Math.max(0, sectionOffsetTop - HEADER_HEIGHT - pillsHeight);
-      mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
+      section.style.scrollMarginTop = `${HEADER_HEIGHT + pillsHeight}px`;
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
       // Restore sidebar scroll immediately after the browser may have reset it
       requestAnimationFrame(() => {
@@ -679,33 +683,16 @@ export function MenuShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsByCategory, mainEl]);
 
-  const [sectionProgress, setSectionProgress] = useState<Record<string, number>>({});
-
-  // Track scroll for collapsing header + section progress indicator.
-  // Progress updates are throttled with rAF to avoid expensive state updates on every pixel.
+  // Track scroll for collapsing header.
   useEffect(() => {
     const main = mainRef.current;
     if (!main) return;
     const threshold = hasCover ? 100 : 40;
-    let rafId = 0;
-    const desktop = window.innerWidth >= 1024;
     const onScroll = () => {
       setHeaderScrolled(main.scrollTop > threshold);
-      if (!desktop) return;
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        const progress: Record<string, number> = {};
-        sectionRefs.current.forEach((el, catId) => {
-          const top = el.offsetTop - main.scrollTop;
-          const h = el.offsetHeight;
-          const p = Math.max(0, Math.min(1, -top / h));
-          progress[catId] = p;
-        });
-        setSectionProgress(progress);
-      });
     };
     main.addEventListener('scroll', onScroll, { passive: true });
-    return () => { main.removeEventListener('scroll', onScroll); cancelAnimationFrame(rafId); };
+    return () => { main.removeEventListener('scroll', onScroll); };
   }, [hasCover, mainEl]);
 
   // Keyboard shortcuts: / or Ctrl+K for search, Esc to close overlays
@@ -1074,7 +1061,6 @@ export function MenuShell({
             allLabel={t.allCategories}
             locale={locale}
             defaultLocale={defaultLocale}
-            sectionProgress={sectionProgress}
           />
         </aside>
 

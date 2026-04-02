@@ -15,7 +15,6 @@ interface CategorySidebarProps {
   allLabel?: string;
   locale?: string;
   defaultLocale?: string;
-  sectionProgress?: Record<string, number>;
 }
 
 function isCategoryAvailableNow(cat: Category): boolean {
@@ -34,7 +33,6 @@ export const CategorySidebar = memo(function CategorySidebar({
   onSelect,
   locale = 'es',
   defaultLocale = 'es',
-  sectionProgress = {},
 }: CategorySidebarProps) {
   return (
     <nav className="py-5 pr-3 font-sidebar">
@@ -72,18 +70,12 @@ export const CategorySidebar = memo(function CategorySidebar({
                     layoutId="sidebar-bar"
                     className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald-500"
                     transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-                  />
+                  >
+                    {/* Live dot — ping expands and fades, solid dot stays visible */}
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-75" />
+                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500" />
+                  </motion.span>
                 </>
-              )}
-              {/* Scroll progress micro-bar */}
-              {available && (sectionProgress[cat.id] ?? 0) > 0 && (
-                <span className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-gray-100 overflow-hidden">
-                  <motion.span
-                    className="absolute inset-y-0 left-0 rounded-full bg-emerald-400"
-                    style={{ width: `${Math.round((sectionProgress[cat.id] ?? 0) * 100)}%` }}
-                    layoutId={undefined}
-                  />
-                </span>
               )}
               <div className="flex-1 text-left min-w-0 relative z-10">
                 <span className="truncate block">{tName(cat, locale, defaultLocale)}</span>
