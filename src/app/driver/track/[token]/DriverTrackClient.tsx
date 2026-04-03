@@ -4,8 +4,9 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import Image from 'next/image';
 import {
   CheckCircle, Camera, Upload,
-  Loader2, Package, DoorOpen, MapPin, Bike,
+  Loader2, Package, DoorOpen, MapPin, Bike, AlertTriangle,
 } from 'lucide-react';
+import { getSupabaseBrowser } from '@/lib/supabase/browser';
 
 type GpsStatus = 'idle' | 'sharing' | 'error' | 'unsupported';
 type DeliveryStep = 'start' | 'picked_up' | 'at_door' | 'delivered';
@@ -58,6 +59,8 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   const [photoError, setPhotoError] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState<string | null>(null);
   const [customerPhone, setCustomerPhone] = useState<string | null>(null);
+  const [orderId, setOrderId] = useState<string | null>(null);
+  const [orderCancelled, setOrderCancelled] = useState(false);
 
   const fetchOrderInfo = useCallback(async () => {
     try {
@@ -66,6 +69,8 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
         const data = await res.json();
         setDeliveryAddress(data.deliveryAddress ?? null);
         setCustomerPhone(data.customerPhone ?? null);
+        if (data.orderId) setOrderId(data.orderId);
+        if (data.orderStatus === 'cancelled') setOrderCancelled(true);
 
         // Restore step from server timestamps so a page reload doesn't reset progress
         if (data.driverDeliveredAt) {
@@ -83,6 +88,30 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   }, [token]);
 
   useEffect(() => { fetchOrderInfo(); }, [fetchOrderInfo]);
+
+  // Realtime subscription — notifies the driver immediately if the restaurant cancels the order.
+  // Only subscribes once we have the order's UUID from the initial REST fetch.
+  useEffect(() => {
+    if (!orderId) return;
+    const supabase = getSupabaseBrowser();
+    const channel = supabase
+      .channel(`driver-order:${orderId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
+        (payload) => {
+          if ((payload.new as any)?.status === 'cancelled') {
+            setOrderCancelled(true);
+            stopGps();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  // stopGps is stable — defined below with no reactive deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId]);
 
   const sendLocation = async (lat: number, lng: number) => {
     try {
@@ -226,6 +255,21 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   return (
     <div className="min-h-[100dvh] bg-gray-950 flex flex-col items-center p-5 pb-10 text-white">
       <div className="w-full max-w-sm space-y-5 mt-8">
+
+        {/* Cancellation banner — shown in real-time if restaurant cancels the order */}
+        {orderCancelled && (
+          <div className="flex items-start gap-3 bg-red-950/80 border border-red-700 rounded-2xl p-4">
+            <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-red-300">
+                {t.en ? 'Order cancelled' : 'Pedido cancelado'}
+              </p>
+              <p className="text-xs text-red-400 mt-0.5">
+                {t.en ? 'The restaurant cancelled this order. Please return the items.' : 'El restaurante canceló este pedido. Por favor devuelve los artículos.'}
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="text-center space-y-1">
           <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-3">

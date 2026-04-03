@@ -156,6 +156,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const [loading, setLoading] = useState(!initialOrder);
   const [error, setError] = useState('');
   const [paidBannerVisible, setPaidBannerVisible] = useState(showPaidBanner);
+  const [rtStatus, setRtStatus] = useState<'connected' | 'reconnecting' | 'disconnected'>('reconnecting');
 
   const hasInitialOrder = !!initialOrder;
 
@@ -211,16 +212,27 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           table: 'orders',
           filter: `id=eq.${order.id}`,
         },
-        (payload) => {
-          setOrder((prev: any) => prev ? { ...prev, ...payload.new } : prev);
+        () => {
+          // Full refetch instead of partial merge: ensures joined fields
+          // (driver timestamps, payment_status, etc.) are always up-to-date.
+          fetchOrder();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setRtStatus('connected');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setRtStatus('disconnected');
+        } else {
+          setRtStatus('reconnecting');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [order?.id]);
+  // fetchOrder is stable (useCallback with fixed deps)
+  }, [order?.id, fetchOrder]);
 
   if (loading) {
     return (
@@ -334,10 +346,22 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               <p className="text-[11px] text-gray-400">{t.en ? 'Order' : 'Pedido'} #{order.order_number}</p>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            {t.live}
-          </div>
+          {rtStatus === 'connected' ? (
+            <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              {t.live}
+            </div>
+          ) : rtStatus === 'reconnecting' ? (
+            <div className="flex items-center gap-1 text-[10px] text-amber-600 font-semibold bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
+              <Wifi className="w-3 h-3 animate-pulse" />
+              {t.en ? 'Connecting…' : 'Conectando…'}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 text-[10px] text-red-500 font-semibold bg-red-50 px-2.5 py-1 rounded-full border border-red-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+              {t.en ? 'Offline' : 'Sin conexión'}
+            </div>
+          )}
         </div>
       </header>
 
