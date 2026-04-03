@@ -1,0 +1,77 @@
+name: Deploy to Production
+
+# Triggers ONLY when code lands on main.
+# Does NOT run on pull_requests — CI workflow handles those.
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # ── 1. Lint & Type check ──────────────────────────────────────────────────
+  lint-and-types:
+    name: Lint & Type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: ESLint
+        run: npm run lint
+
+  # ── 2. Unit tests ─────────────────────────────────────────────────────────
+  unit-tests:
+    name: Unit tests (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-key
+          STRIPE_SECRET_KEY: sk_test_placeholder
+
+  # ── 3. Deploy — only runs if BOTH jobs above succeed ─────────────────────
+  deploy-production:
+    name: Deploy to Vercel Production
+    runs-on: ubuntu-latest
+    needs: [lint-and-types, unit-tests]   # ← GATE: both must be green
+    environment: production               # GitHub environment with optional approvals
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Deploy to Vercel (production)
+        run: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+        env:
+          VERCEL_ORG_ID: team_Em2E1QRLpgTkIuitboZAntAi
+          VERCEL_PROJECT_ID: prj_pNFA4PgrneGbcu2KmhzkS6FWBwug
