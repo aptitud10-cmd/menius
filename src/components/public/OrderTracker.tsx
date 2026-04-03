@@ -483,7 +483,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           )}
         </div>
 
-        {/* ── ETA CARD (standalone, prominent) ── */}
+        {/* ── ETA HERO (Uber-style large display) ── */}
         {order.estimated_ready_minutes && ['confirmed', 'preparing'].includes(order.status) && (() => {
           const confirmedAt = order.updated_at ? new Date(order.updated_at) : new Date(order.created_at);
           const etaTime   = new Date(confirmedAt.getTime() + order.estimated_ready_minutes * 60_000);
@@ -491,69 +491,104 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           const etaStr    = etaTime.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });
           const minsLeft  = Math.max(0, Math.round((etaTime.getTime() - Date.now()) / 60_000));
           return (
-            <div className="tracker-card flex items-center gap-4 px-5 py-4 rounded-3xl bg-emerald-50 border border-emerald-200 shadow-sm">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                <Clock className="w-6 h-6 text-emerald-600" />
+            <div className="tracker-card rounded-3xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 shadow-sm overflow-hidden">
+              <div className="px-6 py-7 text-center">
+                <p className="text-[11px] font-bold text-emerald-500 uppercase tracking-widest mb-3">{t.estimatedTime}</p>
+                {minsLeft > 0 ? (
+                  <div className="flex items-end justify-center gap-1 mb-1">
+                    <span className="text-[72px] font-black text-emerald-700 leading-none tabular-nums">~{minsLeft}</span>
+                    <span className="text-2xl font-bold text-emerald-500 mb-3">min</span>
+                  </div>
+                ) : (
+                  <p className="text-4xl font-black text-emerald-700 mb-1">
+                    {t.en ? 'Almost ready!' : '¡Ya casi!'}
+                  </p>
+                )}
+                <p className="text-sm text-emerald-500 font-medium">
+                  {t.en ? `Ready by ${etaStr}` : `Listo a las ${etaStr}`}
+                </p>
               </div>
-              <div>
-                <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wide">{t.estimatedTime}</p>
-                <p className="text-xl font-black text-emerald-800 leading-tight">
-                  {minsLeft > 0
-                    ? (t.en ? `~${minsLeft} min` : `~${minsLeft} min`)
-                    : (t.en ? 'Almost ready!' : '¡Ya casi!')}
-                </p>
-                <p className="text-xs text-emerald-600 mt-0.5">
-                  {t.en ? `Today · ${etaStr}` : `Hoy · ${etaStr}`}
-                </p>
+              {/* Progress shimmer bar */}
+              <div className="h-1 bg-emerald-100 relative overflow-hidden">
+                <div className="absolute inset-y-0 left-0 bg-emerald-400 animate-pulse" style={{ width: `${Math.min(100, 100 - (minsLeft / order.estimated_ready_minutes) * 100)}%`, transition: 'width 1s ease' }} />
               </div>
             </div>
           );
         })()}
 
-        {/* ── DRIVER STATUS BANNERS (delivery only) ── */}
+        {/* ── DRIVER CARD + STATUS BANNERS (delivery only) ── */}
         {order.order_type === 'delivery' && order.status === 'ready' && (
           <>
-            {/* "En camino" banner — shown when driver picked up but not yet at door */}
+            {/* Driver card — shown as soon as driver picks up */}
             {(order as any).driver_picked_up_at && !(order as any).driver_at_door_at && (
-              <div className="tracker-card flex items-center gap-4 px-5 py-4 rounded-3xl bg-blue-50 border border-blue-200 shadow-sm">
-                <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <Truck className="w-6 h-6 text-blue-600" />
+              <div className="tracker-card rounded-3xl overflow-hidden shadow-lg">
+                {/* Gradient header */}
+                <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-5">
+                  <div className="flex items-center gap-4">
+                    {/* Driver avatar — animated motorcycle */}
+                    <div className="relative flex-shrink-0">
+                      <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-2xl">
+                        🛵
+                      </div>
+                      <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-400 border-2 border-blue-600 animate-pulse" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">
+                        {t.en ? 'Your driver' : 'Tu repartidor'}
+                      </p>
+                      <p className="text-lg font-black text-white leading-tight">
+                        {t.en ? 'On the way!' : '¡En camino!'}
+                      </p>
+                      <p className="text-sm text-blue-200 mt-0.5">
+                        {t.en ? 'Heading to your address' : 'Dirigiéndose a tu dirección'}
+                      </p>
+                    </div>
+                    {/* Live GPS indicator */}
+                    <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[9px] font-bold text-blue-200 uppercase">GPS</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[11px] font-bold text-blue-600 uppercase tracking-wide">
-                    {t.en ? 'On its way' : 'En camino'}
-                  </p>
-                  <p className="text-sm font-black text-blue-800 leading-tight">
-                    {t.en ? 'Driver picked up your order' : 'El repartidor recogió tu pedido'}
-                  </p>
-                  <p className="text-xs text-blue-500 mt-0.5">
-                    {t.en ? 'Heading to your address' : 'En camino a tu dirección'}
-                  </p>
-                </div>
+                {/* Call button strip */}
+                {order.customer_phone && (
+                  <a
+                    href={`tel:${order.customer_phone}`}
+                    className="flex items-center justify-center gap-2 py-3 bg-blue-50 border-t border-blue-100 text-blue-600 text-sm font-bold hover:bg-blue-100 active:bg-blue-200 transition-colors"
+                  >
+                    <Truck className="w-4 h-4" />
+                    {t.en ? 'Track on map ↓' : 'Ver en mapa ↓'}
+                  </a>
+                )}
               </div>
             )}
 
-            {/* "Driver at door" banner — highest urgency */}
+            {/* "Driver at door" — highest urgency, full pulsing card */}
             {(order as any).driver_at_door_at && (
-              <div className="tracker-card rounded-3xl bg-orange-50 border-2 border-orange-300 shadow-sm overflow-hidden">
-                <div className="flex items-center gap-4 px-5 py-4">
-                  <div className="relative w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center flex-shrink-0">
-                    <span className="absolute inset-0 rounded-2xl bg-orange-400 animate-ping opacity-20" />
-                    <DoorOpen className="w-6 h-6 text-orange-600 relative" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold text-orange-600 uppercase tracking-wide">
-                      {t.en ? 'Driver arrived!' : '¡Repartidor llegó!'}
-                    </p>
-                    <p className="text-base font-black text-orange-800 leading-tight">
-                      {t.en ? 'Your driver is at the door' : 'Tu repartidor está en la puerta'}
-                    </p>
-                    <p className="text-xs text-orange-500 mt-0.5">
-                      {t.en ? 'Please come to the door' : 'Por favor acércate a la puerta'}
-                    </p>
+              <div className="tracker-card rounded-3xl overflow-hidden shadow-xl border-2 border-orange-300">
+                <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-5">
+                  <div className="flex items-center gap-4">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-2xl animate-bounce">
+                        🚪
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-bold text-orange-100 uppercase tracking-widest">
+                        {t.en ? 'Driver arrived!' : '¡Repartidor llegó!'}
+                      </p>
+                      <p className="text-xl font-black text-white leading-tight">
+                        {t.en ? 'At your door now' : 'Está en tu puerta'}
+                      </p>
+                      <p className="text-sm text-orange-100 mt-0.5">
+                        {t.en ? 'Please come to the door' : 'Por favor acércate a la puerta'}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <ComingOutButton orderId={order.id} locale={locale} />
+                <div className="bg-orange-50">
+                  <ComingOutButton orderId={order.id} locale={locale} />
+                </div>
               </div>
             )}
           </>

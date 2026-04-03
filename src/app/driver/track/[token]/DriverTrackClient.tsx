@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import Image from 'next/image';
 import {
   CheckCircle, Camera, Upload,
-  Loader2, Package, DoorOpen, MapPin, Bike, AlertTriangle,
+  Loader2, Package, DoorOpen, MapPin, Bike, AlertTriangle, Navigation,
 } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 
@@ -39,6 +39,9 @@ function getT(lang: string) {
     tokenExp:   en ? 'Link expired'                 : 'Enlace expirado',
     errSend:    en ? 'Error — try again'            : 'Error — intenta de nuevo',
     deliverTo:  en ? 'Deliver to'                   : 'Entregar en',
+    navigateGmaps: en ? 'Navigate with Google Maps' : 'Navegar con Google Maps',
+    navigateWaze:  en ? 'Open in Waze'              : 'Abrir en Waze',
+    screenOn:      en ? '🔆 Screen stays on'        : '🔆 Pantalla activa',
   };
 }
 
@@ -61,6 +64,8 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   const [customerPhone, setCustomerPhone] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderCancelled, setOrderCancelled] = useState(false);
+  const [wakeLockActive, setWakeLockActive] = useState(false);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   const fetchOrderInfo = useCallback(async () => {
     try {
@@ -124,10 +129,30 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
     } catch { /* silent */ }
   };
 
+  const acquireWakeLock = async () => {
+    if (!('wakeLock' in navigator)) return;
+    try {
+      const lock: WakeLockSentinel = await (navigator as any).wakeLock.request('screen');
+      wakeLockRef.current = lock;
+      setWakeLockActive(true);
+      lock.addEventListener('release', () => setWakeLockActive(false));
+    } catch { /* permission denied or not supported */ }
+  };
+
+  const releaseWakeLock = () => {
+    const lock = wakeLockRef.current;
+    if (lock) {
+      lock.release().catch(() => {});
+      wakeLockRef.current = null;
+      setWakeLockActive(false);
+    }
+  };
+
   const startGps = () => {
     if (!navigator.geolocation) { setGpsStatus('unsupported'); return; }
     setGpsStatus('sharing');
     setGpsError('');
+    acquireWakeLock();
     navigator.geolocation.getCurrentPosition(
       pos => sendLocation(pos.coords.latitude, pos.coords.longitude),
       err => { setGpsStatus('error'); setGpsError(err.message); },
@@ -146,6 +171,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
 
   const stopGps = () => {
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    releaseWakeLock();
     setGpsStatus('idle');
   };
 
@@ -160,7 +186,10 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, action }),
       });
-      if (res.ok) return true;
+      if (res.ok) {
+        if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+        return true;
+      }
       const d = await res.json().catch(() => ({}));
       setActionError(res.status === 410 ? t.tokenExp : (d.error ?? t.errSend));
       return false;
@@ -279,10 +308,16 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
         </div>
 
         {gpsStatus === 'sharing' && (
-          <div className="flex items-center justify-center gap-2 bg-emerald-950/50 border border-emerald-900 rounded-xl py-2.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
-            <span className="text-emerald-400 text-sm font-semibold">{t.gpsSharing}</span>
-            <span className="text-emerald-600 text-xs">· {t.gpsEvery}</span>
+          <div className="flex items-center justify-between gap-2 bg-emerald-950/50 border border-emerald-900 rounded-xl px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+              <span className="text-emerald-400 text-sm font-semibold">{t.gpsSharing}</span>
+            </div>
+            {wakeLockActive && (
+              <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-950 border border-emerald-900 px-2 py-0.5 rounded-full">
+                {t.screenOn}
+              </span>
+            )}
           </div>
         )}
         {gpsStatus === 'error' && (
@@ -317,6 +352,29 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
                 <p className="text-base font-semibold text-white leading-snug">{deliveryAddress}</p>
               </div>
             </div>
+
+            {/* Navigation deeplinks — tap to open in maps app */}
+            <div className="grid grid-cols-2 gap-2">
+              <a
+                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(deliveryAddress)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 active:scale-[0.97] transition-all text-white text-sm font-bold shadow-lg shadow-blue-900/40"
+              >
+                <Navigation className="w-4 h-4 flex-shrink-0" />
+                <span>Google Maps</span>
+              </a>
+              <a
+                href={`https://waze.com/ul?q=${encodeURIComponent(deliveryAddress)}&navigate=yes`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 py-3 rounded-xl bg-[#00D8FF]/10 border border-[#00D8FF]/30 hover:bg-[#00D8FF]/20 active:scale-[0.97] transition-all text-[#00D8FF] text-sm font-bold"
+              >
+                <Navigation className="w-4 h-4 flex-shrink-0" />
+                <span>Waze</span>
+              </a>
+            </div>
+
             {customerPhone && (
               <a
                 href={`tel:${customerPhone}`}
