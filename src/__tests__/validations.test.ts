@@ -10,17 +10,21 @@ import {
 
 describe('signupSchema', () => {
   it('accepts valid signup data', () => {
-    const result = signupSchema.safeParse({ full_name: 'Juan Garcia', email: 'juan@test.com', password: '123456' });
+    const result = signupSchema.safeParse({
+      full_name: 'Juan Garcia',
+      email: 'juan@test.com',
+      password: '12345678',
+    });
     expect(result.success).toBe(true);
   });
 
   it('rejects short name', () => {
-    const result = signupSchema.safeParse({ full_name: 'J', email: 'juan@test.com', password: '123456' });
+    const result = signupSchema.safeParse({ full_name: 'J', email: 'juan@test.com', password: '12345678' });
     expect(result.success).toBe(false);
   });
 
   it('rejects invalid email', () => {
-    const result = signupSchema.safeParse({ full_name: 'Juan', email: 'not-email', password: '123456' });
+    const result = signupSchema.safeParse({ full_name: 'Juan', email: 'not-email', password: '12345678' });
     expect(result.success).toBe(false);
   });
 
