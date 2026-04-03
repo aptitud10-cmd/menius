@@ -68,6 +68,7 @@ or `psql` connected to the project.
 54. migration-fix-subscriptions.sql
 55. migration-fix-qr-urls.sql
 56. migration-utensils.sql
+57. migration-order-snapshots.sql
 ```
 
 ---
