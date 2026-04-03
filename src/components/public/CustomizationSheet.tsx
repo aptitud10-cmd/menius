@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
 import Image from 'next/image';
 import { X, Minus, Plus, Check, ArrowLeft } from 'lucide-react';
 import { motion, useDragControls, type PanInfo } from 'framer-motion';
@@ -203,13 +204,11 @@ export function CustomizationSheet({
   const modifiersDelta = Object.values(selections).flat().reduce((sum, opt) => sum + Number(opt.price_delta), 0);
   const unitPrice = Number(product.price) + modifiersDelta;
 
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
-  }, []);
+  useBodyScrollLock();
 
   const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    if (info.offset.y > 100 || info.velocity.y > 500) {
+    // Higher threshold — requires an intentional drag from the handle to close.
+    if (info.offset.y > 160 || info.velocity.y > 700) {
       onClose();
     }
   }, [onClose]);
@@ -274,7 +273,7 @@ export function CustomizationSheet({
   const springTransition = { type: 'tween' as const, duration: 0.18, ease: [0.25, 0.46, 0.45, 0.94] as const };
 
   const sheetBody = (
-    <div className="flex-1 overflow-y-auto overscroll-contain">
+    <div className="flex-1 overflow-y-auto overscroll-contain" style={{ touchAction: 'pan-y', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
       {product.image_url && (
         <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 animate-pulse" />

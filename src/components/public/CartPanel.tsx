@@ -78,7 +78,8 @@ export function CartPanel({
   const clearCart = useCartStore((s) => s.clearCart);
   const cartTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
 
-  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
+  // Use a ref (not state) so image-load events don't trigger re-renders of the whole panel.
+  const loadedImagesRef = useRef<Set<string>>(new Set());
   // idx of item awaiting remove confirmation (qty=1 then tap -)
   const [confirmRemoveIdx, setConfirmRemoveIdx] = useState<number | null>(null);
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -122,11 +123,12 @@ export function CartPanel({
     }
   }, [clearStep, clearCart]);
 
-  const markImageLoaded = useCallback((key: string) => {
-    setLoadedImages((prev) => {
-      if (prev.has(key)) return prev;
-      return new Set([...Array.from(prev), key]);
-    });
+  // Mark image as loaded directly on the <img> element — zero re-renders.
+  const markImageLoaded = useCallback((key: string, el: HTMLImageElement | null) => {
+    if (!el || loadedImagesRef.current.has(key)) return;
+    loadedImagesRef.current.add(key);
+    el.classList.remove('opacity-0');
+    el.classList.add('opacity-100');
   }, []);
 
   // ── Empty state ────────────────────────────────────────────────────────────
@@ -168,17 +170,9 @@ export function CartPanel({
       <div className="px-4 pt-2 pb-2 flex items-center gap-2 flex-shrink-0">
         {/* Drag handle pill centered */}
         <div className="flex-1 flex justify-start">
-          <AnimatePresence mode="popLayout">
-            <motion.span
-              key={items.reduce((s, i) => s + i.qty, 0)}
-              initial={{ scale: 1.2, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 22 }}
-              className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full tabular-nums font-semibold"
-            >
-              {items.reduce((s, i) => s + i.qty, 0)} {t.items}
-            </motion.span>
-          </AnimatePresence>
+          <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full tabular-nums font-semibold">
+            {items.reduce((s, i) => s + i.qty, 0)} {t.items}
+          </span>
         </div>
         <button
           onClick={handleClearTap}
@@ -239,8 +233,8 @@ export function CartPanel({
                           alt={item.product.name}
                           fill
                           sizes="56px"
-                          className={cn('object-cover transition-opacity duration-150', loadedImages.has(imgKey) ? 'opacity-100' : 'opacity-0')}
-                          onLoad={() => markImageLoaded(imgKey)}
+                          className="object-cover transition-opacity duration-150 opacity-0"
+                          onLoad={(e) => markImageLoaded(imgKey, e.currentTarget)}
                         />
                       </div>
                     ) : (
