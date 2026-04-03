@@ -124,8 +124,8 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es' }: 
               </p>
               <p className="text-xs text-gray-300 mt-1.5 leading-relaxed">
                 {isEs
-                  ? <>Toca <Share className="inline w-3.5 h-3.5 mx-0.5 align-middle" /> y luego <strong>"Agregar a pantalla de inicio"</strong></>
-                  : <>Tap <Share className="inline w-3.5 h-3.5 mx-0.5 align-middle" /> then <strong>"Add to Home Screen"</strong></>
+                  ? <>Toca <Share className="inline w-3.5 h-3.5 mx-0.5 align-middle" /> y luego <strong>&quot;Agregar a pantalla de inicio&quot;</strong></>
+                  : <>Tap <Share className="inline w-3.5 h-3.5 mx-0.5 align-middle" /> then <strong>&quot;Add to Home Screen&quot;</strong></>
                 }
               </p>
             </div>
