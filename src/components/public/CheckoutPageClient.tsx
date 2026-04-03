@@ -138,6 +138,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const confirmRef = useRef<HTMLDivElement>(null);
   const confettiTimer = useRef<ReturnType<typeof setTimeout>>();
   const submittingRef = useRef(false);
+  // Generated once per checkout session — prevents duplicate orders on network retry
+  const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
   // Double-tap confirm before removing last qty of an item
   const [confirmRemoveIdx, setConfirmRemoveIdx] = useState<number | null>(null);
   const confirmRemoveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -242,7 +244,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKeyRef.current },
         body: JSON.stringify({
           restaurant_id: restaurant.id,
           locale,

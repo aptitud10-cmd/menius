@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
       .from('restaurants')
       .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label')
       .eq('id', restaurant_id)
+      .eq('is_active', true)
       .maybeSingle();
 
     if (!restaurant) {
@@ -597,51 +598,9 @@ export async function POST(request: NextRequest) {
       }).catch(() => {});
     }
 
-    // Send notifications — awaited so Vercel doesn't freeze the process before emails are sent
-    try {
-      const notifProductIds = parsed.data.items.map((i) => i.product_id);
-      const { data: products } = await adminDb
-        .from('products')
-        .select('id, name')
-        .in('id', notifProductIds);
-
-      const productNameMap = new Map((products ?? []).map((p) => [p.id, p.name]));
-      const notifItems = parsed.data.items.map((i) => ({
-        name: productNameMap.get(i.product_id) ?? 'Producto',
-        qty: i.qty,
-        price: i.line_total,
-      }));
-
-      await notifyNewOrder({
-        orderId: order.id,
-        orderNumber: order.order_number,
-        restaurantId: restaurant_id,
-        restaurantData: {
-          name: restaurant.name,
-          slug: restaurant.slug,
-          currency: restaurant.currency,
-          locale: restaurant.locale,
-          notification_email: restaurant.notification_email,
-          notification_whatsapp: restaurant.notification_whatsapp,
-          notifications_enabled: restaurant.notifications_enabled,
-        },
-        customerName: parsed.data.customer_name,
-        customerEmail: customer_email || undefined,
-        customerPhone: parsed.data.customer_phone || undefined,
-        orderType: order_type || 'dine_in',
-        deliveryAddress: delivery_address || null,
-        paymentMethod: parsed.data.payment_method || undefined,
-        tableNumber: table_name || undefined,
-        notes: parsed.data.notes || null,
-        includeUtensils: body.include_utensils !== false,
-        total,
-        items: notifItems,
-      });
-    } catch (err) {
-      logger.error('notifyNewOrder failed', { error: err instanceof Error ? err.message : String(err) });
-    }
-
-    // For online payments via Stripe Checkout: create session immediately.
+    // For online payments via Stripe Checkout: create session BEFORE sending notifications
+    // so that if Stripe rejects (no connected account), we can roll back and return early
+    // without the restaurant already having received a phantom order notification.
     // 'wallet' payments (Apple Pay / Google Pay) use a PaymentIntent directly — no Checkout Session needed.
     let stripeUrl: string | null = null;
     if (parsed.data.payment_method === 'online') {
@@ -707,6 +666,50 @@ export async function POST(request: NextRequest) {
       } catch (stripeErr) {
         logger.error('stripe session creation failed', { order_id: order.id, error: stripeErr instanceof Error ? stripeErr.message : String(stripeErr) });
       }
+    }
+
+    // Send notifications — awaited so Vercel doesn't freeze the process before emails are sent
+    try {
+      const notifProductIds = parsed.data.items.map((i) => i.product_id);
+      const { data: products } = await adminDb
+        .from('products')
+        .select('id, name')
+        .in('id', notifProductIds);
+
+      const productNameMap = new Map((products ?? []).map((p) => [p.id, p.name]));
+      const notifItems = parsed.data.items.map((i) => ({
+        name: productNameMap.get(i.product_id) ?? 'Producto',
+        qty: i.qty,
+        price: i.line_total,
+      }));
+
+      await notifyNewOrder({
+        orderId: order.id,
+        orderNumber: order.order_number,
+        restaurantId: restaurant_id,
+        restaurantData: {
+          name: restaurant.name,
+          slug: restaurant.slug,
+          currency: restaurant.currency,
+          locale: restaurant.locale,
+          notification_email: restaurant.notification_email,
+          notification_whatsapp: restaurant.notification_whatsapp,
+          notifications_enabled: restaurant.notifications_enabled,
+        },
+        customerName: parsed.data.customer_name,
+        customerEmail: customer_email || undefined,
+        customerPhone: parsed.data.customer_phone || undefined,
+        orderType: order_type || 'dine_in',
+        deliveryAddress: delivery_address || null,
+        paymentMethod: parsed.data.payment_method || undefined,
+        tableNumber: table_name || undefined,
+        notes: parsed.data.notes || null,
+        includeUtensils: body.include_utensils !== false,
+        total,
+        items: notifItems,
+      });
+    } catch (err) {
+      logger.error('notifyNewOrder failed', { error: err instanceof Error ? err.message : String(err) });
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
