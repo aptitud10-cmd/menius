@@ -275,14 +275,19 @@ export async function POST(request: NextRequest) {
       for (const mod of (item.modifiers ?? [])) {
         const isLegacy = !mod.option_id || String(mod.option_id).startsWith('__legacy');
         if (isLegacy) {
+          // Legacy modifiers pre-date the modifier_options table. Their price comes
+          // from the client but these items have no DB record to verify against.
+          // We accept the value but log it so we can track restaurants still on legacy data.
+          logger.warn('legacy modifier — price from client', { product: item.product_id, option_id: mod.option_id, price_delta: mod.price_delta });
           expectedUnitPrice += Number(mod.price_delta);
         } else {
           const dbOpt = modOptionMap.get(mod.option_id);
           if (dbOpt) {
             expectedUnitPrice += Number(dbOpt.price_delta);
           } else {
-            logger.warn('modifier option not in map, using client price_delta', { option_id: mod.option_id });
-            expectedUnitPrice += Number(mod.price_delta);
+            // option_id looks like a real UUID but is not in our DB — could be a deleted
+            // option or a crafted request. Use 0 instead of trusting the client value.
+            logger.warn('modifier option not found in DB — using $0', { option_id: mod.option_id, product: item.product_id });
           }
         }
       }
@@ -451,9 +456,20 @@ export async function POST(request: NextRequest) {
       .select('id');
 
     if (itemsError) {
-      logger.error('order_items insert failed', { error: itemsError.message });
+      logger.error('order_items insert failed — attempting rollback', { order_id: order.id, error: itemsError.message });
       const { error: rollbackErr } = await adminDb.from('orders').delete().eq('id', order.id);
-      if (rollbackErr) logger.error('rollback delete failed', { order_id: order.id, error: rollbackErr.message });
+      if (rollbackErr) {
+        // Delete failed — mark cancelled so this ghost order doesn't appear as actionable
+        // in the dashboard. A cancelled order is visible but clearly not pending action.
+        logger.error('rollback delete failed — marking order cancelled to prevent ghost', {
+          order_id: order.id,
+          delete_error: rollbackErr.message,
+        });
+        await adminDb
+          .from('orders')
+          .update({ status: 'cancelled', notes: '[auto-cancelled: items insert failed]' })
+          .eq('id', order.id);
+      }
       return NextResponse.json({ error: 'Error guardando items' }, { status: 500 });
     }
 
