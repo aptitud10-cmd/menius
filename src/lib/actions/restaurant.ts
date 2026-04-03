@@ -9,6 +9,7 @@ import { captureError } from '@/lib/error-reporting';
 import type { CreateRestaurantInput, CategoryInput, ProductInput, TableInput } from '@/lib/validations';
 import { sendWhatsApp } from '@/lib/notifications/whatsapp';
 import { sendSMS, resolveChannel } from '@/lib/notifications/sms';
+import { VALID_TRANSITIONS, ALL_STATUSES, canTransition } from '@/lib/order-state';
 
 const EN_CURRENCIES = new Set(['USD', 'GBP', 'CAD', 'AUD', 'NZD']);
 function inferLocale(currency: string): string {
@@ -828,24 +829,11 @@ export async function deleteTable(id: string) {
 }
 
 // ---- Orders ----
-// Valid state transitions — enforced server-side.
-// Accept goes directly to 'preparing' (Uber-style simplified flow).
-// 'confirmed' kept for backward compat with existing DB rows and auto-accept legacy.
-const VALID_TRANSITIONS: Record<string, string[]> = {
-  pending:   ['confirmed', 'preparing', 'cancelled'],
-  confirmed: ['preparing', 'ready', 'cancelled'],
-  preparing: ['ready', 'delivered', 'cancelled'],
-  ready:     ['delivered', 'cancelled'],
-  delivered: [],
-  cancelled: [],
-};
-
 export async function updateOrderStatus(orderId: string, status: string, cancellationReason?: string) {
   const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
-  const validStatuses = Object.keys(VALID_TRANSITIONS);
-  if (!validStatuses.includes(status)) return { error: 'Estado inválido' };
+  if (!ALL_STATUSES.includes(status as never)) return { error: 'Estado inválido' };
 
   const { data: order } = await supabase
     .from('orders')
@@ -856,10 +844,9 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
 
   if (!order) return { error: 'Orden no encontrada' };
 
-  // Enforce valid state transitions
+  // Enforce valid state transitions via the shared state machine
   const currentStatus = order.status as string;
-  const allowed = VALID_TRANSITIONS[currentStatus] ?? [];
-  if (!allowed.includes(status)) {
+  if (!canTransition(currentStatus, status)) {
     return { error: `Transición inválida: ${currentStatus} → ${status}` };
   }
 

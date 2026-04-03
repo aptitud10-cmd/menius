@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendWhatsApp } from '@/lib/notifications/whatsapp';
 import { sendSMS, resolveChannel } from '@/lib/notifications/sms';
+import { canTransition } from '@/lib/order-state';
 
 type DriverAction = 'picked_up' | 'at_door' | 'delivered' | 'notify_outside';
 
@@ -63,8 +64,10 @@ export async function POST(req: NextRequest) {
   let shouldNotify = false;
 
   if (action === 'picked_up') {
-    // Also advance status to 'ready' so the customer tracker shows "On its way"
-    updateData = { driver_picked_up_at: now, status: 'ready' };
+    // Advance status to 'ready' only if the transition is valid from the current state.
+    // Guards against a driver tapping "picked up" on a pending/cancelled order.
+    const nextStatus = canTransition(order.status, 'ready') ? 'ready' : undefined;
+    updateData = { driver_picked_up_at: now, ...(nextStatus ? { status: nextStatus } : {}) };
     // Only notify if this is the first time (prevents duplicate WhatsApp if two drivers tap the same link)
     shouldNotify = !(order as any).driver_picked_up_at;
     notificationText = en
@@ -90,8 +93,8 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === 'delivered') {
-    // Only update if not already delivered/cancelled
-    if (order.status === 'delivered' || order.status === 'cancelled') {
+    // Only update if the transition is valid (guards delivered/cancelled orders)
+    if (!canTransition(order.status, 'delivered')) {
       return NextResponse.json({ ok: true, skipped: true, action });
     }
     // Single update: status + timestamp together
