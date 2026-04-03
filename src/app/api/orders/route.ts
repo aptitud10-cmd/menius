@@ -209,8 +209,8 @@ export async function POST(request: NextRequest) {
     const productIds = parsed.data.items.map((i) => i.product_id);
 
     const [{ data: dbProducts }, { data: dbVariants }, { data: dbExtras }, { data: dbModGroups }] = await Promise.all([
-      supabase.from('products').select('id, price, in_stock').in('id', productIds).eq('restaurant_id', restaurant_id),
-      supabase.from('product_variants').select('id, product_id, price_delta, sort_order').in('product_id', productIds).order('sort_order', { ascending: true }),
+      supabase.from('products').select('id, name, price, in_stock').in('id', productIds).eq('restaurant_id', restaurant_id),
+      supabase.from('product_variants').select('id, product_id, name, price_delta, sort_order').in('product_id', productIds).order('sort_order', { ascending: true }),
       supabase.from('product_extras').select('id, product_id, price').in('product_id', productIds),
       supabase.from('modifier_groups').select('id, product_id, name, is_required, min_select, max_select').in('product_id', productIds),
     ]);
@@ -444,15 +444,22 @@ export async function POST(request: NextRequest) {
     const { data: insertedItems, error: itemsError } = await adminDb
       .from('order_items')
       .insert(
-        parsed.data.items.map((item) => ({
-          order_id: order.id,
-          product_id: item.product_id,
-          variant_id: item.variant_id,
-          qty: item.qty,
-          unit_price: item.unit_price,
-          line_total: item.line_total,
-          notes: item.notes,
-        }))
+        parsed.data.items.map((item) => {
+          const dbProd = productMap.get(item.product_id);
+          const dbVar = item.variant_id ? variantMap.get(item.variant_id) : undefined;
+          return {
+            order_id: order.id,
+            product_id: item.product_id,
+            variant_id: item.variant_id,
+            qty: item.qty,
+            unit_price: item.unit_price,
+            line_total: item.line_total,
+            notes: item.notes,
+            // Snapshot current names so historical orders are not affected by future menu edits
+            product_name: (dbProd as any)?.name ?? '',
+            variant_name: (dbVar as any)?.name ?? '',
+          };
+        })
       )
       .select('id');
 
@@ -527,16 +534,34 @@ export async function POST(request: NextRequest) {
     });
 
     if (extrasToInsert.length > 0 || modifiersToInsert.length > 0) {
-      try {
-        const insertJobs: Promise<any>[] = [];
-        if (extrasToInsert.length > 0) insertJobs.push(Promise.resolve(adminDb.from('order_item_extras').insert(extrasToInsert)));
-        if (modifiersToInsert.length > 0) insertJobs.push(Promise.resolve(adminDb.from('order_item_modifiers').insert(modifiersToInsert)));
-        const results = await Promise.all(insertJobs);
-        for (const r of results) {
-          if (r?.error) logger.error('detail insert warning', { order_id: order.id, error: r.error.message, code: r.error.code });
+      const insertJobs: Promise<any>[] = [];
+      if (extrasToInsert.length > 0) insertJobs.push(Promise.resolve(adminDb.from('order_item_extras').insert(extrasToInsert)));
+      if (modifiersToInsert.length > 0) insertJobs.push(Promise.resolve(adminDb.from('order_item_modifiers').insert(modifiersToInsert)));
+      const detailResults = await Promise.all(insertJobs);
+      const detailErrors = detailResults.filter((r) => r?.error);
+      if (detailErrors.length > 0) {
+        // Extras/modifiers are part of the order contract (e.g. "sin gluten", size selection).
+        // A partial order without them would silently misrepresent the customer's request.
+        // Roll back the full order so the customer can retry cleanly.
+        logger.error('order_item detail insert failed — rolling back order', {
+          order_id: order.id,
+          errors: detailErrors.map((r) => ({ message: r.error.message, code: r.error.code })),
+        });
+        const { error: rollbackErr } = await adminDb.from('orders').delete().eq('id', order.id);
+        if (rollbackErr) {
+          logger.error('rollback delete failed — marking order cancelled', {
+            order_id: order.id,
+            delete_error: rollbackErr.message,
+          });
+          await adminDb
+            .from('orders')
+            .update({ status: 'cancelled', notes: '[auto-cancelled: detail insert failed]' })
+            .eq('id', order.id);
         }
-      } catch (detailCatch) {
-        logger.error('detail insert exception', { order_id: order.id, error: detailCatch instanceof Error ? detailCatch.message : String(detailCatch) });
+        return NextResponse.json(
+          { error: en ? 'Error saving order details. Please try again.' : 'Error guardando detalles del pedido. Intenta de nuevo.' },
+          { status: 500 }
+        );
       }
     }
 
