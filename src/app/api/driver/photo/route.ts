@@ -18,6 +18,15 @@ export async function POST(req: NextRequest) {
   if (!token) return NextResponse.json({ error: 'token required' }, { status: 400 });
   if (!photo) return NextResponse.json({ error: 'photo required' }, { status: 400 });
 
+  const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+  const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
+  if (!ALLOWED_MIME.includes(photo.type)) {
+    return NextResponse.json({ error: 'Only image files are allowed' }, { status: 415 });
+  }
+  if (photo.size > MAX_BYTES) {
+    return NextResponse.json({ error: 'Photo must be under 10 MB' }, { status: 413 });
+  }
+
   const supabase = createAdminClient();
 
   // Find order by token

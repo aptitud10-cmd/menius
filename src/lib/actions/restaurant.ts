@@ -132,6 +132,11 @@ export async function createRestaurant(data: CreateRestaurantInput) {
     }
   }
 
+  // Pre-generate the public menu page immediately so the first visitor never
+  // hits a cold ISR start (10 s blank page). This is the same pattern used by
+  // high-traffic restaurant platforms: page is warm before anyone visits it.
+  revalidatePublicMenu(restaurant.slug);
+
   return { success: true as const, slug: restaurant.slug, restaurantId: restaurant.id };
 }
 

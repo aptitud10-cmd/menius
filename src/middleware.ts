@@ -51,28 +51,6 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
 
-  if (path.startsWith('/api/') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method)) {
-    const origin = request.headers.get('origin');
-    const host = request.headers.get('host');
-    if (origin && host) {
-      let originHost: string;
-      try {
-        originHost = new URL(origin).host;
-      } catch {
-        return new NextResponse(JSON.stringify({ error: 'Invalid origin' }), {
-          status: 403,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      if (originHost !== host) {
-        return new NextResponse(JSON.stringify({ error: 'Invalid origin' }), {
-          status: 403,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-    }
-  }
-
   const isDashboard = path.startsWith('/app') || path.startsWith('/kds') || path.startsWith('/counter');
   const isAdmin = path.startsWith('/admin');
   const isOnboarding = path.startsWith('/onboarding');

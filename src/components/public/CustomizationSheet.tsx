@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import { X, Minus, Plus, Check, ArrowLeft } from 'lucide-react';
 import { motion, useDragControls, type PanInfo } from 'framer-motion';
@@ -145,6 +145,37 @@ export function CustomizationSheet({
   const [qty, setQty] = useState(editItem?.qty ?? 1);
   const [added, setAdded] = useState(false);
   const dragControls = useDragControls();
+
+  // Focus trap: save previously focused element, restore on unmount
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    previouslyFocused.current = document.activeElement as HTMLElement;
+    return () => { previouslyFocused.current?.focus(); };
+  }, []);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const FOCUSABLE = 'button:not([disabled]),[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    const getFocusable = () => Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE));
+    getFocusable()[0]?.focus();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab') return;
+      const focusable = getFocusable();
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    dialog.addEventListener('keydown', handleKeyDown);
+    return () => dialog.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   // Sync initialization — avoids the null → value re-render flash
   const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 1024);
@@ -498,7 +529,7 @@ export function CustomizationSheet({
   );
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div ref={dialogRef} className="fixed inset-0 z-50">
       <motion.div
         className="absolute inset-0 bg-black/40"
         initial={{ opacity: 0 }}
@@ -511,6 +542,9 @@ export function CustomizationSheet({
       {/* Desktop: slide from right — polished side panel */}
       {isDesktop && (
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="customization-dialog-title"
         className="flex fixed top-0 bottom-0 right-0 w-[520px] bg-white flex-col shadow-[-8px_0_30px_rgba(0,0,0,0.08)] border-l border-gray-100"
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -526,7 +560,7 @@ export function CustomizationSheet({
             )}
             {isPreview && previewBadge}
             <div className="min-w-0">
-              <h2 className="text-base font-bold text-gray-900 truncate">
+              <h2 id="customization-dialog-title" className="text-base font-bold text-gray-900 truncate">
                 {isEditing ? t.editItem : displayName}
               </h2>
               <p className="text-xs text-gray-400 font-medium tabular-nums">
@@ -549,6 +583,9 @@ export function CustomizationSheet({
       {/* Mobile: full-screen sheet from bottom with drag-to-dismiss */}
       {!isDesktop && (
       <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="customization-dialog-title"
         className="fixed left-0 right-0 bottom-0 bg-white flex flex-col shadow-2xl rounded-t-2xl"
         style={{ height: '100dvh' }}
         initial={{ y: '100%' }}
@@ -575,7 +612,7 @@ export function CustomizationSheet({
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0 bg-white z-10">
           <div className="min-w-0 flex-1">
             {isPreview && previewBadge}
-            <h2 className="text-base font-bold text-gray-900 truncate">
+            <h2 id="customization-dialog-title" className="text-base font-bold text-gray-900 truncate">
               {isEditing ? t.editItem : displayName}
             </h2>
           </div>

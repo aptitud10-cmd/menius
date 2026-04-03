@@ -171,15 +171,18 @@ export const ProductCardMobile = memo(function ProductCardMobile({
               <Ban className="w-4 h-4 text-gray-300" />
             </div>
           ) : (
+            /* 44px touch target wrapping the visible 36px circle */
             <button
               onClick={handleAddClick}
               aria-label={justAdded ? (isEn ? 'Added' : 'Agregado') : (hasModifiers ? (isEn ? `Customize ${displayName}` : `Personalizar ${displayName}`) : (isEn ? `Add ${displayName}` : `Agregar ${displayName}`))}
-              className={cn(
-                'relative z-10 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 flex-shrink-0 shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#05c8a7]',
-                justAdded ? 'bg-[#00a189] text-white scale-110' : 'bg-[#00a189] text-white hover:bg-[#058070]'
-              )}
+              className="relative z-10 w-11 h-11 flex items-center justify-center flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#05c8a7]"
             >
-              {justAdded ? <Check className="w-4 h-4" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />}
+              <span className={cn(
+                'w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 shadow-md pointer-events-none',
+                justAdded ? 'bg-[#00a189] text-white scale-110' : 'bg-[#00a189] text-white hover:bg-[#058070]'
+              )}>
+                {justAdded ? <Check className="w-4 h-4" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />}
+              </span>
             </button>
           )}
         </div>

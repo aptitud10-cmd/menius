@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   // Fetch the order by token
   const { data: order, error: fetchErr } = await supabase
     .from('orders')
-    .select('id, status, order_type, customer_phone, customer_name, customer_email, order_number, restaurant_id, delivery_address, driver_token_expires_at, restaurants(name, locale, slug, currency)')
+    .select('id, status, order_type, customer_phone, customer_name, customer_email, order_number, restaurant_id, delivery_address, driver_token_expires_at, driver_picked_up_at, driver_at_door_at, restaurants(name, locale, slug, currency)')
     .eq('driver_tracking_token', token)
     .maybeSingle();
 
@@ -65,7 +65,8 @@ export async function POST(req: NextRequest) {
   if (action === 'picked_up') {
     // Also advance status to 'ready' so the customer tracker shows "On its way"
     updateData = { driver_picked_up_at: now, status: 'ready' };
-    shouldNotify = true;
+    // Only notify if this is the first time (prevents duplicate WhatsApp if two drivers tap the same link)
+    shouldNotify = !(order as any).driver_picked_up_at;
     notificationText = en
       ? `${restaurantName}: Your order is on its way! 🛵\nTrack your order: ${trackingUrl}`
       : `${restaurantName}: ¡Tu pedido está en camino! 🛵\nSigue tu pedido: ${trackingUrl}`;
@@ -73,7 +74,8 @@ export async function POST(req: NextRequest) {
 
   if (action === 'at_door') {
     updateData = { driver_at_door_at: now };
-    shouldNotify = true;
+    // Only notify if this is the first time (prevents duplicate WhatsApp if two drivers tap the same link)
+    shouldNotify = !(order as any).driver_at_door_at;
     notificationText = en
       ? `${restaurantName}: Your delivery driver has arrived! 🚪 Please come to the door.`
       : `${restaurantName}: ¡Tu repartidor está en la puerta! 🚪 Por favor acércate a la puerta.`;

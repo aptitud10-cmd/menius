@@ -904,7 +904,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                       {(item.modifierSelections ?? []).flatMap(ms => ms.selectedOptions.map(o => o.name)).join(', ')}
                     </p>
                   )}
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-0 mt-2">
+                    {/* 44px touch target wrapping the visible 28px circle */}
                     <button
                       onClick={() => {
                         if (item.qty > 1) { updateQty(idx, item.qty - 1); return; }
@@ -917,23 +918,28 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                           confirmRemoveTimer.current = setTimeout(() => setConfirmRemoveIdx(null), 2000);
                         }
                       }}
-                      className={cn(
-                        'w-7 h-7 rounded-full border flex items-center justify-center transition-colors text-lg leading-none',
+                      className="w-11 h-11 flex items-center justify-center flex-shrink-0"
+                      aria-label={locale === 'es' ? 'Reducir cantidad' : 'Decrease quantity'}
+                    >
+                      <span className={cn(
+                        'w-7 h-7 rounded-full border flex items-center justify-center transition-colors text-lg leading-none pointer-events-none',
                         confirmRemoveIdx === idx
                           ? 'border-red-300 bg-red-50 text-red-500'
                           : 'border-gray-200 text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-500'
-                      )}
-                      aria-label={locale === 'es' ? 'Reducir cantidad' : 'Decrease quantity'}
-                    >
-                      −
+                      )}>
+                        −
+                      </span>
                     </button>
                     <span className="text-sm font-semibold text-gray-900 w-4 text-center tabular-nums">{item.qty}</span>
+                    {/* 44px touch target wrapping the visible 28px circle */}
                     <button
                       onClick={() => updateQty(idx, item.qty + 1)}
-                      className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 transition-colors text-lg leading-none"
+                      className="w-11 h-11 flex items-center justify-center flex-shrink-0"
                       aria-label={locale === 'es' ? 'Aumentar cantidad' : 'Increase quantity'}
                     >
-                      +
+                      <span className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 transition-colors text-lg leading-none pointer-events-none">
+                        +
+                      </span>
                     </button>
                   </div>
                 </div>

@@ -66,8 +66,20 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
         const data = await res.json();
         setDeliveryAddress(data.deliveryAddress ?? null);
         setCustomerPhone(data.customerPhone ?? null);
+
+        // Restore step from server timestamps so a page reload doesn't reset progress
+        if (data.driverDeliveredAt) {
+          setDeliveryStep('delivered');
+        } else if (data.driverAtDoorAt) {
+          setDeliveryStep('at_door');
+        } else if (data.driverPickedUpAt) {
+          setDeliveryStep('picked_up');
+          startGps();
+        }
       }
     } catch { /* silent */ }
+  // startGps is stable (no deps), safe to include
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   useEffect(() => { fetchOrderInfo(); }, [fetchOrderInfo]);

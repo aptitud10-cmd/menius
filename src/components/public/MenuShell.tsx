@@ -724,7 +724,13 @@ export function MenuShell({
       if (container) {
         const pill = container.querySelector(`[data-pill-id="${catToShow}"]`) as HTMLElement;
         if (pill) {
-          const targetLeft = pill.offsetLeft - (container.offsetWidth - pill.offsetWidth) / 2;
+          const containerRect = container.getBoundingClientRect();
+          const pillRect = pill.getBoundingClientRect();
+          const targetLeft =
+            container.scrollLeft +
+            pillRect.left -
+            containerRect.left -
+            (container.offsetWidth - pill.offsetWidth) / 2;
           container.scrollTo({ left: Math.max(0, targetLeft), behavior: wasClick ? 'instant' : 'smooth' });
         }
       }
@@ -897,7 +903,7 @@ export function MenuShell({
   const ordersLeft = limitedMode ? Math.max(0, limitedMode.dailyLimit - limitedMode.ordersToday) : null;
 
   return (
-    <div className="relative h-[100dvh] flex flex-col bg-[#f5f5f3] lg:bg-[#f8f8f8] overflow-hidden overscroll-none touch-pan-y">
+    <div className="relative h-[100dvh] flex flex-col bg-[#f5f5f3] lg:bg-[#f8f8f8] overflow-hidden overscroll-none">
       {/* Skip to main content — visible on keyboard focus only */}
       <a
         href="#menu-main"
@@ -1017,7 +1023,7 @@ export function MenuShell({
         {mobileCategoryPills}
 
         {/* ── 3-Column row ── */}
-        <div className="flex min-h-[calc(100dvh-48px)]">
+        <div className="flex lg:min-h-[calc(100dvh-48px)]">
 
         {/* Left: Sidebar — sticky, stays in place while content scrolls */}
         <aside ref={(el) => { sidebarRef.current = el; }} className="hidden lg:flex flex-col w-[200px] flex-shrink-0 border-r border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
