@@ -569,7 +569,7 @@ export function CounterView({
     }
   }, [restaurantName, currency, locale, taxLabel, taxIncluded, t.newOrder]);
 
-  const { orders, updateOrderLocally, rtStatus } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
+  const { orders, updateOrderLocally, rtStatus, refetch } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
   // ── Derived lists ──
   const scheduledOrders = useMemo(() =>
@@ -704,13 +704,22 @@ export function CounterView({
   const handleAccept = useCallback(async (order: Order) => {
     setUpdatingId(order.id);
     const eff = eta + busyExtra;
+    // Optimistic update — move order to 'preparing' immediately in the UI
+    updateOrderLocally(order.id, { status: 'preparing' });
     try {
       const etaRes = await updateOrderETA(order.id, eff);
-      if (etaRes?.error) { showError(etaRes.error); return; }
+      if (etaRes?.error) {
+        updateOrderLocally(order.id, { status: order.status }); // revert
+        showError(etaRes.error);
+        return;
+      }
       const res = await updateOrderStatus(order.id, 'preparing');
-      if (res?.error) { showError(res.error); return; }
+      if (res?.error) {
+        updateOrderLocally(order.id, { status: order.status }); // revert
+        showError(res.error);
+        return;
+      }
       playAcceptSound();
-      // dine_in always prints so the kitchen gets the ticket even if global auto-print is off
       const shouldPrint = autoPrint || order.order_type === 'dine_in';
       if (shouldPrint) PrinterService.printOrder(order, eff, restaurantName, currency, locale, taxLabel, taxIncluded).catch(() => {});
       setActiveTab('prep');
@@ -719,37 +728,50 @@ export function CounterView({
       showSuccess(`#${order.order_number} → ${t.tabPrep}`);
       if (res.notification) showNotif(res.notification, order.id);
     } catch {
+      updateOrderLocally(order.id, { status: order.status }); // revert
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, [eta, busyExtra, restaurantName, currency, autoPrint, t]);
+  }, [eta, busyExtra, restaurantName, currency, autoPrint, t, updateOrderLocally]);
 
   const handleMarkReady = useCallback(async (order: Order) => {
     setUpdatingId(order.id);
+    updateOrderLocally(order.id, { status: 'ready' }); // optimistic
     try {
       const res = await updateOrderStatus(order.id, 'ready');
-      if (res?.error) { showError(res.error); return; }
+      if (res?.error) {
+        updateOrderLocally(order.id, { status: order.status }); // revert
+        showError(res.error);
+        return;
+      }
       setActiveTab('ready');
       setSelectedId(order.id);
       setShowDetailMobile(true);
       if (res.notification) showNotif(res.notification, order.id);
     } catch {
+      updateOrderLocally(order.id, { status: order.status }); // revert
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, [t]);
+  }, [t, updateOrderLocally]);
 
   const handleMarkServed = useCallback(async (order: Order) => {
     setUpdatingId(order.id);
+    updateOrderLocally(order.id, { status: 'delivered' }); // optimistic
     try {
       const res = await updateOrderStatus(order.id, 'delivered');
-      if (res?.error) { showError(res.error); return; }
+      if (res?.error) {
+        updateOrderLocally(order.id, { status: order.status }); // revert
+        showError(res.error);
+        return;
+      }
       setActiveTab('history');
       setSelectedId(null);
       setShowDetailMobile(false);
       if (res.notification) showNotif(res.notification, order.id);
     } catch {
+      updateOrderLocally(order.id, { status: order.status }); // revert
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, [t]);
+  }, [t, updateOrderLocally]);
 
   // ── Edit order items ──────────────────────────────────────────────────────
   const openEditItems = useCallback(async (orderId: string) => {
@@ -1163,13 +1185,17 @@ export function CounterView({
           />
         </nav>
 
-        {/* Online indicator — reflects both device network and WebSocket channel health */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* Online indicator — tap to manually refresh orders */}
+        <button
+          onClick={refetch}
+          title={t.en ? 'Tap to refresh orders' : 'Toca para actualizar órdenes'}
+          className="flex items-center gap-1.5 flex-shrink-0 rounded-lg px-2 py-1 hover:bg-[#F5F5F5] active:scale-95 transition-all"
+        >
           <div className={cn('w-2 h-2 rounded-full', !isOnline || rtStatus === 'disconnected' ? 'bg-red-400' : rtStatus === 'reconnecting' ? 'bg-amber-400 animate-pulse' : 'bg-[#06C167] animate-pulse')} />
           <span className="text-[11px] font-semibold text-[#888] hidden md:block">
             {!isOnline || rtStatus === 'disconnected' ? 'Offline' : rtStatus === 'reconnecting' ? (t.en ? 'Reconnecting…' : 'Reconectando…') : t.online_status}
           </span>
-        </div>
+        </button>
 
         {/* Tablet mode link (only in normal mode) */}
         {!tabletMode && (
