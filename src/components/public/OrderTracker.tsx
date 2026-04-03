@@ -756,6 +756,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               restaurantName={restaurantName}
               driverLat={(order as any).driver_lat ?? null}
               driverLng={(order as any).driver_lng ?? null}
+              locale={locale}
             />
           </div>
         )}
