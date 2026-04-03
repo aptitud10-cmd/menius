@@ -8,7 +8,7 @@ import {
   MapPin, Pause, Flame, Printer, History, AlertTriangle,
   Wifi, WifiOff, ChevronRight, User, Settings2, Calendar, Plus,
 } from 'lucide-react';
-import { useRealtimeOrders } from '@/hooks/use-realtime-orders';
+import { useRealtimeOrders, type RealtimeConnectionStatus } from '@/hooks/use-realtime-orders';
 import {
   updateOrderStatus, updateOrderETA, setPauseOrders, assignDriver, updateOrderTip,
   sendOrderNotification, updatePaymentBreakdown, openShift, closeShift,
@@ -569,7 +569,7 @@ export function CounterView({
     }
   }, [restaurantName, currency, locale, taxLabel, taxIncluded, t.newOrder]);
 
-  const { orders, updateOrderLocally } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
+  const { orders, updateOrderLocally, rtStatus } = useRealtimeOrders({ restaurantId, initialOrders, onNewOrder: handleNewOrder });
 
   // ── Derived lists ──
   const scheduledOrders = useMemo(() =>
@@ -1078,11 +1078,17 @@ export function CounterView({
         />
       )}
 
-      {/* ── Offline banner ── */}
-      {!isOnline && (
+      {/* ── Offline / disconnected banner ── */}
+      {(!isOnline || rtStatus === 'disconnected') && (
         <div className="flex-none bg-red-500 text-white text-xs font-bold py-2 px-4 flex items-center justify-center gap-2 z-20">
           <WifiOff className="w-3.5 h-3.5" />
           {t.offlineBanner}
+        </div>
+      )}
+      {isOnline && rtStatus === 'reconnecting' && (
+        <div className="flex-none bg-amber-500 text-white text-xs font-semibold py-1.5 px-4 flex items-center justify-center gap-2 z-20">
+          <Wifi className="w-3.5 h-3.5 animate-pulse" />
+          {t.en ? 'Reconnecting to real-time…' : 'Reconectando en tiempo real…'}
         </div>
       )}
 
@@ -1157,11 +1163,11 @@ export function CounterView({
           />
         </nav>
 
-        {/* Online indicator */}
+        {/* Online indicator — reflects both device network and WebSocket channel health */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <div className={cn('w-2 h-2 rounded-full', isOnline ? 'bg-[#06C167] animate-pulse' : 'bg-red-400')} />
+          <div className={cn('w-2 h-2 rounded-full', !isOnline || rtStatus === 'disconnected' ? 'bg-red-400' : rtStatus === 'reconnecting' ? 'bg-amber-400 animate-pulse' : 'bg-[#06C167] animate-pulse')} />
           <span className="text-[11px] font-semibold text-[#888] hidden md:block">
-            {isOnline ? t.online_status : 'Offline'}
+            {!isOnline || rtStatus === 'disconnected' ? 'Offline' : rtStatus === 'reconnecting' ? (t.en ? 'Reconnecting…' : 'Reconectando…') : t.online_status}
           </span>
         </div>
 
@@ -1262,7 +1268,7 @@ export function CounterView({
           {/* Order list */}
           <div className="flex-1 overflow-y-auto">
             {currentList.length === 0 ? (
-              <EmptyState tab={activeTab} t={t} />
+              <EmptyState tab={activeTab} t={t} rtStatus={rtStatus} />
             ) : (
               currentList.map(o =>
                 activeTab === 'history' ? (
@@ -1367,8 +1373,8 @@ export function CounterView({
                 </p>
                 {activeTab === 'new' && (
                   <p className="text-[#BBBBBB] text-sm mt-1 flex items-center justify-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: GREEN }} />
-                    {t.connectedRt}
+                    <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: rtStatus === 'connected' ? GREEN : rtStatus === 'reconnecting' ? '#F59E0B' : '#EF4444' }} />
+                    {rtStatus === 'connected' ? t.connectedRt : rtStatus === 'reconnecting' ? (t.en ? 'Reconnecting…' : 'Reconectando…') : (t.en ? 'Disconnected' : 'Sin conexión')}
                   </p>
                 )}
               </div>
@@ -2306,7 +2312,7 @@ function HistoryRow({
 // EmptyState
 // ══════════════════════════════════════════════════════════════════════════════
 
-function EmptyState({ tab, t }: { tab: Tab; t: ReturnType<typeof getT> }) {
+function EmptyState({ tab, t, rtStatus }: { tab: Tab; t: ReturnType<typeof getT>; rtStatus?: RealtimeConnectionStatus }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-3 text-[#CCCCCC] py-16">
       {tab === 'new' && <Bell className="w-10 h-10" />}
@@ -2323,8 +2329,11 @@ function EmptyState({ tab, t }: { tab: Tab; t: ReturnType<typeof getT> }) {
       </p>
       {tab === 'new' && (
         <p className="text-xs text-[#DDDDDD] flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse" style={{ background: '#06C167' }} />
-          {t.connectedRt}
+          <span
+            className="w-1.5 h-1.5 rounded-full inline-block animate-pulse"
+            style={{ background: rtStatus === 'connected' ? '#06C167' : rtStatus === 'reconnecting' ? '#F59E0B' : '#EF4444' }}
+          />
+          {rtStatus === 'connected' ? t.connectedRt : rtStatus === 'reconnecting' ? (t.en ? 'Reconnecting…' : 'Reconectando…') : (t.en ? 'Disconnected' : 'Sin conexión')}
         </p>
       )}
     </div>

@@ -12,7 +12,12 @@
  * ready      →  READY
  * delivered  →  COMPLETED
  * cancelled  →  REJECTED
+ *
+ * Transition validity is derived from the authoritative order-state module
+ * so this class never drifts out of sync with server-side rules.
  */
+
+import { canTransition as serverCanTransition } from '@/lib/order-state';
 
 export type CounterStatus =
   | 'NEW'
@@ -21,16 +26,6 @@ export type CounterStatus =
   | 'READY'
   | 'COMPLETED'
   | 'REJECTED';
-
-// Valid forward transitions for each state
-const TRANSITIONS: Record<CounterStatus, CounterStatus[]> = {
-  NEW:       ['ACCEPTED', 'REJECTED'],
-  ACCEPTED:  ['PREPARING', 'REJECTED'],
-  PREPARING: ['READY', 'REJECTED'],
-  READY:     ['COMPLETED'],
-  COMPLETED: [],
-  REJECTED:  [],
-};
 
 // Bidirectional mapping with DB status strings
 const TO_DB: Record<CounterStatus, string> = {
@@ -70,7 +65,9 @@ export class OrderStateMachine {
   }
 
   canTransition(to: CounterStatus): boolean {
-    return TRANSITIONS[this._status].includes(to);
+    // Delegate to the server-authoritative state machine so both sides
+    // always agree on which transitions are legal.
+    return serverCanTransition(TO_DB[this._status], TO_DB[to]);
   }
 
   /** Returns the new status after a valid transition, or throws. */
@@ -86,7 +83,11 @@ export class OrderStateMachine {
 
   /** All states reachable from the current state. */
   get nextStates(): CounterStatus[] {
-    return TRANSITIONS[this._status];
+    // Derive from the server transitions so this never drifts.
+    const dbFrom = TO_DB[this._status];
+    return (Object.keys(TO_DB) as CounterStatus[]).filter(
+      (cs) => serverCanTransition(dbFrom, TO_DB[cs])
+    );
   }
 
   get isTerminal(): boolean {
@@ -108,7 +109,7 @@ export class OrderStateMachine {
   }
 
   static isValid(status: string): status is CounterStatus {
-    return status in TRANSITIONS;
+    return status in FROM_DB || (Object.keys(TO_DB) as string[]).includes(status);
   }
 
   static create(dbStatus: string): OrderStateMachine {

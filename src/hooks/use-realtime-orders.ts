@@ -11,6 +11,8 @@ interface UseRealtimeOrdersOptions {
   onOrderUpdate?: (order: Order) => void;
 }
 
+export type RealtimeConnectionStatus = 'connected' | 'reconnecting' | 'disconnected';
+
 const POLL_INTERVAL_MS = 10_000; // fallback poll every 10 seconds
 
 export function useRealtimeOrders({
@@ -20,6 +22,7 @@ export function useRealtimeOrders({
   onOrderUpdate,
 }: UseRealtimeOrdersOptions) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [rtStatus, setRtStatus] = useState<RealtimeConnectionStatus>('reconnecting');
   const knownIdsRef = useRef<Set<string>>(new Set(initialOrders.map((o) => o.id)));
   const onNewOrderRef = useRef(onNewOrder);
   const onOrderUpdateRef = useRef(onOrderUpdate);
@@ -153,7 +156,17 @@ export function useRealtimeOrders({
           onOrderUpdateRef.current?.(fullOrder);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        // Track WebSocket channel health so the UI can show a real connection indicator.
+        // The 10-second polling fallback keeps data fresh even when disconnected.
+        if (status === 'SUBSCRIBED') {
+          setRtStatus('connected');
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setRtStatus('disconnected');
+        } else {
+          setRtStatus('reconnecting');
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -173,5 +186,5 @@ export function useRealtimeOrders({
     );
   }, []);
 
-  return { orders, updateOrderLocally };
+  return { orders, updateOrderLocally, rtStatus };
 }
