@@ -163,12 +163,18 @@ export function MenuShell({
   const desktopPillsRef = useRef<HTMLDivElement>(null);
   const bannerRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLElement | null>(null);
-  const [mainEl, setMainEl] = useState<HTMLElement | null>(null);
+  // A lightweight boolean state just to trigger scroll-listener effects once the
+  // scroll container mounts. Using a full HTMLElement state caused an unnecessary
+  // full re-render of the entire ~2000-line component on every mount.
+  const [mainMounted, setMainMounted] = useState(false);
   const mainRefCb = useCallback((node: HTMLElement | null) => {
     mainRef.current = node;
-    setMainEl(node);
+    if (node) setMainMounted(true);
   }, []);
   const mobilePillsRef = useRef<HTMLDivElement>(null);
+  // True while user has a pointer/touch active on the pills bar — prevents auto-scroll from
+  // fighting the user's horizontal swipe gesture (which caused the bounce/return effect).
+  const pillsTouchActiveRef = useRef(false);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const isScrollingRef = useRef(false);
   // Sidebar ref — used to auto-scroll sidebar to active category and to
@@ -182,10 +188,14 @@ export function MenuShell({
   const bannerVisibleRef = useRef(true);
   const [headerScrolled, setHeaderScrolled] = useState(false);
   const hasCover = !!restaurant.cover_image_url;
-  const [isDesktopView, setIsDesktopView] = useState(false);
+  // Initialize synchronously from window so desktop users never see the mobile flash.
+  // The SSR/hydration mismatch risk is acceptable here: isDesktopView only affects JS
+  // scroll-logic, not JSX layout (layout is controlled by Tailwind `lg:` CSS classes).
+  const [isDesktopView, setIsDesktopView] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth >= 1024
+  );
   useEffect(() => {
     const check = () => setIsDesktopView(window.innerWidth >= 1024);
-    check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
@@ -369,24 +379,29 @@ export function MenuShell({
 
       isScrollingRef.current = true;
 
-      // Compute how many px of sticky UI cover the top of the scroll container.
-      // Desktop: only the desktop pill bar (sticky top-0 inside mainRef).
-      // Mobile:  absolute header (when cover exists) + mobile pill bar.
+      // Compute sticky header offset (how many px of UI cover the top of the scroll area).
       const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
       const margin = isDesktop
         ? (desktopPillsRef.current?.offsetHeight ?? 44)
         : (hasCover ? HEADER_HEIGHT : 0) + (mobilePillsRef.current?.offsetHeight ?? 52);
 
-      section.style.scrollMarginTop = `${margin}px`;
-      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Manual scrollTo instead of scrollIntoView: scrollIntoView on iOS Safari
+      // sometimes scrolls `window` rather than the actual scroll container, causing
+      // the page to jump unexpectedly. This calculates the exact target offset on
+      // mainRef and scrolls it directly.
+      const sectionTop = section.getBoundingClientRect().top;
+      const containerTop = mainRef.current.getBoundingClientRect().top;
+      const targetScroll = mainRef.current.scrollTop + sectionTop - containerTop - margin;
+      mainRef.current.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
 
       requestAnimationFrame(() => {
         if (sidebarRef.current) sidebarRef.current.scrollTop = savedSidebarScroll;
       });
 
-      // Unlock scroll-spy when the animation ends; fall back to 2 s.
+      // Unlock scroll-spy when the animation ends; fall back to 1 s.
+      // (scrollend is not supported on iOS Safari < 16.4 — the timeout is the safety net.)
       const unlock = () => { isScrollingRef.current = false; };
-      const timer = setTimeout(unlock, 2000);
+      const timer = setTimeout(unlock, 1000);
       mainRef.current.addEventListener('scrollend', () => {
         clearTimeout(timer);
         unlock();
@@ -627,14 +642,22 @@ export function MenuShell({
         ticking = false;
         if (isScrollingRef.current) return;
 
-        const scrollTop = main.scrollTop;
+        // Use getBoundingClientRect for precise viewport-relative positioning.
+        // offsetTop is relative to offsetParent and is unreliable inside scrollable containers.
+        const isDesktopNow = window.innerWidth >= 1024;
+        const pillsH = isDesktopNow
+          ? (desktopPillsRef.current?.offsetHeight ?? 44)
+          : (mobilePillsRef.current?.offsetHeight ?? 52);
+        const headerH = isDesktopNow ? 0 : (hasCover ? HEADER_HEIGHT : 0);
+        const mainTop = main.getBoundingClientRect().top;
+        const threshold = mainTop + headerH + pillsH - 8;
+
         let current = itemsByCategory[0].category.id;
 
         for (const { category } of itemsByCategory) {
           const el = sectionRefs.current.get(category.id);
           if (!el) continue;
-          const pillsH = mobilePillsRef.current?.offsetHeight ?? 52;
-          if (el.offsetTop - scrollTop <= HEADER_HEIGHT + pillsH - 8) {
+          if (el.getBoundingClientRect().top <= threshold) {
             current = category.id;
           } else {
             break;
@@ -650,7 +673,7 @@ export function MenuShell({
 
     return () => main.removeEventListener('scroll', handleScroll);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itemsByCategory, mainEl]);
+  }, [itemsByCategory, mainMounted]);
 
   // Track scroll for collapsing header.
   useEffect(() => {
@@ -662,7 +685,7 @@ export function MenuShell({
     };
     main.addEventListener('scroll', onScroll, { passive: true });
     return () => { main.removeEventListener('scroll', onScroll); };
-  }, [hasCover, mainEl]);
+  }, [hasCover, mainMounted]);
 
   // Keyboard shortcuts: / or Ctrl+K for search, Esc to close overlays
   useEffect(() => {
@@ -716,22 +739,28 @@ export function MenuShell({
             pillRect.left -
             containerRect.left -
             (containerRect.width - pillRect.width) / 2;
-          container.scrollTo({ left: Math.max(0, targetLeft), behavior: wasClick ? 'instant' : 'smooth' });
+          // Always instant — smooth fights with scroll-spy updates and causes jitter
+          container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'instant' });
         }
       }
     } else {
-      const container = mobilePillsRef.current;
-      if (container) {
-        const pill = container.querySelector(`[data-pill-id="${catToShow}"]`) as HTMLElement;
-        if (pill) {
-          const containerRect = container.getBoundingClientRect();
-          const pillRect = pill.getBoundingClientRect();
-          const targetLeft =
-            container.scrollLeft +
-            pillRect.left -
-            containerRect.left -
-            (container.offsetWidth - pill.offsetWidth) / 2;
-          container.scrollTo({ left: Math.max(0, targetLeft), behavior: wasClick ? 'instant' : 'smooth' });
+      // Skip auto-scroll while user is actively touching the pills bar to avoid
+      // fighting their horizontal swipe gesture (the "bounce-back" effect).
+      if (!pillsTouchActiveRef.current) {
+        const container = mobilePillsRef.current;
+        if (container) {
+          const pill = container.querySelector(`[data-pill-id="${catToShow}"]`) as HTMLElement;
+          if (pill) {
+            const containerRect = container.getBoundingClientRect();
+            const pillRect = pill.getBoundingClientRect();
+            const targetLeft =
+              container.scrollLeft +
+              pillRect.left -
+              containerRect.left -
+              (container.offsetWidth - pill.offsetWidth) / 2;
+            // Always instant — smooth creates the visible "return/bounce" effect
+            container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'instant' });
+          }
         }
       }
     }
@@ -865,7 +894,14 @@ export function MenuShell({
       </button>
       {/* Vertical divider */}
       <div className="w-px h-5 bg-gray-200 mx-1 flex-shrink-0" aria-hidden />
-      <div ref={mobilePillsRef} className="py-2 px-2 flex gap-1.5 overflow-x-auto scrollbar-hide flex-1" style={{ touchAction: 'pan-x' }}>
+      <div
+        ref={mobilePillsRef}
+        className="py-2 px-2 flex gap-1.5 overflow-x-auto scrollbar-hide flex-1"
+        style={{ touchAction: 'pan-x' }}
+        onPointerDown={() => { pillsTouchActiveRef.current = true; }}
+        onPointerUp={() => { pillsTouchActiveRef.current = false; }}
+        onPointerCancel={() => { pillsTouchActiveRef.current = false; }}
+      >
         {/* Large catalog: "Todos" pill */}
         {isLargeCatalog && (
           <button
@@ -938,7 +974,7 @@ export function MenuShell({
       {/* ── Outer scroll: banner scrolls away, sidebar/cart stay sticky ── */}
       <div
         ref={mainRefCb}
-        className={`flex-1 overflow-y-auto max-w-[1440px] w-full mx-auto ${cartCount > 0 ? 'pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-0' : 'pb-[env(safe-area-inset-bottom)]'}`}
+        className={`flex-1 overflow-y-auto max-w-[1440px] w-full mx-auto ${cartCount > 0 ? 'pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0' : 'pb-[env(safe-area-inset-bottom)]'}`}
       >
 
         {/* Cover banner — full width, scrolls away naturally with content */}
