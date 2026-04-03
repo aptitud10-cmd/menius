@@ -156,6 +156,10 @@ export function MenuShell({
   const [dataBasedSuggestionIds, setDataBasedSuggestionIds] = useState<string[]>([]);
   const [toastName, setToastName] = useState<string | null>(null);
   const [stockOutAlert, setStockOutAlert] = useState<string | null>(null);
+  // Realtime in_stock overrides: updated live without page reload
+  const [stockOverrides, setStockOverrides] = useState<Map<string, boolean>>(new Map());
+  // Realtime pause state: updated live when restaurant pauses orders
+  const [pausedUntil, setPausedUntil] = useState<string | null>(() => (restaurant as any).orders_paused_until ?? null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const stockAlertTimer = useRef<ReturnType<typeof setTimeout>>();
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -214,11 +218,17 @@ export function MenuShell({
         filter: `restaurant_id=eq.${restaurant.id}`,
       }, (payload) => {
         const updated = payload.new as { id: string; name: string; in_stock: boolean };
+        // Always update the displayed badge in real-time
+        setStockOverrides(prev => {
+          const next = new Map(prev);
+          next.set(updated.id, updated.in_stock);
+          return next;
+        });
+        // Remove from cart if product went out of stock
         if (updated.in_stock === false) {
           const storeState = useCartStore.getState();
           const idxToRemove = storeState.items.map((i, idx) => ({ id: i.product.id, idx })).filter(x => x.id === updated.id);
           if (idxToRemove.length > 0) {
-            // Remove in reverse order to preserve indices
             [...idxToRemove].reverse().forEach(({ idx }) => storeState.removeItem(idx));
             clearTimeout(stockAlertTimer.current);
             setStockOutAlert(updated.name);
@@ -228,6 +238,25 @@ export function MenuShell({
       })
       .subscribe();
 
+    return () => { supabase.removeChannel(channel); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restaurant.id]);
+
+  // Realtime: detect orders_paused_until changes without requiring page reload
+  useEffect(() => {
+    if (!restaurant.id) return;
+    const supabase = getSupabaseBrowser();
+    const channel = supabase
+      .channel(`restaurant-pause:${restaurant.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'restaurants',
+        filter: `id=eq.${restaurant.id}`,
+      }, (payload) => {
+        setPausedUntil((payload.new as any).orders_paused_until ?? null);
+      })
+      .subscribe();
     return () => { supabase.removeChannel(channel); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurant.id]);
@@ -491,9 +520,13 @@ export function MenuShell({
   }, [router, restaurant.slug, restaurant.id, rawCartCount, rawCartTotal, setOpen]);
 
   const filteredProducts = useMemo(() => {
-    if (!activeDiet) return products;
-    return products.filter((p) => p.dietary_tags?.includes(activeDiet));
-  }, [products, activeDiet]);
+    const base = !activeDiet ? products : products.filter((p) => p.dietary_tags?.includes(activeDiet));
+    if (stockOverrides.size === 0) return base;
+    return base.map(p => {
+      const override = stockOverrides.get(p.id);
+      return override !== undefined ? { ...p, in_stock: override } : p;
+    });
+  }, [products, activeDiet, stockOverrides]);
 
   // Returns true if category has no schedule restriction or current time is within window
   const isCategoryAvailableNow = useCallback((cat: { available_from?: string | null; available_to?: string | null }) => {
@@ -1935,6 +1968,18 @@ export function MenuShell({
             <ShoppingCart className="w-4 h-4" aria-hidden="true" />
             {locale === 'en' ? `Continue your order (${rawCartCount} items)` : `Continúa tu pedido (${rawCartCount} items)`}
           </button>
+        </div>
+      )}
+
+      {/* ── Orders Paused Banner (realtime) ── */}
+      {!!pausedUntil && new Date(pausedUntil) > new Date() && (
+        <div className="fixed top-0 left-0 right-0 z-[92] flex justify-center px-4 pt-2 pointer-events-none">
+          <div className="pointer-events-none flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-orange-600 text-white shadow-xl border border-orange-400/30 text-sm font-semibold animate-in slide-in-from-top-2 duration-300 max-w-sm w-full">
+            <span className="text-base" aria-hidden="true">⏸️</span>
+            <span className="flex-1">
+              {locale === 'en' ? 'Orders are temporarily paused' : 'Los pedidos están temporalmente pausados'}
+            </span>
+          </div>
         </div>
       )}
 
