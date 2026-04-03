@@ -483,6 +483,20 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           )}
         </div>
 
+        {/* ── MAP HERO — promoted to top when driver is on the road ── */}
+        {order.order_type === 'delivery' && restaurantAddress && (order as any).driver_picked_up_at && order.status !== 'delivered' && (
+          <div className="tracker-card rounded-3xl overflow-hidden shadow-md">
+            <DeliveryMap
+              restaurantAddress={restaurantAddress}
+              deliveryAddress={order.delivery_address}
+              restaurantName={restaurantName}
+              driverLat={(order as any).driver_lat ?? null}
+              driverLng={(order as any).driver_lng ?? null}
+              locale={locale}
+            />
+          </div>
+        )}
+
         {/* ── ETA HERO (Uber-style large display) ── */}
         {order.estimated_ready_minutes && ['confirmed', 'preparing'].includes(order.status) && (() => {
           const confirmedAt = order.updated_at ? new Date(order.updated_at) : new Date(order.created_at);
@@ -781,8 +795,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           </div>
         </div>
 
-        {/* Delivery map */}
-        {order.order_type === 'delivery' && restaurantAddress && (
+        {/* Delivery map — static position (shown when driver not yet active or order complete) */}
+        {order.order_type === 'delivery' && restaurantAddress && (!(order as any).driver_picked_up_at || order.status === 'delivered') && (
           <div className="tracker-card">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">{t.en ? 'Location' : 'Ubicación'}</p>
             <DeliveryMap

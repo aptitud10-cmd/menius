@@ -401,9 +401,11 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
             </BigButton>
           )}
           {deliveryStep === 'at_door' && (
-            <BigButton loading={actionLoading} onClick={handleDelivered} color="emerald">
-              {t.step3Btn}
-            </BigButton>
+            <SwipeToConfirm
+              loading={actionLoading}
+              onConfirm={handleDelivered}
+              label={t.en ? 'Slide to confirm delivery' : 'Desliza para confirmar entrega'}
+            />
           )}
           {actionError && (
             <p className="text-red-400 text-sm text-center">{actionError}</p>
@@ -462,5 +464,111 @@ function BigButton({ children, loading, onClick, color }: {
     >
       {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : children}
     </button>
+  );
+}
+
+// ── Swipe-to-confirm — prevents accidental delivery confirmation ───────────────
+
+function SwipeToConfirm({ loading, onConfirm, label }: {
+  loading: boolean;
+  onConfirm: () => void;
+  label: string;
+}) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [progress, setProgress] = useState(0); // 0–1
+  const [confirmed, setConfirmed] = useState(false);
+  const [snapping, setSnapping] = useState(false);
+  const dragStartX = useRef(0);
+  const isDragging = useRef(false);
+
+  const THUMB_SIZE = 56; // px
+  const CONFIRM_THRESHOLD = 0.82;
+
+  const getTrackWidth = () => (trackRef.current?.clientWidth ?? 300) - THUMB_SIZE;
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (loading || confirmed) return;
+    isDragging.current = true;
+    dragStartX.current = e.clientX - progress * getTrackWidth();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    setSnapping(false);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging.current) return;
+    const raw = (e.clientX - dragStartX.current) / getTrackWidth();
+    setProgress(Math.min(1, Math.max(0, raw)));
+  };
+
+  const handlePointerUp = () => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+
+    if (progress >= CONFIRM_THRESHOLD) {
+      setProgress(1);
+      setConfirmed(true);
+      if (navigator.vibrate) navigator.vibrate([80, 60, 120]);
+      onConfirm();
+    } else {
+      setSnapping(true);
+      setProgress(0);
+    }
+  };
+
+  const thumbLeft = `${progress * getTrackWidth()}px`;
+  const fillWidth = `calc(${progress * 100}% + ${THUMB_SIZE / 2}px)`;
+
+  if (loading) {
+    return (
+      <div className="w-full h-16 rounded-2xl bg-emerald-900/60 border border-emerald-700 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={trackRef}
+      className="relative w-full h-16 rounded-2xl bg-emerald-900/60 border border-emerald-700 overflow-hidden select-none touch-none"
+      style={{ userSelect: 'none' }}
+    >
+      {/* Fill bar */}
+      <div
+        className="absolute inset-y-0 left-0 bg-emerald-500/30 rounded-2xl"
+        style={{
+          width: fillWidth,
+          transition: snapping ? 'width 0.35s cubic-bezier(0.34,1.56,0.64,1)' : 'none',
+        }}
+      />
+
+      {/* Label text (fades as user swipes) */}
+      <p
+        className="absolute inset-0 flex items-center justify-center text-sm font-bold text-emerald-400 pointer-events-none"
+        style={{ opacity: 1 - progress * 1.5 }}
+      >
+        {confirmed ? '✅' : label}
+      </p>
+
+      {/* Draggable thumb */}
+      <div
+        className="absolute top-1 bottom-1 flex items-center justify-center rounded-xl bg-emerald-500 shadow-lg shadow-emerald-900/60 cursor-grab active:cursor-grabbing"
+        style={{
+          width: THUMB_SIZE,
+          left: thumbLeft,
+          transition: snapping ? 'left 0.35s cubic-bezier(0.34,1.56,0.64,1)' : 'none',
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+      >
+        {confirmed
+          ? <CheckCircle className="w-7 h-7 text-white" />
+          : <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
+        }
+      </div>
+    </div>
   );
 }
