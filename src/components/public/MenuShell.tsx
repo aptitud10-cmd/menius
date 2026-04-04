@@ -24,7 +24,6 @@ import { InstallBanner } from './InstallBanner';
 import { ReservationWidget } from './ReservationWidget';
 import { MenuUpdateBanner } from './MenuUpdateBanner';
 import { CartFlyParticles } from './CartFlyParticles';
-import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
 interface ReviewStats {
   average: number;
   total: number;
@@ -206,10 +205,10 @@ export function MenuShell({
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  // Lock body scroll on mobile when any overlay is open (cart, search, customization).
-  // On desktop these overlays are either hidden (lg:hidden) or use a side panel,
-  // so locking is only needed on mobile (< 1024 px).
-  useBodyScrollLock(!isDesktopView && (isOpen || showSearch));
+  // NOTE: useBodyScrollLock is intentionally NOT used here.
+  // Menius scrolls via mainRef (a custom div), not document.body — window.scrollY is always 0.
+  // Applying position:fixed to body on iOS shifts the visual viewport, which breaks the
+  // scroll-spy getBoundingClientRect() calculations and causes the pill bounce-back effect.
 
   // Realtime: notify customer if a cart item goes out of stock (86'd)
   useEffect(() => {
@@ -412,17 +411,21 @@ export function MenuShell({
       // mainRef and scrolls it directly.
       const sectionTop = section.getBoundingClientRect().top;
       const containerTop = mainRef.current.getBoundingClientRect().top;
-      const targetScroll = mainRef.current.scrollTop + sectionTop - containerTop - margin;
+      // The scroll-spy uses `threshold = containerTop + margin - 8` to detect active sections.
+      // We overshoot by 8px so the section lands exactly at the threshold after the animation,
+      // preventing the spy from reverting to the previous category (the "bounce-back" effect).
+      const targetScroll = mainRef.current.scrollTop + sectionTop - containerTop - margin + 8;
       mainRef.current.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
 
       requestAnimationFrame(() => {
         if (sidebarRef.current) sidebarRef.current.scrollTop = savedSidebarScroll;
       });
 
-      // Unlock scroll-spy when the animation ends; fall back to 1 s.
+      // Unlock scroll-spy when the animation ends; fall back to 1.5 s.
       // (scrollend is not supported on iOS Safari < 16.4 — the timeout is the safety net.)
+      // 1.5s covers long pages where iOS smooth-scroll can take > 1s.
       const unlock = () => { isScrollingRef.current = false; };
-      const timer = setTimeout(unlock, 1000);
+      const timer = setTimeout(unlock, 1500);
       mainRef.current.addEventListener('scrollend', () => {
         clearTimeout(timer);
         unlock();
@@ -999,7 +1002,7 @@ export function MenuShell({
       {/* ── Outer scroll: banner scrolls away, sidebar/cart stay sticky ── */}
       <div
         ref={mainRefCb}
-        className={`flex-1 overflow-y-auto max-w-[1440px] w-full mx-auto ${cartCount > 0 ? 'pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0' : 'pb-[env(safe-area-inset-bottom)]'}`}
+        className={`flex-1 overflow-y-auto max-w-[1440px] w-full mx-auto ${cartCount > 0 ? 'pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-0' : 'pb-[env(safe-area-inset-bottom)]'}`}
       >
 
         {/* Cover banner — full width, scrolls away naturally with content */}
