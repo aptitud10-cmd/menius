@@ -162,6 +162,37 @@ export default function CounterHubPage() {
             {t.counter_hub_wifiNote}
           </p>
         </div>
+
+        {/* Recommended printer models */}
+        <div className="mt-4 p-4 rounded-xl bg-purple-50 border border-purple-100">
+          <p className="text-xs font-semibold text-purple-800 mb-3 flex items-center gap-1.5">
+            <Printer className="w-3.5 h-3.5" />
+            {t.counter_hub_printerModelsTitle}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <PrinterModel
+              name="Epson TM-T20IV"
+              conn={t.counter_hub_connEthernet}
+              best={t.counter_hub_bestForFixed}
+              highlight
+            />
+            <PrinterModel
+              name="Xprinter XP-80BM"
+              conn={t.counter_hub_connBluetooth}
+              best={t.counter_hub_bestForWaiter}
+            />
+            <PrinterModel
+              name="Star TSP143IIILAN"
+              conn={t.counter_hub_connEthernet}
+              best={t.counter_hub_bestForFixed}
+            />
+            <PrinterModel
+              name="Rongta RPP300"
+              conn={t.counter_hub_connBluetooth}
+              best={t.counter_hub_bestForWaiter}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -206,5 +237,27 @@ function HardwareSpec({ label, value }: { label: string; value: string }) {
       <span className="text-gray-400 flex-shrink-0">{label}</span>
       <span className="text-gray-700 text-right">{value}</span>
     </li>
+  );
+}
+
+function PrinterModel({
+  name,
+  conn,
+  best,
+  highlight,
+}: {
+  name: string;
+  conn: string;
+  best: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div className={`flex items-start gap-2.5 p-2.5 rounded-lg ${highlight ? 'bg-white border border-purple-200' : 'bg-purple-50/60'}`}>
+      <Printer className={`w-4 h-4 mt-0.5 flex-shrink-0 ${highlight ? 'text-purple-600' : 'text-purple-400'}`} />
+      <div className="min-w-0">
+        <p className={`text-xs font-semibold ${highlight ? 'text-purple-900' : 'text-purple-800'}`}>{name}</p>
+        <p className="text-[11px] text-purple-600 mt-0.5">{conn} · {best}</p>
+      </div>
+    </div>
   );
 }
