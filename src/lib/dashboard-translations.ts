@@ -113,6 +113,11 @@ export interface DashboardTranslations {
   counter_hub_specConnValue: string;
   counter_hub_wifiLabel: string;
   counter_hub_wifiNote: string;
+  counter_hub_printerModelsTitle: string;
+  counter_hub_connEthernet: string;
+  counter_hub_connBluetooth: string;
+  counter_hub_bestForFixed: string;
+  counter_hub_bestForWaiter: string;
   counter_hub_scanQr: string;
   counter_hub_scanQrDesc: string;
 
@@ -1267,9 +1272,14 @@ const es: DashboardTranslations = {
   counter_hub_specPaper: 'Papel',
   counter_hub_specPaperValue: '58 mm o 80 mm',
   counter_hub_specConn: 'Conexión',
-  counter_hub_specConnValue: 'Bluetooth 4.0+ o WiFi',
+  counter_hub_specConnValue: 'Bluetooth 4.0+, WiFi o Ethernet (RJ45)',
   counter_hub_wifiLabel: 'Conexión a internet:',
-  counter_hub_wifiNote: 'La tablet debe estar conectada a WiFi para recibir órdenes en tiempo real. Se recomienda WiFi de 2.4 GHz o 5 GHz estable en el área de caja.',
+  counter_hub_wifiNote: 'La tablet debe estar conectada a WiFi para recibir órdenes en tiempo real. Para tablets fijas en caja, la impresora puede conectarse por Ethernet (cable RJ45) para mayor estabilidad — configúralo en Menú → Impresora dentro de la app.',
+  counter_hub_printerModelsTitle: 'Modelos recomendados',
+  counter_hub_connEthernet: 'Ethernet',
+  counter_hub_connBluetooth: 'Bluetooth',
+  counter_hub_bestForFixed: 'Ideal para caja fija',
+  counter_hub_bestForWaiter: 'Ideal para meseros',
   counter_hub_scanQr: 'Escanea con la tablet',
   counter_hub_scanQrDesc: 'Apunta la cámara de tu tablet Android al código QR para descargar la app.',
 
@@ -2424,9 +2434,14 @@ const en: DashboardTranslations = {
   counter_hub_specPaper: 'Paper',
   counter_hub_specPaperValue: '58 mm or 80 mm',
   counter_hub_specConn: 'Connection',
-  counter_hub_specConnValue: 'Bluetooth 4.0+ or WiFi',
+  counter_hub_specConnValue: 'Bluetooth 4.0+, WiFi or Ethernet (RJ45)',
   counter_hub_wifiLabel: 'Internet connection:',
-  counter_hub_wifiNote: 'The tablet must be connected to WiFi to receive orders in real time. A stable 2.4 GHz or 5 GHz WiFi is recommended in the cashier area.',
+  counter_hub_wifiNote: 'The tablet must be connected to WiFi to receive orders in real time. For fixed counter setups, the printer can connect via Ethernet (RJ45 cable) for maximum reliability — configure it under Menu → Printer inside the app.',
+  counter_hub_printerModelsTitle: 'Recommended models',
+  counter_hub_connEthernet: 'Ethernet',
+  counter_hub_connBluetooth: 'Bluetooth',
+  counter_hub_bestForFixed: 'Best for fixed counter',
+  counter_hub_bestForWaiter: 'Best for waiters',
   counter_hub_scanQr: 'Scan with your tablet',
   counter_hub_scanQrDesc: 'Point your Android tablet camera at the QR code to download the app.',
 
