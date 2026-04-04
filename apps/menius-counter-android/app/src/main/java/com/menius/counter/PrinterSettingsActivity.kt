@@ -2,9 +2,8 @@ package com.menius.counter
 
 import android.bluetooth.BluetoothManager
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
-import android.widget.ArrayAdapter
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -23,7 +22,21 @@ class PrinterSettingsActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding.toolbar.setNavigationOnClickListener { finish() }
 
-        refreshStatus()
+        applyCurrentMode()
+
+        binding.radioGroupMode.setOnCheckedChangeListener { _, checkedId ->
+            val mode = if (checkedId == R.id.radioNetwork) {
+                PrinterPreferences.MODE_NETWORK
+            } else {
+                PrinterPreferences.MODE_BLUETOOTH
+            }
+            PrinterPreferences.setMode(this, mode)
+            showSection(mode)
+            refreshStatus()
+        }
+
+        binding.btnPickPrinter.setOnClickListener { showPairedPicker() }
+        binding.btnSaveIp.setOnClickListener { saveNetworkIp() }
         binding.btnWidth80.setOnClickListener {
             PrinterPreferences.setPaperWidthMm(this, 80)
             refreshStatus()
@@ -32,19 +45,39 @@ class PrinterSettingsActivity : AppCompatActivity() {
             PrinterPreferences.setPaperWidthMm(this, 58)
             refreshStatus()
         }
-        binding.btnPickPrinter.setOnClickListener { showPairedPicker() }
         binding.btnTestPrint.setOnClickListener { runTestPrint() }
     }
 
+    private fun applyCurrentMode() {
+        val mode = PrinterPreferences.getMode(this)
+        binding.radioBluetooth.isChecked = mode == PrinterPreferences.MODE_BLUETOOTH
+        binding.radioNetwork.isChecked = mode == PrinterPreferences.MODE_NETWORK
+        showSection(mode)
+        refreshStatus()
+
+        val ip = PrinterPreferences.getNetworkIp(this)
+        if (!ip.isNullOrBlank()) {
+            binding.editNetworkIp.setText(ip)
+        }
+    }
+
+    private fun showSection(mode: String) {
+        binding.sectionBluetooth.visibility =
+            if (mode == PrinterPreferences.MODE_BLUETOOTH) View.VISIBLE else View.GONE
+        binding.sectionNetwork.visibility =
+            if (mode == PrinterPreferences.MODE_NETWORK) View.VISIBLE else View.GONE
+    }
+
     private fun refreshStatus() {
+        val mm = PrinterPreferences.getPaperWidthMm(this)
+        binding.txtPaperStatus.text = getString(R.string.paper_width_status, mm)
+
         val mac = PrinterPreferences.getBluetoothAddress(this)
         binding.txtPrinterStatus.text = if (mac.isNullOrBlank()) {
             getString(R.string.printer_none_selected)
         } else {
             getString(R.string.printer_selected, mac)
         }
-        val mm = PrinterPreferences.getPaperWidthMm(this)
-        binding.txtPaperStatus.text = getString(R.string.paper_width_status, mm)
     }
 
     private fun showPairedPicker() {
@@ -59,11 +92,7 @@ class PrinterSettingsActivity : AppCompatActivity() {
             return
         }
         val labels = devices.map { d ->
-            val name = try {
-                d.name ?: "?"
-            } catch (_: SecurityException) {
-                "?"
-            }
+            val name = try { d.name ?: "?" } catch (_: SecurityException) { "?" }
             "$name — ${d.address}"
         }.toTypedArray()
 
@@ -79,14 +108,29 @@ class PrinterSettingsActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun saveNetworkIp() {
+        val ip = binding.editNetworkIp.text?.toString()?.trim()
+        if (ip.isNullOrBlank()) {
+            Toast.makeText(this, R.string.printer_pick_first, Toast.LENGTH_SHORT).show()
+            return
+        }
+        PrinterPreferences.setNetworkIp(this, ip)
+        Toast.makeText(this, R.string.network_ip_saved, Toast.LENGTH_SHORT).show()
+    }
+
     private fun runTestPrint() {
-        val mac = PrinterPreferences.getBluetoothAddress(this)
-        if (mac.isNullOrBlank()) {
+        val mode = PrinterPreferences.getMode(this)
+        val hasConfig = when (mode) {
+            PrinterPreferences.MODE_NETWORK -> !PrinterPreferences.getNetworkIp(this).isNullOrBlank()
+            else -> !PrinterPreferences.getBluetoothAddress(this).isNullOrBlank()
+        }
+        if (!hasConfig) {
             Toast.makeText(this, R.string.printer_pick_first, Toast.LENGTH_LONG).show()
             return
         }
+
         val w = PrinterPreferences.lineWidthChars(this)
-        val proper = org.json.JSONObject().apply {
+        val payload = org.json.JSONObject().apply {
             put("ticketType", "receipt")
             put("locale", "es")
             put("currency", "USD")
@@ -111,10 +155,19 @@ class PrinterSettingsActivity : AppCompatActivity() {
         }.toString()
 
         Thread {
-            val bytes = ReceiptEscPosBuilder.build(proper, w)
-            val r = BluetoothThermalPrinter.send(this, mac, bytes)
+            val bytes = ReceiptEscPosBuilder.build(payload, w)
+            val result = when (mode) {
+                PrinterPreferences.MODE_NETWORK -> {
+                    val ip = PrinterPreferences.getNetworkIp(this) ?: ""
+                    NetworkThermalPrinter.send(ip, bytes)
+                }
+                else -> {
+                    val mac = PrinterPreferences.getBluetoothAddress(this) ?: ""
+                    BluetoothThermalPrinter.send(this, mac, bytes)
+                }
+            }
             runOnUiThread {
-                r.fold(
+                result.fold(
                     onSuccess = { Toast.makeText(this, R.string.test_print_ok, Toast.LENGTH_SHORT).show() },
                     onFailure = { e ->
                         Toast.makeText(

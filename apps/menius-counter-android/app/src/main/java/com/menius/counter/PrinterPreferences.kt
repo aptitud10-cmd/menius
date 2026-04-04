@@ -3,12 +3,29 @@ package com.menius.counter
 import android.content.Context
 
 /**
- * Bonded Bluetooth printer MAC (e.g. 00:11:22:33:44:55) and paper width.
+ * Stores printer connection config: mode (Bluetooth or Network), Bluetooth MAC,
+ * network IP, and paper width.
  */
 object PrinterPreferences {
     private const val PREFS = "menius_printer"
     private const val KEY_MAC = "bluetooth_mac"
     private const val KEY_WIDTH = "paper_width_mm"
+    private const val KEY_MODE = "connection_mode"
+    private const val KEY_NETWORK_IP = "network_ip"
+
+    const val MODE_BLUETOOTH = "bluetooth"
+    const val MODE_NETWORK = "network"
+
+    fun getMode(context: Context): String {
+        return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString(KEY_MODE, MODE_BLUETOOTH) ?: MODE_BLUETOOTH
+    }
+
+    fun setMode(context: Context, mode: String) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_MODE, mode)
+            .apply()
+    }
 
     fun getBluetoothAddress(context: Context): String? {
         val v = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_MAC, null)
@@ -18,6 +35,17 @@ object PrinterPreferences {
     fun setBluetoothAddress(context: Context, mac: String?) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(KEY_MAC, mac)
+            .apply()
+    }
+
+    fun getNetworkIp(context: Context): String? {
+        val v = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_NETWORK_IP, null)
+        return v?.takeIf { it.isNotBlank() }
+    }
+
+    fun setNetworkIp(context: Context, ip: String?) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_NETWORK_IP, ip)
             .apply()
     }
 

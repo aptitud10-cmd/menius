@@ -1075,9 +1075,12 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               <label className="block text-sm font-semibold text-gray-900 mb-2">{t.yourName} <span className="text-red-500">*</span></label>
               <input
                 type="text"
+                inputMode="text"
+                autoComplete="name"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 onBlur={(e) => validateField('customer_name', e.target.value)}
+                onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 320); }}
                 placeholder={t.yourNamePlaceholder}
                 className={cn(inputClass, fieldErrors.customer_name ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : '')}
               />
@@ -1107,9 +1110,12 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </label>
               <input
                 type="email"
+                inputMode="email"
+                autoComplete="email"
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}
                 onBlur={(e) => validateField('customer_email', e.target.value)}
+                onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 320); }}
                 placeholder={t.yourEmailPlaceholder}
                 className={cn(inputClass, fieldErrors.customer_email ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : '')}
                 required

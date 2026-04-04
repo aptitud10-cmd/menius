@@ -18,22 +18,35 @@ class MeniusJsBridge(private val context: Context) {
     @JavascriptInterface
     fun printReceipt(jsonPayload: String): String {
         return try {
-            val mac = PrinterPreferences.getBluetoothAddress(context)
-                ?: return "NO_PRINTER: Open menu → Printer and select a paired device"
-
             val lineWidth = PrinterPreferences.lineWidthChars(context)
             val bytes = ReceiptEscPosBuilder.build(jsonPayload, lineWidth)
 
             val result = runBlocking(Dispatchers.IO) {
-                BluetoothThermalPrinter.send(context.applicationContext, mac, bytes)
+                when (PrinterPreferences.getMode(context)) {
+                    PrinterPreferences.MODE_NETWORK -> {
+                        val ip = PrinterPreferences.getNetworkIp(context)
+                            ?: return@runBlocking Result.failure(
+                                IllegalStateException("NO_PRINTER: Open menu → Printer and enter the printer IP address")
+                            )
+                        NetworkThermalPrinter.send(ip, bytes)
+                    }
+                    else -> {
+                        val mac = PrinterPreferences.getBluetoothAddress(context)
+                            ?: return@runBlocking Result.failure(
+                                IllegalStateException("NO_PRINTER: Open menu → Printer and select a paired device")
+                            )
+                        BluetoothThermalPrinter.send(context.applicationContext, mac, bytes)
+                    }
+                }
             }
+
             result.fold(
                 onSuccess = { "OK" },
                 onFailure = { e ->
                     val msg = e.message ?: e.javaClass.simpleName
                     Log.e(TAG, "print failed", e)
                     showToast("Print: $msg")
-                    "PRINT_ERROR: $msg"
+                    if (msg.startsWith("NO_PRINTER")) msg else "PRINT_ERROR: $msg"
                 }
             )
         } catch (e: Exception) {

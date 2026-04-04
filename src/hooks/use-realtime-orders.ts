@@ -24,6 +24,11 @@ export function useRealtimeOrders({
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [rtStatus, setRtStatus] = useState<RealtimeConnectionStatus>('reconnecting');
   const knownIdsRef = useRef<Set<string>>(new Set(initialOrders.map((o) => o.id)));
+  // Tracks the last-seen status per order to deduplicate UPDATE notifications
+  // fired by both realtime and polling for the same transition.
+  const lastStatusRef = useRef<Map<string, string>>(
+    new Map(initialOrders.map((o) => [o.id, o.status]))
+  );
   const onNewOrderRef = useRef(onNewOrder);
   const onOrderUpdateRef = useRef(onOrderUpdate);
 
@@ -89,18 +94,19 @@ export function useRealtimeOrders({
     }));
 
     setOrders(prev => {
-      // Detect new orders for notification
       const prevIds = new Set(prev.map(o => o.id));
       for (const order of fetched) {
+        // New order detection — deduplicated via knownIdsRef
         if (!prevIds.has(order.id) && !knownIdsRef.current.has(order.id)) {
           knownIdsRef.current.add(order.id);
+          lastStatusRef.current.set(order.id, order.status);
           onNewOrderRef.current?.(order);
         }
-      }
-      // Detect updated orders
-      for (const order of fetched) {
-        const existing = prev.find(o => o.id === order.id);
-        if (existing && existing.status !== order.status) {
+        // Update detection — only notify if status actually changed since last notification
+        // This prevents realtime + poll from firing the same callback twice.
+        const lastSeen = lastStatusRef.current.get(order.id);
+        if (lastSeen !== undefined && lastSeen !== order.status) {
+          lastStatusRef.current.set(order.id, order.status);
           onOrderUpdateRef.current?.(order);
         }
       }
@@ -153,7 +159,12 @@ export function useRealtimeOrders({
           setOrders((prev) =>
             prev.map((o) => (o.id === fullOrder.id ? fullOrder : o))
           );
-          onOrderUpdateRef.current?.(fullOrder);
+          // Only notify if this status transition hasn't been seen yet (dedup with polling)
+          const lastSeen = lastStatusRef.current.get(fullOrder.id);
+          if (lastSeen !== fullOrder.status) {
+            lastStatusRef.current.set(fullOrder.id, fullOrder.status);
+            onOrderUpdateRef.current?.(fullOrder);
+          }
         }
       )
       .subscribe((status) => {
@@ -180,11 +191,23 @@ export function useRealtimeOrders({
     return () => clearInterval(id);
   }, [pollOrders]);
 
+  // ── Immediate re-poll when tab becomes visible again ──────────────────────
+  // Covers: tablet waking from sleep, user switching back from another tab,
+  // or the app returning to the foreground on iPad Safari.
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') pollOrders();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [pollOrders]);
+
   const updateOrderLocally = useCallback((orderId: string, updates: Partial<Order>) => {
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, ...updates } : o))
     );
   }, []);
 
-  return { orders, updateOrderLocally, rtStatus };
+  return { orders, updateOrderLocally, rtStatus, refetch: pollOrders };
 }
