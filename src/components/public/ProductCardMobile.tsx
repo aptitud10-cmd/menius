@@ -83,7 +83,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
 
         {showImage ? (
           <>
-            {!imgLoaded && <div className="absolute inset-0 bg-gray-100 animate-pulse" />}
+            {!imgLoaded && <div className="absolute inset-0 skeleton" />}
             <Image
               src={product.image_url}
               alt={imgAlt}

@@ -14,7 +14,7 @@ import { trackEvent } from '@/lib/analytics';
 import { playSuccessChime, spawnConfetti } from '@/lib/celebration';
 import { computeTaxAmount } from '@/lib/tax-presets';
 
-const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl border border-gray-200 bg-gray-100 animate-pulse" />;
+const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl skeleton" />;
 
 const AddressAutocomplete = dynamic(
   () => import('@/components/ui/AddressAutocomplete').then((m) => ({ default: m.AddressAutocomplete })),
@@ -445,32 +445,32 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   if (!hasMounted) {
     return (
-      <div className="h-[100dvh] bg-[#f5f5f5] flex flex-col overflow-hidden animate-pulse">
+      <div className="h-[100dvh] bg-[#f5f5f5] flex flex-col overflow-hidden">
         <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4">
-          <div className="h-5 w-24 bg-gray-200 rounded-full" />
+          <div className="h-5 w-24 skeleton rounded-full" />
         </header>
         <div className="flex-1 px-4 py-5 space-y-4 max-w-lg mx-auto w-full">
+          <div className="h-2.5 w-20 skeleton rounded-full" />
           <div className="bg-white rounded-2xl p-5 space-y-3 border border-gray-200">
-            <div className="h-3 w-32 bg-gray-200 rounded-full" />
-            <div className="h-12 bg-gray-100 rounded-2xl" />
-            <div className="h-12 bg-gray-100 rounded-2xl" />
-            <div className="h-12 bg-gray-100 rounded-2xl" />
+            <div className="h-12 skeleton rounded-xl" />
+            <div className="h-12 skeleton rounded-xl" />
+            <div className="h-12 skeleton rounded-xl" />
           </div>
+          <div className="h-2.5 w-16 skeleton rounded-full mt-2" />
           <div className="bg-white rounded-2xl p-5 space-y-3 border border-gray-200">
-            <div className="h-3 w-24 bg-gray-200 rounded-full" />
             <div className="grid grid-cols-2 gap-2">
-              <div className="h-12 bg-gray-100 rounded-2xl" />
-              <div className="h-12 bg-gray-100 rounded-2xl" />
+              <div className="h-12 skeleton rounded-xl" />
+              <div className="h-12 skeleton rounded-xl" />
             </div>
           </div>
+          <div className="h-2.5 w-24 skeleton rounded-full mt-2" />
           <div className="bg-white rounded-2xl p-5 space-y-3 border border-gray-200">
-            <div className="h-3 w-20 bg-gray-200 rounded-full" />
-            <div className="h-16 bg-gray-100 rounded-2xl" />
-            <div className="h-16 bg-gray-100 rounded-2xl" />
+            <div className="h-12 skeleton rounded-xl" />
+            <div className="h-12 skeleton rounded-xl" />
           </div>
         </div>
         <div className="sticky bottom-0 bg-white border-t-2 border-gray-200 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <div className="h-14 bg-gray-200 rounded-2xl" />
+          <div className="h-14 skeleton rounded-2xl" />
         </div>
       </div>
     );
@@ -868,7 +868,12 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-lg mx-auto px-5 py-6 space-y-6">
+        <div className="max-w-lg mx-auto px-5 py-6 space-y-4">
+
+          {/* Section: Tu pedido */}
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 px-1">
+            {locale === 'es' ? '1 · Tu pedido' : '1 · Your order'}
+          </p>
 
           {/* Order summary */}
           <div className="bg-white rounded-2xl p-5 space-y-3 border border-gray-200 shadow-sm">
@@ -1063,9 +1068,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             )}
           </div>
 
+          {/* Section: Tus datos */}
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 px-1 pt-2">
+            {locale === 'es' ? '2 · Tus datos' : '2 · Your info'}
+          </p>
+
           {/* Customer details */}
           <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm space-y-5">
-            <p className="text-sm font-bold text-gray-900">{locale === 'es' ? 'Tus datos' : 'Your details'}</p>
             <div>
               {/* Honeypot — invisible to real users, filled automatically by bots */}
               <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', visibility: 'hidden', pointerEvents: 'none' }} aria-hidden="true">
@@ -1200,6 +1209,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </span>
             </button>
           </div>
+
+          {/* Section: Forma de pago */}
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 px-1 pt-2">
+            {locale === 'es' ? '3 · Forma de pago' : '3 · Payment'}
+          </p>
 
           {/* Payment method */}
           <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">

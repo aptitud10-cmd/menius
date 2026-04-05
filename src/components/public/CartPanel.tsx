@@ -198,7 +198,7 @@ export function CartPanel({
       </div>
 
       {/* ── Scrollable items only ── */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-3 min-h-0">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-3 min-h-0" style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
         <AnimatePresence initial={false}>
         {items.map((item, idx) => {
           const imgKey = `${item.product.id}-${idx}`;
