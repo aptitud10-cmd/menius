@@ -1,15 +1,14 @@
 name: E2E Tests
 
 on:
-  # Run against Vercel preview deployments on PRs
-  deployment_status:
+  push:
+    branches: [main]
 
 jobs:
   e2e:
     name: Playwright E2E
     runs-on: ubuntu-latest
-    # Only run when Vercel deployment is ready
-    if: github.event.deployment_status.state == 'success'
+    if: always()
 
     steps:
       - uses: actions/checkout@v4
@@ -29,8 +28,7 @@ jobs:
       - name: Run Playwright tests
         run: npm run test:e2e
         env:
-          # Point to the Vercel preview URL
-          PLAYWRIGHT_BASE_URL: ${{ github.event.deployment_status.target_url }}
+          PLAYWRIGHT_BASE_URL: https://menius-git-main-william-2622f910.vercel.app
         timeout-minutes: 10
 
       - name: Upload test report
