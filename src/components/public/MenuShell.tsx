@@ -975,8 +975,9 @@ export function MenuShell({
         {mobileFavPill}
         {/* Spacer so last pill doesn't sit under the fade */}
         <div className="w-8 flex-shrink-0" aria-hidden="true" />
-        {/* Right-side fade gradient — signifies more pills are scrollable */}
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#f5f5f3] to-transparent" aria-hidden="true" />
+      </div>
+      {/* Right-side fade gradient — outside scroll container so absolute isn't clipped */}
+      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#f5f5f3] to-transparent z-10" aria-hidden="true" />
       </div>
     </div>
   );
