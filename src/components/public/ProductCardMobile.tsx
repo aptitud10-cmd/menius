@@ -179,7 +179,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
             >
               <span className={cn(
                 'w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 shadow-md pointer-events-none',
-                justAdded ? 'bg-[#00a189] text-white scale-110' : 'bg-[#00a189] text-white hover:bg-[#058070]'
+                justAdded ? 'bg-[#05c8a7] text-white scale-110' : 'bg-[#05c8a7] text-white hover:bg-[#04b096]'
               )}>
                 {justAdded ? <Check className="w-4 h-4" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />}
               </span>

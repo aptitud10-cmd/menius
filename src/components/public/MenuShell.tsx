@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe, RotateCcw, AlertCircle, AlignJustify } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { formatPrice, cn } from '@/lib/utils';
@@ -92,6 +92,8 @@ export function MenuShell({
   const setOpen = useCartStore((s) => s.setOpen);
   const isOpen = useCartStore((s) => s.isOpen);
   const addItem = useCartStore((s) => s.addItem);
+
+  const cartDragControls = useDragControls();
 
   const [hasMounted, setHasMounted] = useState(false);
   const [reorderDismissed, setReorderDismissed] = useState(false);
@@ -913,7 +915,7 @@ export function MenuShell({
 
   const mobileCategoryPills = (
     <div className="lg:hidden sticky z-40 bg-[#f5f5f3] border-b border-gray-100" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
-      <div className="flex items-center">
+      <div className="flex items-center relative">
       {/* Hamburger — opens category bottom sheet */}
       <button
         onClick={() => setShowCatSheet(true)}
@@ -973,10 +975,9 @@ export function MenuShell({
         {mobileFavPill}
         {/* Spacer so last pill doesn't sit under the fade */}
         <div className="w-8 flex-shrink-0" aria-hidden="true" />
+        {/* Right-side fade gradient — signifies more pills are scrollable */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#f5f5f3] to-transparent" aria-hidden="true" />
       </div>
-      </div>{/* end flex items-center wrapper */}
-      {/* Right-side fade gradient */}
-      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#f5f5f3] to-transparent" aria-hidden="true" />
     </div>
   );
 
@@ -1746,9 +1747,21 @@ export function MenuShell({
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'tween' as const, duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] as const }}
+              drag="y"
+              dragControls={cartDragControls}
+              dragConstraints={{ top: 0 }}
+              dragElastic={0.15}
+              dragListener={false}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 80 || info.velocity.y > 500) setOpen(false);
+              }}
             >
               {/* Drag handle + hidden title for screen readers */}
-              <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div
+                className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab active:cursor-grabbing"
+                onPointerDown={(e) => cartDragControls.start(e)}
+                style={{ touchAction: 'none' }}
+              >
                 <div className="w-10 h-1.5 rounded-full bg-gray-300" aria-hidden="true" />
               </div>
               <h2 id="cart-sheet-title" className="sr-only">{t.myOrder ?? (locale === 'en' ? 'Your order' : 'Tu orden')}</h2>
@@ -2084,7 +2097,7 @@ export function MenuShell({
                       )}
                     >
                       <span>{label}</span>
-                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />}
+                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#05c8a7] flex-shrink-0" />}
                     </button>
                   );
                 })}
@@ -2094,7 +2107,7 @@ export function MenuShell({
               <div className="flex-shrink-0 px-5 pb-5 pt-2 border-t border-gray-100">
                 <button
                   onClick={() => setShowCatSheet(false)}
-                  className="w-full py-3.5 rounded-2xl bg-gray-900 text-white font-bold text-[15px] active:bg-gray-700 transition-colors"
+                  className="w-full py-3 rounded-2xl border border-gray-200 bg-transparent text-gray-600 font-semibold text-[15px] active:bg-gray-50 transition-colors"
                 >
                   {locale === 'en' ? 'Dismiss' : 'Cerrar'}
                 </button>

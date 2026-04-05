@@ -368,7 +368,7 @@ export function CartPanel({
           onClick={onCheckout}
           whileHover={{ scale: 1.015 }}
           whileTap={{ scale: 0.97 }}
-          className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-extrabold text-sm hover:bg-emerald-600 transition-colors duration-150 shadow-[0_4px_16px_rgba(16,185,129,0.3)] flex items-center justify-between px-5"
+          className="w-full py-4 rounded-2xl bg-[#05c8a7] text-white font-extrabold text-sm hover:bg-[#04b096] transition-colors duration-150 shadow-[0_4px_16px_rgba(5,200,167,0.35)] flex items-center justify-between px-5"
         >
           <span>{t.placeOrder}</span>
           <AnimatePresence mode="wait">
