@@ -6,10 +6,15 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ci-gate-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-types:
     name: Lint & Type check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -31,6 +36,7 @@ jobs:
   unit-tests:
     name: Unit tests (Vitest)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 

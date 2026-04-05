@@ -4,11 +4,15 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lighthouse:
     name: Lighthouse Performance Audit
     runs-on: ubuntu-latest
-    if: always()
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4

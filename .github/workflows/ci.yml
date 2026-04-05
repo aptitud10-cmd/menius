@@ -1,56 +1,57 @@
 name: CI
 
+# Quality gate for pull requests into main.
+# Push to main is handled by deploy.yml.
 on:
-  push:
-    branches: [main, staging, dev]
   pull_request:
     branches: [main]
+
+concurrency:
+  group: ci-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   lint-and-types:
     name: Lint & Type check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        if: github.ref == 'refs/heads/main'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
       - name: Install dependencies
-        if: github.ref == 'refs/heads/main'
         run: npm ci
 
       - name: TypeScript type check
-        if: github.ref == 'refs/heads/main'
         run: npx tsc --noEmit
 
       - name: ESLint
-        if: github.ref == 'refs/heads/main'
         run: npm run lint
 
   unit-tests:
     name: Unit tests (Vitest)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        if: github.ref == 'refs/heads/main'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
       - name: Install dependencies
-        if: github.ref == 'refs/heads/main'
         run: npm ci
 
       - name: Run unit tests
-        if: github.ref == 'refs/heads/main'
         run: npm test
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co

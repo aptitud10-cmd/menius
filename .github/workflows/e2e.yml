@@ -4,11 +4,15 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   e2e:
     name: Playwright E2E
     runs-on: ubuntu-latest
-    if: always()
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
