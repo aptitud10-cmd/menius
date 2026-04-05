@@ -1267,8 +1267,10 @@ export function MenuShell({
                     <path d="M22 28h12M28 22v12" stroke="#d1d5db" strokeWidth="2.5" strokeLinecap="round" opacity="0.4" />
                   </motion.svg>
                   <div>
-                    <p className="font-semibold text-gray-500">{t.noResults}</p>
-                    <p className="text-sm text-gray-400 mt-1">{locale === 'en' ? 'Try a different keyword' : 'Intenta con otra palabra'}</p>
+                    <p className="font-bold text-gray-700">{t.noResults}</p>
+                    <p className="text-sm text-gray-400 mt-1 leading-relaxed max-w-[180px] mx-auto">
+                      {locale === 'en' ? 'Try a different keyword or check the spelling' : 'Intenta con otra palabra o revisa la ortografía'}
+                    </p>
                   </div>
                 </motion.div>
               ) : (
@@ -1904,11 +1906,20 @@ export function MenuShell({
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center px-8">
-                  <p className="text-base font-semibold text-gray-900 mb-1">{t.noResults}</p>
-                  <p className="text-sm text-gray-400">
+                <div className="flex flex-col items-center justify-center h-full text-center px-8 py-12">
+                  <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+                    <span className="text-3xl select-none" aria-hidden="true">🔍</span>
+                  </div>
+                  <p className="text-base font-bold text-gray-900 mb-1">{t.noResults}</p>
+                  <p className="text-sm text-gray-400 leading-relaxed max-w-[200px]">
                     {t.tryDifferentSearch}
                   </p>
+                  <button
+                    onClick={() => { setSearchQuery(''); setActiveDiet(null); setShowFavs(false); }}
+                    className="mt-5 px-5 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold active:scale-95 transition-transform"
+                  >
+                    {locale === 'en' ? 'Clear filters' : 'Limpiar filtros'}
+                  </button>
                 </div>
               )}
             </div>

@@ -58,6 +58,21 @@ body {
   min-height: 100dvh;
   padding-top: env(safe-area-inset-top);
 }
+
+/* Eliminate blue tap flash on Android/Chrome and grey highlight on iOS */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Remove 300ms click delay on touch devices for all interactive elements */
+button,
+a,
+[role="button"],
+input[type="submit"],
+input[type="button"],
+label {
+  touch-action: manipulation;
+}
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -84,6 +99,22 @@ body {
 }
 .faq-category-tabs::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Shimmer skeleton animation ── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e8e8e8 37%,
+    #f0f0f0 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
 }
 
 /* Dynamic viewport height (modern mobile browsers) */

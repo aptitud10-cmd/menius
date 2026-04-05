@@ -14,34 +14,32 @@ export default function MenuError({
   }, [error]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-      <div className="text-center max-w-sm">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
-          <svg
-            className="w-8 h-8 text-red-500"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
+    <div className="min-h-[100dvh] bg-[#f5f5f3] flex flex-col items-center justify-center p-6">
+      <div className="text-center max-w-xs w-full">
+        {/* Icon */}
+        <div className="w-20 h-20 mx-auto mb-5 rounded-3xl bg-red-50 flex items-center justify-center">
+          <span className="text-4xl select-none" aria-hidden="true">😕</span>
         </div>
+
         <h1 className="text-xl font-bold text-gray-900 mb-2">
-          Error loading menu
+          Algo salió mal
         </h1>
-        <p className="text-gray-500 text-sm mb-6">
-          Something went wrong while loading this menu. Please try again.
+        <p className="text-gray-500 text-sm leading-relaxed mb-8 max-w-[220px] mx-auto">
+          No pudimos cargar el menú. Verifica tu conexión e intenta de nuevo.
         </p>
+
         <button
           onClick={reset}
-          className="px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors"
+          className="w-full py-3.5 bg-gray-900 text-white rounded-2xl text-sm font-bold active:scale-[0.98] transition-transform"
         >
-          Try again
+          Intentar de nuevo
+        </button>
+
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-3 w-full py-3 rounded-2xl border border-gray-200 text-gray-600 text-sm font-medium active:bg-gray-50 transition-colors"
+        >
+          Recargar página
         </button>
       </div>
     </div>

@@ -1,54 +1,69 @@
 export default function MenuLoading() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Cover photo skeleton */}
-      <div className="relative w-full h-36 sm:h-44 bg-gray-200 animate-pulse" />
+    <div className="min-h-[100dvh] bg-[#f5f5f3] flex flex-col overflow-hidden">
 
-      <div className="max-w-2xl mx-auto px-4">
-        {/* Restaurant header skeleton */}
-        <div className="flex items-end gap-4 -mt-8 mb-6">
-          <div className="w-16 h-16 rounded-2xl bg-gray-200 animate-pulse border-4 border-white flex-shrink-0 shadow-sm" />
-          <div className="pb-1 space-y-2 flex-1">
-            <div className="h-5 w-44 bg-gray-200 rounded-lg animate-pulse" />
-            <div className="h-3.5 w-28 bg-gray-200 rounded-lg animate-pulse" />
-          </div>
+      {/* ── Header bar ── */}
+      <div className="h-14 bg-white border-b border-gray-100 px-4 flex items-center gap-3 flex-shrink-0">
+        <div className="skeleton w-8 h-8 rounded-xl" />
+        <div className="flex-1 space-y-1.5">
+          <div className="skeleton h-4 w-32 rounded-lg" />
+          <div className="skeleton h-3 w-20 rounded-lg" />
         </div>
+        <div className="skeleton w-9 h-9 rounded-full" />
+      </div>
 
-        {/* Category pills skeleton */}
-        <div className="flex gap-2 mb-6 overflow-hidden">
-          {[80, 64, 72, 56, 68].map((w, i) => (
-            <div
-              key={i}
-              className="h-8 rounded-full bg-gray-200 animate-pulse flex-shrink-0"
-              style={{ width: w, animationDelay: `${i * 80}ms` }}
-            />
-          ))}
-        </div>
+      {/* ── Cover photo ── */}
+      <div className="skeleton w-full h-44 flex-shrink-0" />
 
-        {/* Section title skeleton */}
-        <div className="h-4 w-28 bg-gray-200 rounded animate-pulse mb-4" />
-
-        {/* Product cards skeleton */}
-        <div className="space-y-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div
-              key={i}
-              className="flex items-center gap-3 p-3 bg-white rounded-2xl border border-gray-100 shadow-sm"
-              style={{ animationDelay: `${i * 60}ms` }}
-            >
-              <div className="w-[72px] h-[72px] rounded-xl bg-gray-200 animate-pulse flex-shrink-0" />
-              <div className="flex-1 space-y-2 min-w-0">
-                <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
-                <div className="h-3 w-1/2 bg-gray-200 rounded animate-pulse" />
-                <div
-                  className="h-4 w-14 rounded animate-pulse"
-                  style={{ backgroundColor: 'rgba(5,200,167,0.15)' }}
-                />
-              </div>
-            </div>
-          ))}
+      {/* ── Restaurant info strip ── */}
+      <div className="bg-white px-4 pt-3 pb-4 flex-shrink-0">
+        <div className="skeleton h-5 w-40 rounded-lg mb-2" />
+        <div className="flex gap-3">
+          <div className="skeleton h-3.5 w-16 rounded" />
+          <div className="skeleton h-3.5 w-20 rounded" />
+          <div className="skeleton h-3.5 w-14 rounded" />
         </div>
       </div>
+
+      {/* ── Category pills bar ── */}
+      <div className="bg-[#f5f5f3] border-b border-gray-100 px-3 py-2 flex gap-2 overflow-hidden flex-shrink-0">
+        {[72, 56, 80, 64, 60, 68].map((w, i) => (
+          <div
+            key={i}
+            className="skeleton h-8 rounded-lg flex-shrink-0"
+            style={{ width: w, animationDelay: `${i * 60}ms` }}
+          />
+        ))}
+      </div>
+
+      {/* ── Section title ── */}
+      <div className="px-4 pt-5 pb-3 flex-shrink-0">
+        <div className="skeleton h-4 w-24 rounded-lg" />
+      </div>
+
+      {/* ── Product grid (2 columns — matches real layout) ── */}
+      <div className="px-3 grid grid-cols-2 gap-3">
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <div
+            key={i}
+            className="bg-white rounded-2xl overflow-hidden border border-gray-100"
+            style={{ animationDelay: `${i * 40}ms` }}
+          >
+            {/* Image placeholder */}
+            <div className="skeleton w-full aspect-[4/3]" />
+            {/* Content */}
+            <div className="p-3 space-y-2">
+              <div className="skeleton h-3.5 w-full rounded" />
+              <div className="skeleton h-3 w-2/3 rounded" />
+              <div className="flex items-center justify-between pt-1">
+                <div className="skeleton h-4 w-14 rounded" />
+                <div className="skeleton w-9 h-9 rounded-full" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
     </div>
   );
 }
