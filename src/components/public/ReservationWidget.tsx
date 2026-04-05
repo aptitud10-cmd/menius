@@ -93,7 +93,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
             onChange={e => setName(e.target.value)}
             required
             placeholder={isEs ? 'Nombre completo' : 'Full name'}
-            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors"
+            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors"
           />
         </div>
 
@@ -107,7 +107,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
             <select
               value={partySize}
               onChange={e => setPartySize(Number(e.target.value))}
-              className="w-full px-3 py-3 rounded-xl border-2 border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-gray-900 bg-white"
+              className="w-full px-3 py-3 rounded-xl border-2 border-gray-200 text-base text-gray-900 focus:outline-none focus:border-gray-900 bg-white"
             >
               {[1,2,3,4,5,6,7,8,10,12,15,20].map(n => (
                 <option key={n} value={n}>{n}</option>
@@ -125,7 +125,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
               min={today}
               onChange={e => setDate(e.target.value)}
               required
-              className="w-full px-3 py-3 rounded-xl border-2 border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-gray-900"
+              className="w-full px-3 py-3 rounded-xl border-2 border-gray-200 text-base text-gray-900 focus:outline-none focus:border-gray-900"
             />
           </div>
           <div>
@@ -137,7 +137,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
               value={time}
               onChange={e => setTime(e.target.value)}
               required
-              className="w-full px-3 py-3 rounded-xl border-2 border-gray-200 text-sm text-gray-900 focus:outline-none focus:border-gray-900 bg-white"
+              className="w-full px-3 py-3 rounded-xl border-2 border-gray-200 text-base text-gray-900 focus:outline-none focus:border-gray-900 bg-white"
             >
               <option value="">{isEs ? 'Seleccionar' : 'Select'}</option>
               {Array.from({ length: 28 }, (_, i) => {
@@ -168,7 +168,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
               value={phone}
               onChange={e => setPhone(e.target.value)}
               placeholder="+1 555 000 0000"
-              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors"
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors"
             />
           </div>
           <div>
@@ -180,7 +180,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="correo@ejemplo.com"
-              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors"
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors"
             />
           </div>
         </div>
@@ -195,7 +195,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
             onChange={e => setNotes(e.target.value)}
             placeholder={isEs ? 'Alergias, ocasiones especiales, preferencia de mesa...' : 'Allergies, special occasions, seating preference...'}
             rows={2}
-            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors resize-none"
+            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors resize-none"
           />
         </div>
 

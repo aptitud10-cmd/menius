@@ -178,7 +178,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
               onChange={(e) => setName(e.target.value)}
               maxLength={100}
               placeholder={en ? 'Anonymous' : 'Anónimo'}
-              className="w-full text-sm text-gray-900 placeholder-gray-300 bg-transparent focus:outline-none"
+              className="w-full text-base text-gray-900 placeholder-gray-300 bg-transparent focus:outline-none"
             />
           </div>
 
@@ -193,7 +193,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
               maxLength={500}
               rows={3}
               placeholder={en ? 'Tell us about your experience…' : 'Cuéntanos tu experiencia…'}
-              className="w-full text-sm text-gray-900 placeholder-gray-300 bg-transparent focus:outline-none resize-none"
+              className="w-full text-base text-gray-900 placeholder-gray-300 bg-transparent focus:outline-none resize-none"
             />
           </div>
 

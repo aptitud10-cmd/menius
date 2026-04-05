@@ -66,7 +66,7 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es' }: 
         <div className="mx-3 mb-3 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
           <div className="flex items-center gap-3 px-4 py-3.5">
             {/* Icon */}
-            <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-emerald-50 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-[#e6faf7] flex items-center justify-center">
               {logoUrl ? (
                 <Image src={logoUrl} alt={restaurantName} width={48} height={48} className="object-cover w-full h-full" />
               ) : (
@@ -99,7 +99,7 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es' }: 
             <button
               onClick={handleInstall}
               disabled={installing}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-sm font-semibold transition-all disabled:opacity-60"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#05c8a7] hover:bg-[#04b096] active:scale-[0.98] text-white text-sm font-semibold transition-all disabled:opacity-60"
             >
               <Download className="w-4 h-4" />
               {installing

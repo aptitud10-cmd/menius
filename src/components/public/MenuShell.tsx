@@ -1840,7 +1840,7 @@ export function MenuShell({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t.searchPlaceholder}
                   aria-label={t.searchPlaceholder}
-                  className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-[15px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 placeholder-gray-400"
+                  className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-[16px] focus:outline-none focus:ring-2 focus:ring-[#05c8a7]/20 focus:border-[#05c8a7] placeholder-gray-400"
                   autoFocus
                 />
                 {searchQuery && (
