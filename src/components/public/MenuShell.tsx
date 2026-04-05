@@ -180,6 +180,9 @@ export function MenuShell({
   // True while user has a pointer/touch active on the pills bar — prevents auto-scroll from
   // fighting the user's horizontal swipe gesture (which caused the bounce/return effect).
   const pillsTouchActiveRef = useRef(false);
+  // Timer to delay resetting pillsTouchActiveRef after pointer-up, so iOS momentum scrolling
+  // on the main content div (which triggers scroll-spy) doesn't immediately snap pills back.
+  const pillsUpTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const isScrollingRef = useRef(false);
   // Sidebar ref — used to auto-scroll sidebar to active category and to
@@ -926,9 +929,22 @@ export function MenuShell({
         ref={mobilePillsRef}
         className="py-2 px-2 flex gap-1.5 overflow-x-auto scrollbar-hide flex-1"
         style={{ touchAction: 'pan-x' }}
-        onPointerDown={() => { pillsTouchActiveRef.current = true; }}
-        onPointerUp={() => { pillsTouchActiveRef.current = false; }}
-        onPointerCancel={() => { pillsTouchActiveRef.current = false; }}
+        onPointerDown={() => {
+          clearTimeout(pillsUpTimerRef.current);
+          pillsTouchActiveRef.current = true;
+        }}
+        onPointerUp={() => {
+          // Delay resetting the flag so iOS momentum scroll on the main content
+          // (which fires scroll-spy) doesn't immediately snap the pill bar back.
+          clearTimeout(pillsUpTimerRef.current);
+          pillsUpTimerRef.current = setTimeout(() => {
+            pillsTouchActiveRef.current = false;
+          }, 600);
+        }}
+        onPointerCancel={() => {
+          clearTimeout(pillsUpTimerRef.current);
+          pillsTouchActiveRef.current = false;
+        }}
       >
         {/* Large catalog: "Todos" pill */}
         {isLargeCatalog && (
