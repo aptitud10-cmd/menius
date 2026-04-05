@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkRateLimitAsync } from '@/lib/rate-limit';
 import type { SignupInput, LoginInput } from '@/lib/validations';
 
 function getIPFromHeaders(): string {
@@ -15,7 +15,7 @@ function getIPFromHeaders(): string {
 
 export async function signup(data: SignupInput) {
   const ip = getIPFromHeaders();
-  const { allowed } = checkRateLimit(`signup:${ip}`, { limit: 5, windowSec: 300 });
+  const { allowed } = await checkRateLimitAsync(`signup:${ip}`, { limit: 5, windowSec: 300 });
   if (!allowed) return { error: 'Demasiados intentos. Espera unos minutos.' };
 
   const supabase = createClient();
@@ -39,7 +39,7 @@ export async function signup(data: SignupInput) {
 
 export async function login(data: LoginInput) {
   const ip = getIPFromHeaders();
-  const { allowed } = checkRateLimit(`login:${ip}`, { limit: 10, windowSec: 300 });
+  const { allowed } = await checkRateLimitAsync(`login:${ip}`, { limit: 10, windowSec: 300 });
   if (!allowed) return { error: 'Demasiados intentos. Espera unos minutos.' };
 
   const supabase = createClient();
@@ -73,7 +73,7 @@ export async function login(data: LoginInput) {
 
 export async function requestPasswordReset(email: string) {
   const ip = getIPFromHeaders();
-  const { allowed } = checkRateLimit(`reset:${ip}`, { limit: 3, windowSec: 300 });
+  const { allowed } = await checkRateLimitAsync(`reset:${ip}`, { limit: 3, windowSec: 300 });
   if (!allowed) return { error: 'Demasiados intentos. Espera unos minutos.' };
 
   const supabase = createClient();

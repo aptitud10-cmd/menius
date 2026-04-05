@@ -2,14 +2,14 @@ export const dynamic = 'force-dynamic';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { getStripe } from '@/lib/stripe';
 import { captureError } from '@/lib/error-reporting';
 
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`pay-intent:${ip}`, { limit: 10, windowSec: 60 });
+    const { allowed } = await checkRateLimitAsync(`pay-intent:${ip}`, { limit: 10, windowSec: 60 });
     if (!allowed) {
       return NextResponse.json(
         { error: 'Too many requests' },
@@ -45,7 +45,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Monto inválido' }, { status: 400 });
     }
 
-    const intentParams: any = {
+    const connectedAccount: string | null = rest?.stripe_onboarding_complete
+      ? (rest?.stripe_account_id ?? null)
+      : null;
+
+    if (!connectedAccount) {
+      return NextResponse.json(
+        {
+          error:
+            'El pago en línea no está disponible para este restaurante aún. Por favor paga en persona.',
+        },
+        { status: 400 }
+      );
+    }
+
+    const intentParams: import('stripe').Stripe.PaymentIntentCreateParams = {
       amount,
       currency,
       metadata: {
@@ -54,12 +68,9 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    // Direct charge on the connected account (merchant config).
-    // Stripe handles fees and losses — MENIUS collects 0% commission.
-    const connectedAccount = rest?.stripe_onboarding_complete ? rest?.stripe_account_id : undefined;
-    const requestOptions = connectedAccount ? { stripeAccount: connectedAccount } : undefined;
-
-    const paymentIntent = await stripe.paymentIntents.create(intentParams, requestOptions as any);
+    const paymentIntent = await stripe.paymentIntents.create(intentParams, {
+      stripeAccount: connectedAccount,
+    });
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });
   } catch (err: any) {

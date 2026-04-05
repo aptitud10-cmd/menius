@@ -7,6 +7,15 @@ import { formatPrice } from '@/lib/utils';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 
+function escHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 const logger = createLogger('tenant-reports');
 
 export async function GET(request: NextRequest) {
@@ -59,6 +68,9 @@ export async function GET(request: NextRequest) {
 
     const currency = restaurant?.currency ?? 'USD';
     const restaurantName = restaurant?.name ?? 'Restaurante';
+    const safeRestaurantName = escHtml(restaurantName);
+    // Strip characters unsafe in HTTP header values for Content-Disposition
+    const filenameSlug = restaurantName.replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').slice(0, 60);
     const allOrders = orders ?? [];
 
     if (format === 'csv') {
@@ -87,7 +99,7 @@ export async function GET(request: NextRequest) {
       return new NextResponse(bom + csv, {
         headers: {
           'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="${restaurantName}-reporte-${days}d.csv"`,
+          'Content-Disposition': `attachment; filename="${filenameSlug}-reporte-${days}d.csv"`,
         },
       });
     }
@@ -109,10 +121,10 @@ export async function GET(request: NextRequest) {
 
     const orderRows = allOrders.slice(0, 200).map(o => `
       <tr>
-        <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:12px;">${o.order_number}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:12px;">${escHtml(String(o.order_number ?? ''))}</td>
         <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:12px;">${new Date(o.created_at).toLocaleDateString('es')}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:12px;">${o.customer_name || '—'}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:12px;">${o.status}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:12px;">${escHtml(o.customer_name || '—')}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:12px;">${escHtml(o.status ?? '')}</td>
         <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;font-size:12px;text-align:right;font-weight:600;">${formatPrice(Number(o.total), currency)}</td>
       </tr>
     `).join('');
@@ -122,7 +134,7 @@ export async function GET(request: NextRequest) {
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <title>Reporte de Ventas — ${restaurantName}</title>
+  <title>Reporte de Ventas — ${safeRestaurantName}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 40px; color: #111827; }
     h1 { font-size: 24px; margin: 0 0 4px; }
@@ -139,7 +151,7 @@ export async function GET(request: NextRequest) {
 </head>
 <body>
   <h1>Reporte de Ventas</h1>
-  <p class="subtitle">${restaurantName} — ${startParam && endParam ? `${new Date(since).toLocaleDateString('es')} - ${new Date(until).toLocaleDateString('es')}` : `Últimos ${days} días (${new Date(since).toLocaleDateString('es')} - ${new Date().toLocaleDateString('es')})`}</p>
+  <p class="subtitle">${safeRestaurantName} — ${startParam && endParam ? `${new Date(since).toLocaleDateString('es')} - ${new Date(until).toLocaleDateString('es')}` : `Últimos ${days} días (${new Date(since).toLocaleDateString('es')} - ${new Date().toLocaleDateString('es')})`}</p>
 
   <div class="stats">
     <div class="stat">
@@ -166,7 +178,7 @@ export async function GET(request: NextRequest) {
     <br><span style="font-size:13px;color:#6b7280;">Descuentos otorgados: ${formatPrice(totalDiscount, currency)}</span>
   </div>
 
-  <h3 style="font-size:14px;margin:0 0 12px;">Detalle de órdenes (${Math.min(200, allOrders.length)} de ${allOrders.length})</h3>
+  <h3 style="font-size:14px;margin:0 0 12px;">Detalle de órdenes (${Math.min(200, allOrders.length)} de ${escHtml(String(allOrders.length))})</h3>
   <table>
     <thead><tr><th>Orden</th><th>Fecha</th><th>Cliente</th><th>Estado</th><th style="text-align:right;">Total</th></tr></thead>
     <tbody>${orderRows}</tbody>

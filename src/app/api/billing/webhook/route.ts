@@ -230,14 +230,8 @@ export async function POST(request: NextRequest) {
         }
 
         if (restaurantData?.owner_user_id) {
-          const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-          if (serviceKey) {
-            const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-            const adminClient = createSupabaseClient(
-              process.env.NEXT_PUBLIC_SUPABASE_URL!,
-              serviceKey,
-              { auth: { autoRefreshToken: false, persistSession: false } }
-            );
+          try {
+            const adminClient = createAdminClient();
             const { data: userData } = await adminClient.auth.admin.getUserById(restaurantData.owner_user_id);
             const ownerEmail = userData?.user?.email;
             const ownerName = userData?.user?.user_metadata?.full_name || restaurantData.name;
@@ -266,6 +260,11 @@ export async function POST(request: NextRequest) {
                 html,
               });
             }
+          } catch (emailErr) {
+            logger.error('Failed to send trial_will_end email', {
+              error: emailErr instanceof Error ? emailErr.message : String(emailErr),
+              restaurantId: restaurantData?.id,
+            });
           }
         }
         break;

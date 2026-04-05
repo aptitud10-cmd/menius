@@ -28,7 +28,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Idempotency key — prevent duplicate orders on network retry
-    const idempotencyKey = request.headers.get('Idempotency-Key')?.trim() || null;
+    const rawIdempotencyKey = request.headers.get('Idempotency-Key')?.trim() || null;
+    // Reject suspiciously long keys before touching the DB (max 128 chars is generous for UUIDs)
+    if (rawIdempotencyKey && rawIdempotencyKey.length > 128) {
+      return NextResponse.json({ error: 'Idempotency-Key too long (max 128 chars)' }, { status: 400 });
+    }
+    const idempotencyKey = rawIdempotencyKey;
     if (idempotencyKey) {
       const adminDb = createAdminClient();
       const { data: existing } = await adminDb
@@ -276,11 +281,15 @@ export async function POST(request: NextRequest) {
       for (const mod of (item.modifiers ?? [])) {
         const isLegacy = !mod.option_id || String(mod.option_id).startsWith('__legacy');
         if (isLegacy) {
-          // Legacy modifiers pre-date the modifier_options table. Their price comes
-          // from the client but these items have no DB record to verify against.
-          // We accept the value but log it so we can track restaurants still on legacy data.
-          logger.warn('legacy modifier — price from client', { product: item.product_id, option_id: mod.option_id, price_delta: mod.price_delta });
-          expectedUnitPrice += Number(mod.price_delta);
+          // Legacy modifiers predate the modifier_options table and have no DB record
+          // to verify against. We use $0 instead of trusting the client-supplied
+          // price_delta — accepting client prices here would allow arbitrary discounts
+          // by anyone who sends option_id starting with "__legacy".
+          logger.warn('legacy modifier — using $0 for security (migrate to modifier_options)', {
+            product: item.product_id,
+            option_id: mod.option_id,
+          });
+          // expectedUnitPrice += 0 (intentional: never trust client price)
         } else {
           const dbOpt = modOptionMap.get(mod.option_id);
           if (dbOpt) {
@@ -324,10 +333,14 @@ export async function POST(request: NextRequest) {
     const { data: orderNum } = await supabase.rpc('generate_order_number', { rest_id: restaurant_id });
     const orderNumber = orderNum ?? `ORD-${Date.now().toString(36).toUpperCase()}`;
 
-    const tipAmt = Math.max(0, Number(parsed.data.tip_amount) || 0);
     const serverDeliveryFee = Number(restaurant.delivery_fee) || 0;
     const deliveryFeeAmt = parsed.data.order_type === 'delivery' ? serverDeliveryFee : 0;
     const subtotal = parsed.data.items.reduce((sum, item) => sum + item.line_total, 0);
+
+    // Clamp tip to 100% of subtotal — Zod allows up to $1,000 flat but that is
+    // unreasonable on a $1 order. Server enforces a proportional ceiling.
+    const rawTip = Math.max(0, Number(parsed.data.tip_amount) || 0);
+    const tipAmt = Math.min(rawTip, subtotal);
 
     let discountAmt = 0;
     if (promo_code) {
@@ -678,7 +691,7 @@ export async function POST(request: NextRequest) {
           };
         });
 
-        const sessionParams: any = {
+        const sessionParams: import('stripe').Stripe.Checkout.SessionCreateParams = {
           line_items: lineItems,
           mode: 'payment',
           success_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=true`,
@@ -689,7 +702,31 @@ export async function POST(request: NextRequest) {
         const session = await stripe.checkout.sessions.create(sessionParams);
         stripeUrl = session.url;
       } catch (stripeErr) {
-        logger.error('stripe session creation failed', { order_id: order.id, error: stripeErr instanceof Error ? stripeErr.message : String(stripeErr) });
+        const errMsg = stripeErr instanceof Error ? stripeErr.message : String(stripeErr);
+        logger.error('stripe session creation failed — rolling back order', { order_id: order.id, error: errMsg });
+
+        // Roll back: delete the order so the customer doesn't see a pending order
+        // with no payment URL. They can retry cleanly from the cart.
+        const { error: rbErr } = await adminDb.from('orders').delete().eq('id', order.id);
+        if (rbErr) {
+          logger.error('rollback delete failed after Stripe error — marking cancelled', {
+            order_id: order.id,
+            delete_error: rbErr.message,
+          });
+          await adminDb
+            .from('orders')
+            .update({ status: 'cancelled', notes: '[auto-cancelled: stripe session creation failed]' })
+            .eq('id', order.id);
+        }
+
+        return NextResponse.json(
+          {
+            error: en
+              ? 'Payment could not be initialized. Please try again or choose a different payment method.'
+              : 'No se pudo iniciar el pago. Intenta de nuevo o elige otro método de pago.',
+          },
+          { status: 502 }
+        );
       }
     }
 

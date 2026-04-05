@@ -1,29 +1,15 @@
 export const dynamic = 'force-dynamic';
 
-import { createClient } from '@/lib/supabase/server';
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
-
-function getDbClient() {
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (serviceKey) {
-    return createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      serviceKey,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
-  }
-  console.warn('[billing/subscription] SUPABASE_SERVICE_ROLE_KEY not set, using anon client');
-  return createClient();
-}
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET() {
   try {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
-    const db = getDbClient();
+    const db = createAdminClient();
 
     const { data: subscription, error } = await db
       .from('subscriptions')

@@ -41,13 +41,19 @@ export async function PUT(req: NextRequest) {
     const rid = tenant.restaurantId;
 
     const body = await req.json();
+    const clamp = (val: unknown, min: number, max: number, fallback: number): number => {
+      const n = Number(val);
+      if (!isFinite(n)) return fallback;
+      return Math.min(max, Math.max(min, n));
+    };
+
     const config = {
       restaurant_id: rid,
       enabled: Boolean(body.enabled),
-      points_per_peso: Number(body.points_per_peso) || 1,
-      min_redeem_points: Number(body.min_redeem_points) || 100,
-      peso_per_point: Number(body.peso_per_point) || 0.1,
-      welcome_points: Number(body.welcome_points) || 0,
+      points_per_peso: clamp(body.points_per_peso, 0.01, 1000, 1),
+      min_redeem_points: clamp(body.min_redeem_points, 1, 1_000_000, 100),
+      peso_per_point: clamp(body.peso_per_point, 0.001, 1000, 0.1),
+      welcome_points: clamp(body.welcome_points, 0, 100_000, 0),
       updated_at: new Date().toISOString(),
     };
 
@@ -72,6 +78,11 @@ export async function POST(req: NextRequest) {
     const { account_id, points, description, type } = await req.json();
     if (!account_id || !points || !type) {
       return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
+    }
+
+    const ALLOWED_TYPES = ['earn', 'redeem', 'adjustment', 'welcome', 'expiry'];
+    if (!ALLOWED_TYPES.includes(String(type))) {
+      return NextResponse.json({ error: 'Tipo de transacción inválido' }, { status: 400 });
     }
 
     const supabase = createClient();

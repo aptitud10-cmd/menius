@@ -73,6 +73,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
     }
 
+    // Verify the supplied order_id actually belongs to this restaurant.
+    // Without this check, a review could be linked to any order in the system.
+    if (parsed.data.order_id) {
+      const { data: orderCheck } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('id', parsed.data.order_id)
+        .eq('restaurant_id', parsed.data.restaurant_id)
+        .maybeSingle();
+      if (!orderCheck) {
+        return NextResponse.json({ error: 'Order not found for this restaurant' }, { status: 400 });
+      }
+    }
+
     const { data, error } = await supabase
       .from('reviews')
       .insert({

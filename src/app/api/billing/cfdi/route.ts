@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
+import { UUID_RE } from '@/lib/constants';
 
 const CFDI_USES = [
   'G01', 'G02', 'G03', 'I01', 'I02', 'I03', 'I04', 'I05', 'I06', 'I07', 'I08',
@@ -11,6 +13,12 @@ const RFC_REGEX = /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/i;
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIP(req);
+    const rl = await checkRateLimitAsync(`cfdi:${ip}`, { limit: 5, windowSec: 300 });
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Demasiadas solicitudes, intenta más tarde' }, { status: 429 });
+    }
+
     const body = await req.json();
     const { orderId, restaurantId, rfc, razonSocial, cfdiUse, regimenFiscal, cpDomicilio } = body;
 
@@ -18,17 +26,23 @@ export async function POST(req: NextRequest) {
     if (!orderId || !restaurantId) {
       return NextResponse.json({ error: 'Faltan datos de la orden' }, { status: 400 });
     }
+    if (!UUID_RE.test(String(orderId)) || !UUID_RE.test(String(restaurantId))) {
+      return NextResponse.json({ error: 'ID de orden o restaurante inválido' }, { status: 400 });
+    }
     if (!rfc || !RFC_REGEX.test(rfc.trim())) {
       return NextResponse.json({ error: 'RFC inválido' }, { status: 400 });
     }
-    if (!razonSocial?.trim()) {
-      return NextResponse.json({ error: 'La razón social es requerida' }, { status: 400 });
+    if (!razonSocial?.trim() || String(razonSocial).length > 300) {
+      return NextResponse.json({ error: 'La razón social es requerida (máx 300 chars)' }, { status: 400 });
     }
     if (!cfdiUse || !CFDI_USES.includes(cfdiUse)) {
       return NextResponse.json({ error: 'Uso de CFDI inválido' }, { status: 400 });
     }
-    if (!regimenFiscal?.trim()) {
-      return NextResponse.json({ error: 'El régimen fiscal es requerido' }, { status: 400 });
+    if (!regimenFiscal?.trim() || String(regimenFiscal).length > 10) {
+      return NextResponse.json({ error: 'El régimen fiscal es requerido (máx 10 chars)' }, { status: 400 });
+    }
+    if (cpDomicilio && String(cpDomicilio).length > 10) {
+      return NextResponse.json({ error: 'CP domicilio inválido' }, { status: 400 });
     }
 
     const supabase = createClient();

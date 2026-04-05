@@ -126,10 +126,17 @@ export function JsonLdScript({
     };
   }
 
+  // JSON.stringify does not escape </script>, so we must do it manually to
+  // prevent script-tag breakout XSS when user-supplied strings (name, description,
+  // address, product names) end up inside an inline <script> block.
+  const safeJson = JSON.stringify(restaurantLd)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e');
+
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(restaurantLd) }}
+      dangerouslySetInnerHTML={{ __html: safeJson }}
     />
   );
 }

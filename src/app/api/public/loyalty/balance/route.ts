@@ -2,13 +2,30 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
+import { UUID_RE } from '@/lib/constants';
 
 export async function GET(req: NextRequest) {
+  const ip = getClientIP(req);
+  const rl = await checkRateLimitAsync(`loyalty-balance:${ip}`, { limit: 20, windowSec: 60 });
+  if (!rl.allowed) {
+    return NextResponse.json({ points: 0, config: null }, { status: 429 });
+  }
+
   const { searchParams } = new URL(req.url);
   const phone = searchParams.get('phone')?.trim();
   const restaurantId = searchParams.get('restaurant_id')?.trim();
 
   if (!phone || !restaurantId) {
+    return NextResponse.json({ points: 0, config: null });
+  }
+
+  if (!UUID_RE.test(restaurantId)) {
+    return NextResponse.json({ points: 0, config: null });
+  }
+
+  // Limit phone length to prevent oversized DB queries
+  if (phone.length > 20) {
     return NextResponse.json({ points: 0, config: null });
   }
 

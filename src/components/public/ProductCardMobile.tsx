@@ -90,7 +90,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
               fill
               sizes="50vw"
               priority={priority}
-              unoptimized={false}
+              unoptimized={product.image_url.includes('.supabase.co/storage/')}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
               className={cn('object-cover transition-opacity duration-150', imgLoaded ? 'opacity-100' : 'opacity-0', outOfStock && 'grayscale')}

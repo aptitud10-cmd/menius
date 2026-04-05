@@ -1,12 +1,9 @@
-import { createClient as createAdminClientSupabase } from '@supabase/supabase-js';
 import { Redis } from '@upstash/redis';
 import { sendWhatsApp } from '@/lib/notifications/whatsapp';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+import { createAdminClient } from '@/lib/supabase/admin';
 
 function getAdminClient() {
-  return createAdminClientSupabase(supabaseUrl, supabaseServiceKey);
+  return createAdminClient();
 }
 
 interface IncomingMessage {

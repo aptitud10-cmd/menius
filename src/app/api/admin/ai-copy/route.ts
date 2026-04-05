@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { verifyAdmin } from '@/lib/auth/verify-admin';
 
 export async function POST(request: NextRequest) {
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     if (!auth) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
     const { supabase, user } = auth;
-    const { allowed } = checkRateLimit(`admin-ai:${user.id}`, { limit: 40, windowSec: 3600 });
+    const { allowed } = await checkRateLimitAsync(`admin-ai:${user.id}`, { limit: 40, windowSec: 3600 });
     if (!allowed) return NextResponse.json({ error: 'Límite alcanzado.' }, { status: 429 });
 
     const apiKey = (process.env.GEMINI_API_KEY ?? '').trim();

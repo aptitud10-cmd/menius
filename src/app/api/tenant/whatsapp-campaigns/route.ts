@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { sendWhatsApp } from '@/lib/notifications/whatsapp';
+import { checkRateLimitAsync } from '@/lib/rate-limit';
 
 export async function GET() {
   try {
@@ -61,13 +62,28 @@ async function getCustomers(supabase: ReturnType<typeof createClient>, restauran
   return data ?? [];
 }
 
+const ALLOWED_AUDIENCES: string[] = ['all', 'inactive_30', 'inactive_60', 'vip'];
+
 export async function POST(req: NextRequest) {
   try {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { message, audience = 'all' } = await req.json();
+    // Redis-backed rate limit: 3 WhatsApp blasts per hour per restaurant
+    const { allowed } = await checkRateLimitAsync(`whatsapp-campaign:${tenant.restaurantId}`, { limit: 3, windowSec: 3600 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Rate limit reached. Maximum 3 campaigns per hour.' }, { status: 429 });
+    }
+
+    const body = await req.json();
+    const { message, audience = 'all' } = body;
     if (!message?.trim()) return NextResponse.json({ error: 'Message required' }, { status: 400 });
+    if (typeof message === 'string' && message.length > 1000) {
+      return NextResponse.json({ error: 'Message too long (max 1000 chars)' }, { status: 400 });
+    }
+    if (!ALLOWED_AUDIENCES.includes(String(audience))) {
+      return NextResponse.json({ error: 'Invalid audience' }, { status: 400 });
+    }
 
     // Check Twilio is configured
     if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {

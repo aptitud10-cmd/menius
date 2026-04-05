@@ -6,6 +6,15 @@ import { getTenant } from '@/lib/auth/get-tenant';
 import { sendEmail } from '@/lib/notifications/email';
 import { sendWhatsApp } from '@/lib/notifications/whatsapp';
 
+function escHtml(s: string): string {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function formatTime(timeStr: string) {
   const [h, m] = timeStr.split(':').map(Number);
   const ampm = h >= 12 ? 'PM' : 'AM';
@@ -45,6 +54,10 @@ export async function POST(req: NextRequest) {
     const formattedTime = formatTime(time);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
+    const safeName = escHtml(String(customerName ?? ''));
+    const safeRestaurant = escHtml(restaurant.name ?? '');
+    const safePartySize = Number(partySize) || 1;
+
     // Send email confirmation if customer email is available
     if (customerEmail) {
       const subject = isEn
@@ -62,11 +75,11 @@ export async function POST(req: NextRequest) {
         <h1 style="color:white;font-size:22px;font-weight:800;margin:0 0 6px;">
           ${isEn ? 'Reservation Confirmed!' : '¡Reservación Confirmada!'}
         </h1>
-        <p style="color:rgba(255,255,255,0.85);font-size:14px;margin:0;">${restaurant.name}</p>
+        <p style="color:rgba(255,255,255,0.85);font-size:14px;margin:0;">${safeRestaurant}</p>
       </div>
       <div style="padding:28px;">
         <p style="color:#374151;font-size:15px;margin:0 0 20px;">
-          ${isEn ? `Hi ${customerName},` : `Hola ${customerName},`}<br><br>
+          ${isEn ? `Hi ${safeName},` : `Hola ${safeName},`}<br><br>
           ${isEn ? 'Your reservation has been confirmed. We look forward to seeing you!' : 'Tu reservación ha sido confirmada. ¡Te esperamos con gusto!'}
         </p>
         <div style="background:#f9fafb;border-radius:12px;padding:20px;margin-bottom:20px;border:1px solid #e5e7eb;">
@@ -80,7 +93,7 @@ export async function POST(req: NextRequest) {
           </div>
           <div style="display:flex;justify-content:space-between;">
             <span style="color:#6b7280;font-size:13px;">${isEn ? 'Party size' : 'Personas'}</span>
-            <span style="color:#111827;font-size:13px;font-weight:600;">${partySize}</span>
+            <span style="color:#111827;font-size:13px;font-weight:600;">${safePartySize}</span>
           </div>
         </div>
         <p style="color:#6b7280;font-size:13px;text-align:center;margin:0;">
@@ -106,8 +119,8 @@ export async function POST(req: NextRequest) {
     // Send WhatsApp confirmation if customer phone is available
     if (customerPhone) {
       const waText = isEn
-        ? `✅ *Reservation confirmed at ${restaurant.name}*\n\nHi ${customerName}!\n📅 ${formattedDate}\n⏰ ${formattedTime}\n👥 ${partySize} ${partySize === 1 ? 'guest' : 'guests'}\n\nIf you need to cancel, please contact us directly.`
-        : `✅ *Reservación confirmada en ${restaurant.name}*\n\n¡Hola ${customerName}!\n📅 ${formattedDate}\n⏰ ${formattedTime}\n👥 ${partySize} ${partySize === 1 ? 'persona' : 'personas'}\n\nSi necesitas cancelar, por favor contáctanos directamente.`;
+        ? `✅ *Reservation confirmed at ${restaurant.name}*\n\nHi ${safeName}!\n📅 ${formattedDate}\n⏰ ${formattedTime}\n👥 ${safePartySize} ${safePartySize === 1 ? 'guest' : 'guests'}\n\nIf you need to cancel, please contact us directly.`
+        : `✅ *Reservación confirmada en ${restaurant.name}*\n\n¡Hola ${safeName}!\n📅 ${formattedDate}\n⏰ ${formattedTime}\n👥 ${safePartySize} ${safePartySize === 1 ? 'persona' : 'personas'}\n\nSi necesitas cancelar, por favor contáctanos directamente.`;
 
       sendWhatsApp({ to: customerPhone, text: waText }).catch(() => {});
     }

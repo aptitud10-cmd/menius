@@ -2,13 +2,13 @@ export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { getStripe } from '@/lib/stripe';
 
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`connect-onboard:${ip}`, { limit: 5, windowSec: 60 });
+    const { allowed } = await checkRateLimitAsync(`connect-onboard:${ip}`, { limit: 5, windowSec: 60 });
     if (!allowed) {
       return NextResponse.json(
         { error: 'Too many requests' },

@@ -1,13 +1,14 @@
 name: Lighthouse CI
 
 on:
-  deployment_status:
+  push:
+    branches: [main]
 
 jobs:
   lighthouse:
     name: Lighthouse Performance Audit
     runs-on: ubuntu-latest
-    if: github.event.deployment_status.state == 'success'
+    if: always()
 
     steps:
       - uses: actions/checkout@v4
@@ -23,9 +24,9 @@ jobs:
       - name: Run Lighthouse CI
         run: |
           lhci autorun \
-            --collect.url="${{ github.event.deployment_status.target_url }}" \
-            --collect.url="${{ github.event.deployment_status.target_url }}/la-casa-del-sabor" \
-            --collect.url="${{ github.event.deployment_status.target_url }}/login" \
+            --collect.url="https://menius-git-main-william-2622f910.vercel.app" \
+            --collect.url="https://menius-git-main-william-2622f910.vercel.app/la-casa-del-sabor" \
+            --collect.url="https://menius-git-main-william-2622f910.vercel.app/login" \
             --assert.preset=lighthouse:recommended \
             --assert.assertions.performance=["error",{"minScore":0.7}] \
             --assert.assertions.accessibility=["error",{"minScore":0.8}] \

@@ -36,20 +36,24 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer);
 
     let optimizedBuffer: Buffer;
-    let contentType = 'image/webp';
-    let ext = 'webp';
+    const contentType = 'image/webp';
+    const ext = 'webp';
 
     try {
       const sharp = (await import('sharp')).default;
+      // Sharp validates the actual file content — if this throws, the file
+      // is not a real image regardless of what Content-Type the client claimed.
       optimizedBuffer = await sharp(buffer)
         .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
         .webp({ quality: 82 })
         .toBuffer();
     } catch {
-      optimizedBuffer = buffer;
-      const originalExt = file.name.split('.').pop() ?? 'jpg';
-      ext = originalExt;
-      contentType = file.type;
+      // Reject: file claims to be an image but Sharp cannot decode it.
+      // Uploading the original would store arbitrary content in a public bucket.
+      return NextResponse.json(
+        { error: 'El archivo no es una imagen válida o está corrupto.' },
+        { status: 400 }
+      );
     }
 
     const slug = file.name

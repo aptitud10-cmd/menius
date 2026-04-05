@@ -41,9 +41,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { productName, description, style, cuisine, category, isBanner } = body;
+    const { style, cuisine, category, isBanner } = body;
 
-    if (!productName?.trim()) {
+    // Sanitize user-supplied strings before embedding in AI prompts to prevent prompt injection.
+    // Strip control characters and limit length — AI models can be manipulated via crafted inputs.
+    const sanitizePromptStr = (val: unknown, maxLen: number): string =>
+      String(val ?? '').replace(/[\u0000-\u001F\u007F]/g, ' ').trim().slice(0, maxLen);
+
+    const productName = sanitizePromptStr(body.productName, 120);
+    const description = sanitizePromptStr(body.description, 300);
+
+    if (!productName) {
       return NextResponse.json({ error: 'Nombre del producto requerido' }, { status: 400 });
     }
 

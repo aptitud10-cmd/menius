@@ -4,7 +4,7 @@ export const maxDuration = 60;
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { allowed } = checkRateLimit(`sms-campaign:${tenant.userId}`, { limit: 5, windowSec: 3600 });
+    const { allowed } = await checkRateLimitAsync(`sms-campaign:${tenant.userId}`, { limit: 5, windowSec: 3600 });
     if (!allowed) {
       return NextResponse.json({ error: 'Rate limit reached. Try again in an hour.' }, { status: 429 });
     }
@@ -58,7 +58,16 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid input' }, { status: 400 });
     }
-    const { message, filter, menuUrl } = body;
+    const { message, filter } = body;
+
+    // Validate menuUrl — only allow http/https to prevent protocol injection into SMS messages
+    let menuUrl = '';
+    if (body.menuUrl) {
+      try {
+        const u = new URL(String(body.menuUrl));
+        if (['http:', 'https:'].includes(u.protocol)) menuUrl = u.toString();
+      } catch { /* ignore invalid URLs — just don't include them */ }
+    }
 
     const supabase = createClient();
 

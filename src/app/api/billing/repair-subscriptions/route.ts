@@ -1,19 +1,16 @@
 export const dynamic = 'force-dynamic';
 
-import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(request: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET;
   const secret = request.headers.get('x-cron-secret') || '';
-  if (secret !== process.env.CRON_SECRET) {
+  if (!cronSecret || secret !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
+  const supabase = createAdminClient();
 
   const { data: restaurants } = await supabase
     .from('restaurants')

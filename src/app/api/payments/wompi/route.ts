@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { captureError } from '@/lib/error-reporting';
 import { createHash } from 'crypto';
 
@@ -18,7 +18,7 @@ import { createHash } from 'crypto';
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`wompi:${ip}`, { limit: 10, windowSec: 60 });
+    const { allowed } = await checkRateLimitAsync(`wompi:${ip}`, { limit: 10, windowSec: 60 });
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }

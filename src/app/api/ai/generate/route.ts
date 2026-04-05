@@ -112,17 +112,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { dishName, cuisine = 'General', style = 'editorial' } = body as {
-      dishName?: string;
-      cuisine?: string;
-      style?: string;
-    };
+    const rawDishName = String(body.dishName ?? '').replace(/[\u0000-\u001F\u007F]/g, ' ').trim().slice(0, 120);
+    const cuisine = String(body.cuisine ?? 'General').slice(0, 50);
+    const style = String(body.style ?? 'editorial').slice(0, 50);
 
-    if (!dishName?.trim()) {
+    if (!rawDishName) {
       return NextResponse.json({ error: 'Dish name is required' }, { status: 400 });
     }
 
-    const prompt = buildFoodPrompt(dishName.trim(), cuisine, style);
+    const prompt = buildFoodPrompt(rawDishName, cuisine, style);
 
     // Try fal.ai first (better quality), then Gemini
     let imageUrl: string | null = null;

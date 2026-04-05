@@ -3,22 +3,27 @@ export const dynamic = 'force-dynamic';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { createLogger } from '@/lib/logger';
-import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 
 const logger = createLogger('orders-status');
 
 export async function GET(request: NextRequest) {
   try {
-    // Rate limit: 30 lookups per minute per IP to prevent order enumeration
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`order-status:${ip}`, { limit: 30, windowSec: 60 });
-    if (!allowed) {
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
-    }
-
     const { searchParams } = new URL(request.url);
     const orderNumber = searchParams.get('order_number');
     const restaurantId = searchParams.get('restaurant_id');
+
+    // Two-layer rate limit:
+    //   1. Per IP (shared Redis) — prevents distributed enumeration
+    //   2. Per IP+restaurant — prevents targeting a single restaurant's order sequence
+    const [globalRl, scopedRl] = await Promise.all([
+      checkRateLimitAsync(`order-status:${ip}`, { limit: 30, windowSec: 60 }),
+      checkRateLimitAsync(`order-status:${ip}:${restaurantId ?? 'none'}`, { limit: 10, windowSec: 60 }),
+    ]);
+    if (!globalRl.allowed || !scopedRl.allowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
 
     if (!orderNumber || !restaurantId) {
       return NextResponse.json({ error: 'order_number y restaurant_id requeridos' }, { status: 400 });

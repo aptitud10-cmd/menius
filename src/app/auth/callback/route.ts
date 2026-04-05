@@ -25,7 +25,11 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code');
   const token_hash = searchParams.get('token_hash');
   const type = searchParams.get('type') as 'magiclink' | 'email' | 'recovery' | null;
-  const next = searchParams.get('next') ?? '/app';
+
+  // Only allow relative paths to prevent open redirect attacks.
+  // An absolute URL like "https://evil.com" passed as `next` would bypass origin-based resolution.
+  const rawNext = searchParams.get('next') ?? '/app';
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/app';
 
   const cookieStore = cookies();
   const supabase = createServerClient(
