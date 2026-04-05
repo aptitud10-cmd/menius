@@ -1,9 +1,16 @@
 export const dynamic = 'force-dynamic';
 
 import Stripe from 'stripe';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // This endpoint exposes Stripe key presence and config — restrict to internal use only.
+  const cronSecret = process.env.CRON_SECRET;
+  const auth = request.headers.get('authorization');
+  if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const key = (process.env.STRIPE_SECRET_KEY ?? '').trim();
   const checks: Record<string, string> = {};
 

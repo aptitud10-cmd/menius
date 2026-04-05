@@ -10,6 +10,7 @@ import { getDashboardPlan, meetsMinPlan } from '@/lib/plan-access';
 const logger = createLogger('tenant-analytics');
 
 const STARTER_MAX_DAYS = 30;
+const PRO_MAX_DAYS = 365;
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,13 +37,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Rango de fechas inválido' }, { status: 400 });
       }
 
-      // Cap start date to 30 days ago for Starter plan
-      if (!isPro) {
-        const maxStart = new Date();
-        maxStart.setDate(maxStart.getDate() - STARTER_MAX_DAYS);
-        if (startDate < maxStart) {
-          startDate.setTime(maxStart.getTime());
-        }
+      const maxAllowedDays = isPro ? PRO_MAX_DAYS : STARTER_MAX_DAYS;
+      const maxStart = new Date();
+      maxStart.setDate(maxStart.getDate() - maxAllowedDays);
+      if (startDate < maxStart) {
+        startDate.setTime(maxStart.getTime());
       }
 
       sinceISO = startDate.toISOString();
@@ -55,8 +54,8 @@ export async function GET(request: NextRequest) {
       prevSinceISO = prevStart.toISOString();
     } else {
       days = Number(searchParams.get('days')) || 7;
-      // Cap to 30 days for Starter plan
-      if (!isPro && days > STARTER_MAX_DAYS) days = STARTER_MAX_DAYS;
+      const maxAllowedDays = isPro ? PRO_MAX_DAYS : STARTER_MAX_DAYS;
+      if (days > maxAllowedDays) days = maxAllowedDays;
       const since = new Date();
       since.setDate(since.getDate() - days);
       sinceISO = since.toISOString();

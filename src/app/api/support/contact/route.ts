@@ -2,8 +2,24 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/notifications/email';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
+
+function escHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIP(request);
+  const rl = await checkRateLimitAsync(`support-contact:${ip}`, { limit: 3, windowSec: 600 });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Too many requests. Try again in 10 minutes.' }, { status: 429 });
+  }
+
   let body: { name?: string; email?: string; message?: string };
   try {
     body = await request.json();
@@ -15,6 +31,19 @@ export async function POST(request: NextRequest) {
   if (!name || !email || !message) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
   }
+
+  if (String(name).length > 200 || String(message).length > 5000) {
+    return NextResponse.json({ error: 'Input too long' }, { status: 400 });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(String(email))) {
+    return NextResponse.json({ error: 'Invalid email' }, { status: 400 });
+  }
+
+  const safeName = escHtml(String(name));
+  const safeEmail = escHtml(String(email));
+  const safeMessage = escHtml(String(message)).replace(/\n/g, '<br/>');
 
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!adminEmail) {
@@ -29,11 +58,11 @@ export async function POST(request: NextRequest) {
     <p style="margin:0 0 4px;font-size:20px;font-weight:800;color:#111827;">📩 Nuevo mensaje de soporte</p>
     <p style="margin:0 0 24px;font-size:13px;color:#6b7280;">Recibido desde menius.app/support</p>
     <table style="width:100%;border-collapse:collapse;">
-      <tr><td style="padding:8px 0;font-size:13px;color:#6b7280;width:80px;vertical-align:top;">Nombre</td><td style="padding:8px 0;font-size:13px;color:#111827;font-weight:600;">${name}</td></tr>
-      <tr><td style="padding:8px 0;font-size:13px;color:#6b7280;vertical-align:top;">Email</td><td style="padding:8px 0;font-size:13px;"><a href="mailto:${email}" style="color:#05c8a7;">${email}</a></td></tr>
-      <tr><td style="padding:8px 0;font-size:13px;color:#6b7280;vertical-align:top;">Mensaje</td><td style="padding:8px 0;font-size:14px;color:#111827;line-height:1.6;">${message.replace(/\n/g, '<br/>')}</td></tr>
+      <tr><td style="padding:8px 0;font-size:13px;color:#6b7280;width:80px;vertical-align:top;">Nombre</td><td style="padding:8px 0;font-size:13px;color:#111827;font-weight:600;">${safeName}</td></tr>
+      <tr><td style="padding:8px 0;font-size:13px;color:#6b7280;vertical-align:top;">Email</td><td style="padding:8px 0;font-size:13px;"><a href="mailto:${safeEmail}" style="color:#05c8a7;">${safeEmail}</a></td></tr>
+      <tr><td style="padding:8px 0;font-size:13px;color:#6b7280;vertical-align:top;">Mensaje</td><td style="padding:8px 0;font-size:14px;color:#111827;line-height:1.6;">${safeMessage}</td></tr>
     </table>
-    <a href="mailto:${email}?subject=Re: Tu mensaje a MENIUS" style="display:inline-block;margin-top:20px;padding:12px 28px;background:#05c8a7;color:#fff;border-radius:10px;text-decoration:none;font-size:14px;font-weight:600;">Responder a ${name}</a>
+    <a href="mailto:${safeEmail}?subject=Re: Tu mensaje a MENIUS" style="display:inline-block;margin-top:20px;padding:12px 28px;background:#05c8a7;color:#fff;border-radius:10px;text-decoration:none;font-size:14px;font-weight:600;">Responder a ${safeName}</a>
   </div>
 </body></html>`;
 
@@ -47,11 +76,11 @@ export async function POST(request: NextRequest) {
       <p style="margin:0;font-size:13px;color:#6b7280;">We received your message · Recibimos tu mensaje</p>
     </div>
     <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.6;">
-      Hola <strong>${name}</strong>, gracias por escribirnos. Tu mensaje fue recibido y nuestro equipo te responderá en menos de <strong>24 horas hábiles</strong>.
+      Hola <strong>${safeName}</strong>, gracias por escribirnos. Tu mensaje fue recibido y nuestro equipo te responderá en menos de <strong>24 horas hábiles</strong>.
     </p>
     <div style="background:#f9fafb;border-radius:12px;padding:16px 20px;margin-bottom:24px;border-left:4px solid #05c8a7;">
       <p style="margin:0 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;">Tu mensaje</p>
-      <p style="margin:0;font-size:13px;color:#374151;line-height:1.6;">${message.replace(/\n/g, '<br/>')}</p>
+      <p style="margin:0;font-size:13px;color:#374151;line-height:1.6;">${safeMessage}</p>
     </div>
     <p style="margin:0 0 20px;font-size:13px;color:#6b7280;line-height:1.6;">
       Para urgencias también puedes usar el <strong>Asistente IA</strong> disponible en tu dashboard de MENIUS — responde al instante.
@@ -67,7 +96,7 @@ export async function POST(request: NextRequest) {
     sendEmail({
       to: adminEmail,
       from: 'Soporte MENIUS <soporte@menius.app>',
-      subject: `[MENIUS Support] New message from ${name}`,
+      subject: `[MENIUS Support] New message from ${safeName}`,
       html: adminHtml,
       replyTo: email,
     }),

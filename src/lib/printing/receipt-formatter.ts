@@ -3,6 +3,15 @@ import type { ReceiptData, ReceiptLineItem } from './types';
 // 80mm thermal printer — ~42 chars per line at 12px monospace
 const LINE_WIDTH = 42;
 
+function esc(s: string | null | undefined): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function pad(left: string, right: string, width = LINE_WIDTH): string {
   const gap = width - left.length - right.length;
   return gap > 0 ? `${left}${' '.repeat(gap)}${right}` : `${left} ${right}`;
@@ -133,15 +142,15 @@ export function buildReceiptHTML(data: ReceiptData): string {
   const itemsHTML = items
     .map((item) => {
       const price = formatCurrency(item.lineTotal, currency, locale);
-      const name =
-        item.name.length > 26 ? item.name.slice(0, 23) + '...' : item.name;
+      const rawName = item.name.length > 26 ? item.name.slice(0, 23) + '...' : item.name;
+      const name = esc(rawName);
       return `
         <tr class="item-row">
-          <td class="item-qty">${item.qty}x</td>
+          <td class="item-qty">${esc(String(item.qty))}x</td>
           <td class="item-name">
             <span>${name}</span>
-            ${item.modifiers.map((m) => `<div class="mod">— ${m}</div>`).join('')}
-            ${item.notes ? `<div class="item-note">★ ${item.notes}</div>` : ''}
+            ${item.modifiers.map((m) => `<div class="mod">— ${esc(m)}</div>`).join('')}
+            ${item.notes ? `<div class="item-note">★ ${esc(item.notes)}</div>` : ''}
           </td>
           <td class="item-price">${price}</td>
         </tr>`;
@@ -240,7 +249,7 @@ export function buildReceiptHTML(data: ReceiptData): string {
 
   <!-- HEADER -->
   <div class="header">
-    <div class="restaurant-name">${restaurantName.toUpperCase()}</div>
+    <div class="restaurant-name">${esc(restaurantName).toUpperCase()}</div>
   </div>
 
   <div class="divider"></div>
@@ -248,17 +257,17 @@ export function buildReceiptHTML(data: ReceiptData): string {
   <!-- ORDER META -->
   <div class="meta-row">
     <span class="bold">${L.order}:</span>
-    <span class="large">#${orderNumber}</span>
+    <span class="large">#${esc(orderNumber)}</span>
   </div>
-  ${tableName ? `<div class="table-badge">🍽 ${tableName.toUpperCase()}</div>` : ''}
+  ${tableName ? `<div class="table-badge">🍽 ${esc(tableName).toUpperCase()}</div>` : ''}
   <div class="meta-row">
     <span>${L.customer}:</span>
-    <span class="bold">${customerName || L.guest}</span>
+    <span class="bold">${esc(customerName) || L.guest}</span>
   </div>
-  ${customerPhone ? `<div class="meta-row"><span>${L.phone}:</span><span>${customerPhone}</span></div>` : ''}
-  ${typeLabel ? `<div class="meta-row"><span>${L.type}:</span><span>${typeLabel}</span></div>` : ''}
-  ${payLabel ? `<div class="meta-row"><span>${L.payment}:</span><span>${payLabel}</span></div>` : ''}
-  ${deliveryAddress ? `<div class="meta-row"><span>${L.address}:</span><span style="text-align:right;max-width:55mm;">${deliveryAddress}</span></div>` : ''}
+  ${customerPhone ? `<div class="meta-row"><span>${L.phone}:</span><span>${esc(customerPhone)}</span></div>` : ''}
+  ${typeLabel ? `<div class="meta-row"><span>${L.type}:</span><span>${esc(typeLabel)}</span></div>` : ''}
+  ${payLabel ? `<div class="meta-row"><span>${L.payment}:</span><span>${esc(payLabel)}</span></div>` : ''}
+  ${deliveryAddress ? `<div class="meta-row"><span>${L.address}:</span><span style="text-align:right;max-width:55mm;">${esc(deliveryAddress)}</span></div>` : ''}
   <div class="meta-row">
     <span>${L.date}:</span>
     <span>${formatDate(timestamp, locale)}</span>
@@ -297,7 +306,7 @@ export function buildReceiptHTML(data: ReceiptData): string {
   <div class="divider"></div>
   <div class="notes-box">
     <div class="notes-label">${L.notes}</div>
-    <div>${notes}</div>
+    <div>${esc(notes)}</div>
   </div>` : ''}
 
   <div class="divider"></div>
@@ -384,14 +393,15 @@ export function buildKitchenHTML(data: ReceiptData): string {
   const typeLabel = formatOrderType(orderType, locale);
 
   const itemsHTML = items.map(item => {
-    const name = item.name.length > 30 ? item.name.slice(0, 27) + '...' : item.name;
+    const rawName = item.name.length > 30 ? item.name.slice(0, 27) + '...' : item.name;
+    const name = esc(rawName);
     return `
       <div class="item">
-        <span class="qty">${item.qty}x</span>
+        <span class="qty">${esc(String(item.qty))}x</span>
         <div class="name">
           <strong>${name}</strong>
-          ${item.modifiers.map(m => `<div class="mod">— ${m}</div>`).join('')}
-          ${item.notes ? `<div class="note">★ ${item.notes}</div>` : ''}
+          ${item.modifiers.map(m => `<div class="mod">— ${esc(m)}</div>`).join('')}
+          ${item.notes ? `<div class="note">★ ${esc(item.notes)}</div>` : ''}
         </div>
       </div>`;
   }).join('');
@@ -422,15 +432,15 @@ export function buildKitchenHTML(data: ReceiptData): string {
   </style>
 </head>
 <body>
-  <div class="center bold" style="font-size:13px;">${restaurantName.toUpperCase()}</div>
+  <div class="center bold" style="font-size:13px;">${esc(restaurantName).toUpperCase()}</div>
   <div class="tag">${isEn(locale) ? 'KITCHEN TICKET' : 'TICKET DE COCINA'}</div>
   <div class="divider"></div>
-  <div class="order-num">#${orderNumber}</div>
-  ${tableName ? `<div class="table-name">🍽 ${tableName.toUpperCase()}</div>` : typeLabel ? `<div class="tag">${typeLabel.toUpperCase()}</div>` : ''}
+  <div class="order-num">#${esc(orderNumber)}</div>
+  ${tableName ? `<div class="table-name">🍽 ${esc(tableName).toUpperCase()}</div>` : typeLabel ? `<div class="tag">${esc(typeLabel).toUpperCase()}</div>` : ''}
   <div class="divider"></div>
   ${itemsHTML}
   <div class="divider"></div>
-  ${notes ? `<div class="notes-box">⚠️ ${notes}</div>` : ''}
+  ${notes ? `<div class="notes-box">⚠️ ${esc(notes)}</div>` : ''}
   ${etaMinutes ? `<div class="eta">⏱ ${etaMinutes} min</div>` : ''}
 </body>
 </html>`;

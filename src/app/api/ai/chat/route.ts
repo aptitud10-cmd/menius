@@ -546,8 +546,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const userMessage = String(body.message ?? '').trim();
-    const clientHistory: ChatMessage[] = Array.isArray(body.history) ? body.history.slice(-8) : [];
+    const userMessage = String(body.message ?? '').trim().slice(0, 2000);
+    const clientHistory: ChatMessage[] = Array.isArray(body.history)
+      ? body.history.slice(-8).map((m: ChatMessage) => ({
+          role: m.role,
+          text: String(m.text ?? '').slice(0, 2000),
+        }))
+      : [];
 
     if (!userMessage) {
       return NextResponse.json({ error: 'Mensaje vacío' }, { status: 400 });

@@ -54,16 +54,28 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
     if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 500 });
 
-    // Recalculate order total
-    const { data: allItems } = await supabase
-      .from('order_items')
-      .select('line_total')
-      .eq('order_id', orderId);
+    // Recalculate order total: sum item subtotals then re-apply existing fees/discounts
+    const [{ data: allItems }, { data: orderFees }] = await Promise.all([
+      supabase.from('order_items').select('line_total').eq('order_id', orderId),
+      supabase
+        .from('orders')
+        .select('tax_amount, tip_amount, delivery_fee, discount_amount, loyalty_discount')
+        .eq('id', orderId)
+        .single(),
+    ]);
 
     const newSubtotal = (allItems ?? []).reduce((s, i) => s + Number(i.line_total), 0);
+    const tax = Number(orderFees?.tax_amount ?? 0);
+    const tip = Number(orderFees?.tip_amount ?? 0);
+    const deliveryFee = Number(orderFees?.delivery_fee ?? 0);
+    const discount = Number(orderFees?.discount_amount ?? 0);
+    const loyaltyDiscount = Number(orderFees?.loyalty_discount ?? 0);
+    const newSubtotalAfterDiscount = Math.max(0, newSubtotal - discount - loyaltyDiscount);
+    const newTotal = Math.max(0, newSubtotalAfterDiscount + tax + tip + deliveryFee);
+
     await supabase
       .from('orders')
-      .update({ total: newSubtotal })
+      .update({ total: newTotal })
       .eq('id', orderId);
 
     return NextResponse.json({
@@ -115,13 +127,25 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
     if (delErr) return NextResponse.json({ error: delErr.message }, { status: 500 });
 
-    // Recalculate total
-    const { data: allItems } = await supabase
-      .from('order_items')
-      .select('line_total')
-      .eq('order_id', orderId);
+    // Recalculate total: sum item subtotals then re-apply existing fees/discounts
+    const [{ data: allItems }, { data: orderFees }] = await Promise.all([
+      supabase.from('order_items').select('line_total').eq('order_id', orderId),
+      supabase
+        .from('orders')
+        .select('tax_amount, tip_amount, delivery_fee, discount_amount, loyalty_discount')
+        .eq('id', orderId)
+        .single(),
+    ]);
 
-    const newTotal = (allItems ?? []).reduce((s, i) => s + Number(i.line_total), 0);
+    const newSubtotal = (allItems ?? []).reduce((s, i) => s + Number(i.line_total), 0);
+    const tax = Number(orderFees?.tax_amount ?? 0);
+    const tip = Number(orderFees?.tip_amount ?? 0);
+    const deliveryFee = Number(orderFees?.delivery_fee ?? 0);
+    const discount = Number(orderFees?.discount_amount ?? 0);
+    const loyaltyDiscount = Number(orderFees?.loyalty_discount ?? 0);
+    const newSubtotalAfterDiscount = Math.max(0, newSubtotal - discount - loyaltyDiscount);
+    const newTotal = Math.max(0, newSubtotalAfterDiscount + tax + tip + deliveryFee);
+
     await supabase.from('orders').update({ total: newTotal }).eq('id', orderId);
 
     return NextResponse.json({ success: true, newTotal });

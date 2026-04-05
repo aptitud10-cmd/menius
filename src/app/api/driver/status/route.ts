@@ -15,12 +15,19 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendWhatsApp } from '@/lib/notifications/whatsapp';
 import { sendSMS, resolveChannel } from '@/lib/notifications/sms';
 import { canTransition } from '@/lib/order-state';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 
 type DriverAction = 'picked_up' | 'at_door' | 'delivered' | 'notify_outside';
 
 const ALLOWED_ACTIONS: DriverAction[] = ['picked_up', 'at_door', 'delivered', 'notify_outside'];
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIP(req);
+  const rl = await checkRateLimitAsync(`driver-status:${ip}`, { limit: 60, windowSec: 60 });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const { token, action } = body as { token?: string; action?: DriverAction };
 

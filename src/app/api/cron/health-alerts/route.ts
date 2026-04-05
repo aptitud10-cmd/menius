@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 import { sendEmail } from '@/lib/notifications/email';
 import { PLANS } from '@/lib/plans';
@@ -28,11 +28,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ skipped: true, reason: 'ADMIN_ALERT_EMAIL not set' });
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
+  const supabase = createAdminClient();
 
   const now = new Date();
   const h24ago = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();

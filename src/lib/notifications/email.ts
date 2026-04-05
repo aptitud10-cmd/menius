@@ -30,6 +30,17 @@ interface EmailMessage {
   html: string;
 }
 
+// ---------- HTML escaping ----------
+
+function esc(s: string | null | undefined): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ---------- Transport ----------
 
 export async function sendEmail({ to, from, replyTo, subject, html }: EmailMessage): Promise<boolean> {
@@ -152,21 +163,21 @@ function itemsTable(items: OrderEmailItem[], currency?: string): string {
 
   const rows = items.map(item => {
     const subLines: string[] = [];
-    if (item.variant) subLines.push(`<span style="color:#6b7280;">${item.variant}</span>`);
+    if (item.variant) subLines.push(`<span style="color:#6b7280;">${esc(item.variant)}</span>`);
     if (item.modifiers?.length) {
-      subLines.push(...item.modifiers.map(m => `<span style="color:#6b7280;">· ${m}</span>`));
+      subLines.push(...item.modifiers.map(m => `<span style="color:#6b7280;">· ${esc(m)}</span>`));
     }
     if (item.extras?.length) {
-      subLines.push(...item.extras.map(e => `<span style="color:#7c3aed;">+ ${e}</span>`));
+      subLines.push(...item.extras.map(e => `<span style="color:#7c3aed;">+ ${esc(e)}</span>`));
     }
     if (item.notes) {
-      subLines.push(`<em style="color:#d97706;">"${item.notes}"</em>`);
+      subLines.push(`<em style="color:#d97706;">"${esc(item.notes)}"</em>`);
     }
 
     return `
     <tr>
       <td style="padding:10px 0 10px;border-bottom:1px solid #f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;vertical-align:top;">
-        <span style="font-size:14px;font-weight:600;color:#111827;">${item.qty}&times;&nbsp;${item.name}</span>
+        <span style="font-size:14px;font-weight:600;color:#111827;">${esc(String(item.qty))}&times;&nbsp;${esc(item.name)}</span>
         ${subLines.length ? `<br/><span style="font-size:12px;line-height:1.8;">${subLines.join('<br/>')}</span>` : ''}
       </td>
       <td style="padding:10px 0 10px;border-bottom:1px solid #f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;text-align:right;vertical-align:top;white-space:nowrap;">
@@ -244,7 +255,7 @@ export function buildOrderConfirmationEmail(params: {
     <tr>
       <td style="padding:32px 32px 24px;border-bottom:1px solid #f0f0f0;">
         <!-- Restaurant name -->
-        <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;letter-spacing:-0.02em;">${restaurantName}</p>
+        <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;letter-spacing:-0.02em;">${esc(restaurantName)}</p>
         <!-- Confirmation badge -->
         <table role="presentation" border="0" cellpadding="0" cellspacing="0">
           <tr>
@@ -265,17 +276,17 @@ export function buildOrderConfirmationEmail(params: {
   </table>`;
 
   const metaRows: string[] = [
-    metaRow(en ? 'Order' : 'Pedido', `<span style="font-family:monospace;background:#f3f4f6;padding:2px 6px;border-radius:4px;">#${orderNumber}</span>`),
-    metaRow(en ? 'Customer' : 'Cliente', customerName),
+    metaRow(en ? 'Order' : 'Pedido', `<span style="font-family:monospace;background:#f3f4f6;padding:2px 6px;border-radius:4px;">#${esc(orderNumber)}</span>`),
+    metaRow(en ? 'Customer' : 'Cliente', esc(customerName)),
   ];
   if (ot) metaRows.push(metaRow(en ? 'Type' : 'Tipo', pill(en ? ot.en : ot.es, ot.bg, ot.color)));
   if (pm) metaRows.push(metaRow(en ? 'Payment' : 'Pago', en ? pm.en : pm.es));
-  if (tableNumber) metaRows.push(metaRow(en ? 'Table' : 'Mesa', tableNumber));
-  if (notes) metaRows.push(metaRow(en ? 'Notes' : 'Notas', `<em style="color:#6b7280;">${notes}</em>`));
+  if (tableNumber) metaRows.push(metaRow(en ? 'Table' : 'Mesa', esc(tableNumber)));
+  if (notes) metaRows.push(metaRow(en ? 'Notes' : 'Notas', `<em style="color:#6b7280;">${esc(notes)}</em>`));
 
   const body = `
   <p style="margin:0 0 20px;font-size:15px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
-    ${en ? `Hi <strong>${customerName}</strong> — your order has been received and is being processed.` : `Hola <strong>${customerName}</strong> — tu pedido fue recibido y está en proceso.`}
+    ${en ? `Hi <strong>${esc(customerName)}</strong> — your order has been received and is being processed.` : `Hola <strong>${esc(customerName)}</strong> — tu pedido fue recibido y está en proceso.`}
   </p>
 
   <!-- Meta info -->
@@ -304,7 +315,7 @@ export function buildOrderConfirmationEmail(params: {
     ${en ? 'Tap the button above to follow your order in real time.' : 'Toca el botón para seguir tu pedido en tiempo real.'}
   </p>`;
 
-  const footer = `${en ? `This email was sent by` : `Este correo fue enviado por`} <strong style="color:#111827;">${restaurantName}</strong> ${en ? 'using the MENIUS platform.' : 'a través de la plataforma MENIUS.'}`;
+  const footer = `${en ? `This email was sent by` : `Este correo fue enviado por`} <strong style="color:#111827;">${esc(restaurantName)}</strong> ${en ? 'using the MENIUS platform.' : 'a través de la plataforma MENIUS.'}`;
 
   return shell('#7c3aed', header, body, footer);
 }
@@ -335,7 +346,7 @@ export function buildPaymentReceiptEmail(params: {
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
     <tr>
       <td style="padding:32px 32px 24px;border-bottom:1px solid #f0f0f0;">
-        <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;letter-spacing:-0.02em;">${restaurantName}</p>
+        <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;letter-spacing:-0.02em;">${esc(restaurantName)}</p>
         <table role="presentation" border="0" cellpadding="0" cellspacing="0">
           <tr>
             <td style="padding-right:8px;vertical-align:middle;">
@@ -355,14 +366,14 @@ export function buildPaymentReceiptEmail(params: {
   </table>`;
 
   const metaRows = [
-    metaRow(en ? 'Receipt' : 'Recibo', `<span style="font-family:monospace;background:#f3f4f6;padding:2px 6px;border-radius:4px;">#${orderNumber}</span>`),
-    metaRow(en ? 'Customer' : 'Cliente', customerName),
+    metaRow(en ? 'Receipt' : 'Recibo', `<span style="font-family:monospace;background:#f3f4f6;padding:2px 6px;border-radius:4px;">#${esc(orderNumber)}</span>`),
+    metaRow(en ? 'Customer' : 'Cliente', esc(customerName)),
     ...(otLabel ? [metaRow(en ? 'Type' : 'Tipo', otLabel)] : []),
   ];
 
   const body = `
   <p style="margin:0 0 20px;font-size:15px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
-    ${en ? `Hi <strong>${customerName}</strong> — your payment has been confirmed. Keep this email as your receipt.` : `Hola <strong>${customerName}</strong> — tu pago fue confirmado. Guarda este correo como comprobante.`}
+    ${en ? `Hi <strong>${esc(customerName)}</strong> — your payment has been confirmed. Keep this email as your receipt.` : `Hola <strong>${esc(customerName)}</strong> — tu pago fue confirmado. Guarda este correo como comprobante.`}
   </p>
 
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:24px;">
@@ -387,7 +398,7 @@ export function buildPaymentReceiptEmail(params: {
 
   ${ctaButton(trackingUrl, en ? '📦 Track my order' : '📦 Seguir mi pedido', '#059669')}`;
 
-  const footer = `${en ? `Payment processed for` : `Pago procesado para`} <strong style="color:#111827;">${restaurantName}</strong> ${en ? 'via MENIUS.' : 'vía MENIUS.'}`;
+  const footer = `${en ? `Payment processed for` : `Pago procesado para`} <strong style="color:#111827;">${esc(restaurantName)}</strong> ${en ? 'via MENIUS.' : 'vía MENIUS.'}`;
 
   return shell('#059669', header, body, footer);
 }
@@ -481,8 +492,8 @@ export function buildStatusUpdateEmail(params: {
     <tr>
       <td style="padding:36px 32px 28px;text-align:center;border-bottom:1px solid #f0f0f0;">
         <p style="margin:0 0 12px;font-size:40px;line-height:1;">${s.icon}</p>
-        <p style="margin:0 0 4px;font-size:20px;font-weight:800;color:${s.color};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${title}</p>
-        <p style="margin:0;font-size:13px;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${restaurantName} &nbsp;·&nbsp; ${en ? 'Order' : 'Pedido'} #${orderNumber}</p>
+        <p style="margin:0 0 4px;font-size:20px;font-weight:800;color:${s.color};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${esc(title)}</p>
+        <p style="margin:0;font-size:13px;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${esc(restaurantName)} &nbsp;·&nbsp; ${en ? 'Order' : 'Pedido'} #${esc(orderNumber)}</p>
       </td>
     </tr>
   </table>`;
@@ -500,12 +511,12 @@ export function buildStatusUpdateEmail(params: {
 
   const body = `
   <p style="margin:0 0 24px;font-size:15px;color:#374151;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
-    ${en ? `Hi <strong>${customerName}</strong>` : `Hola <strong>${customerName}</strong>`} — ${msg}
+    ${en ? `Hi <strong>${esc(customerName)}</strong>` : `Hola <strong>${esc(customerName)}</strong>`} — ${esc(msg)}
   </p>
   ${status !== 'delivered' ? ctaButton(trackingUrl, en ? '📍 View my order' : '📍 Ver mi pedido', s.color) : ''}
   ${reviewCta}`;
 
-  const footer = `${en ? 'Sent by' : 'Enviado por'} <strong style="color:#111827;">${restaurantName}</strong> ${en ? 'via MENIUS.' : 'vía MENIUS.'}`;
+  const footer = `${en ? 'Sent by' : 'Enviado por'} <strong style="color:#111827;">${esc(restaurantName)}</strong> ${en ? 'via MENIUS.' : 'vía MENIUS.'}`;
 
   return shell(s.color, header, body, footer);
 }
@@ -547,7 +558,7 @@ export function buildOwnerNewOrderEmail(params: {
           <tr>
             <td style="vertical-align:middle;">
               <p style="margin:0 0 2px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                ${restaurantName}
+                ${esc(restaurantName)}
               </p>
               <p style="margin:0;font-size:20px;font-weight:800;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
                 🔔 ${en ? 'New order!' : '¡Nuevo pedido!'}
@@ -555,7 +566,7 @@ export function buildOwnerNewOrderEmail(params: {
             </td>
             <td style="text-align:right;vertical-align:middle;">
               <p style="margin:0;font-size:13px;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${now}</p>
-              <p style="margin:4px 0 0;font-family:monospace;font-size:13px;color:#d1d5db;background:#374151;padding:3px 8px;border-radius:6px;display:inline-block;">#${orderNumber}</p>
+              <p style="margin:4px 0 0;font-family:monospace;font-size:13px;color:#d1d5db;background:#374151;padding:3px 8px;border-radius:6px;display:inline-block;">#${esc(orderNumber)}</p>
             </td>
           </tr>
         </table>
@@ -564,14 +575,14 @@ export function buildOwnerNewOrderEmail(params: {
   </table>`;
 
   const metaRows: string[] = [
-    metaRow(en ? 'Customer' : 'Cliente', customerName),
+    metaRow(en ? 'Customer' : 'Cliente', esc(customerName)),
   ];
-  if (customerPhone) metaRows.push(metaRow(en ? 'Phone' : 'Teléfono', `<a href="tel:${customerPhone}" style="color:#7c3aed;text-decoration:none;">${customerPhone}</a>`));
-  if (customerEmail) metaRows.push(metaRow('Email', customerEmail));
+  if (customerPhone) metaRows.push(metaRow(en ? 'Phone' : 'Teléfono', `<a href="tel:${esc(customerPhone)}" style="color:#7c3aed;text-decoration:none;">${esc(customerPhone)}</a>`));
+  if (customerEmail) metaRows.push(metaRow('Email', esc(customerEmail)));
   metaRows.push(metaRow(en ? 'Type' : 'Tipo', pill(en ? ot.en : ot.es, ot.bg, ot.color)));
-  if (tableNumber) metaRows.push(metaRow(en ? 'Table' : 'Mesa', tableNumber));
-  if (orderType === 'delivery' && deliveryAddress) metaRows.push(metaRow(en ? 'Delivery address' : 'Dirección de entrega', deliveryAddress));
-  if (notes) metaRows.push(metaRow(en ? 'Notes' : 'Notas', `<em style="color:#d97706;">"${notes}"</em>`));
+  if (tableNumber) metaRows.push(metaRow(en ? 'Table' : 'Mesa', esc(tableNumber)));
+  if (orderType === 'delivery' && deliveryAddress) metaRows.push(metaRow(en ? 'Delivery address' : 'Dirección de entrega', esc(deliveryAddress)));
+  if (notes) metaRows.push(metaRow(en ? 'Notes' : 'Notas', `<em style="color:#d97706;">"${esc(notes)}"</em>`));
 
   const body = `
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:24px;">
@@ -594,7 +605,7 @@ export function buildOwnerNewOrderEmail(params: {
 
   ${ctaButton(dashboardUrl, en ? '⚡ Open in dashboard' : '⚡ Abrir en el dashboard', '#111827')}`;
 
-  const footer = `${en ? 'Automatic notification from MENIUS for' : 'Notificación automática de MENIUS para'} <strong style="color:#111827;">${restaurantName}</strong>.`;
+  const footer = `${en ? 'Automatic notification from MENIUS for' : 'Notificación automática de MENIUS para'} <strong style="color:#111827;">${esc(restaurantName)}</strong>.`;
 
   return shell('#111827', header, body, footer);
 }
@@ -647,7 +658,7 @@ export function buildWelcomeEmail(params: {
           ${en ? 'Welcome to MENIUS!' : '¡Bienvenido a MENIUS!'}
         </p>
         <p style="margin:4px 0 0;font-size:14px;color:#7c3aed;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-          ${restaurantName}
+          ${esc(restaurantName)}
         </p>
       </td>
     </tr>
@@ -656,8 +667,8 @@ export function buildWelcomeEmail(params: {
   const body = `
   <p style="margin:0 0 24px;font-size:15px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
     ${en
-      ? `Hi <strong>${ownerName}</strong> — your restaurant is now live on MENIUS. You are on the <strong>Free plan</strong> — upgrade anytime to unlock more features. No credit card required.`
-      : `Hola <strong>${ownerName}</strong> — tu restaurante ya está activo en MENIUS. Estás en el <strong>plan gratuito</strong> — mejora tu plan en cualquier momento para desbloquear más funciones. Sin tarjeta de crédito.`}
+      ? `Hi <strong>${esc(ownerName)}</strong> — your restaurant is now live on MENIUS. You are on the <strong>Free plan</strong> — upgrade anytime to unlock more features. No credit card required.`
+      : `Hola <strong>${esc(ownerName)}</strong> — tu restaurante ya está activo en MENIUS. Estás en el <strong>plan gratuito</strong> — mejora tu plan en cualquier momento para desbloquear más funciones. Sin tarjeta de crédito.`}
   </p>
 
   <!-- Trial badge -->
@@ -715,7 +726,7 @@ export function buildTrialEndingEmail(params: {
       <td style="padding:36px 32px 28px;text-align:center;border-bottom:1px solid #f0f0f0;">
         <p style="margin:0 0 12px;font-size:40px;line-height:1;">${icon}</p>
         <p style="margin:0 0 4px;font-size:20px;font-weight:800;color:${accentColor};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${en ? titleEn : titleEs}</p>
-        <p style="margin:0;font-size:13px;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${restaurantName}</p>
+        <p style="margin:0;font-size:13px;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${esc(restaurantName)}</p>
       </td>
     </tr>
   </table>`;
@@ -723,8 +734,8 @@ export function buildTrialEndingEmail(params: {
   const body = `
   <p style="margin:0 0 24px;font-size:15px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
     ${en
-      ? `Hi <strong>${ownerName}</strong> — you're on the free plan. Upgrade to unlock unlimited orders, WhatsApp notifications, delivery, and more.`
-      : `Hola <strong>${ownerName}</strong> — estás en el plan gratuito. Mejora tu plan para desbloquear pedidos ilimitados, notificaciones WhatsApp, delivery y mucho más.`}
+      ? `Hi <strong>${esc(ownerName)}</strong> — you're on the free plan. Upgrade to unlock unlimited orders, WhatsApp notifications, delivery, and more.`
+      : `Hola <strong>${esc(ownerName)}</strong> — estás en el plan gratuito. Mejora tu plan para desbloquear pedidos ilimitados, notificaciones WhatsApp, delivery y mucho más.`}
   </p>
 
   <!-- Warning box -->

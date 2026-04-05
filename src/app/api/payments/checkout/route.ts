@@ -2,14 +2,14 @@ export const dynamic = 'force-dynamic';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { getStripe } from '@/lib/stripe';
 import { captureError } from '@/lib/error-reporting';
 
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`pay-checkout:${ip}`, { limit: 10, windowSec: 60 });
+    const { allowed } = await checkRateLimitAsync(`pay-checkout:${ip}`, { limit: 10, windowSec: 60 });
     if (!allowed) {
       return NextResponse.json(
         { error: 'Too many requests' },
@@ -49,6 +49,16 @@ export async function POST(request: NextRequest) {
     const currency = (rest?.currency || 'usd').toLowerCase();
     const connectedAccount = rest?.stripe_onboarding_complete ? rest?.stripe_account_id : null;
 
+    if (!connectedAccount) {
+      return NextResponse.json(
+        {
+          error:
+            'El pago en línea no está disponible para este restaurante aún. Por favor paga en persona.',
+        },
+        { status: 400 }
+      );
+    }
+
     const lineItems = (order.order_items ?? []).map((item: any) => ({
       price_data: {
         currency,
@@ -62,13 +72,10 @@ export async function POST(request: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
-    const sessionParams: any = {
+    const sessionParams: import('stripe').Stripe.Checkout.SessionCreateParams = {
       line_items: lineItems,
       mode: 'payment',
       payment_method_types: ['card'],
-      payment_method_options: {
-        oxxo: { expires_after_days: 3 },
-      },
       success_url: `${appUrl}/${slug}/orden/${order.order_number}?paid=true`,
       cancel_url: `${appUrl}/${slug}/orden/${order.order_number}?paid=false`,
       metadata: {
@@ -77,13 +84,10 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    // Direct charge: create the Checkout Session on the connected account directly.
-    // With merchant config + fees_collector/losses_collector: 'stripe', the restaurant
-    // processes the payment themselves — Stripe handles fees and chargebacks.
-    // When no connected account is set up yet, the charge falls back to the platform account.
-    const requestOptions = connectedAccount ? { stripeAccount: connectedAccount } : undefined;
-
-    const session = await stripe.checkout.sessions.create(sessionParams, requestOptions as any);
+    // Direct charge on the connected account (merchant config).
+    const session = await stripe.checkout.sessions.create(sessionParams, {
+      stripeAccount: connectedAccount,
+    });
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {

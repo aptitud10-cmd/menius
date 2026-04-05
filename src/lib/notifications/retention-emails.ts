@@ -4,6 +4,15 @@
  * Accent-driven design with personalization and clear hierarchy.
  */
 
+function esc(s: string | null | undefined): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function emailShell(accentGradient: string, content: string): string {
   return `<!DOCTYPE html>
 <html lang="es" xmlns="http://www.w3.org/1999/xhtml">
@@ -111,7 +120,8 @@ export function buildTrialEndingEmail(params: {
   supportUrl: string;
 }): string {
   const { ownerName, restaurantName, trialEndDate, dashboardUrl, pricingUrl, supportUrl } = params;
-  const firstName = ownerName.split(' ')[0];
+  const firstName = esc(ownerName.split(' ')[0]);
+  const safeRestaurantName = esc(restaurantName);
 
   const content = `
     <!-- Hero section -->
@@ -127,7 +137,7 @@ export function buildTrialEndingEmail(params: {
             Hola ${firstName}, tu cuenta<br/>seguirá activa 🎉
           </h1>
           <p style="margin:0;font-size:15px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.6;max-width:400px;margin:0 auto;">
-            El <strong style="color:#111827;">${trialEndDate}</strong> tu prueba de <strong style="color:#111827;">${restaurantName}</strong> termina, pero tu menú digital seguirá funcionando en nuestro <strong style="color:#059669;">plan gratuito para siempre</strong>.
+            El <strong style="color:#111827;">${esc(trialEndDate)}</strong> tu prueba de <strong style="color:#111827;">${safeRestaurantName}</strong> termina, pero tu menú digital seguirá funcionando en nuestro <strong style="color:#059669;">plan gratuito para siempre</strong>.
           </p>
         </td>
       </tr>
@@ -199,7 +209,7 @@ export function buildTrialEndingEmail(params: {
       <tr>
         <td style="padding:24px 40px 32px;border-top:1px solid #f3f4f6;">
           <p style="margin:0;font-size:14px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.7;">
-            Gracias por confiar en MENIUS para digitalizar <strong>${restaurantName}</strong>.<br/>
+            Gracias por confiar en MENIUS para digitalizar <strong>${safeRestaurantName}</strong>.<br/>
             Cualquier pregunta, responde este email directamente. 🙌<br/><br/>
             — William<br/>
             <span style="color:#9ca3af;font-size:13px;">Fundador, MENIUS</span>
@@ -226,7 +236,9 @@ export function buildOnboardingGuideEmail(params: {
   tablesUrl: string;
 }): string {
   const { ownerName, restaurantName, restaurantSlug, dashboardUrl, menuUrl, tablesUrl } = params;
-  const firstName = ownerName.split(' ')[0];
+  const firstName = esc(ownerName.split(' ')[0]);
+  const safeRestaurantName = esc(restaurantName);
+  const safeRestaurantSlug = esc(restaurantSlug);
 
   function stepBlock(num: string, icon: string, title: string, desc: string, linkLabel: string, href: string): string {
     return `
@@ -272,7 +284,7 @@ export function buildOnboardingGuideEmail(params: {
             ${firstName}, en 3 pasos<br/>tu restaurante está listo 🍽️
           </h1>
           <p style="margin:0 auto;font-size:15px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.6;max-width:400px;">
-            <strong style="color:#111827;">${restaurantName}</strong> ya tiene su espacio digital. Solo faltan estos pasos para empezar a recibir pedidos.
+            <strong style="color:#111827;">${safeRestaurantName}</strong> ya tiene su espacio digital. Solo faltan estos pasos para empezar a recibir pedidos.
           </p>
         </td>
       </tr>
@@ -291,7 +303,7 @@ export function buildOnboardingGuideEmail(params: {
             'Ir a Mesas → QR', tablesUrl
           )}
           ${stepBlock('3', '📣', 'Comparte tu menú con tus clientes',
-            'Tu menú digital ya está disponible en <strong>menius.app/${restaurantSlug}</strong>. Comparte ese enlace por WhatsApp, Instagram o ponlo en tu perfil. También puedes compartirlo desde el botón "Compartir" en tu dashboard.',
+            `Tu menú digital ya está disponible en <strong>menius.app/${safeRestaurantSlug}</strong>. Comparte ese enlace por WhatsApp, Instagram o ponlo en tu perfil. También puedes compartirlo desde el botón "Compartir" en tu dashboard.`,
             'Ver mi menú público', menuUrl
           )}
         </td>
@@ -329,7 +341,7 @@ export function buildOnboardingGuideEmail(params: {
       <tr>
         <td style="padding:24px 40px 32px;border-top:1px solid #f3f4f6;">
           <p style="margin:0;font-size:14px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.7;">
-            ¡Éxito con <strong>${restaurantName}</strong>! 🎉<br/><br/>
+            ¡Éxito con <strong>${safeRestaurantName}</strong>! 🎉<br/><br/>
             — William<br/>
             <span style="color:#9ca3af;font-size:13px;">Fundador, MENIUS · soporte@menius.app</span>
           </p>
@@ -355,7 +367,9 @@ export function buildEngagementEmail(params: {
   menuUrl: string;
 }): string {
   const { ownerName, restaurantName, restaurantSlug, daysLeft, dashboardUrl, menuUrl } = params;
-  const firstName = ownerName.split(' ')[0];
+  const firstName = esc(ownerName.split(' ')[0]);
+  const safeRestaurantName = esc(restaurantName);
+  const safeRestaurantSlug = esc(restaurantSlug);
 
   const content = `
     <!-- Hero -->
@@ -371,7 +385,7 @@ export function buildEngagementEmail(params: {
             ${firstName}, ¿ya viste todo<br/>lo que puedes hacer? 🌟
           </h1>
           <p style="margin:0 auto;font-size:15px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.6;max-width:420px;">
-            <strong style="color:#111827;">${restaurantName}</strong> ya está online en MENIUS. Aquí hay 3 funciones que te van a encantar y que quizás aún no has explorado.
+            <strong style="color:#111827;">${safeRestaurantName}</strong> ya está online en MENIUS. Aquí hay 3 funciones que te van a encantar y que quizás aún no has explorado.
           </p>
         </td>
       </tr>
@@ -397,7 +411,7 @@ export function buildEngagementEmail(params: {
           <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:14px;padding:16px 20px;">
             <p style="margin:0 0 4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">Tu menú digital está en:</p>
             <a href="${menuUrl}" style="font-size:15px;font-weight:700;color:#7c3aed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;text-decoration:none;">
-              menius.app/${restaurantSlug} →
+              menius.app/${safeRestaurantSlug} →
             </a>
             <p style="margin:8px 0 0;font-size:12px;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">Compártelo con tus clientes — en redes, WhatsApp o imprímelo en un QR.</p>
           </div>
@@ -422,7 +436,7 @@ export function buildEngagementEmail(params: {
       <tr>
         <td style="padding:24px 40px 32px;border-top:1px solid #f3f4f6;">
           <p style="margin:0;font-size:14px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.7;">
-            ¡Mucho éxito con <strong>${restaurantName}</strong>! 🍽️<br/><br/>
+            ¡Mucho éxito con <strong>${safeRestaurantName}</strong>! 🍽️<br/><br/>
             — William<br/>
             <span style="color:#9ca3af;font-size:13px;">Fundador, MENIUS · soporte@menius.app</span>
           </p>

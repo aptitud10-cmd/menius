@@ -44,10 +44,6 @@ export async function GET(request: NextRequest) {
       { data: productsData },
       { data: reviewsData },
       { data: promotionsData },
-      { data: reservationsData },
-      { data: staffData },
-      { data: tablesData },
-      { data: ordersData },
     ] = await Promise.all([
       adminDb
         .from('categories')
@@ -76,44 +72,12 @@ export async function GET(request: NextRequest) {
         .select('id, restaurant_id, title, title_en, description, description_en, discount_type, discount_value, code, is_active, start_date, end_date, min_order_amount, image_url')
         .eq('restaurant_id', restaurantId)
         .eq('is_active', true),
-
-      adminDb
-        .from('reservations')
-        .select('id, status, party_size, reserved_at, notes')
-        .eq('restaurant_id', restaurantId)
-        .gte('reserved_at', new Date().toISOString())
-        .order('reserved_at', { ascending: true })
-        .limit(20),
-
-      adminDb
-        .from('staff_members')
-        .select('id, name, role, photo_url')
-        .eq('restaurant_id', restaurantId)
-        .limit(10),
-
-      adminDb
-        .from('tables')
-        .select('id, restaurant_id, table_number, name, capacity, qr_code_url, is_active')
-        .eq('restaurant_id', restaurantId),
-
-      // Limit orders to last 500 for stats — avoids loading entire history
-      adminDb
-        .from('orders')
-        .select('id, total_amount, status, created_at')
-        .eq('restaurant_id', restaurantId)
-        .eq('status', 'completed')
-        .order('created_at', { ascending: false })
-        .limit(500),
     ]);
 
     const categories = categoriesData ?? [];
     const products = productsData ?? [];
     const reviews = reviewsData ?? [];
     const promotions = promotionsData ?? [];
-    const reservations = reservationsData ?? [];
-    const staff = staffData ?? [];
-    const tables = tablesData ?? [];
-    const completedOrders = ordersData ?? [];
 
     // Step 3: Product-level queries in parallel (need productIds first)
     const productIds = products.map(p => p.id);
@@ -123,22 +87,15 @@ export async function GET(request: NextRequest) {
       { data: variantsData },
       { data: extrasData },
       { data: modifierGroupsData },
-      { data: orderItemsData },
     ] = await Promise.all([
       adminDb.from('product_variants').select('id, product_id, name, name_en, price, is_active, sort_order').in('product_id', safeIds),
       adminDb.from('product_extras').select('id, product_id, name, name_en, price, is_active, sort_order').in('product_id', safeIds),
       adminDb.from('modifier_groups').select('id, product_id, name, selection_type, is_required, min_select, max_select, sort_order, display_type').in('product_id', safeIds),
-      adminDb
-        .from('order_items')
-        .select('product_id')
-        .eq('restaurant_id', restaurantId)
-        .limit(1000),
     ]);
 
     const variants = variantsData ?? [];
     const extras = extrasData ?? [];
     const modifierGroups = modifierGroupsData ?? [];
-    const orderItems = orderItemsData ?? [];
 
     // Step 4: Modifier options (needs modifierGroupIds)
     const modGroupIds = modifierGroups.map(mg => mg.id);
@@ -151,9 +108,7 @@ export async function GET(request: NextRequest) {
 
     const modifierOptions = modifierOptionsData ?? [];
 
-    // Calculate statistics
-    const totalOrders = completedOrders.length;
-    const totalRevenue = completedOrders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+    // Calculate statistics from review data only — no order data exposed publicly
     const averageRating =
       reviews.length > 0
         ? parseFloat(
@@ -162,24 +117,13 @@ export async function GET(request: NextRequest) {
         : restaurant.rating || 0;
 
     const statistics = {
-      totalOrders,
-      totalRevenue: parseFloat(totalRevenue.toFixed(2)),
       averageRating,
       totalReviews: reviews.length,
       averagePreparationTime: restaurant.delivery_time_minutes || 30,
     };
 
-    // Calculate bestsellers from order_items
-    const productCounts: Record<string, number> = {};
-    orderItems.forEach(item => {
-      productCounts[item.product_id] = (productCounts[item.product_id] || 0) + 1;
-    });
-
-    const bestsellers = Object.entries(productCounts)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 10)
-      .map(([productId]) => products.find(p => p.id === productId))
-      .filter(Boolean);
+    // Featured products act as bestsellers (set by the owner in the dashboard)
+    const bestsellers = products.filter(p => p.is_featured).slice(0, 10);
 
     const responseData = {
       success: true,
@@ -193,7 +137,7 @@ export async function GET(request: NextRequest) {
         modifierGroups,
         modifierOptions,
 
-        // Reviews & analytics
+        // Reviews & public analytics
         reviews,
         statistics,
         bestsellers,
@@ -201,14 +145,9 @@ export async function GET(request: NextRequest) {
         // Offers
         promotions,
 
-        // Operations
-        reservations,
-        tables,
-        staff,
-
         // Metadata
         timestamp: new Date().toISOString(),
-        version: '2.1.0',
+        version: '2.2.0',
       },
     };
 

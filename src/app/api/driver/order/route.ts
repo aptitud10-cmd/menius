@@ -7,8 +7,15 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 
 export async function GET(req: NextRequest) {
+  const ip = getClientIP(req);
+  const rl = await checkRateLimitAsync(`driver-order:${ip}`, { limit: 60, windowSec: 60 });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
   const token = req.nextUrl.searchParams.get('token');
   if (!token) return NextResponse.json({ error: 'token required' }, { status: 400 });
 

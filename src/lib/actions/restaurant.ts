@@ -104,6 +104,7 @@ export async function createRestaurant(data: CreateRestaurantInput) {
   } else {
     try {
       const { sendEmail } = await import('@/lib/notifications/email');
+      const escHtml = (s: string) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       const sent = await sendEmail({
         to: adminEmail,
         subject: `🚀 Nuevo restaurante registrado: ${data.name}`,
@@ -111,12 +112,12 @@ export async function createRestaurant(data: CreateRestaurantInput) {
           <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:20px;">
             <h2 style="color:#7c3aed;margin:0 0 16px;">Nuevo registro en MENIUS</h2>
             <table style="width:100%;border-collapse:collapse;">
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Restaurante</td><td style="padding:8px 0;font-size:14px;font-weight:600;">${data.name}</td></tr>
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Slug</td><td style="padding:8px 0;font-size:14px;">${data.slug}</td></tr>
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Email</td><td style="padding:8px 0;font-size:14px;">${user.email}</td></tr>
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Nombre</td><td style="padding:8px 0;font-size:14px;">${user.user_metadata?.full_name || 'N/A'}</td></tr>
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Moneda</td><td style="padding:8px 0;font-size:14px;">${data.currency}</td></tr>
-              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Timezone</td><td style="padding:8px 0;font-size:14px;">${data.timezone}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Restaurante</td><td style="padding:8px 0;font-size:14px;font-weight:600;">${escHtml(data.name)}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Slug</td><td style="padding:8px 0;font-size:14px;">${escHtml(data.slug)}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Email</td><td style="padding:8px 0;font-size:14px;">${escHtml(user.email ?? '')}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Nombre</td><td style="padding:8px 0;font-size:14px;">${escHtml(user.user_metadata?.full_name || 'N/A')}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Moneda</td><td style="padding:8px 0;font-size:14px;">${escHtml(data.currency)}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Timezone</td><td style="padding:8px 0;font-size:14px;">${escHtml(data.timezone)}</td></tr>
               <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Fecha</td><td style="padding:8px 0;font-size:14px;">${new Date().toLocaleString('es')}</td></tr>
             </table>
             <div style="margin-top:20px;">

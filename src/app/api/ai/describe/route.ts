@@ -2,11 +2,45 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createLogger } from '@/lib/logger';
+import { getTenant } from '@/lib/auth/get-tenant';
+import { checkRateLimitAsync } from '@/lib/rate-limit';
 
 const logger = createLogger('ai-describe');
 
+// Only allow fetching images from trusted storage domains to prevent SSRF
+const ALLOWED_IMAGE_HOSTS = [
+  'supabase.co',
+  'supabase.in',
+  'supabase.com',
+  'amazonaws.com',
+  'cloudflare.com',
+  'googleusercontent.com',
+  'menius.app',
+  'menius.co',
+];
+
+function isAllowedImageUrl(url: string): boolean {
+  try {
+    const { hostname, protocol } = new URL(url);
+    if (!['http:', 'https:'].includes(protocol)) return false;
+    return ALLOWED_IMAGE_HOSTS.some(h => hostname === h || hostname.endsWith(`.${h}`));
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const tenant = await getTenant();
+    if (!tenant) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
+    const { allowed } = await checkRateLimitAsync(`ai-describe:${tenant.userId}`, { limit: 30, windowSec: 3600 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Límite alcanzado. Intenta más tarde.' }, { status: 429 });
+    }
+
     const apiKey = (process.env.GEMINI_API_KEY ?? '').trim();
     if (!apiKey) {
       return NextResponse.json({ error: 'AI not configured' }, { status: 503 });
@@ -43,6 +77,10 @@ export async function POST(request: NextRequest) {
 
       if (!imageUrl) {
         return NextResponse.json({ error: 'imageUrl or image file required' }, { status: 400 });
+      }
+
+      if (!isAllowedImageUrl(imageUrl)) {
+        return NextResponse.json({ error: 'imageUrl must point to a trusted storage domain' }, { status: 400 });
       }
 
       const imgRes = await fetch(imageUrl, { signal: AbortSignal.timeout(15000) });

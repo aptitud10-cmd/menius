@@ -14,10 +14,22 @@ export async function POST(request: NextRequest) {
     if (!auth) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
     const { supabase } = auth;
-    const { subject, message, ctaText, ctaUrl, filter } = await request.json();
+    const body = await request.json();
+    const { subject, message, ctaText, filter } = body;
 
     if (!subject?.trim() || !message?.trim()) {
       return NextResponse.json({ error: 'Asunto y mensaje requeridos' }, { status: 400 });
+    }
+
+    // Validate CTA URL — only allow http/https to prevent javascript: injection in emails
+    let ctaUrl: string | undefined = body.ctaUrl;
+    if (ctaUrl) {
+      try {
+        const u = new URL(ctaUrl);
+        if (!['http:', 'https:'].includes(u.protocol)) ctaUrl = undefined;
+      } catch {
+        ctaUrl = undefined;
+      }
     }
 
     let query = supabase

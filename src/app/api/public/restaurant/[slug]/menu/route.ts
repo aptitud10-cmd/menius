@@ -235,8 +235,8 @@ export async function GET(
       totalOrders,
       averageRating: parseFloat(averageRating),
       totalReviews: reviewsData?.length ?? 0,
-      totalRevenue,
-      responseRate: 95, // Placeholder - calculate from actual data if available
+      // totalRevenue intentionally omitted — private business data not for public exposure
+      responseRate: 95,
       averagePreparationTime: restaurantData.delivery_time_minutes || 30
     };
 
@@ -455,9 +455,11 @@ export async function GET(
       bestsellers: bestsellers ?? [],
       customization: customizationData ?? null,
 
-      // AI and automation
-      aiSettings: aiSettingsData ?? null,
-      whatsappSettings: whatsappSettingsData ?? null,
+      // AI capabilities (public-safe subset only)
+      aiEnabled: restaurantData.ai_enabled ?? false,
+
+      // WhatsApp ordering availability (no keys or internal config)
+      whatsappEnabled: restaurantData.whatsapp_enabled ?? false,
 
       // Community and engagement
       socialMedia: socialMediaData ?? [],
@@ -465,8 +467,8 @@ export async function GET(
       team: teamData ?? [],
       events: eventsData ?? [],
 
-      // Integrations
-      integrations: integrationsData ?? [],
+      // Integrations: strip all fields that contain API keys or webhook URLs
+      integrations: (integrationsData ?? []).map(({ id, type, is_enabled }) => ({ id, type, is_enabled })),
 
       // Health and nutrition
       allergens: allergensData ?? [],

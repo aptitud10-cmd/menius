@@ -22,8 +22,11 @@ export async function POST(req: NextRequest) {
   if (!token || lat == null || lng == null) {
     return NextResponse.json({ error: 'token, lat and lng are required' }, { status: 400 });
   }
-  if (typeof lat !== 'number' || typeof lng !== 'number') {
-    return NextResponse.json({ error: 'lat/lng must be numbers' }, { status: 400 });
+  if (typeof lat !== 'number' || typeof lng !== 'number' || !isFinite(lat) || !isFinite(lng)) {
+    return NextResponse.json({ error: 'lat/lng must be finite numbers' }, { status: 400 });
+  }
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    return NextResponse.json({ error: 'lat must be -90..90 and lng must be -180..180' }, { status: 400 });
   }
 
   const supabase = createAdminClient();

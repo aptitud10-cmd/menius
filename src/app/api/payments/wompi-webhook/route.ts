@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash, createHmac } from 'crypto';
+import { createHash } from 'crypto';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 import { sendPaymentConfirmedNotifications } from '@/lib/notifications/order-notifications';
@@ -19,29 +19,36 @@ const logger = createLogger('wompi-webhook');
  */
 export async function POST(request: NextRequest) {
   try {
+    // Fail-closed: reject all requests if the secret is not configured.
+    // Without this guard, any HTTP client can forge a payment confirmation.
+    const eventsSecret = process.env.WOMPI_EVENTS_SECRET?.trim();
+    if (!eventsSecret) {
+      logger.error('WOMPI_EVENTS_SECRET is not configured — rejecting webhook to prevent spoofed payment confirmations');
+      return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
+    }
+
     const body = await request.json();
 
     // Wompi sends: { event, data: { transaction }, timestamp, signature: { properties, checksum } }
-    const eventsSecret = process.env.WOMPI_EVENTS_SECRET?.trim();
+    // Verify checksum: SHA256(properties.map(p => body[p]).join('') + eventsSecret)
+    const sig = body?.signature;
+    if (!sig?.properties || !sig?.checksum) {
+      logger.warn('Wompi webhook missing signature fields');
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    }
 
-    if (eventsSecret) {
-      // Verify checksum: SHA256(properties.map(p => body[p]).join('') + eventsSecret)
-      const sig = body?.signature;
-      if (sig?.properties && sig?.checksum) {
-        const toHash = sig.properties
-          .map((prop: string) => {
-            const parts = prop.split('.');
-            let val: any = body;
-            for (const p of parts) val = val?.[p];
-            return String(val ?? '');
-          })
-          .join('') + eventsSecret;
-        const computed = createHash('sha256').update(toHash).digest('hex');
-        if (computed !== sig.checksum) {
-          logger.warn('Wompi webhook signature mismatch');
-          return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
-        }
-      }
+    const toHash = sig.properties
+      .map((prop: string) => {
+        const parts = prop.split('.');
+        let val: unknown = body;
+        for (const p of parts) val = (val as Record<string, unknown>)?.[p];
+        return String(val ?? '');
+      })
+      .join('') + eventsSecret;
+    const computed = createHash('sha256').update(toHash).digest('hex');
+    if (computed !== sig.checksum) {
+      logger.warn('Wompi webhook signature mismatch');
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
     const event: string = body?.event ?? '';

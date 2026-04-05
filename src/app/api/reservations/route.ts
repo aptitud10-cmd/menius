@@ -2,9 +2,10 @@ export const dynamic = 'force-dynamic';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { sanitizeText } from '@/lib/sanitize';
 import { captureError } from '@/lib/error-reporting';
+import { UUID_RE } from '@/lib/constants';
 
 /**
  * POST /api/reservations
@@ -13,7 +14,7 @@ import { captureError } from '@/lib/error-reporting';
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIP(request);
-    const { allowed } = checkRateLimit(`reservations:${ip}`, { limit: 5, windowSec: 300 });
+    const { allowed } = await checkRateLimitAsync(`reservations:${ip}`, { limit: 5, windowSec: 300 });
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
       notes,
     } = body;
 
-    if (!restaurant_id || typeof restaurant_id !== 'string') {
+    if (!restaurant_id || typeof restaurant_id !== 'string' || !UUID_RE.test(restaurant_id)) {
       return NextResponse.json({ error: 'restaurant_id required' }, { status: 400 });
     }
     if (!customer_name || typeof customer_name !== 'string') {

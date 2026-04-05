@@ -79,7 +79,11 @@ export async function middleware(request: NextRequest) {
       if (restaurant?.slug) {
         const url = request.nextUrl.clone();
         url.pathname = `/${restaurant.slug}${path === '/' ? '' : path}`;
-        return NextResponse.rewrite(url);
+        const rewriteResponse = NextResponse.rewrite(url);
+        rewriteResponse.headers.set('X-Frame-Options', 'DENY');
+        rewriteResponse.headers.set('X-Content-Type-Options', 'nosniff');
+        rewriteResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        return rewriteResponse;
       }
     }
     return response;

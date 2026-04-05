@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
+import { UUID_RE } from '@/lib/constants';
 
 /**
  * GET /api/orders/history?restaurant_id=X&email=Y
@@ -12,7 +13,7 @@ import { checkRateLimit, getClientIP } from '@/lib/rate-limit';
  */
 export async function GET(request: NextRequest) {
   const ip = getClientIP(request);
-  const { allowed } = checkRateLimit(`order-history:${ip}`, { limit: 10, windowSec: 60 });
+  const { allowed } = await checkRateLimitAsync(`order-history:${ip}`, { limit: 10, windowSec: 60 });
   if (!allowed) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
@@ -23,6 +24,10 @@ export async function GET(request: NextRequest) {
 
   if (!restaurantId || !email) {
     return NextResponse.json({ error: 'restaurant_id and email required' }, { status: 400 });
+  }
+
+  if (!UUID_RE.test(restaurantId)) {
+    return NextResponse.json({ error: 'Invalid restaurant_id' }, { status: 400 });
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

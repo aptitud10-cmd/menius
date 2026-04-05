@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { sendEmail } from '@/lib/notifications/email';
 import { formatPrice } from '@/lib/utils';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { allowed } = checkRateLimit(`campaign:${tenant.userId}`, { limit: 5, windowSec: 3600 });
+    const { allowed } = await checkRateLimitAsync(`campaign:${tenant.userId}`, { limit: 5, windowSec: 3600 });
     if (!allowed) {
       return NextResponse.json({ error: 'Rate limit reached. Try again in an hour.' }, { status: 429 });
     }
@@ -77,7 +77,18 @@ export async function POST(request: NextRequest) {
     }
     const { subject, filter } = body;
     const message = body.message;
-    const { ctaText, ctaUrl } = body;
+    const { ctaText } = body;
+
+    // Validate CTA URL — only allow http/https to prevent javascript: or data: injection
+    let ctaUrl: string | undefined = body.ctaUrl;
+    if (ctaUrl) {
+      try {
+        const parsed = new URL(ctaUrl);
+        if (!['http:', 'https:'].includes(parsed.protocol)) ctaUrl = undefined;
+      } catch {
+        ctaUrl = undefined;
+      }
+    }
 
     const supabase = createClient();
 

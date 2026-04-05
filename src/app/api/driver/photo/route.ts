@@ -7,8 +7,15 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIP(req);
+  const rl = await checkRateLimitAsync(`driver-photo:${ip}`, { limit: 20, windowSec: 300 });
+  if (!rl.allowed) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
   const formData = await req.formData().catch(() => null);
   if (!formData) return NextResponse.json({ error: 'Invalid form data' }, { status: 400 });
 

@@ -3,6 +3,7 @@ export const maxDuration = 120;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail, buildSocialPostDigestEmail, type SocialPostDigestItem } from '@/lib/notifications/email';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('cron-social-posts');
@@ -152,11 +153,7 @@ STYLE REQUIREMENTS:
 
 async function uploadImage(base64: string, platform: string): Promise<string | null> {
   try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(url, key);
-
+    const supabase = createAdminClient();
     const buffer = Buffer.from(base64, 'base64');
     const fileName = `social/${platform}-${Date.now()}.png`;
 
@@ -203,11 +200,7 @@ async function savePost(post: {
   source: string;
 }) {
   try {
-    const { createClient } = await import('@supabase/supabase-js');
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    const supabase = createClient(url, key);
-
+    const supabase = createAdminClient();
     const { error } = await supabase.from('menius_posts').insert(post);
     if (error) logger.error('DB save failed', { error: error.message });
   } catch (err) {

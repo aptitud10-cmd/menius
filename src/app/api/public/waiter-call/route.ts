@@ -9,25 +9,31 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendWhatsApp } from '@/lib/notifications/whatsapp';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 
-// Simple in-memory cooldown map: orderId → last call timestamp
-const cooldowns = new Map<string, number>();
-const COOLDOWN_MS = 3 * 60 * 1000; // 3 minutes
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIP(req);
+
+  // Per-IP rate limit shared via Redis: max 10 waiter calls per minute globally.
+  const ipRl = await checkRateLimitAsync(`waiter-call:${ip}`, { limit: 10, windowSec: 60 });
+  if (!ipRl.allowed) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const { orderId } = body as { orderId?: string };
 
-  if (!orderId) {
-    return NextResponse.json({ error: 'orderId required' }, { status: 400 });
+  if (!orderId || !UUID_RE.test(String(orderId))) {
+    return NextResponse.json({ error: 'orderId must be a valid UUID' }, { status: 400 });
   }
 
-  // Cooldown check
-  const last = cooldowns.get(orderId) ?? 0;
-  if (Date.now() - last < COOLDOWN_MS) {
+  // Per-order cooldown via Redis: max 1 call per order per 3 minutes.
+  const orderRl = await checkRateLimitAsync(`waiter-call:order:${orderId}`, { limit: 1, windowSec: 180 });
+  if (!orderRl.allowed) {
     return NextResponse.json({ ok: true, throttled: true });
   }
-  cooldowns.set(orderId, Date.now());
 
   const supabase = createAdminClient();
   const { data: order, error } = await supabase

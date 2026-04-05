@@ -413,6 +413,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
+function escHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function buildUnsubscribeFooter(unsubUrl: string, restaurantName: string, en: boolean): string {
   return `<p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:20px;">
     ${en ? `Sent by ${restaurantName} via MENIUS` : `Enviado por ${restaurantName} a través de MENIUS`} ·
@@ -423,6 +432,8 @@ function buildUnsubscribeFooter(unsubUrl: string, restaurantName: string, en: bo
 }
 
 function buildWelcomeEmail(name: string, restaurantName: string, menuUrl: string, unsubUrl: string, en = false): string {
+  const safeName = escHtml(name);
+  const safeRest = escHtml(restaurantName);
   return `
 <!DOCTYPE html>
 <html>
@@ -430,23 +441,25 @@ function buildWelcomeEmail(name: string, restaurantName: string, menuUrl: string
 <body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:520px;margin:0 auto;padding:40px 20px;">
     <div style="text-align:center;margin-bottom:32px;">
-      <h1 style="font-size:20px;font-weight:800;color:#7c3aed;margin:0;">${restaurantName}</h1>
+      <h1 style="font-size:20px;font-weight:800;color:#7c3aed;margin:0;">${safeRest}</h1>
     </div>
     <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);padding:32px 24px;">
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Hi ${name}` : `Hola ${name}`}, 👋</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Welcome to <strong>${restaurantName}</strong>! We're thrilled to have you as a customer.` : `¡Bienvenido a <strong>${restaurantName}</strong>! Estamos encantados de tenerte como cliente.`}</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Hi ${safeName}` : `Hola ${safeName}`}, 👋</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Welcome to <strong>${safeRest}</strong>! We're thrilled to have you as a customer.` : `¡Bienvenido a <strong>${safeRest}</strong>! Estamos encantados de tenerte como cliente.`}</p>
       <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? 'You can browse our full menu and place orders anytime from your phone.' : 'Puedes ver nuestro menú completo y hacer pedidos en cualquier momento desde tu celular.'}</p>
       <a href="${menuUrl}" style="display:block;margin-top:24px;padding:14px;background:#7c3aed;color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
         ${en ? 'View our menu' : 'Ver nuestro menú'}
       </a>
     </div>
-    ${buildUnsubscribeFooter(unsubUrl, restaurantName, en)}
+    ${buildUnsubscribeFooter(unsubUrl, safeRest, en)}
   </div>
 </body>
 </html>`;
 }
 
 function buildReactivationEmail(name: string, restaurantName: string, menuUrl: string, unsubUrl: string, en = false): string {
+  const safeName = escHtml(name);
+  const safeRest = escHtml(restaurantName);
   return `
 <!DOCTYPE html>
 <html>
@@ -454,23 +467,25 @@ function buildReactivationEmail(name: string, restaurantName: string, menuUrl: s
 <body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:520px;margin:0 auto;padding:40px 20px;">
     <div style="text-align:center;margin-bottom:32px;">
-      <h1 style="font-size:20px;font-weight:800;color:#7c3aed;margin:0;">${restaurantName}</h1>
+      <h1 style="font-size:20px;font-weight:800;color:#7c3aed;margin:0;">${safeRest}</h1>
     </div>
     <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);padding:32px 24px;">
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Hi ${name}` : `Hola ${name}`}, 😢</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Hi ${safeName}` : `Hola ${safeName}`}, 😢</p>
       <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `It's been a while since your last visit and <strong>we miss you</strong>. We've been preparing delicious new dishes and would love for you to come back and try them.` : `Hace tiempo que no nos visitas y <strong>te echamos de menos</strong>. Hemos estado preparando cosas deliciosas y nos encantaría que vuelvas a probarlas.`}</p>
       <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? 'We hope to see you again soon!' : '¡Te esperamos de vuelta!'}</p>
       <a href="${menuUrl}" style="display:block;margin-top:24px;padding:14px;background:#7c3aed;color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
         ${en ? 'Order again' : 'Pedir de nuevo'}
       </a>
     </div>
-    ${buildUnsubscribeFooter(unsubUrl, restaurantName, en)}
+    ${buildUnsubscribeFooter(unsubUrl, safeRest, en)}
   </div>
 </body>
 </html>`;
 }
 
 function buildReviewRequestEmail(name: string, restaurantName: string, menuUrl: string, en = false): string {
+  const safeName = escHtml(name);
+  const safeRest = escHtml(restaurantName);
   return `
 <!DOCTYPE html>
 <html>
@@ -478,18 +493,18 @@ function buildReviewRequestEmail(name: string, restaurantName: string, menuUrl: 
 <body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:520px;margin:0 auto;padding:40px 20px;">
     <div style="text-align:center;margin-bottom:32px;">
-      <h1 style="font-size:20px;font-weight:800;color:#7c3aed;margin:0;">${restaurantName}</h1>
+      <h1 style="font-size:20px;font-weight:800;color:#7c3aed;margin:0;">${safeRest}</h1>
     </div>
     <div style="background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);padding:32px 24px;">
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Hi ${name}` : `Hola ${name}`}, ⭐</p>
-      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `We hope you enjoyed your order at <strong>${restaurantName}</strong>!` : `¡Esperamos que hayas disfrutado tu pedido en <strong>${restaurantName}</strong>!`}</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `Hi ${safeName}` : `Hola ${safeName}`}, ⭐</p>
+      <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? `We hope you enjoyed your order at <strong>${safeRest}</strong>!` : `¡Esperamos que hayas disfrutado tu pedido en <strong>${safeRest}</strong>!`}</p>
       <p style="margin:0 0 12px;font-size:15px;color:#374151;line-height:1.6;">${en ? 'Your opinion means a lot to us. Would you leave a quick review? It only takes a minute.' : 'Tu opinión es muy importante para nosotros. ¿Nos dejarías una reseña rápida? Solo toma un minuto.'}</p>
       <a href="${menuUrl}" style="display:block;margin-top:24px;padding:14px;background:#f59e0b;color:#fff;text-align:center;border-radius:12px;font-weight:600;font-size:15px;text-decoration:none;">
         ${en ? 'Leave a review ⭐' : 'Dejar mi reseña ⭐'}
       </a>
     </div>
     <p style="text-align:center;font-size:11px;color:#9ca3af;margin-top:20px;">
-      ${en ? `Sent by ${restaurantName} via MENIUS` : `Enviado por ${restaurantName} a través de MENIUS`}
+      ${en ? `Sent by ${safeRest} via MENIUS` : `Enviado por ${safeRest} a través de MENIUS`}
     </p>
   </div>
 </body>

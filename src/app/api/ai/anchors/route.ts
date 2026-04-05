@@ -52,6 +52,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate anchor_url: must be a public HTTP/HTTPS URL.
+    // The URL gets fetched server-side when generating AI images (SSRF risk if unchecked).
+    const ALLOWED_ANCHOR_HOSTS = [
+      'supabase.co', 'supabase.in', 'supabase.com',
+      'amazonaws.com', 'cloudflare.com', 'googleusercontent.com',
+      'menius.app', 'menius.co',
+    ];
+    try {
+      const parsed = new URL(String(anchor_url).trim());
+      if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('bad protocol');
+      const host = parsed.hostname;
+      const isAllowed = ALLOWED_ANCHOR_HOSTS.some(h => host === h || host.endsWith(`.${h}`));
+      if (!isAllowed) {
+        return NextResponse.json(
+          { error: 'anchor_url debe apuntar al storage de Menius o a un proveedor de almacenamiento confiable' },
+          { status: 400 }
+        );
+      }
+    } catch {
+      return NextResponse.json({ error: 'anchor_url inválido' }, { status: 400 });
+    }
+
     const adminSupabase = createAdminClient();
     const { data, error } = await adminSupabase
       .from('style_anchors')
