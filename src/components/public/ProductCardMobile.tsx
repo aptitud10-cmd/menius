@@ -148,7 +148,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           </p>
         )}
         {hasModifiers && !outOfStock && (
-          <span className="inline-flex items-center gap-0.5 text-xs text-emerald-600 font-medium mt-1">
+          <span className="inline-flex items-center gap-0.5 text-xs text-[#05c8a7] font-medium mt-1">
             {customizeLabel}
             <ChevronRight className="w-3 h-3" />
           </span>
@@ -163,7 +163,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           </div>
         )}
         <div className="flex items-center justify-between mt-auto pt-2.5">
-          <span className={cn('text-base font-black tabular-nums leading-none', outOfStock ? 'text-gray-300 line-through' : 'text-gray-950')}>
+          <span className={cn('text-[17px] font-black tabular-nums leading-none', outOfStock ? 'text-gray-300 line-through' : 'text-gray-950')}>
             {fmtPrice(Number(product.price))}
           </span>
           {outOfStock ? (

@@ -69,10 +69,10 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
 
   if (submitted) {
     return (
-      <div className="min-h-[100dvh] bg-gradient-to-b from-emerald-50 to-white flex flex-col items-center justify-center px-6 text-center">
+      <div className="min-h-[100dvh] bg-gradient-to-b from-[#e6faf7] to-white flex flex-col items-center justify-center px-6 text-center">
         <div className="max-w-sm w-full">
-          <div className="w-24 h-24 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6">
-            <svg className="w-12 h-12 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <div className="w-24 h-24 rounded-full bg-[#d0f7f1] flex items-center justify-center mx-auto mb-6">
+            <svg className="w-12 h-12 text-[#05c8a7]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
@@ -98,7 +98,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
           </div>
           <Link
             href={`/${restaurantSlug}`}
-            className="block w-full py-3.5 rounded-2xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-colors"
+            className="block w-full py-3.5 rounded-2xl bg-[#05c8a7] text-white font-bold text-sm hover:bg-[#04b096] transition-colors"
           >
             {en ? 'Back to menu' : 'Volver al menú'}
           </Link>
@@ -162,7 +162,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
                 </button>
               ))}
             </div>
-            <p className={`text-sm font-semibold h-5 transition-colors ${displayRating >= 4 ? 'text-emerald-600' : displayRating > 0 ? 'text-amber-500' : 'text-gray-400'}`}>
+            <p className={`text-sm font-semibold h-5 transition-colors ${displayRating >= 4 ? 'text-[#05c8a7]' : displayRating > 0 ? 'text-amber-500' : 'text-gray-400'}`}>
               {starLabel || (en ? 'Tap a star to rate' : 'Toca una estrella para calificar')}
             </p>
           </div>
@@ -204,7 +204,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
           <button
             type="submit"
             disabled={submitting || rating === 0}
-            className="w-full py-4 rounded-2xl bg-emerald-600 text-white font-bold text-base hover:bg-emerald-700 active:scale-[.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            className="w-full py-4 rounded-2xl bg-[#05c8a7] text-white font-bold text-base hover:bg-[#04b096] active:scale-[.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             {submitting
               ? (en ? 'Submitting…' : 'Enviando…')

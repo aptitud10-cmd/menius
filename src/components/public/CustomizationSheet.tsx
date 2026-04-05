@@ -461,8 +461,8 @@ export function CustomizationSheet({
                     </p>
                     <div className="flex items-center justify-between gap-1">
                       <span className="text-[11px] font-bold text-gray-900 tabular-nums">{fmtPrice(Number(p.price))}</span>
-                      <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                        <Plus className="w-3 h-3 text-emerald-600" />
+                      <div className="w-6 h-6 rounded-full bg-[#d0f7f1] flex items-center justify-center flex-shrink-0">
+                        <Plus className="w-3 h-3 text-[#05c8a7]" />
                       </div>
                     </div>
                   </div>
@@ -483,7 +483,7 @@ export function CustomizationSheet({
   );
 
   const previewBadge = (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-bold uppercase tracking-wider">
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#d0f7f1] text-[#047a65] text-[11px] font-bold uppercase tracking-wider">
       {locale === 'es' ? 'Vista previa' : 'Preview'}
     </span>
   );

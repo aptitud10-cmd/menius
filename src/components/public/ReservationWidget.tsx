@@ -61,12 +61,12 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
   if (done) {
     return (
       <section className="mt-8 mb-6">
-        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-center">
-          <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-emerald-900">
+        <div className="bg-[#e6faf7] border border-[#b3efe6] rounded-2xl p-6 text-center">
+          <CheckCircle className="w-10 h-10 text-[#05c8a7] mx-auto mb-3" />
+          <h3 className="text-base font-bold text-[#047a65]">
             {isEs ? '¡Reservación enviada!' : 'Reservation submitted!'}
           </h3>
-          <p className="text-sm text-emerald-700 mt-1">
+          <p className="text-sm text-[#047a65] mt-1">
             {isEs ? 'Te confirmaremos pronto por teléfono o correo.' : "We'll confirm shortly by phone or email."}
           </p>
         </div>
@@ -77,7 +77,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
   return (
     <section className="mt-8 mb-6">
       <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-        <CalendarDays className="w-4 h-4 text-emerald-600" />
+        <CalendarDays className="w-4 h-4 text-[#05c8a7]" />
         {isEs ? 'Reservar una mesa' : 'Reserve a table'}
       </h3>
 

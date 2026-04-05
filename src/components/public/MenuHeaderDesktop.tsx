@@ -98,7 +98,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder-gray-400"
+              className="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-50 border border-gray-200 text-base focus:outline-none focus:ring-2 focus:ring-[#05c8a7]/20 focus:border-[#05c8a7] placeholder-gray-400"
             />
             {searchQuery && (
               <button onClick={() => onSearchChange('')} className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -129,9 +129,9 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
 
           <span className={cn(
             'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold',
-            open ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
+            open ? 'bg-[#e6faf7] text-[#047a65]' : 'bg-red-50 text-red-600'
           )}>
-            <span className={cn('w-1.5 h-1.5 rounded-full', open ? 'bg-emerald-500' : 'bg-red-500')} />
+            <span className={cn('w-1.5 h-1.5 rounded-full', open ? 'bg-[#05c8a7]' : 'bg-red-500')} />
             {open ? openLabel : closedLabel}
           </span>
 
@@ -157,7 +157,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
               {itemCount}
             </span>
             {itemCount > 0 && (
-              <span className="text-sm font-bold text-emerald-600 tabular-nums">{fmtPrice(itemTotal)}</span>
+              <span className="text-sm font-bold text-[#05c8a7] tabular-nums">{fmtPrice(itemTotal)}</span>
             )}
           </div>
         </div>
