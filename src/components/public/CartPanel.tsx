@@ -285,6 +285,7 @@ export function CartPanel({
                         <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
                           <button
                             onClick={(e) => { e.stopPropagation(); handleMinusTap(idx, item.qty); }}
+                            aria-label={isPendingRemove ? `${locale === 'en' ? 'Confirm remove' : 'Confirmar eliminar'} ${item.product.name}` : `${locale === 'en' ? 'Decrease quantity' : 'Disminuir cantidad'} ${item.product.name}`}
                             className={cn(
                               'w-11 h-11 flex items-center justify-center transition-all duration-150',
                               isPendingRemove
@@ -298,9 +299,10 @@ export function CartPanel({
                               <Minus className="w-4 h-4" />
                             )}
                           </button>
-                          <span className="w-7 text-center text-sm font-bold tabular-nums">{item.qty}</span>
+                          <span className="w-7 text-center text-sm font-bold tabular-nums" aria-live="polite">{item.qty}</span>
                           <button
                             onClick={(e) => { e.stopPropagation(); updateQty(idx, item.qty + 1); }}
+                            aria-label={`${locale === 'en' ? 'Increase quantity' : 'Aumentar cantidad'} ${item.product.name}`}
                             className="w-11 h-11 flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors text-gray-600"
                           >
                             <Plus className="w-4 h-4" />

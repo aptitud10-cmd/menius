@@ -553,7 +553,7 @@ export function CustomizationSheet({
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0 bg-white z-10">
           <div className="flex items-center gap-3 min-w-0">
             {!isPreview && (
-              <button onClick={onClose} className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0">
+              <button onClick={onClose} aria-label="Volver" className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0">
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
             )}
@@ -569,7 +569,7 @@ export function CustomizationSheet({
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0 group">
+          <button onClick={onClose} aria-label="Cerrar" className="p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0 group">
             <X className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
           </button>
         </div>
@@ -615,7 +615,7 @@ export function CustomizationSheet({
               {isEditing ? t.editItem : displayName}
             </h2>
           </div>
-          <button onClick={onClose} className="p-2 -mr-1 ml-3 rounded-xl active:bg-gray-100 transition-colors flex-shrink-0">
+          <button onClick={onClose} aria-label="Cerrar" className="p-2 -mr-1 ml-3 rounded-xl active:bg-gray-100 transition-colors flex-shrink-0">
             <X className="w-6 h-6 text-gray-700" />
           </button>
         </div>

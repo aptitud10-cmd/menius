@@ -1119,11 +1119,15 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 <label>Website</label>
                 <input type="text" name="website" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
               </div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">{t.yourName} <span className="text-red-500">*</span></label>
+              <label htmlFor="checkout-name" className="block text-sm font-semibold text-gray-900 mb-2">{t.yourName} <span className="text-red-500" aria-hidden="true">*</span></label>
               <input
+                id="checkout-name"
                 type="text"
                 inputMode="text"
                 autoComplete="name"
+                aria-required="true"
+                aria-invalid={!!fieldErrors.customer_name}
+                aria-describedby={fieldErrors.customer_name ? 'checkout-name-error' : undefined}
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 onBlur={(e) => validateField('customer_name', e.target.value)}
@@ -1132,7 +1136,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 className={cn(inputClass, fieldErrors.customer_name ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : '')}
               />
               {fieldErrors.customer_name && (
-                <p className="text-xs text-red-500 mt-1">{fieldErrors.customer_name}</p>
+                <p id="checkout-name-error" role="alert" className="text-xs text-red-500 mt-1">{fieldErrors.customer_name}</p>
               )}
             </div>
             <div>
@@ -1151,14 +1155,18 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               )}
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
+              <label htmlFor="checkout-email" className="block text-sm font-semibold text-gray-900 mb-2">
                 {t.yourEmail}
-                <span className="text-red-500 ml-0.5">*</span>
+                <span className="text-red-500 ml-0.5" aria-hidden="true">*</span>
               </label>
               <input
+                id="checkout-email"
                 type="email"
                 inputMode="email"
                 autoComplete="email"
+                aria-required="true"
+                aria-invalid={!!fieldErrors.customer_email}
+                aria-describedby={fieldErrors.customer_email ? 'checkout-email-error' : 'checkout-email-hint'}
                 value={customerEmail}
                 onChange={(e) => setCustomerEmail(e.target.value)}
                 onBlur={(e) => validateField('customer_email', e.target.value)}
@@ -1168,9 +1176,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 required
               />
               {fieldErrors.customer_email ? (
-                <p className="text-xs text-red-500 mt-1">{fieldErrors.customer_email}</p>
+                <p id="checkout-email-error" role="alert" className="text-xs text-red-500 mt-1">{fieldErrors.customer_email}</p>
               ) : (
-                <p className="text-xs text-gray-400 mt-1">
+                <p id="checkout-email-hint" className="text-xs text-gray-400 mt-1">
                   {locale === 'es' ? 'Te enviaremos la confirmación y actualizaciones de tu pedido.' : 'We\'ll send you order confirmation and updates.'}
                 </p>
               )}
@@ -1351,6 +1359,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
+              role="alert"
+              aria-live="assertive"
               className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200"
             >
               <span className="text-red-700 text-sm font-medium">{orderError}</span>
