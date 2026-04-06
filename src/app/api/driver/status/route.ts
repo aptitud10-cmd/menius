@@ -16,6 +16,9 @@ import { sendWhatsApp } from '@/lib/notifications/whatsapp';
 import { sendSMS, resolveChannel } from '@/lib/notifications/sms';
 import { canTransition } from '@/lib/order-state';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('driver-status');
 
 type DriverAction = 'picked_up' | 'at_door' | 'delivered' | 'notify_outside';
 
@@ -31,7 +34,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const { token, action } = body as { token?: string; action?: DriverAction };
 
-  if (!token) return NextResponse.json({ error: 'token is required' }, { status: 400 });
+  if (!token || token.length > 200) return NextResponse.json({ error: 'token is required' }, { status: 400 });
   if (!action || !ALLOWED_ACTIONS.includes(action)) {
     return NextResponse.json({ error: 'action must be picked_up | at_door | delivered | notify_outside' }, { status: 400 });
   }
@@ -55,9 +58,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Token expired' }, { status: 410 });
   }
 
-  const restaurant = (order as any).restaurants as {
-    name: string; locale: string | null; slug: string; currency: string | null;
-  } | null;
+  type RestRow = { name: string; locale: string | null; slug: string; currency: string | null };
+  const rawRest = (order as any).restaurants as RestRow[] | RestRow | null;
+  const restaurant: RestRow | null = Array.isArray(rawRest) ? (rawRest[0] ?? null) : rawRest;
 
   const locale = restaurant?.locale ?? 'es';
   const en = locale === 'en';
@@ -127,7 +130,7 @@ export async function POST(req: NextRequest) {
         deliveryAddress: (order as any).delivery_address || undefined,
       });
     } catch (err) {
-      console.error('[DriverStatus] notifyStatusChange error on delivered:', err);
+      logger.error('notifyStatusChange error on delivered', { error: err instanceof Error ? err.message : String(err) });
     }
 
     return NextResponse.json({ ok: true, action });

@@ -135,7 +135,10 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
       const lock: WakeLockSentinel = await (navigator as any).wakeLock.request('screen');
       wakeLockRef.current = lock;
       setWakeLockActive(true);
-      lock.addEventListener('release', () => setWakeLockActive(false));
+      lock.addEventListener('release', () => {
+        setWakeLockActive(false);
+        wakeLockRef.current = null;
+      });
     } catch { /* permission denied or not supported */ }
   };
 
@@ -176,6 +179,19 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   };
 
   useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
+
+  // Re-acquire WakeLock when the page becomes visible again (browser releases it on hide)
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && gpsStatus === 'sharing' && !wakeLockRef.current) {
+        acquireWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  // acquireWakeLock only uses refs — stable reference, safe to omit
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gpsStatus]);
 
   const callDriverStatus = async (action: 'picked_up' | 'at_door' | 'delivered'): Promise<boolean> => {
     setActionLoading(true);

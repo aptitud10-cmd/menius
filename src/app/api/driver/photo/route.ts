@@ -46,7 +46,9 @@ export async function POST(req: NextRequest) {
   if (!order) return NextResponse.json({ error: 'Invalid token' }, { status: 404 });
 
   // Upload photo to Supabase Storage
-  const ext = photo.name.split('.').pop() ?? 'jpg';
+  // Sanitize extension: only allow alphanumeric chars to prevent path traversal
+  const rawExt = photo.name.split('.').pop() ?? '';
+  const ext = /^[a-z0-9]{1,8}$/i.test(rawExt) ? rawExt.toLowerCase() : 'jpg';
   const path = `delivery/${order.id}/${Date.now()}.${ext}`;
   const bytes = await photo.arrayBuffer();
 

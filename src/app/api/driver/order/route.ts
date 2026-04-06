@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   }
 
   const token = req.nextUrl.searchParams.get('token');
-  if (!token) return NextResponse.json({ error: 'token required' }, { status: 400 });
+  if (!token || token.length > 200) return NextResponse.json({ error: 'token required' }, { status: 400 });
 
   const supabase = createAdminClient();
   const { data, error } = await supabase
