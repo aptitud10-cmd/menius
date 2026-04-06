@@ -640,7 +640,7 @@ export function MenuShell({
       : [];
 
     return [...popularGroup, ...regular];
-  }, [categories, filteredProducts, isCategoryAvailableNow, popularProducts, locale, restaurant.id, t.popularItems]);
+  }, [categories, filteredProducts, isCategoryAvailableNow, popularProducts, restaurant.id, t.popularItems]);
 
   // In large-catalog mode, show only the active-filtered category (or all if none selected)
   const displayedGroups = useMemo(() => {

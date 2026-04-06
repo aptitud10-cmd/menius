@@ -135,7 +135,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
           quickPrintOrder(order, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded, locale);
         });
       }
-    }, [currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress]),
+    }, [currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress, taxLabel, taxIncluded, locale]),
   });
 
   const filteredOrders = useMemo(() => {

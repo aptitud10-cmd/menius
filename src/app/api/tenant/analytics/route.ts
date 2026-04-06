@@ -190,7 +190,9 @@ export async function GET(request: NextRequest) {
       const productMap: Record<string, { name: string; qty: number; revenue: number }> = {};
       for (const item of (items ?? [])) {
         const pid = item.product_id;
-        const pname = (item as { products: { name: string } | null }).products?.name ?? 'Desconocido';
+        // Supabase returns joined rows as array or object depending on relation type
+        const rawProds = (item as unknown as { products: { name: string }[] | { name: string } | null }).products;
+        const pname = (Array.isArray(rawProds) ? rawProds[0]?.name : rawProds?.name) ?? 'Desconocido';
         if (!productMap[pid]) productMap[pid] = { name: pname, qty: 0, revenue: 0 };
         productMap[pid].qty += item.qty;
         productMap[pid].revenue += Number(item.line_total);

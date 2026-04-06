@@ -175,7 +175,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
       setOverlayCount(c => c + 1);
       setShowOverlay(true);
       if (autoPrint) import('./OrderReceipt').then(({ quickPrintOrder }) => quickPrintOrder(o, restaurantName, restaurantPhone, restaurantAddress, currency, taxLabel, taxIncluded, locale));
-    }, [autoPrint, currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress]),
+    }, [autoPrint, currency, notifyNewOrder, restaurantName, restaurantPhone, restaurantAddress, taxLabel, taxIncluded, locale]),
   });
   localRef.current = updateOrderLocally;
 

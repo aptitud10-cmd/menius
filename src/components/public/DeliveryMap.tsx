@@ -7,7 +7,7 @@
  * Shows live ETA in minutes via Mapbox Directions API when driver is en route.
  */
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { ExternalLink, MapPin } from 'lucide-react';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? '';
@@ -328,9 +328,10 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
   const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
   const lastEtaPos = useRef<Coords | null>(null);
 
-  const driverCoords: Coords | null = (driverLat != null && driverLng != null)
-    ? { lat: driverLat, lng: driverLng }
-    : null;
+  const driverCoords = useMemo<Coords | null>(
+    () => (driverLat != null && driverLng != null) ? { lat: driverLat, lng: driverLng } : null,
+    [driverLat, driverLng],
+  );
 
   useEffect(() => {
     if (!restaurantAddress) return;
