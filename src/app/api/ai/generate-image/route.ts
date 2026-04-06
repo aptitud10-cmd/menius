@@ -4,7 +4,7 @@ export const maxDuration = 60;
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
-import { hasPlanAccess } from '@/lib/auth/check-plan';
+import { getEffectivePlanId } from '@/lib/auth/check-plan';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
 
@@ -17,28 +17,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    const canUseImageAI = await hasPlanAccess(tenant.restaurantId, 'starter');
-    if (!canUseImageAI) {
+    // Plan-based daily limits — Starter: 10/day, Pro: 30/day, Business: 100/day
+    const planId = await getEffectivePlanId(tenant.restaurantId);
+    const DAILY_LIMITS: Record<string, number> = {
+      free: 0,
+      starter: 10,
+      pro: 30,
+      business: 100,
+    };
+    const dailyLimit = DAILY_LIMITS[planId] ?? 0;
+
+    if (dailyLimit === 0) {
       return NextResponse.json(
         { error: 'La generación de imágenes con IA requiere el plan Starter o superior.' },
         { status: 403 }
       );
     }
 
-    // Hourly limit: 20 images per hour
-    const { allowed: hourlyAllowed } = await checkRateLimitAsync(`ai:${tenant.userId}`, { limit: 20, windowSec: 3600 });
-    if (!hourlyAllowed) {
-      return NextResponse.json(
-        { error: 'Límite de generaciones alcanzado (20/hora). Intenta en 1 hora.' },
-        { status: 429 }
-      );
-    }
-
-    // Daily limit: 30 images per day — protects against runaway costs
-    const { allowed: dailyAllowed } = await checkRateLimitAsync(`ai-daily:${tenant.userId}`, { limit: 30, windowSec: 86400 });
+    const { allowed: dailyAllowed } = await checkRateLimitAsync(`ai-daily:${tenant.userId}`, { limit: dailyLimit, windowSec: 86400 });
     if (!dailyAllowed) {
       return NextResponse.json(
-        { error: 'Límite diario de generaciones alcanzado (30/día). Vuelve mañana.' },
+        { error: `Límite diario de imágenes alcanzado (${dailyLimit}/día). Vuelve mañana o mejora tu plan.` },
         { status: 429 }
       );
     }
@@ -351,51 +350,108 @@ Served in/on: ${container}.
 ${foodStyling}
 Keep everything else — surface, lighting, background, atmosphere — pixel-perfect consistent with the reference.` : null;
 
-    // ─── PRIMARY: fal.ai/flux-pro (when no style anchor) ─────────────────────
-    // fal.ai produces significantly higher quality for text-to-image.
-    // When a style anchor exists we must use Gemini (multimodal reference support).
+    // ─── PRIMARY: fal.ai (no anchor → flux-pro/v1.1 ; anchor → flux-pro/kontext) ─
+    // Generates 2 variations and picks the best using Gemini Flash Vision.
     let imageBase64: string | null = null;
     let engine = 'gemini';
     const mimeType = 'image/jpeg';
 
-    if (!anchorBase64) {
-      const falKey = process.env.FAL_API_KEY;
-      if (falKey) {
-        try {
-          const { fal } = await import('@fal-ai/client');
-          fal.config({ credentials: falKey });
-          const falResult = await (fal as any).subscribe('fal-ai/flux-pro/v1.1', {
+    const falKey = process.env.FAL_API_KEY;
+    if (falKey) {
+      try {
+        const { fal } = await import('@fal-ai/client');
+        fal.config({ credentials: falKey });
+
+        let falImages: Array<{ url: string }> = [];
+
+        if (anchorBase64) {
+          // flux-pro/kontext: image-aware generation using the style anchor as reference
+          const kontextResult = await (fal as any).subscribe('fal-ai/flux-pro/kontext', {
+            input: {
+              prompt: anchorPrompt ?? prompt,
+              image_url: `data:image/jpeg;base64,${anchorBase64}`,
+              num_images: 2,
+              output_format: 'jpeg',
+              guidance_scale: 3.5,
+            },
+          });
+          falImages = (kontextResult as any)?.images ?? [];
+        } else {
+          // flux-pro/v1.1: pure text-to-image, 2 variations
+          const v1Result = await (fal as any).subscribe('fal-ai/flux-pro/v1.1', {
             input: {
               prompt,
               image_size: isBanner ? 'landscape_16_9' : 'square_hd',
               num_inference_steps: 40,
               guidance_scale: 3.5,
-              num_images: 1,
+              num_images: 2,
               output_format: 'jpeg',
             },
           });
-          const falUrl: string | undefined = (falResult as any)?.images?.[0]?.url;
-          if (falUrl) {
-            const falRes = await fetch(falUrl, { signal: AbortSignal.timeout(30000) });
-            if (falRes.ok) {
-              imageBase64 = Buffer.from(await falRes.arrayBuffer()).toString('base64');
+          falImages = (v1Result as any)?.images ?? [];
+        }
+
+        if (falImages.length > 0) {
+          // Download all variations
+          const downloaded: Array<{ base64: string; url: string }> = [];
+          for (const img of falImages) {
+            try {
+              const res = await fetch(img.url, { signal: AbortSignal.timeout(30000) });
+              if (res.ok) {
+                downloaded.push({
+                  base64: Buffer.from(await res.arrayBuffer()).toString('base64'),
+                  url: img.url,
+                });
+              }
+            } catch { /* skip failed downloads */ }
+          }
+
+          if (downloaded.length === 1) {
+            imageBase64 = downloaded[0].base64;
+            engine = 'fal-ai';
+          } else if (downloaded.length >= 2 && apiKey) {
+            // Use Gemini Flash Vision to pick the best food photo
+            try {
+              const { GoogleGenAI } = await import('@google/genai');
+              const picker = new GoogleGenAI({ apiKey });
+              const pickResp = await picker.models.generateContent({
+                model: 'gemini-2.0-flash',
+                contents: [{
+                  role: 'user',
+                  parts: [
+                    { inlineData: { mimeType: 'image/jpeg', data: downloaded[0].base64 } },
+                    { inlineData: { mimeType: 'image/jpeg', data: downloaded[1].base64 } },
+                    { text: `You are a professional food photography judge. Look at these two food photos for "${productName}". Reply with ONLY "1" or "2" — the number of the photo that has better food photography quality: sharper focus, more appetizing colors, better lighting, more professional composition. No explanation, just the number.` },
+                  ],
+                }],
+              });
+              const pick = (pickResp as any).candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+              imageBase64 = pick === '2' ? downloaded[1].base64 : downloaded[0].base64;
+              engine = 'fal-ai';
+              logger.info('Best variation picked', { pick, productName });
+            } catch {
+              // Picker failed — just use the first
+              imageBase64 = downloaded[0].base64;
               engine = 'fal-ai';
             }
           }
-        } catch (falErr) {
-          logger.warn('fal.ai/flux-pro failed, falling back to Gemini', {
-            error: falErr instanceof Error ? falErr.message : String(falErr),
-          });
         }
+      } catch (falErr) {
+        logger.warn('fal.ai failed, falling back to Gemini', {
+          error: falErr instanceof Error ? falErr.message : String(falErr),
+        });
       }
     }
 
-    // ─── GEMINI CHAIN (primary when anchor exists, fallback otherwise) ─────────
+    // ─── GEMINI CHAIN (fallback when fal.ai unavailable or failed) ───────────
     if (!imageBase64) {
       try {
+        // If anchor exists and fal.ai/kontext handled it, skip anchor here to avoid redundancy.
+        // Otherwise pass anchor to Gemini for reference-aware generation.
+        const useAnchor = anchorBase64 && anchorPrompt && !falKey;
         let contents: object[];
 
-        if (anchorBase64 && anchorPrompt) {
+        if (useAnchor) {
           contents = [{
             role: 'user',
             parts: [
