@@ -181,7 +181,7 @@ export default function BillingPage() {
         setLoading(false);
         setError(t.billing_connectionError);
       });
-  }, []);
+  }, [t.billing_connectionError]);
 
   const handlePlanSelect = useCallback(
     async (planId: PlanId, interval: BillingInterval) => {
