@@ -30,19 +30,24 @@ export async function POST(request: NextRequest) {
 
     const adminDb = createAdminClient();
 
-    // Fetch order with items + restaurant currency
+    // Fetch order with restaurant info — no need to re-fetch order_items since
+    // we use the already-validated order.total (includes delivery, tip, discounts, tax)
     const { data: order, error } = await adminDb
       .from('orders')
       .select(`
-        id, order_number, total, customer_name, restaurant_id,
-        restaurants ( currency, stripe_account_id, stripe_onboarding_complete ),
-        order_items ( qty, unit_price, line_total, products ( name ) )
+        id, order_number, total, customer_name, restaurant_id, payment_status,
+        restaurants ( currency, stripe_account_id, stripe_onboarding_complete, name )
       `)
       .eq('id', order_id)
       .maybeSingle();
 
     if (error || !order) {
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
+    }
+
+    // Don't create a new Stripe session if already paid
+    if ((order as any).payment_status === 'paid') {
+      return NextResponse.json({ error: 'Este pedido ya fue pagado.' }, { status: 409 });
     }
 
     const rest = (order as any).restaurants;
@@ -59,19 +64,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const lineItems = (order.order_items ?? []).map((item: any) => ({
-      price_data: {
-        currency,
-        product_data: {
-          name: item.products?.name ?? 'Producto',
+    // Use the server-validated order total as a single line item.
+    // This guarantees the charged amount matches the DB total (subtotal + delivery +
+    // tip + tax - discounts) and avoids re-summing items which could miss fees.
+    const lineItems: import('stripe').Stripe.Checkout.SessionCreateParams['line_items'] = [
+      {
+        price_data: {
+          currency,
+          product_data: { name: rest?.name ?? 'Pedido' },
+          unit_amount: Math.round(Number(order.total) * 100),
         },
-        unit_amount: Math.round(Number(item.unit_price) * 100),
+        quantity: 1,
       },
-      quantity: item.qty,
-    }));
+    ];
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
+    // Use destination charge (same model as /api/orders) so the webhook fires
+    // on the platform account and the order gets marked as paid correctly.
     const sessionParams: import('stripe').Stripe.Checkout.SessionCreateParams = {
       line_items: lineItems,
       mode: 'payment',
@@ -82,12 +92,12 @@ export async function POST(request: NextRequest) {
         order_id: order.id,
         order_number: order.order_number,
       },
+      payment_intent_data: {
+        transfer_data: { destination: connectedAccount },
+      },
     };
 
-    // Direct charge on the connected account (merchant config).
-    const session = await stripe.checkout.sessions.create(sessionParams, {
-      stripeAccount: connectedAccount,
-    });
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return NextResponse.json({ url: session.url });
   } catch (err: any) {

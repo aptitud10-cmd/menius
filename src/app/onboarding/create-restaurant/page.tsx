@@ -57,7 +57,7 @@ export default function CreateRestaurantPage() {
   const [slug, setSlug] = useState('');
   const [locale, setLocale] = useState('es');
   const [currency, setCurrency] = useState('USD');
-  const [timezone, setTimezone] = useState('America/New_York');
+  const [timezone, setTimezone] = useState('America/Mexico_City');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
