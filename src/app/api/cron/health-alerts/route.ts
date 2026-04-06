@@ -22,9 +22,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const adminEmail = process.env.ADMIN_ALERT_EMAIL;
+  const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.ADMIN_EMAIL;
   if (!adminEmail) {
-    logger.warn('ADMIN_ALERT_EMAIL not configured — skipping health alerts');
+    logger.warn('Neither ADMIN_ALERT_EMAIL nor ADMIN_EMAIL is configured — skipping health alerts');
     return NextResponse.json({ skipped: true, reason: 'ADMIN_ALERT_EMAIL not set' });
   }
 

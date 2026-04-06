@@ -299,7 +299,7 @@ export async function GET(request: NextRequest) {
 
       const { data: targetRestaurants } = await supabase
         .from('restaurants')
-        .select('id, name, slug, notification_email, locale')
+        .select('id, name, slug, notification_email, locale, tags')
         .gte('created_at', dayStart)
         .lt('created_at', dayEnd)
         .not('notification_email', 'is', null)
@@ -307,15 +307,7 @@ export async function GET(request: NextRequest) {
 
       for (const restaurant of targetRestaurants ?? []) {
         if (!restaurant.notification_email) continue;
-
-        const { data: existingTag } = await supabase
-          .from('restaurants')
-          .select('id')
-          .eq('id', restaurant.id)
-          .contains('tags', [step.tag])
-          .maybeSingle();
-
-        if (existingTag) continue;
+        if ((restaurant.tags ?? []).includes(step.tag)) continue;
 
         const en = restaurant.locale === 'en';
         const dashUrl = `${appUrl}/app`;

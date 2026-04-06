@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
   for (const order of orders ?? []) {
     const { error: updateErr } = await supabase
       .from('orders')
-      .update({ scheduled_for: null })
+      .update({ scheduled_for: null, updated_at: new Date().toISOString() })
       .eq('id', order.id);
 
     if (!updateErr) activated.push(order.order_number);

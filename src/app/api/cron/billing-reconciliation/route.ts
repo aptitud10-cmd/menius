@@ -29,16 +29,19 @@ export async function GET(request: NextRequest) {
 
   try {
     // Step 1: Find restaurants without subscription records and create trial
+    // Limit to 2000 to prevent unbounded memory usage; run more often if needed
     const { data: allRestaurants } = await supabase
       .from('restaurants')
-      .select('id, created_at');
+      .select('id, created_at')
+      .limit(2000);
 
     const now = new Date();
 
     if (allRestaurants) {
       const { data: allSubs } = await supabase
         .from('subscriptions')
-        .select('restaurant_id');
+        .select('restaurant_id')
+        .limit(2000);
 
       const subSet = new Set((allSubs ?? []).map(s => s.restaurant_id));
       for (const r of allRestaurants) {

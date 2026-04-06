@@ -36,14 +36,19 @@ export async function GET(request: NextRequest) {
 
   for (const prefix of DEMO_PREFIXES) {
     try {
+      const LIST_LIMIT = 1000;
       // List all files under this prefix
       const { data: files, error: listErr } = await admin.storage
         .from('product-images')
-        .list(prefix, { limit: 1000, offset: 0 });
+        .list(prefix, { limit: LIST_LIMIT, offset: 0 });
 
       if (listErr) {
         logger.warn(`Failed to list ${prefix}`, { error: listErr.message });
         continue;
+      }
+
+      if ((files ?? []).length >= LIST_LIMIT) {
+        logger.warn(`${prefix} hit list limit (${LIST_LIMIT}) — some folders may be skipped this run`);
       }
 
       // Filter to demo-* folders only
