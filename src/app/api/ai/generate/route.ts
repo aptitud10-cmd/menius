@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -196,7 +197,7 @@ export async function POST(request: NextRequest) {
       const buffer = Buffer.from(imageBase64, 'base64');
       const { error: uploadErr } = await admin.storage
         .from('product-images')
-        .upload(path, buffer, { contentType: 'image/jpeg', cacheControl: '3600', upsert: false });
+        .upload(path, buffer, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
 
       if (uploadErr) {
         return NextResponse.json({ error: `Storage error: ${uploadErr.message}` }, { status: 500 });

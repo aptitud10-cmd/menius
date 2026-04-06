@@ -57,7 +57,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <DashboardLocaleProvider defaultLocale={defaultLocale}>
       <DashToastProvider>
-      <div className="min-h-screen bg-gray-50 text-gray-900 flex overflow-x-hidden">
+      <div className="min-h-[100dvh] bg-gray-50 text-gray-900 flex overflow-x-hidden">
         {/* Sidebar */}
         <aside className="hidden md:flex flex-col w-[260px] bg-white border-r border-gray-200 sticky top-0 h-screen">
           {/* Logo + restaurant */}

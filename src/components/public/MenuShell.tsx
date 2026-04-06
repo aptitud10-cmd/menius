@@ -930,7 +930,7 @@ export function MenuShell({
       <div
         ref={mobilePillsRef}
         className="py-2 px-2 flex gap-1.5 overflow-x-auto scrollbar-hide flex-1"
-        style={{ touchAction: 'pan-x' }}
+        style={{ touchAction: 'pan-x', WebkitOverflowScrolling: 'touch' }}
         onPointerDown={() => {
           clearTimeout(pillsUpTimerRef.current);
           pillsTouchActiveRef.current = true;
@@ -1129,7 +1129,7 @@ export function MenuShell({
             <button onClick={() => scrollCats('left')} className="absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-white via-white to-transparent flex items-center justify-start" aria-label={locale === 'en' ? 'Scroll left' : 'Desplazar izquierda'}>
               <ChevronLeft className="w-4 h-4 text-gray-400" />
             </button>
-            <div ref={catScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5">
+            <div ref={catScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}>
               {visibleCats.map((cat) => categoryPill(cat.id, tName(cat, locale, defaultLocale), activeCategory === cat.id && !showFavs && !activeDiet))}
               {filterDivider}
               {favPill}

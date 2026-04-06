@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
@@ -340,50 +341,88 @@ Served in/on: ${container}.
 ${foodStyling}
 Keep everything else — surface, lighting, background, atmosphere — pixel-perfect consistent with the reference.` : null;
 
-    // ─── PRIMARY MODEL: gemini-3-pro-image-preview ────────────────────────────
+    // ─── PRIMARY: fal.ai/flux-pro (when no style anchor) ─────────────────────
+    // fal.ai produces significantly higher quality for text-to-image.
+    // When a style anchor exists we must use Gemini (multimodal reference support).
     let imageBase64: string | null = null;
+    let engine = 'gemini';
     const mimeType = 'image/jpeg';
 
-    try {
-      let contents: object[];
-
-      if (anchorBase64 && anchorPrompt) {
-        contents = [{
-          role: 'user',
-          parts: [
-            { inlineData: { mimeType, data: anchorBase64 } },
-            { text: anchorPrompt },
-          ],
-        }];
-      } else {
-        contents = [{ role: 'user', parts: [{ text: prompt }] }];
-      }
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-image-preview',
-        contents,
-        config: {
-          responseModalities: ['TEXT', 'IMAGE'] as any,
-          imageConfig: { aspectRatio } as any,
-        } as any,
-      });
-      const parts = (response as any).candidates?.[0]?.content?.parts ?? [];
-      for (const part of parts) {
-        if (part.inlineData?.data) {
-          imageBase64 = part.inlineData.data;
-          break;
+    if (!anchorBase64) {
+      const falKey = process.env.FAL_API_KEY;
+      if (falKey) {
+        try {
+          const { fal } = await import('@fal-ai/client');
+          fal.config({ credentials: falKey });
+          const falResult = await (fal as any).subscribe('fal-ai/flux-pro/v1.1', {
+            input: {
+              prompt,
+              image_size: isBanner ? 'landscape_16_9' : 'square_hd',
+              num_inference_steps: 40,
+              guidance_scale: 3.5,
+              num_images: 1,
+              output_format: 'jpeg',
+            },
+          });
+          const falUrl: string | undefined = (falResult as any)?.images?.[0]?.url;
+          if (falUrl) {
+            const falRes = await fetch(falUrl, { signal: AbortSignal.timeout(30000) });
+            if (falRes.ok) {
+              imageBase64 = Buffer.from(await falRes.arrayBuffer()).toString('base64');
+              engine = 'fal-ai';
+            }
+          }
+        } catch (falErr) {
+          logger.warn('fal.ai/flux-pro failed, falling back to Gemini', {
+            error: falErr instanceof Error ? falErr.message : String(falErr),
+          });
         }
       }
-    } catch (primaryErr) {
-      logger.warn('gemini-3-pro-image-preview failed', {
-        error: primaryErr instanceof Error ? primaryErr.message : String(primaryErr),
-      });
     }
 
-    // ─── FALLBACK 1: Imagen 4 Ultra ────────────────────────────────────────────
-    // Single-image calls don't hit rate limits — Imagen 4 produces high quality
+    // ─── GEMINI CHAIN (primary when anchor exists, fallback otherwise) ─────────
     if (!imageBase64) {
-      logger.warn('gemini-3-pro-image-preview returned no image, trying Imagen 4');
+      try {
+        let contents: object[];
+
+        if (anchorBase64 && anchorPrompt) {
+          contents = [{
+            role: 'user',
+            parts: [
+              { inlineData: { mimeType, data: anchorBase64 } },
+              { text: anchorPrompt },
+            ],
+          }];
+        } else {
+          contents = [{ role: 'user', parts: [{ text: prompt }] }];
+        }
+
+        const response = await ai.models.generateContent({
+          model: 'gemini-3-pro-image-preview',
+          contents,
+          config: {
+            responseModalities: ['TEXT', 'IMAGE'] as any,
+            imageConfig: { aspectRatio } as any,
+          } as any,
+        });
+        const parts = (response as any).candidates?.[0]?.content?.parts ?? [];
+        for (const part of parts) {
+          if (part.inlineData?.data) {
+            imageBase64 = part.inlineData.data;
+            engine = 'gemini-3-pro';
+            break;
+          }
+        }
+      } catch (primaryErr) {
+        logger.warn('gemini-3-pro-image-preview failed', {
+          error: primaryErr instanceof Error ? primaryErr.message : String(primaryErr),
+        });
+      }
+    }
+
+    // ─── FALLBACK 1: Imagen 4 ──────────────────────────────────────────────────
+    if (!imageBase64) {
+      logger.warn('Gemini returned no image, trying Imagen 4');
       try {
         const imagenResponse = await ai.models.generateImages({
           model: 'imagen-4.0-generate-001',
@@ -393,6 +432,7 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
         const firstImage = imagenResponse.generatedImages?.[0];
         if (firstImage?.image?.imageBytes) {
           imageBase64 = firstImage.image.imageBytes as string;
+          engine = 'imagen-4';
         }
       } catch (imagenErr) {
         logger.warn('Imagen 4 failed', {
@@ -414,6 +454,7 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
         for (const part of flashParts) {
           if (part.inlineData?.data) {
             imageBase64 = part.inlineData.data;
+            engine = 'gemini-flash';
             break;
           }
         }
@@ -440,7 +481,7 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
       .from('product-images')
       .upload(fileName, buffer, {
         contentType: 'image/jpeg',
-        cacheControl: '3600',
+        cacheControl: '31536000',
         upsert: false,
       });
 
@@ -456,6 +497,7 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
       url: urlData.publicUrl,
       generated: true,
       usedAnchor: !!anchorBase64,
+      engine,
     });
   } catch (err: unknown) {
     logger.error('AI image generation error', { error: err instanceof Error ? err.message : String(err) });

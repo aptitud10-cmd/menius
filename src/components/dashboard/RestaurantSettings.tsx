@@ -291,42 +291,45 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
   return (
     <div className="space-y-6 max-w-2xl">
-      {/* Logo */}
+      {/* Favicon / Icono */}
       <div id="logo" className="bg-white rounded-2xl border border-gray-200 p-5 scroll-mt-20">
-        <h2 className="font-semibold text-sm text-gray-900 mb-1">{t.settings_logo}</h2>
-        <p className="text-xs text-gray-500 mb-4">{t.settings_logoDesc}</p>
+        <h2 className="font-semibold text-sm text-gray-900 mb-1">
+          {locale === 'en' ? 'Icon / Favicon' : 'Icono / Favicon'}
+        </h2>
+        <p className="text-xs text-gray-500 mb-4">
+          {locale === 'en'
+            ? 'Square image used as your restaurant icon in the digital menu and browser tab. Recommended: 512×512 px PNG.'
+            : 'Imagen cuadrada que aparece como icono de tu restaurante en el menú digital y en la pestaña del navegador. Recomendado: 512×512 px PNG.'}
+        </p>
         <input ref={logoRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
         <div className="flex items-center gap-4">
-          <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-gray-50 border border-gray-200 group flex-shrink-0">
+          {/* Preview — single tap target, no invisible hover overlay */}
+          <button
+            onClick={() => logoRef.current?.click()}
+            disabled={uploadingLogo}
+            className="relative w-20 h-20 rounded-2xl overflow-hidden bg-gray-50 border border-gray-200 flex-shrink-0 active:opacity-80 transition-opacity"
+            aria-label={locale === 'en' ? 'Upload icon' : 'Subir icono'}
+          >
             {logoUrl ? (
-              <>
-                <Image src={logoUrl} alt="Logo" fill className="object-cover" sizes="80px" />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                  <button
-                    onClick={() => logoRef.current?.click()}
-                    disabled={uploadingLogo}
-                    className="opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                    {uploadingLogo ? <Loader2 className="w-5 h-5 animate-spin text-white" /> : <Camera className="w-5 h-5 text-white" />}
-                  </button>
-                </div>
-              </>
+              <Image src={logoUrl} alt="Favicon" fill className="object-cover" sizes="80px" />
             ) : (
-              <button
-                onClick={() => logoRef.current?.click()}
-                disabled={uploadingLogo}
-                className="w-full h-full flex flex-col items-center justify-center text-gray-400 hover:text-emerald-600 transition-colors"
-              >
-                {uploadingLogo ? <Loader2 className="w-5 h-5 animate-spin text-emerald-600" /> : <Camera className="w-5 h-5" />}
-              </button>
+              <span className="flex flex-col items-center justify-center w-full h-full text-gray-400">
+                {uploadingLogo
+                  ? <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />
+                  : <Camera className="w-5 h-5" />}
+              </span>
             )}
-          </div>
+          </button>
+
           <div className="flex flex-col gap-2">
             <button
               onClick={() => logoRef.current?.click()}
               disabled={uploadingLogo}
               className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
+              {uploadingLogo
+                ? <Loader2 className="w-4 h-4 animate-spin inline mr-1.5" />
+                : null}
               {logoUrl ? t.settings_changeLogo : t.settings_uploadLogo}
             </button>
             {logoUrl && (

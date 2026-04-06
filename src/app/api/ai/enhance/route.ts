@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -166,16 +167,8 @@ OUTPUT: A photorealistic, award-winning food photograph. NOT CGI, NOT illustrati
       }
     } catch { /* fall through to next model */ }
 
-    // Fallback to Imagen 4
-    if (!result) {
-      const imagenResp = await ai.models.generateImages({
-        model: 'imagen-4.0-generate-001',
-        prompt: `Professional food photo enhancement. ${styleDesc}. The dish appears to be: [analyze the provided reference image and describe it accurately]. Keep all food elements identical, only improve lighting, background and presentation. ${prompt}`,
-        config: { numberOfImages: 1, aspectRatio: '1:1' },
-      });
-      const first = imagenResp.generatedImages?.[0];
-      if (first?.image?.imageBytes) result = first.image.imageBytes as string;
-    }
+    // Note: Imagen 4 is text-to-image only — cannot use it for enhancement
+    // (no reference image input supported). Skip fallback to avoid generic output.
 
     return result;
   } catch (err) {
@@ -254,7 +247,7 @@ export async function POST(request: NextRequest) {
     const originalPath = `ai-enhance/${prefix}/before-${ts}.jpg`;
     const { error: origErr } = await admin.storage
       .from('product-images')
-      .upload(originalPath, optimizedOriginal, { contentType: 'image/jpeg', cacheControl: '3600', upsert: false });
+      .upload(originalPath, optimizedOriginal, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
 
     if (origErr) {
       logger.warn('Failed to store original', { error: origErr.message });
@@ -264,11 +257,10 @@ export async function POST(request: NextRequest) {
 
     // Try fal.ai first (better quality), then Gemini
     let enhancedBase64: string | null = null;
-    let usedFalAi = false;
 
     const falResult = await enhanceWithFalAi(origUrl.publicUrl, style);
     if (falResult) {
-      // fal.ai returns a URL — fetch the image to store it in our Supabase
+      // fal.ai returns a URL — fetch the image and store it in Supabase
       try {
         const falImageRes = await fetch(falResult, { signal: AbortSignal.timeout(30000) });
         if (falImageRes.ok) {
@@ -276,7 +268,7 @@ export async function POST(request: NextRequest) {
           const enhancedPath = `ai-enhance/${prefix}/after-${ts}.jpg`;
           await admin.storage
             .from('product-images')
-            .upload(enhancedPath, falBuffer, { contentType: 'image/jpeg', cacheControl: '3600', upsert: false });
+            .upload(enhancedPath, falBuffer, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
           const { data: enhUrl } = admin.storage.from('product-images').getPublicUrl(enhancedPath);
           await logEnhance(ip, restaurantId);
           return NextResponse.json({
@@ -285,14 +277,13 @@ export async function POST(request: NextRequest) {
             engine: 'fal-ai',
           });
         }
-      } catch { /* fall through */ }
-      usedFalAi = true;
+      } catch { /* fetch failed — fall through to Gemini */ }
+      // Only mark as used if we successfully returned above; otherwise fall through
     }
 
-    if (!usedFalAi) {
-      const imageBase64 = buffer.toString('base64');
-      enhancedBase64 = await enhanceWithGemini(imageBase64, mimeType, style);
-    }
+    // Gemini fallback (used when fal.ai is unavailable or its result fetch failed)
+    const imageBase64 = buffer.toString('base64');
+    enhancedBase64 = await enhanceWithGemini(imageBase64, mimeType, style);
 
     if (!enhancedBase64) {
       return NextResponse.json(
@@ -306,7 +297,7 @@ export async function POST(request: NextRequest) {
 
     const { error: enhErr } = await admin.storage
       .from('product-images')
-      .upload(enhancedPath, enhancedBuffer, { contentType: 'image/jpeg', cacheControl: '3600', upsert: false });
+      .upload(enhancedPath, enhancedBuffer, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
 
     if (enhErr) {
       return NextResponse.json({ error: `Storage error: ${enhErr.message}` }, { status: 500 });

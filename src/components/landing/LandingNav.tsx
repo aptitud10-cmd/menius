@@ -75,21 +75,28 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
       </div>
 
       {open && (
-        <div className="md:hidden border-t border-white/[0.06] bg-[#050505]/95 backdrop-blur-xl">
+        <div
+          className="md:hidden border-t border-white/[0.06] bg-[#050505]/95 backdrop-blur-xl overflow-y-auto overscroll-contain"
+          style={{
+            maxHeight: 'calc(100dvh - 3.5rem)',
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            WebkitOverflowScrolling: 'touch',
+          }}
+        >
           <nav className="flex flex-col px-5 py-4 gap-1">
-            <Link href="/#funciones" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors">{n.features}</Link>
-            <Link href="/#precios" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors">{n.pricing}</Link>
-            <Link href="/demo" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors">{n.demo}</Link>
-            <Link href="/blog" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors">{n.blog}</Link>
-            <Link href="/faq" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors">{n.faq}</Link>
+            <Link href="/#funciones" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors active:text-white">{n.features}</Link>
+            <Link href="/#precios" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors active:text-white">{n.pricing}</Link>
+            <Link href="/demo" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors active:text-white">{n.demo}</Link>
+            <Link href="/blog" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors active:text-white">{n.blog}</Link>
+            <Link href="/faq" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors active:text-white">{n.faq}</Link>
             <div className="h-px bg-white/[0.06] my-2" />
             <div className="flex items-center gap-3 py-3">
               <button onClick={() => switchLocale('es')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'es' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}>ES</button>
               <button onClick={() => switchLocale('en')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'en' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}>EN</button>
             </div>
             <div className="h-px bg-white/[0.06] my-2" />
-            <Link href="/login" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-400 hover:text-white transition-colors">{n.login}</Link>
-            <Link href="/signup" onClick={() => setOpen(false)} className="mt-2 block text-center py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] hover:bg-gray-100 transition-all">{n.startFree}</Link>
+            <Link href="/login" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-400 hover:text-white transition-colors active:text-white">{n.login}</Link>
+            <Link href="/signup" onClick={() => setOpen(false)} className="mt-2 mb-2 block text-center py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] active:bg-gray-100 hover:bg-gray-100 transition-all">{n.startFree}</Link>
           </nav>
         </div>
       )}

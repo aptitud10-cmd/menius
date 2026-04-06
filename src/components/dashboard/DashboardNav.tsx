@@ -107,7 +107,7 @@ export function DashboardNav({ slug, mobile, planId = 'free' }: DashboardNavProp
             )}
             <div className="flex flex-col gap-0.5">
               {section.items.map((item) => {
-                const active = isActive(item.href, (item as any).exact);
+                const active = isActive(item.href, item.exact);
                 const locked = item.minPlan ? !meetsMin(planId, item.minPlan) : false;
                 if (locked) {
                   return (
@@ -211,8 +211,17 @@ export function DashboardNav({ slug, mobile, planId = 'free' }: DashboardNavProp
         </button>
         {open && (
           <>
-            <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 animate-fade-in" onClick={() => setOpen(false)} />
-            <div className="fixed top-14 left-0 right-0 bottom-0 bg-white z-50 p-4 overflow-y-auto animate-fade-in">
+            <div
+              className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 animate-fade-in"
+              onClick={() => setOpen(false)}
+            />
+            <div
+              className="fixed top-14 left-0 right-0 bottom-0 bg-white z-50 px-4 pt-4 overflow-y-auto overscroll-contain animate-fade-in"
+              style={{
+                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)',
+                WebkitOverflowScrolling: 'touch',
+              }}
+            >
               {navContent}
             </div>
           </>
