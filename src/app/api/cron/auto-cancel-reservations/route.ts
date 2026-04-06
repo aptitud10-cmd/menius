@@ -1,7 +1,11 @@
 export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
 
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('auto-cancel-reservations');
 
 // Auto-cancel reservations that are still pending 2+ hours after their scheduled time
 export async function GET(req: Request) {
@@ -22,7 +26,7 @@ export async function GET(req: Request) {
       .from('reservations')
       .select('id, restaurant_id, customer_name, customer_phone, reserved_date, reserved_time')
       .eq('status', 'pending')
-      .lt('reserved_date', cutoff.split('T')[0]); // dates older than cutoff date (quick pre-filter)
+      .lte('reserved_date', cutoff.split('T')[0]); // dates up to and including cutoff date (quick pre-filter)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -51,7 +55,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ cancelled: ids.length, ids });
   } catch (err) {
-    console.error('[auto-cancel-reservations]', err);
+    logger.error('Unexpected error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

@@ -16,6 +16,9 @@ export const maxDuration = 30;
 
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('auto-complete-pickup');
 
 const DEFAULT_ETA_MINS = 15;
 const READY_TIMEOUT_MINS = 10;
@@ -51,9 +54,10 @@ export async function GET(req: Request) {
     let markedReady = 0;
     if (toMarkReady.length > 0) {
       const ids = toMarkReady.map(o => o.id);
+      const readyNow = new Date().toISOString();
       const { error: readyErr } = await adminDb
         .from('orders')
-        .update({ status: 'ready' })
+        .update({ status: 'ready', updated_at: readyNow })
         .in('id', ids);
 
       if (!readyErr) {
@@ -71,7 +75,7 @@ export async function GET(req: Request) {
             deliveryAddress: o.delivery_address || undefined,
           }).catch(() => {});
         }
-        console.info(`[auto-complete-pickup] Marked ${markedReady} pickup orders as ready:`, ids);
+        logger.info(`Marked ${markedReady} pickup orders as ready`, { ids });
       }
     }
 
@@ -94,7 +98,7 @@ export async function GET(req: Request) {
       const ids = toDeliver.map(o => o.id);
       const { error: deliverErr } = await adminDb
         .from('orders')
-        .update({ status: 'delivered' })
+        .update({ status: 'delivered', updated_at: new Date().toISOString() })
         .in('id', ids);
 
       if (!deliverErr) {
@@ -112,13 +116,13 @@ export async function GET(req: Request) {
             deliveryAddress: o.delivery_address || undefined,
           }).catch(() => {});
         }
-        console.info(`[auto-complete-pickup] Auto-delivered ${markedDelivered} pickup orders after ${READY_TIMEOUT_MINS} min in ready:`, ids);
+        logger.info(`Auto-delivered ${markedDelivered} pickup orders after ${READY_TIMEOUT_MINS} min in ready`, { ids });
       }
     }
 
     return NextResponse.json({ markedReady, markedDelivered });
   } catch (err) {
-    console.error('[auto-complete-pickup]', err);
+    logger.error('Unexpected error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
