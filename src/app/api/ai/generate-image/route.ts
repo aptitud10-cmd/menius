@@ -25,10 +25,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { allowed } = await checkRateLimitAsync(`ai:${tenant.userId}`, { limit: 20, windowSec: 3600 });
-    if (!allowed) {
+    // Hourly limit: 20 images per hour
+    const { allowed: hourlyAllowed } = await checkRateLimitAsync(`ai:${tenant.userId}`, { limit: 20, windowSec: 3600 });
+    if (!hourlyAllowed) {
       return NextResponse.json(
-        { error: 'Límite de generaciones alcanzado. Intenta en 1 hora.' },
+        { error: 'Límite de generaciones alcanzado (20/hora). Intenta en 1 hora.' },
+        { status: 429 }
+      );
+    }
+
+    // Daily limit: 30 images per day — protects against runaway costs
+    const { allowed: dailyAllowed } = await checkRateLimitAsync(`ai-daily:${tenant.userId}`, { limit: 30, windowSec: 86400 });
+    if (!dailyAllowed) {
+      return NextResponse.json(
+        { error: 'Límite diario de generaciones alcanzado (30/día). Vuelve mañana.' },
         { status: 429 }
       );
     }
