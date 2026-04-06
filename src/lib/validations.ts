@@ -135,7 +135,7 @@ export const reviewSubmitSchema = z.object({
   order_id: z.string().uuid().optional(),
   customer_name: z.string().min(1).max(100),
   rating: z.number().int().min(1).max(5),
-  comment: z.string().max(2000).default(''),
+  comment: z.string().max(500).default(''),
 });
 
 export const restaurantUpdateSchema = z.object({

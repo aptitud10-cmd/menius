@@ -73,17 +73,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
     }
 
-    // Verify the supplied order_id actually belongs to this restaurant.
-    // Without this check, a review could be linked to any order in the system.
+    // Verify the supplied order_id actually belongs to this restaurant
+    // and that the order is in a terminal delivered state.
     if (parsed.data.order_id) {
       const { data: orderCheck } = await supabase
         .from('orders')
-        .select('id')
+        .select('id, status')
         .eq('id', parsed.data.order_id)
         .eq('restaurant_id', parsed.data.restaurant_id)
         .maybeSingle();
       if (!orderCheck) {
         return NextResponse.json({ error: 'Order not found for this restaurant' }, { status: 400 });
+      }
+      if (orderCheck.status === 'cancelled') {
+        return NextResponse.json({ error: 'Cannot review a cancelled order' }, { status: 400 });
+      }
+
+      // Prevent duplicate reviews for the same order
+      const { data: existingReview } = await supabase
+        .from('reviews')
+        .select('id')
+        .eq('order_id', parsed.data.order_id)
+        .maybeSingle();
+      if (existingReview) {
+        return NextResponse.json({ error: 'A review has already been submitted for this order' }, { status: 409 });
       }
     }
 

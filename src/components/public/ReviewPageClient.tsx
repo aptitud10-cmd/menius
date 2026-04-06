@@ -55,6 +55,11 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
           _hp: '',
         }),
       });
+      if (res.status === 409) {
+        // Already reviewed — treat as success so the user sees the thank-you screen
+        setSubmitted(true);
+        return;
+      }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error ?? 'Error');

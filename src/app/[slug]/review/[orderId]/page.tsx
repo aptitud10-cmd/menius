@@ -22,7 +22,7 @@ export default async function ReviewPage({ params }: PageProps) {
 
   const { data: order } = await adminDb
     .from('orders')
-    .select('id, customer_name, restaurant_id, restaurants(id, name, slug, locale)')
+    .select('id, status, customer_name, restaurant_id, restaurants(id, name, slug, locale)')
     .eq('id', params.orderId)
     .maybeSingle();
 
@@ -31,6 +31,9 @@ export default async function ReviewPage({ params }: PageProps) {
   const restaurant = Array.isArray(order.restaurants) ? order.restaurants[0] : order.restaurants;
 
   if (restaurant.slug !== params.slug) return notFound();
+
+  // Only allow reviews for orders that have actually been placed (not cancelled or still pending)
+  if (order.status === 'cancelled') return notFound();
 
   return (
     <ReviewPageClient
