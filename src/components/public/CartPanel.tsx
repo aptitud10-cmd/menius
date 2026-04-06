@@ -145,14 +145,14 @@ export function CartPanel({
         {lastOrder && lastOrder.items.length > 0 && onReorder && (
           <button
             onClick={onReorder}
-            className="mt-6 w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-50 border border-emerald-200 active:bg-emerald-100 transition-colors"
+            className="mt-6 w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#e6faf7] border border-[#b3efe6] active:bg-[#d0f7f1] transition-colors"
           >
-            <RotateCcw className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <RotateCcw className="w-4 h-4 text-[#05c8a7] flex-shrink-0" />
             <div className="flex-1 min-w-0 text-left">
-              <p className="text-xs font-semibold text-emerald-800">
+              <p className="text-xs font-semibold text-[#047a65]">
                 {t.reorderLastOrder}
               </p>
-              <p className="text-[10px] text-emerald-600 truncate mt-0.5">
+              <p className="text-[10px] text-[#05c8a7] truncate mt-0.5">
                 {lastOrder.items.slice(0, 3).map((i) => `${i.qty}× ${i.productName}`).join(' · ')}
               </p>
             </div>
@@ -198,7 +198,7 @@ export function CartPanel({
       </div>
 
       {/* ── Scrollable items only ── */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-3 min-h-0">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-3 min-h-0" style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
         <AnimatePresence initial={false}>
         {items.map((item, idx) => {
           const imgKey = `${item.product.id}-${idx}`;
@@ -249,7 +249,7 @@ export function CartPanel({
                         <div className="min-w-0">
                           <h4 className="font-semibold text-sm text-gray-900 truncate leading-tight">{item.product.name}</h4>
                           {item.variant && (item.modifierSelections ?? []).length === 0 && (
-                            <span className="inline-flex items-center mt-0.5 px-1.5 py-0.5 rounded bg-emerald-50 text-xs font-medium text-emerald-600">
+                            <span className="inline-flex items-center mt-0.5 px-1.5 py-0.5 rounded bg-[#e6faf7] text-xs font-medium text-[#05c8a7]">
                               {item.variant.name}
                             </span>
                           )}
@@ -361,14 +361,14 @@ export function CartPanel({
         {deliveryFee != null && deliveryFee === 0 && (
           <div className="flex justify-between items-baseline text-xs mb-2">
             <span className="text-gray-400">{t.delivery}</span>
-            <span className="text-emerald-500 font-medium">{t.freeDelivery}</span>
+            <span className="text-[#05c8a7] font-medium">{t.freeDelivery}</span>
           </div>
         )}
         <motion.button
           onClick={onCheckout}
           whileHover={{ scale: 1.015 }}
           whileTap={{ scale: 0.97 }}
-          className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-extrabold text-sm hover:bg-emerald-600 transition-colors duration-150 shadow-[0_4px_16px_rgba(16,185,129,0.3)] flex items-center justify-between px-5"
+          className="w-full py-4 rounded-2xl bg-[#05c8a7] text-white font-extrabold text-sm hover:bg-[#04b096] transition-colors duration-150 shadow-[0_4px_16px_rgba(5,200,167,0.35)] flex items-center justify-between px-5"
         >
           <span>{t.placeOrder}</span>
           <AnimatePresence mode="wait">

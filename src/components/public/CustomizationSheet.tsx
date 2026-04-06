@@ -354,7 +354,7 @@ export function CustomizationSheet({
                       className={cn(
                         'flex flex-col items-center justify-center px-3 py-3 rounded-2xl transition-all duration-150 text-center border gap-0.5',
                         isSelected
-                          ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                          ? 'bg-[#05c8a7] text-white border-[#05c8a7] shadow-sm'
                           : isDisabled
                             ? 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
                             : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400'
@@ -362,7 +362,7 @@ export function CustomizationSheet({
                     >
                       <span className="text-[14px] font-semibold leading-tight">{opt.name}</span>
                       {Number(opt.price_delta) !== 0 && (
-                        <span className={cn('text-[11px] font-medium', isSelected ? 'text-emerald-100' : 'text-gray-400')}>
+                        <span className={cn('text-[11px] font-medium', isSelected ? 'text-[#d0f7f1]' : 'text-gray-400')}>
                           {Number(opt.price_delta) > 0 ? '+' : ''}{fmtPrice(Number(opt.price_delta))}
                         </span>
                       )}
@@ -383,7 +383,7 @@ export function CustomizationSheet({
                       className={cn(
                         'w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-150 text-left border',
                         isSelected
-                          ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                          ? 'bg-[#05c8a7] text-white border-[#05c8a7] shadow-sm'
                           : isDisabled
                             ? 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
                             : 'bg-white border-gray-200 text-gray-700 hover:border-gray-300 hover:shadow-sm active:border-gray-400'
@@ -395,14 +395,14 @@ export function CustomizationSheet({
                             'w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors flex-shrink-0',
                             isSelected ? 'border-white bg-white' : 'border-gray-300'
                           )}>
-                            {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />}
+                            {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-[#05c8a7]" />}
                           </div>
                         ) : (
                           <div className={cn(
                             'w-5 h-5 rounded-md flex items-center justify-center transition-colors flex-shrink-0',
                             isSelected ? 'bg-white' : 'border-2 border-gray-300'
                           )}>
-                            {isSelected && <Check className="w-3.5 h-3.5 text-emerald-500" />}
+                            {isSelected && <Check className="w-3.5 h-3.5 text-[#05c8a7]" />}
                           </div>
                         )}
                         <span className="text-[15px] font-medium">{opt.name}</span>
@@ -461,8 +461,8 @@ export function CustomizationSheet({
                     </p>
                     <div className="flex items-center justify-between gap-1">
                       <span className="text-[11px] font-bold text-gray-900 tabular-nums">{fmtPrice(Number(p.price))}</span>
-                      <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                        <Plus className="w-3 h-3 text-emerald-600" />
+                      <div className="w-6 h-6 rounded-full bg-[#d0f7f1] flex items-center justify-center flex-shrink-0">
+                        <Plus className="w-3 h-3 text-[#05c8a7]" />
                       </div>
                     </div>
                   </div>
@@ -483,7 +483,7 @@ export function CustomizationSheet({
   );
 
   const previewBadge = (
-    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-bold uppercase tracking-wider">
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#d0f7f1] text-[#047a65] text-[11px] font-bold uppercase tracking-wider">
       {locale === 'es' ? 'Vista previa' : 'Preview'}
     </span>
   );
@@ -507,10 +507,10 @@ export function CustomizationSheet({
             className={cn(
               'flex-1 h-[52px] rounded-2xl font-extrabold text-[16px] transition-all duration-200',
               added
-                ? 'bg-emerald-500 text-white'
+                ? 'bg-[#05c8a7] text-white'
                 : !isValid
                   ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-emerald-500 text-white active:scale-[0.98] shadow-sm hover:bg-emerald-600'
+                  : 'bg-[#05c8a7] text-white active:scale-[0.98] shadow-sm hover:bg-[#04b096]'
             )}
           >
             {added
@@ -585,8 +585,8 @@ export function CustomizationSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby="customization-dialog-title"
-        className="fixed left-0 right-0 bottom-0 bg-white flex flex-col shadow-2xl rounded-t-2xl"
-        style={{ height: '100dvh' }}
+        className="fixed left-0 right-0 bottom-0 bg-white flex flex-col shadow-2xl rounded-t-2xl max-h-[92dvh]"
+        style={{ minHeight: 'min(60dvh, 100dvh)' }}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}

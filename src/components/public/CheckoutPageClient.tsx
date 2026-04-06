@@ -14,7 +14,7 @@ import { trackEvent } from '@/lib/analytics';
 import { playSuccessChime, spawnConfetti } from '@/lib/celebration';
 import { computeTaxAmount } from '@/lib/tax-presets';
 
-const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl border border-gray-200 bg-gray-100 animate-pulse" />;
+const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl skeleton" />;
 
 const AddressAutocomplete = dynamic(
   () => import('@/components/ui/AddressAutocomplete').then((m) => ({ default: m.AddressAutocomplete })),
@@ -445,32 +445,32 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   if (!hasMounted) {
     return (
-      <div className="h-[100dvh] bg-[#f5f5f5] flex flex-col overflow-hidden animate-pulse">
+      <div className="h-[100dvh] bg-[#f5f5f5] flex flex-col overflow-hidden">
         <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4">
-          <div className="h-5 w-24 bg-gray-200 rounded-full" />
+          <div className="h-5 w-24 skeleton rounded-full" />
         </header>
         <div className="flex-1 px-4 py-5 space-y-4 max-w-lg mx-auto w-full">
+          <div className="h-2.5 w-20 skeleton rounded-full" />
           <div className="bg-white rounded-2xl p-5 space-y-3 border border-gray-200">
-            <div className="h-3 w-32 bg-gray-200 rounded-full" />
-            <div className="h-12 bg-gray-100 rounded-2xl" />
-            <div className="h-12 bg-gray-100 rounded-2xl" />
-            <div className="h-12 bg-gray-100 rounded-2xl" />
+            <div className="h-12 skeleton rounded-xl" />
+            <div className="h-12 skeleton rounded-xl" />
+            <div className="h-12 skeleton rounded-xl" />
           </div>
+          <div className="h-2.5 w-16 skeleton rounded-full mt-2" />
           <div className="bg-white rounded-2xl p-5 space-y-3 border border-gray-200">
-            <div className="h-3 w-24 bg-gray-200 rounded-full" />
             <div className="grid grid-cols-2 gap-2">
-              <div className="h-12 bg-gray-100 rounded-2xl" />
-              <div className="h-12 bg-gray-100 rounded-2xl" />
+              <div className="h-12 skeleton rounded-xl" />
+              <div className="h-12 skeleton rounded-xl" />
             </div>
           </div>
+          <div className="h-2.5 w-24 skeleton rounded-full mt-2" />
           <div className="bg-white rounded-2xl p-5 space-y-3 border border-gray-200">
-            <div className="h-3 w-20 bg-gray-200 rounded-full" />
-            <div className="h-16 bg-gray-100 rounded-2xl" />
-            <div className="h-16 bg-gray-100 rounded-2xl" />
+            <div className="h-12 skeleton rounded-xl" />
+            <div className="h-12 skeleton rounded-xl" />
           </div>
         </div>
         <div className="sticky bottom-0 bg-white border-t-2 border-gray-200 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <div className="h-14 bg-gray-200 rounded-2xl" />
+          <div className="h-14 skeleton rounded-2xl" />
         </div>
       </div>
     );
@@ -491,7 +491,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           </div>
           <h2 className="text-lg font-bold text-gray-900 mb-1">{t.cartEmpty}</h2>
           <p className="text-sm text-gray-500 text-center mb-6">{t.cartEmptyDesc}</p>
-          <button onClick={goBack} className="px-6 py-3 rounded-xl bg-emerald-500 text-white font-semibold text-sm active:scale-[0.98] transition-all">
+          <button onClick={goBack} className="px-6 py-3 rounded-xl bg-[#05c8a7] text-white font-semibold text-sm active:scale-[0.98] transition-all">
             {t.backToMenu}
           </button>
         </div>
@@ -751,7 +751,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       <div className="min-h-[100dvh] bg-white flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4 flex justify-between items-center">
           <span className="text-sm font-semibold text-gray-900">{restaurant.name}</span>
-          <button onClick={goBack} className="text-sm text-emerald-600 font-medium">{t.backToMenu}</button>
+          <button onClick={goBack} className="text-sm text-[#05c8a7] font-medium">{t.backToMenu}</button>
         </header>
         <motion.div
           ref={confirmRef}
@@ -760,8 +760,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
         >
-          <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mb-6">
-            <CheckCircle className="w-10 h-10 text-emerald-500" />
+          <div className="w-20 h-20 rounded-full bg-[#e6faf7] flex items-center justify-center mb-6">
+            <CheckCircle className="w-10 h-10 text-[#05c8a7]" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-1">{t.orderSent}</h2>
           <p className="text-sm text-gray-500 mb-3">{t.orderSentDesc}</p>
@@ -785,7 +785,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   'w-full py-3.5 rounded-xl font-semibold text-sm disabled:opacity-50 transition-colors flex items-center justify-center gap-2',
                   isColombianRestaurant
                     ? 'bg-[#FDDA24] text-[#002C76] hover:bg-[#f5d01e]'
-                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                    : 'bg-[#05c8a7] text-white hover:bg-[#04b096]'
                 )}
               >
                 {payLoading ? (
@@ -805,7 +805,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             {!restaurant.id.startsWith('demo') && orderNumber && (
               <button
                 onClick={() => router.push(`/${slug}/orden/${orderNumber}`)}
-                className="w-full py-3.5 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-xl bg-[#05c8a7] text-white font-semibold text-sm hover:bg-[#04b096] transition-colors flex items-center justify-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -830,7 +830,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     window.open(`https://wa.me/?text=${msg}`, '_blank');
                   }, 1500);
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm text-gray-400 hover:text-green-600 transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm text-gray-400 hover:text-[#05c8a7] transition-colors"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -868,7 +868,12 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-lg mx-auto px-5 py-6 space-y-6">
+        <div className="max-w-lg mx-auto px-5 py-6 space-y-4">
+
+          {/* Section: Tu pedido */}
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 px-1">
+            {locale === 'es' ? '1 · Tu pedido' : '1 · Your order'}
+          </p>
 
           {/* Order summary */}
           <div className="bg-white rounded-2xl p-5 space-y-3 border border-gray-200 shadow-sm">
@@ -939,7 +944,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                       className="w-11 h-11 flex items-center justify-center flex-shrink-0"
                       aria-label={locale === 'es' ? 'Aumentar cantidad' : 'Increase quantity'}
                     >
-                      <span className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-600 transition-colors text-lg leading-none pointer-events-none">
+                      <span className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-[#e6faf7] hover:border-[#b3efe6] hover:text-[#05c8a7] transition-colors text-lg leading-none pointer-events-none">
                         +
                       </span>
                     </button>
@@ -948,13 +953,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </div>
             ))}
             {promoDiscount > 0 && (
-              <div className="flex justify-between text-[15px] text-emerald-600 pt-1">
+              <div className="flex justify-between text-[15px] text-[#05c8a7] pt-1">
                 <span>{t.discount}</span>
                 <span className="font-semibold">-{fmtPrice(promoDiscount)}</span>
               </div>
             )}
             {loyaltyDiscount > 0 && (
-              <div className="flex justify-between text-[15px] text-emerald-600 pt-1">
+              <div className="flex justify-between text-[15px] text-[#05c8a7] pt-1">
                 <span>⭐ {locale === 'es' ? 'Puntos' : 'Points'}</span>
                 <span className="font-semibold">-{fmtPrice(loyaltyDiscount)}</span>
               </div>
@@ -966,7 +971,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </div>
             )}
             {orderType === 'delivery' && deliveryFee === 0 && restaurant.order_types_enabled?.includes('delivery') && (
-              <div className="flex justify-between text-[15px] text-emerald-600">
+              <div className="flex justify-between text-[15px] text-[#05c8a7]">
                 <span>{locale === 'es' ? 'Envío' : 'Delivery'}</span>
                 <span className="font-semibold">{locale === 'es' ? 'Gratis' : 'Free'}</span>
               </div>
@@ -1063,9 +1068,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             )}
           </div>
 
+          {/* Section: Tus datos */}
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 px-1 pt-2">
+            {locale === 'es' ? '2 · Tus datos' : '2 · Your info'}
+          </p>
+
           {/* Customer details */}
           <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm space-y-5">
-            <p className="text-sm font-bold text-gray-900">{locale === 'es' ? 'Tus datos' : 'Your details'}</p>
             <div>
               {/* Honeypot — invisible to real users, filled automatically by bots */}
               <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', visibility: 'hidden', pointerEvents: 'none' }} aria-hidden="true">
@@ -1201,6 +1210,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             </button>
           </div>
 
+          {/* Section: Forma de pago */}
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 px-1 pt-2">
+            {locale === 'es' ? '3 · Forma de pago' : '3 · Payment'}
+          </p>
+
           {/* Payment method */}
           <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
             <label className="block text-sm font-semibold text-gray-900 mb-3">{t.paymentMethod}</label>
@@ -1216,7 +1230,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
           {/* Loyalty points redemption */}
           {loyaltyBalance?.config && loyaltyBalance.points >= loyaltyBalance.config.min_redeem_points && (
-            <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-200 shadow-sm">
+            <div className="bg-[#e6faf7] rounded-2xl p-5 border border-[#b3efe6] shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">⭐</span>
@@ -1224,7 +1238,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     <p className="text-sm font-semibold text-gray-900">
                       {locale === 'es' ? 'Tienes' : 'You have'} {loyaltyBalance.points} {locale === 'es' ? 'puntos' : 'points'}
                     </p>
-                    <p className="text-xs text-emerald-700">
+                    <p className="text-xs text-[#047a65]">
                       = {fmtPrice(Math.floor(loyaltyBalance.points * loyaltyBalance.config.peso_per_point * 100) / 100)} {locale === 'es' ? 'de descuento' : 'discount'}
                     </p>
                   </div>
@@ -1235,8 +1249,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   className={cn(
                     'px-4 py-2 rounded-xl text-sm font-semibold transition-all',
                     loyaltyApplied
-                      ? 'bg-emerald-500 text-white shadow-sm'
-                      : 'bg-white text-emerald-700 border border-emerald-300 hover:bg-emerald-100'
+                      ? 'bg-[#05c8a7] text-white shadow-sm'
+                      : 'bg-white text-[#047a65] border border-[#b3efe6] hover:bg-[#e6faf7]'
                   )}
                 >
                   {loyaltyApplied
@@ -1258,7 +1272,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             </div>
             {promoError && <p className="text-sm text-red-500 mt-2">{promoError}</p>}
             {promoResult?.valid && (
-              <p className="text-sm text-emerald-600 mt-2 font-medium">{t.discount}: -{fmtPrice(promoResult.discount)}{promoResult.description && ` — ${promoResult.description}`}</p>
+              <p className="text-sm text-[#05c8a7] mt-2 font-medium">{t.discount}: -{fmtPrice(promoResult.discount)}{promoResult.description && ` — ${promoResult.description}`}</p>
             )}
           </div>
 
@@ -1276,11 +1290,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     onClick={() => { setTipPercent(isActive ? null : pct); }}
                     className={cn(
                       'flex flex-col items-center py-3 rounded-xl border transition-all duration-150',
-                      isActive ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 active:border-gray-400'
+                      isActive ? 'border-[#05c8a7] bg-[#e6faf7]' : 'border-gray-200 active:border-gray-400'
                     )}
                   >
-                    <span className={cn('text-sm font-bold', isActive ? 'text-emerald-700' : 'text-gray-700')}>{pct}%</span>
-                    <span className={cn('text-[11px] tabular-nums', isActive ? 'text-emerald-500' : 'text-gray-400')}>{fmtPrice(amt)}</span>
+                    <span className={cn('text-sm font-bold', isActive ? 'text-[#047a65]' : 'text-gray-700')}>{pct}%</span>
+                    <span className={cn('text-[11px] tabular-nums', isActive ? 'text-[#05c8a7]' : 'text-gray-400')}>{fmtPrice(amt)}</span>
                   </button>
                 );
               })}
@@ -1310,7 +1324,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             onClick={handleSubmitOrder}
             disabled={submitting || items.length === 0}
             aria-label={locale === 'es' ? 'Confirmar orden' : 'Place order'}
-            className="w-full py-5 rounded-2xl bg-emerald-500 text-white font-extrabold text-[17px] active:scale-[0.98] transition-all duration-150 disabled:opacity-50 shadow-[0_4px_20px_rgba(16,185,129,0.35)]"
+            className="w-full py-5 rounded-2xl bg-[#05c8a7] text-white font-extrabold text-[17px] active:scale-[0.98] transition-all duration-150 disabled:opacity-50 shadow-[0_4px_20px_rgba(5,200,167,0.35)]"
           >
             {submitting ? (
               <span className="flex items-center justify-center gap-2">

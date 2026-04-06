@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe, RotateCcw, AlertCircle, AlignJustify } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { formatPrice, cn } from '@/lib/utils';
@@ -92,6 +92,8 @@ export function MenuShell({
   const setOpen = useCartStore((s) => s.setOpen);
   const isOpen = useCartStore((s) => s.isOpen);
   const addItem = useCartStore((s) => s.addItem);
+
+  const cartDragControls = useDragControls();
 
   const [hasMounted, setHasMounted] = useState(false);
   const [reorderDismissed, setReorderDismissed] = useState(false);
@@ -835,7 +837,7 @@ export function MenuShell({
             ? 'bg-amber-500 text-white shadow-sm'
             : 'bg-white border border-gray-200 text-gray-600 active:bg-gray-50'
           : isActive
-            ? 'bg-emerald-500 text-white shadow-sm'
+            ? 'bg-[#05c8a7] text-white shadow-sm'
             : 'bg-white border border-gray-200 text-gray-600 active:bg-gray-50'
       )}
     >
@@ -913,7 +915,7 @@ export function MenuShell({
 
   const mobileCategoryPills = (
     <div className="lg:hidden sticky z-40 bg-[#f5f5f3] border-b border-gray-100" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
-      <div className="flex items-center">
+      <div className="flex items-center relative">
       {/* Hamburger — opens category bottom sheet */}
       <button
         onClick={() => setShowCatSheet(true)}
@@ -974,9 +976,9 @@ export function MenuShell({
         {/* Spacer so last pill doesn't sit under the fade */}
         <div className="w-8 flex-shrink-0" aria-hidden="true" />
       </div>
-      </div>{/* end flex items-center wrapper */}
-      {/* Right-side fade gradient */}
-      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#f5f5f3] to-transparent" aria-hidden="true" />
+      {/* Right-side fade gradient — outside scroll container so absolute isn't clipped */}
+      <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-[#f5f5f3] to-transparent z-10" aria-hidden="true" />
+      </div>
     </div>
   );
 
@@ -1068,7 +1070,7 @@ export function MenuShell({
                   <div className="flex items-center gap-4 mt-2 text-sm text-white/70">
                     {restaurant.address && (
                       <span className="inline-flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-emerald-400" />
+                        <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-[#05c8a7]" />
                         <span className="truncate max-w-[240px]">{restaurant.address}</span>
                       </span>
                     )}
@@ -1079,7 +1081,7 @@ export function MenuShell({
                       if (!dh || dh.closed) return null;
                       const is24h = dh.open === '00:00' && dh.close === '23:59';
                       return (
-                        <span className="inline-flex items-center gap-1.5 text-emerald-400 font-medium">
+                        <span className="inline-flex items-center gap-1.5 text-[#05c8a7] font-medium">
                           <Clock className="w-3.5 h-3.5 flex-shrink-0" />
                           {is24h ? t.open24h : `${dh.open} – ${dh.close}`}
                         </span>
@@ -1162,27 +1164,27 @@ export function MenuShell({
 
           {/* Reorder banner — shown when customer has a previous order here */}
           {showReorderBanner && (
-            <div className="mx-4 lg:mx-8 mt-3 lg:mt-5 flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-50 border border-emerald-200">
-              <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                <RotateCcw className="w-4 h-4 text-emerald-600" strokeWidth={2.5} />
+            <div className="mx-4 lg:mx-8 mt-3 lg:mt-5 flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#e6faf7] border border-[#b3efe6]">
+              <div className="w-9 h-9 rounded-xl bg-[#d0f7f1] flex items-center justify-center flex-shrink-0">
+                <RotateCcw className="w-4 h-4 text-[#05c8a7]" strokeWidth={2.5} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-emerald-800">
+                <p className="text-sm font-semibold text-[#047a65]">
                   {t.reorderLastOrder}
                 </p>
-                <p className="text-xs text-emerald-600 truncate mt-0.5">
+                <p className="text-xs text-[#05c8a7] truncate mt-0.5">
                   {lastOrder!.items.map((i) => `${i.qty}× ${i.productName}`).join(' · ')}
                 </p>
               </div>
               <button
                 onClick={handleReorder}
-                className="flex-shrink-0 px-3.5 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold active:scale-95 transition-transform"
+                className="flex-shrink-0 px-3.5 py-2 rounded-xl bg-[#05c8a7] text-white text-xs font-bold active:scale-95 transition-transform"
               >
                 {t.addToCart}
               </button>
               <button
                 onClick={() => setReorderDismissed(true)}
-                className="flex-shrink-0 p-1.5 text-emerald-400 hover:text-emerald-600 transition-colors"
+                className="flex-shrink-0 p-1.5 text-[#05c8a7] hover:text-[#047a65] transition-colors"
                 aria-label={t.cancel}
               >
                 <X className="w-4 h-4" />
@@ -1225,7 +1227,7 @@ export function MenuShell({
                     if (!dh || dh.closed) return null;
                     const is24h = dh.open === '00:00' && dh.close === '23:59';
                     return (
-                      <span className={`inline-flex items-center gap-1.5 ${is24h ? 'text-emerald-500 font-medium' : ''}`}>
+                      <span className={`inline-flex items-center gap-1.5 ${is24h ? 'text-[#05c8a7] font-medium' : ''}`}>
                         <Clock className="w-3.5 h-3.5 flex-shrink-0" />
                         {is24h ? t.open24h : `${dh.open} – ${dh.close}`}
                       </span>
@@ -1265,8 +1267,10 @@ export function MenuShell({
                     <path d="M22 28h12M28 22v12" stroke="#d1d5db" strokeWidth="2.5" strokeLinecap="round" opacity="0.4" />
                   </motion.svg>
                   <div>
-                    <p className="font-semibold text-gray-500">{t.noResults}</p>
-                    <p className="text-sm text-gray-400 mt-1">{locale === 'en' ? 'Try a different keyword' : 'Intenta con otra palabra'}</p>
+                    <p className="font-bold text-gray-700">{t.noResults}</p>
+                    <p className="text-sm text-gray-400 mt-1 leading-relaxed max-w-[180px] mx-auto">
+                      {locale === 'en' ? 'Try a different keyword or check the spelling' : 'Intenta con otra palabra o revisa la ortografía'}
+                    </p>
                   </div>
                 </motion.div>
               ) : (
@@ -1374,7 +1378,7 @@ export function MenuShell({
                 {DIETARY_TAGS.find((d) => d.id === activeDiet)?.emoji}
               </motion.p>
               <p className="font-medium">{t.noDietMatch}</p>
-              <button onClick={() => setActiveDiet(null)} className="mt-1 text-sm text-emerald-600 font-semibold hover:text-emerald-700 transition-colors">{t.viewFullMenu}</button>
+              <button onClick={() => setActiveDiet(null)} className="mt-1 text-sm text-[#05c8a7] font-semibold hover:text-[#047a65] transition-colors">{t.viewFullMenu}</button>
             </motion.div>
           ) : (
             <div className="space-y-8">
@@ -1505,7 +1509,7 @@ export function MenuShell({
                       className="flex-shrink-0 w-[260px] snap-start bg-white rounded-xl border border-gray-100 p-4 shadow-sm"
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700 flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-[#d0f7f1] flex items-center justify-center text-xs font-bold text-[#047a65] flex-shrink-0">
                           {review.customer_name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1545,8 +1549,8 @@ export function MenuShell({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {restaurant.address && (
                   <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                      <MapPin className="w-4 h-4 text-emerald-600" />
+                    <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center flex-shrink-0">
+                      <MapPin className="w-4 h-4 text-[#05c8a7]" />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-gray-900">
@@ -1561,7 +1565,7 @@ export function MenuShell({
                         }
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 hover:text-emerald-700 mt-1.5 transition-colors"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#05c8a7] hover:text-[#047a65] mt-1.5 transition-colors"
                       >
                         {t.getDirections}
                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
@@ -1580,8 +1584,8 @@ export function MenuShell({
                   const todayHours = restaurant.operating_hours?.[todayKey];
                   return (
                     <div className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                        <Clock className="w-4 h-4 text-emerald-600" />
+                    <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center flex-shrink-0">
+                      <Clock className="w-4 h-4 text-[#05c8a7]" />
                       </div>
                       <div>
                       <p className="text-sm font-semibold text-gray-900">
@@ -1591,7 +1595,7 @@ export function MenuShell({
                           <span className="font-medium text-gray-700">{dayNames[todayIdx]}:</span>{' '}
                           {todayHours && !todayHours.closed
                             ? (todayHours.open === '00:00' && todayHours.close === '23:59'
-                              ? <span className="text-emerald-500 font-medium">{t.open24h}</span>
+                              ? <span className="text-[#05c8a7] font-medium">{t.open24h}</span>
                               : `${todayHours.open} – ${todayHours.close}`)
                             : t.closedDay}
                         </p>
@@ -1602,14 +1606,14 @@ export function MenuShell({
 
                 {restaurant.phone && (
                   <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                      <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" /></svg>
+                    <div className="w-9 h-9 rounded-xl bg-[#e6faf7] flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4 h-4 text-[#05c8a7]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" /></svg>
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-gray-900">
                         {t.phoneLabel}
                       </p>
-                      <a href={`tel:${restaurant.phone}`} className="text-sm text-emerald-600 font-medium hover:text-emerald-700 transition-colors mt-0.5 block">
+                      <a href={`tel:${restaurant.phone}`} className="text-sm text-[#05c8a7] font-medium hover:text-[#047a65] transition-colors mt-0.5 block">
                         {restaurant.phone}
                       </a>
                     </div>
@@ -1646,17 +1650,17 @@ export function MenuShell({
               href="https://menius.app?ref=menu"
               target="_blank"
               rel="noopener noreferrer"
-              className="group/pw inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-50 hover:bg-emerald-50 border border-gray-100 hover:border-emerald-200 text-xs text-gray-400 hover:text-emerald-600 transition-all duration-300"
+              className="group/pw inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-50 hover:bg-[#e6faf7] border border-gray-100 hover:border-[#b3efe6] text-xs text-gray-400 hover:text-[#05c8a7] transition-all duration-300"
             >
-              <svg className="w-4 h-4 text-emerald-400 group-hover/pw:text-emerald-500 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>
+              <svg className="w-4 h-4 text-[#05c8a7] group-hover/pw:text-[#04b096] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>
               <span>{t.poweredBy}</span>
-              <span className="font-bold text-gray-600 group-hover/pw:text-emerald-700 tracking-tight transition-colors">MENIUS</span>
+              <span className="font-bold text-gray-600 group-hover/pw:text-[#047a65] tracking-tight transition-colors">MENIUS</span>
             </a>
             <a
               href="https://menius.app?ref=menu-cta"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] text-gray-300 hover:text-emerald-500 transition-colors"
+              className="text-[10px] text-gray-300 hover:text-[#05c8a7] transition-colors"
             >
               {t.createYourMenu} →
             </a>
@@ -1707,12 +1711,12 @@ export function MenuShell({
             <div className="max-w-lg mx-auto pointer-events-auto">
               <button
                 onClick={() => setOpen(true)}
-                className="w-full flex items-center justify-between px-6 py-4 rounded-2xl bg-emerald-500 text-white shadow-[0_8px_30px_rgba(16,185,129,0.4)] active:scale-[0.98] transition-transform"
+                className="w-full flex items-center justify-between px-6 py-4 rounded-2xl bg-[#05c8a7] text-white shadow-[0_8px_30px_rgba(5,200,167,0.4)] active:scale-[0.98] transition-transform"
               >
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <ShoppingCart className="w-5 h-5" />
-                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-white text-emerald-600 text-[10px] font-extrabold px-1">
+                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-white text-[#05c8a7] text-[10px] font-extrabold px-1">
                       {cartCount}
                     </span>
                   </div>
@@ -1746,9 +1750,21 @@ export function MenuShell({
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'tween' as const, duration: 0.22, ease: [0.25, 0.46, 0.45, 0.94] as const }}
+              drag="y"
+              dragControls={cartDragControls}
+              dragConstraints={{ top: 0 }}
+              dragElastic={0.15}
+              dragListener={false}
+              onDragEnd={(_, info) => {
+                if (info.offset.y > 80 || info.velocity.y > 500) setOpen(false);
+              }}
             >
               {/* Drag handle + hidden title for screen readers */}
-              <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div
+                className="flex justify-center pt-3 pb-1 flex-shrink-0 cursor-grab active:cursor-grabbing"
+                onPointerDown={(e) => cartDragControls.start(e)}
+                style={{ touchAction: 'none' }}
+              >
                 <div className="w-10 h-1.5 rounded-full bg-gray-300" aria-hidden="true" />
               </div>
               <h2 id="cart-sheet-title" className="sr-only">{t.myOrder ?? (locale === 'en' ? 'Your order' : 'Tu orden')}</h2>
@@ -1826,7 +1842,7 @@ export function MenuShell({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t.searchPlaceholder}
                   aria-label={t.searchPlaceholder}
-                  className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-[15px] focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 placeholder-gray-400"
+                  className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-[16px] focus:outline-none focus:ring-2 focus:ring-[#05c8a7]/20 focus:border-[#05c8a7] placeholder-gray-400"
                   autoFocus
                 />
                 {searchQuery && (
@@ -1890,11 +1906,20 @@ export function MenuShell({
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-center px-8">
-                  <p className="text-base font-semibold text-gray-900 mb-1">{t.noResults}</p>
-                  <p className="text-sm text-gray-400">
+                <div className="flex flex-col items-center justify-center h-full text-center px-8 py-12">
+                  <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+                    <span className="text-3xl select-none" aria-hidden="true">🔍</span>
+                  </div>
+                  <p className="text-base font-bold text-gray-900 mb-1">{t.noResults}</p>
+                  <p className="text-sm text-gray-400 leading-relaxed max-w-[200px]">
                     {t.tryDifferentSearch}
                   </p>
+                  <button
+                    onClick={() => { setSearchQuery(''); setActiveDiet(null); setShowFavs(false); }}
+                    className="mt-5 px-5 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold active:scale-95 transition-transform"
+                  >
+                    {locale === 'en' ? 'Clear filters' : 'Limpiar filtros'}
+                  </button>
                 </div>
               )}
             </div>
@@ -1912,7 +1937,7 @@ export function MenuShell({
       {toastName && (
         <div className="fixed bottom-[88px] left-0 right-0 lg:bottom-8 z-[60] flex justify-center pointer-events-none" aria-hidden="true">
           <div className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gray-900/95 text-white text-sm font-semibold shadow-2xl">
-            <span className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+            <span className="w-5 h-5 rounded-full bg-[#05c8a7] flex items-center justify-center flex-shrink-0">
               <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
               </svg>
@@ -1940,7 +1965,7 @@ export function MenuShell({
       {cartResumeShown && !toastName && (
         <div className="fixed bottom-28 left-4 right-4 z-[60] flex justify-center lg:bottom-6 lg:left-auto lg:right-6 pointer-events-none">
           <button
-            className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-full bg-emerald-600 text-white text-sm font-semibold shadow-lg active:scale-95 transition-transform"
+            className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#05c8a7] text-white text-sm font-semibold shadow-lg active:scale-95 transition-transform"
             onClick={() => { setCartResumeShown(false); setOpen(true); }}
           >
             <ShoppingCart className="w-4 h-4" aria-hidden="true" />
@@ -2005,7 +2030,7 @@ export function MenuShell({
                       className={cn(
                         'flex items-center gap-2.5 w-full px-4 py-2.5 text-sm transition-colors',
                         active
-                          ? 'bg-emerald-50 text-emerald-700 font-semibold'
+                          ? 'bg-[#e6faf7] text-[#047a65] font-semibold'
                           : 'text-gray-700 hover:bg-gray-50',
                       )}
                     >
@@ -2084,7 +2109,7 @@ export function MenuShell({
                       )}
                     >
                       <span>{label}</span>
-                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0" />}
+                      {isActive && <span className="w-1.5 h-1.5 rounded-full bg-[#05c8a7] flex-shrink-0" />}
                     </button>
                   );
                 })}
@@ -2094,7 +2119,7 @@ export function MenuShell({
               <div className="flex-shrink-0 px-5 pb-5 pt-2 border-t border-gray-100">
                 <button
                   onClick={() => setShowCatSheet(false)}
-                  className="w-full py-3.5 rounded-2xl bg-gray-900 text-white font-bold text-[15px] active:bg-gray-700 transition-colors"
+                  className="w-full py-3 rounded-2xl border border-gray-200 bg-transparent text-gray-600 font-semibold text-[15px] active:bg-gray-50 transition-colors"
                 >
                   {locale === 'en' ? 'Dismiss' : 'Cerrar'}
                 </button>

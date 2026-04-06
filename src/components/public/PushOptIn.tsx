@@ -80,11 +80,11 @@ export function PushOptIn({ orderId }: PushOptInProps) {
 
   if (state === 'subscribed') {
     return (
-      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200">
-        <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
-          <Check className="w-4 h-4 text-emerald-600" />
+      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#e6faf7] border border-[#b3efe6]">
+        <div className="w-8 h-8 rounded-lg bg-[#d0f7f1] flex items-center justify-center flex-shrink-0">
+          <Check className="w-4 h-4 text-[#05c8a7]" />
         </div>
-        <p className="text-sm text-emerald-700 font-medium">
+        <p className="text-sm text-[#047a65] font-medium">
           Te notificaremos cuando tu pedido cambie de estado
         </p>
       </div>

@@ -123,7 +123,7 @@ const STEP_STYLES: Record<string, { icon: typeof Clock; color: string; bg: strin
   confirmed: { icon: ChefHat,      color: 'text-violet-600',  bg: 'bg-violet-100' },
   preparing: { icon: ChefHat,      color: 'text-violet-600',  bg: 'bg-violet-100' },
   ready:     { icon: Bell,         color: 'text-orange-600',  bg: 'bg-orange-100' },
-  delivered: { icon: Package,      color: 'text-emerald-600', bg: 'bg-emerald-100' },
+  delivered: { icon: Package,      color: 'text-[#05c8a7]', bg: 'bg-[#d0f7f1]' },
 };
 
 // Customer-visible progress steps: confirmed and preparing both map to step 1 ("En preparación")
@@ -250,8 +250,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       return (
         <div className="min-h-[100dvh] bg-gray-50 flex flex-col items-center justify-center px-6 text-center">
           <div className="max-w-sm w-full">
-            <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5">
-              <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+            <div className="w-20 h-20 rounded-full bg-[#d0f7f1] flex items-center justify-center mx-auto mb-5">
+              <CheckCircle2 className="w-10 h-10 text-[#05c8a7]" />
             </div>
             <h1 className="text-2xl font-extrabold text-gray-900 mb-2">{t.paymentReceived}</h1>
             <p className="text-sm text-gray-500 mb-6">{t.paymentReceivedDesc}</p>
@@ -347,8 +347,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             </div>
           </div>
           {rtStatus === 'connected' ? (
-            <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="flex items-center gap-1 text-[10px] text-[#047a65] font-semibold bg-[#e6faf7] px-2.5 py-1 rounded-full border border-[#b3efe6]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#05c8a7] animate-pulse" />
               {t.live}
             </div>
           ) : rtStatus === 'reconnecting' ? (
@@ -369,17 +369,17 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
         {/* Payment confirmed banner */}
         {paidBannerVisible && (
-          <div className="tracker-card flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-emerald-50 border border-emerald-200">
-            <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
-              <CreditCard className="w-4 h-4 text-emerald-600" />
+          <div className="tracker-card flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-[#e6faf7] border border-[#b3efe6]">
+            <div className="w-9 h-9 rounded-xl bg-[#d0f7f1] flex items-center justify-center flex-shrink-0">
+              <CreditCard className="w-4 h-4 text-[#05c8a7]" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-emerald-800">{t.paymentConfirmed}</p>
-              <p className="text-xs text-emerald-600 mt-0.5">{t.paymentConfirmedDesc}</p>
+              <p className="text-sm font-bold text-[#047a65]">{t.paymentConfirmed}</p>
+              <p className="text-xs text-[#05c8a7] mt-0.5">{t.paymentConfirmedDesc}</p>
             </div>
             <button
               onClick={() => setPaidBannerVisible(false)}
-              className="flex-shrink-0 p-1 text-emerald-400 hover:text-emerald-600 transition-colors"
+              className="flex-shrink-0 p-1 text-[#05c8a7] hover:text-[#047a65] transition-colors"
               aria-label={t.en ? 'Close' : 'Cerrar'}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -404,7 +404,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               {/* Colored accent strip */}
               <div className={cn(
                 'h-1 w-full',
-                isComplete ? 'bg-emerald-500' :
+                isComplete ? 'bg-[#05c8a7]' :
                 order.status === 'ready' ? 'bg-orange-400' :
                 ['confirmed', 'preparing'].includes(order.status) ? 'bg-violet-500' :
                 'bg-amber-400'
@@ -414,8 +414,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               <div className="px-6 pt-8 pb-6 text-center">
                 {isComplete ? (
                   <>
-                    <div className="w-20 h-20 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-5">
-                      <Package className="w-10 h-10 text-emerald-600" />
+                    <div className="w-20 h-20 rounded-2xl bg-[#d0f7f1] flex items-center justify-center mx-auto mb-5">
+                      <Package className="w-10 h-10 text-[#05c8a7]" />
                     </div>
                     <h2 className="text-2xl font-black text-gray-900 mb-1">{t.orderDelivered}</h2>
                     <p className="text-sm text-gray-500">{t.orderDeliveredDesc}</p>
@@ -505,26 +505,26 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           const etaStr    = etaTime.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });
           const minsLeft  = Math.max(0, Math.round((etaTime.getTime() - Date.now()) / 60_000));
           return (
-            <div className="tracker-card rounded-3xl bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 shadow-sm overflow-hidden">
+            <div className="tracker-card rounded-3xl bg-gradient-to-br from-[#e6faf7] to-[#d0f7f1] border border-[#b3efe6] shadow-sm overflow-hidden">
               <div className="px-6 py-7 text-center">
-                <p className="text-[11px] font-bold text-emerald-500 uppercase tracking-widest mb-3">{t.estimatedTime}</p>
+                <p className="text-[11px] font-bold text-[#05c8a7] uppercase tracking-widest mb-3">{t.estimatedTime}</p>
                 {minsLeft > 0 ? (
                   <div className="flex items-end justify-center gap-1 mb-1">
-                    <span className="text-[72px] font-black text-emerald-700 leading-none tabular-nums">~{minsLeft}</span>
-                    <span className="text-2xl font-bold text-emerald-500 mb-3">min</span>
+                    <span className="text-[72px] font-black text-[#047a65] leading-none tabular-nums">~{minsLeft}</span>
+                    <span className="text-2xl font-bold text-[#05c8a7] mb-3">min</span>
                   </div>
                 ) : (
-                  <p className="text-4xl font-black text-emerald-700 mb-1">
+                  <p className="text-4xl font-black text-[#047a65] mb-1">
                     {t.en ? 'Almost ready!' : '¡Ya casi!'}
                   </p>
                 )}
-                <p className="text-sm text-emerald-500 font-medium">
+                <p className="text-sm text-[#05c8a7] font-medium">
                   {t.en ? `Ready by ${etaStr}` : `Listo a las ${etaStr}`}
                 </p>
               </div>
               {/* Progress shimmer bar */}
-              <div className="h-1 bg-emerald-100 relative overflow-hidden">
-                <div className="absolute inset-y-0 left-0 bg-emerald-400 animate-pulse" style={{ width: `${Math.min(100, 100 - (minsLeft / order.estimated_ready_minutes) * 100)}%`, transition: 'width 1s ease' }} />
+              <div className="h-1 bg-[#d0f7f1] relative overflow-hidden">
+                <div className="absolute inset-y-0 left-0 bg-[#05c8a7] animate-pulse" style={{ width: `${Math.min(100, 100 - (minsLeft / order.estimated_ready_minutes) * 100)}%`, transition: 'width 1s ease' }} />
               </div>
             </div>
           );
@@ -544,7 +544,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                       <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-2xl">
                         🛵
                       </div>
-                      <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-400 border-2 border-blue-600 animate-pulse" />
+                      <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#05c8a7] border-2 border-blue-600 animate-pulse" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">
@@ -559,7 +559,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                     </div>
                     {/* Live GPS indicator */}
                     <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#05c8a7] animate-pulse" />
                       <span className="text-[9px] font-bold text-blue-200 uppercase">GPS</span>
                     </div>
                   </div>
@@ -761,7 +761,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             })()}
 
             {Number(order.discount_amount) > 0 && (
-              <div className="flex items-center justify-between text-sm text-emerald-600">
+              <div className="flex items-center justify-between text-sm text-[#05c8a7]">
                 <span>{t.discount}</span>
                 <span>-{formatPrice(Number(order.discount_amount), currency)}</span>
               </div>
@@ -851,7 +851,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               localStorage.setItem('menius-reorder', JSON.stringify(reorderItems));
               window.location.href = `/${restaurantSlug}?reorder=1`;
             }}
-            className="tracker-card block w-full py-3.5 rounded-2xl bg-emerald-600 text-white text-center font-bold text-sm hover:bg-emerald-700 active:scale-[0.98] transition-all shadow-lg shadow-emerald-600/20"
+            className="tracker-card block w-full py-3.5 rounded-2xl bg-[#05c8a7] text-white text-center font-bold text-sm hover:bg-[#04b096] active:scale-[0.98] transition-all shadow-lg shadow-[#05c8a7]/20"
           >
             {t.reorder}
           </button>
@@ -1106,9 +1106,9 @@ function ReviewPrompt({ restaurantId, orderId, customerName, locale }: { restaur
 
   if (submitted) {
     return (
-      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-center">
-        <Star className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-        <p className="text-emerald-700 font-semibold">{t.reviewThanks}</p>
+      <div className="bg-[#e6faf7] border border-[#b3efe6] rounded-2xl p-5 text-center">
+        <Star className="w-8 h-8 text-[#05c8a7] mx-auto mb-2" />
+        <p className="text-[#047a65] font-semibold">{t.reviewThanks}</p>
       </div>
     );
   }
@@ -1205,14 +1205,14 @@ function OrderSuccessRedirect({ restaurantSlug }: { restaurantSlug: string }) {
         className="text-center max-w-sm relative overflow-hidden"
         style={{ animation: 'fade-in-up 0.5s ease-out' }}
       >
-        <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+        <div className="w-16 h-16 rounded-2xl bg-[#d0f7f1] flex items-center justify-center mx-auto mb-4">
+          <CheckCircle2 className="w-8 h-8 text-[#05c8a7]" />
         </div>
         <h2 className="text-lg font-bold text-gray-900 mb-1">Tu pedido fue procesado exitosamente</h2>
         <p className="text-sm text-gray-500 mb-6 animate-pulse">Regresando al menú...</p>
         <Link
           href={`/${restaurantSlug}`}
-              className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 transition-colors"
+              className="px-6 py-3 rounded-xl bg-[#05c8a7] text-white font-semibold text-sm hover:bg-[#04b096] transition-colors"
         >
           Ir al menú
         </Link>
@@ -1359,8 +1359,8 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
 
             {result?.success ? (
               <div className="p-5 text-center space-y-4">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                <div className="w-12 h-12 rounded-full bg-[#d0f7f1] flex items-center justify-center mx-auto">
+                  <CheckCircle2 className="w-6 h-6 text-[#05c8a7]" />
                 </div>
                 <p className="text-sm font-semibold text-gray-800">{result.message ?? t.cfdiSuccess}</p>
                 {result.xmlUrl && (
@@ -1371,7 +1371,7 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
                 )}
                 {result.pdfUrl && (
                   <a href={result.pdfUrl} target="_blank" rel="noopener noreferrer"
-                    className="block w-full py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors">
+                    className="block w-full py-2.5 rounded-xl bg-[#05c8a7] text-white text-sm font-semibold hover:bg-[#04b096] transition-colors">
                     📋 {t.cfdiIssuedPdf}
                   </a>
                 )}
@@ -1393,7 +1393,7 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
                     onChange={e => setForm(f => ({ ...f, rfc: e.target.value.toUpperCase() }))}
                     placeholder={t.cfdiRfcPlaceholder}
                     maxLength={13}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 uppercase"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#05c8a7] uppercase"
                   />
                 </div>
 
@@ -1404,7 +1404,7 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
                     value={form.razonSocial}
                     onChange={e => setForm(f => ({ ...f, razonSocial: e.target.value }))}
                     placeholder="Nombre o razón social"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#05c8a7]"
                   />
                 </div>
 
@@ -1413,7 +1413,7 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
                   <select
                     value={form.cfdiUse}
                     onChange={e => setForm(f => ({ ...f, cfdiUse: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#05c8a7] bg-white"
                   >
                     {CFDI_USES_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
@@ -1424,7 +1424,7 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
                   <select
                     value={form.regimenFiscal}
                     onChange={e => setForm(f => ({ ...f, regimenFiscal: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400 bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#05c8a7] bg-white"
                   >
                     {REGIMEN_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
@@ -1438,14 +1438,14 @@ function CfdiButton({ orderId, restaurantId, t }: { orderId: string; restaurantI
                     placeholder="00000"
                     maxLength={5}
                     inputMode="numeric"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-emerald-400"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base focus:outline-none focus:border-[#05c8a7]"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={submitting || !form.rfc || !form.razonSocial}
-                  className="w-full py-3 rounded-xl bg-emerald-600 text-white font-semibold text-sm hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                  className="w-full py-3 rounded-xl bg-[#05c8a7] text-white font-semibold text-sm hover:bg-[#04b096] transition-colors disabled:opacity-50"
                 >
                   {submitting ? t.cfdiSubmitting : t.cfdiSubmit}
                 </button>

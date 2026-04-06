@@ -83,7 +83,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
 
         {showImage ? (
           <>
-            {!imgLoaded && <div className="absolute inset-0 bg-gray-100 animate-pulse" />}
+            {!imgLoaded && <div className="absolute inset-0 skeleton" />}
             <Image
               src={product.image_url}
               alt={imgAlt}
@@ -148,7 +148,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           </p>
         )}
         {hasModifiers && !outOfStock && (
-          <span className="inline-flex items-center gap-0.5 text-xs text-emerald-600 font-medium mt-1">
+          <span className="inline-flex items-center gap-0.5 text-xs text-[#05c8a7] font-medium mt-1">
             {customizeLabel}
             <ChevronRight className="w-3 h-3" />
           </span>
@@ -163,7 +163,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           </div>
         )}
         <div className="flex items-center justify-between mt-auto pt-2.5">
-          <span className={cn('text-base font-black tabular-nums leading-none', outOfStock ? 'text-gray-300 line-through' : 'text-gray-950')}>
+          <span className={cn('text-[17px] font-black tabular-nums leading-none', outOfStock ? 'text-gray-300 line-through' : 'text-gray-950')}>
             {fmtPrice(Number(product.price))}
           </span>
           {outOfStock ? (
@@ -179,7 +179,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
             >
               <span className={cn(
                 'w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 shadow-md pointer-events-none',
-                justAdded ? 'bg-[#00a189] text-white scale-110' : 'bg-[#00a189] text-white hover:bg-[#058070]'
+                justAdded ? 'bg-[#05c8a7] text-white scale-110' : 'bg-[#05c8a7] text-white hover:bg-[#04b096]'
               )}>
                 {justAdded ? <Check className="w-4 h-4" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />}
               </span>

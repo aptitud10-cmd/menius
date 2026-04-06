@@ -54,7 +54,7 @@ export const CategorySidebar = memo(function CategorySidebar({
                 'w-full flex items-start gap-2 px-4 py-2.5 rounded-xl text-[15px] transition-colors duration-150 relative',
                 available
                   ? isActive
-                    ? 'text-emerald-700 font-semibold'
+                    ? 'text-[#047a65] font-semibold'
                     : 'text-gray-600 font-medium hover:text-gray-900'
                   : 'text-gray-300 font-medium cursor-not-allowed'
               )}
@@ -63,12 +63,12 @@ export const CategorySidebar = memo(function CategorySidebar({
                 <>
                   <motion.span
                     layoutId="sidebar-pill"
-                    className="absolute inset-0 rounded-xl bg-emerald-50"
+                    className="absolute inset-0 rounded-xl bg-[#e6faf7]"
                     transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                   />
                   <motion.span
                     layoutId="sidebar-bar"
-                    className="absolute inset-x-4 bottom-0 h-[2px] rounded-full bg-emerald-500"
+                    className="absolute inset-x-4 bottom-0 h-[2px] rounded-full bg-[#05c8a7]"
                     transition={{ type: 'spring', stiffness: 400, damping: 35 }}
                   />
                 </>
@@ -85,7 +85,7 @@ export const CategorySidebar = memo(function CategorySidebar({
               <span className={cn(
                 'text-xs tabular-nums flex-shrink-0 mt-0.5 relative z-10',
                 available
-                  ? isActive ? 'text-emerald-500' : 'text-gray-300'
+                  ? isActive ? 'text-[#05c8a7]' : 'text-gray-300'
                   : 'text-gray-200'
               )}>
                 {count}

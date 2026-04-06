@@ -57,7 +57,7 @@ export function MenuUpdateBanner({ restaurantId, locale }: MenuUpdateBannerProps
   return (
     <div className="fixed top-0 left-0 right-0 z-[90] flex justify-center px-4 pt-2 pointer-events-none">
       <div className="pointer-events-auto flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-gray-900 text-white shadow-xl shadow-black/20 border border-white/10 text-sm font-medium animate-in slide-in-from-top-2 duration-300">
-        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+        <span className="w-2 h-2 rounded-full bg-[#05c8a7] animate-pulse flex-shrink-0" />
         <span>{en ? 'Menu updated' : 'Menú actualizado'}</span>
         <button
           onClick={handleRefresh}
