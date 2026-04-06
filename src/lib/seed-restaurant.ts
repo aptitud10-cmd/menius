@@ -1,4 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('seed-restaurant');
 
 interface SeedModifierGroup {
   name: string;
@@ -1048,7 +1051,10 @@ export async function seedRestaurant(
       .from('restaurants')
       .update({ cover_image_url: BANNER_URL })
       .eq('id', restaurantId);
-  } catch {
-    console.error('Failed to seed restaurant data — continuing without seed.');
+  } catch (err) {
+    logger.error('Failed to seed restaurant data — continuing without seed', {
+      restaurantId,
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 }

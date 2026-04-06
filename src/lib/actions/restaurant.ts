@@ -6,7 +6,10 @@ import { revalidatePublicMenu } from '@/lib/revalidate-public-menu';
 import { createClient } from '@/lib/supabase/server';
 import { sanitizeText, sanitizeMultiline } from '@/lib/sanitize';
 import { captureError } from '@/lib/error-reporting';
+import { createLogger } from '@/lib/logger';
 import type { CreateRestaurantInput, CategoryInput, ProductInput, TableInput } from '@/lib/validations';
+
+const logger = createLogger('action-restaurant');
 import { sendWhatsApp } from '@/lib/notifications/whatsapp';
 import { sendSMS, resolveChannel } from '@/lib/notifications/sms';
 import { VALID_TRANSITIONS, ALL_STATUSES, canTransition } from '@/lib/order-state';
@@ -57,10 +60,16 @@ export async function createRestaurant(data: CreateRestaurantInput) {
 
   // Set owner's email as default notification_email so they receive order alerts immediately
   if (user.email) {
-    await supabase
+    const { error: emailUpdateError } = await supabase
       .from('restaurants')
       .update({ notification_email: user.email, notifications_enabled: true })
       .eq('id', restaurant.id);
+    if (emailUpdateError) {
+      logger.error('Failed to set notification_email on new restaurant — owner will not receive order alerts', {
+        restaurantId: restaurant.id,
+        error: emailUpdateError.message,
+      });
+    }
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
@@ -91,7 +100,12 @@ export async function createRestaurant(data: CreateRestaurantInput) {
           ? `Welcome to MENIUS! — ${data.name} now has a digital menu`
           : `¡Bienvenido a MENIUS! — ${data.name} ya tiene su menú digital`,
         html,
-      }).catch(() => {});
+      }).catch((err: unknown) => {
+        logger.warn('Welcome email failed to send', {
+          userId: user.id,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
     } catch {
       // Email failure should not block onboarding
     }
@@ -100,7 +114,7 @@ export async function createRestaurant(data: CreateRestaurantInput) {
   // Notify SaaS admin about new registration
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!adminEmail) {
-    console.warn('[createRestaurant] ADMIN_EMAIL env var is not set — admin notification skipped');
+    logger.warn('ADMIN_EMAIL env var is not set — admin notification skipped');
   } else {
     try {
       const { sendEmail } = await import('@/lib/notifications/email');
@@ -127,10 +141,10 @@ export async function createRestaurant(data: CreateRestaurantInput) {
           </div>`,
       });
       if (!sent) {
-        console.error('[createRestaurant] Admin notification email failed to send — check RESEND_API_KEY and domain verification');
+        logger.error('Admin notification email failed to send — check RESEND_API_KEY and domain verification');
       }
     } catch (e) {
-      console.error('[createRestaurant] Admin notification error:', e);
+      logger.error('Admin notification error', { error: e instanceof Error ? e.message : String(e) });
     }
   }
 
