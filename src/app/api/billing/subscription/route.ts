@@ -3,6 +3,9 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('billing-subscription');
 
 export async function GET() {
   try {
@@ -18,14 +21,14 @@ export async function GET() {
       .maybeSingle();
 
     if (error) {
-      console.error('[billing/subscription] Query failed:', JSON.stringify(error));
+      logger.error('Query failed', { error: error.message });
     }
 
     if (subscription) {
       return NextResponse.json({ subscription });
     }
 
-    console.warn('[billing/subscription] No subscription found for restaurant:', tenant.restaurantId, '— attempting auto-repair');
+    logger.warn('No subscription found — attempting auto-repair', { restaurantId: tenant.restaurantId });
 
     const { data: restaurant } = await db
       .from('restaurants')
@@ -59,7 +62,7 @@ export async function GET() {
       .maybeSingle();
 
     if (upsertError) {
-      console.error('[billing/subscription] Auto-repair upsert FAILED:', JSON.stringify(upsertError), 'payload:', JSON.stringify(payload));
+      logger.error('Auto-repair upsert failed', { error: upsertError.message, restaurantId: tenant.restaurantId });
 
       const { data: inserted, error: insertError } = await db
         .from('subscriptions')
@@ -68,7 +71,7 @@ export async function GET() {
         .maybeSingle();
 
       if (insertError) {
-        console.error('[billing/subscription] Auto-repair insert ALSO FAILED:', JSON.stringify(insertError));
+        logger.error('Auto-repair insert also failed', { error: insertError.message, restaurantId: tenant.restaurantId });
         return NextResponse.json({ subscription: null }, { status: 500 });
       }
 
@@ -79,7 +82,7 @@ export async function GET() {
 
     return NextResponse.json({ subscription: repaired ?? null });
   } catch (err) {
-    console.error('[billing/subscription] Unexpected error:', err instanceof Error ? err.message : err);
+    logger.error('Unexpected error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

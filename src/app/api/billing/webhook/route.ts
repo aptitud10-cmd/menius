@@ -172,11 +172,18 @@ export async function POST(request: NextRequest) {
           previousStatus = prevSub?.status ?? null;
         }
 
+        // Prefer Stripe's own canceled_at / ended_at over the webhook receipt time
+        const stripeCanceledAt = sub.canceled_at
+          ? new Date(sub.canceled_at * 1000).toISOString()
+          : sub.ended_at
+            ? new Date(sub.ended_at * 1000).toISOString()
+            : new Date().toISOString();
+
         const updateData = {
           status: 'canceled',
           plan_id: 'free',
           stripe_subscription_id: null,
-          canceled_at: new Date().toISOString(),
+          canceled_at: stripeCanceledAt,
           updated_at: new Date().toISOString(),
         };
 

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { UUID_RE } from '@/lib/constants';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('billing-cfdi');
 
 const CFDI_USES = [
   'G01', 'G02', 'G03', 'I01', 'I02', 'I03', 'I04', 'I05', 'I06', 'I07', 'I08',
@@ -63,19 +66,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Solo se puede facturar órdenes entregadas' }, { status: 400 });
     }
 
-    // Check for existing CFDI request for this order
+    // Check for existing CFDI request for this order (issued or pending)
     const { data: existing } = await supabase
       .from('cfdi_requests')
       .select('id, status, xml_url, pdf_url')
       .eq('order_id', orderId)
-      .eq('status', 'issued')
+      .in('status', ['issued', 'pending'])
       .maybeSingle();
 
     if (existing) {
+      if (existing.status === 'issued') {
+        return NextResponse.json({
+          success: true,
+          alreadyIssued: true,
+          cfdi: existing,
+        });
+      }
+      // Already has a pending request — prevent duplicate submissions
       return NextResponse.json({
         success: true,
-        alreadyIssued: true,
-        cfdi: existing,
+        pending: true,
+        message: 'Ya tienes una solicitud de factura en proceso para esta orden.',
+        cfdiId: existing.id,
       });
     }
 
@@ -218,7 +230,7 @@ export async function POST(req: NextRequest) {
       });
     }
   } catch (err) {
-    console.error('[CFDI] Error:', err);
+    logger.error('Unexpected error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
