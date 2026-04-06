@@ -185,6 +185,10 @@ export function MenuShell({
   // Timer to delay resetting pillsTouchActiveRef after pointer-up, so iOS momentum scrolling
   // on the main content div (which triggers scroll-spy) doesn't immediately snap pills back.
   const pillsUpTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  // Debounce timer for scroll-spy-triggered pill bar auto-scroll.
+  // Coalesces rapid activeCategory changes (60fps during fast scroll) into a single
+  // movement after the user slows down — eliminates the "rapid jumping" artefact.
+  const pillBarScrollTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const isScrollingRef = useRef(false);
   // Sidebar ref — used to auto-scroll sidebar to active category and to
@@ -780,20 +784,51 @@ export function MenuShell({
       // Skip auto-scroll while user is actively touching the pills bar to avoid
       // fighting their horizontal swipe gesture (the "bounce-back" effect).
       if (!pillsTouchActiveRef.current) {
-        const container = mobilePillsRef.current;
-        if (container) {
-          const pill = container.querySelector(`[data-pill-id="${catToShow}"]`) as HTMLElement;
-          if (pill) {
-            const containerRect = container.getBoundingClientRect();
-            const pillRect = pill.getBoundingClientRect();
-            const targetLeft =
-              container.scrollLeft +
-              pillRect.left -
-              containerRect.left -
-              (container.offsetWidth - pill.offsetWidth) / 2;
-            // Always instant — smooth creates the visible "return/bounce" effect
-            container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'instant' });
+        if (wasClick) {
+          // Click: fire immediately so the pill appears selected at once.
+          const container = mobilePillsRef.current;
+          if (container) {
+            const pill = container.querySelector(`[data-pill-id="${catToShow}"]`) as HTMLElement;
+            if (pill) {
+              const containerRect = container.getBoundingClientRect();
+              const pillRect = pill.getBoundingClientRect();
+              const targetLeft =
+                container.scrollLeft +
+                pillRect.left -
+                containerRect.left -
+                (container.offsetWidth - pill.offsetWidth) / 2;
+              container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'instant' });
+            }
           }
+        } else {
+          // Scroll-spy: debounce 200 ms so rapid category changes (≈60 fps during
+          // fast vertical scroll) coalesce into a single movement after the user
+          // slows down — eliminates the "rapid jumping pill bar" artefact.
+          clearTimeout(pillBarScrollTimerRef.current);
+          const capturedCat = catToShow;
+          pillBarScrollTimerRef.current = setTimeout(() => {
+            if (pillsTouchActiveRef.current) return; // re-check inside timer
+            const container = mobilePillsRef.current;
+            if (container) {
+              const pill = container.querySelector(`[data-pill-id="${capturedCat}"]`) as HTMLElement;
+              if (pill) {
+                const containerRect = container.getBoundingClientRect();
+                const pillRect = pill.getBoundingClientRect();
+                // Skip if the pill is already fully visible in the scroll container.
+                const isInView =
+                  pillRect.left >= containerRect.left + 8 &&
+                  pillRect.right <= containerRect.right - 8;
+                if (!isInView) {
+                  const targetLeft =
+                    container.scrollLeft +
+                    pillRect.left -
+                    containerRect.left -
+                    (container.offsetWidth - pill.offsetWidth) / 2;
+                  container.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+                }
+              }
+            }
+          }, 200);
         }
       }
     }
@@ -854,7 +889,7 @@ export function MenuShell({
       onClick={() => handleCategorySelect(id)}
       style={{ touchAction: 'manipulation' }}
       className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap',
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[13px] font-medium whitespace-nowrap',
         id === POPULAR_ID
           ? isActive
             ? 'bg-amber-500 text-white'
@@ -898,7 +933,7 @@ export function MenuShell({
       onClick={() => { setShowFavs(!showFavs); if (!showFavs) setActiveCategory(null); }}
       style={{ touchAction: 'manipulation' }}
       className={cn(
-        'flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap',
+        'flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[13px] font-medium whitespace-nowrap',
         showFavs
           ? 'bg-gray-900 text-white'
           : 'bg-white/70 text-gray-500 active:bg-gray-200'
@@ -914,7 +949,7 @@ export function MenuShell({
   );
 
   const mobileCategoryPills = (
-    <div className="lg:hidden sticky z-40 bg-[#f5f5f3] border-b border-gray-100" style={{ top: hasCover ? HEADER_HEIGHT : 0 }}>
+    <div className="lg:hidden sticky z-40 bg-[#f5f5f3] border-b border-gray-100" style={{ top: hasCover ? HEADER_HEIGHT : 0, willChange: 'transform' }}>
       <div className="flex items-center relative">
       {/* Hamburger — opens category bottom sheet */}
       <button
@@ -938,10 +973,11 @@ export function MenuShell({
         onPointerUp={() => {
           // Delay resetting the flag so iOS momentum scroll on the main content
           // (which fires scroll-spy) doesn't immediately snap the pill bar back.
+          // 1000ms covers typical iOS rubber-band momentum scroll duration.
           clearTimeout(pillsUpTimerRef.current);
           pillsUpTimerRef.current = setTimeout(() => {
             pillsTouchActiveRef.current = false;
-          }, 600);
+          }, 1000);
         }}
         onPointerCancel={() => {
           clearTimeout(pillsUpTimerRef.current);
@@ -955,7 +991,7 @@ export function MenuShell({
             onClick={() => { setActiveCatFilter(null); setActiveCategory(null); mainRef.current?.scrollTo({ top: 0, behavior: 'auto' }); }}
             style={{ touchAction: 'manipulation' }}
             className={cn(
-              'flex-shrink-0 inline-flex items-center px-3.5 py-[7px] rounded-lg text-[13px] font-medium transition-colors whitespace-nowrap',
+              'flex-shrink-0 inline-flex items-center px-3.5 py-[7px] rounded-lg text-[13px] font-medium whitespace-nowrap',
               !activeCatFilter && !showFavs && !activeDiet
                 ? 'bg-gray-900 text-white'
                 : 'bg-white/70 text-gray-500 active:bg-gray-200'
