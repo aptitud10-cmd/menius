@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail, buildSocialPostDigestEmail, type SocialPostDigestItem } from '@/lib/notifications/email';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
+import { publishPost, isAutoPublishEnabled } from '@/lib/social/publish';
 
 const logger = createLogger('cron-social-posts');
 
@@ -182,7 +183,7 @@ async function uploadImage(base64: string, platform: string): Promise<string | n
 }
 
 /* ──────────────────────────────────────
-   Save to database
+   Save to database — returns inserted id
    ────────────────────────────────────── */
 async function savePost(post: {
   platform: string;
@@ -198,13 +199,45 @@ async function savePost(post: {
   tip: string;
   status: string;
   source: string;
-}) {
+}): Promise<string | null> {
   try {
     const supabase = createAdminClient();
-    const { error } = await supabase.from('menius_posts').insert(post);
-    if (error) logger.error('DB save failed', { error: error.message });
+    const { data, error } = await supabase
+      .from('menius_posts')
+      .insert(post)
+      .select('id')
+      .single();
+    if (error) {
+      logger.error('DB save failed', { error: error.message });
+      return null;
+    }
+    return data?.id ?? null;
   } catch (err) {
     logger.error('Save error', { error: err instanceof Error ? err.message : String(err) });
+    return null;
+  }
+}
+
+/* ──────────────────────────────────────
+   Update publish result in database
+   ────────────────────────────────────── */
+async function updatePostPublishResult(
+  id: string,
+  success: boolean,
+  externalPostId?: string,
+) {
+  try {
+    const supabase = createAdminClient();
+    await supabase
+      .from('menius_posts')
+      .update({
+        status: success ? 'published' : 'failed',
+        ...(externalPostId ? { external_post_id: externalPostId } : {}),
+        published_at: success ? new Date().toISOString() : null,
+      })
+      .eq('id', id);
+  } catch {
+    // Non-critical — log nothing (columns may not exist yet in older deployments)
   }
 }
 
@@ -263,7 +296,9 @@ async function generatePost(
       }
     }
 
-    await savePost({
+    const autoPublish = isAutoPublishEnabled();
+
+    const dbId = await savePost({
       platform: platform.id,
       post_type: postType,
       language,
@@ -275,9 +310,24 @@ async function generatePost(
       image_idea: parsed.imageIdea ?? '',
       best_time: parsed.bestTimeToPost ?? '',
       tip: parsed.tip ?? '',
-      status: 'sent',
+      status: autoPublish ? 'pending' : 'draft',
       source: 'auto',
     });
+
+    if (autoPublish) {
+      const result = await publishPost(
+        platform.id,
+        parsed.caption ?? '',
+        parsed.hashtags ?? '',
+        imageUrl,
+      );
+      if (dbId) {
+        await updatePostPublishResult(dbId, result.success, result.postId);
+      }
+      if (!result.success && !result.skipped) {
+        logger.warn(`Auto-publish failed for ${platform.id}`, { error: result.error });
+      }
+    }
 
     return {
       platform: platform.id,
