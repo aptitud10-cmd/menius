@@ -6,8 +6,8 @@ export const maxDuration = 60;
  * Weekly cron — deletes AI-generated demo images older than 7 days.
  *
  * Demo images are stored by unauthenticated users under:
- *   product-images/ai-enhance/demo-*/
- *   product-images/ai-generate/demo-*/
+ *   product-images/ai-enhance/demo-{id}/
+ *   product-images/ai-generate/demo-{id}/
  *
  * These accumulate indefinitely without cleanup and drive up storage costs.
  */
