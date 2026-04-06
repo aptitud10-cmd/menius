@@ -41,7 +41,11 @@ export async function GET(request: NextRequest) {
       days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     } else {
       const period = searchParams.get('period') || '30';
-      days = Math.min(365, Math.max(1, parseInt(period)));
+      const rawDays = parseInt(period, 10);
+      if (isNaN(rawDays)) {
+        return NextResponse.json({ error: 'Período inválido' }, { status: 400 });
+      }
+      days = Math.min(365, Math.max(1, rawDays));
       since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
     }
 

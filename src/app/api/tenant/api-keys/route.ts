@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
 
     const { name } = await req.json();
     if (!name?.trim()) return NextResponse.json({ error: 'Nombre requerido' }, { status: 400 });
+    if (name.trim().length > 100) return NextResponse.json({ error: 'Nombre demasiado largo (máx 100)' }, { status: 400 });
 
     const { raw, hash, prefix } = generateKey();
 
@@ -76,6 +77,8 @@ export async function DELETE(req: NextRequest) {
 
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+    const { UUID_RE } = await import('@/lib/constants');
+    if (!UUID_RE.test(String(id))) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
 
     const supabase = createClient();
     const { error } = await supabase

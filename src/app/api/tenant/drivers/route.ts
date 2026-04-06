@@ -29,6 +29,8 @@ export async function POST(req: NextRequest) {
   const name = (body.name ?? '').trim();
   const phone = (body.phone ?? '').trim();
   if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+  if (name.length > 100) return NextResponse.json({ error: 'Name too long (max 100)' }, { status: 400 });
+  if (phone.length > 30) return NextResponse.json({ error: 'Phone too long (max 30)' }, { status: 400 });
 
   const { data, error } = await supabase
     .from('drivers')
@@ -49,11 +51,13 @@ export async function PATCH(req: NextRequest) {
   if (!body) return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   const { id, ...patch } = body;
   if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+  const { UUID_RE } = await import('@/lib/constants');
+  if (!UUID_RE.test(String(id))) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
 
   const allowed: Record<string, unknown> = {};
-  if (patch.name !== undefined) allowed.name = (patch.name as string).trim();
-  if (patch.phone !== undefined) allowed.phone = (patch.phone as string).trim();
-  if (patch.is_active !== undefined) allowed.is_active = patch.is_active;
+  if (patch.name !== undefined) allowed.name = String(patch.name).trim().slice(0, 100);
+  if (patch.phone !== undefined) allowed.phone = String(patch.phone).trim().slice(0, 30);
+  if (patch.is_active !== undefined) allowed.is_active = Boolean(patch.is_active);
 
   const { error } = await supabase
     .from('drivers')
@@ -72,6 +76,8 @@ export async function DELETE(req: NextRequest) {
 
   const body = await req.json().catch(() => null);
   if (!body || !body.id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+  const { UUID_RE } = await import('@/lib/constants');
+  if (!UUID_RE.test(String(body.id))) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
 
   const { error } = await supabase
     .from('drivers')

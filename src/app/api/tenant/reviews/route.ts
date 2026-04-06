@@ -13,6 +13,8 @@ export async function PATCH(request: NextRequest) {
     if (!id || typeof is_visible !== 'boolean') {
       return NextResponse.json({ error: 'id y is_visible requeridos' }, { status: 400 });
     }
+    const { UUID_RE } = await import('@/lib/constants');
+    if (!UUID_RE.test(String(id))) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
 
     const supabase = createClient();
 

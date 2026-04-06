@@ -44,6 +44,13 @@ export async function POST(req: NextRequest) {
     if (!name?.trim() || !slug?.trim()) {
       return NextResponse.json({ error: 'Nombre y slug requeridos' }, { status: 400 });
     }
+    if (name.trim().length > 100) {
+      return NextResponse.json({ error: 'Nombre demasiado largo (máx 100)' }, { status: 400 });
+    }
+    const normalizedSlug = slug.trim().toLowerCase();
+    if (!/^[a-z0-9]([a-z0-9-]{0,58}[a-z0-9])?$/.test(normalizedSlug)) {
+      return NextResponse.json({ error: 'Slug inválido (solo letras, números y guiones, 2–60 caracteres)' }, { status: 400 });
+    }
 
     const supabase = createClient();
 
@@ -51,7 +58,7 @@ export async function POST(req: NextRequest) {
     const { data: existing } = await supabase
       .from('restaurants')
       .select('id')
-      .eq('slug', slug.trim().toLowerCase())
+      .eq('slug', normalizedSlug)
       .maybeSingle();
 
     if (existing) return NextResponse.json({ error: 'El slug ya está en uso' }, { status: 409 });
@@ -68,7 +75,7 @@ export async function POST(req: NextRequest) {
       .insert({
         owner_user_id: tenant.userId,
         name: name.trim(),
-        slug: slug.trim().toLowerCase(),
+        slug: normalizedSlug,
         address: address?.trim() || null,
         phone: phone?.trim() || null,
         is_active: true,
