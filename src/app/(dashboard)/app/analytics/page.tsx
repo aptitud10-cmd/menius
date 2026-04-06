@@ -143,7 +143,7 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="dash-heading">Analytics</h1>
+          <h1 className="dash-heading">{t.analytics_title}</h1>
           <p className="text-sm text-gray-500 mt-0.5">{t.analytics_subtitle}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">

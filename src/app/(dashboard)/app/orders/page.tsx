@@ -27,7 +27,7 @@ export default async function OrdersPage() {
       `)
       .eq('restaurant_id', restaurantId)
       .order('created_at', { ascending: false })
-      .limit(200),
+      .limit(500),
   ]);
 
   const mappedOrders = (orders ?? []).map((o: any) => ({
@@ -36,16 +36,18 @@ export default async function OrdersPage() {
     items: o.order_items ?? [],
   }));
 
+  const isEn = restaurant?.locale === 'en';
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="dash-heading">{restaurant?.locale === 'en' ? 'Orders' : 'Órdenes'}</h1>
+        <h1 className="dash-heading">{isEn ? 'Orders' : 'Órdenes'}</h1>
         <Link
           href="/kds"
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-500/20"
         >
           <Maximize2 className="w-4 h-4" />
-          {restaurant?.locale === 'en' ? 'Tablet Mode' : 'Modo Tablet'}
+          {isEn ? 'Tablet Mode' : 'Modo Tablet'}
         </Link>
       </div>
       <OrdersBoard

@@ -56,9 +56,11 @@ export default async function DashboardPage() {
       .order('created_at'),
     supabase
       .from('order_items')
-      .select('qty, products!inner(name, restaurant_id)')
-      .eq('products.restaurant_id', restaurantId)
-      .limit(500),
+      .select('qty, products!inner(name, restaurant_id), order:orders!inner(restaurant_id, created_at, status)')
+      .eq('order.restaurant_id', restaurantId)
+      .neq('order.status', 'cancelled')
+      .gte('order.created_at', weekAgo.toISOString())
+      .limit(1000),
     supabase
       .from('products')
       .select('id, name, stock_qty, low_stock_threshold')
