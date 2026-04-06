@@ -208,6 +208,7 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
         restaurantName: restaurant.name,
         customerName,
         customerPhone,
+        customerEmail,
         orderType: orderType ?? 'dine_in',
         total: totalFormatted,
         items: richItems,
@@ -382,8 +383,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
     .select(`
       id, order_number, total, customer_name, customer_email, customer_phone,
       order_type, delivery_address,
-      restaurants ( name, slug, currency, locale, notification_email, notifications_enabled ),
-      order_items ( qty, unit_price, line_total, products ( name ) )
+      restaurants ( name, slug, currency, locale, notification_email, notifications_enabled )
     `)
     .eq('id', orderId)
     .maybeSingle();
@@ -403,12 +403,8 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
   const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}`;
   const totalFormatted = formatPrice(Number(order.total), currency);
 
-  // Use rich items fetched in query
-  const emailItems: OrderEmailItem[] = ((order as any).order_items ?? []).map((item: any) => ({
-    name: item.products?.name ?? 'Item',
-    qty: item.qty,
-    price: formatPrice(Number(item.line_total), currency),
-  }));
+  // Fetch rich items (variants, modifiers, extras) so the receipt shows full detail
+  const emailItems: OrderEmailItem[] = await fetchRichItems(orderId, currency);
 
   const jobs: Promise<boolean>[] = [];
 
@@ -440,6 +436,8 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
       orderNumber: order.order_number,
       restaurantName: restaurant.name,
       customerName: order.customer_name,
+      customerPhone: (order as any).customer_phone ?? undefined,
+      customerEmail: order.customer_email ?? undefined,
       orderType: (order as any).order_type ?? 'dine_in',
       deliveryAddress: (order as any).delivery_address ?? undefined,
       total: totalFormatted,
