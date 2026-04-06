@@ -554,18 +554,25 @@ export async function POST(request: NextRequest) {
       if (!orderItemId) return;
 
       for (const ex of item.extras) {
-        extrasToInsert.push({ order_item_id: orderItemId, extra_id: ex.extra_id, price: ex.price });
+        // Always use the server-side DB price — never trust the client-supplied value.
+        // The billing already uses extraMap (line ~283), this keeps the stored record consistent.
+        const serverExtraPrice = extraMap.get(ex.extra_id)?.price ?? ex.price;
+        extrasToInsert.push({ order_item_id: orderItemId, extra_id: ex.extra_id, price: serverExtraPrice });
       }
       for (const mod of (item.modifiers ?? [])) {
         const gid = mod.group_id ?? '';
         const oid = mod.option_id ?? '';
+        const isLegacyMod = !oid || oid.startsWith('__legacy');
+        // Use server-side price_delta from modOptionMap — never trust the client value.
+        // Legacy modifiers have no DB record; $0 is correct (matches billing logic above).
+        const serverPriceDelta = isLegacyMod ? 0 : (modOptionMap.get(oid)?.price_delta ?? 0);
         modifiersToInsert.push({
           order_item_id: orderItemId,
           group_id: (!gid || gid.startsWith('__legacy')) ? null : gid,
-          option_id: (!oid || oid.startsWith('__legacy')) ? null : oid,
+          option_id: isLegacyMod ? null : oid,
           group_name: mod.group_name ?? '',
           option_name: mod.option_name ?? '',
-          price_delta: mod.price_delta ?? 0,
+          price_delta: serverPriceDelta,
         });
       }
     });

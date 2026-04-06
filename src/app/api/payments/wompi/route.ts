@@ -43,12 +43,17 @@ export async function POST(request: NextRequest) {
     const adminDb = createAdminClient();
     const { data: order, error } = await adminDb
       .from('orders')
-      .select('id, order_number, total, customer_name, customer_email, customer_phone, restaurant_id, restaurants ( currency )')
+      .select('id, order_number, total, customer_name, customer_email, customer_phone, restaurant_id, payment_status, restaurants ( currency )')
       .eq('id', order_id)
       .maybeSingle();
 
     if (error || !order) {
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
+    }
+
+    // Prevent generating a new payment session for an already-paid order
+    if (order.payment_status === 'paid') {
+      return NextResponse.json({ error: 'Esta orden ya fue pagada' }, { status: 409 });
     }
 
     const currency = ((order as any).restaurants?.currency || 'COP').toUpperCase();

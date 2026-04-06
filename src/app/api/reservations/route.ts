@@ -40,6 +40,19 @@ export async function POST(request: NextRequest) {
     if (!reserved_date || !reserved_time) {
       return NextResponse.json({ error: 'Date and time required' }, { status: 400 });
     }
+    // Validate date format (YYYY-MM-DD) and reject past dates
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(reserved_date)) {
+      return NextResponse.json({ error: 'Invalid date format (YYYY-MM-DD required)' }, { status: 400 });
+    }
+    // Validate time format (HH:MM)
+    if (!/^\d{2}:\d{2}$/.test(reserved_time)) {
+      return NextResponse.json({ error: 'Invalid time format (HH:MM required)' }, { status: 400 });
+    }
+    // Reject reservations in the past (compare as date strings — no timezone needed for date-only check)
+    const reservationDate = new Date(`${reserved_date}T${reserved_time}`);
+    if (isNaN(reservationDate.getTime()) || reservationDate.getTime() < Date.now() - 60_000) {
+      return NextResponse.json({ error: 'Reservation date must be in the future' }, { status: 400 });
+    }
     if (!party_size || party_size < 1 || party_size > 50) {
       return NextResponse.json({ error: 'Invalid party size' }, { status: 400 });
     }

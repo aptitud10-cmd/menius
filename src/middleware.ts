@@ -1,5 +1,8 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('middleware');
 
 const MAIN_DOMAIN = process.env.NEXT_PUBLIC_APP_DOMAIN || '';
 
@@ -186,7 +189,7 @@ export async function middleware(request: NextRequest) {
     } catch {
       // Graceful degradation: if subscription check fails, allow access.
       // This prevents a DB outage from locking all users out of their dashboards.
-      console.error('[middleware] Subscription check failed — allowing access', {
+      logger.error('Subscription check failed — allowing access (graceful degradation)', {
         restaurantId: profile.default_restaurant_id,
       });
     }
