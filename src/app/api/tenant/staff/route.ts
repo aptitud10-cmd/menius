@@ -78,6 +78,9 @@ export async function PATCH(request: NextRequest) {
     const { id, role, status } = await request.json();
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
+    const { UUID_RE } = await import('@/lib/constants');
+    if (!UUID_RE.test(String(id))) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+
     const validRoles = ['admin', 'manager', 'staff', 'kitchen'];
     const validStatuses = ['pending', 'active', 'inactive'];
 
@@ -92,13 +95,14 @@ export async function PATCH(request: NextRequest) {
     if (role) updates.role = role;
     if (status) updates.status = status;
 
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from('staff_members')
-      .update(updates)
+      .update(updates, { count: 'exact' })
       .eq('id', id)
       .eq('restaurant_id', tenant.restaurantId);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if ((count ?? 0) === 0) return NextResponse.json({ error: 'Miembro no encontrado' }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (err) {
     logger.error('PATCH failed', { error: err instanceof Error ? err.message : String(err) });
@@ -114,13 +118,18 @@ export async function DELETE(request: NextRequest) {
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const { id } = await request.json();
-    const { error } = await supabase
+    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+    const { UUID_RE } = await import('@/lib/constants');
+    if (!UUID_RE.test(String(id))) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+
+    const { error, count } = await supabase
       .from('staff_members')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', id)
       .eq('restaurant_id', tenant.restaurantId);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if ((count ?? 0) === 0) return NextResponse.json({ error: 'Miembro no encontrado' }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (err) {
     logger.error('DELETE failed', { error: err instanceof Error ? err.message : String(err) });

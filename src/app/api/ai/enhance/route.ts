@@ -3,10 +3,12 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
+import { checkRateLimitAsync } from '@/lib/rate-limit';
 
 const logger = createLogger('ai-enhance');
 
 const DEMO_LIMIT = 3; // free demo uses per IP per hour
+const AUTH_USER_LIMIT = 30; // authenticated users: max 30 enhancements per hour
 
 async function ipDemoAllowed(ip: string): Promise<boolean> {
   try {
@@ -188,14 +190,25 @@ export async function POST(request: NextRequest) {
 
     // Auth check — optional (demo works without login, but logs by IP)
     let restaurantId: string | null = null;
+    let userId: string | null = null;
     try {
       const { getTenant } = await import('@/lib/auth/get-tenant');
       const tenant = await getTenant();
       restaurantId = tenant?.restaurantId ?? null;
+      userId = tenant?.userId ?? null;
     } catch { /* public demo, no auth required */ }
 
-    // Rate limit demo users by IP
-    if (!restaurantId) {
+    if (userId) {
+      // Authenticated users: per-user rate limit to prevent cost abuse
+      const { allowed } = await checkRateLimitAsync(`ai-enhance:${userId}`, { limit: AUTH_USER_LIMIT, windowSec: 3600 });
+      if (!allowed) {
+        return NextResponse.json(
+          { error: `Límite de mejoras alcanzado (${AUTH_USER_LIMIT}/hora). Intenta en 1 hora.` },
+          { status: 429 }
+        );
+      }
+    } else {
+      // Rate limit demo users by IP
       const allowed = await ipDemoAllowed(ip);
       if (!allowed) {
         return NextResponse.json(

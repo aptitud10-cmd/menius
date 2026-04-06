@@ -81,6 +81,9 @@ export async function PATCH(request: NextRequest) {
 
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
 
+    const { UUID_RE } = await import('@/lib/constants');
+    if (!UUID_RE.test(String(id))) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+
     const supabase = createClient();
     const updates: Record<string, unknown> = {};
     if (typeof notes === 'string') updates.notes = notes.slice(0, 1000);
@@ -90,13 +93,14 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from('customers')
-      .update(updates)
+      .update(updates, { count: 'exact' })
       .eq('id', id)
       .eq('restaurant_id', tenant.restaurantId);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if ((count ?? 0) === 0) return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
 
     return NextResponse.json({ success: true });
   } catch (err) {

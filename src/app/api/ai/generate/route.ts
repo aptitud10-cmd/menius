@@ -3,10 +3,12 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
+import { checkRateLimitAsync } from '@/lib/rate-limit';
 
 const logger = createLogger('ai-generate-public');
 
 const DEMO_LIMIT = 2; // free demo uses per IP per hour
+const AUTH_USER_LIMIT = 20; // authenticated users: max 20 generations per hour
 
 async function ipDemoAllowed(ip: string): Promise<boolean> {
   try {
@@ -95,13 +97,24 @@ export async function POST(request: NextRequest) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
 
     let restaurantId: string | null = null;
+    let userId: string | null = null;
     try {
       const { getTenant } = await import('@/lib/auth/get-tenant');
       const tenant = await getTenant();
       restaurantId = tenant?.restaurantId ?? null;
+      userId = tenant?.userId ?? null;
     } catch { /* public demo */ }
 
-    if (!restaurantId) {
+    if (userId) {
+      // Authenticated users: per-user rate limit to prevent cost abuse
+      const { allowed } = await checkRateLimitAsync(`ai-generate-public:${userId}`, { limit: AUTH_USER_LIMIT, windowSec: 3600 });
+      if (!allowed) {
+        return NextResponse.json(
+          { error: `Límite de generaciones alcanzado (${AUTH_USER_LIMIT}/hora). Intenta en 1 hora.` },
+          { status: 429 }
+        );
+      }
+    } else {
       const allowed = await ipDemoAllowed(ip);
       if (!allowed) {
         return NextResponse.json(
