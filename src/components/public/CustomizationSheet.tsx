@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock';
 import Image from 'next/image';
 import { X, Minus, Plus, Check, ArrowLeft } from 'lucide-react';
 import { motion, useDragControls, type PanInfo } from 'framer-motion';
@@ -204,7 +203,11 @@ export function CustomizationSheet({
   const modifiersDelta = Object.values(selections).flat().reduce((sum, opt) => sum + Number(opt.price_delta), 0);
   const unitPrice = Number(product.price) + modifiersDelta;
 
-  useBodyScrollLock();
+  // NOTE: useBodyScrollLock() is intentionally NOT used here.
+  // The app scrolls via a custom div (mainRef), not document.body — body scroll lock would
+  // apply position:fixed to the body, causing an iOS visual viewport shift that breaks
+  // getBoundingClientRect() in the pill scroll-spy underneath. The sheet body already has
+  // overscroll-contain to prevent scroll propagation to the parent.
 
   const handleDragEnd = useCallback((_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // Higher threshold — requires an intentional drag from the handle to close.
@@ -282,7 +285,7 @@ export function CustomizationSheet({
               src={product.image_url}
               alt={displayName}
               fill
-              sizes="600px"
+              sizes="(max-width: 640px) 100vw, 600px"
               unoptimized={product.image_url.includes('.supabase.co/storage/')}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
@@ -352,7 +355,7 @@ export function CustomizationSheet({
                       onClick={() => !isDisabled && toggleOption(group, opt)}
                       disabled={isDisabled}
                       className={cn(
-                        'flex flex-col items-center justify-center px-3 py-3 rounded-2xl transition-all duration-150 text-center border gap-0.5',
+                        'flex flex-col items-center justify-center px-3 py-3 rounded-2xl transition-colors duration-150 text-center border gap-0.5',
                         isSelected
                           ? 'bg-[#05c8a7] text-white border-[#05c8a7] shadow-sm'
                           : isDisabled
