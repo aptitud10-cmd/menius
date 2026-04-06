@@ -169,6 +169,11 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'id and status required' }, { status: 400 });
     }
 
+    const UUID_RE_LOCAL = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (typeof id !== 'string' || !UUID_RE_LOCAL.test(id)) {
+      return NextResponse.json({ error: 'id must be a valid UUID' }, { status: 400 });
+    }
+
     const validStatuses = ['draft', 'sent', 'published'];
     if (!validStatuses.includes(status)) {
       return NextResponse.json({ error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` }, { status: 400 });

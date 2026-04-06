@@ -3,6 +3,9 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/notifications/email';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('support-contact');
 
 function escHtml(s: string): string {
   return s
@@ -47,7 +50,7 @@ export async function POST(request: NextRequest) {
 
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!adminEmail) {
-    console.warn('[support/contact] ADMIN_EMAIL not set');
+    logger.warn('ADMIN_EMAIL not set — support contact form cannot deliver messages');
     return NextResponse.json({ error: 'Support email not configured' }, { status: 500 });
   }
 

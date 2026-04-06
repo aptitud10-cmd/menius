@@ -28,8 +28,8 @@ export async function GET() {
       { data: recentRestaurants },
     ] = await Promise.all([
       supabase.from('restaurants').select('id', { count: 'exact', head: true }),
-      supabase.from('restaurants').select('id, name, slug, created_at, owner_user_id, currency, notification_email'),
-      supabase.from('subscriptions').select('restaurant_id, plan_id, status, trial_end'),
+      supabase.from('restaurants').select('id, name, slug, created_at, owner_user_id, currency, notification_email').limit(5000),
+      supabase.from('subscriptions').select('restaurant_id, plan_id, status, trial_end').limit(5000),
       supabase.from('orders').select('id', { count: 'exact', head: true }),
       supabase.from('orders').select('id', { count: 'exact', head: true }).gte('created_at', todayStart),
       supabase.from('orders').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),

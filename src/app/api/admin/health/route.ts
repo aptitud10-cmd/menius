@@ -65,7 +65,8 @@ export async function GET() {
       // All subscriptions for MRR
       supabase
         .from('subscriptions')
-        .select('plan_id, status, stripe_price_id'),
+        .select('plan_id, status, stripe_price_id')
+        .limit(5000),
 
       // Orders last 7d revenue
       supabase
@@ -85,7 +86,8 @@ export async function GET() {
       supabase
         .from('restaurants')
         .select('id, name, slug, created_at')
-        .eq('is_active', true),
+        .eq('is_active', true)
+        .limit(5000),
     ]);
 
     // Restaurants with no active products
