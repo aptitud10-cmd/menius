@@ -33,14 +33,14 @@ export async function GET(request: NextRequest) {
       .from('restaurants')
       .select('id, created_at');
 
+    const now = new Date();
+
     if (allRestaurants) {
       const { data: allSubs } = await supabase
         .from('subscriptions')
         .select('restaurant_id');
 
       const subSet = new Set((allSubs ?? []).map(s => s.restaurant_id));
-
-      const now = new Date();
       for (const r of allRestaurants) {
         if (!subSet.has(r.id)) {
           const trialEnd = new Date(r.created_at);

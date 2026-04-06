@@ -359,7 +359,7 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
     fetchEtaMinutes(driverCoords, deliveryCoords).then((mins) => {
       if (mins !== null) setEtaMinutes(mins);
     });
-  }, [driverCoords?.lat, driverCoords?.lng, deliveryCoords]);
+  }, [driverCoords, deliveryCoords]);
 
   if (!geocodingDone) {
     return <div className="w-full h-60 rounded-2xl bg-gray-100 animate-pulse" />;

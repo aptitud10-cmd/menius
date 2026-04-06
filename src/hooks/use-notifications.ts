@@ -160,10 +160,11 @@ export function useNotifications(opts: UseNotificationsOptions = {}) {
   }, [playSound, flashTabTitle, sendBrowserNotification]);
 
   useEffect(() => {
+    const originalTitle = originalTitleRef.current;
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (typeof document !== 'undefined') {
-        document.title = originalTitleRef.current;
+        document.title = originalTitle;
       }
     };
   }, []);
