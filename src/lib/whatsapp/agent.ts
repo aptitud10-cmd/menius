@@ -10,6 +10,7 @@ interface IncomingMessage {
   from: string;
   text: string;
   name: string;
+  messageId?: string;
 }
 
 interface CartItem {
@@ -83,6 +84,11 @@ async function clearSession(from: string): Promise<void> {
     try { await r.del(`wa:session:${from}`); } catch { /* ignore */ }
   }
   localSessions.delete(from);
+}
+
+/** Exposed for webhook deduplication — returns the Redis client if available */
+export function getRedisForWebhook(): Redis | null {
+  return getRedis();
 }
 
 /** Called from order-notifications after placing an order, to set up bidirectional WA confirmation */
@@ -321,6 +327,7 @@ async function createWhatsAppOrder(
   session: ConversationSession,
   customerName: string,
   customerPhone: string,
+  messageId?: string,
 ): Promise<{ orderNumber: string; error?: string }> {
   const supabase = getAdminClient();
 
@@ -399,7 +406,7 @@ async function createWhatsAppOrder(
       payment_method: 'cash',
       notes: '📱 Pedido por WhatsApp',
       include_utensils: true,
-      idempotency_key: `wa:${customerPhone}:${Date.now()}`,
+      idempotency_key: messageId ? `wa:msg:${messageId}` : `wa:${customerPhone}:${Date.now()}`,
     })
     .select('id')
     .single();
@@ -437,7 +444,7 @@ async function createWhatsAppOrder(
 
 // ── Main handler ──
 
-export async function handleIncomingMessage({ from, text, name }: IncomingMessage) {
+export async function handleIncomingMessage({ from, text, name, messageId }: IncomingMessage) {
   let session = await getSession(from);
 
   if (!session) {
@@ -509,7 +516,7 @@ export async function handleIncomingMessage({ from, text, name }: IncomingMessag
 
     if (isConfirmation(text)) {
       const customerName = session.customerName ?? name ?? 'Cliente';
-      const { orderNumber, error } = await createWhatsAppOrder(session, customerName, from);
+      const { orderNumber, error } = await createWhatsAppOrder(session, customerName, from, messageId);
 
       session.step = 'browsing';
       session.cart = undefined;

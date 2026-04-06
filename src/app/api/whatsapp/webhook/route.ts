@@ -53,15 +53,33 @@ export async function POST(request: NextRequest) {
 
     const message = value.messages[0];
     const contact = value.contacts?.[0];
-    const from = message.from;
-    const text = message.text?.body ?? '';
-    const name = contact?.profile?.name ?? '';
+    const from = message.from as string;
+    const text = (message.text?.body ?? '') as string;
+    const name = (contact?.profile?.name ?? '') as string;
+    const messageId = (message.id ?? '') as string;
 
     if (!from || !text) {
       return NextResponse.json({ status: 'ignored' });
     }
 
-    await handleIncomingMessage({ from, text, name });
+    // WhatsApp delivers at-least-once — deduplicate by message ID via Redis
+    if (messageId) {
+      try {
+        const { getRedisForWebhook } = await import('@/lib/whatsapp/agent');
+        const r = getRedisForWebhook();
+        if (r) {
+          const dedupeKey = `wa:msg:${messageId}`;
+          const already = await r.set(dedupeKey, '1', { ex: 300, nx: true });
+          if (already === null) {
+            return NextResponse.json({ status: 'duplicate' });
+          }
+        }
+      } catch {
+        // Non-blocking — if Redis unavailable, process anyway
+      }
+    }
+
+    await handleIncomingMessage({ from, text, name, messageId });
 
     return NextResponse.json({ status: 'processed' });
   } catch (err) {
