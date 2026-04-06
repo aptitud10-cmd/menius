@@ -146,6 +146,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   useEffect(() => { return () => { if (confirmRemoveTimer.current) clearTimeout(confirmRemoveTimer.current); }; }, []);
   const [tipPercent, setTipPercent] = useState<number | null>(null);
 
+  // Snapshot of items captured before clearCart() — shown on confirmation screen
+  const [confirmedItems, setConfirmedItems] = useState<{ name: string; qty: number; variant?: string; lineTotal: number }[]>([]);
+  const [confirmedTotal, setConfirmedTotal] = useState(0);
+
   // Demo payment simulation state
   const [demoCardNum, setDemoCardNum] = useState('4242 4242 4242 4242');
   const [demoExpiry, setDemoExpiry] = useState('12 / 28');
@@ -317,6 +321,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         return;
       }
       saveLastOrder();
+      // Capture snapshot before clearing cart — used in confirmation screen
+      setConfirmedItems(items.map(i => ({ name: i.product.name, qty: i.qty, variant: i.variant?.name, lineTotal: i.lineTotal })));
+      setConfirmedTotal(finalTotal);
       // Save customer info for next visit
       try {
         if (rememberMe) {
@@ -356,6 +363,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     // Simulate network processing delay
     await new Promise((r) => setTimeout(r, 1800));
     saveLastOrder();
+    // Capture snapshot before clearing cart — used in confirmation screen
+    setConfirmedItems(items.map(i => ({ name: i.product.name, qty: i.qty, variant: i.variant?.name, lineTotal: i.lineTotal })));
+    setConfirmedTotal(finalTotal);
     try {
       if (rememberMe) {
         localStorage.setItem('menius_guest_info', JSON.stringify({
@@ -763,7 +773,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         </header>
         <motion.div
           ref={confirmRef}
-          className="flex-1 flex flex-col items-center justify-center px-8 relative overflow-hidden"
+          className="flex-1 flex flex-col items-center justify-start px-6 pt-8 pb-10 relative overflow-y-auto"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
@@ -773,9 +783,29 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-1">{t.orderSent}</h2>
           <p className="text-sm text-gray-500 mb-3">{t.orderSentDesc}</p>
-          <p className="text-4xl font-bold text-gray-900 mb-4 tabular-nums">#{orderNumber}</p>
+          <p className="text-4xl font-bold text-gray-900 mb-5 tabular-nums">#{orderNumber}</p>
+
+          {/* Order summary — reassures user of what they ordered */}
+          {confirmedItems.length > 0 && (
+            <div className="w-full max-w-sm mb-5 bg-gray-50 rounded-2xl p-4 space-y-2 text-left">
+              {confirmedItems.map((item, i) => (
+                <div key={i} className="flex justify-between items-baseline gap-3">
+                  <span className="text-sm text-gray-700 leading-snug">
+                    <span className="font-semibold text-gray-900">{item.qty}×</span>{' '}
+                    {item.name}{item.variant ? <span className="text-gray-400"> ({item.variant})</span> : ''}
+                  </span>
+                  <span className="text-sm font-semibold text-gray-900 tabular-nums flex-shrink-0">{fmtPrice(item.lineTotal)}</span>
+                </div>
+              ))}
+              <div className="border-t border-gray-200 pt-2 flex justify-between items-baseline">
+                <span className="text-sm font-bold text-gray-900">{locale === 'es' ? 'Total' : 'Total'}</span>
+                <span className="text-sm font-bold text-gray-900 tabular-nums">{fmtPrice(confirmedTotal)}</span>
+              </div>
+            </div>
+          )}
+
           {restaurant.estimated_delivery_minutes && orderType === 'delivery' && (
-            <p className="text-sm text-gray-400 mb-8">
+            <p className="text-sm text-gray-400 mb-5">
               {locale === 'es' ? 'Tiempo estimado' : 'Estimated time'}: ~{restaurant.estimated_delivery_minutes} min
             </p>
           )}
