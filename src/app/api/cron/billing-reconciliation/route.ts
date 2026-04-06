@@ -40,15 +40,17 @@ export async function GET(request: NextRequest) {
 
       const subSet = new Set((allSubs ?? []).map(s => s.restaurant_id));
 
+      const now = new Date();
       for (const r of allRestaurants) {
         if (!subSet.has(r.id)) {
           const trialEnd = new Date(r.created_at);
           trialEnd.setDate(trialEnd.getDate() + 14);
+          const isExpired = trialEnd < now;
 
           const { error } = await supabase.from('subscriptions').insert({
             restaurant_id: r.id,
             plan_id: 'starter',
-            status: 'trialing',
+            status: isExpired ? 'canceled' : 'trialing',
             trial_start: r.created_at,
             trial_end: trialEnd.toISOString(),
             current_period_end: trialEnd.toISOString(),
@@ -56,7 +58,7 @@ export async function GET(request: NextRequest) {
 
           if (!error) {
             results.orphaned_fixed++;
-            logger.warn('Repaired orphaned restaurant', { restaurantId: r.id });
+            logger.warn('Repaired orphaned restaurant', { restaurantId: r.id, status: isExpired ? 'canceled' : 'trialing' });
           } else {
             results.errors++;
             logger.error('Failed to repair orphan', { restaurantId: r.id, error: error.message });
@@ -66,19 +68,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Step 2: Mark expired trials
-    const now = new Date().toISOString();
+    const nowIso = now.toISOString();
     const { data: expiredTrials } = await supabase
       .from('subscriptions')
       .select('id, restaurant_id, trial_end')
       .eq('status', 'trialing')
-      .lt('trial_end', now)
+      .lt('trial_end', nowIso)
       .is('stripe_subscription_id', null);
 
     if (expiredTrials) {
       for (const sub of expiredTrials) {
         const { error } = await supabase
           .from('subscriptions')
-          .update({ status: 'canceled', updated_at: now })
+          .update({ status: 'canceled', updated_at: nowIso })
           .eq('id', sub.id);
 
         if (!error) {
@@ -100,11 +102,11 @@ export async function GET(request: NextRequest) {
     if (stripeSubs && stripeSubs.length > 0) {
       const stripe = getStripe();
 
-      for (const dbSub of stripeSubs) {
-        try {
+      const syncResults = await Promise.allSettled(
+        stripeSubs.map(async (dbSub) => {
           const stripeSub = await stripe.subscriptions.retrieve(dbSub.stripe_subscription_id!) as any;
           let mismatch = false;
-          const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+          const updates: Record<string, unknown> = { updated_at: nowIso };
 
           if (stripeSub.status !== dbSub.status) {
             updates.status = stripeSub.status === 'incomplete_expired' ? 'canceled' : stripeSub.status;
@@ -126,13 +128,6 @@ export async function GET(request: NextRequest) {
 
           if (mismatch) {
             await supabase.from('subscriptions').update(updates).eq('id', dbSub.id);
-            results.stripe_mismatches++;
-            logger.warn('Fixed Stripe mismatch', {
-              restaurantId: dbSub.restaurant_id,
-              dbStatus: dbSub.status,
-              stripeStatus: stripeSub.status,
-            });
-
             await supabase.from('subscription_audit_log').insert({
               restaurant_id: dbSub.restaurant_id,
               action: 'reconciliation_sync',
@@ -140,14 +135,25 @@ export async function GET(request: NextRequest) {
               new_status: updates.status ?? dbSub.status,
               metadata: { source: 'cron', updates },
             }).then(() => {});
+            logger.warn('Fixed Stripe mismatch', {
+              restaurantId: dbSub.restaurant_id,
+              dbStatus: dbSub.status,
+              stripeStatus: stripeSub.status,
+            });
+            return { mismatch: true };
           }
+          return { mismatch: false };
+        }),
+      );
 
+      for (const result of syncResults) {
+        if (result.status === 'fulfilled') {
           results.stripe_synced++;
-        } catch (err) {
+          if (result.value.mismatch) results.stripe_mismatches++;
+        } else {
           results.errors++;
           logger.error('Stripe sync error', {
-            subscriptionId: dbSub.stripe_subscription_id,
-            error: err instanceof Error ? err.message : String(err),
+            error: result.reason instanceof Error ? result.reason.message : String(result.reason),
           });
         }
       }

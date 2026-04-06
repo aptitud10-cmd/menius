@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
         }
 
         const updateData = {
-          status: 'free',
+          status: 'canceled',
           plan_id: 'free',
           stripe_subscription_id: null,
           canceled_at: new Date().toISOString(),
