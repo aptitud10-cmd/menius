@@ -19,8 +19,10 @@ export async function GET(request: NextRequest) {
     const search = rawSearch.replace(/[(),%]/g, '').slice(0, 100);
     const sortBy = searchParams.get('sort') || 'last_order_at';
     const order = searchParams.get('order') === 'asc' ? true : false;
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '50')));
+    const rawPage = parseInt(searchParams.get('page') ?? '', 10);
+    const rawLimit = parseInt(searchParams.get('limit') ?? '', 10);
+    const page = Math.max(1, isNaN(rawPage) ? 1 : rawPage);
+    const limit = Math.min(100, Math.max(1, isNaN(rawLimit) ? 50 : rawLimit));
     const offset = (page - 1) * limit;
     const filterTag = searchParams.get('tag') || '';
     const allTagsOnly = searchParams.get('alltags') === '1';

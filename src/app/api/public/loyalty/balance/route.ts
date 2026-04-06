@@ -24,8 +24,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ points: 0, config: null });
   }
 
-  // Limit phone length to prevent oversized DB queries
+  // Limit phone length and sanitize to prevent oversized DB queries or filter injection
   if (phone.length > 20) {
+    return NextResponse.json({ points: 0, config: null });
+  }
+
+  // Allow only digits, +, -, spaces, and parentheses (standard phone chars)
+  const sanitizedPhone = phone.replace(/[^0-9+\-() ]/g, '');
+  if (!sanitizedPhone) {
     return NextResponse.json({ points: 0, config: null });
   }
 
@@ -44,14 +50,14 @@ export async function GET(req: NextRequest) {
     }
 
     // Normalize phone: digits only for comparison
-    const normalizedPhone = phone.replace(/\D/g, '');
+    const normalizedPhone = sanitizedPhone.replace(/\D/g, '');
 
     // Look up account by phone (try exact match first, then digits-only)
     const { data: account } = await adminDb
       .from('loyalty_accounts')
       .select('id, points')
       .eq('restaurant_id', restaurantId)
-      .or(`customer_phone.eq.${phone},customer_phone.eq.+${normalizedPhone}`)
+      .or(`customer_phone.eq.${sanitizedPhone},customer_phone.eq.+${normalizedPhone}`)
       .order('points', { ascending: false })
       .limit(1)
       .maybeSingle();

@@ -15,6 +15,9 @@ export async function GET(request: NextRequest) {
   if (!slug || slug.length < 2) {
     return NextResponse.json({ available: false, reason: 'too_short' });
   }
+  if (slug.length > 60) {
+    return NextResponse.json({ available: false, reason: 'too_long' });
+  }
 
   const slugRegex = /^[a-z0-9-]+$/;
   if (!slugRegex.test(slug)) {

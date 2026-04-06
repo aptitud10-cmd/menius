@@ -128,6 +128,17 @@ export const promotionSchema = z.object({
   min_order_amount: z.number().min(0).default(0),
   expires_at: z.string().nullable().optional(),
   is_active: z.boolean().default(true),
+}).superRefine((data, ctx) => {
+  if (data.discount_type === 'percentage' && data.discount_value > 100) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.too_big,
+      maximum: 100,
+      type: 'number',
+      inclusive: true,
+      path: ['discount_value'],
+      message: 'El descuento porcentual no puede superar el 100%',
+    });
+  }
 });
 
 export const reviewSubmitSchema = z.object({
