@@ -222,7 +222,7 @@ export default function BillingPage() {
         setActionLoading(null);
       }
     },
-    [sub],
+    [sub, t.billing_connectionError, t.billing_noCheckout],
   );
 
   const handlePortal = useCallback(async () => {
@@ -240,7 +240,7 @@ export default function BillingPage() {
       setError(t.billing_connectionError);
       setActionLoading(null);
     }
-  }, []);
+  }, [t.billing_connectionError, t.billing_noCheckout]);
 
   /* ─── Loading state ─── */
   if (loading) {

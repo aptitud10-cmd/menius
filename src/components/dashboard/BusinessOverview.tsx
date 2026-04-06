@@ -1,6 +1,7 @@
 'use client';
 
 import { useTransition, useState } from 'react';
+import Image from 'next/image';
 import { Store, TrendingUp, ShoppingBag, Activity, Plus, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { switchRestaurant } from '@/lib/actions/restaurant';
@@ -125,7 +126,7 @@ export function BusinessOverview({ branches, currentRestaurantId, locale }: Prop
               {/* Branch header */}
               <div className="flex items-center gap-3">
                 {branch.logo_url ? (
-                  <img src={branch.logo_url} alt={branch.name} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" />
+                  <Image src={branch.logo_url} alt={branch.name} width={40} height={40} className="w-10 h-10 rounded-xl object-cover flex-shrink-0" unoptimized />
                 ) : (
                   <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
                     <Store className="w-5 h-5 text-gray-400" />

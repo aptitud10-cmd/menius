@@ -402,7 +402,9 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
 
   if (!order) return;
 
-  const restaurant = (order as { restaurants: { name: string; slug: string; currency: string | null; locale: string | null; notification_email: string | null; notifications_enabled: boolean | null } | null }).restaurants;
+  type RestaurantRow = { name: string; slug: string; currency: string | null; locale: string | null; notification_email: string | null; notifications_enabled: boolean | null };
+  const rawRest = (order as unknown as { restaurants: RestaurantRow[] | RestaurantRow | null }).restaurants;
+  const restaurant: RestaurantRow | null = Array.isArray(rawRest) ? (rawRest[0] ?? null) : rawRest;
   if (!restaurant) return;
 
   const notificationsOn = restaurant.notifications_enabled !== false;

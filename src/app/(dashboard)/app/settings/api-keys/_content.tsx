@@ -40,7 +40,7 @@ export default function ApiKeysContent() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [en]);
 
   useEffect(() => { loadKeys(); }, [loadKeys]);
 

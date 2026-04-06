@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Sparkles, Copy, CheckCircle2, Loader2, Clock, Lightbulb, Image, Instagram, Facebook, Twitter, Linkedin } from 'lucide-react';
+import { Sparkles, Copy, CheckCircle2, Loader2, Clock, Lightbulb, Image as ImageIcon, Instagram, Facebook, Twitter, Linkedin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const PLATFORMS = [
@@ -154,7 +154,7 @@ export function AdminSocialMedia() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-xl p-4">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-2"><Image className="w-3.5 h-3.5" /> Idea de imagen</div>
+              <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-2"><ImageIcon className="w-3.5 h-3.5" aria-hidden /> Idea de imagen</div>
               <p className="text-xs text-gray-400 leading-relaxed">{post.imageIdea}</p>
             </div>
             <div className="bg-[#0a0a0a] border border-white/[0.06] rounded-xl p-4">
