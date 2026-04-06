@@ -153,7 +153,7 @@ export default function CreateRestaurantPage() {
     }
     setProductError('');
     setProductLoading(true);
-    await createProduct({
+    const result = await createProduct({
       name: productName.trim(),
       description: '',
       price,
@@ -161,6 +161,10 @@ export default function CreateRestaurantPage() {
       is_active: true,
     });
     setProductLoading(false);
+    if (result?.error) {
+      setProductError(result.error);
+      return;
+    }
     setStep(4);
   };
 

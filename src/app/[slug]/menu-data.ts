@@ -95,6 +95,7 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       { data: categories },
       { data: products },
       { data: reviewRows },
+      reviewAggResult,
     ] = await Promise.all([
       Promise.resolve(
         db
@@ -123,6 +124,7 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
         .eq('restaurant_id', restaurant.id)
         .eq('is_active', true)
         .order('sort_order', { ascending: true }),
+      // Most recent 10 reviews for display cards
       db
         .from('reviews')
         .select('id, customer_name, rating, comment, created_at')
@@ -130,6 +132,12 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
         .eq('is_visible', true)
         .order('created_at', { ascending: false })
         .limit(10),
+      // Aggregate query for accurate review stats across ALL visible reviews
+      db
+        .from('reviews')
+        .select('rating', { count: 'exact' })
+        .eq('restaurant_id', restaurant.id)
+        .eq('is_visible', true),
     ] as const);
 
     const DAILY_FREE_LIMIT = 3;
@@ -162,8 +170,18 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       // Instead of blocking the menu, switch to limited mode
       if (subscriptionExpired) {
         subscriptionExpired = false;
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
+        // Use the restaurant's timezone so the daily window resets at local midnight,
+        // not server UTC midnight (which is wrong for restaurants in UTC-5, UTC+8, etc.)
+        const tz = (restaurant as Record<string, unknown>).timezone as string | undefined ?? 'UTC';
+        const now = new Date();
+        // sv-SE gives "YYYY-MM-DD HH:mm:ss" — parsing it as UTC lets us derive the tz offset
+        const localTimeStr = now.toLocaleString('sv-SE', { timeZone: tz });
+        const localMs = new Date(localTimeStr.replace(' ', 'T') + 'Z').getTime();
+        const offsetMs = now.getTime() - localMs;
+        const localDateStr = now.toLocaleDateString('en-CA', { timeZone: tz }); // YYYY-MM-DD
+        const todayStart = new Date(localDateStr + 'T00:00:00Z');
+        todayStart.setTime(todayStart.getTime() + offsetMs);
+
         const { count } = await db
           .from('orders')
           .select('id', { count: 'exact', head: true })
@@ -197,10 +215,13 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
 
     let reviewStats: ReviewStats | null = null;
     const reviews = (reviewRows ?? []) as any[];
-    if (reviews.length > 0) {
-      const avg =
-        reviews.reduce((s: number, r: any) => s + r.rating, 0) / reviews.length;
-      reviewStats = { average: Math.round(avg * 10) / 10, total: reviews.length };
+    // Use all visible reviews for accurate aggregate stats
+    const allRatingRows = (reviewAggResult.data ?? []) as { rating: number }[];
+    const totalReviews = reviewAggResult.count ?? allRatingRows.length;
+    if (totalReviews > 0) {
+      const sum = allRatingRows.reduce((s, r) => s + (r.rating ?? 0), 0);
+      const avg = sum / allRatingRows.length;
+      reviewStats = { average: Math.round(avg * 10) / 10, total: totalReviews };
     }
 
     const recentReviews: ReviewItem[] = reviews
@@ -240,16 +261,23 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
 /**
  * Load public menu data with two-level caching:
  *  1. unstable_cache  — persists the Supabase result in Next.js's data cache for 1 hour.
- *                       Invalidated on-demand by revalidateTag('menu-data') whenever the
+ *                       Invalidated on-demand by revalidateTag(`menu-data:${slug}`) whenever the
  *                       restaurant edits products, categories, or settings.
+ *                       Also tagged with the global 'menu-data' tag for admin-level purges.
  *  2. React.cache()   — deduplicates calls within the same render pass (page + metadata).
  *
  * Result: Supabase is only hit once per real menu change, not on every ISR regeneration.
+ * Per-restaurant tags ensure invalidating one restaurant does NOT flush all others.
  */
-const _fetchMenuDataCached = unstable_cache(
-  fetchMenuDataFromDB,
-  ['menu-data'],
-  { tags: ['menu-data'], revalidate: 3600 },
-);
+function makeMenuDataFetcher(slug: string) {
+  return unstable_cache(
+    () => fetchMenuDataFromDB(slug),
+    ['menu-data', slug],
+    { tags: ['menu-data', `menu-data:${slug}`], revalidate: 3600 },
+  );
+}
 
-export const fetchMenuData = cache(_fetchMenuDataCached);
+// React.cache deduplicates within a single render pass
+export const fetchMenuData = cache(async function fetchMenuData(slug: string) {
+  return makeMenuDataFetcher(slug)();
+});

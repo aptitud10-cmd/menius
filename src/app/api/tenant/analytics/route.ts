@@ -69,11 +69,34 @@ export async function GET(request: NextRequest) {
 
     const { data: restaurantInfo } = await supabase
       .from('restaurants')
-      .select('currency')
+      .select('currency, timezone')
       .eq('id', rid)
       .maybeSingle();
 
     const currency: string = restaurantInfo?.currency || 'MXN';
+    const timezone: string = (restaurantInfo as any)?.timezone || 'UTC';
+
+    // Helper: convert a UTC Date to the restaurant's local date string (YYYY-MM-DD)
+    const toLocalDate = (utcDateStr: string): string => {
+      try {
+        return new Date(utcDateStr).toLocaleDateString('en-CA', { timeZone: timezone });
+      } catch {
+        return utcDateStr.split('T')[0];
+      }
+    };
+
+    // Helper: get local hour (0-23) and day-of-week (0=Sun) for a UTC timestamp
+    const toLocalHourDow = (utcDateStr: string): { hour: number; dow: number } => {
+      try {
+        const d = new Date(utcDateStr);
+        const hour = Number(d.toLocaleString('en-US', { hour: 'numeric', hour12: false, timeZone: timezone })) % 24;
+        const dow = new Date(d.toLocaleDateString('en-US', { timeZone: timezone })).getDay();
+        return { hour, dow };
+      } catch {
+        const d = new Date(utcDateStr);
+        return { hour: d.getHours(), dow: d.getDay() };
+      }
+    };
 
     const [currentRes, prevRes] = await Promise.all([
       supabase
@@ -117,7 +140,7 @@ export async function GET(request: NextRequest) {
 
     const salesByDay: Record<string, { date: string; orders: number; revenue: number }> = {};
     for (const o of allOrders) {
-      const d = o.created_at.split('T')[0];
+      const d = toLocalDate(o.created_at);
       if (!salesByDay[d]) salesByDay[d] = { date: d, orders: 0, revenue: 0 };
       salesByDay[d].orders++;
       if (completedStatuses.includes(o.status)) {
@@ -131,12 +154,10 @@ export async function GET(request: NextRequest) {
     }
 
     const hourlyDistribution: number[] = new Array(24).fill(0);
-    // weeklyHeatmap[dayOfWeek 0=Sun][hour] = count
+    // weeklyHeatmap[dayOfWeek 0=Sun][hour] = count — all in restaurant's local timezone
     const weeklyHeatmap: number[][] = Array.from({ length: 7 }, () => new Array(24).fill(0));
     for (const o of allOrders) {
-      const d = new Date(o.created_at);
-      const hour = d.getHours();
-      const dow = d.getDay();
+      const { hour, dow } = toLocalHourDow(o.created_at);
       hourlyDistribution[hour]++;
       weeklyHeatmap[dow][hour]++;
     }
@@ -155,13 +176,16 @@ export async function GET(request: NextRequest) {
     }
 
 
-    const orderIds = allOrders.map(o => o.id);
+    // Only count items from non-cancelled orders for top products
+    const validOrderIds = allOrders
+      .filter(o => o.status !== 'cancelled')
+      .map(o => o.id);
     let topProducts: { name: string; qty: number; revenue: number }[] = [];
-    if (orderIds.length > 0) {
+    if (validOrderIds.length > 0) {
       const { data: items } = await supabase
         .from('order_items')
         .select('product_id, qty, line_total, products(name)')
-        .in('order_id', orderIds);
+        .in('order_id', validOrderIds);
 
       const productMap: Record<string, { name: string; qty: number; revenue: number }> = {};
       for (const item of (items ?? [])) {

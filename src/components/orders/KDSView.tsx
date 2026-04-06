@@ -239,21 +239,37 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
   useEffect(() => { updateTabTitle(active.length); }, [active.length, updateTabTitle]);
 
   /* Actions */
-  const bump = useCallback((id: string, next: OrderStatus) => {
+  const bump = useCallback(async (id: string, next: OrderStatus) => {
     const o = orders.find(x => x.id === id); if (!o) return;
     updateOrderLocally(id, { status: next });
-    if (navigator.onLine) { updateOrderStatus(id, next); }
-    else { offlineQueue.current.push({ id, status: next }); }
+    if (navigator.onLine) {
+      const result = await updateOrderStatus(id, next);
+      if (result?.error) {
+        updateOrderLocally(id, { status: o.status });
+        setOosToast({ msg: result.error, ok: false });
+        setTimeout(() => setOosToast(null), 4000);
+        return;
+      }
+    } else {
+      offlineQueue.current.push({ id, status: next });
+    }
     if (next === 'ready') playSound('success');
     if (undoRef.current) clearTimeout(undoRef.current);
     setUndo({ orderId: id, num: o.order_number, prev: o.status, next, ts: Date.now() });
     undoRef.current = setTimeout(() => setUndo(null), 5000);
   }, [orders, updateOrderLocally, playSound]);
 
-  const doUndo = useCallback(() => {
+  const doUndo = useCallback(async () => {
     if (!undo) return;
-    updateOrderLocally(undo.orderId, { status: undo.prev }); updateOrderStatus(undo.orderId, undo.prev);
+    const { orderId, prev, next } = undo;
+    updateOrderLocally(orderId, { status: prev });
     setUndo(null); if (undoRef.current) clearTimeout(undoRef.current);
+    const result = await updateOrderStatus(orderId, prev);
+    if (result?.error) {
+      updateOrderLocally(orderId, { status: next });
+      setOosToast({ msg: result.error, ok: false });
+      setTimeout(() => setOosToast(null), 4000);
+    }
   }, [undo, updateOrderLocally]);
 
   const doPause = () => {
@@ -264,7 +280,15 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
 
   const tog = (k: string, set: (v: boolean) => void, v: boolean) => { set(v); localStorage.setItem(k, String(v)); };
 
-  const recall = useCallback((id: string) => { updateOrderLocally(id, { status: 'ready' }); updateOrderStatus(id, 'ready'); }, [updateOrderLocally]);
+  const recall = useCallback(async (id: string) => {
+    updateOrderLocally(id, { status: 'ready' });
+    const result = await updateOrderStatus(id, 'ready');
+    if (result?.error) {
+      updateOrderLocally(id, { status: 'delivered' });
+      setOosToast({ msg: result.error, ok: false });
+      setTimeout(() => setOosToast(null), 4000);
+    }
+  }, [updateOrderLocally]);
 
   /* Keyboard shortcuts */
   useEffect(() => {
@@ -354,7 +378,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
         <div className="flex-1" />
 
         <span className="text-base font-black text-white tabular-nums font-mono tracking-wider">
-          {clock.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          {clock.toLocaleTimeString(isEn ? 'en-US' : 'es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </span>
 
         {pendingInCounter > 0 && (
@@ -527,7 +551,7 @@ export function KDSView({ initialOrders, restaurantId, restaurantName, currency,
         <span>{t.kds_today}: <span className="font-bold text-white">{formatPrice(todayTotal, currency)}</span></span>
         <span>{today.length} {today.length !== 1 ? t.kds_orderPlural : t.kds_orderSingular}</span>
         {avgTime !== null && <span>{t.kds_avgTime}: <span className="font-bold text-white">{avgTime} min</span></span>}
-        <span className="hidden sm:inline">{clock.toLocaleDateString('es-MX', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+        <span className="hidden sm:inline">{clock.toLocaleDateString(isEn ? 'en-US' : 'es-MX', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
         <span className="hidden lg:flex items-center gap-2 text-gray-600">
           <kbd className="px-1 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[9px]">Space</kbd>BUMP
           <kbd className="px-1 py-0.5 rounded bg-gray-800 text-gray-400 font-mono text-[9px]">←→</kbd>Nav
@@ -666,7 +690,7 @@ function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected,
   const table = (order as any).table?.name ?? (order as any).table_name ?? null;
   const items = order.items ?? [];
   const count = items.reduce((s, i: any) => s + i.qty, 0);
-  const created = new Date(order.created_at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+  const created = new Date(order.created_at).toLocaleTimeString(isEn ? 'en-US' : 'es-MX', { hour: '2-digit', minute: '2-digit' });
   const hasDetails = items.some((i: any) => i.variant || (i.order_item_extras?.length ?? 0) > 0 || (i.order_item_modifiers?.length ?? 0) > 0 || i.notes);
   const isPreparing = order.status === 'preparing';
   const allBumped = isPreparing && items.length > 0 && items.every((_, idx) => bumped.has(String(idx)));
@@ -842,7 +866,8 @@ function Ticket({ order, currency, busyExtra = 0, isNew, isExpanded, isSelected,
 function HRow({ order, currency, open, onToggle, onPrint, onRecall }: {
   order: Order; currency: string; open: boolean; onToggle: () => void; onPrint: () => void; onRecall: () => void;
 }) {
-  const { t } = useDashboardLocale();
+  const { t, locale } = useDashboardLocale();
+  const isEn = locale === 'en';
   const typeLabel: Record<string, string> = { dine_in: t.kds_table, pickup: t.kds_pickup, delivery: t.kds_delivery };
   const payLabel: Record<string, string> = { cash: t.kds_cash, online: t.kds_online };
   const tm = TYPE_META[order.order_type ?? ''];
@@ -893,7 +918,7 @@ function HRow({ order, currency, open, onToggle, onPrint, onRecall }: {
         <span className="text-gray-300">·</span>
         <span>{count} item{count !== 1 ? 's' : ''}</span>
         <span className="text-gray-300">·</span>
-        <span>{created.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
+        <span>{created.toLocaleTimeString(isEn ? 'en-US' : 'es-MX', { hour: '2-digit', minute: '2-digit' })}</span>
         {elapsed !== null && <><span className="text-gray-300">·</span><span>{elapsed} min</span></>}
         <span className="ml-auto font-bold text-gray-900 text-sm tabular-nums">{formatPrice(Number(order.total), currency)}</span>
       </div>

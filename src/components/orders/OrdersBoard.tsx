@@ -118,7 +118,9 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
     localStorage.setItem('menius-auto-print', String(on));
   }, []);
 
-  const { orders, updateOrderLocally } = useRealtimeOrders({
+  const [statusError, setStatusError] = useState<string | null>(null);
+
+  const { orders, updateOrderLocally, rtStatus } = useRealtimeOrders({
     restaurantId,
     initialOrders,
     onNewOrder: useCallback((order: Order) => {
@@ -196,8 +198,17 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
   }, []);
 
   const handleStatusChange = (orderId: string, newStatus: OrderStatus) => {
+    const prevOrder = orders.find((o) => o.id === orderId);
     updateOrderLocally(orderId, { status: newStatus });
-    startTransition(async () => { await updateOrderStatus(orderId, newStatus); });
+    startTransition(async () => {
+      const result = await updateOrderStatus(orderId, newStatus);
+      if (result?.error) {
+        // Revert optimistic update on failure
+        if (prevOrder) updateOrderLocally(orderId, { status: prevOrder.status });
+        setStatusError(result.error);
+        setTimeout(() => setStatusError(null), 4000);
+      }
+    });
   };
 
   const handleBulkAdvance = () => {
@@ -281,8 +292,14 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
           >
             {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
           </button>
-          <div className="flex items-center gap-1 text-xs text-gray-400 ml-0.5">
-            <Wifi className="w-3 h-3 text-emerald-500" />
+          <div
+            className="flex items-center gap-1 text-xs text-gray-400 ml-0.5"
+            title={rtStatus === 'connected' ? 'Tiempo real activo' : rtStatus === 'reconnecting' ? 'Reconectando…' : 'Sin conexión — modo polling'}
+          >
+            <Wifi className={cn(
+              'w-3 h-3',
+              rtStatus === 'connected' ? 'text-emerald-500' : rtStatus === 'reconnecting' ? 'text-amber-400 animate-pulse' : 'text-red-400'
+            )} />
           </div>
         </div>
       </div>
@@ -478,6 +495,14 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
           taxIncluded={taxIncluded}
           onClose={() => setPrintOrder(null)}
         />
+      )}
+
+      {/* Status update error toast */}
+      {statusError && (
+        <div className="fixed bottom-6 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl bg-red-600 text-white text-sm font-medium shadow-xl animate-in slide-in-from-bottom-2">
+          <XCircle className="w-4 h-4 flex-shrink-0" />
+          {statusError}
+        </div>
       )}
     </div>
   );

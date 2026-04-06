@@ -4,12 +4,15 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 /**
  * Invalidate Next.js cache for the public menu of a restaurant.
  * Call after any change to products, categories, modifiers, or public restaurant fields.
+ * Uses a per-restaurant tag so only this restaurant's cache entry is flushed,
+ * not all restaurants simultaneously.
  */
 export function revalidatePublicMenu(slug: string | null | undefined): void {
   if (!slug) return;
   revalidatePath(`/${slug}`);
   revalidatePath(`/${slug}/[table]`, 'layout');
-  revalidateTag('menu-data');
+  // Per-restaurant tag — invalidates only this slug's unstable_cache entry
+  revalidateTag(`menu-data:${slug}`);
 }
 
 /**

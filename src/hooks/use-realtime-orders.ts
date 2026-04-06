@@ -94,10 +94,11 @@ export function useRealtimeOrders({
     }));
 
     setOrders(prev => {
-      const prevIds = new Set(prev.map(o => o.id));
+      const fetchedMap = new Map(fetched.map(o => [o.id, o]));
+
       for (const order of fetched) {
         // New order detection — deduplicated via knownIdsRef
-        if (!prevIds.has(order.id) && !knownIdsRef.current.has(order.id)) {
+        if (!knownIdsRef.current.has(order.id)) {
           knownIdsRef.current.add(order.id);
           lastStatusRef.current.set(order.id, order.status);
           onNewOrderRef.current?.(order);
@@ -110,7 +111,16 @@ export function useRealtimeOrders({
           onOrderUpdateRef.current?.(order);
         }
       }
-      return fetched;
+
+      // Merge: update orders within the poll window, keep orders outside it unchanged
+      // This prevents older orders (loaded at initial page load) from disappearing.
+      const merged = prev.map(o => fetchedMap.get(o.id) ?? o);
+      const existingIds = new Set(prev.map(o => o.id));
+      for (const o of fetched) {
+        if (!existingIds.has(o.id)) merged.push(o);
+      }
+      merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      return merged;
     });
   }, [restaurantId]);
 

@@ -89,7 +89,14 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [initialFormSnapshot] = useState(() => JSON.stringify(form));
-  const isDirty = JSON.stringify(form) !== initialFormSnapshot;
+  const [initialHoursSnapshot] = useState(() => JSON.stringify(hours));
+  const [initialLogoSnapshot] = useState(() => logoUrl);
+  const [initialCoverSnapshot] = useState(() => coverUrl);
+  const isDirty =
+    JSON.stringify(form) !== initialFormSnapshot ||
+    JSON.stringify(hours) !== initialHoursSnapshot ||
+    logoUrl !== initialLogoSnapshot ||
+    coverUrl !== initialCoverSnapshot;
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -252,6 +259,26 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
   };
 
   const handleSave = async () => {
+    // Validate operating hours before saving
+    for (const day of DAYS) {
+      const h = hours[day.key];
+      if (!h.closed && !h.fullDay && h.open >= h.close) {
+        setError(
+          locale === 'en'
+            ? `${dayLabels[day.key]}: opening time must be before closing time`
+            : `${dayLabels[day.key]}: la hora de apertura debe ser antes de cierre`
+        );
+        return;
+      }
+    }
+
+    // Validate tax rate
+    const taxRate = Number(form.tax_rate);
+    if (isNaN(taxRate) || taxRate < 0 || taxRate > 100) {
+      setError(locale === 'en' ? 'Tax rate must be between 0 and 100' : 'La tasa de impuesto debe estar entre 0 y 100');
+      return;
+    }
+
     setSaving(true);
     setError('');
     setSaved(false);

@@ -298,6 +298,8 @@ export function ProductEditor({
           productName: form.name,
           description: form.description,
           category: selectedCategory?.name,
+          // Pass style anchor so kontext can maintain visual consistency across the category
+          ...(anchorUrl ? { style_anchor: anchorUrl } : {}),
         }),
       });
       const data = await res.json();
@@ -312,14 +314,20 @@ export function ProductEditor({
     } finally {
       setAiGenerating(false);
     }
-  }, [form.name, form.description, selectedCategory?.name, t]);
+  }, [form.name, form.description, selectedCategory?.name, anchorUrl, t]);
 
   const handleUrlSubmit = useCallback(() => {
     const url = urlValue.trim();
     if (!url) return;
+    let parsed: URL;
     try {
-      new URL(url);
+      parsed = new URL(url);
     } catch {
+      setError(t.editor_invalidURL);
+      return;
+    }
+    // Only allow http/https URLs to prevent javascript: or data: injection
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
       setError(t.editor_invalidURL);
       return;
     }

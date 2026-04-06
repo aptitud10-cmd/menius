@@ -375,14 +375,26 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
 
       if (loyaltyConfig?.enabled) {
+        const normalizedOrderPhone = parsed.data.customer_phone?.replace(/\D/g, '') ?? '';
         const { data: account } = await adminDb
           .from('loyalty_accounts')
-          .select('id, points')
+          .select('id, points, customer_phone')
           .eq('id', loyalty_account_id)
           .eq('restaurant_id', restaurant_id)
           .maybeSingle();
 
-        if (account && account.points >= loyaltyConfig.min_redeem_points) {
+        // Verify the account belongs to the phone number on this order
+        // — prevents someone using a known account_id to steal another customer's points
+        const accountPhone = account?.customer_phone?.replace(/\D/g, '') ?? '';
+        const phoneMatches = !normalizedOrderPhone || !accountPhone || accountPhone === normalizedOrderPhone;
+        if (account && !phoneMatches) {
+          logger.warn('Loyalty account phone mismatch — skipping redemption', {
+            account_id: loyalty_account_id,
+            restaurant_id,
+          });
+        }
+
+        if (account && phoneMatches && account.points >= loyaltyConfig.min_redeem_points) {
           // Clamp to what the customer actually has
           const pointsToRedeem = Math.min(loyalty_points_redeemed, account.points);
           loyaltyDiscountAmt = Math.min(

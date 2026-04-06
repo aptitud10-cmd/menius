@@ -81,8 +81,11 @@ export default function AnalyticsPage() {
   const [customStart, setCustomStart] = useState(() => formatDateForInput(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)));
   const [customEnd, setCustomEnd] = useState(() => formatDateForInput(new Date()));
 
-  const fetchData = useCallback(async () => {
-    if (period === 'custom' && customStart > customEnd) {
+  // For custom ranges we don't auto-fetch on every keystroke.
+  // fetchData only re-runs automatically when the preset period (7/14/30) changes.
+  // For custom ranges the user clicks "Apply".
+  const fetchData = useCallback(async (start = customStart, end = customEnd) => {
+    if (period === 'custom' && start > end) {
       setError(t.analytics_startBeforeEnd);
       setData(null);
       setLoading(false);
@@ -92,7 +95,7 @@ export default function AnalyticsPage() {
     setError(null);
     try {
       const params = period === 'custom'
-        ? `start=${customStart}&end=${customEnd}`
+        ? `start=${start}&end=${end}`
         : `days=${period}`;
       const res = await fetch(`/api/tenant/analytics?${params}`);
       const json = await res.json();
@@ -100,14 +103,16 @@ export default function AnalyticsPage() {
       if (!res.ok) throw new Error(t.analytics_errorLoading);
       setData(json);
     } catch (err) {
-      console.error('[Analytics] fetchData failed:', err);
       setError(err instanceof Error ? err.message : t.analytics_errorUnknown);
       setData(null);
     }
     setLoading(false);
-  }, [period, customStart, customEnd]);
+  }, [period, customStart, customEnd, t]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  // Only auto-fetch when a preset period changes, not on custom date edits
+  useEffect(() => {
+    if (period !== 'custom') fetchData();
+  }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -194,6 +199,13 @@ export default function AnalyticsPage() {
                   className="px-2.5 py-1.5 rounded-lg text-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                 />
               </div>
+              <button
+                onClick={() => fetchData(customStart, customEnd)}
+                disabled={loading || customStart > customEnd}
+                className="px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 disabled:opacity-50 transition-colors"
+              >
+                {t.analytics_retry}
+              </button>
             </div>
           )}
           <div className="flex gap-1">

@@ -58,6 +58,23 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'No hay cambios' }, { status: 400 });
     }
 
+    // Validate tax_rate — clamp to 0-100 to prevent nonsensical values
+    if (updates.tax_rate !== undefined) {
+      const rate = Number(updates.tax_rate);
+      if (isNaN(rate) || rate < 0 || rate > 100) {
+        return NextResponse.json({ error: 'La tasa de impuesto debe estar entre 0 y 100' }, { status: 400 });
+      }
+      updates.tax_rate = Math.round(rate * 1000) / 1000; // keep up to 3 decimal places
+    }
+
+    // Validate notification_email format if provided
+    if (updates.notification_email !== undefined && updates.notification_email !== '') {
+      const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRe.test(String(updates.notification_email))) {
+        return NextResponse.json({ error: 'El email de notificaciones no es válido' }, { status: 400 });
+      }
+    }
+
     const { data: restaurant, error } = await supabase
       .from('restaurants')
       .update(updates)

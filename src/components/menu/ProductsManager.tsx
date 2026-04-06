@@ -36,7 +36,8 @@ const BulkImageUploadLazy = lazy(() => import('./BulkImageUpload').then(m => ({ 
 const BulkAIImageGenerateLazy = lazy(() => import('./BulkAIImageGenerate').then(m => ({ default: m.BulkAIImageGenerate })));
 const AdminBulkRegenerateLazy = lazy(() => import('./AdminBulkRegenerate').then(m => ({ default: m.AdminBulkRegenerate })));
 
-const BUCCANEER_ID = 'a1f5af6a-1805-49d2-b494-f074ac657357';
+// Admin debug feature — read from env so the UUID is not baked into the client bundle
+const ADMIN_REGEN_RESTAURANT_ID = process.env.NEXT_PUBLIC_ADMIN_REGEN_RESTAURANT_ID ?? '';
 
 // ─── Inline price cell ──────────────────────────────────────────
 
@@ -362,7 +363,7 @@ export function ProductsManager({
           <button onClick={() => setShowImport(true)} className="dash-btn-secondary">
             <Sparkles className="w-4 h-4" /> {t.products_importAI}
           </button>
-          {restaurantId === BUCCANEER_ID && (
+          {ADMIN_REGEN_RESTAURANT_ID && restaurantId === ADMIN_REGEN_RESTAURANT_ID && (
             <button
               onClick={() => setShowAdminRegen(true)}
               className="dash-btn-secondary border-amber-300 text-amber-700 hover:bg-amber-50"
