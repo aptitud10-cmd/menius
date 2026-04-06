@@ -48,12 +48,9 @@ export async function validateApiKey(req: NextRequest): Promise<ApiKeyInfo | nul
   if (!key) return null;
 
   // Update last_used_at — fire-and-forget, never block the response
-  admin
-    .from('api_keys')
-    .update({ last_used_at: new Date().toISOString() })
-    .eq('id', key.id)
-    .then(() => {})
-    .catch(() => {});
+  void Promise.resolve(
+    admin.from('api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', key.id),
+  ).catch(() => {});
 
   return { restaurantId: key.restaurant_id, keyId: key.id };
 }

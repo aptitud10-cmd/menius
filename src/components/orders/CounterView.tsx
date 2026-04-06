@@ -731,7 +731,7 @@ export function CounterView({
       updateOrderLocally(order.id, { status: order.status }); // revert
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, [eta, busyExtra, restaurantName, currency, autoPrint, t, updateOrderLocally]);
+  }, [eta, busyExtra, restaurantName, currency, autoPrint, t, updateOrderLocally, locale, taxLabel, taxIncluded, showNotif]);
 
   const handleMarkReady = useCallback(async (order: Order) => {
     setUpdatingId(order.id);
@@ -751,7 +751,7 @@ export function CounterView({
       updateOrderLocally(order.id, { status: order.status }); // revert
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, [t, updateOrderLocally]);
+  }, [t, updateOrderLocally, showNotif]);
 
   const handleMarkServed = useCallback(async (order: Order) => {
     setUpdatingId(order.id);
@@ -771,7 +771,7 @@ export function CounterView({
       updateOrderLocally(order.id, { status: order.status }); // revert
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, [t, updateOrderLocally]);
+  }, [t, updateOrderLocally, showNotif]);
 
   // ── Edit order items ──────────────────────────────────────────────────────
   const openEditItems = useCallback(async (orderId: string) => {
@@ -805,7 +805,7 @@ export function CounterView({
       setSuccessToast(t.en ? 'Item added' : 'Producto agregado');
     } catch { setErrorToast(t.en ? 'Error adding item' : 'Error al agregar'); }
     setEditSaving(false);
-  }, [t.en]);
+  }, [t.en, orders, updateOrderLocally]);
 
   const handleRemoveItem = useCallback(async (orderId: string, itemId: string) => {
     setEditSaving(true);
@@ -823,7 +823,7 @@ export function CounterView({
       }
     } catch { setErrorToast(t.en ? 'Error removing item' : 'Error al eliminar'); }
     setEditSaving(false);
-  }, [t.en]);
+  }, [t.en, orders, updateOrderLocally]);
 
   const handleDeliver = useCallback(async (order: Order) => {
     // For cash or unset payment, offer split/mixed payment before marking delivered
@@ -900,7 +900,7 @@ export function CounterView({
     } catch {
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, [cancelModal, cancelReason, t]);
+  }, [cancelModal, cancelReason, t, showNotif]);
 
   const handleAssignDriver = useCallback(async () => {
     if (!driverModal) return;
@@ -3167,7 +3167,7 @@ function NewOrderSplash({
             return (
               <div key={i} className="flex-1 bg-white/20 rounded-xl p-2.5 flex items-center gap-2 min-w-0">
                 {img ? (
-                  <img src={img} alt={name} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+                  <Image src={img} alt={name} width={32} height={32} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" unoptimized />
                 ) : (
                   <div className="w-8 h-8 rounded-lg bg-white/30 flex-shrink-0 flex items-center justify-center text-base">🍽️</div>
                 )}

@@ -718,7 +718,7 @@ export function ProductEditor({
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-md overflow-hidden flex-shrink-0">
-                          <img src={anchorUrl} alt="anchor" className="w-full h-full object-cover" />
+                          <Image src={anchorUrl} alt="anchor" width={24} height={24} className="w-full h-full object-cover" unoptimized />
                         </div>
                         <span className="text-xs text-emerald-700 font-medium flex items-center gap-1">
                           <Anchor className="w-3 h-3" />
