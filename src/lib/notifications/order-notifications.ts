@@ -367,9 +367,9 @@ export async function notifyStatusChange(params: {
         // Clean up subscriptions after terminal statuses — no more updates coming
         if (TERMINAL_STATUSES.includes(status)) {
           const adminDb = createAdminClient();
-          adminDb.from('push_subscriptions').delete().eq('order_id', orderId)
-            .then(() => {})
-            .catch(() => {});
+          void Promise.resolve(
+            adminDb.from('push_subscriptions').delete().eq('order_id', orderId),
+          ).catch(() => {});
         }
       }).catch(() => {});
     }

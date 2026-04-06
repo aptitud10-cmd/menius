@@ -264,7 +264,7 @@ function QRTableCard({ table, onDelete, onEdit, onStatusChange, onCapacityChange
       brandedCanvasRef.current = card;
       setQrReady(true);
     });
-  }, [table.qr_code_value, table.name, restaurantName]);
+  }, [table.qr_code_value, table.name, restaurantName, t.tables_scanToView]);
 
   const downloadBrandedQR = () => {
     if (!brandedCanvasRef.current) return;
@@ -509,7 +509,7 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
       brandedCanvasRef.current = card;
       setQrReady(true);
     });
-  }, [menuUrl, name]);
+  }, [menuUrl, name, t.tables_orderFromPhone]);
 
   const downloadQR = () => {
     if (!brandedCanvasRef.current) return;

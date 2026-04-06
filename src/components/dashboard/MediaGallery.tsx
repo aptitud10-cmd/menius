@@ -56,7 +56,7 @@ export function MediaGallery() {
     } finally {
       setLoading(false);
     }
-  }, [toastError]);
+  }, [toastError, t.media_errorLoading]);
 
   useEffect(() => { fetchImages(); }, [fetchImages]);
 

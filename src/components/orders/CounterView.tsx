@@ -480,7 +480,7 @@ export function CounterView({
     setSuccessToast(msg);
     setTimeout(() => setSuccessToast(null), 3000);
   };
-  const showNotif = (result: { channel: string; success: boolean; error?: string }, orderId?: string) => {
+  const showNotif = useCallback((result: { channel: string; success: boolean; error?: string }, orderId?: string) => {
     let text: string;
     if (result.channel === 'whatsapp' && result.success) text = t.notifSentWa;
     else if (result.channel === 'sms' && result.success) text = t.notifSentSms;
@@ -493,7 +493,7 @@ export function CounterView({
     if (orderId) {
       setNotifStatus(prev => ({ ...prev, [orderId]: { ...result, time: Date.now() } }));
     }
-  };
+  }, [t.notifSentWa, t.notifSentSms, t.notifFallback, t.notifSentEmail, t.notifNoContact, t.notifFailed]);
 
   // ── Effects ──
 
