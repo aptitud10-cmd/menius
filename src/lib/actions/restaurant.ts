@@ -800,13 +800,24 @@ export async function updateTable(id: string, newName: string) {
   return { success: true };
 }
 
+const VALID_TABLE_STATUSES = ['available', 'occupied', 'reserved'] as const;
+
 export async function updateTableMeta(id: string, data: { status?: string; capacity?: number }) {
   const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
   const payload: Record<string, unknown> = {};
-  if (data.status) payload.status = data.status;
-  if (data.capacity !== undefined) payload.capacity = data.capacity;
+  if (data.status) {
+    if (!VALID_TABLE_STATUSES.includes(data.status as typeof VALID_TABLE_STATUSES[number])) {
+      return { error: 'Estado de mesa inválido' };
+    }
+    payload.status = data.status;
+  }
+  if (data.capacity !== undefined) {
+    const cap = Math.round(data.capacity);
+    if (cap < 1 || cap > 200) return { error: 'Capacidad inválida (1–200)' };
+    payload.capacity = cap;
+  }
 
   const { error } = await supabase
     .from('tables')

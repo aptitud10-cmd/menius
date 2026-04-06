@@ -5,5 +5,5 @@ interface PageProps {
 }
 
 export default function TableMenuRedirect({ params }: PageProps) {
-  permanentRedirect(`/${params.slug}?table=${params.table}`);
+  permanentRedirect(`/${params.slug}?table=${encodeURIComponent(params.table)}`);
 }

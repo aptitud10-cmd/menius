@@ -280,9 +280,7 @@ function QRTableCard({ table, onDelete, onEdit, onStatusChange, onCapacityChange
       await navigator.clipboard.writeText(table.qr_code_value);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('[TablesManager] copyLink failed:', err);
-    }
+    } catch { /* clipboard unavailable or permission denied */ }
   };
 
   const shareLink = async () => {
@@ -294,9 +292,7 @@ function QRTableCard({ table, onDelete, onEdit, onStatusChange, onCapacityChange
           text: `Escanea o visita el enlace para ver el menú`,
           url: table.qr_code_value,
         });
-      } catch (err) {
-        console.error('[TablesManager] shareLink failed:', err);
-      }
+      } catch { /* user cancelled or share unsupported */ }
     } else {
       copyLink();
     }
@@ -524,9 +520,7 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
       await navigator.clipboard.writeText(menuUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('[TablesManager] copyLink (menu) failed:', err);
-    }
+    } catch { /* clipboard unavailable or permission denied */ }
   };
 
   const shareNative = async () => {
@@ -537,9 +531,7 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
           text: `¡Mira nuestro menú digital! Pide y paga desde tu celular.`,
           url: menuUrl,
         });
-      } catch (err) {
-        console.error('[TablesManager] shareNative failed:', err);
-      }
+      } catch { /* user cancelled or share unsupported */ }
     } else {
       copyLink();
     }
