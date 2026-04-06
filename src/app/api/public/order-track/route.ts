@@ -27,13 +27,16 @@ export async function GET(req: NextRequest) {
   try {
     const db = createAdminClient();
 
-    // Only select fields needed for the tracking UI — never expose payment tokens or raw PII fields
+    // Only select fields needed for the tracking UI — never expose payment tokens or internal tokens
     const { data: order, error } = await db
       .from('orders')
       .select(`
         id, order_number, status, order_type, total, subtotal, tax_amount, tip_amount,
         delivery_fee, discount_amount, payment_method, notes, created_at, updated_at,
-        customer_name, delivery_address, estimated_delivery_minutes,
+        customer_name, customer_phone, customer_email, delivery_address,
+        estimated_ready_minutes,
+        driver_lat, driver_lng, driver_picked_up_at, driver_at_door_at, driver_delivered_at,
+        delivery_photo_url,
         table:table_id(name),
         order_items(
           id, qty, unit_price, line_total, notes,

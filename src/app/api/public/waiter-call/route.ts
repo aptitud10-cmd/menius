@@ -10,8 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendWhatsApp } from '@/lib/notifications/whatsapp';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { UUID_RE } from '@/lib/constants';
 
 export async function POST(req: NextRequest) {
   const ip = getClientIP(req);

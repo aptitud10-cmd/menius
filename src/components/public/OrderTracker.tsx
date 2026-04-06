@@ -1096,12 +1096,12 @@ function ReviewPrompt({ restaurantId, orderId, customerName, locale }: { restaur
       const res = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ restaurant_id: restaurantId, order_id: orderId, customer_name: customerName, rating, comment }),
+        body: JSON.stringify({ restaurant_id: restaurantId, order_id: orderId, customer_name: customerName, rating, comment, _hp: '' }),
       });
-      if (res.ok) setSubmitted(true);
-    } catch (err) {
-      console.error('[OrderTracker] submit review failed:', err);
-    } finally { setSubmitting(false); }
+      // 409 = already reviewed; treat as success
+      if (res.ok || res.status === 409) setSubmitted(true);
+    } catch { /* silent — inline prompt, no critical path */ }
+    finally { setSubmitting(false); }
   };
 
   if (submitted) {
@@ -1125,7 +1125,7 @@ function ReviewPrompt({ restaurantId, orderId, customerName, locale }: { restaur
       </div>
       <textarea
         value={comment} onChange={e => setComment(e.target.value)}
-        placeholder={t.reviewPlaceholder} rows={2}
+        placeholder={t.reviewPlaceholder} rows={2} maxLength={500}
         className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 resize-none mb-3"
       />
       <button
