@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
@@ -31,34 +32,29 @@ type Audience = 'all' | 'inactive_30' | 'inactive_60' | 'vip';
 async function getCustomers(supabase: ReturnType<typeof createClient>, restaurantId: string, audience: Audience) {
   const now = new Date();
 
+  // Base filter: always exclude unsubscribed customers and those without phone
+  const baseQuery = () => supabase
+    .from('customers')
+    .select('id, name, phone, tags')
+    .eq('restaurant_id', restaurantId)
+    .not('phone', 'is', null)
+    .not('tags', 'cs', '{"unsubscribed"}');
+
   if (audience === 'inactive_30' || audience === 'inactive_60') {
     const days = audience === 'inactive_30' ? 30 : 60;
     const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
-    const { data } = await supabase
-      .from('customers')
-      .select('id, name, phone, last_order_at')
-      .eq('restaurant_id', restaurantId)
-      .not('phone', 'is', null)
+    const { data } = await baseQuery()
       .or(`last_order_at.lt.${cutoff},last_order_at.is.null`);
     return data ?? [];
   }
 
   if (audience === 'vip') {
-    const { data } = await supabase
-      .from('customers')
-      .select('id, name, phone, total_orders')
-      .eq('restaurant_id', restaurantId)
-      .not('phone', 'is', null)
-      .gte('total_orders', 5);
+    const { data } = await baseQuery().gte('total_orders', 5);
     return data ?? [];
   }
 
   // 'all'
-  const { data } = await supabase
-    .from('customers')
-    .select('id, name, phone')
-    .eq('restaurant_id', restaurantId)
-    .not('phone', 'is', null);
+  const { data } = await baseQuery();
   return data ?? [];
 }
 

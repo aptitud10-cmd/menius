@@ -82,7 +82,8 @@ export async function POST(request: NextRequest) {
       .select('id, name, phone, total_orders, total_spent')
       .eq('restaurant_id', tenant.restaurantId)
       .not('phone', 'is', null)
-      .neq('phone', '');
+      .neq('phone', '')
+      .not('tags', 'cs', '{"unsubscribed"}');
 
     if (filter === 'vip') query = query.gte('total_orders', 5);
     else if (filter === 'inactive') {
