@@ -248,27 +248,33 @@ export function CartPanel({
                       <div className="flex items-start justify-between gap-1">
                         <div className="min-w-0">
                           <h4 className="font-semibold text-sm text-gray-900 truncate leading-tight">{item.product.name}</h4>
-                          {item.variant && (item.modifierSelections ?? []).length === 0 && (
-                            <span className="inline-flex items-center mt-0.5 px-1.5 py-0.5 rounded bg-[#e6faf7] text-xs font-medium text-[#05c8a7]">
-                              {item.variant.name}
-                            </span>
-                          )}
                         </div>
                         <div className="flex-shrink-0 p-1.5 text-gray-300" aria-hidden>
                           <Pencil className="w-3 h-3" />
                         </div>
                       </div>
 
-                      {/* Modifier selections */}
-                      {(item.modifierSelections ?? []).length > 0 && (
-                        <p className="text-xs text-gray-400 truncate mt-0.5">
-                          {(item.modifierSelections ?? []).flatMap(ms => ms.selectedOptions.map(o => o.name)).join(', ')}
-                        </p>
-                      )}
-                      {(item.modifierSelections ?? []).length === 0 && item.extras.length > 0 && (
-                        <p className="text-xs text-gray-400 truncate mt-0.5">
-                          +{item.extras.map((e) => e.name).join(', ')}
-                        </p>
+                      {/* Variant + Modifier chips */}
+                      {(item.variant || (item.modifierSelections ?? []).length > 0 || item.extras.length > 0) && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {item.variant && (
+                            <span className="px-1.5 py-0.5 rounded bg-[#e6faf7] text-[10px] font-semibold text-[#047a65]">
+                              {item.variant.name}
+                            </span>
+                          )}
+                          {(item.modifierSelections ?? []).flatMap(ms =>
+                            ms.selectedOptions.map(o => (
+                              <span key={`${ms.group.id}-${o.id}`} className="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-medium text-gray-600">
+                                {o.name}{Number(o.price_delta) > 0 ? ` +${fmtPrice(Number(o.price_delta))}` : ''}
+                              </span>
+                            ))
+                          )}
+                          {(item.modifierSelections ?? []).length === 0 && item.extras.map(e => (
+                            <span key={e.id} className="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-medium text-gray-600">
+                              +{e.name}
+                            </span>
+                          ))}
+                        </div>
                       )}
                       {item.notes && (
                         <p className="text-xs text-gray-400 italic truncate">&quot;{item.notes}&quot;</p>
@@ -329,39 +335,71 @@ export function CartPanel({
         </AnimatePresence>
       </div>
 
-      {/* ── Footer: subtotal + checkout only ── */}
-      <div className="border-t border-gray-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex-shrink-0">
+      {/* ── Footer: breakdown + checkout ── */}
+      <div className="border-t border-gray-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex-shrink-0">
         {!!estimatedMinutes && estimatedMinutes > 0 && (
           <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-2">
             <Clock className="w-3.5 h-3.5" />
             <span>~{estimatedMinutes} min</span>
           </div>
         )}
-        <div className="flex justify-between items-baseline mb-2">
-          <span className="text-sm font-medium text-gray-500">{t.subtotal}</span>
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={cartTotal}
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-              className="text-lg font-extrabold text-gray-900 tabular-nums"
-            >
-              {fmtPrice(cartTotal)}
-            </motion.span>
-          </AnimatePresence>
-        </div>
-        {deliveryFee != null && deliveryFee > 0 && (
-          <div className="flex justify-between items-baseline text-xs mb-2">
-            <span className="text-gray-400">{t.delivery}</span>
-            <span className="text-gray-500 tabular-nums">+{fmtPrice(deliveryFee)}</span>
+
+        {/* Price breakdown — only show rows when there's more than subtotal */}
+        {deliveryFee != null && deliveryFee >= 0 ? (
+          <div className="space-y-1 mb-3">
+            <div className="flex justify-between items-baseline">
+              <span className="text-xs text-gray-400">{t.subtotal}</span>
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={cartTotal}
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 6 }}
+                  transition={{ duration: 0.15 }}
+                  className="text-xs font-semibold text-gray-600 tabular-nums"
+                >
+                  {fmtPrice(cartTotal)}
+                </motion.span>
+              </AnimatePresence>
+            </div>
+            <div className="flex justify-between items-baseline">
+              <span className="text-xs text-gray-400">{t.delivery}</span>
+              {deliveryFee > 0
+                ? <span className="text-xs font-semibold text-gray-600 tabular-nums">+{fmtPrice(deliveryFee)}</span>
+                : <span className="text-xs font-semibold text-[#05c8a7]">{t.freeDelivery}</span>
+              }
+            </div>
+            <div className="flex justify-between items-baseline border-t border-gray-100 pt-1.5 mt-1">
+              <span className="text-sm font-bold text-gray-900">{t.total}</span>
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={cartTotal + (deliveryFee ?? 0)}
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 6 }}
+                  transition={{ duration: 0.15 }}
+                  className="text-lg font-extrabold text-gray-900 tabular-nums"
+                >
+                  {fmtPrice(cartTotal + (deliveryFee > 0 ? deliveryFee : 0))}
+                </motion.span>
+              </AnimatePresence>
+            </div>
           </div>
-        )}
-        {deliveryFee != null && deliveryFee === 0 && (
-          <div className="flex justify-between items-baseline text-xs mb-2">
-            <span className="text-gray-400">{t.delivery}</span>
-            <span className="text-[#05c8a7] font-medium">{t.freeDelivery}</span>
+        ) : (
+          <div className="flex justify-between items-baseline mb-3">
+            <span className="text-sm font-bold text-gray-900">{t.total}</span>
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={cartTotal}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                className="text-lg font-extrabold text-gray-900 tabular-nums"
+              >
+                {fmtPrice(cartTotal)}
+              </motion.span>
+            </AnimatePresence>
           </div>
         )}
         <motion.button

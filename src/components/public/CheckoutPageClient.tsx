@@ -154,6 +154,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [demoPayProcessing, setDemoPayProcessing] = useState(false);
   const tipAmount = tipPercent !== null ? Math.round(cartTotal * tipPercent) / 100 : 0;
 
+  // Reactive form validation — drives CTA disabled state
+  const isFormReady = Boolean(
+    customerName.trim().length >= 2 &&
+    customerPhone.trim().length >= 7 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim()) &&
+    (orderType !== 'delivery' || deliveryAddress.trim().length > 0)
+  );
+
   const promoDiscount = promoResult?.valid ? promoResult.discount : 0;
 
   // Loyalty discount derived from applied points
@@ -1319,12 +1327,19 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             </motion.div>
           )}
         </AnimatePresence>
-        <div className="max-w-lg mx-auto">
+        <div className="max-w-lg mx-auto space-y-2">
+          {!isFormReady && !submitting && items.length > 0 && (
+            <p className="text-center text-xs text-gray-400">
+              {locale === 'es'
+                ? 'Completa nombre, teléfono y email para continuar'
+                : 'Enter your name, phone and email to continue'}
+            </p>
+          )}
           <button
             onClick={handleSubmitOrder}
-            disabled={submitting || items.length === 0}
+            disabled={submitting || items.length === 0 || !isFormReady}
             aria-label={locale === 'es' ? 'Confirmar orden' : 'Place order'}
-            className="w-full py-5 rounded-2xl bg-[#05c8a7] text-white font-extrabold text-[17px] active:scale-[0.98] transition-all duration-150 disabled:opacity-50 shadow-[0_4px_20px_rgba(5,200,167,0.35)]"
+            className="w-full py-5 rounded-2xl bg-[#05c8a7] text-white font-extrabold text-[17px] active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(5,200,167,0.35)]"
           >
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
