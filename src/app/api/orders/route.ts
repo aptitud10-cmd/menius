@@ -80,7 +80,11 @@ export async function POST(request: NextRequest) {
     const promo_code = sanitizeText(body.promo_code, 50);
     const discount_amount = body.discount_amount;
     const loyalty_points_redeemed = Number(body.loyalty_points_redeemed) || 0;
-    const loyalty_account_id = typeof body.loyalty_account_id === 'string' ? body.loyalty_account_id : null;
+    const UUID_RE_LOCAL = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const loyalty_account_id =
+      typeof body.loyalty_account_id === 'string' && UUID_RE_LOCAL.test(body.loyalty_account_id)
+        ? body.loyalty_account_id
+        : null;
     const order_type = sanitizeText(body.order_type, 20);
     const payment_method = sanitizeText(body.payment_method, 20);
     const delivery_address = sanitizeMultiline(body.delivery_address, 300);
@@ -494,31 +498,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Error guardando items' }, { status: 500 });
     }
 
-    // Deduct loyalty points after successful order creation (non-blocking)
+    // Deduct loyalty points synchronously after successful order creation.
+    // The .gte('points', validatedLoyaltyPoints) guard provides best-effort
+    // atomicity — PostgREST translates this to a single SQL UPDATE with WHERE
+    // points >= X, so concurrent redemptions that drain the balance won't apply.
     if (validatedLoyaltyPoints > 0 && loyalty_account_id) {
-      void (async () => {
-        try {
-          const { data: account } = await adminDb
-            .from('loyalty_accounts')
-            .select('points, lifetime_points')
-            .eq('id', loyalty_account_id)
-            .maybeSingle();
-          if (account) {
-            const newPoints = Math.max(0, account.points - validatedLoyaltyPoints);
-            await Promise.all([
-              adminDb.from('loyalty_accounts').update({ points: newPoints }).eq('id', loyalty_account_id),
-              adminDb.from('loyalty_transactions').insert({
-                restaurant_id,
-                account_id: loyalty_account_id,
-                order_id: order.id,
-                type: 'redeem',
-                points: -validatedLoyaltyPoints,
-                description: `Redeemed at checkout — order #${order.order_number}`,
-              }),
-            ]);
-          }
-        } catch { /* non-critical */ }
-      })();
+      try {
+        const { data: freshAccount } = await adminDb
+          .from('loyalty_accounts')
+          .select('points')
+          .eq('id', loyalty_account_id)
+          .eq('restaurant_id', restaurant_id)
+          .maybeSingle();
+
+        if (freshAccount && freshAccount.points >= validatedLoyaltyPoints) {
+          const newPoints = Math.max(0, freshAccount.points - validatedLoyaltyPoints);
+          await Promise.all([
+            adminDb
+              .from('loyalty_accounts')
+              .update({ points: newPoints, updated_at: new Date().toISOString() })
+              .eq('id', loyalty_account_id)
+              .eq('restaurant_id', restaurant_id)
+              .gte('points', validatedLoyaltyPoints),
+            adminDb.from('loyalty_transactions').insert({
+              restaurant_id,
+              account_id: loyalty_account_id,
+              order_id: order.id,
+              type: 'redeem',
+              points: -validatedLoyaltyPoints,
+              description: `Redeemed at checkout — order #${order.order_number}`,
+            }),
+          ]);
+        }
+      } catch { /* non-critical — order already saved */ }
     }
 
     const orderedItems = insertedItems ?? [];
