@@ -94,7 +94,9 @@ export async function GET(request: NextRequest) {
     const allOrders = currentRes.data ?? [];
     const prevOrders = prevRes.data ?? [];
 
-    const completedStatuses = ['completed', 'delivered', 'ready'];
+    // 'ready' is excluded — it means food is prepared but not yet paid/delivered.
+    // Revenue is counted only for truly finalised orders.
+    const completedStatuses = ['completed', 'delivered'];
     const completedOrders = allOrders.filter(o => completedStatuses.includes(o.status));
     const prevCompleted = prevOrders.filter(o => completedStatuses.includes(o.status));
 
@@ -139,13 +141,16 @@ export async function GET(request: NextRequest) {
       weeklyHeatmap[dow][hour]++;
     }
 
-    const peakHour = hourlyDistribution.indexOf(Math.max(...hourlyDistribution));
-    const peakHourLabel = `${peakHour.toString().padStart(2, '0')}:00 - ${((peakHour + 1) % 24).toString().padStart(2, '0')}:00`;
+    const maxOrdersInHour = Math.max(...hourlyDistribution);
+    const peakHour = maxOrdersInHour > 0 ? hourlyDistribution.indexOf(maxOrdersInHour) : null;
+    const peakHourLabel = peakHour !== null
+      ? `${peakHour.toString().padStart(2, '0')}:00 - ${((peakHour + 1) % 24).toString().padStart(2, '0')}:00`
+      : null;
 
     // Order type breakdown
     const orderTypeCount: Record<string, number> = {};
     for (const o of allOrders) {
-      const ot = (o as any).order_type ?? 'unknown';
+      const ot = o.order_type ?? 'unknown';
       orderTypeCount[ot] = (orderTypeCount[ot] || 0) + 1;
     }
 
@@ -161,7 +166,7 @@ export async function GET(request: NextRequest) {
       const productMap: Record<string, { name: string; qty: number; revenue: number }> = {};
       for (const item of (items ?? [])) {
         const pid = item.product_id;
-        const pname = (item as any).products?.name ?? 'Desconocido';
+        const pname = (item as { products: { name: string } | null }).products?.name ?? 'Desconocido';
         if (!productMap[pid]) productMap[pid] = { name: pname, qty: 0, revenue: 0 };
         productMap[pid].qty += item.qty;
         productMap[pid].revenue += Number(item.line_total);

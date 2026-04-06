@@ -1,4 +1,3 @@
-
 import webpush from 'web-push';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
@@ -39,8 +38,9 @@ export async function sendPushToOrder(orderId: string, payload: PushPayload): Pr
       subs.map(async ({ subscription }) => {
         try {
           await webpush.sendNotification(subscription, message);
-        } catch (err: any) {
-          if (err?.statusCode === 410 || err?.statusCode === 404) {
+        } catch (err) {
+          const statusCode = (err as { statusCode?: number })?.statusCode;
+          if (statusCode === 410 || statusCode === 404) {
             // Subscription expired — clean up
             void adminDb.from('push_subscriptions').delete().eq('subscription', subscription);
           }

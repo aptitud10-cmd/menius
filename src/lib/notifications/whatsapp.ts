@@ -6,6 +6,10 @@
  *   WHATSAPP_API_URL  — optional, defaults to https://graph.facebook.com/v19.0
  */
 
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('whatsapp');
+
 interface WhatsAppMessage {
   to: string;
   text: string;
@@ -17,7 +21,7 @@ export async function sendWhatsApp({ to, text }: WhatsAppMessage): Promise<{ suc
   const apiBase = (process.env.WHATSAPP_API_URL ?? 'https://graph.facebook.com/v19.0').replace(/\/$/, '');
 
   if (!token || !phoneId) {
-    console.error('[WhatsApp] ❌ MISSING ENV VARS — WHATSAPP_TOKEN or WHATSAPP_PHONE_ID not configured in Vercel. Messages will NOT be sent until these are set.');
+    logger.error('Missing env vars — WHATSAPP_TOKEN or WHATSAPP_PHONE_ID not set. Messages will NOT be sent.');
     return { success: false };
   }
 
@@ -25,13 +29,13 @@ export async function sendWhatsApp({ to, text }: WhatsAppMessage): Promise<{ suc
   const digits = to.replace(/[^0-9]/g, '');
 
   if (!digits || digits.length < 7) {
-    console.error(`[WhatsApp] ❌ Invalid phone number: "${to}" → digits="${digits}". Check that the customer entered a valid number with country code.`);
+    logger.error('Invalid phone number', { to, digits });
     return { success: false };
   }
 
   const url = `${apiBase}/${phoneId}/messages`;
 
-  console.info(`[WhatsApp] → Sending to ${digits} via phoneId=${phoneId}`);
+  logger.info('Sending message', { to: digits, phoneId });
 
   try {
     const res = await fetch(url, {
@@ -50,19 +54,19 @@ export async function sendWhatsApp({ to, text }: WhatsAppMessage): Promise<{ suc
 
     if (!res.ok) {
       const errBody = await res.text();
-      console.error(`[WhatsApp] ❌ Meta API error (HTTP ${res.status}) to ${digits}:`, errBody);
       // Common errors:
       // 131047 = message failed to send because >24h since customer last message (need approved template)
       // 131026 = recipient not a valid WhatsApp number
       // 190    = token expired or invalid
+      logger.error('Meta API error', { status: res.status, to: digits, body: errBody });
       return { success: false };
     }
 
-    const responseBody = await res.json().catch(() => ({}));
-    console.info(`[WhatsApp] ✅ Sent to ${digits}. Message ID:`, (responseBody as any)?.messages?.[0]?.id ?? 'unknown');
+    const responseBody = await res.json().catch(() => ({})) as { messages?: { id: string }[] };
+    logger.info('Message sent', { to: digits, messageId: responseBody?.messages?.[0]?.id ?? 'unknown' });
     return { success: true };
   } catch (err) {
-    console.error('[WhatsApp] ❌ Network error sending to', digits, ':', err);
+    logger.error('Network error sending message', { to: digits, error: err instanceof Error ? err.message : String(err) });
     return { success: false };
   }
 }

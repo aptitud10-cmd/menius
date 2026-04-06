@@ -68,8 +68,8 @@ export function PushOptIn({ orderId }: PushOptInProps) {
         setState('subscribed');
         try { navigator?.vibrate?.(10); } catch {}
       }
-    } catch (err) {
-      console.error('[PushOptIn] Error:', err);
+    } catch {
+      // Subscription failed — silently reset so user can try again
     } finally {
       setLoading(false);
     }

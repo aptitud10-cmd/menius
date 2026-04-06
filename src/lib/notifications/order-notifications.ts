@@ -9,6 +9,9 @@ import {
 import { sendSMS, resolveChannel, formatStatusUpdateSMS, formatOrderConfirmationSMS } from './sms';
 import { sendEmail, buildOrderConfirmationEmail, buildStatusUpdateEmail, buildOwnerNewOrderEmail, buildPaymentReceiptEmail, type OrderEmailItem } from './email';
 import { formatPrice } from '@/lib/utils';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('order-notifications');
 
 interface RestaurantNotificationData {
   id?: string;
@@ -354,17 +357,26 @@ export async function notifyStatusChange(params: {
 
     // Push notification — fire-and-forget
     if (orderId) {
+      const TERMINAL_STATUSES = ['delivered', 'completed', 'cancelled'];
       import('./push').then(({ sendPushToOrder, getStatusPushPayload }) => {
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
         const trackUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}`;
         const payload = getStatusPushPayload(status, orderNumber, restaurant.name, trackUrl, rLocale, orderType);
         sendPushToOrder(orderId, payload).catch(() => {});
+
+        // Clean up subscriptions after terminal statuses — no more updates coming
+        if (TERMINAL_STATUSES.includes(status)) {
+          const adminDb = createAdminClient();
+          adminDb.from('push_subscriptions').delete().eq('order_id', orderId)
+            .then(() => {})
+            .catch(() => {});
+        }
       }).catch(() => {});
     }
 
     return result;
   } catch (err) {
-    console.error('[Notifications] Error sending status update:', err);
+    logger.error('Error sending status update', { error: err instanceof Error ? err.message : String(err) });
     return { channel: 'none', success: false, error: 'internal_error' };
   }
 }
@@ -390,7 +402,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
 
   if (!order) return;
 
-  const restaurant = (order as any).restaurants;
+  const restaurant = (order as { restaurants: { name: string; slug: string; currency: string | null; locale: string | null; notification_email: string | null; notifications_enabled: boolean | null } | null }).restaurants;
   if (!restaurant) return;
 
   const notificationsOn = restaurant.notifications_enabled !== false;
