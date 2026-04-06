@@ -10,7 +10,7 @@ import { buildFoodPrompt } from '@/lib/ai/food-prompt';
 const logger = createLogger('admin-regenerate-images');
 
 const BATCH_SIZE = 3;
-const BATCH_DELAY_MS = 800;
+const BATCH_DELAY_MS = 1200;
 
 export type RegenEvent =
   | { type: 'start'; total: number }
@@ -41,9 +41,11 @@ export async function POST(request: NextRequest) {
     return new Response('Sin acceso a este restaurante', { status: 403 });
   }
 
-  const apiKey = (process.env.GEMINI_API_KEY ?? '').trim();
-  if (!apiKey) {
-    return new Response('GEMINI_API_KEY no configurado', { status: 503 });
+  const geminiKey = (process.env.GEMINI_API_KEY ?? '').trim();
+  const falKey = (process.env.FAL_API_KEY ?? '').trim();
+
+  if (!geminiKey && !falKey) {
+    return new Response('Se requiere GEMINI_API_KEY o FAL_API_KEY', { status: 503 });
   }
 
   const adminSupabase = createAdminClient();
@@ -81,14 +83,18 @@ export async function POST(request: NextRequest) {
         const catMap = new Map<string, string>();
         for (const cat of categories ?? []) catMap.set(cat.id, cat.name);
 
-        // ─── Fetch style anchors (category_name → style) ──────────────────
+        // ─── Fetch style anchors (category_name → { style, anchor_url }) ──
         const { data: anchors } = await adminSupabase
           .from('style_anchors')
-          .select('category_name, style')
+          .select('category_name, style, anchor_url')
           .eq('restaurant_id', restaurantId);
 
         const anchorStyleMap = new Map<string, string | null>();
-        for (const a of anchors ?? []) anchorStyleMap.set(a.category_name, a.style ?? null);
+        const anchorUrlMap = new Map<string, string | null>();
+        for (const a of anchors ?? []) {
+          anchorStyleMap.set(a.category_name, a.style ?? null);
+          anchorUrlMap.set(a.category_name, (a as any).anchor_url ?? null);
+        }
 
         const total = products.length;
         let processed = 0;
@@ -96,10 +102,150 @@ export async function POST(request: NextRequest) {
         let failed = 0;
 
         send({ type: 'start', total });
-        logger.info('Starting bulk regeneration', { restaurantId, total });
+        logger.info('Starting bulk regeneration', { restaurantId, total, engine: falKey ? 'fal.ai+gemini-fallback' : 'gemini' });
 
-        const { GoogleGenAI } = await import('@google/genai');
-        const ai = new GoogleGenAI({ apiKey });
+        // ─── Lazy-init AI clients ──────────────────────────────────────────
+        let ai: any = null;
+        if (geminiKey) {
+          const { GoogleGenAI } = await import('@google/genai');
+          ai = new GoogleGenAI({ apiKey: geminiKey });
+        }
+
+        let falClient: any = null;
+        if (falKey) {
+          const falModule = await import('@fal-ai/client');
+          falClient = falModule.fal;
+          falClient.config({ credentials: falKey });
+        }
+
+        // ─── Helper: fetch remote image as base64 ─────────────────────────
+        const urlToBase64 = async (url: string): Promise<string> => {
+          const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+          const buf = await res.arrayBuffer();
+          return Buffer.from(buf).toString('base64');
+        };
+
+        // ─── Helper: pick best image with Gemini Flash Vision ─────────────
+        const pickBest = async (base64A: string, base64B: string, productName: string): Promise<string> => {
+          if (!ai) return base64A;
+          try {
+            const visionResponse = await ai.models.generateContent({
+              model: 'gemini-2.0-flash',
+              contents: [{
+                role: 'user',
+                parts: [
+                  { inlineData: { mimeType: 'image/jpeg', data: base64A } },
+                  { inlineData: { mimeType: 'image/jpeg', data: base64B } },
+                  { text: `Two food photos of "${productName}". Reply with ONLY "A" or "B" — which photo has better food photography quality: sharper textures, more appetizing presentation, and professional lighting?` },
+                ],
+              }],
+            });
+            const choice = (visionResponse as any).candidates?.[0]?.content?.parts?.[0]?.text?.trim().toUpperCase();
+            return choice === 'B' ? base64B : base64A;
+          } catch {
+            return base64A;
+          }
+        };
+
+        // ─── Helper: generate with fal.ai ─────────────────────────────────
+        const generateWithFal = async (
+          product: { id: string; name: string; description?: string | null },
+          prompt: string,
+          anchorUrl: string | null,
+          categoryName: string | null,
+        ): Promise<string | null> => {
+          if (!falClient) return null;
+
+          try {
+            if (anchorUrl) {
+              // ── Kontext: image-to-image with style anchor ──────────────
+              const kontextPrompt = `STYLE REFERENCE: The reference image is the approved visual style for the "${categoryName ?? 'restaurant'}" category. MATCH EXACTLY: background material, color and texture, lighting direction and color temperature, camera angle, composition, color grading and mood. Change ONLY the food subject to: "${product.name}"${product.description ? ` — ${product.description}` : ''}. Keep every other element — surface, lighting, background, atmosphere — consistent with the reference. NOT CGI, NOT illustration — a real commercial food photograph.`;
+
+              const result = await falClient.subscribe('fal-ai/flux-pro/kontext', {
+                input: {
+                  prompt: kontextPrompt,
+                  image_url: anchorUrl,
+                  num_images: 1,
+                  output_format: 'jpeg',
+                  guidance_scale: 3.5,
+                  safety_tolerance: '5',
+                },
+              });
+              const imgUrl = result?.data?.images?.[0]?.url ?? result?.images?.[0]?.url;
+              if (imgUrl) return urlToBase64(imgUrl);
+              return null;
+
+            } else {
+              // ── Flux Pro v1.1: text-to-image, 2 variations → pick best ─
+              const result = await falClient.subscribe('fal-ai/flux-pro/v1.1', {
+                input: {
+                  prompt,
+                  image_size: 'square_hd',
+                  num_inference_steps: 40,
+                  guidance_scale: 3.5,
+                  num_images: 2,
+                  output_format: 'jpeg',
+                  safety_tolerance: '5',
+                },
+              });
+              const images: Array<{ url: string }> = result?.data?.images ?? result?.images ?? [];
+              if (images.length === 0) return null;
+
+              const base64A = await urlToBase64(images[0].url);
+              if (images.length === 1) return base64A;
+
+              const base64B = await urlToBase64(images[1].url);
+              return pickBest(base64A, base64B, product.name);
+            }
+          } catch (falErr) {
+            logger.warn('fal.ai generation failed', {
+              productId: product.id,
+              error: falErr instanceof Error ? falErr.message : String(falErr),
+            });
+            return null;
+          }
+        };
+
+        // ─── Helper: generate with Gemini (fallback) ──────────────────────
+        const generateWithGemini = async (prompt: string, productId: string): Promise<string | null> => {
+          if (!ai) return null;
+
+          try {
+            const response = await ai.models.generateContent({
+              model: 'gemini-2.5-flash-image',
+              contents: [{ role: 'user', parts: [{ text: prompt }] }],
+              config: { responseModalities: ['TEXT', 'IMAGE'] as any } as any,
+            });
+            const parts = (response as any).candidates?.[0]?.content?.parts ?? [];
+            for (const part of parts) {
+              if (part.inlineData?.data) return part.inlineData.data;
+            }
+          } catch (flashErr) {
+            logger.warn('gemini-2.5-flash-image failed, trying gemini-3-pro-image-preview', {
+              productId,
+              error: flashErr instanceof Error ? flashErr.message : String(flashErr),
+            });
+          }
+
+          try {
+            const response = await ai.models.generateContent({
+              model: 'gemini-3-pro-image-preview',
+              contents: [{ role: 'user', parts: [{ text: prompt }] }],
+              config: { responseModalities: ['TEXT', 'IMAGE'] as any } as any,
+            });
+            const parts = (response as any).candidates?.[0]?.content?.parts ?? [];
+            for (const part of parts) {
+              if (part.inlineData?.data) return part.inlineData.data;
+            }
+          } catch (proErr) {
+            logger.warn('gemini-3-pro-image-preview fallback also failed', {
+              productId,
+              error: proErr instanceof Error ? proErr.message : String(proErr),
+            });
+          }
+
+          return null;
+        };
 
         // ─── Process in parallel batches ──────────────────────────────────
         for (let i = 0; i < total; i += BATCH_SIZE) {
@@ -112,6 +258,7 @@ export async function POST(request: NextRequest) {
             batch.map(async (product) => {
               const categoryName = catMap.get(product.category_id) ?? null;
               const anchorStyle = categoryName ? (anchorStyleMap.get(categoryName) ?? null) : null;
+              const anchorUrl = categoryName ? (anchorUrlMap.get(categoryName) ?? null) : null;
 
               const prompt = buildFoodPrompt({
                 productName: product.name,
@@ -121,48 +268,23 @@ export async function POST(request: NextRequest) {
               });
 
               try {
-                // ─── PRIMARY: gemini-2.5-flash-image (high quota, proven) ──
                 let imageBase64: string | null = null;
 
-                try {
-                  const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash-image',
-                    contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                    config: { responseModalities: ['TEXT', 'IMAGE'] as any } as any,
-                  });
-                  const parts = (response as any).candidates?.[0]?.content?.parts ?? [];
-                  for (const part of parts) {
-                    if (part.inlineData?.data) { imageBase64 = part.inlineData.data; break; }
-                  }
-                } catch (flashErr) {
-                  logger.warn('gemini-2.5-flash-image failed, trying gemini-3-pro-image-preview', {
-                    productId: product.id,
-                    error: flashErr instanceof Error ? flashErr.message : String(flashErr),
-                  });
-                }
-
-                // ─── FALLBACK: gemini-3-pro-image-preview ─────────────────
-                if (!imageBase64) {
-                  try {
-                    const response = await ai.models.generateContent({
-                      model: 'gemini-3-pro-image-preview',
-                      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                      config: { responseModalities: ['TEXT', 'IMAGE'] as any } as any,
-                    });
-                    const parts = (response as any).candidates?.[0]?.content?.parts ?? [];
-                    for (const part of parts) {
-                      if (part.inlineData?.data) { imageBase64 = part.inlineData.data; break; }
-                    }
-                  } catch (proErr) {
-                    logger.warn('gemini-3-pro-image-preview fallback also failed', {
-                      productId: product.id,
-                      error: proErr instanceof Error ? proErr.message : String(proErr),
-                    });
+                // ─── PRIMARY: fal.ai (Kontext w/ anchor OR Flux Pro v1.1) ─
+                if (falClient) {
+                  imageBase64 = await generateWithFal(product, prompt, anchorUrl, categoryName);
+                  if (!imageBase64) {
+                    logger.warn('fal.ai returned no image, trying Gemini fallback', { productId: product.id });
                   }
                 }
 
+                // ─── FALLBACK: Gemini ──────────────────────────────────────
                 if (!imageBase64) {
-                  logger.warn('All models returned no image', { productId: product.id, name: product.name });
+                  imageBase64 = await generateWithGemini(prompt, product.id);
+                }
+
+                if (!imageBase64) {
+                  logger.warn('All engines returned no image', { productId: product.id, name: product.name });
                   return false;
                 }
 
