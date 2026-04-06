@@ -6,11 +6,18 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { getStripe } from '@/lib/stripe';
 import { createLogger } from '@/lib/logger';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 
 const logger = createLogger('account-delete');
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIP(request);
+    const { allowed } = await checkRateLimitAsync(`account-delete:${ip}`, { limit: 3, windowSec: 3600 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': '3600' } });
+    }
+
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
@@ -26,10 +33,10 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const rid = tenant.restaurantId;
+    const adminDb = createAdminClient();
 
     // Cancel active Stripe subscription before deleting data
     try {
-      const adminDb = createAdminClient();
       const { data: sub } = await adminDb
         .from('subscriptions')
         .select('stripe_subscription_id')
@@ -52,7 +59,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Delete restaurant (cascades: categories, products, orders, customers, tables, subscriptions)
-    const { error: deleteErr } = await supabase
+    // Use admin client to ensure delete isn't blocked by RLS edge cases; ownership verified above.
+    const { error: deleteErr } = await adminDb
       .from('restaurants')
       .delete()
       .eq('id', rid)
@@ -68,8 +76,7 @@ export async function POST(request: NextRequest) {
 
     // Delete Supabase Auth user (requires service role key)
     try {
-      const authAdminClient = createAdminClient();
-      await authAdminClient.auth.admin.deleteUser(user.id);
+      await adminDb.auth.admin.deleteUser(user.id);
     } catch (authErr) {
       logger.error('Failed to delete auth user', {
         error: authErr instanceof Error ? authErr.message : String(authErr),

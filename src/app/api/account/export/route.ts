@@ -1,14 +1,21 @@
 export const dynamic = 'force-dynamic';
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
+import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 
 const logger = createLogger('account-export');
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const ip = getClientIP(request);
+    const { allowed } = await checkRateLimitAsync(`account-export:${ip}`, { limit: 5, windowSec: 3600 });
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': '3600' } });
+    }
+
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
