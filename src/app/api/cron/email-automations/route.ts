@@ -121,14 +121,18 @@ export async function GET(request: NextRequest) {
       .lt('updated_at', oneDayAgo)
       .limit(50);
 
-    for (const order of deliveredOrders ?? []) {
-      const { data: existingReview } = await supabase
+    const deliveredOrderIds = (deliveredOrders ?? []).map(o => o.id);
+    const reviewedOrderIds = new Set<string>();
+    if (deliveredOrderIds.length > 0) {
+      const { data: existingReviews } = await supabase
         .from('reviews')
-        .select('id')
-        .eq('order_id', order.id)
-        .maybeSingle();
+        .select('order_id')
+        .in('order_id', deliveredOrderIds);
+      (existingReviews ?? []).forEach(r => r.order_id && reviewedOrderIds.add(r.order_id));
+    }
 
-      if (existingReview) continue;
+    for (const order of deliveredOrders ?? []) {
+      if (reviewedOrderIds.has(order.id)) continue;
 
       const restaurant = await getRestaurant(order.restaurant_id);
       if (!restaurant) continue;

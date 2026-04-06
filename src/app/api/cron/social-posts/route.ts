@@ -316,12 +316,12 @@ export async function GET(request: NextRequest) {
 
   logger.info(`Starting social post generation: type=${postType}, lang=${language}`);
 
-  const generatedPosts: SocialPostDigestItem[] = [];
-
-  for (const platform of PLATFORMS) {
-    const post = await generatePost(platform, postType, language, apiKey);
-    if (post) generatedPosts.push(post);
-  }
+  const postResults = await Promise.allSettled(
+    PLATFORMS.map(platform => generatePost(platform, postType, language, apiKey)),
+  );
+  const generatedPosts: SocialPostDigestItem[] = postResults
+    .filter((r): r is PromiseFulfilledResult<SocialPostDigestItem> => r.status === 'fulfilled' && r.value !== null)
+    .map(r => r.value);
 
   if (generatedPosts.length > 0) {
     const dateStr = new Date().toLocaleDateString('en-US', {
