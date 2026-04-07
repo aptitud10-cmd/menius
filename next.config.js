@@ -7,6 +7,11 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion', '@dnd-kit/core', '@dnd-kit/sortable'],
+    // Ensure CLAUDE.md is bundled with serverless functions (needed for stream route)
+    outputFileTracingIncludes: {
+      '/api/admin/dev/stream': ['./CLAUDE.md'],
+      '/api/admin/dev/chat': ['./CLAUDE.md'],
+    },
   },
   images: {
     remotePatterns: [
