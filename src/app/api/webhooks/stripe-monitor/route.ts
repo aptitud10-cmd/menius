@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { createAlert } from '@/app/api/admin/dev/alerts/route';
+import { createAlert } from '@/lib/dev-tool/alerts';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('webhook-stripe-monitor');

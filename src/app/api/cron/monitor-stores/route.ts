@@ -3,7 +3,7 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createAlert } from '@/app/api/admin/dev/alerts/route';
+import { createAlert } from '@/lib/dev-tool/alerts';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('monitor-stores');

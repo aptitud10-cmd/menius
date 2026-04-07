@@ -4,30 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/auth/verify-admin';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-export type AlertSeverity = 'critical' | 'warning' | 'info';
-export type AlertSource = 'uptime' | 'orders' | 'sentry' | 'stripe' | 'vercel' | 'cron';
-
-export interface DevAlert {
-  id: string;
-  severity: AlertSeverity;
-  source: AlertSource;
-  title: string;
-  description?: string;
-  store_slug?: string;
-  data?: Record<string, unknown>;
-  resolved_at?: string;
-  auto_diagnosed: boolean;
-  created_at: string;
-}
-
-// ─── Shared helper — call from internal routes without auth ───────────────────
-export async function createAlert(alert: Omit<DevAlert, 'id' | 'created_at' | 'auto_diagnosed'>) {
-  const db = createAdminClient();
-  const { data, error } = await db.from('dev_alerts').insert(alert).select().single();
-  if (error) throw new Error(`dev_alerts insert: ${error.message}`);
-  return data as DevAlert;
-}
-
 // ─── GET — list unresolved alerts (admin only) ────────────────────────────────
 export async function GET(request: NextRequest) {
   const auth = await verifyAdmin();
@@ -35,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   const url = new URL(request.url);
   const limit = Number(url.searchParams.get('limit') ?? 50);
-  const since = url.searchParams.get('since'); // ISO string for polling
+  const since = url.searchParams.get('since');
 
   const db = createAdminClient();
   let q = db
@@ -47,7 +23,7 @@ export async function GET(request: NextRequest) {
   if (since) {
     q = q.gt('created_at', since);
   } else {
-    q = q.is('resolved_at', null); // default: only unresolved
+    q = q.is('resolved_at', null);
   }
 
   const { data, error } = await q;
@@ -56,9 +32,8 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ alerts: data ?? [] });
 }
 
-// ─── POST — create alert (internal: called from crons/webhooks) ───────────────
+// ─── POST — create alert (internal: called from crons/webhooks via CRON_SECRET) ─
 export async function POST(request: NextRequest) {
-  // Allow CRON_SECRET bearer OR admin session
   const authHeader = request.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
   const isCron = cronSecret && authHeader === `Bearer ${cronSecret}`;
@@ -68,8 +43,11 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const alert = await createAlert(body);
-  return NextResponse.json({ ok: true, alert });
+  const db = createAdminClient();
+  const { data, error } = await db.from('dev_alerts').insert(body).select().single();
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ ok: true, alert: data });
 }
 
 // ─── PATCH — resolve an alert ─────────────────────────────────────────────────
