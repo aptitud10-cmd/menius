@@ -99,6 +99,17 @@ interface CommitInfo {
   url: string;
 }
 
+interface DevAlert {
+  id: string;
+  severity: 'critical' | 'warning' | 'info';
+  source: string;
+  title: string;
+  description?: string;
+  store_slug?: string;
+  auto_diagnosed: boolean;
+  created_at: string;
+}
+
 const MODELS = [
   { id: 'claude-opus-4-5',              label: 'Claude Opus 4.5 ⚡',    provider: 'anthropic',  color: '#7c3aed' },
   { id: 'claude-sonnet-4-5',            label: 'Claude Sonnet 4.5',     provider: 'anthropic',  color: '#2563eb' },
@@ -285,6 +296,67 @@ function ConversationSidebar({
             ))
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Alerts panel ─────────────────────────────────────────────────────────────
+function AlertsPanel({
+  alerts,
+  onDismiss,
+  onInjectToChat,
+}: {
+  alerts: DevAlert[];
+  onDismiss: (id: string) => void;
+  onInjectToChat: (alert: DevAlert) => void;
+}) {
+  const severityColor = (s: DevAlert['severity']) =>
+    s === 'critical' ? '#dc2626' : s === 'warning' ? '#d97706' : '#2563eb';
+  const severityBg = (s: DevAlert['severity']) =>
+    s === 'critical' ? 'rgba(220,38,38,0.12)' : s === 'warning' ? 'rgba(217,119,6,0.12)' : 'rgba(37,99,235,0.12)';
+
+  return (
+    <div className="flex flex-col max-h-80 overflow-y-auto">
+      {alerts.length === 0 ? (
+        <p className="text-xs text-gray-600 px-4 py-3 text-center">✅ Sin alertas activas</p>
+      ) : (
+        alerts.map(alert => (
+          <div
+            key={alert.id}
+            className="px-3 py-2.5 border-b border-gray-800 last:border-0"
+            style={{ background: severityBg(alert.severity) }}
+          >
+            <div className="flex items-start gap-2">
+              <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded flex-shrink-0 mt-0.5"
+                style={{ background: severityColor(alert.severity), color: 'white' }}>
+                {alert.severity}
+              </span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-200 leading-tight truncate">{alert.title}</p>
+                {alert.store_slug && (
+                  <p className="text-[10px] text-gray-500">📍 {alert.store_slug}</p>
+                )}
+                <p className="text-[10px] text-gray-600">{timeAgo(alert.created_at)} · {alert.source}</p>
+              </div>
+              <div className="flex flex-col gap-1 flex-shrink-0">
+                <button
+                  onClick={() => onInjectToChat(alert)}
+                  className="text-[10px] px-2 py-0.5 rounded bg-purple-900/40 text-purple-400 hover:bg-purple-900/70 transition-colors whitespace-nowrap"
+                  title="Analizar con AI"
+                >
+                  🤖 Analizar
+                </button>
+                <button
+                  onClick={() => onDismiss(alert.id)}
+                  className="text-[10px] text-gray-700 hover:text-gray-400 transition-colors text-center"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        ))
       )}
     </div>
   );
@@ -666,6 +738,11 @@ export default function DevTool() {
   // Git history
   const [commits, setCommits] = useState<CommitInfo[]>([]);
 
+  // Alerts monitoring
+  const [alerts, setAlerts] = useState<DevAlert[]>([]);
+  const [showAlerts, setShowAlerts] = useState(false);
+  const lastAlertPollRef = useRef<string>(new Date().toISOString());
+
   // Extended thinking mode
   const [thinkingMode, setThinkingMode] = useState(false);
 
@@ -693,7 +770,25 @@ export default function DevTool() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
-  useEffect(() => { fetchDeploy(); fetchIndexStatus(); fetchConversations(); fetchCommits(); }, []);
+  useEffect(() => { fetchDeploy(); fetchIndexStatus(); fetchConversations(); fetchCommits(); fetchAlerts(); }, []);
+
+  // Poll for new alerts every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/admin/dev/alerts?since=${encodeURIComponent(lastAlertPollRef.current)}&limit=20`);
+        if (!res.ok) return;
+        const json = await res.json();
+        const newAlerts: DevAlert[] = json.alerts ?? [];
+        if (newAlerts.length > 0) {
+          lastAlertPollRef.current = new Date().toISOString();
+          setAlerts(prev => [...newAlerts, ...prev]);
+          setShowAlerts(true); // auto-open panel when new alerts arrive
+        }
+      } catch { /* ignore */ }
+    }, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Auto-diagnosis: when deploy fails, inject a diagnostic chat message
   const lastDiagnosedDeployId = useRef<string | null>(null);
@@ -749,6 +844,37 @@ export default function DevTool() {
       const json = await res.json();
       setCommits(json.commits ?? []);
     } catch {}
+  };
+
+  const fetchAlerts = async () => {
+    try {
+      const res = await fetch('/api/admin/dev/alerts?limit=30');
+      if (!res.ok) return;
+      const json = await res.json();
+      setAlerts(json.alerts ?? []);
+    } catch {}
+  };
+
+  const dismissAlert = async (id: string) => {
+    setAlerts(prev => prev.filter(a => a.id !== id));
+    fetch('/api/admin/dev/alerts', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    }).catch(() => {});
+  };
+
+  const injectAlertToChat = (alert: DevAlert) => {
+    const storeContext = alert.store_slug ? ` de la tienda \`${alert.store_slug}\`` : '';
+    const msg = `🚨 **Alerta${storeContext}**: ${alert.title}\n\n${alert.description ?? ''}\n\nPor favor analiza este problema, identifica la causa raíz y propón el fix más adecuado.`;
+    setInput(msg);
+    setShowAlerts(false);
+    // Mark as auto-diagnosed
+    fetch('/api/admin/dev/alerts', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: alert.id, auto_diagnosed: true }),
+    }).catch(() => {});
   };
 
   // Save the current conversation to DB (fire-and-forget safe)
@@ -1334,6 +1460,44 @@ export default function DevTool() {
 
           <DeployBadge deploy={deploy} onClick={() => setShowLogs(v => !v)} />
           <button onClick={fetchDeploy} className="text-gray-500 hover:text-gray-300 text-xs" title="Refresh">↺</button>
+
+          {/* Alerts bell */}
+          <div className="relative">
+            <button
+              onClick={() => setShowAlerts(v => !v)}
+              className="relative text-xs transition-colors"
+              style={{ color: alerts.some(a => a.severity === 'critical') ? '#dc2626' : alerts.length > 0 ? '#d97706' : '#6b7280' }}
+              title="Monitor de alertas"
+            >
+              🔔
+              {alerts.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full text-[8px] flex items-center justify-center font-bold"
+                  style={{ background: alerts.some(a => a.severity === 'critical') ? '#dc2626' : '#d97706', color: 'white' }}>
+                  {alerts.length > 9 ? '9+' : alerts.length}
+                </span>
+              )}
+            </button>
+
+            {showAlerts && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
+                  <span className="text-xs font-bold text-gray-200">🔔 Monitor de Alertas</span>
+                  <button
+                    onClick={() => { fetchAlerts(); }}
+                    className="text-[10px] text-gray-600 hover:text-gray-400"
+                  >
+                    ↺ Refresh
+                  </button>
+                </div>
+                <AlertsPanel
+                  alerts={alerts}
+                  onDismiss={dismissAlert}
+                  onInjectToChat={injectAlertToChat}
+                />
+              </div>
+            )}
+          </div>
+
           <Link href="/admin/dev/setup" className="text-gray-600 hover:text-gray-400 text-xs transition-colors" title="Setup">⚙</Link>
         </div>
 
