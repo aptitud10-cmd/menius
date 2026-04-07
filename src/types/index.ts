@@ -120,6 +120,13 @@ export interface Product {
   extras?: ProductExtra[];
   // joined (new modifier groups system)
   modifier_groups?: ModifierGroup[];
+  /**
+   * True when the product has ANY modifier groups, variants, or extras.
+   * Set server-side before serialising to the client so that the client
+   * can show the correct "Customize / Add" button without needing the
+   * full modifier payload in the initial page HTML.
+   */
+  has_modifiers?: boolean;
 }
 
 export interface ModifierGroup {

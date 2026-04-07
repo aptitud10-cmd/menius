@@ -33,7 +33,8 @@ export const ProductCardMobile = memo(function ProductCardMobile({
   const hasVariants = (product.variants?.length ?? 0) > 0;
   const hasExtras = (product.extras?.length ?? 0) > 0;
   const hasModifierGroups = (product.modifier_groups?.length ?? 0) > 0;
-  const hasModifiers = hasVariants || hasExtras || hasModifierGroups;
+  // has_modifiers is set server-side when products are slimmed; fall back to array checks
+  const hasModifiers = product.has_modifiers ?? (hasVariants || hasExtras || hasModifierGroups);
   const outOfStock = product.in_stock === false;
 
   const [imgError, setImgError] = useState(false);

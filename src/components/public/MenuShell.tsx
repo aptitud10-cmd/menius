@@ -295,6 +295,10 @@ export function MenuShell({
       const fresh = freshProductMap.get(item.product.id);
       if (!fresh) return;
       const freshGroups = fresh.modifier_groups ?? [];
+      // If products are slimmed (modifier_groups=[]), use has_modifiers as a proxy.
+      // We skip the detailed validation when we can't inspect individual groups —
+      // CustomizationSheet will enforce required selections before allowing add-to-cart.
+      if (!fresh.has_modifiers && freshGroups.length === 0) return;
       const requiredGroups = freshGroups.filter((g: any) => g.is_required && (g.options?.length ?? 0) > 0);
       if (requiredGroups.length === 0) return;
 
@@ -1847,9 +1851,11 @@ export function MenuShell({
             defaultLocale={defaultLocale}
             suggestedProducts={suggestedProducts}
             onSuggestAdd={(p) => {
+              // Use has_modifiers when products are slimmed; fall back to array checks
               const hasReqModifiers =
-                (p.modifier_groups ?? []).some((g) => g.is_required) ||
-                (p.variants ?? []).length > 0;
+                p.has_modifiers ??
+                ((p.modifier_groups ?? []).some((g) => g.is_required) ||
+                  (p.variants ?? []).length > 0);
               if (hasReqModifiers) {
                 setCustomization({ product: p, editIndex: null });
               } else {

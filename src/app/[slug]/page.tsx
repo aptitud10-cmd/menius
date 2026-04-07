@@ -145,13 +145,29 @@ export default async function SlugMenuPage({ params }: PageProps) {
   const data = await fetchMenuData(params.slug);
   if (!data) notFound();
 
+  // Slim products: strip modifier payload before serialising into the RSC client bundle.
+  // The has_modifiers flag preserves "Customize" vs "Add" button behaviour.
+  // Full modifier data is fetched on-demand by CustomizationSheet via /api/product-modifiers.
+  const slimProducts = data.products.map((p) => ({
+    ...p,
+    has_modifiers: !!(
+      (p.modifier_groups?.length ?? 0) > 0 ||
+      (p.variants?.length ?? 0) > 0 ||
+      (p.extras?.length ?? 0) > 0
+    ),
+    modifier_groups: [],
+    variants: [],
+    extras: [],
+  }));
+
   return (
     <>
+      {/* JsonLdScript is a server component — full products are fine here, no client payload impact */}
       <JsonLdScript restaurant={data.restaurant} slug={params.slug} categories={data.categories} products={data.products} reviewStats={data.reviewStats} />
       <MenuShell
         restaurant={data.restaurant}
         categories={data.categories}
-        products={data.products}
+        products={slimProducts}
         tableName={null}
         locale={data.locale}
         availableLocales={data.availableLocales}

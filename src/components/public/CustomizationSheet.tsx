@@ -6,7 +6,7 @@ import { X, Minus, Plus, Check, ArrowLeft } from 'lucide-react';
 import { motion, useDragControls, type PanInfo } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
-import type { Product, ModifierGroup, ModifierOption, ModifierSelection } from '@/types';
+import type { Product, ModifierGroup, ModifierOption, ModifierSelection, ProductVariant, ProductExtra } from '@/types';
 import type { Translations, Locale } from '@/lib/translations';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { tName, tDesc } from '@/lib/i18n';
@@ -49,14 +49,54 @@ export function CustomizationSheet({
   const isEditing = editIndex !== null;
   const editItem = isEditing ? items[editIndex] : null;
 
-  const groups = product.modifier_groups ?? [];
+  // ── Lazy-load modifier data ──────────────────────────────────────────────────
+  // When products are slimmed for the initial page payload, modifier_groups/variants/extras
+  // arrive as empty arrays but has_modifiers=true. We fetch full data on sheet open.
+  const [lazyModifiers, setLazyModifiers] = useState<{
+    modifier_groups: ModifierGroup[];
+    variants: ProductVariant[];
+    extras: ProductExtra[];
+  } | null>(null);
+  const [modifiersLoading, setModifiersLoading] = useState(false);
+
+  const needsLazyLoad =
+    product.has_modifiers === true &&
+    !product.modifier_groups?.length &&
+    !product.variants?.length &&
+    !product.extras?.length;
+
+  useEffect(() => {
+    if (!needsLazyLoad) return;
+    setModifiersLoading(true);
+    fetch(`/api/product-modifiers?productId=${product.id}`)
+      .then((r) => r.json())
+      .then((data: { modifier_groups: ModifierGroup[]; variants: ProductVariant[]; extras: ProductExtra[] }) => {
+        setLazyModifiers(data);
+        setModifiersLoading(false);
+      })
+      .catch(() => setModifiersLoading(false));
+  }, [product.id, needsLazyLoad]);
+
+  // Re-apply defaults once lazy data is available (non-edit case only)
+  useEffect(() => {
+    if (!lazyModifiers || isEditing) return;
+    const sel: Record<string, ModifierOption[]> = {};
+    for (const g of lazyModifiers.modifier_groups) {
+      sel[g.id] = g.options.filter((o) => o.is_default);
+    }
+    setSelections(sel);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lazyModifiers]);
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  const groups = (lazyModifiers?.modifier_groups ?? product.modifier_groups) ?? [];
   const hasModifierGroups = groups.length > 0;
 
   // Legacy fallback: if no modifier_groups but has old variants/extras, show them as groups
   const legacyGroups: ModifierGroup[] = [];
   if (!hasModifierGroups) {
-    const variants = product.variants ?? [];
-    const extras = product.extras ?? [];
+    const variants = (lazyModifiers?.variants ?? product.variants) ?? [];
+    const extras = (lazyModifiers?.extras ?? product.extras) ?? [];
     if (variants.length > 0) {
       legacyGroups.push({
         id: '__legacy_variants',
@@ -323,6 +363,18 @@ export function CustomizationSheet({
           </span>
         </div>
       </div>
+
+      {/* Loading skeleton while modifier data is fetched for large-catalog stores */}
+      {modifiersLoading && (
+        <div className="px-5 pt-5 space-y-3">
+          <div className="skeleton h-4 w-32 rounded-lg" />
+          <div className="grid grid-cols-2 gap-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="skeleton h-10 rounded-xl" style={{ animationDelay: `${i * 60}ms` }} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {activeGroups.map((group) => {
         const selected = selections[group.id] ?? [];
