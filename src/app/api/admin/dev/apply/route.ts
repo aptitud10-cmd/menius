@@ -52,14 +52,27 @@ export async function POST(request: NextRequest) {
     if (!githubToken) return NextResponse.json({ error: 'Missing GITHUB_TOKEN' }, { status: 500 });
 
     const body = await request.json();
-    const { changes, commitMessage, conversationId } = body as {
+    const { changes, commitMessage, conversationId, createPR } = body as {
       changes: FileChange[];
       commitMessage: string;
       conversationId?: string;
+      createPR?: boolean;
     };
 
     if (!changes?.length) return NextResponse.json({ error: 'No changes provided' }, { status: 400 });
     if (!commitMessage?.trim()) return NextResponse.json({ error: 'Commit message required' }, { status: 400 });
+
+    // In PR mode, create a new branch from main
+    let targetBranch = GITHUB_BRANCH;
+    if (createPR) {
+      const branchName = `ai/${Date.now()}-${commitMessage.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 40)}`;
+      const mainRef = await githubFetch(`repos/${GITHUB_OWNER}/${GITHUB_REPO}/git/ref/heads/${GITHUB_BRANCH}`, githubToken);
+      await githubFetch(`repos/${GITHUB_OWNER}/${GITHUB_REPO}/git/refs`, githubToken, 'POST', {
+        ref: `refs/heads/${branchName}`,
+        sha: mainRef.object.sha,
+      });
+      targetBranch = branchName;
+    }
 
     const results: Array<{ path: string; status: 'ok' | 'error'; error?: string }> = [];
 
@@ -73,20 +86,15 @@ export async function POST(request: NextRequest) {
             `repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${change.path}`,
             githubToken,
             'DELETE',
-            {
-              message: commitMessage,
-              sha,
-              branch: GITHUB_BRANCH,
-            }
+            { message: commitMessage, sha, branch: targetBranch }
           );
         } else {
-          // Create or update
-          const existingSha = await getFileSha(change.path, githubToken);
+          const existingSha = createPR ? null : await getFileSha(change.path, githubToken);
           const contentBase64 = Buffer.from(change.content, 'utf-8').toString('base64');
           const payload: Record<string, string> = {
             message: commitMessage,
             content: contentBase64,
-            branch: GITHUB_BRANCH,
+            branch: targetBranch,
           };
           if (existingSha) payload.sha = existingSha;
 
@@ -103,6 +111,18 @@ export async function POST(request: NextRequest) {
         results.push({ path: change.path, status: 'error', error: msg });
         logger.error('Apply file error', { path: change.path, error: msg });
       }
+    }
+
+    // Create PR if requested and all changes applied
+    let prUrl: string | undefined;
+    if (createPR && results.every(r => r.status === 'ok')) {
+      const pr = await githubFetch(`repos/${GITHUB_OWNER}/${GITHUB_REPO}/pulls`, githubToken, 'POST', {
+        title: commitMessage,
+        body: `AI-generated changes via Menius Dev Tool.\n\n**Files changed:**\n${changes.map(c => `- \`${c.path}\` (${c.action})`).join('\n')}`,
+        head: targetBranch,
+        base: GITHUB_BRANCH,
+      });
+      prUrl = pr.html_url;
     }
 
     // Log to conversation history if provided
@@ -144,6 +164,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: allOk,
       results,
+      prUrl,
       deployUrl: `https://vercel.com/${GITHUB_OWNER}`,
     });
   } catch (err) {

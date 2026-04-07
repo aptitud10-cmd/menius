@@ -565,10 +565,12 @@ export async function POST(request: NextRequest) {
     messages,
     model,
     images: lastUserImages = [],
+    thinking: thinkingMode = false,
   } = body as {
     messages: Array<{ role: string; content: string }>;
     model?: string;
     images?: string[];
+    thinking?: boolean;
   };
 
   const resolvedModel = (() => {
@@ -613,6 +615,8 @@ export async function POST(request: NextRequest) {
         let currentMessages = [...anthropicMessages] as Anthropic.MessageParam[];
         const pendingChanges: PendingChange[] = [];
         const MAX_ROUNDS = 10;
+        let totalInputTokens = 0;
+        let totalOutputTokens = 0;
 
         for (let round = 0; round < MAX_ROUNDS; round++) {
           const contentBlocks: Anthropic.ContentBlock[] = [];
@@ -620,13 +624,15 @@ export async function POST(request: NextRequest) {
           let currentToolUse: Anthropic.ToolUseBlock | null = null;
           let toolInputJson = '';
 
-          const anthropicStream = await client.messages.stream({
+          const streamParams: Parameters<typeof client.messages.stream>[0] = {
             model: resolvedModel,
-            max_tokens: 8192,
+            max_tokens: thinkingMode ? 16000 : 8192,
             system: buildSystemPrompt(),
             tools: TOOLS,
             messages: currentMessages,
-          });
+          };
+
+          const anthropicStream = await client.messages.stream(streamParams);
 
           for await (const chunk of anthropicStream) {
             if (chunk.type === 'content_block_start') {
@@ -659,6 +665,8 @@ export async function POST(request: NextRequest) {
           }
 
           const finalMessage = await anthropicStream.finalMessage();
+          totalInputTokens += finalMessage.usage?.input_tokens ?? 0;
+          totalOutputTokens += finalMessage.usage?.output_tokens ?? 0;
           if (finalMessage.stop_reason !== 'tool_use') break;
 
           const toolUseBlocks = contentBlocks.filter(b => b.type === 'tool_use') as Anthropic.ToolUseBlock[];
@@ -686,6 +694,7 @@ export async function POST(request: NextRequest) {
           currentMessages.push({ role: 'user', content: toolResults });
         }
 
+        send('usage', { inputTokens: totalInputTokens, outputTokens: totalOutputTokens });
         send('done', { pendingChanges });
       } catch (err) {
         send('error', { message: err instanceof Error ? err.message : 'Error interno' });

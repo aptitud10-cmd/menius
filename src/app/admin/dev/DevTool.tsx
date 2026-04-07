@@ -11,9 +11,35 @@ const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
-  images?: string[];       // base64 data URLs attached by the user
+  images?: string[];
   pendingChanges?: PendingChange[];
+  contextPills?: string[];   // tools/files the AI accessed
+  inputTokens?: number;
+  outputTokens?: number;
+  cost?: number;
 }
+
+// USD per 1M tokens [input, output]
+const MODEL_COSTS: Record<string, [number, number]> = {
+  'claude-opus-4-5':             [15,   75],
+  'claude-sonnet-4-5':           [3,    15],
+  'claude-haiku-3-5':            [0.8,   4],
+  'gemini-2.5-pro':              [1.25, 10],
+  'gemini-2.5-flash':            [0.15,  0.6],
+  'openai/o3':                   [10,   40],
+  'openai/o4-mini':              [1.1,   4.4],
+  'openai/gpt-4.5':              [75,  150],
+  'openai/gpt-4o':               [2.5,  10],
+  'meta-llama/llama-4-maverick': [0.17,  0.6],
+};
+
+function estimateCost(model: string, inputTok: number, outputTok: number): number {
+  const [inRate, outRate] = MODEL_COSTS[model] ?? [3, 15];
+  return (inputTok / 1_000_000) * inRate + (outputTok / 1_000_000) * outRate;
+}
+
+// ~4 chars per token heuristic
+function charsToTokens(s: string): number { return Math.ceil(s.length / 4); }
 
 interface PendingChange {
   path: string;
@@ -164,11 +190,15 @@ function ConversationSidebar({
   commits: CommitInfo[];
 }) {
   const [tab, setTab] = useState<'chats' | 'history'>('chats');
-  const groups = groupByDate(conversations);
+  const [search, setSearch] = useState('');
+  const filtered = search.trim()
+    ? conversations.filter(c => (c.title ?? '').toLowerCase().includes(search.toLowerCase()))
+    : conversations;
+  const groups = groupByDate(filtered);
 
   return (
     <div className="flex flex-col border-r border-gray-800 bg-gray-950 flex-shrink-0" style={{ width: 220 }}>
-      <div className="p-2 border-b border-gray-800">
+      <div className="p-2 border-b border-gray-800 flex flex-col gap-1.5">
         <button
           onClick={onNew}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors border border-gray-700"
@@ -176,6 +206,12 @@ function ConversationSidebar({
           <span className="font-bold">+</span>
           <span>New Chat</span>
         </button>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="🔍 Search chats…"
+          className="w-full text-xs bg-gray-900 border border-gray-800 rounded px-2 py-1.5 text-gray-400 placeholder-gray-700 focus:outline-none focus:border-gray-600"
+        />
       </div>
 
       {/* Tab switcher */}
@@ -367,18 +403,31 @@ function DiffViewer({ change }: { change: PendingChange }) {
 // ─── Chat message ─────────────────────────────────────────────────────────────
 function ChatMessage({
   msg,
+  msgIdx,
   onApply,
   onOpenInEditor,
+  onEdit,
+  onRegenerate,
 }: {
   msg: Message;
+  msgIdx: number;
   onApply: (changes: PendingChange[]) => void;
   onOpenInEditor: (change: PendingChange) => void;
+  onEdit: (idx: number, newContent: string) => void;
+  onRegenerate: (idx: number) => void;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editVal, setEditVal] = useState(msg.content);
+  const [hovered, setHovered] = useState(false);
   const isUser = msg.role === 'user';
 
   return (
-    <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
+    <div
+      className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
       <div
         className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
         style={{ background: isUser ? '#2563eb' : '#7c3aed', color: 'white' }}
@@ -402,12 +451,73 @@ function ChatMessage({
           </div>
         )}
 
-        <div
-          className="rounded-xl px-4 py-2.5 text-sm leading-relaxed"
-          style={{ background: isUser ? '#1d4ed8' : '#1f2937', color: '#f9fafb' }}
-        >
-          <MarkdownText text={msg.content} />
-        </div>
+        {/* Context pills (AI only) */}
+        {!isUser && msg.contextPills && msg.contextPills.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {msg.contextPills.map((pill, i) => (
+              <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-800 border border-gray-700 text-gray-500">
+                {pill}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {editing ? (
+          <div className="w-full flex flex-col gap-1">
+            <textarea
+              value={editVal}
+              onChange={e => setEditVal(e.target.value)}
+              rows={4}
+              className="w-full text-sm bg-gray-800 border border-blue-600 rounded-lg px-3 py-2 text-gray-200 focus:outline-none resize-none"
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setEditing(false)} className="text-xs text-gray-500 hover:text-gray-300">Cancel</button>
+              <button
+                onClick={() => { onEdit(msgIdx, editVal); setEditing(false); }}
+                className="text-xs px-3 py-1 rounded bg-blue-700 text-white hover:bg-blue-600"
+              >
+                Re-send ↑
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            className="rounded-xl px-4 py-2.5 text-sm leading-relaxed"
+            style={{ background: isUser ? '#1d4ed8' : '#1f2937', color: '#f9fafb' }}
+          >
+            <MarkdownText text={msg.content} />
+          </div>
+        )}
+
+        {/* Hover actions */}
+        {hovered && !editing && (
+          <div className={`flex items-center gap-2 ${isUser ? 'flex-row-reverse' : ''}`}>
+            {isUser && (
+              <button
+                onClick={() => { setEditVal(msg.content); setEditing(true); }}
+                className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors flex items-center gap-1"
+                title="Edit and re-send"
+              >
+                ✏️ Edit
+              </button>
+            )}
+            {!isUser && (
+              <button
+                onClick={() => onRegenerate(msgIdx)}
+                className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors flex items-center gap-1"
+                title="Regenerate response"
+              >
+                🔄 Retry
+              </button>
+            )}
+            {/* Cost badge */}
+            {msg.cost !== undefined && msg.cost > 0 && (
+              <span className="text-[9px] text-gray-700" title={`${msg.inputTokens ?? 0} in / ${msg.outputTokens ?? 0} out tokens`}>
+                ${msg.cost.toFixed(4)}
+              </span>
+            )}
+          </div>
+        )}
 
         {msg.pendingChanges?.map((change) => (
           <div key={change.path} className="w-full border border-gray-700 rounded-lg overflow-hidden">
@@ -556,6 +666,27 @@ export default function DevTool() {
   // Git history
   const [commits, setCommits] = useState<CommitInfo[]>([]);
 
+  // Extended thinking mode
+  const [thinkingMode, setThinkingMode] = useState(false);
+
+  // @ mentions autocomplete
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Total conversation tokens (for context window indicator)
+  const totalTokens = useMemo(() =>
+    messages.reduce((sum, m) => sum + charsToTokens(m.content), 0),
+    [messages]
+  );
+  const totalCost = useMemo(() =>
+    messages.reduce((sum, m) => sum + (m.cost ?? 0), 0),
+    [messages]
+  );
+
+  // PR mode for applying changes
+  const [prMode, setPrMode] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textFileInputRef = useRef<HTMLInputElement>(null);
@@ -563,6 +694,27 @@ export default function DevTool() {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
   useEffect(() => { fetchDeploy(); fetchIndexStatus(); fetchConversations(); fetchCommits(); }, []);
+
+  // Auto-diagnosis: when deploy fails, inject a diagnostic chat message
+  const lastDiagnosedDeployId = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      deploy?.state === 'ERROR' &&
+      deploy.id !== lastDiagnosedDeployId.current
+    ) {
+      lastDiagnosedDeployId.current = deploy.id;
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'user',
+          content: `🚨 El deploy de Vercel falló (ID: ${deploy.id}). Por favor revisa los logs de build, identifica el error exacto y propón el fix.`,
+        },
+      ]);
+      // Trigger auto-send after a short delay so the message renders first
+      setTimeout(() => sendMessage(), 100);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deploy?.state, deploy?.id]);
 
   const fetchDeploy = async () => {
     try {
@@ -819,6 +971,7 @@ export default function DevTool() {
         body: JSON.stringify({
           changes: changes.map(c => ({ path: c.path, content: c.content, action: c.action })),
           commitMessage: msg,
+          createPR: prMode,
         }),
       });
       const json = await res.json();
@@ -829,14 +982,17 @@ export default function DevTool() {
             changes.some(c => c.path === pc.path) ? { ...pc, applied: true } : pc
           ),
         })));
-        setApplyResult('✅ Committed! Vercel is deploying…');
+        const resultMsg = json.prUrl
+          ? `✅ PR creado! [Ver Pull Request](${json.prUrl})`
+          : '✅ Committed! Vercel is deploying…';
+        setApplyResult(resultMsg);
         [5000, 15000, 30000, 60000].forEach(delay => setTimeout(fetchDeploy, delay));
         setTimeout(() => { setShowLogs(true); fetchCommits(); }, 3000);
       } else {
         setApplyResult(`❌ ${json.error || 'Error applying changes'}`);
       }
     } finally { setApplyLoading(false); }
-  }, [commitMsg]);
+  }, [commitMsg, prMode]);
 
   const applyActiveTab = useCallback(() => {
     const tab = tabs[activeTab];
@@ -847,6 +1003,61 @@ export default function DevTool() {
   const stopGeneration = useCallback(() => {
     abortControllerRef.current?.abort();
   }, []);
+
+  // ─── Edit message + Regenerate ────────────────────────────────────────────
+  const handleEditMessage = useCallback((idx: number, newContent: string) => {
+    // Truncate history to this message, update it, and re-send
+    const truncated = messages.slice(0, idx);
+    setMessages(truncated);
+    setInput(newContent);
+  }, [messages]);
+
+  const handleRegenerate = useCallback((idx: number) => {
+    // Remove the assistant message at idx and everything after, keep previous user msg
+    const truncated = messages.slice(0, idx);
+    const lastUser = [...truncated].reverse().find(m => m.role === 'user');
+    if (!lastUser) return;
+    setMessages(truncated.filter((_, i) => i < truncated.length));
+    setInput(lastUser.content);
+  }, [messages]);
+
+  // ─── @ mentions ───────────────────────────────────────────────────────────
+  const MENTION_OPTIONS = [
+    { label: '@CLAUDE.md', inject: '@context:CLAUDE.md — please read CLAUDE.md for full context' },
+    { label: '@schema', inject: '@context:schema — query the database schema with: SELECT table_name, column_name, data_type FROM information_schema.columns WHERE table_schema = \'public\'' },
+    { label: '@package.json', inject: '@context:package.json' },
+    { label: '@store-overrides.ts', inject: '@context:src/lib/store-overrides.ts' },
+    { label: '@stripe (revenue)', inject: 'Check Stripe revenue and subscriptions' },
+    { label: '@sentry (errors)', inject: 'Check Sentry for recent production errors' },
+    { label: '@deploy (status)', inject: 'What is the current Vercel deployment status?' },
+    { label: '@web:', inject: '@web:' },
+  ];
+
+  const handleInputChange = useCallback((val: string) => {
+    setInput(val);
+    const atIdx = val.lastIndexOf('@');
+    if (atIdx >= 0) {
+      const afterAt = val.slice(atIdx + 1);
+      if (!afterAt.includes(' ') && afterAt.length < 30) {
+        setMentionQuery(afterAt.toLowerCase());
+        setMentionOpen(true);
+        return;
+      }
+    }
+    setMentionOpen(false);
+  }, []);
+
+  const insertMention = useCallback((inject: string) => {
+    const atIdx = input.lastIndexOf('@');
+    const before = atIdx >= 0 ? input.slice(0, atIdx) : input;
+    setInput(before + inject + ' ');
+    setMentionOpen(false);
+    textareaRef.current?.focus();
+  }, [input]);
+
+  const visibleMentions = MENTION_OPTIONS.filter(o =>
+    !mentionQuery || o.label.toLowerCase().includes(mentionQuery)
+  );
 
   // ─── Send message ─────────────────────────────────────────────────────────
   const sendMessage = async () => {
@@ -885,6 +1096,8 @@ export default function DevTool() {
     setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
     let finalAssistantContent = '';
+    const collectedPills: string[] = [];
+    let inputTokens = 0, outputTokens = 0;
     const abortCtrl = new AbortController();
     abortControllerRef.current = abortCtrl;
 
@@ -896,6 +1109,7 @@ export default function DevTool() {
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
           model: selectedModel,
           images: imagesToSend,
+          thinking: thinkingMode,
         }),
         signal: abortCtrl.signal,
       });
@@ -930,29 +1144,44 @@ export default function DevTool() {
                   i === assistantIdx ? { ...m, content: m.content + event.text } : m
                 ));
                 break;
-              case 'tool_call':
+              case 'tool_call': {
+                const pillLabel = `🔧 ${event.name}`;
+                if (!collectedPills.includes(pillLabel)) collectedPills.push(pillLabel);
                 toolStatusText = `\n\n*🔧 Using \`${event.name}\`…*`;
                 setMessages(prev => prev.map((m, i) =>
                   i === assistantIdx ? { ...m, content: m.content + toolStatusText } : m
                 ));
                 break;
+              }
               case 'tool_done':
                 setMessages(prev => prev.map((m, i) =>
                   i === assistantIdx ? { ...m, content: m.content.replace(toolStatusText, '') } : m
                 ));
                 toolStatusText = '';
                 break;
+              case 'usage':
+                inputTokens = event.inputTokens ?? 0;
+                outputTokens = event.outputTokens ?? 0;
+                break;
               case 'pending_change':
                 collectedChanges.push(event as PendingChange);
                 break;
-              case 'done':
-                if (collectedChanges.length > 0) {
-                  setMessages(prev => prev.map((m, i) =>
-                    i === assistantIdx ? { ...m, pendingChanges: collectedChanges } : m
-                  ));
-                  collectedChanges.forEach(c => openInEditor(c));
-                }
+              case 'done': {
+                const cost = estimateCost(selectedModel, inputTokens, outputTokens);
+                setMessages(prev => prev.map((m, i) => {
+                  if (i !== assistantIdx) return m;
+                  return {
+                    ...m,
+                    pendingChanges: collectedChanges.length > 0 ? collectedChanges : m.pendingChanges,
+                    contextPills: collectedPills.length > 0 ? [...collectedPills] : undefined,
+                    inputTokens,
+                    outputTokens,
+                    cost,
+                  };
+                }));
+                if (collectedChanges.length > 0) collectedChanges.forEach(c => openInEditor(c));
                 break;
+              }
               case 'error':
                 setMessages(prev => prev.map((m, i) =>
                   i === assistantIdx ? { ...m, content: m.content + `\n\n❌ ${event.message}` } : m
@@ -1077,6 +1306,20 @@ export default function DevTool() {
             </optgroup>
           </select>
 
+          {/* Token counter */}
+          {messages.length > 0 && (
+            <span
+              className="text-[10px] font-mono px-1.5 py-0.5 rounded"
+              style={{
+                background: totalTokens > 150000 ? 'rgba(220,38,38,0.2)' : totalTokens > 50000 ? 'rgba(217,119,6,0.2)' : 'rgba(22,163,74,0.15)',
+                color: totalTokens > 150000 ? '#fca5a5' : totalTokens > 50000 ? '#fcd34d' : '#86efac',
+              }}
+              title={`${totalTokens.toLocaleString()} tokens · $${totalCost.toFixed(4)} est.`}
+            >
+              ~{totalTokens > 1000 ? `${(totalTokens / 1000).toFixed(1)}k` : totalTokens}t
+            </span>
+          )}
+
           {indexStatus && (
             <span className="text-[10px] text-gray-500">🗂 {indexStatus.uniqueFiles}f</span>
           )}
@@ -1123,8 +1366,11 @@ export default function DevTool() {
             <ChatMessage
               key={i}
               msg={msg}
+              msgIdx={i}
               onApply={handleApplyChanges}
               onOpenInEditor={openInEditor}
+              onEdit={handleEditMessage}
+              onRegenerate={handleRegenerate}
             />
           ))}
 
@@ -1187,13 +1433,35 @@ export default function DevTool() {
 
         {/* Input area */}
         <div className="border-t border-gray-800 bg-gray-900 p-3">
-          <div className="flex gap-2 items-end">
+          <div className="flex gap-2 items-end relative">
+            {/* @ mentions dropdown */}
+            {mentionOpen && visibleMentions.length > 0 && (
+              <div className="absolute bottom-full left-0 mb-1 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-50">
+                {visibleMentions.map(opt => (
+                  <button
+                    key={opt.label}
+                    onMouseDown={e => { e.preventDefault(); insertMention(opt.inject); }}
+                    className="w-full text-left px-3 py-2 text-xs text-gray-300 hover:bg-gray-700 transition-colors border-b border-gray-700 last:border-0"
+                  >
+                    <span className="text-purple-400">{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             <textarea
+              ref={textareaRef}
               value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendMessage(); } }}
+              onChange={e => handleInputChange(e.target.value)}
+              onKeyDown={e => {
+                if (mentionOpen && (e.key === 'Escape' || e.key === 'Enter')) {
+                  setMentionOpen(false);
+                  if (e.key === 'Escape') return;
+                }
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendMessage(); }
+              }}
+              onBlur={() => setTimeout(() => setMentionOpen(false), 150)}
               onPaste={handlePaste}
-              placeholder="Pregunta, pide un fix, arrastra imágenes… (Ctrl+Enter para enviar)"
+              placeholder="Pregunta, pide un fix, arrastra imágenes… Escribe @ para contexto (Ctrl+Enter para enviar)"
               rows={3}
               className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-gray-500 resize-none"
               style={{ fontFamily: 'inherit' }}
@@ -1270,7 +1538,33 @@ export default function DevTool() {
 
             <div className="flex-1" />
 
-            <span className="text-[10px] text-gray-600">Ctrl+Enter · {currentModel.label}</span>
+            {/* Extended thinking toggle */}
+            <button
+              onClick={() => setThinkingMode(v => !v)}
+              title="Extended Thinking — deep reasoning mode (slower, costs more)"
+              className="text-[10px] transition-colors flex items-center gap-1"
+              style={{ color: thinkingMode ? '#a78bfa' : '#6b7280' }}
+            >
+              🧠 {thinkingMode ? 'Thinking ON' : 'Think'}
+            </button>
+
+            {/* PR mode toggle */}
+            <button
+              onClick={() => setPrMode(v => !v)}
+              title="PR mode: creates a branch + Pull Request instead of committing directly to main"
+              className="text-[10px] transition-colors flex items-center gap-1"
+              style={{ color: prMode ? '#f59e0b' : '#6b7280' }}
+            >
+              🔀 {prMode ? 'PR mode' : 'PR'}
+            </button>
+
+            {totalCost > 0 && (
+              <span className="text-[10px] text-gray-700" title="Estimated cost this conversation">
+                ${totalCost.toFixed(4)}
+              </span>
+            )}
+
+            <span className="text-[10px] text-gray-600">Ctrl+Enter</span>
             <button onClick={() => setMessages([])} className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors">
               Clear
             </button>
