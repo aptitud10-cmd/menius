@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { createRestaurant, createCategory, createProduct } from '@/lib/actions/restaurant';
 import { createRestaurantSchema } from '@/lib/validations';
 import { slugify } from '@/lib/utils';
+import { trackEvent } from '@/lib/analytics';
 
 const LANGUAGES = [
   { code: 'es', label: 'Español' },
@@ -119,6 +120,13 @@ export default function CreateRestaurantPage() {
       return;
     }
     setLoading(false);
+    trackEvent('restaurant_created', {
+      restaurant_name: parsed.data.name,
+      slug: parsed.data.slug,
+      currency: parsed.data.currency,
+      locale: parsed.data.locale,
+      business_type: businessType || 'unknown',
+    });
     setStep(2);
   };
 
@@ -137,6 +145,7 @@ export default function CreateRestaurantPage() {
       return;
     }
     if (result?.id) setCreatedCategoryId(result.id);
+    trackEvent('onboarding_step_completed', { step: 2, step_name: 'first_category', category_name: categoryName.trim() });
     setStep(3);
   };
 
@@ -165,6 +174,8 @@ export default function CreateRestaurantPage() {
       setProductError(result.error);
       return;
     }
+    trackEvent('onboarding_step_completed', { step: 3, step_name: 'first_product', product_name: productName.trim() });
+    trackEvent('onboarding_completed', { completed_all_steps: true });
     setStep(4);
   };
 
@@ -572,7 +583,11 @@ export default function CreateRestaurantPage() {
 
                 <button
                   type="button"
-                  onClick={() => setStep(4)}
+                  onClick={() => {
+                    trackEvent('onboarding_step_skipped', { step: 3, step_name: 'first_product' });
+                    trackEvent('onboarding_completed', { completed_all_steps: false });
+                    setStep(4);
+                  }}
                   className="w-full py-2.5 text-[13px] text-gray-500 hover:text-gray-300 transition-colors"
                 >
                   Omitir, ir al siguiente paso
