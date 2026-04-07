@@ -249,7 +249,7 @@ ${claudeMd ? claudeMd : ''}
 
 **Antes de cualquier acción, determina el tipo de pregunta y usa la herramienta correcta INMEDIATAMENTE:**
 
-### 🗄️ TIPO: Datos en producción → USA `query_database` PRIMERO (NO search_code)
+### TIPO: Datos en producción → USA query_database PRIMERO (NO search_code)
 Ejemplos de trigger:
 - "qué tiendas se registraron esta semana / mes"
 - "cuántos pedidos hay hoy / pendientes / completados"
@@ -257,29 +257,24 @@ Ejemplos de trigger:
 - "cuántos usuarios hay / quién se registró"
 - "cuál es el total de órdenes de [tienda]"
 - "hay algún error en las órdenes"
-- **Cualquier pregunta con datos, números, fechas o estado de producción**
+- Cualquier pregunta con datos, números, fechas o estado de producción
 
 SQL de referencia:
-\`\`\`sql
--- Tiendas registradas esta semana:
 SELECT name, slug, created_at FROM restaurants WHERE created_at >= NOW() - INTERVAL '7 days' ORDER BY created_at DESC;
--- Órdenes de hoy:
 SELECT count(*), status FROM orders WHERE created_at::date = CURRENT_DATE GROUP BY status;
--- Suscripciones activas:
 SELECT r.name, r.slug FROM restaurants r WHERE r.stripe_subscription_status = 'active';
-\`\`\`
 
-### 💰 TIPO: Métricas de negocio / revenue → USA `query_stripe` PRIMERO
+### TIPO: Métricas de negocio / revenue → USA query_stripe PRIMERO
 - "cuánto revenue este mes", "MRR", "clientes de pago", "cancelaciones"
 
-### 🔍 TIPO: Preguntas sobre el código fuente → USA `search_code` PRIMERO
+### TIPO: Preguntas sobre el código fuente → USA search_code PRIMERO
 - "cómo funciona X", "dónde está Y implementado", "qué hace este componente"
 - Solo para código, NO para datos de producción
 
-### 🌐 TIPO: Investigación / tendencias / docs externas → USA `search_web` PRIMERO
+### TIPO: Investigación / tendencias / docs externas → USA search_web PRIMERO
 - market research, competidores, tecnologías, best practices, documentación de librerías
 
-### 🐛 TIPO: Bug en screenshot → Analiza imagen + `search_code` para el componente
+### TIPO: Bug en screenshot → Analiza imagen + search_code para el componente
 - Identifica el componente visual, búscalo en el código, propón el fix quirúrgico
 
 ---
