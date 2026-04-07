@@ -24,7 +24,7 @@ export async function GET() {
   try {
     // 1. Stores with subscription but no orders in last 7 days
     const { data: inactive } = await db.rpc('exec_readonly_sql', {
-      query: `
+      sql_query: `
         SELECT r.name, r.slug
         FROM restaurants r
         WHERE r.stripe_subscription_status = 'active'
@@ -55,7 +55,7 @@ export async function GET() {
 
     // 2. New stores (registered in last 14 days) – onboarding check
     const { data: newStores } = await db.rpc('exec_readonly_sql', {
-      query: `
+      sql_query: `
         SELECT r.name, r.slug, r.created_at,
                (SELECT count(*) FROM products p WHERE p.restaurant_id = r.id) AS product_count,
                (SELECT count(*) FROM categories c WHERE c.restaurant_id = r.id) AS category_count
@@ -81,7 +81,7 @@ export async function GET() {
 
     // 3. High cancellation rate last 24h
     const { data: highCancel } = await db.rpc('exec_readonly_sql', {
-      query: `
+      sql_query: `
         SELECT r.name, r.slug, count(*) as cancelled
         FROM orders o
         JOIN restaurants r ON r.id = o.restaurant_id

@@ -699,8 +699,9 @@ export async function POST(request: NextRequest) {
         const MAX_ROUNDS = 10;
         let totalInputTokens = 0;
         let totalOutputTokens = 0;
+        const ANTHROPIC_MAX_ROUNDS = 8;
 
-        for (let round = 0; round < MAX_ROUNDS; round++) {
+        for (let round = 0; round < ANTHROPIC_MAX_ROUNDS; round++) {
           const contentBlocks: Anthropic.ContentBlock[] = [];
           let currentTextBlock = '';
           let currentToolUse: Anthropic.ToolUseBlock | null = null;
@@ -774,6 +775,11 @@ export async function POST(request: NextRequest) {
           }
 
           currentMessages.push({ role: 'user', content: toolResults });
+
+          // Warn if approaching limit
+          if (round === ANTHROPIC_MAX_ROUNDS - 2) {
+            send('token', { text: '\n\n⚠️ *Alcanzando límite de iteraciones — resumiendo resultado…*\n\n' });
+          }
         }
 
         send('usage', { inputTokens: totalInputTokens, outputTokens: totalOutputTokens });

@@ -147,14 +147,8 @@ async function queryDatabase(sql: string, db: ReturnType<typeof createAdminClien
   }
 
   try {
-    const { data, error } = await db.rpc('exec_readonly_sql', { sql_query: sql }).limit ? 
-      await (db as ReturnType<typeof createAdminClient>).rpc('exec_readonly_sql', { sql_query: sql }) :
-      { data: null, error: { message: 'RPC not available' } };
-    
-    if (error) {
-      // Fallback: try direct query parsing for simple cases
-      return `SQL query logged (direct execution requires exec_readonly_sql RPC). Query:\n\`\`\`sql\n${sql}\n\`\`\`\n\nTo enable DB queries, run this in Supabase SQL editor:\n\`\`\`sql\nCREATE OR REPLACE FUNCTION exec_readonly_sql(sql_query text)\nRETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$\nDECLARE result jsonb;\nBEGIN\n  EXECUTE 'SET LOCAL statement_timeout = ''5s''; SET LOCAL transaction_read_only = on;';\n  EXECUTE sql_query INTO result;\n  RETURN result;\nEXCEPTION WHEN OTHERS THEN\n  RETURN jsonb_build_object(''error'', SQLERRM);\nEND; $$;\`\`\``;
-    }
+    const { data, error } = await db.rpc('exec_readonly_sql', { sql_query: sql });
+    if (error) return `DB Error: ${error.message}`;
     return JSON.stringify(data, null, 2).slice(0, 5000);
   } catch (err) {
     return `DB Error: ${err instanceof Error ? err.message : String(err)}`;
