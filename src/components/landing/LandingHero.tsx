@@ -5,10 +5,10 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
   const h = getLandingT(locale).hero;
 
   return (
-    <section className="relative min-h-[100vh] min-h-[100dvh] flex items-start md:items-center overflow-clip">
+    <section className="relative min-h-[100vh] min-h-[100dvh] flex items-center overflow-clip">
       <div className="hero-gradient" />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-6 w-full pt-24 pb-16 md:py-0">
+      <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-6 w-full pt-16 pb-16 md:py-0">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
 
           <div className="text-center lg:text-left">
