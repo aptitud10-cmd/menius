@@ -391,6 +391,7 @@ function ChatMessage({
         {msg.images && msg.images.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {msg.images.map((src, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={i}
                 src={src}
@@ -452,6 +453,29 @@ function ChatMessage({
   );
 }
 
+// ─── Code block with copy button ─────────────────────────────────────────────
+function CodeBlock({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="relative my-2 group/code">
+      <pre className="bg-gray-950 rounded p-3 overflow-x-auto text-xs text-green-300 border border-gray-700 pr-16">
+        <code>{code}</code>
+      </pre>
+      <button
+        onClick={() => {
+          navigator.clipboard.writeText(code).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }).catch(() => {});
+        }}
+        className="absolute top-1.5 right-1.5 text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-500 hover:text-white hover:bg-gray-700 transition-colors opacity-0 group-hover/code:opacity-100"
+      >
+        {copied ? '✓ Copied' : 'Copy'}
+      </button>
+    </div>
+  );
+}
+
 // ─── Minimal markdown renderer ────────────────────────────────────────────────
 function MarkdownText({ text }: { text: string }) {
   const elements: React.ReactNode[] = [];
@@ -463,11 +487,8 @@ function MarkdownText({ text }: { text: string }) {
     if (line.startsWith('```')) {
       if (!inCode) { inCode = true; codeLines = []; }
       else {
-        elements.push(
-          <pre key={key++} className="bg-gray-950 rounded p-3 overflow-x-auto text-xs text-green-300 my-2 border border-gray-700">
-            <code>{codeLines.join('\n')}</code>
-          </pre>
-        );
+        const codeStr = codeLines.join('\n');
+        elements.push(<CodeBlock key={key++} code={codeStr} />);
         inCode = false;
       }
       continue;
@@ -538,6 +559,7 @@ export default function DevTool() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textFileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
   useEffect(() => { fetchDeploy(); fetchIndexStatus(); fetchConversations(); fetchCommits(); }, []);
@@ -577,6 +599,39 @@ export default function DevTool() {
     } catch {}
   };
 
+  // Save the current conversation to DB (fire-and-forget safe)
+  const saveCurrentConversation = useCallback(async (msgs: Message[], convId: string, model: string) => {
+    if (msgs.length === 0) return;
+    try {
+      await fetch('/api/admin/dev/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: msgs.map(m => ({ role: m.role, content: m.content })),
+          model,
+          conversationId: convId,
+          saveHistory: true,
+        }),
+      });
+    } catch { /* best-effort */ }
+  }, []);
+
+  // Save before unload (uses sendBeacon so it completes even on page close)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (messages.length === 0) return;
+      const blob = new Blob([JSON.stringify({
+        messages: messages.map(m => ({ role: m.role, content: m.content })),
+        model: selectedModel,
+        conversationId,
+        saveHistory: true,
+      })], { type: 'application/json' });
+      navigator.sendBeacon('/api/admin/dev/chat', blob);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [messages, conversationId, selectedModel]);
+
   const loadConversation = async (id: string) => {
     try {
       const res = await fetch(`/api/admin/dev/chat?id=${id}`);
@@ -597,7 +652,12 @@ export default function DevTool() {
     } catch {}
   };
 
-  const handleNewChat = useCallback(() => {
+  const handleNewChat = useCallback(async () => {
+    // Save current conversation before clearing state
+    if (messages.length > 0) {
+      await saveCurrentConversation(messages, conversationId, selectedModel);
+      await fetchConversations();
+    }
     setMessages([]);
     setTabs([]);
     setConversationId(crypto.randomUUID());
@@ -606,7 +666,7 @@ export default function DevTool() {
     setLintErrors([]);
     setAttachedImages([]);
     setAttachedFileText([]);
-  }, []);
+  }, [messages, conversationId, selectedModel, saveCurrentConversation]);
 
   const deleteConversation = async (id: string) => {
     if (!confirm('Delete this conversation?')) return;
@@ -684,10 +744,17 @@ export default function DevTool() {
 
   // ─── Voice input ──────────────────────────────────────────────────────────
   const startVoice = useCallback(() => {
-    type SR = typeof SpeechRecognition;
-    const SpeechRecognitionClass: SR | undefined =
-      (window as unknown as Record<string, unknown>).SpeechRecognition as SR ??
-      (window as unknown as Record<string, unknown>).webkitSpeechRecognition as SR;
+    type AnyConstructor = new () => {
+      lang: string;
+      continuous: boolean;
+      interimResults: boolean;
+      onresult: ((e: { results: { [k: number]: { [k: number]: { transcript: string } } } }) => void) | null;
+      onend: (() => void) | null;
+      onerror: (() => void) | null;
+      start: () => void;
+    };
+    const win = window as unknown as Record<string, unknown>;
+    const SpeechRecognitionClass = (win.SpeechRecognition ?? win.webkitSpeechRecognition) as AnyConstructor | undefined;
 
     if (!SpeechRecognitionClass) {
       alert('Voice recognition not supported in this browser. Try Chrome.');
@@ -698,7 +765,7 @@ export default function DevTool() {
     rec.lang = 'es-ES';
     rec.continuous = false;
     rec.interimResults = false;
-    rec.onresult = (e: SpeechRecognitionEvent) => {
+    rec.onresult = (e) => {
       const transcript = e.results[0]?.[0]?.transcript ?? '';
       setInput(prev => (prev ? prev + ' ' + transcript : transcript));
     };
@@ -777,6 +844,10 @@ export default function DevTool() {
     handleApplyChanges([{ path: tab.path, content: tab.content, action: 'update' }]);
   }, [tabs, activeTab, handleApplyChanges]);
 
+  const stopGeneration = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
+
   // ─── Send message ─────────────────────────────────────────────────────────
   const sendMessage = async () => {
     const text = input.trim();
@@ -807,10 +878,15 @@ export default function DevTool() {
     setLoading(true);
     setApplyResult(null);
 
+    // Auto-save immediately so user messages are never lost
+    saveCurrentConversation(newMessages, conversationId, selectedModel).catch(() => {});
+
     const assistantIdx = newMessages.length;
     setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
     let finalAssistantContent = '';
+    const abortCtrl = new AbortController();
+    abortControllerRef.current = abortCtrl;
 
     try {
       const res = await fetch('/api/admin/dev/stream', {
@@ -821,6 +897,7 @@ export default function DevTool() {
           model: selectedModel,
           images: imagesToSend,
         }),
+        signal: abortCtrl.signal,
       });
 
       if (!res.ok || !res.body) {
@@ -920,11 +997,23 @@ export default function DevTool() {
           }
         }).catch(() => {});
       }
-    } catch {
-      setMessages(prev => prev.map((m, i) =>
-        i === assistantIdx ? { ...m, content: '❌ Network error. Try again.' } : m
-      ));
-    } finally { setLoading(false); }
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        // User stopped generation — keep whatever was streamed
+        if (!finalAssistantContent) {
+          setMessages(prev => prev.map((m, i) =>
+            i === assistantIdx ? { ...m, content: '*(generación cancelada)*' } : m
+          ));
+        }
+      } else {
+        setMessages(prev => prev.map((m, i) =>
+          i === assistantIdx ? { ...m, content: '❌ Network error. Try again.' } : m
+        ));
+      }
+    } finally {
+      abortControllerRef.current = null;
+      setLoading(false);
+    }
   };
 
   const currentModel = MODELS.find(m => m.id === selectedModel) ?? MODELS[1];
@@ -956,7 +1045,14 @@ export default function DevTool() {
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800 bg-gray-900 flex-wrap gap-y-1">
           <span className="text-base">⚡</span>
-          <span className="font-bold text-sm text-white">Menius Dev</span>
+          <div className="flex flex-col min-w-0">
+            <span className="font-bold text-sm text-white leading-tight">Menius Dev</span>
+            {conversations.find(c => c.id === conversationId)?.title && (
+              <span className="text-[10px] text-gray-500 truncate max-w-[160px]" title={conversations.find(c => c.id === conversationId)?.title ?? ''}>
+                {conversations.find(c => c.id === conversationId)?.title}
+              </span>
+            )}
+          </div>
           <div className="flex-1 min-w-0" />
 
           <select
@@ -1064,6 +1160,7 @@ export default function DevTool() {
           <div className="mx-3 mb-2 flex flex-wrap gap-2">
             {attachedImages.map((src, i) => (
               <div key={i} className="relative group">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={src} alt="" className="w-16 h-16 object-cover rounded-lg border border-gray-700" />
                 <button
                   onClick={() => setAttachedImages(prev => prev.filter((_, j) => j !== i))}
@@ -1101,14 +1198,25 @@ export default function DevTool() {
               className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-gray-500 resize-none"
               style={{ fontFamily: 'inherit' }}
             />
-            <button
-              onClick={sendMessage}
-              disabled={loading || (!input.trim() && attachedImages.length === 0 && attachedFileText.length === 0)}
-              className="px-4 py-2.5 rounded-lg font-medium text-sm transition-all disabled:opacity-40"
-              style={{ background: '#7c3aed', color: 'white', minWidth: '80px' }}
-            >
-              {loading ? '⏳' : '↑ Send'}
-            </button>
+            {loading ? (
+              <button
+                onClick={stopGeneration}
+                className="px-4 py-2.5 rounded-lg font-medium text-sm transition-all border border-red-700 text-red-400 hover:bg-red-900/30"
+                style={{ minWidth: '80px' }}
+                title="Stop generation"
+              >
+                ⏹ Stop
+              </button>
+            ) : (
+              <button
+                onClick={sendMessage}
+                disabled={!input.trim() && attachedImages.length === 0 && attachedFileText.length === 0}
+                className="px-4 py-2.5 rounded-lg font-medium text-sm transition-all disabled:opacity-40"
+                style={{ background: '#7c3aed', color: 'white', minWidth: '80px' }}
+              >
+                ↑ Send
+              </button>
+            )}
           </div>
 
           {/* Action bar */}

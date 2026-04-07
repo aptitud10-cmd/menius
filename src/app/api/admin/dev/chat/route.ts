@@ -528,6 +528,19 @@ export async function POST(request: NextRequest) {
 
     const db = createAdminClient();
     const modelConfig = resolveModel(model);
+
+    // Pure save — skip AI loop entirely
+    if (saveHistory && conversationId) {
+      await db.from('dev_conversations').upsert({
+        id: conversationId,
+        user_id: 'admin',
+        messages: JSON.stringify(messages),
+        model: modelConfig.modelId,
+        updated_at: new Date().toISOString(),
+      });
+      return NextResponse.json({ ok: true });
+    }
+
     const systemPrompt = buildSystemPrompt();
 
     let finalText = '';
