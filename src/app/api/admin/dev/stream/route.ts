@@ -116,7 +116,7 @@ async function fetchUrl(url: string): Promise<string> {
 async function queryStripe(query: string): Promise<string> {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) return 'STRIPE_SECRET_KEY not configured.';
-  const stripe = new Stripe(stripeKey, { apiVersion: '2025-01-27.acacia' });
+  const stripe = new Stripe(stripeKey, { apiVersion: '2026-01-28.clover' });
   const q = query.toLowerCase();
 
   try {
