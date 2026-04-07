@@ -50,7 +50,7 @@ export default function MenuLoading() {
             style={{ animationDelay: `${i * 40}ms` }}
           >
             {/* Image placeholder */}
-            <div className="skeleton w-full aspect-[4/3]" />
+            <div className="skeleton w-full aspect-square" />
             {/* Content */}
             <div className="p-3 space-y-2">
               <div className="skeleton h-3.5 w-full rounded" />

@@ -10,6 +10,7 @@ import { useFavoritesStore } from '@/store/favoritesStore';
 import { useCartStore } from '@/store/cartStore';
 import { tName } from '@/lib/i18n';
 import { getBlurUrl } from '@/lib/image-loader';
+import { useStoreConfig } from '@/lib/store-config-context';
 import type { ProductCardProps } from './ProductCard';
 
 export const ProductCardMobile = memo(function ProductCardMobile({
@@ -24,6 +25,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
   defaultLocale = 'es',
   priority = false,
 }: ProductCardProps) {
+  const { optimizeImages } = useStoreConfig();
   const isEn = locale === 'en';
   const labelSoldOut = soldOutLabel ?? (isEn ? 'Sold out' : 'Agotado');
   const labelAdded = addedShortLabel ?? (isEn ? 'Added' : 'Listo');
@@ -90,7 +92,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
               fill
               sizes="50vw"
               priority={priority}
-              unoptimized={product.image_url.includes('.supabase.co/storage/')}
+              unoptimized={!optimizeImages && product.image_url.includes('.supabase.co/storage/')}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
               className={cn('object-cover transition-opacity duration-150', imgLoaded ? 'opacity-100' : 'opacity-0', outOfStock && 'grayscale')}

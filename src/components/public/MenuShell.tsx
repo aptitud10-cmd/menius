@@ -15,6 +15,8 @@ import { getLocaleFlag, SUPPORTED_LOCALES, tName, tDesc } from '@/lib/i18n';
 import { trackEvent } from '@/lib/analytics';
 
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { StoreConfigProvider } from '@/lib/store-config-context';
+import { getStoreOverrides } from '@/lib/store-overrides';
 import { MenuHeader, HEADER_HEIGHT } from './MenuHeader';
 import { CategorySidebar } from './CategorySidebar';
 import { ProductCard } from './ProductCard';
@@ -147,7 +149,9 @@ export function MenuShell({
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [showCatSheet, setShowCatSheet] = useState(false);
   const CATEGORY_PREVIEW = 8; // kept for potential future use
-  const isLargeCatalog = false;
+  // Activated automatically for stores with many products or categories (e.g. Buccaneer)
+  const isLargeCatalog = products.length > 80 || categories.length > 12;
+  const storeConfig = getStoreOverrides(restaurant.slug);
   const [activeCatFilter, setActiveCatFilter] = useState<string | null>(null);
   const [showFavs, setShowFavs] = useState(false);
   const favIds = useFavoritesStore((s) => s.ids);
@@ -543,8 +547,12 @@ export function MenuShell({
   }, []);
 
   const popularProducts = useMemo(
-    () => filteredProducts.filter((p) => p.is_featured && p.in_stock !== false),
-    [filteredProducts],
+    () => {
+      const featured = filteredProducts.filter((p) => p.is_featured && p.in_stock !== false);
+      // Cap featured section for large catalogs to keep DOM lean
+      return isLargeCatalog ? featured.slice(0, 10) : featured;
+    },
+    [filteredProducts, isLargeCatalog],
   );
 
   const cartProductIds = useCartStore((s) => new Set(s.items.map((i) => i.product.id)));
@@ -1021,6 +1029,7 @@ export function MenuShell({
   const ordersLeft = limitedMode ? Math.max(0, limitedMode.dailyLimit - limitedMode.ordersToday) : null;
 
   return (
+    <StoreConfigProvider value={storeConfig}>
     <div className="relative h-[100dvh] flex flex-col bg-[#f5f5f3] lg:bg-[#f8f8f8] overflow-hidden overscroll-none">
       {/* Skip to main content — visible on keyboard focus only */}
       <a
@@ -1056,12 +1065,12 @@ export function MenuShell({
       {/* ── Outer scroll: banner scrolls away, sidebar/cart stay sticky ── */}
       <div
         ref={mainRefCb}
-        className={`flex-1 overflow-y-auto overscroll-contain max-w-[1440px] w-full mx-auto ${cartCount > 0 ? 'pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-0' : 'pb-[env(safe-area-inset-bottom)]'}`}
+        className={`flex-1 overflow-y-auto overscroll-contain max-w-[1440px] w-full mx-auto ${cartCount > 0 ? 'pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0' : 'pb-[env(safe-area-inset-bottom)]'}`}
       >
 
         {/* Cover banner — full width, scrolls away naturally with content */}
         {restaurant.cover_image_url && (
-          <div ref={bannerRef} className="relative w-full h-72 sm:h-72 lg:h-72 bg-gray-100 overflow-hidden">
+          <div ref={bannerRef} className="relative w-full h-48 sm:h-56 lg:h-72 bg-gray-100 overflow-hidden">
             <Image
               src={restaurant.cover_image_url}
               alt={restaurant.name}
@@ -2169,5 +2178,6 @@ export function MenuShell({
       </AnimatePresence>
 
     </div>
+    </StoreConfigProvider>
   );
 }
