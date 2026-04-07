@@ -7,13 +7,14 @@ import { verifyAdmin } from '@/lib/auth/verify-admin';
 import { createAdminClient } from '@/lib/supabase/admin';
 import fs from 'fs';
 import path from 'path';
+import Stripe from 'stripe';
 
 const GITHUB_OWNER = 'aptitud10-cmd';
 const GITHUB_REPO  = 'menius';
 const GITHUB_BRANCH = 'main';
 const VOYAGE_API = 'https://api.voyageai.com/v1';
 
-// ─── Helpers (duplicated here to keep this route self-contained) ──────────────
+// ─── Helpers (self-contained) ─────────────────────────────────────────────────
 async function githubFetch(apiPath: string, token: string) {
   const res = await fetch(`https://api.github.com/${apiPath}`, {
     headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' },
@@ -30,6 +31,7 @@ async function readFileGH(filePath: string, token: string): Promise<string> {
 }
 
 async function searchCode(query: string, limit: number, voyageKey: string, db: ReturnType<typeof createAdminClient>): Promise<string> {
+  if (!voyageKey) return 'VOYAGE_API_KEY not configured. Index the codebase first.';
   const embedRes = await fetch(`${VOYAGE_API}/embeddings`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${voyageKey}`, 'Content-Type': 'application/json' },
@@ -43,7 +45,7 @@ async function searchCode(query: string, limit: number, voyageKey: string, db: R
     match_count: Math.min(limit * 2, 40),
   });
   if (error) throw new Error(`pgvector: ${error.message}`);
-  if (!rows?.length) return 'No results found.';
+  if (!rows?.length) return 'No results found. The codebase may not be indexed yet.';
 
   const rerankRes = await fetch(`${VOYAGE_API}/rerank`, {
     method: 'POST',
@@ -61,19 +63,103 @@ async function searchCode(query: string, limit: number, voyageKey: string, db: R
 }
 
 async function searchWebTavily(query: string, tavilyKey: string): Promise<string> {
+  if (!tavilyKey) return 'TAVILY_API_KEY not configured.';
   const res = await fetch('https://api.tavily.com/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ api_key: tavilyKey, query, search_depth: 'advanced', max_results: 5, include_answer: true }),
+    body: JSON.stringify({ api_key: tavilyKey, query, search_depth: 'advanced', max_results: 6, include_answer: true }),
   });
   if (!res.ok) throw new Error(`Tavily: ${res.status}`);
   const json = await res.json();
   const parts: string[] = [];
   if (json.answer) parts.push(`**Answer**: ${json.answer}`);
-  for (const r of (json.results ?? []).slice(0, 5)) {
-    parts.push(`**${r.title}** (${r.url})\n${r.content?.slice(0, 500) ?? ''}`);
+  for (const r of (json.results ?? []).slice(0, 6)) {
+    parts.push(`**${r.title}** (${r.url})\n${r.content?.slice(0, 600) ?? ''}`);
   }
   return parts.join('\n\n') || 'No results.';
+}
+
+async function fetchUrl(url: string): Promise<string> {
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return 'Error: URL must start with http:// or https://';
+  }
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'MeniusDevBot/1.0 (compatible; +https://menius.app)' },
+      signal: AbortSignal.timeout(10_000),
+    });
+    const contentType = res.headers.get('content-type') ?? '';
+    if (!res.ok) return `HTTP ${res.status} ${res.statusText} from ${url}`;
+    if (contentType.includes('application/json')) {
+      const json = await res.json();
+      return `**${url}** (JSON)\n\`\`\`json\n${JSON.stringify(json, null, 2).slice(0, 8000)}\n\`\`\``;
+    }
+    const html = await res.text();
+    // Strip HTML tags, collapse whitespace, remove scripts/styles
+    const text = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return `**Content from ${url}**\n\n${text.slice(0, 10000)}`;
+  } catch (err) {
+    return `Error fetching ${url}: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+async function queryStripe(query: string): Promise<string> {
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (!stripeKey) return 'STRIPE_SECRET_KEY not configured.';
+  const stripe = new Stripe(stripeKey, { apiVersion: '2025-01-27.acacia' });
+  const q = query.toLowerCase();
+
+  try {
+    // Revenue / charges
+    if (q.includes('revenue') || q.includes('charge') || q.includes('payment') || q.includes('ingreso') || q.includes('pago')) {
+      const charges = await stripe.charges.list({ limit: 100 });
+      const total = charges.data.filter(c => c.paid && !c.refunded).reduce((s, c) => s + c.amount, 0);
+      const byMonth: Record<string, number> = {};
+      for (const c of charges.data) {
+        if (c.paid) {
+          const month = new Date(c.created * 1000).toISOString().slice(0, 7);
+          byMonth[month] = (byMonth[month] ?? 0) + c.amount;
+        }
+      }
+      return `**Stripe Revenue (last 100 charges)**\nTotal: $${(total / 100).toFixed(2)}\n\nBy month:\n${Object.entries(byMonth).sort().map(([m, v]) => `- ${m}: $${(v / 100).toFixed(2)}`).join('\n')}`;
+    }
+
+    // Subscriptions
+    if (q.includes('subscription') || q.includes('suscripcion') || q.includes('suscripción') || q.includes('plan')) {
+      const subs = await stripe.subscriptions.list({ limit: 100 });
+      const active = subs.data.filter(s => s.status === 'active').length;
+      const trialing = subs.data.filter(s => s.status === 'trialing').length;
+      const canceled = subs.data.filter(s => s.status === 'canceled').length;
+      const pastDue = subs.data.filter(s => s.status === 'past_due').length;
+      const mrr = subs.data
+        .filter(s => s.status === 'active' || s.status === 'past_due')
+        .reduce((sum, s) => sum + (s.items.data[0]?.price?.unit_amount ?? 0), 0);
+      return `**Stripe Subscriptions**\nActive: ${active} | Trialing: ${trialing} | Past Due: ${pastDue} | Canceled: ${canceled}\nEstimated MRR: $${(mrr / 100).toFixed(2)}/mo`;
+    }
+
+    // Customers
+    if (q.includes('customer') || q.includes('cliente')) {
+      const customers = await stripe.customers.list({ limit: 10 });
+      const rows = customers.data.map(c =>
+        `- ${c.email ?? 'no-email'} | ${c.name ?? ''} | Created: ${new Date(c.created * 1000).toLocaleDateString()}`
+      );
+      return `**Recent Stripe Customers (last 10)**\n${rows.join('\n')}`;
+    }
+
+    return `I can answer questions about: revenue/payments, subscriptions/plans, customers. Ask me one of those!`;
+  } catch (err) {
+    return `Stripe error: ${err instanceof Error ? err.message : String(err)}`;
+  }
 }
 
 async function listFiles(dirPath: string, token: string): Promise<string> {
@@ -98,6 +184,7 @@ async function queryDB(sql: string, db: ReturnType<typeof createAdminClient>): P
   } catch (e) { return `Error: ${e instanceof Error ? e.message : String(e)}`; }
 }
 
+// ─── System prompt ────────────────────────────────────────────────────────────
 function buildSystemPrompt(): string {
   let claudeMd = '';
   try {
@@ -120,31 +207,29 @@ ${claudeMd ? claudeMd : ''}
 4. **query_database** si necesitas ver datos reales de producción
 5. **search_web** para documentación externa, errores de npm, best practices actuales
 
+### Cuando recibes imágenes:
+- Analiza la imagen primero antes de proponer cambios
+- Si es un screenshot de bug: identifica el componente, busca el código, propón fix
+- Si es un diseño/mockup: implementa en código siguiendo los patrones de Menius
+
 ### Al escribir código:
 - Cambios QUIRÚRGICOS — mínimos y precisos. No tocar lo que no es necesario.
 - TypeScript strict — NO any, tipos explícitos
-- Sin comentarios que explican lo obvio ("// Import X", "// Define function")
+- Sin comentarios que explican lo obvio
 - Imports siempre al tope del archivo
-- Respetar los patrones existentes del archivo (no inventar nuevos patrones)
-- Siempre usar createAdminClient() en route handlers que requieren bypass de RLS
+- Respetar los patrones existentes del archivo
+- SIEMPRE usar createAdminClient() en route handlers que requieren bypass de RLS
 - export const dynamic = 'force-dynamic' en todos los POST handlers
-
-### Seguridad:
-- NUNCA exponer service role key en cliente
-- NUNCA hacer queries sin autenticación en datos sensibles
-- Validar todos los inputs con Zod o checks manuales
-- Rate limiting en endpoints públicos
-
-### Base de datos:
-- NUNCA editar migraciones existentes — crear archivo nuevo
-- plan_id en DB solo acepta: starter | pro | business (nunca 'free')
-- FK de order_item_modifiers deben existir en modifier_groups/options
-- revalidateTag(\`menu-data:\${slug}\`) después de cambios al menú
 
 ### Para investigaciones, market research, tendencias:
 - Usa search_web para buscar información actualizada
+- Usa fetch_url para leer documentación específica de librerías o competidores
 - Puedo investigar cualquier tema: tecnología, mercado, competidores, best practices
 - No limitado solo al código — soy un asistente completo
+
+### Para análisis de negocio:
+- Usa query_stripe para métricas de revenue, subscripciones, customers
+- Usa query_database para datos de producción de Menius
 
 ### Comunicación:
 - Respondo en español (el idioma del equipo)
@@ -153,57 +238,67 @@ ${claudeMd ? claudeMd : ''}
 - Si algo es ambiguo, pregunto antes de asumir`;
 }
 
+// ─── Tool schemas ─────────────────────────────────────────────────────────────
 const TOOLS: Anthropic.Tool[] = [
   {
     name: 'search_code',
-    description: 'Semantic search through the Menius codebase. Results are AI-reranked.',
-    input_schema: { type: 'object' as const, properties: { query: { type: 'string' }, limit: { type: 'number' } }, required: ['query'] },
+    description: 'Semantic search through the Menius codebase. Results are AI-reranked. Use before reading or editing any file.',
+    input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to search for' }, limit: { type: 'number', description: 'Max results (default 5)' } }, required: ['query'] },
   },
   {
     name: 'read_file',
-    description: 'Read a file from the GitHub repo.',
+    description: 'Read a file from the GitHub repo. Always read before editing.',
     input_schema: { type: 'object' as const, properties: { path: { type: 'string', description: 'e.g. src/app/api/orders/route.ts' } }, required: ['path'] },
   },
   {
     name: 'list_files',
-    description: 'List files in a directory.',
-    input_schema: { type: 'object' as const, properties: { path: { type: 'string' } }, required: ['path'] },
+    description: 'List files in a directory of the repo.',
+    input_schema: { type: 'object' as const, properties: { path: { type: 'string', description: 'e.g. src/app/api/' } }, required: ['path'] },
   },
   {
     name: 'search_web',
-    description: 'Search the internet for docs and solutions.',
+    description: 'Search the internet for docs, trends, solutions, market research, competitor analysis.',
     input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] },
   },
   {
+    name: 'fetch_url',
+    description: 'Fetch and read the content of any URL. Use for reading npm docs, API references, competitor sites, or any webpage.',
+    input_schema: { type: 'object' as const, properties: { url: { type: 'string', description: 'Full URL to fetch, e.g. https://menius.app/buccaneer' } }, required: ['url'] },
+  },
+  {
     name: 'write_file',
-    description: 'Propose a file change. Provide COMPLETE file content.',
+    description: 'Propose a file change. Provide COMPLETE file content. The user will review and apply.',
     input_schema: {
       type: 'object' as const,
       properties: {
-        path: { type: 'string' },
-        content: { type: 'string' },
+        path: { type: 'string', description: 'File path relative to repo root' },
+        content: { type: 'string', description: 'COMPLETE new file content' },
         action: { type: 'string', enum: ['create', 'update', 'delete'] },
-        explanation: { type: 'string' },
+        explanation: { type: 'string', description: 'What changed and why' },
       },
       required: ['path', 'content', 'action'],
     },
   },
   {
     name: 'query_database',
-    description: 'Run a read-only SELECT on the Supabase production DB.',
-    input_schema: { type: 'object' as const, properties: { sql: { type: 'string' } }, required: ['sql'] },
+    description: 'Run a read-only SELECT on the Supabase production database. Useful for debugging and analytics.',
+    input_schema: { type: 'object' as const, properties: { sql: { type: 'string', description: 'SELECT query to run' } }, required: ['sql'] },
+  },
+  {
+    name: 'query_stripe',
+    description: 'Query Stripe for business metrics: revenue, subscriptions, customers, MRR. Use for business analytics questions.',
+    input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to query: e.g. "revenue this month", "active subscriptions", "recent customers"' } }, required: ['query'] },
   },
 ];
 
-// ─── OpenAI-compatible tools (for OpenRouter) ────────────────────────────────
-const OPENAI_TOOLS = [
-  { type: 'function', function: { name: 'search_code', description: 'Semantic search through the Menius codebase. Results are AI-reranked.', parameters: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'number' } }, required: ['query'] } } },
-  { type: 'function', function: { name: 'read_file', description: 'Read a file from the GitHub repo.', parameters: { type: 'object', properties: { path: { type: 'string', description: 'e.g. src/app/api/orders/route.ts' } }, required: ['path'] } } },
-  { type: 'function', function: { name: 'list_files', description: 'List files in a directory.', parameters: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] } } },
-  { type: 'function', function: { name: 'search_web', description: 'Search the internet for docs, trends, market research, and solutions.', parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] } } },
-  { type: 'function', function: { name: 'write_file', description: 'Propose a file change. Provide COMPLETE file content.', parameters: { type: 'object', properties: { path: { type: 'string' }, content: { type: 'string' }, action: { type: 'string', enum: ['create', 'update', 'delete'] }, explanation: { type: 'string' } }, required: ['path', 'content', 'action'] } } },
-  { type: 'function', function: { name: 'query_database', description: 'Run a read-only SELECT on the Supabase production DB.', parameters: { type: 'object', properties: { sql: { type: 'string' } }, required: ['sql'] } } },
-];
+const OPENAI_TOOLS = TOOLS.map(t => ({
+  type: 'function',
+  function: {
+    name: t.name,
+    description: t.description,
+    parameters: t.input_schema,
+  },
+}));
 
 const OPENROUTER_MODEL_IDS = new Set([
   'openai/o3', 'openai/o3-mini', 'openai/o4-mini', 'openai/gpt-4.5',
@@ -216,13 +311,122 @@ function isOpenRouterModel(modelId: string): boolean {
   return modelId.includes('/') || OPENROUTER_MODEL_IDS.has(modelId);
 }
 
-// ─── OpenRouter agentic stream loop ──────────────────────────────────────────
+// ─── Image helpers ────────────────────────────────────────────────────────────
+function parseBase64Image(dataUrl: string): { mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'; data: string } | null {
+  const match = dataUrl.match(/^data:(image\/(?:jpeg|jpg|png|gif|webp));base64,(.+)$/);
+  if (!match) return null;
+  const raw = match[1].replace('image/jpg', 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+  return { mediaType: raw, data: match[2] };
+}
+
+function buildAnthropicMessages(
+  messages: Array<{ role: string; content: string }>,
+  lastUserImages: string[],
+): Anthropic.MessageParam[] {
+  if (lastUserImages.length === 0) {
+    return messages as Anthropic.MessageParam[];
+  }
+
+  const result: Anthropic.MessageParam[] = [];
+  for (let i = 0; i < messages.length; i++) {
+    const m = messages[i];
+    if (m.role === 'user' && i === messages.length - 1 && lastUserImages.length > 0) {
+      const imageBlocks: Anthropic.ImageBlockParam[] = lastUserImages
+        .map(parseBase64Image)
+        .filter((img): img is NonNullable<typeof img> => img !== null)
+        .map(img => ({
+          type: 'image' as const,
+          source: { type: 'base64' as const, media_type: img.mediaType, data: img.data },
+        }));
+      result.push({
+        role: 'user',
+        content: [
+          ...imageBlocks,
+          { type: 'text', text: m.content || 'Analiza esta imagen.' },
+        ],
+      });
+    } else {
+      result.push(m as Anthropic.MessageParam);
+    }
+  }
+  return result;
+}
+
+function buildOpenRouterMessages(
+  messages: Array<{ role: string; content: string }>,
+  lastUserImages: string[],
+): Array<Record<string, unknown>> {
+  if (lastUserImages.length === 0) {
+    return messages.map(m => ({ role: m.role, content: m.content }));
+  }
+
+  return messages.map((m, i) => {
+    if (m.role === 'user' && i === messages.length - 1) {
+      const imageParts = lastUserImages
+        .filter(d => d.startsWith('data:image/'))
+        .map(d => ({ type: 'image_url', image_url: { url: d } }));
+      return {
+        role: 'user',
+        content: [
+          ...imageParts,
+          { type: 'text', text: m.content || 'Analiza esta imagen.' },
+        ],
+      };
+    }
+    return { role: m.role, content: m.content };
+  });
+}
+
+// ─── Tool executor ────────────────────────────────────────────────────────────
 type PendingChange = { path: string; content: string; action: string; explanation?: string };
 
+async function executeTool(
+  name: string,
+  inp: Record<string, unknown>,
+  { githubToken, voyageKey, tavilyKey, db, send }: {
+    githubToken: string;
+    voyageKey: string;
+    tavilyKey: string;
+    db: ReturnType<typeof createAdminClient>;
+    send: (type: string, data: object) => void;
+  }
+): Promise<{ result: string; pendingChange?: PendingChange }> {
+  switch (name) {
+    case 'search_code':
+      return { result: await searchCode(inp.query as string, Math.min((inp.limit as number) ?? 5, 10), voyageKey, db) };
+    case 'read_file':
+      return { result: `\`\`\`\n${(await readFileGH(inp.path as string, githubToken)).slice(0, 8000)}\n\`\`\`` };
+    case 'list_files':
+      return { result: await listFiles(inp.path as string, githubToken) };
+    case 'search_web':
+      return { result: await searchWebTavily(inp.query as string, tavilyKey) };
+    case 'fetch_url':
+      return { result: await fetchUrl(inp.url as string) };
+    case 'write_file': {
+      const pendingChange: PendingChange = {
+        path: inp.path as string,
+        content: inp.content as string,
+        action: (inp.action as string) ?? 'update',
+        explanation: inp.explanation as string | undefined,
+      };
+      send('pending_change', pendingChange);
+      return { result: `File change prepared: ${pendingChange.action} ${pendingChange.path}`, pendingChange };
+    }
+    case 'query_database':
+      return { result: await queryDB(inp.sql as string, db) };
+    case 'query_stripe':
+      return { result: await queryStripe(inp.query as string) };
+    default:
+      return { result: `Unknown tool: ${name}` };
+  }
+}
+
+// ─── OpenRouter stream loop ───────────────────────────────────────────────────
 async function runOpenRouterStream(
   modelId: string,
   systemPrompt: string,
   messages: Array<{ role: string; content: string }>,
+  lastUserImages: string[],
   githubToken: string,
   voyageKey: string,
   tavilyKey: string,
@@ -237,10 +441,9 @@ async function runOpenRouterStream(
     'X-Title': 'Menius Dev Tool',
   };
 
-  type OAIMessage = Record<string, unknown>;
-  const currentMessages: OAIMessage[] = [
+  const currentMessages: Array<Record<string, unknown>> = [
     { role: 'system', content: systemPrompt },
-    ...messages.map(m => ({ role: m.role, content: m.content })),
+    ...buildOpenRouterMessages(messages, lastUserImages),
   ];
 
   const MAX_ROUNDS = 8;
@@ -307,9 +510,8 @@ async function runOpenRouterStream(
     }
 
     const toolCallList = Object.values(pendingToolCalls);
-    const hasToolCalls = toolCallList.length > 0;
 
-    if (hasToolCalls) {
+    if (toolCallList.length > 0) {
       currentMessages.push({
         role: 'assistant',
         content: assistantContent || null,
@@ -318,23 +520,11 @@ async function runOpenRouterStream(
 
       for (const tc of toolCallList) {
         let result = '';
-        let pendingChange: PendingChange | undefined;
         try {
           send('tool_running', { name: tc.name });
           const inp = JSON.parse(tc.arguments || '{}') as Record<string, unknown>;
-          switch (tc.name) {
-            case 'search_code': result = await searchCode(inp.query as string, Math.min((inp.limit as number) ?? 5, 10), voyageKey, db); break;
-            case 'read_file': result = `\`\`\`\n${(await readFileGH(inp.path as string, githubToken)).slice(0, 8000)}\n\`\`\``; break;
-            case 'list_files': result = await listFiles(inp.path as string, githubToken); break;
-            case 'search_web': result = await searchWebTavily(inp.query as string, tavilyKey); break;
-            case 'write_file':
-              pendingChange = { path: inp.path as string, content: inp.content as string, action: (inp.action as string) ?? 'update', explanation: inp.explanation as string | undefined };
-              result = `File change prepared: ${pendingChange.action} ${pendingChange.path}`;
-              send('pending_change', pendingChange);
-              break;
-            case 'query_database': result = await queryDB(inp.sql as string, db); break;
-            default: result = `Unknown tool: ${tc.name}`;
-          }
+          const r = await executeTool(tc.name, inp, { githubToken, voyageKey, tavilyKey, db, send });
+          result = r.result;
           send('tool_done', { name: tc.name, resultLength: result.length });
         } catch (err) {
           result = `Error: ${err instanceof Error ? err.message : String(err)}`;
@@ -348,29 +538,38 @@ async function runOpenRouterStream(
   }
 }
 
-// ─── SSE encoder ─────────────────────────────────────────────────────────────
+// ─── SSE encoder ──────────────────────────────────────────────────────────────
 function sseEvent(type: string, data: object): string {
   return `data: ${JSON.stringify({ type, ...data })}\n\n`;
 }
 
+// ─── POST handler ─────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   const auth = await verifyAdmin();
   if (!auth) {
     return new Response('Unauthorized', { status: 403 });
   }
 
-  const githubToken = process.env.GITHUB_TOKEN;
+  const githubToken = process.env.GITHUB_TOKEN ?? '';
   const voyageKey   = process.env.VOYAGE_API_KEY ?? '';
   const tavilyKey   = process.env.TAVILY_API_KEY ?? '';
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   const openrouterKey = process.env.OPENROUTER_API_KEY ?? '';
 
   if (!anthropicKey || !githubToken) {
-    return new Response('Missing env vars', { status: 500 });
+    return new Response('Missing ANTHROPIC_API_KEY or GITHUB_TOKEN', { status: 500 });
   }
 
   const body = await request.json();
-  const { messages, model } = body as { messages: Array<{ role: string; content: string }>; model?: string };
+  const {
+    messages,
+    model,
+    images: lastUserImages = [],
+  } = body as {
+    messages: Array<{ role: string; content: string }>;
+    model?: string;
+    images?: string[];
+  };
 
   const resolvedModel = (() => {
     const m = model ?? 'claude-sonnet-4-5';
@@ -390,7 +589,6 @@ export async function POST(request: NextRequest) {
         controller.enqueue(encoder.encode(sseEvent(type, data)));
       };
 
-      // Route OpenRouter models to the separate handler
       if (isOpenRouterModel(resolvedModel)) {
         if (!openrouterKey) {
           send('error', { message: 'Missing OPENROUTER_API_KEY. Add it in Vercel env vars.' });
@@ -398,7 +596,10 @@ export async function POST(request: NextRequest) {
           return;
         }
         try {
-          await runOpenRouterStream(resolvedModel, buildSystemPrompt(), messages, githubToken, voyageKey, tavilyKey, db, openrouterKey, send);
+          await runOpenRouterStream(
+            resolvedModel, buildSystemPrompt(), messages, lastUserImages,
+            githubToken, voyageKey, tavilyKey, db, openrouterKey, send
+          );
           send('done', { pendingChanges: [] });
         } catch (err) {
           send('error', { message: err instanceof Error ? err.message : 'OpenRouter error' });
@@ -408,13 +609,16 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        let currentMessages = [...messages] as Anthropic.MessageParam[];
-        const pendingChanges: Array<{ path: string; content: string; action: string; explanation?: string }> = [];
+        const anthropicMessages = buildAnthropicMessages(messages, lastUserImages);
+        let currentMessages = [...anthropicMessages] as Anthropic.MessageParam[];
+        const pendingChanges: PendingChange[] = [];
         const MAX_ROUNDS = 10;
 
         for (let round = 0; round < MAX_ROUNDS; round++) {
-          // Stream this round
-          let roundText = '';
+          const contentBlocks: Anthropic.ContentBlock[] = [];
+          let currentTextBlock = '';
+          let currentToolUse: Anthropic.ToolUseBlock | null = null;
+          let toolInputJson = '';
 
           const anthropicStream = await client.messages.stream({
             model: resolvedModel,
@@ -423,12 +627,6 @@ export async function POST(request: NextRequest) {
             tools: TOOLS,
             messages: currentMessages,
           });
-
-          // Collect content blocks while streaming tokens
-          const contentBlocks: Anthropic.ContentBlock[] = [];
-          let currentTextBlock = '';
-          let currentToolUse: Anthropic.ToolUseBlock | null = null;
-          let toolInputJson = '';
 
           for await (const chunk of anthropicStream) {
             if (chunk.type === 'content_block_start') {
@@ -442,7 +640,6 @@ export async function POST(request: NextRequest) {
             } else if (chunk.type === 'content_block_delta') {
               if (chunk.delta.type === 'text_delta') {
                 currentTextBlock += chunk.delta.text;
-                roundText += chunk.delta.text;
                 send('token', { text: chunk.delta.text });
               } else if (chunk.delta.type === 'input_json_delta') {
                 toolInputJson += chunk.delta.partial_json;
@@ -453,11 +650,7 @@ export async function POST(request: NextRequest) {
                 currentTextBlock = '';
               }
               if (currentToolUse) {
-                try {
-                  currentToolUse.input = JSON.parse(toolInputJson || '{}');
-                } catch {
-                  currentToolUse.input = {};
-                }
+                try { currentToolUse.input = JSON.parse(toolInputJson || '{}'); } catch { currentToolUse.input = {}; }
                 contentBlocks.push(currentToolUse);
                 currentToolUse = null;
                 toolInputJson = '';
@@ -466,8 +659,6 @@ export async function POST(request: NextRequest) {
           }
 
           const finalMessage = await anthropicStream.finalMessage();
-
-          // If no tool use, done
           if (finalMessage.stop_reason !== 'tool_use') break;
 
           const toolUseBlocks = contentBlocks.filter(b => b.type === 'tool_use') as Anthropic.ToolUseBlock[];
@@ -475,58 +666,21 @@ export async function POST(request: NextRequest) {
 
           currentMessages.push({ role: 'assistant', content: contentBlocks });
 
-          // Execute tools
           const toolResults: Anthropic.ToolResultBlockParam[] = [];
           for (const toolUse of toolUseBlocks) {
             const inp = toolUse.input as Record<string, unknown>;
             let result = '';
-            let pendingChange: { path: string; content: string; action: string; explanation?: string } | undefined;
-
             try {
               send('tool_running', { name: toolUse.name });
-
-              switch (toolUse.name) {
-                case 'search_code':
-                  result = await searchCode(inp.query as string, Math.min((inp.limit as number) ?? 5, 10), voyageKey, db);
-                  break;
-                case 'read_file':
-                  result = `\`\`\`\n${(await readFileGH(inp.path as string, githubToken)).slice(0, 8000)}\n\`\`\``;
-                  break;
-                case 'list_files':
-                  result = await listFiles(inp.path as string, githubToken);
-                  break;
-                case 'search_web':
-                  result = await searchWebTavily(inp.query as string, tavilyKey);
-                  break;
-                case 'write_file':
-                  pendingChange = {
-                    path: inp.path as string,
-                    content: inp.content as string,
-                    action: (inp.action as string) ?? 'update',
-                    explanation: inp.explanation as string | undefined,
-                  };
-                  pendingChanges.push(pendingChange);
-                  result = `File change prepared: ${pendingChange.action} ${pendingChange.path}`;
-                  send('pending_change', pendingChange);
-                  break;
-                case 'query_database':
-                  result = await queryDB(inp.sql as string, db);
-                  break;
-                default:
-                  result = `Unknown tool: ${toolUse.name}`;
-              }
-
+              const r = await executeTool(toolUse.name, inp, { githubToken, voyageKey, tavilyKey, db, send });
+              result = r.result;
+              if (r.pendingChange) pendingChanges.push(r.pendingChange);
               send('tool_done', { name: toolUse.name, resultLength: result.length });
             } catch (err) {
               result = `Error: ${err instanceof Error ? err.message : String(err)}`;
               send('tool_error', { name: toolUse.name, error: result });
             }
-
-            toolResults.push({
-              type: 'tool_result',
-              tool_use_id: toolUse.id,
-              content: result.slice(0, 50000),
-            });
+            toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: result.slice(0, 50000) });
           }
 
           currentMessages.push({ role: 'user', content: toolResults });

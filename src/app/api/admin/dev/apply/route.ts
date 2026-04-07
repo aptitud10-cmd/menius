@@ -115,6 +115,32 @@ export async function POST(request: NextRequest) {
     }
 
     const allOk = results.every(r => r.status === 'ok');
+
+    // Trigger deploy notification in background (fire and forget)
+    if (allOk) {
+      const adminEmail = process.env.ADMIN_EMAIL?.split(',')[0];
+      if (adminEmail) {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app';
+        // Get latest deployment ID to monitor
+        const vercelToken = process.env.VERCEL_TOKEN;
+        const vercelProjectId = process.env.VERCEL_PROJECT_ID ?? 'prj_pNFA4PgrneGbcu2KmhzkS6FWBwug';
+        if (vercelToken) {
+          fetch(`https://api.vercel.com/v6/deployments?projectId=${vercelProjectId}&limit=1`, {
+            headers: { Authorization: `Bearer ${vercelToken}` },
+          }).then(r => r.ok ? r.json() : null).then(json => {
+            const deploymentId = json?.deployments?.[0]?.uid;
+            if (deploymentId) {
+              fetch(`${baseUrl}/api/admin/dev/notify-deploy`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deploymentId, notifyEmail: adminEmail, commitMessage }),
+              }).catch(() => {});
+            }
+          }).catch(() => {});
+        }
+      }
+    }
+
     return NextResponse.json({
       ok: allOk,
       results,

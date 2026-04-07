@@ -11,6 +11,7 @@ const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  images?: string[];       // base64 data URLs attached by the user
   pendingChanges?: PendingChange[];
 }
 
@@ -64,20 +65,36 @@ interface ConversationSummary {
   updated_at: string;
 }
 
+interface CommitInfo {
+  sha: string;
+  message: string;
+  author: string;
+  date: string;
+  url: string;
+}
+
 const MODELS = [
-  // Claude (Anthropic) — tool calling + streaming
-  { id: 'claude-opus-4-5',         label: 'Claude Opus 4.5 ⚡',   provider: 'anthropic',  color: '#7c3aed' },
-  { id: 'claude-sonnet-4-5',       label: 'Claude Sonnet 4.5',    provider: 'anthropic',  color: '#2563eb' },
-  { id: 'claude-haiku-3-5',        label: 'Claude Haiku 3.5',     provider: 'anthropic',  color: '#059669' },
-  // Gemini (Google)
-  { id: 'gemini-2.5-pro',          label: 'Gemini 2.5 Pro',       provider: 'gemini',     color: '#d97706' },
-  { id: 'gemini-2.5-flash',        label: 'Gemini 2.5 Flash',     provider: 'gemini',     color: '#ea580c' },
-  // OpenRouter — access to o3, GPT-4.5, Llama 4 and more
-  { id: 'openai/o3',               label: 'OpenAI o3 🧠',          provider: 'openrouter', color: '#16a34a' },
-  { id: 'openai/o4-mini',          label: 'OpenAI o4-mini',        provider: 'openrouter', color: '#4ade80' },
-  { id: 'openai/gpt-4.5',          label: 'GPT-4.5',              provider: 'openrouter', color: '#14b8a6' },
-  { id: 'openai/gpt-4o',           label: 'GPT-4o',               provider: 'openrouter', color: '#0d9488' },
-  { id: 'meta-llama/llama-4-maverick', label: 'Llama 4 Maverick', provider: 'openrouter', color: '#f59e0b' },
+  { id: 'claude-opus-4-5',              label: 'Claude Opus 4.5 ⚡',    provider: 'anthropic',  color: '#7c3aed' },
+  { id: 'claude-sonnet-4-5',            label: 'Claude Sonnet 4.5',     provider: 'anthropic',  color: '#2563eb' },
+  { id: 'claude-haiku-3-5',             label: 'Claude Haiku 3.5',      provider: 'anthropic',  color: '#059669' },
+  { id: 'gemini-2.5-pro',               label: 'Gemini 2.5 Pro',        provider: 'gemini',     color: '#d97706' },
+  { id: 'gemini-2.5-flash',             label: 'Gemini 2.5 Flash',      provider: 'gemini',     color: '#ea580c' },
+  { id: 'openai/o3',                    label: 'OpenAI o3 🧠',           provider: 'openrouter', color: '#16a34a' },
+  { id: 'openai/o4-mini',               label: 'OpenAI o4-mini',         provider: 'openrouter', color: '#4ade80' },
+  { id: 'openai/gpt-4.5',               label: 'GPT-4.5',               provider: 'openrouter', color: '#14b8a6' },
+  { id: 'openai/gpt-4o',                label: 'GPT-4o 👁',             provider: 'openrouter', color: '#0d9488' },
+  { id: 'meta-llama/llama-4-maverick',  label: 'Llama 4 Maverick',      provider: 'openrouter', color: '#f59e0b' },
+];
+
+const QUICK_ACTIONS = [
+  { icon: '🔍', label: 'Auditar tienda', prompt: 'Audita la tienda buccaneer: velocidad, mobile, errores y propón mejoras concretas.' },
+  { icon: '🐛', label: 'Buscar errores', prompt: 'Busca errores recientes en Sentry y propón fixes para los más críticos.' },
+  { icon: '📊', label: 'Analytics negocio', prompt: 'Muéstrame métricas clave: subscripciones activas, MRR en Stripe, y restaurantes sin órdenes en 30 días.' },
+  { icon: '🌐', label: 'Revisar web', prompt: 'Revisa menius.app y dame un análisis de la landing page, UX y posibles mejoras.' },
+  { icon: '🚀', label: 'Performance', prompt: 'Analiza los archivos de mayor impacto en performance y sugiere optimizaciones.' },
+  { icon: '🔒', label: 'Seguridad', prompt: 'Revisa los route handlers públicos y valida que tengan rate limiting, auth y validación correctos.' },
+  { icon: '📈', label: 'Market research', prompt: 'Investiga las últimas tendencias en menús digitales para restaurantes en Latinoamérica 2026.' },
+  { icon: '💡', label: 'Nueva feature', prompt: '¿Cuál sería la feature con más ROI para agregar a Menius ahora mismo?' },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -96,6 +113,16 @@ function shortPath(p: string) {
   return parts.length > 2 ? `…/${parts.slice(-2).join('/')}` : p;
 }
 
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 function groupByDate(conversations: ConversationSummary[]) {
   const now = new Date();
@@ -106,7 +133,7 @@ function groupByDate(conversations: ConversationSummary[]) {
   const groups: { label: string; items: ConversationSummary[] }[] = [
     { label: 'Today', items: [] },
     { label: 'Yesterday', items: [] },
-    { label: 'Previous 7 Days', items: [] },
+    { label: 'Last 7 Days', items: [] },
     { label: 'Older', items: [] },
   ];
 
@@ -127,18 +154,20 @@ function ConversationSidebar({
   onSelect,
   onNew,
   onDelete,
+  commits,
 }: {
   conversations: ConversationSummary[];
   activeId: string;
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  commits: CommitInfo[];
 }) {
+  const [tab, setTab] = useState<'chats' | 'history'>('chats');
   const groups = groupByDate(conversations);
 
   return (
     <div className="flex flex-col border-r border-gray-800 bg-gray-950 flex-shrink-0" style={{ width: 220 }}>
-      {/* New chat */}
       <div className="p-2 border-b border-gray-800">
         <button
           onClick={onNew}
@@ -149,43 +178,78 @@ function ConversationSidebar({
         </button>
       </div>
 
-      {/* Conversation list */}
-      <div className="flex-1 overflow-y-auto py-2 scrollbar-thin">
-        {conversations.length === 0 ? (
-          <p className="text-xs text-gray-600 px-3 py-4 text-center">No conversations yet.<br />Start chatting!</p>
-        ) : (
-          groups.map(group => (
-            <div key={group.label} className="mb-3">
-              <p className="text-[10px] text-gray-600 uppercase tracking-wider px-3 mb-1 font-medium">{group.label}</p>
-              {group.items.map(conv => (
-                <div
-                  key={conv.id}
-                  className="group relative mx-1 rounded-lg"
-                  style={{ background: conv.id === activeId ? '#1f2937' : 'transparent' }}
-                >
-                  <button
-                    onClick={() => onSelect(conv.id)}
-                    className="w-full text-left px-2 py-1.5 text-xs leading-5 pr-7 transition-colors"
-                    style={{ color: conv.id === activeId ? '#f9fafb' : '#9ca3af' }}
-                  >
-                    <span className="block truncate">{conv.title || 'New conversation'}</span>
-                    {conv.model && (
-                      <span className="text-[9px] text-gray-600 block truncate">{conv.model.split('/').pop()}</span>
-                    )}
-                  </button>
-                  <button
-                    onClick={e => { e.stopPropagation(); onDelete(conv.id); }}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs w-5 h-5 flex items-center justify-center rounded"
-                    title="Delete"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          ))
-        )}
+      {/* Tab switcher */}
+      <div className="flex border-b border-gray-800">
+        {(['chats', 'history'] as const).map(t => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className="flex-1 text-[10px] py-1.5 uppercase tracking-wider transition-colors"
+            style={{ color: tab === t ? '#a78bfa' : '#6b7280', borderBottom: tab === t ? '2px solid #a78bfa' : '2px solid transparent' }}
+          >
+            {t === 'chats' ? '💬 Chats' : '📋 Commits'}
+          </button>
+        ))}
       </div>
+
+      {tab === 'chats' ? (
+        <div className="flex-1 overflow-y-auto py-2 scrollbar-thin">
+          {conversations.length === 0 ? (
+            <p className="text-xs text-gray-600 px-3 py-4 text-center">No conversations yet.<br />Start chatting!</p>
+          ) : (
+            groups.map(group => (
+              <div key={group.label} className="mb-3">
+                <p className="text-[10px] text-gray-600 uppercase tracking-wider px-3 mb-1 font-medium">{group.label}</p>
+                {group.items.map(conv => (
+                  <div
+                    key={conv.id}
+                    className="group relative mx-1 rounded-lg"
+                    style={{ background: conv.id === activeId ? '#1f2937' : 'transparent' }}
+                  >
+                    <button
+                      onClick={() => onSelect(conv.id)}
+                      className="w-full text-left px-2 py-1.5 text-xs leading-5 pr-7 transition-colors"
+                      style={{ color: conv.id === activeId ? '#f9fafb' : '#9ca3af' }}
+                    >
+                      <span className="block truncate">{conv.title || 'New conversation'}</span>
+                      {conv.model && (
+                        <span className="text-[9px] text-gray-600 block truncate">{conv.model.split('/').pop()}</span>
+                      )}
+                    </button>
+                    <button
+                      onClick={e => { e.stopPropagation(); onDelete(conv.id); }}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs w-5 h-5 flex items-center justify-center rounded"
+                      title="Delete"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ))
+          )}
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto py-2 scrollbar-thin">
+          {commits.length === 0 ? (
+            <p className="text-xs text-gray-600 px-3 py-4 text-center">No commits found</p>
+          ) : (
+            commits.map(c => (
+              <a
+                key={c.sha}
+                href={c.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block px-2 py-2 mx-1 rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                <span className="text-[10px] font-mono text-purple-400">{c.sha}</span>
+                <span className="block text-[11px] text-gray-300 truncate leading-4 mt-0.5">{c.message}</span>
+                <span className="text-[9px] text-gray-600">{c.author} · {timeAgo(c.date)}</span>
+              </a>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -229,7 +293,6 @@ function LogsPanel({ deployId, onClose }: { deployId: string; onClose: () => voi
   useEffect(() => {
     if (!polling) return;
     let timer: ReturnType<typeof setTimeout>;
-
     const poll = async () => {
       try {
         const res = await fetch(`/api/admin/dev/logs?deployId=${deployId}`);
@@ -244,14 +307,11 @@ function LogsPanel({ deployId, onClose }: { deployId: string; onClose: () => voi
         timer = setTimeout(poll, 3000);
       } catch { /* ignore */ }
     };
-
     poll();
     return () => clearTimeout(timer);
   }, [deployId, polling]);
 
-  useEffect(() => {
-    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [logs]);
+  useEffect(() => { logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs]);
 
   return (
     <div className="flex flex-col h-full bg-gray-950">
@@ -267,11 +327,7 @@ function LogsPanel({ deployId, onClose }: { deployId: string; onClose: () => voi
       </div>
       <div className="flex-1 overflow-y-auto p-3 font-mono text-xs space-y-0.5">
         {logs.map((log, i) => (
-          <div
-            key={i}
-            className="leading-5 px-1"
-            style={{ color: log.level === 'error' ? '#fca5a5' : log.type === 'command' ? '#93c5fd' : '#d1d5db' }}
-          >
+          <div key={i} className="leading-5 px-1" style={{ color: log.level === 'error' ? '#fca5a5' : log.type === 'command' ? '#93c5fd' : '#d1d5db' }}>
             {log.ts && <span className="text-gray-600 mr-2">{new Date(log.ts).toLocaleTimeString()}</span>}
             {log.text}
           </div>
@@ -288,9 +344,7 @@ function DiffViewer({ change }: { change: PendingChange }) {
   const lines = useMemo(() => createDiffLines(change.content), [change.content]);
   return (
     <div className="text-xs font-mono">
-      {change.explanation && (
-        <p className="text-gray-400 mb-2 text-[11px]">{change.explanation}</p>
-      )}
+      {change.explanation && <p className="text-gray-400 mb-2 text-[11px]">{change.explanation}</p>}
       <div className="overflow-auto max-h-56 border border-gray-700 rounded">
         {lines.map((line, i) => (
           <div
@@ -301,9 +355,7 @@ function DiffViewer({ change }: { change: PendingChange }) {
               color: line.type === '+' ? '#86efac' : line.type === '-' ? '#fca5a5' : '#9ca3af',
             }}
           >
-            <span className="select-none mr-2 opacity-40 w-3 inline-block">
-              {line.type === '+' ? '+' : line.type === '-' ? '-' : ' '}
-            </span>
+            <span className="select-none mr-2 opacity-40 w-3 inline-block">{line.type === '+' ? '+' : line.type === '-' ? '-' : ' '}</span>
             {line.text}
           </div>
         ))}
@@ -335,6 +387,20 @@ function ChatMessage({
       </div>
 
       <div className={`max-w-[85%] flex flex-col gap-2 ${isUser ? 'items-end' : 'items-start'}`}>
+        {/* Attached images */}
+        {msg.images && msg.images.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {msg.images.map((src, i) => (
+              <img
+                key={i}
+                src={src}
+                alt={`attachment ${i + 1}`}
+                className="max-w-[200px] max-h-[150px] rounded-lg border border-gray-700 object-contain bg-gray-900"
+              />
+            ))}
+          </div>
+        )}
+
         <div
           className="rounded-xl px-4 py-2.5 text-sm leading-relaxed"
           style={{ background: isUser ? '#1d4ed8' : '#1f2937', color: '#f9fafb' }}
@@ -358,42 +424,21 @@ function ChatMessage({
                 <span className="text-xs font-mono text-gray-300 truncate">{change.path}</span>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <button
-                  onClick={() => setExpanded(expanded === change.path ? null : change.path)}
-                  className="text-xs text-gray-400 hover:text-white transition-colors"
-                >
+                <button onClick={() => setExpanded(expanded === change.path ? null : change.path)} className="text-xs text-gray-400 hover:text-white transition-colors">
                   {expanded === change.path ? '▲' : '▼'} diff
                 </button>
-                <button
-                  onClick={() => onOpenInEditor(change)}
-                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  Open
-                </button>
+                <button onClick={() => onOpenInEditor(change)} className="text-xs text-blue-400 hover:text-blue-300 transition-colors">Open</button>
               </div>
             </div>
-
             {expanded === change.path && (
               <div className="p-3 bg-gray-900 border-t border-gray-700">
                 <DiffViewer change={change} />
               </div>
             )}
-
             {!change.applied ? (
               <div className="px-3 py-2 bg-gray-800 border-t border-gray-700 flex justify-end gap-2">
-                <button
-                  onClick={() => onOpenInEditor(change)}
-                  className="text-xs px-3 py-1 rounded-md font-medium transition-colors border border-gray-600 text-gray-300 hover:border-gray-400"
-                >
-                  Edit first
-                </button>
-                <button
-                  onClick={() => onApply([change])}
-                  className="text-xs px-3 py-1 rounded-md font-medium"
-                  style={{ background: '#16a34a', color: 'white' }}
-                >
-                  Apply & Commit
-                </button>
+                <button onClick={() => onOpenInEditor(change)} className="text-xs px-3 py-1 rounded-md font-medium transition-colors border border-gray-600 text-gray-300 hover:border-gray-400">Edit first</button>
+                <button onClick={() => onApply([change])} className="text-xs px-3 py-1 rounded-md font-medium" style={{ background: '#16a34a', color: 'white' }}>Apply & Commit</button>
               </div>
             ) : (
               <div className="px-3 py-2 bg-gray-800 border-t border-gray-700 text-right">
@@ -461,6 +506,13 @@ export default function DevTool() {
   const [conversationId, setConversationId] = useState<string>(() => crypto.randomUUID());
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
 
+  // Attachments
+  const [attachedImages, setAttachedImages] = useState<string[]>([]);
+  const [attachedFileText, setAttachedFileText] = useState<Array<{ name: string; content: string }>>([]);
+
+  // Voice
+  const [listening, setListening] = useState(false);
+
   // Editor state
   const [tabs, setTabs] = useState<EditorTab[]>([]);
   const [activeTab, setActiveTab] = useState(0);
@@ -480,10 +532,15 @@ export default function DevTool() {
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyResult, setApplyResult] = useState<string | null>(null);
 
+  // Git history
+  const [commits, setCommits] = useState<CommitInfo[]>([]);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const textFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
-  useEffect(() => { fetchDeploy(); fetchIndexStatus(); fetchConversations(); }, []);
+  useEffect(() => { fetchDeploy(); fetchIndexStatus(); fetchConversations(); fetchCommits(); }, []);
 
   const fetchDeploy = async () => {
     try {
@@ -511,6 +568,15 @@ export default function DevTool() {
     } catch {}
   };
 
+  const fetchCommits = async () => {
+    try {
+      const res = await fetch('/api/admin/dev/history');
+      if (!res.ok) return;
+      const json = await res.json();
+      setCommits(json.commits ?? []);
+    } catch {}
+  };
+
   const loadConversation = async (id: string) => {
     try {
       const res = await fetch(`/api/admin/dev/chat?id=${id}`);
@@ -526,6 +592,8 @@ export default function DevTool() {
       if (conv.model) setSelectedModel(conv.model);
       setTabs([]);
       setApplyResult(null);
+      setAttachedImages([]);
+      setAttachedFileText([]);
     } catch {}
   };
 
@@ -536,6 +604,8 @@ export default function DevTool() {
     setInput('');
     setApplyResult(null);
     setLintErrors([]);
+    setAttachedImages([]);
+    setAttachedFileText([]);
   }, []);
 
   const deleteConversation = async (id: string) => {
@@ -563,14 +633,82 @@ export default function DevTool() {
         setApplyResult(`✅ Indexado: ${json.indexed} archivos nuevos, ${json.skipped} sin cambios${errNote}`);
       } else {
         const msg = json.error ?? `HTTP ${res.status}`;
-        setApplyResult(`❌ Index falló: ${msg}. Verifica VOYAGE_API_KEY y GITHUB_TOKEN en Vercel → Settings → Environment Variables.`);
+        setApplyResult(`❌ Index falló: ${msg}. Verifica VOYAGE_API_KEY y GITHUB_TOKEN en Vercel → Settings → Env Vars.`);
       }
     } catch (err) {
       setApplyResult(`❌ Index error: ${err instanceof Error ? err.message : 'Network error'}`);
     } finally { setIndexing(false); }
   };
 
-  // Open a pending change in the editor (add as new tab or focus existing)
+  // ─── Attachment handlers ──────────────────────────────────────────────────
+  const processFiles = useCallback((files: FileList | File[]) => {
+    for (const file of Array.from(files)) {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = () => setAttachedImages(prev => [...prev, reader.result as string]);
+        reader.readAsDataURL(file);
+      } else if (
+        file.type.startsWith('text/') ||
+        file.name.endsWith('.ts') || file.name.endsWith('.tsx') ||
+        file.name.endsWith('.js') || file.name.endsWith('.jsx') ||
+        file.name.endsWith('.json') || file.name.endsWith('.md') ||
+        file.name.endsWith('.sql') || file.name.endsWith('.csv') ||
+        file.name.endsWith('.env') || file.name.endsWith('.log')
+      ) {
+        const reader = new FileReader();
+        reader.onload = () => setAttachedFileText(prev => [
+          ...prev,
+          { name: file.name, content: (reader.result as string).slice(0, 15000) }
+        ]);
+        reader.readAsText(file);
+      }
+    }
+  }, []);
+
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = Array.from(e.clipboardData.items);
+    const imageItems = items.filter(i => i.type.startsWith('image/'));
+    if (imageItems.length > 0) {
+      e.preventDefault();
+      imageItems.forEach(item => {
+        const file = item.getAsFile();
+        if (file) processFiles([file]);
+      });
+    }
+  }, [processFiles]);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    if (e.dataTransfer.files.length > 0) processFiles(e.dataTransfer.files);
+  }, [processFiles]);
+
+  // ─── Voice input ──────────────────────────────────────────────────────────
+  const startVoice = useCallback(() => {
+    type SR = typeof SpeechRecognition;
+    const SpeechRecognitionClass: SR | undefined =
+      (window as unknown as Record<string, unknown>).SpeechRecognition as SR ??
+      (window as unknown as Record<string, unknown>).webkitSpeechRecognition as SR;
+
+    if (!SpeechRecognitionClass) {
+      alert('Voice recognition not supported in this browser. Try Chrome.');
+      return;
+    }
+
+    const rec = new SpeechRecognitionClass();
+    rec.lang = 'es-ES';
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.onresult = (e: SpeechRecognitionEvent) => {
+      const transcript = e.results[0]?.[0]?.transcript ?? '';
+      setInput(prev => (prev ? prev + ' ' + transcript : transcript));
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    rec.start();
+    setListening(true);
+  }, []);
+
+  // ─── Editor helpers ───────────────────────────────────────────────────────
   const openInEditor = useCallback((change: PendingChange) => {
     setTabs(prev => {
       const existing = prev.findIndex(t => t.path === change.path);
@@ -582,7 +720,6 @@ export default function DevTool() {
     setCommitMsg(prev => prev || `fix: ${change.path.split('/').pop()?.replace(/\.(ts|tsx)$/, '') ?? 'changes'}`);
   }, []);
 
-  // Lint the active tab
   const lintActiveTab = useCallback(async () => {
     const tab = tabs[activeTab];
     if (!tab) return;
@@ -598,7 +735,6 @@ export default function DevTool() {
     } finally { setLintLoading(false); }
   }, [tabs, activeTab]);
 
-  // Apply changes via GitHub
   const handleApplyChanges = useCallback(async (changes: PendingChange[]) => {
     let msg = commitMsg;
     if (!msg.trim()) {
@@ -607,7 +743,6 @@ export default function DevTool() {
       msg = prompted;
       setCommitMsg(msg);
     }
-
     setApplyLoading(true);
     setApplyResult(null);
     try {
@@ -628,31 +763,47 @@ export default function DevTool() {
           ),
         })));
         setApplyResult('✅ Committed! Vercel is deploying…');
-        // Poll deploy status
-        [5000, 15000, 30000, 60000].forEach(delay =>
-          setTimeout(fetchDeploy, delay)
-        );
-        setTimeout(() => setShowLogs(true), 3000);
+        [5000, 15000, 30000, 60000].forEach(delay => setTimeout(fetchDeploy, delay));
+        setTimeout(() => { setShowLogs(true); fetchCommits(); }, 3000);
       } else {
         setApplyResult(`❌ ${json.error || 'Error applying changes'}`);
       }
     } finally { setApplyLoading(false); }
   }, [commitMsg]);
 
-  // Apply the content of the active editor tab
   const applyActiveTab = useCallback(() => {
     const tab = tabs[activeTab];
     if (!tab) return;
     handleApplyChanges([{ path: tab.path, content: tab.content, action: 'update' }]);
   }, [tabs, activeTab, handleApplyChanges]);
 
+  // ─── Send message ─────────────────────────────────────────────────────────
   const sendMessage = async () => {
     const text = input.trim();
-    if (!text || loading) return;
-    const userMsg: Message = { role: 'user', content: text };
+    const hasImages = attachedImages.length > 0;
+    const hasFiles = attachedFileText.length > 0;
+    if ((!text && !hasImages && !hasFiles) || loading) return;
+
+    // Append file contents to the text message
+    let fullText = text;
+    if (hasFiles) {
+      fullText += '\n\n' + attachedFileText.map(f =>
+        `**Archivo adjunto: ${f.name}**\n\`\`\`\n${f.content}\n\`\`\``
+      ).join('\n\n');
+    }
+    if (!fullText && hasImages) fullText = 'Analiza esta imagen y explica qué ves.';
+
+    const userMsg: Message = {
+      role: 'user',
+      content: fullText,
+      images: hasImages ? [...attachedImages] : undefined,
+    };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput('');
+    const imagesToSend = [...attachedImages];
+    setAttachedImages([]);
+    setAttachedFileText([]);
     setLoading(true);
     setApplyResult(null);
 
@@ -668,6 +819,7 @@ export default function DevTool() {
         body: JSON.stringify({
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
           model: selectedModel,
+          images: imagesToSend,
         }),
       });
 
@@ -702,7 +854,7 @@ export default function DevTool() {
                 ));
                 break;
               case 'tool_call':
-                toolStatusText = `\n\n*🔧 Using tool: \`${event.name}\`…*`;
+                toolStatusText = `\n\n*🔧 Using \`${event.name}\`…*`;
                 setMessages(prev => prev.map((m, i) =>
                   i === assistantIdx ? { ...m, content: m.content + toolStatusText } : m
                 ));
@@ -743,23 +895,18 @@ export default function DevTool() {
         fetch('/api/admin/dev/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: historyMessages,
-            model: selectedModel,
-            conversationId,
-            saveHistory: true,
-          }),
+          body: JSON.stringify({ messages: historyMessages, model: selectedModel, conversationId, saveHistory: true }),
         }).then(() => fetchConversations()).catch(() => {});
       }
 
-      // Auto-generate title for new conversations (first turn)
+      // Auto-generate title for new conversations
       if (newMessages.length === 1 && finalAssistantContent) {
         const currentConvId = conversationId;
         fetch('/api/admin/dev/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            messages: [{ role: 'user', content: `Generate a title (max 6 words) for a conversation that starts with: "${text}". Reply ONLY with the title, no quotes.` }],
+            messages: [{ role: 'user', content: `Generate a title (max 6 words, in Spanish) for: "${fullText.slice(0, 200)}". Reply ONLY with the title.` }],
             model: 'claude-haiku-3-5',
             saveHistory: false,
           }),
@@ -785,18 +932,23 @@ export default function DevTool() {
   const currentTab = tabs[activeTab];
 
   return (
-    <div className="flex h-screen bg-gray-950 text-gray-100" style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace" }}>
-
-      {/* ── SIDEBAR ─────────────────────────────────────────────────────── */}
+    <div
+      className="flex h-screen bg-gray-950 text-gray-100"
+      style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace" }}
+      onDragOver={e => e.preventDefault()}
+      onDrop={handleDrop}
+    >
+      {/* ── SIDEBAR ────────────────────────────────────────────────────────── */}
       <ConversationSidebar
         conversations={conversations}
         activeId={conversationId}
         onSelect={loadConversation}
         onNew={handleNewChat}
         onDelete={deleteConversation}
+        commits={commits}
       />
 
-      {/* ── CHAT PANEL ──────────────────────────────────────────────────── */}
+      {/* ── CHAT PANEL ─────────────────────────────────────────────────────── */}
       <div
         className="flex flex-col border-r border-gray-800"
         style={{ width: hasTabs ? '40%' : undefined, flex: hasTabs ? undefined : 1 }}
@@ -805,21 +957,19 @@ export default function DevTool() {
         <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800 bg-gray-900 flex-wrap gap-y-1">
           <span className="text-base">⚡</span>
           <span className="font-bold text-sm text-white">Menius Dev</span>
-
           <div className="flex-1 min-w-0" />
 
-          {/* Model selector */}
           <select
             value={selectedModel}
             onChange={e => setSelectedModel(e.target.value)}
             className="text-xs bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-300 focus:outline-none"
           >
-            <optgroup label="Claude (Anthropic)">
+            <optgroup label="Claude (Anthropic) — vision ✓">
               {MODELS.filter(m => m.provider === 'anthropic').map(m => (
                 <option key={m.id} value={m.id}>{m.label}</option>
               ))}
             </optgroup>
-            <optgroup label="Gemini (Google)">
+            <optgroup label="Gemini (Google) — vision ✓">
               {MODELS.filter(m => m.provider === 'gemini').map(m => (
                 <option key={m.id} value={m.id}>{m.label}</option>
               ))}
@@ -831,11 +981,8 @@ export default function DevTool() {
             </optgroup>
           </select>
 
-          {/* Index status */}
           {indexStatus && (
-            <span className="text-[10px] text-gray-500">
-              🗂 {indexStatus.uniqueFiles}f
-            </span>
+            <span className="text-[10px] text-gray-500">🗂 {indexStatus.uniqueFiles}f</span>
           )}
 
           <button
@@ -847,7 +994,6 @@ export default function DevTool() {
           </button>
 
           <DeployBadge deploy={deploy} onClick={() => setShowLogs(v => !v)} />
-
           <button onClick={fetchDeploy} className="text-gray-500 hover:text-gray-300 text-xs" title="Refresh">↺</button>
           <Link href="/admin/dev/setup" className="text-gray-600 hover:text-gray-400 text-xs transition-colors" title="Setup">⚙</Link>
         </div>
@@ -859,25 +1005,21 @@ export default function DevTool() {
               <div className="text-4xl">⚡</div>
               <div>
                 <p className="text-white font-medium">Menius Dev Tool</p>
-                <p className="text-gray-500 text-sm mt-1">Cursor-like AI assistant integrado en tu SaaS</p>
+                <p className="text-gray-500 text-sm mt-1">Cursor-like AI assistant · Sube imágenes · Arrastra archivos · Voz</p>
               </div>
-              <div className="grid grid-cols-1 gap-2 w-full max-w-sm">
-                {[
-                  '🔍 Audita la tienda buccaneer — velocidad y mobile',
-                  '🐛 Busca errores de Sentry y propón fixes',
-                  '📊 Muéstrame las restaurantes sin órdenes en 30 días',
-                  '⚡ Cómo funciona el lazy loading de modifiers?',
-                  '🎨 Agrega un dark mode toggle al admin dashboard',
-                ].map(s => (
+              <div className="grid grid-cols-2 gap-2 w-full max-w-md">
+                {QUICK_ACTIONS.map(action => (
                   <button
-                    key={s}
-                    onClick={() => setInput(s.replace(/^[^\s]+ /, ''))}
+                    key={action.label}
+                    onClick={() => setInput(action.prompt)}
                     className="text-left text-xs px-3 py-2 rounded-lg border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200 transition-colors bg-gray-900"
                   >
-                    {s}
+                    <span className="mr-1">{action.icon}</span>
+                    {action.label}
                   </button>
                 ))}
               </div>
+              <p className="text-[10px] text-gray-700">💡 Arrastra imágenes o archivos al chat · Pega screenshots con Ctrl+V · 🎙 usa el micrófono</p>
             </div>
           )}
 
@@ -892,9 +1034,7 @@ export default function DevTool() {
 
           {loading && (
             <div className="flex gap-3">
-              <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: '#7c3aed', color: 'white' }}>
-                AI
-              </div>
+              <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: '#7c3aed', color: 'white' }}>AI</div>
               <div className="bg-gray-800 rounded-xl px-4 py-3 text-sm text-gray-400 flex items-center gap-2">
                 <span className="animate-spin">⏳</span>
                 <span>Thinking with {currentModel.label}…</span>
@@ -919,30 +1059,110 @@ export default function DevTool() {
           </div>
         )}
 
-        {/* Input */}
+        {/* Attachment previews */}
+        {(attachedImages.length > 0 || attachedFileText.length > 0) && (
+          <div className="mx-3 mb-2 flex flex-wrap gap-2">
+            {attachedImages.map((src, i) => (
+              <div key={i} className="relative group">
+                <img src={src} alt="" className="w-16 h-16 object-cover rounded-lg border border-gray-700" />
+                <button
+                  onClick={() => setAttachedImages(prev => prev.filter((_, j) => j !== i))}
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-600 rounded-full text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            {attachedFileText.map((f, i) => (
+              <div key={i} className="relative group flex items-center gap-1 bg-gray-800 border border-gray-700 rounded-lg px-2 py-1">
+                <span className="text-xs">📄</span>
+                <span className="text-xs text-gray-300 max-w-[80px] truncate">{f.name}</span>
+                <button
+                  onClick={() => setAttachedFileText(prev => prev.filter((_, j) => j !== i))}
+                  className="text-gray-600 hover:text-red-400 text-[10px] ml-1"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Input area */}
         <div className="border-t border-gray-800 bg-gray-900 p-3">
           <div className="flex gap-2 items-end">
             <textarea
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendMessage(); } }}
-              placeholder="Pregunta, pide un fix, audita una tienda… (Ctrl+Enter para enviar)"
+              onPaste={handlePaste}
+              placeholder="Pregunta, pide un fix, arrastra imágenes… (Ctrl+Enter para enviar)"
               rows={3}
               className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-gray-500 resize-none"
               style={{ fontFamily: 'inherit' }}
             />
             <button
               onClick={sendMessage}
-              disabled={loading || !input.trim()}
+              disabled={loading || (!input.trim() && attachedImages.length === 0 && attachedFileText.length === 0)}
               className="px-4 py-2.5 rounded-lg font-medium text-sm transition-all disabled:opacity-40"
               style={{ background: '#7c3aed', color: 'white', minWidth: '80px' }}
             >
               {loading ? '⏳' : '↑ Send'}
             </button>
           </div>
-          <div className="flex items-center gap-3 mt-1.5">
-            <span className="text-[10px] text-gray-600">Ctrl+Enter · {currentModel.label}</span>
+
+          {/* Action bar */}
+          <div className="flex items-center gap-2 mt-1.5">
+            {/* Hidden file inputs */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={e => { if (e.target.files) processFiles(e.target.files); e.target.value = ''; }}
+            />
+            <input
+              ref={textFileInputRef}
+              type="file"
+              accept=".ts,.tsx,.js,.jsx,.json,.md,.sql,.csv,.txt,.log,.env"
+              multiple
+              className="hidden"
+              onChange={e => { if (e.target.files) processFiles(e.target.files); e.target.value = ''; }}
+            />
+
+            {/* Image attach */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="text-[10px] text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1"
+              title="Attach image (or paste/drag)"
+            >
+              🖼 Image
+            </button>
+
+            {/* File attach */}
+            <button
+              onClick={() => textFileInputRef.current?.click()}
+              className="text-[10px] text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1"
+              title="Attach file (.ts, .json, .csv, .log…)"
+            >
+              📎 File
+            </button>
+
+            {/* Voice input */}
+            <button
+              onClick={startVoice}
+              disabled={listening}
+              className="text-[10px] transition-colors flex items-center gap-1 disabled:opacity-50"
+              style={{ color: listening ? '#a78bfa' : '#6b7280' }}
+              title="Voice input (Spanish)"
+            >
+              {listening ? '🎙 Listening…' : '🎙 Voice'}
+            </button>
+
             <div className="flex-1" />
+
+            <span className="text-[10px] text-gray-600">Ctrl+Enter · {currentModel.label}</span>
             <button onClick={() => setMessages([])} className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors">
               Clear
             </button>
@@ -950,10 +1170,9 @@ export default function DevTool() {
         </div>
       </div>
 
-      {/* ── EDITOR PANEL ────────────────────────────────────────────────── */}
+      {/* ── EDITOR PANEL ────────────────────────────────────────────────────── */}
       {hasTabs && (
         <div className="flex flex-col flex-1">
-
           {/* Tab bar */}
           <div className="flex items-center border-b border-gray-800 bg-gray-900 overflow-x-auto">
             {tabs.map((tab, i) => (
@@ -990,14 +1209,9 @@ export default function DevTool() {
           {/* Editor toolbar */}
           <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800 bg-gray-900">
             <span className="text-xs font-mono text-gray-400 truncate flex-1" title={currentTab?.path}>{currentTab?.path}</span>
-
-            {/* Lint errors badge */}
             {lintErrors.length > 0 && (
-              <span className="text-xs text-red-400 flex-shrink-0">
-                ⚠ {lintErrors.length} error{lintErrors.length > 1 ? 's' : ''}
-              </span>
+              <span className="text-xs text-red-400 flex-shrink-0">⚠ {lintErrors.length} error{lintErrors.length > 1 ? 's' : ''}</span>
             )}
-
             <button
               onClick={lintActiveTab}
               disabled={lintLoading}
@@ -1005,7 +1219,6 @@ export default function DevTool() {
             >
               {lintLoading ? '⏳' : '✓'} Lint
             </button>
-
             <input
               type="text"
               value={commitMsg}
@@ -1013,7 +1226,6 @@ export default function DevTool() {
               placeholder="Commit message…"
               className="text-xs bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-300 focus:outline-none focus:border-gray-500 w-44"
             />
-
             <button
               onClick={applyActiveTab}
               disabled={applyLoading || !currentTab}
@@ -1051,8 +1263,6 @@ export default function DevTool() {
                     renderWhitespace: 'selection',
                   }}
                 />
-
-                {/* Lint errors panel */}
                 {lintErrors.length > 0 && (
                   <div className="border-t border-gray-800 bg-gray-900 max-h-28 overflow-y-auto">
                     {lintErrors.map((e, i) => (
