@@ -549,6 +549,7 @@ export default function DevTool() {
 
   const handleIndex = async (force = false) => {
     setIndexing(true);
+    setApplyResult(null);
     try {
       const res = await fetch('/api/admin/dev/index', {
         method: 'POST',
@@ -556,10 +557,16 @@ export default function DevTool() {
         body: JSON.stringify({ force }),
       });
       const json = await res.json();
-      if (json.ok) {
+      if (res.ok && json.ok) {
         await fetchIndexStatus();
-        alert(`✅ Indexed: ${json.indexed} files, skipped: ${json.skipped}`);
-      } else alert(`Error: ${json.error}`);
+        const errNote = json.errors?.length ? ` (${json.errors.length} file errors)` : '';
+        setApplyResult(`✅ Indexado: ${json.indexed} archivos nuevos, ${json.skipped} sin cambios${errNote}`);
+      } else {
+        const msg = json.error ?? `HTTP ${res.status}`;
+        setApplyResult(`❌ Index falló: ${msg}. Verifica VOYAGE_API_KEY y GITHUB_TOKEN en Vercel → Settings → Environment Variables.`);
+      }
+    } catch (err) {
+      setApplyResult(`❌ Index error: ${err instanceof Error ? err.message : 'Network error'}`);
     } finally { setIndexing(false); }
   };
 

@@ -596,6 +596,7 @@ export async function POST(request: NextRequest) {
       if (finalText) allMessages.push({ role: 'assistant', content: finalText });
       await db.from('dev_conversations').upsert({
         id: conversationId,
+        user_id: 'admin',
         messages: JSON.stringify(allMessages),
         model: modelConfig.modelId,
         updated_at: new Date().toISOString(),
