@@ -26,6 +26,7 @@ const CHECK_LABELS: Record<string, { label: string; desc: string; group: string 
   gemini_key:           { label: 'GEMINI_API_KEY',           desc: 'Gemini 2.5 Pro/Flash (1M tokens context)',    group: 'env' },
   sentry_token:         { label: 'SENTRY_AUTH_TOKEN',        desc: 'Ver errores de producción en el chat',        group: 'env' },
   github_webhook_secret:{ label: 'GITHUB_WEBHOOK_SECRET',   desc: 'Auto-indexado en cada push',                  group: 'env' },
+  openrouter_key:       { label: 'OPENROUTER_API_KEY',       desc: 'OpenAI o3, GPT-4.5, Llama 4 y más modelos',  group: 'env' },
 };
 
 export default function SetupWizard() {

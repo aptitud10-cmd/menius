@@ -56,12 +56,28 @@ interface LogEntry {
   level: 'error' | 'info';
 }
 
+interface ConversationSummary {
+  id: string;
+  title: string | null;
+  model: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 const MODELS = [
-  { id: 'claude-opus-4-5',    label: 'Claude Opus 4.5',    provider: 'anthropic', color: '#7c3aed' },
-  { id: 'claude-sonnet-4-5',  label: 'Claude Sonnet 4.5',  provider: 'anthropic', color: '#2563eb' },
-  { id: 'claude-haiku-3-5',   label: 'Claude Haiku 3.5',   provider: 'anthropic', color: '#059669' },
-  { id: 'gemini-2.5-pro',     label: 'Gemini 2.5 Pro',     provider: 'gemini',    color: '#d97706' },
-  { id: 'gemini-2.5-flash',   label: 'Gemini 2.5 Flash',   provider: 'gemini',    color: '#ea580c' },
+  // Claude (Anthropic) — tool calling + streaming
+  { id: 'claude-opus-4-5',         label: 'Claude Opus 4.5 ⚡',   provider: 'anthropic',  color: '#7c3aed' },
+  { id: 'claude-sonnet-4-5',       label: 'Claude Sonnet 4.5',    provider: 'anthropic',  color: '#2563eb' },
+  { id: 'claude-haiku-3-5',        label: 'Claude Haiku 3.5',     provider: 'anthropic',  color: '#059669' },
+  // Gemini (Google)
+  { id: 'gemini-2.5-pro',          label: 'Gemini 2.5 Pro',       provider: 'gemini',     color: '#d97706' },
+  { id: 'gemini-2.5-flash',        label: 'Gemini 2.5 Flash',     provider: 'gemini',     color: '#ea580c' },
+  // OpenRouter — access to o3, GPT-4.5, Llama 4 and more
+  { id: 'openai/o3',               label: 'OpenAI o3 🧠',          provider: 'openrouter', color: '#16a34a' },
+  { id: 'openai/o4-mini',          label: 'OpenAI o4-mini',        provider: 'openrouter', color: '#4ade80' },
+  { id: 'openai/gpt-4.5',          label: 'GPT-4.5',              provider: 'openrouter', color: '#14b8a6' },
+  { id: 'openai/gpt-4o',           label: 'GPT-4o',               provider: 'openrouter', color: '#0d9488' },
+  { id: 'meta-llama/llama-4-maverick', label: 'Llama 4 Maverick', provider: 'openrouter', color: '#f59e0b' },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -78,6 +94,100 @@ function getLanguage(filePath: string): string {
 function shortPath(p: string) {
   const parts = p.split('/');
   return parts.length > 2 ? `…/${parts.slice(-2).join('/')}` : p;
+}
+
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+function groupByDate(conversations: ConversationSummary[]) {
+  const now = new Date();
+  const today = now.toDateString();
+  const yesterday = new Date(now.getTime() - 86400000).toDateString();
+  const week = new Date(now.getTime() - 7 * 86400000);
+
+  const groups: { label: string; items: ConversationSummary[] }[] = [
+    { label: 'Today', items: [] },
+    { label: 'Yesterday', items: [] },
+    { label: 'Previous 7 Days', items: [] },
+    { label: 'Older', items: [] },
+  ];
+
+  for (const c of conversations) {
+    const d = new Date(c.updated_at);
+    if (d.toDateString() === today) groups[0].items.push(c);
+    else if (d.toDateString() === yesterday) groups[1].items.push(c);
+    else if (d >= week) groups[2].items.push(c);
+    else groups[3].items.push(c);
+  }
+
+  return groups.filter(g => g.items.length > 0);
+}
+
+function ConversationSidebar({
+  conversations,
+  activeId,
+  onSelect,
+  onNew,
+  onDelete,
+}: {
+  conversations: ConversationSummary[];
+  activeId: string;
+  onSelect: (id: string) => void;
+  onNew: () => void;
+  onDelete: (id: string) => void;
+}) {
+  const groups = groupByDate(conversations);
+
+  return (
+    <div className="flex flex-col border-r border-gray-800 bg-gray-950 flex-shrink-0" style={{ width: 220 }}>
+      {/* New chat */}
+      <div className="p-2 border-b border-gray-800">
+        <button
+          onClick={onNew}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors border border-gray-700"
+        >
+          <span className="font-bold">+</span>
+          <span>New Chat</span>
+        </button>
+      </div>
+
+      {/* Conversation list */}
+      <div className="flex-1 overflow-y-auto py-2 scrollbar-thin">
+        {conversations.length === 0 ? (
+          <p className="text-xs text-gray-600 px-3 py-4 text-center">No conversations yet.<br />Start chatting!</p>
+        ) : (
+          groups.map(group => (
+            <div key={group.label} className="mb-3">
+              <p className="text-[10px] text-gray-600 uppercase tracking-wider px-3 mb-1 font-medium">{group.label}</p>
+              {group.items.map(conv => (
+                <div
+                  key={conv.id}
+                  className="group relative mx-1 rounded-lg"
+                  style={{ background: conv.id === activeId ? '#1f2937' : 'transparent' }}
+                >
+                  <button
+                    onClick={() => onSelect(conv.id)}
+                    className="w-full text-left px-2 py-1.5 text-xs leading-5 pr-7 transition-colors"
+                    style={{ color: conv.id === activeId ? '#f9fafb' : '#9ca3af' }}
+                  >
+                    <span className="block truncate">{conv.title || 'New conversation'}</span>
+                    {conv.model && (
+                      <span className="text-[9px] text-gray-600 block truncate">{conv.model.split('/').pop()}</span>
+                    )}
+                  </button>
+                  <button
+                    onClick={e => { e.stopPropagation(); onDelete(conv.id); }}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs w-5 h-5 flex items-center justify-center rounded"
+                    title="Delete"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ─── Deploy badge ─────────────────────────────────────────────────────────────
@@ -347,6 +457,10 @@ export default function DevTool() {
   const [selectedModel, setSelectedModel] = useState(MODELS[1].id);
   const [loading, setLoading] = useState(false);
 
+  // Conversation management
+  const [conversationId, setConversationId] = useState<string>(() => crypto.randomUUID());
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+
   // Editor state
   const [tabs, setTabs] = useState<EditorTab[]>([]);
   const [activeTab, setActiveTab] = useState(0);
@@ -369,7 +483,7 @@ export default function DevTool() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
-  useEffect(() => { fetchDeploy(); fetchIndexStatus(); }, []);
+  useEffect(() => { fetchDeploy(); fetchIndexStatus(); fetchConversations(); }, []);
 
   const fetchDeploy = async () => {
     try {
@@ -385,6 +499,51 @@ export default function DevTool() {
       const res = await fetch('/api/admin/dev/index');
       if (!res.ok) return;
       setIndexStatus(await res.json());
+    } catch {}
+  };
+
+  const fetchConversations = async () => {
+    try {
+      const res = await fetch('/api/admin/dev/chat');
+      if (!res.ok) return;
+      const json = await res.json();
+      setConversations(json.conversations ?? []);
+    } catch {}
+  };
+
+  const loadConversation = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/dev/chat?id=${id}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      const conv = json.conversation;
+      if (!conv) return;
+      const msgs: Message[] = (JSON.parse(conv.messages || '[]') as Array<{ role: string; content: string }>)
+        .filter(m => m.role === 'user' || m.role === 'assistant')
+        .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
+      setMessages(msgs);
+      setConversationId(id);
+      if (conv.model) setSelectedModel(conv.model);
+      setTabs([]);
+      setApplyResult(null);
+    } catch {}
+  };
+
+  const handleNewChat = useCallback(() => {
+    setMessages([]);
+    setTabs([]);
+    setConversationId(crypto.randomUUID());
+    setInput('');
+    setApplyResult(null);
+    setLintErrors([]);
+  }, []);
+
+  const deleteConversation = async (id: string) => {
+    if (!confirm('Delete this conversation?')) return;
+    try {
+      await fetch(`/api/admin/dev/chat?id=${id}`, { method: 'DELETE' });
+      setConversations(prev => prev.filter(c => c.id !== id));
+      if (id === conversationId) handleNewChat();
     } catch {}
   };
 
@@ -490,9 +649,10 @@ export default function DevTool() {
     setLoading(true);
     setApplyResult(null);
 
-    // Add empty assistant message that will be filled as stream comes in
     const assistantIdx = newMessages.length;
     setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
+    let finalAssistantContent = '';
 
     try {
       const res = await fetch('/api/admin/dev/stream', {
@@ -529,6 +689,7 @@ export default function DevTool() {
             const event = JSON.parse(line.slice(6));
             switch (event.type) {
               case 'token':
+                finalAssistantContent += event.text;
                 setMessages(prev => prev.map((m, i) =>
                   i === assistantIdx ? { ...m, content: m.content + event.text } : m
                 ));
@@ -540,7 +701,6 @@ export default function DevTool() {
                 ));
                 break;
               case 'tool_done':
-                // Remove the "using tool" status text and let Claude's response continue
                 setMessages(prev => prev.map((m, i) =>
                   i === assistantIdx ? { ...m, content: m.content.replace(toolStatusText, '') } : m
                 ));
@@ -567,8 +727,27 @@ export default function DevTool() {
         }
       }
 
-      // Auto-generate conversation title from first message (fire and forget)
-      if (newMessages.length === 1) {
+      // Save conversation history
+      if (finalAssistantContent) {
+        const historyMessages = [
+          ...newMessages.map(m => ({ role: m.role, content: m.content })),
+          { role: 'assistant', content: finalAssistantContent },
+        ];
+        fetch('/api/admin/dev/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: historyMessages,
+            model: selectedModel,
+            conversationId,
+            saveHistory: true,
+          }),
+        }).then(() => fetchConversations()).catch(() => {});
+      }
+
+      // Auto-generate title for new conversations (first turn)
+      if (newMessages.length === 1 && finalAssistantContent) {
+        const currentConvId = conversationId;
         fetch('/api/admin/dev/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -582,8 +761,8 @@ export default function DevTool() {
             fetch('/api/admin/dev/chat', {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ title: json.content.slice(0, 60) }),
-            }).catch(() => {});
+              body: JSON.stringify({ id: currentConvId, title: json.content.slice(0, 60) }),
+            }).then(() => fetchConversations()).catch(() => {});
           }
         }).catch(() => {});
       }
@@ -601,10 +780,19 @@ export default function DevTool() {
   return (
     <div className="flex h-screen bg-gray-950 text-gray-100" style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace" }}>
 
+      {/* ── SIDEBAR ─────────────────────────────────────────────────────── */}
+      <ConversationSidebar
+        conversations={conversations}
+        activeId={conversationId}
+        onSelect={loadConversation}
+        onNew={handleNewChat}
+        onDelete={deleteConversation}
+      />
+
       {/* ── CHAT PANEL ──────────────────────────────────────────────────── */}
       <div
         className="flex flex-col border-r border-gray-800"
-        style={{ width: hasTabs ? '45%' : '100%' }}
+        style={{ width: hasTabs ? '40%' : undefined, flex: hasTabs ? undefined : 1 }}
       >
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-800 bg-gray-900 flex-wrap gap-y-1">
@@ -626,6 +814,11 @@ export default function DevTool() {
             </optgroup>
             <optgroup label="Gemini (Google)">
               {MODELS.filter(m => m.provider === 'gemini').map(m => (
+                <option key={m.id} value={m.id}>{m.label}</option>
+              ))}
+            </optgroup>
+            <optgroup label="OpenRouter (o3, GPT, Llama)">
+              {MODELS.filter(m => m.provider === 'openrouter').map(m => (
                 <option key={m.id} value={m.id}>{m.label}</option>
               ))}
             </optgroup>
@@ -752,7 +945,7 @@ export default function DevTool() {
 
       {/* ── EDITOR PANEL ────────────────────────────────────────────────── */}
       {hasTabs && (
-        <div className="flex flex-col" style={{ width: '55%' }}>
+        <div className="flex flex-col flex-1">
 
           {/* Tab bar */}
           <div className="flex items-center border-b border-gray-800 bg-gray-900 overflow-x-auto">

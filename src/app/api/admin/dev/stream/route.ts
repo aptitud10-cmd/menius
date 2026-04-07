@@ -162,6 +162,159 @@ const TOOLS: Anthropic.Tool[] = [
   },
 ];
 
+// ─── OpenAI-compatible tools (for OpenRouter) ────────────────────────────────
+const OPENAI_TOOLS = [
+  { type: 'function', function: { name: 'search_code', description: 'Semantic search through the Menius codebase. Results are AI-reranked.', parameters: { type: 'object', properties: { query: { type: 'string' }, limit: { type: 'number' } }, required: ['query'] } } },
+  { type: 'function', function: { name: 'read_file', description: 'Read a file from the GitHub repo.', parameters: { type: 'object', properties: { path: { type: 'string', description: 'e.g. src/app/api/orders/route.ts' } }, required: ['path'] } } },
+  { type: 'function', function: { name: 'list_files', description: 'List files in a directory.', parameters: { type: 'object', properties: { path: { type: 'string' } }, required: ['path'] } } },
+  { type: 'function', function: { name: 'search_web', description: 'Search the internet for docs, trends, market research, and solutions.', parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] } } },
+  { type: 'function', function: { name: 'write_file', description: 'Propose a file change. Provide COMPLETE file content.', parameters: { type: 'object', properties: { path: { type: 'string' }, content: { type: 'string' }, action: { type: 'string', enum: ['create', 'update', 'delete'] }, explanation: { type: 'string' } }, required: ['path', 'content', 'action'] } } },
+  { type: 'function', function: { name: 'query_database', description: 'Run a read-only SELECT on the Supabase production DB.', parameters: { type: 'object', properties: { sql: { type: 'string' } }, required: ['sql'] } } },
+];
+
+const OPENROUTER_MODEL_IDS = new Set([
+  'openai/o3', 'openai/o3-mini', 'openai/o4-mini', 'openai/gpt-4.5',
+  'openai/gpt-4o', 'openai/gpt-4o-mini',
+  'meta-llama/llama-4-maverick', 'meta-llama/llama-4-scout',
+  'google/gemini-2.5-pro', 'mistralai/mistral-large',
+]);
+
+function isOpenRouterModel(modelId: string): boolean {
+  return modelId.includes('/') || OPENROUTER_MODEL_IDS.has(modelId);
+}
+
+// ─── OpenRouter agentic stream loop ──────────────────────────────────────────
+type PendingChange = { path: string; content: string; action: string; explanation?: string };
+
+async function runOpenRouterStream(
+  modelId: string,
+  systemPrompt: string,
+  messages: Array<{ role: string; content: string }>,
+  githubToken: string,
+  voyageKey: string,
+  tavilyKey: string,
+  db: ReturnType<typeof createAdminClient>,
+  openrouterKey: string,
+  send: (type: string, data: object) => void,
+): Promise<void> {
+  const headers = {
+    'Authorization': `Bearer ${openrouterKey}`,
+    'Content-Type': 'application/json',
+    'HTTP-Referer': 'https://menius.app',
+    'X-Title': 'Menius Dev Tool',
+  };
+
+  type OAIMessage = Record<string, unknown>;
+  const currentMessages: OAIMessage[] = [
+    { role: 'system', content: systemPrompt },
+    ...messages.map(m => ({ role: m.role, content: m.content })),
+  ];
+
+  const MAX_ROUNDS = 8;
+
+  for (let round = 0; round < MAX_ROUNDS; round++) {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: modelId,
+        messages: currentMessages,
+        tools: OPENAI_TOOLS,
+        tool_choice: 'auto',
+        stream: true,
+        max_tokens: 8192,
+      }),
+    });
+
+    if (!res.ok || !res.body) {
+      throw new Error(`OpenRouter ${res.status}: ${await res.text().catch(() => 'unknown')}`);
+    }
+
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    let assistantContent = '';
+    const pendingToolCalls: Record<number, { id: string; name: string; arguments: string }> = {};
+    let finishReason = '';
+
+    outer: while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop() ?? '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]') { finishReason = finishReason || 'stop'; break outer; }
+        try {
+          const chunk = JSON.parse(raw);
+          const choice = chunk.choices?.[0];
+          if (!choice) continue;
+          if (choice.finish_reason) finishReason = choice.finish_reason;
+          const delta = choice.delta ?? {};
+
+          if (delta.content) {
+            assistantContent += delta.content;
+            send('token', { text: delta.content });
+          }
+
+          if (delta.tool_calls) {
+            for (const tc of delta.tool_calls as Array<{ index: number; id?: string; function?: { name?: string; arguments?: string } }>) {
+              if (!pendingToolCalls[tc.index]) {
+                pendingToolCalls[tc.index] = { id: tc.id ?? '', name: tc.function?.name ?? '', arguments: '' };
+                if (tc.function?.name) send('tool_call', { name: tc.function.name, id: tc.id });
+              }
+              if (tc.function?.arguments) pendingToolCalls[tc.index].arguments += tc.function.arguments;
+            }
+          }
+        } catch { /* ignore parse errors */ }
+      }
+    }
+
+    const toolCallList = Object.values(pendingToolCalls);
+    const hasToolCalls = toolCallList.length > 0;
+
+    if (hasToolCalls) {
+      currentMessages.push({
+        role: 'assistant',
+        content: assistantContent || null,
+        tool_calls: toolCallList.map(tc => ({ id: tc.id, type: 'function', function: { name: tc.name, arguments: tc.arguments } })),
+      });
+
+      for (const tc of toolCallList) {
+        let result = '';
+        let pendingChange: PendingChange | undefined;
+        try {
+          send('tool_running', { name: tc.name });
+          const inp = JSON.parse(tc.arguments || '{}') as Record<string, unknown>;
+          switch (tc.name) {
+            case 'search_code': result = await searchCode(inp.query as string, Math.min((inp.limit as number) ?? 5, 10), voyageKey, db); break;
+            case 'read_file': result = `\`\`\`\n${(await readFileGH(inp.path as string, githubToken)).slice(0, 8000)}\n\`\`\``; break;
+            case 'list_files': result = await listFiles(inp.path as string, githubToken); break;
+            case 'search_web': result = await searchWebTavily(inp.query as string, tavilyKey); break;
+            case 'write_file':
+              pendingChange = { path: inp.path as string, content: inp.content as string, action: (inp.action as string) ?? 'update', explanation: inp.explanation as string | undefined };
+              result = `File change prepared: ${pendingChange.action} ${pendingChange.path}`;
+              send('pending_change', pendingChange);
+              break;
+            case 'query_database': result = await queryDB(inp.sql as string, db); break;
+            default: result = `Unknown tool: ${tc.name}`;
+          }
+          send('tool_done', { name: tc.name, resultLength: result.length });
+        } catch (err) {
+          result = `Error: ${err instanceof Error ? err.message : String(err)}`;
+          send('tool_error', { name: tc.name, error: result });
+        }
+        currentMessages.push({ role: 'tool', tool_call_id: tc.id, content: result.slice(0, 50000) });
+      }
+    } else {
+      break;
+    }
+  }
+}
+
 // ─── SSE encoder ─────────────────────────────────────────────────────────────
 function sseEvent(type: string, data: object): string {
   return `data: ${JSON.stringify({ type, ...data })}\n\n`;
@@ -177,13 +330,14 @@ export async function POST(request: NextRequest) {
   const voyageKey   = process.env.VOYAGE_API_KEY ?? '';
   const tavilyKey   = process.env.TAVILY_API_KEY ?? '';
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  const openrouterKey = process.env.OPENROUTER_API_KEY ?? '';
 
   if (!anthropicKey || !githubToken) {
     return new Response('Missing env vars', { status: 500 });
   }
 
   const body = await request.json();
-  const { messages, model } = body as { messages: Anthropic.MessageParam[]; model?: string };
+  const { messages, model } = body as { messages: Array<{ role: string; content: string }>; model?: string };
 
   const resolvedModel = (() => {
     const m = model ?? 'claude-sonnet-4-5';
@@ -203,8 +357,25 @@ export async function POST(request: NextRequest) {
         controller.enqueue(encoder.encode(sseEvent(type, data)));
       };
 
+      // Route OpenRouter models to the separate handler
+      if (isOpenRouterModel(resolvedModel)) {
+        if (!openrouterKey) {
+          send('error', { message: 'Missing OPENROUTER_API_KEY. Add it in Vercel env vars.' });
+          controller.close();
+          return;
+        }
+        try {
+          await runOpenRouterStream(resolvedModel, buildSystemPrompt(), messages, githubToken, voyageKey, tavilyKey, db, openrouterKey, send);
+          send('done', { pendingChanges: [] });
+        } catch (err) {
+          send('error', { message: err instanceof Error ? err.message : 'OpenRouter error' });
+        }
+        controller.close();
+        return;
+      }
+
       try {
-        let currentMessages = [...messages];
+        let currentMessages = [...messages] as Anthropic.MessageParam[];
         const pendingChanges: Array<{ path: string; content: string; action: string; explanation?: string }> = [];
         const MAX_ROUNDS = 10;
 

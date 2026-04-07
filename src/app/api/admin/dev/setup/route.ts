@@ -102,6 +102,7 @@ async function checkStatus(db: ReturnType<typeof createAdminClient>) {
     gemini_key: !!process.env.GEMINI_API_KEY,
     sentry_token: !!process.env.SENTRY_AUTH_TOKEN,
     github_webhook_secret: !!(process.env.GITHUB_WEBHOOK_SECRET ?? process.env.CRON_SECRET),
+    openrouter_key: !!process.env.OPENROUTER_API_KEY,
   };
 
   // Check tables

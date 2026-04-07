@@ -632,9 +632,43 @@ export async function GET(request: NextRequest) {
       .from('dev_conversations')
       .select('id, title, model, created_at, updated_at')
       .order('updated_at', { ascending: false })
-      .limit(20);
+      .limit(50);
 
     return NextResponse.json({ conversations: data ?? [] });
+  } catch {
+    return NextResponse.json({ error: 'Error' }, { status: 500 });
+  }
+}
+
+// ─── PUT: rename conversation ───────────────────────────────────────────────────
+export async function PUT(request: NextRequest) {
+  try {
+    const auth = await verifyAdmin();
+    if (!auth) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+
+    const db = createAdminClient();
+    const { id, title } = await request.json() as { id?: string; title?: string };
+    if (!id || !title) return NextResponse.json({ error: 'id and title required' }, { status: 400 });
+
+    await db.from('dev_conversations').update({ title }).eq('id', id);
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: 'Error' }, { status: 500 });
+  }
+}
+
+// ─── DELETE: remove conversation ───────────────────────────────────────────────
+export async function DELETE(request: NextRequest) {
+  try {
+    const auth = await verifyAdmin();
+    if (!auth) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+
+    const db = createAdminClient();
+    const id = request.nextUrl.searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+
+    await db.from('dev_conversations').delete().eq('id', id);
+    return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: 'Error' }, { status: 500 });
   }
