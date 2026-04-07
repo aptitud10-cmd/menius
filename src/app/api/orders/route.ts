@@ -233,6 +233,7 @@ export async function POST(request: NextRequest) {
     const variantMap = new Map((dbVariants ?? []).map((v) => [v.id, v]));
     const extraMap = new Map((dbExtras ?? []).map((e) => [e.id, e]));
     const modOptionMap = new Map((dbModOptions ?? []).map((o) => [o.id, o]));
+    const modGroupIdSet = new Set((dbModGroups ?? []).map((g) => g.id));
     const productsRequiringVariant = new Set((dbVariants ?? []).map((v) => v.product_id));
     // First variant per product (sort_order ASC) — used as fallback when client sends no variant_id
     const firstVariantByProduct = new Map<string, { id: string; price_delta: number }>();
@@ -566,10 +567,15 @@ export async function POST(request: NextRequest) {
         // Use server-side price_delta from modOptionMap — never trust the client value.
         // Legacy modifiers have no DB record; $0 is correct (matches billing logic above).
         const serverPriceDelta = isLegacyMod ? 0 : (modOptionMap.get(oid)?.price_delta ?? 0);
+        // Only pass group_id/option_id if they actually exist in the DB.
+        // Sending a UUID that was deleted or never existed causes a FK constraint
+        // violation on insert — the root cause of "Error saving order details".
+        const safeGroupId = (!gid || gid.startsWith('__legacy') || !modGroupIdSet.has(gid)) ? null : gid;
+        const safeOptionId = isLegacyMod || !modOptionMap.has(oid) ? null : oid;
         modifiersToInsert.push({
           order_item_id: orderItemId,
-          group_id: (!gid || gid.startsWith('__legacy')) ? null : gid,
-          option_id: isLegacyMod ? null : oid,
+          group_id: safeGroupId,
+          option_id: safeOptionId,
           group_name: mod.group_name ?? '',
           option_name: mod.option_name ?? '',
           price_delta: serverPriceDelta,
