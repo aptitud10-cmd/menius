@@ -406,25 +406,6 @@ async function runGeminiAgentLoop(
     ],
   });
 
-  // Convert tools to Gemini function declarations (cast to avoid SDK type strictness)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const geminiTools: any[] = [{
-    functionDeclarations: TOOLS.map(t => ({
-      name: t.name,
-      description: t.description,
-      parameters: {
-        type: SchemaType.OBJECT,
-        properties: Object.fromEntries(
-          Object.entries(t.input_schema.properties ?? {}).map(([k, v]) => [
-            k,
-            { type: SchemaType.STRING, description: (v as { description?: string }).description ?? '' },
-          ])
-        ),
-        required: (t.input_schema as { required?: string[] }).required ?? [],
-      },
-    })),
-  }];
-
   // Convert messages to Gemini format
   const history: GeminiMessage[] = messages.slice(0, -1).map(m => ({
     role: m.role === 'assistant' ? 'model' : 'user',
@@ -437,7 +418,24 @@ async function runGeminiAgentLoop(
   const chat = model.startChat({
     history,
     systemInstruction: systemPrompt,
-    tools: geminiTools,
+    tools: [
+      {
+        functionDeclarations: TOOLS.map(t => ({
+          name: t.name,
+          description: t.description,
+          parameters: {
+            type: SchemaType.OBJECT,
+            properties: Object.fromEntries(
+              Object.entries(t.input_schema.properties ?? {}).map(([k, v]) => [
+                k,
+                { type: SchemaType.STRING, description: (v as { description?: string }).description ?? '' },
+              ])
+            ),
+            required: (t.input_schema as { required?: string[] }).required ?? [],
+          },
+        })),
+      },
+    ],
   });
 
   let finalText = '';
