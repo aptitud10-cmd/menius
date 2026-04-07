@@ -201,21 +201,32 @@ function ConversationSidebar({
   onSelect,
   onNew,
   onDelete,
-  commits,
+  onRename,
 }: {
   conversations: ConversationSummary[];
   activeId: string;
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
-  commits: CommitInfo[];
+  onRename: (id: string, title: string) => void;
 }) {
-  const [tab, setTab] = useState<'chats' | 'history'>('chats');
   const [search, setSearch] = useState('');
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameVal, setRenameVal] = useState('');
   const filtered = search.trim()
     ? conversations.filter(c => (c.title ?? '').toLowerCase().includes(search.toLowerCase()))
     : conversations;
   const groups = groupByDate(filtered);
+
+  const startRename = (conv: ConversationSummary) => {
+    setRenamingId(conv.id);
+    setRenameVal(conv.title || '');
+  };
+
+  const commitRename = (id: string) => {
+    if (renameVal.trim()) onRename(id, renameVal.trim());
+    setRenamingId(null);
+  };
 
   return (
     <div className="flex flex-col border-r border-gray-800 bg-gray-950 flex-shrink-0" style={{ width: 220 }}>
@@ -230,89 +241,126 @@ function ConversationSidebar({
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="🔍 Search chats…"
+          placeholder="🔍 Buscar chats…"
           className="w-full text-xs bg-gray-900 border border-gray-800 rounded px-2 py-1.5 text-gray-400 placeholder-gray-700 focus:outline-none focus:border-gray-600"
         />
       </div>
 
-      {/* Tab switcher */}
-      <div className="flex border-b border-gray-800">
-        {(['chats', 'history'] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className="flex-1 text-[10px] py-1.5 uppercase tracking-wider transition-colors"
-            style={{ color: tab === t ? '#a78bfa' : '#6b7280', borderBottom: tab === t ? '2px solid #a78bfa' : '2px solid transparent' }}
-          >
-            {t === 'chats' ? '💬 Chats' : '📋 Commits'}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'chats' ? (
-        <div className="flex-1 overflow-y-auto py-2 scrollbar-thin">
-          {conversations.length === 0 ? (
-            <p className="text-xs text-gray-600 px-3 py-4 text-center">No conversations yet.<br />Start chatting!</p>
-          ) : (
-            groups.map(group => (
-              <div key={group.label} className="mb-3">
-                <p className="text-[10px] text-gray-600 uppercase tracking-wider px-3 mb-1 font-medium">{group.label}</p>
-                {group.items.map(conv => (
-                  <div
-                    key={conv.id}
-                    className="group relative mx-1 rounded-lg"
-                    style={{ background: conv.id === activeId ? '#1f2937' : 'transparent' }}
-                  >
+      <div className="flex-1 overflow-y-auto py-2 scrollbar-thin">
+        {conversations.length === 0 ? (
+          <p className="text-xs text-gray-600 px-3 py-4 text-center">Sin conversaciones aún.<br />¡Empieza a chatear!</p>
+        ) : (
+          groups.map(group => (
+            <div key={group.label} className="mb-3">
+              <p className="text-[10px] text-gray-600 uppercase tracking-wider px-3 mb-1 font-medium">{group.label}</p>
+              {group.items.map(conv => (
+                <div
+                  key={conv.id}
+                  className="group relative mx-1 rounded-lg"
+                  style={{ background: conv.id === activeId ? '#1f2937' : 'transparent' }}
+                >
+                  {renamingId === conv.id ? (
+                    <div className="px-2 py-1.5 flex gap-1">
+                      <input
+                        autoFocus
+                        value={renameVal}
+                        onChange={e => setRenameVal(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') commitRename(conv.id);
+                          if (e.key === 'Escape') setRenamingId(null);
+                        }}
+                        onBlur={() => commitRename(conv.id)}
+                        className="flex-1 text-xs bg-gray-700 border border-gray-600 rounded px-1.5 py-0.5 text-gray-200 focus:outline-none focus:border-purple-500 min-w-0"
+                      />
+                    </div>
+                  ) : (
                     <button
                       onClick={() => onSelect(conv.id)}
-                      className="w-full text-left px-2 py-1.5 text-xs leading-5 pr-7 transition-colors"
+                      onDoubleClick={() => startRename(conv)}
+                      className="w-full text-left px-2 py-1.5 text-xs leading-5 pr-14 transition-colors"
                       style={{ color: conv.id === activeId ? '#f9fafb' : '#9ca3af' }}
+                      title="Doble clic para renombrar"
                     >
-                      <span className="block truncate">{conv.title || 'New conversation'}</span>
+                      <span className="block truncate">{conv.title || '✏️ Sin título'}</span>
                       {conv.model && (
                         <span className="text-[9px] text-gray-600 block truncate">{conv.model.split('/').pop()}</span>
                       )}
                     </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); onDelete(conv.id); }}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity text-xs w-5 h-5 flex items-center justify-center rounded"
-                      title="Delete"
+                  )}
+                  {renamingId !== conv.id && (
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={e => { e.stopPropagation(); startRename(conv); }}
+                        className="text-gray-600 hover:text-gray-300 text-[10px] w-5 h-5 flex items-center justify-center rounded"
+                        title="Renombrar"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); onDelete(conv.id); }}
+                        className="text-gray-600 hover:text-red-400 text-[10px] w-5 h-5 flex items-center justify-center rounded"
+                        title="Eliminar"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Commits dropdown (header) ────────────────────────────────────────────────
+function CommitsDropdown({ commits }: { commits: CommitInfo[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="text-[10px] px-2 py-1 rounded border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors flex items-center gap-1"
+        title="Historial de commits"
+      >
+        📋 {commits.length > 0 ? commits.length : '…'}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-2 w-80 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
+              <span className="text-xs font-bold text-gray-200">📋 Últimos commits</span>
+              <button onClick={() => setOpen(false)} className="text-gray-600 hover:text-gray-400 text-xs">✕</button>
+            </div>
+            <div className="max-h-72 overflow-y-auto">
+              {commits.length === 0 ? (
+                <p className="text-xs text-gray-600 text-center py-4">No hay commits</p>
+              ) : commits.map(c => (
+                <div key={c.sha} className="px-3 py-2 border-b border-gray-800 hover:bg-gray-800 transition-colors relative group/commit">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-mono text-purple-400">{c.sha}</span>
+                      <p className="text-[11px] text-gray-300 truncate leading-4 mt-0.5">{c.message}</p>
+                      <span className="text-[9px] text-gray-600">{c.author} · {timeAgo(c.date)}</span>
+                    </div>
+                    <a
+                      href={c.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-shrink-0 text-[10px] text-gray-600 hover:text-gray-300 mt-0.5"
+                      title="Ver en GitHub"
                     >
-                      ✕
-                    </button>
+                      ↗
+                    </a>
                   </div>
-                ))}
-              </div>
-            ))
-          )}
-        </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto py-2 scrollbar-thin">
-          {commits.length === 0 ? (
-            <p className="text-xs text-gray-600 px-3 py-4 text-center">No commits found</p>
-          ) : (
-            commits.map(c => (
-              <div
-                key={c.sha}
-                className="block px-2 py-2 mx-1 rounded-lg hover:bg-gray-800 transition-colors relative group/commit"
-              >
-                <span className="text-[10px] font-mono text-purple-400">{c.sha}</span>
-                <span className="block text-[11px] text-gray-300 truncate leading-4 mt-0.5">{c.message}</span>
-                <span className="text-[9px] text-gray-600">{c.author} · {timeAgo(c.date)}</span>
-                <a
-                  href={c.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="absolute top-2 right-2 text-[10px] text-gray-700 hover:text-gray-400 opacity-0 group-hover/commit:opacity-100 transition-opacity"
-                  title="Ver en GitHub"
-                  onClick={e => e.stopPropagation()}
-                >
-                  ↗
-                </a>
-              </div>
-            ))
-          )}
-        </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
@@ -1000,13 +1048,55 @@ export default function DevTool() {
   }, [messages, conversationId, selectedModel, saveCurrentConversation]);
 
   const deleteConversation = async (id: string) => {
-    if (!confirm('Delete this conversation?')) return;
+    if (!confirm('¿Eliminar esta conversación?')) return;
     try {
       await fetch(`/api/admin/dev/chat?id=${id}`, { method: 'DELETE' });
       setConversations(prev => prev.filter(c => c.id !== id));
       if (id === conversationId) handleNewChat();
     } catch {}
   };
+
+  const renameConversation = async (id: string, title: string) => {
+    setConversations(prev => prev.map(c => c.id === id ? { ...c, title } : c));
+    try {
+      await fetch('/api/admin/dev/chat', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, title }),
+      });
+    } catch {}
+  };
+
+  // Auto-name untitled conversations on load
+  useEffect(() => {
+    const untitled = conversations.filter(c => !c.title);
+    if (untitled.length === 0) return;
+    untitled.slice(0, 3).forEach(async conv => {
+      try {
+        const res = await fetch(`/api/admin/dev/chat?id=${conv.id}`);
+        if (!res.ok) return;
+        const json = await res.json();
+        const msgs = JSON.parse(json.conversation?.messages || '[]') as Array<{ role: string; content: string }>;
+        const firstUser = msgs.find(m => m.role === 'user');
+        if (!firstUser?.content) return;
+        const titleRes = await fetch('/api/admin/dev/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: `Genera un título muy corto (máximo 5 palabras, en español) para esta conversación: "${firstUser.content.slice(0, 200)}". Responde SOLO con el título, sin comillas.` }],
+            model: 'claude-haiku-3-5',
+            saveHistory: false,
+          }),
+        });
+        if (!titleRes.ok) return;
+        const titleJson = await titleRes.json();
+        if (titleJson?.content) {
+          await renameConversation(conv.id, titleJson.content.slice(0, 60));
+        }
+      } catch {}
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversations.length]);
 
   const handleIndex = async (force = false) => {
     setIndexing(true);
@@ -1449,7 +1539,7 @@ export default function DevTool() {
         onSelect={loadConversation}
         onNew={handleNewChat}
         onDelete={deleteConversation}
-        commits={commits}
+        onRename={renameConversation}
       />
 
       {/* ── CHAT PANEL ─────────────────────────────────────────────────────── */}
@@ -1530,6 +1620,7 @@ export default function DevTool() {
 
           <DeployBadge deploy={deploy} onClick={() => setShowLogs(v => !v)} />
           <button onClick={fetchDeploy} className="text-gray-500 hover:text-gray-300 text-xs" title="Refresh deploy status">↺</button>
+          <CommitsDropdown commits={commits} />
           {deploy?.state === 'ERROR' && (
             <button
               onClick={() => {
