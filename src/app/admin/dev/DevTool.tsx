@@ -110,6 +110,23 @@ interface DevAlert {
   created_at: string;
 }
 
+interface AppliedChange {
+  path: string;
+  action: 'create' | 'update' | 'delete';
+  appliedAt: string;
+  commitMessage?: string;
+  explanation?: string;
+}
+
+interface StoreStatus {
+  slug: string;
+  name: string;
+  ok: boolean;
+  latencyMs?: number;
+  lastOrder?: string;
+  plan?: string;
+}
+
 interface StoreInsight {
   type: 'inactive' | 'new_store' | 'high_cancellations' | 'no_products' | 'alert' | 'tip';
   severity: 'critical' | 'warning' | 'info';
@@ -371,10 +388,12 @@ function AlertsPanel({
   alerts,
   onDismiss,
   onInjectToChat,
+  onAutoFix,
 }: {
   alerts: DevAlert[];
   onDismiss: (id: string) => void;
   onInjectToChat: (alert: DevAlert) => void;
+  onAutoFix: (alert: DevAlert) => void;
 }) {
   const severityColor = (s: DevAlert['severity']) =>
     s === 'critical' ? '#dc2626' : s === 'warning' ? '#d97706' : '#2563eb';
@@ -405,6 +424,17 @@ function AlertsPanel({
                 <p className="text-[10px] text-gray-600">{timeAgo(alert.created_at)} · {alert.source}</p>
               </div>
               <div className="flex flex-col gap-1 flex-shrink-0">
+                {/* Auto-fix only for sentry/code errors */}
+                {(alert.source === 'sentry' || alert.source === 'vercel') && (
+                  <button
+                    onClick={() => onAutoFix(alert)}
+                    className="text-[10px] px-2 py-0.5 rounded whitespace-nowrap font-semibold transition-colors"
+                    style={{ background: '#dc2626', color: 'white' }}
+                    title="Auto-fix: AI analiza, propone fix y tú apruebas con 1 click"
+                  >
+                    ⚡ Auto-fix
+                  </button>
+                )}
                 <button
                   onClick={() => onInjectToChat(alert)}
                   className="text-[10px] px-2 py-0.5 rounded bg-purple-900/40 text-purple-400 hover:bg-purple-900/70 transition-colors whitespace-nowrap"
@@ -545,6 +575,8 @@ function ChatMessage({
   onOpenInEditor,
   onEdit,
   onRegenerate,
+  autoFixMode,
+  onAutoApprove,
 }: {
   msg: Message;
   msgIdx: number;
@@ -552,6 +584,8 @@ function ChatMessage({
   onOpenInEditor: (change: PendingChange) => void;
   onEdit: (idx: number, newContent: string) => void;
   onRegenerate: (idx: number) => void;
+  autoFixMode?: boolean;
+  onAutoApprove?: (changes: PendingChange[]) => void;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -653,6 +687,37 @@ function ChatMessage({
                 ${msg.cost.toFixed(4)}
               </span>
             )}
+          </div>
+        )}
+
+        {msg.pendingChanges && msg.pendingChanges.length > 0 && autoFixMode && !msg.pendingChanges.every(c => c.applied) && onAutoApprove && (
+          <div
+            className="w-full rounded-xl border-2 p-3 flex flex-col gap-2 mb-1"
+            style={{ borderColor: '#16a34a', background: 'rgba(22,163,74,0.08)' }}
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">⚡</span>
+              <span className="text-xs font-bold text-green-400">Modo Auto-fix activo</span>
+            </div>
+            <p className="text-[11px] text-gray-400">
+              El AI propone {msg.pendingChanges.length} cambio{msg.pendingChanges.length > 1 ? 's' : ''}.
+              Revisa el diff y aprueba para aplicar y deployar automáticamente.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onAutoApprove(msg.pendingChanges!.filter(c => !c.applied))}
+                className="flex-1 text-sm font-bold py-2 rounded-lg transition-colors"
+                style={{ background: '#16a34a', color: 'white' }}
+              >
+                ✅ Aprobar y Deploy
+              </button>
+              <button
+                onClick={() => msg.pendingChanges?.forEach(c => onOpenInEditor(c))}
+                className="text-xs px-3 py-1 rounded-lg border border-gray-600 text-gray-400 hover:text-gray-200 transition-colors"
+              >
+                Revisar en editor
+              </button>
+            </div>
           </div>
         )}
 
@@ -815,6 +880,26 @@ export default function DevTool() {
   // Monthly cost tracking (persisted in localStorage)
   const [monthlyCost, setMonthlyCost] = useState<number>(0);
 
+  // Applied changes history (persisted in localStorage)
+  const [appliedHistory, setAppliedHistory] = useState<AppliedChange[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  // Store status panel
+  const [storeStatuses, setStoreStatuses] = useState<StoreStatus[]>([]);
+  const [showStores, setShowStores] = useState(false);
+  const [storesLoading, setStoresLoading] = useState(false);
+
+  // Persistent memory (localStorage key-value facts)
+  const [memoryFacts, setMemoryFacts] = useState<string[]>([]);
+
+  // Command palette (Ctrl+K)
+  const [cmdOpen, setCmdOpen] = useState(false);
+  const [cmdQuery, setCmdQuery] = useState('');
+
+  // Auto-fix mode: when true, AI responses with changes show "Aprobar y Deploy" button
+  const [autoFixMode, setAutoFixMode] = useState(false);
+  const [autoFixAlertId, setAutoFixAlertId] = useState<string | null>(null);
+
   // Extended thinking mode
   const [thinkingMode, setThinkingMode] = useState(false);
 
@@ -870,6 +955,7 @@ export default function DevTool() {
       deploy.id !== lastDiagnosedDeployId.current
     ) {
       lastDiagnosedDeployId.current = deploy.id;
+      sendPushNotification('⚠️ Deploy fallido', 'El deploy de Vercel falló. El AI está analizando el error.');
       setMessages(prev => [
         ...prev,
         {
@@ -949,12 +1035,106 @@ export default function DevTool() {
     if (totalCost <= 0) return;
     const key = `dev-cost-${new Date().toISOString().slice(0, 7)}`;
     const saved = parseFloat(localStorage.getItem(key) ?? '0');
-    // Only update if totalCost grew (avoid resetting)
     if (totalCost > saved) {
       localStorage.setItem(key, totalCost.toFixed(6));
       setMonthlyCost(totalCost);
     }
   }, [totalCost]);
+
+  // Load applied history from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('dev-applied-history');
+      if (saved) setAppliedHistory(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  // Load memory facts from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('dev-memory-facts');
+      if (saved) setMemoryFacts(JSON.parse(saved));
+    } catch {}
+  }, []);
+
+  // Keyboard shortcut: Ctrl+K for command palette
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdOpen(v => !v);
+        setCmdQuery('');
+      }
+      if (e.key === 'Escape') {
+        setCmdOpen(false);
+        setShowHistory(false);
+        setShowStores(false);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  // Browser push notifications permission request
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+  }, []);
+
+  const sendPushNotification = (title: string, body: string) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '/favicon.ico' });
+    }
+  };
+
+  const fetchStoreStatuses = async () => {
+    setStoresLoading(true);
+    try {
+      const res = await fetch('/api/admin/dev/insights');
+      if (!res.ok) return;
+      const json = await res.json();
+      // Build status from insights data - also ping stores
+      const dbRes = await fetch('/api/admin/dev/alerts?limit=5');
+      const dbJson = dbRes.ok ? await dbRes.json() : { alerts: [] };
+      const criticalSlugs = new Set((dbJson.alerts ?? [])
+        .filter((a: { severity: string; store_slug?: string }) => a.severity === 'critical' && a.store_slug)
+        .map((a: { store_slug: string }) => a.store_slug));
+      const statuses: StoreStatus[] = (json.insights ?? [])
+        .filter((i: StoreInsight) => i.store_slug)
+        .map((i: StoreInsight) => ({
+          slug: i.store_slug!,
+          name: i.store_name ?? i.store_slug!,
+          ok: !criticalSlugs.has(i.store_slug),
+          plan: 'active',
+        }));
+      setStoreStatuses(statuses);
+    } catch {} finally { setStoresLoading(false); }
+  };
+
+  const addMemoryFact = (fact: string) => {
+    setMemoryFacts(prev => {
+      const next = [fact, ...prev.filter(f => f !== fact)].slice(0, 20);
+      localStorage.setItem('dev-memory-facts', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const removeMemoryFact = (fact: string) => {
+    setMemoryFacts(prev => {
+      const next = prev.filter(f => f !== fact);
+      localStorage.setItem('dev-memory-facts', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const saveAppliedChange = (change: AppliedChange) => {
+    setAppliedHistory(prev => {
+      const next = [change, ...prev].slice(0, 50);
+      localStorage.setItem('dev-applied-history', JSON.stringify(next));
+      return next;
+    });
+  };
 
   const dismissAlert = async (id: string) => {
     setAlerts(prev => prev.filter(a => a.id !== id));
@@ -971,6 +1151,30 @@ export default function DevTool() {
     setInput(msg);
     setShowAlerts(false);
     // Mark as auto-diagnosed
+    fetch('/api/admin/dev/alerts', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: alert.id, auto_diagnosed: true }),
+    }).catch(() => {});
+  };
+
+  const handleAutoFix = (alert: DevAlert) => {
+    const storeContext = alert.store_slug ? ` en la tienda \`${alert.store_slug}\`` : '';
+    const sourceLabel = alert.source === 'sentry' ? 'Sentry' : 'Vercel';
+    const prompt =
+      `⚡ **[MODO AUTO-FIX]** Error detectado por ${sourceLabel}${storeContext}:\n\n` +
+      `**${alert.title}**\n${alert.description ?? ''}\n\n` +
+      `Por favor:\n` +
+      `1. Usa \`search_code\` para encontrar el archivo relevante\n` +
+      `2. Usa \`read_file\` para leer el código completo\n` +
+      `3. Identifica el bug exacto\n` +
+      `4. Propón el fix usando \`write_file\` con el código corregido\n\n` +
+      `IMPORTANTE: Propón el cambio con write_file para que yo pueda aprobarlo con un click.`;
+    // Enable auto-fix mode so the UI shows the approve button prominently
+    setAutoFixMode(true);
+    setAutoFixAlertId(alert.id);
+    setInput(prompt);
+    setShowAlerts(false);
     fetch('/api/admin/dev/alerts', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -1226,7 +1430,7 @@ export default function DevTool() {
   const handleApplyChanges = useCallback(async (changes: PendingChange[]) => {
     let msg = commitMsg;
     if (!msg.trim()) {
-      const prompted = prompt('Commit message:', 'fix: apply AI suggested changes');
+      const prompted = prompt('Commit message:', changes[0]?.explanation ? `fix: ${changes[0].explanation.slice(0, 60)}` : 'fix: apply AI suggested changes');
       if (!prompted) return;
       msg = prompted;
       setCommitMsg(msg);
@@ -1255,7 +1459,20 @@ export default function DevTool() {
           ? `✅ PR creado! [Ver Pull Request](${json.prUrl})`
           : '✅ Committed! Vercel is deploying…';
         setApplyResult(resultMsg);
+        // Save to applied history
+        changes.forEach(c => saveAppliedChange({
+          path: c.path, action: c.action,
+          appliedAt: new Date().toISOString(),
+          commitMessage: msg,
+          explanation: c.explanation,
+        }));
         [5000, 15000, 30000, 60000].forEach(delay => setTimeout(fetchDeploy, delay));
+        // Send push notification when deploy finishes
+        setTimeout(() => {
+          fetchDeploy().then(() => {
+            sendPushNotification('Menius Dev', `Deploy completado: ${msg}`);
+          });
+        }, 90000);
         setTimeout(() => { setShowLogs(true); fetchCommits(); }, 3000);
       } else {
         setApplyResult(`❌ ${json.error || 'Error applying changes'}`);
@@ -1268,6 +1485,25 @@ export default function DevTool() {
     if (!tab) return;
     handleApplyChanges([{ path: tab.path, content: tab.content, action: 'update' }]);
   }, [tabs, activeTab, handleApplyChanges]);
+
+  // Auto-fix: approve all pending changes, commit with auto message, dismiss alert
+  const handleAutoApprove = useCallback(async (changes: PendingChange[]) => {
+    const autoMsg = `fix(auto): AI auto-fix via Dev Tool`;
+    setCommitMsg(autoMsg);
+    await handleApplyChanges(changes);
+    // Dismiss the originating alert
+    if (autoFixAlertId) {
+      fetch('/api/admin/dev/alerts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: autoFixAlertId, resolved: true }),
+      }).catch(() => {});
+    }
+    setAutoFixMode(false);
+    setAutoFixAlertId(null);
+    sendPushNotification('⚡ Auto-fix aplicado', 'El fix fue aprobado y Vercel está desplegando.');
+  }, [handleApplyChanges, autoFixAlertId]);
+
 
   const stopGeneration = useCallback(() => {
     abortControllerRef.current?.abort();
@@ -1371,17 +1607,37 @@ export default function DevTool() {
     abortControllerRef.current = abortCtrl;
 
     try {
-      // Pass recent conversation titles as memory context (exclude current)
-      const recentConvSummaries = conversations
-        .filter(c => c.id !== conversationId && c.title)
-        .slice(0, 5)
-        .map(c => c.title as string);
+      // Pass recent conversation titles + memory facts as context
+      const recentConvSummaries = [
+        ...conversations
+          .filter(c => c.id !== conversationId && c.title)
+          .slice(0, 4)
+          .map(c => c.title as string),
+        ...(memoryFacts.length > 0 ? [`[Memoria]: ${memoryFacts.slice(0, 5).join(' | ')}`] : []),
+      ];
+
+      // Pre-context: inject currently open file so AI has immediate context
+      let preContextMessages = newMessages.map(m => ({ role: m.role, content: m.content }));
+      if (tabs.length > 0 && tabs[activeTab]) {
+        const activeFile = tabs[activeTab];
+        const userMsgIdx = preContextMessages.length - 1;
+        const lastUserMsg = preContextMessages[userMsgIdx];
+        if (lastUserMsg && lastUserMsg.role === 'user') {
+          preContextMessages = [
+            ...preContextMessages.slice(0, userMsgIdx),
+            {
+              ...lastUserMsg,
+              content: `[Archivo activo en editor: ${activeFile.path}]\n\`\`\`\n${activeFile.content.slice(0, 3000)}${activeFile.content.length > 3000 ? '\n…(truncado)' : ''}\n\`\`\`\n\n${lastUserMsg.content}`,
+            },
+          ];
+        }
+      }
 
       const res = await fetch('/api/admin/dev/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+          messages: preContextMessages,
           model: selectedModel,
           images: imagesToSend,
           thinking: thinkingMode,
@@ -1665,10 +1921,125 @@ export default function DevTool() {
                   alerts={alerts}
                   onDismiss={dismissAlert}
                   onInjectToChat={injectAlertToChat}
+                  onAutoFix={handleAutoFix}
                 />
               </div>
             )}
           </div>
+
+          {/* Applied history */}
+          <div className="relative">
+            <button
+              onClick={() => setShowHistory(v => !v)}
+              className="text-[10px] px-2 py-1 rounded border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors"
+              title="Historial de cambios aplicados"
+            >
+              📝 {appliedHistory.length > 0 ? appliedHistory.length : '0'}
+            </button>
+            {showHistory && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowHistory(false)} />
+                <div className="absolute right-0 top-full mt-2 w-80 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
+                    <span className="text-xs font-bold text-gray-200">📝 Cambios aplicados</span>
+                    <button onClick={() => setShowHistory(false)} className="text-gray-600 hover:text-gray-400 text-xs">✕</button>
+                  </div>
+                  <div className="max-h-72 overflow-y-auto">
+                    {appliedHistory.length === 0 ? (
+                      <p className="text-xs text-gray-600 text-center py-4">Sin cambios aún</p>
+                    ) : appliedHistory.map((h, i) => (
+                      <div key={i} className="px-3 py-2 border-b border-gray-800 hover:bg-gray-800">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold uppercase flex-shrink-0"
+                            style={{ background: h.action === 'delete' ? '#7f1d1d' : h.action === 'create' ? '#14532d' : '#1e3a5f', color: '#e5e7eb' }}>
+                            {h.action}
+                          </span>
+                          <span className="text-[11px] text-gray-300 truncate font-mono">{h.path.split('/').slice(-2).join('/')}</span>
+                        </div>
+                        {h.commitMessage && <p className="text-[10px] text-gray-500 mt-0.5 truncate">{h.commitMessage}</p>}
+                        <span className="text-[9px] text-gray-700">{timeAgo(h.appliedAt)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Store status */}
+          <div className="relative">
+            <button
+              onClick={() => { setShowStores(v => !v); if (!storeStatuses.length) fetchStoreStatuses(); }}
+              className="text-[10px] px-2 py-1 rounded border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors"
+              title="Estado de tiendas"
+            >
+              🏪
+            </button>
+            {showStores && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowStores(false)} />
+                <div className="absolute right-0 top-full mt-2 w-72 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
+                    <span className="text-xs font-bold text-gray-200">🏪 Estado de tiendas</span>
+                    <button onClick={() => { fetchStoreStatuses(); }} className="text-[10px] text-gray-600 hover:text-gray-400">↺</button>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto">
+                    {storesLoading ? (
+                      <p className="text-xs text-gray-600 text-center py-4">Cargando…</p>
+                    ) : storeStatuses.length === 0 ? (
+                      <p className="text-xs text-gray-600 text-center py-4">Sin datos de tiendas</p>
+                    ) : storeStatuses.map(s => (
+                      <div key={s.slug} className="flex items-center gap-2 px-3 py-2 border-b border-gray-800 hover:bg-gray-800">
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${s.ok ? 'bg-green-500' : 'bg-red-500'}`} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] text-gray-300 truncate">{s.name}</p>
+                          <p className="text-[9px] text-gray-600">{s.slug}</p>
+                        </div>
+                        <button
+                          onClick={() => { setInput(`Audita la tienda "${s.slug}" y reporta su estado actual.`); setShowStores(false); }}
+                          className="text-[10px] text-gray-600 hover:text-purple-400 flex-shrink-0"
+                          title="Auditar con AI"
+                        >
+                          🤖
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="px-3 py-2 border-t border-gray-800">
+                    <button
+                      onClick={() => { setInput('Revisa el estado de todas las tiendas activas: cuáles tienen órdenes recientes, cuáles están inactivas, y reporta cualquier problema.'); setShowStores(false); }}
+                      className="w-full text-[10px] text-purple-400 hover:text-purple-300 text-center"
+                    >
+                      Auditar todas con AI →
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Memory facts */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                const fact = prompt('Guardar en memoria (ej: "La tienda buccaneer usa plan business"):');
+                if (fact?.trim()) addMemoryFact(fact.trim());
+              }}
+              className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
+              title={`Memoria: ${memoryFacts.length} hechos guardados\n${memoryFacts.slice(0,3).join('\n')}`}
+            >
+              🧩 {memoryFacts.length > 0 ? memoryFacts.length : ''}
+            </button>
+          </div>
+
+          {/* Ctrl+K shortcut hint */}
+          <button
+            onClick={() => { setCmdOpen(true); setCmdQuery(''); }}
+            className="text-[10px] text-gray-700 hover:text-gray-500 transition-colors hidden sm:block"
+            title="Paleta de comandos (Ctrl+K)"
+          >
+            ⌘K
+          </button>
 
           <Link href="/admin/dev/setup" className="text-gray-600 hover:text-gray-400 text-xs transition-colors" title="Setup">⚙</Link>
         </div>
@@ -1774,6 +2145,8 @@ export default function DevTool() {
               onOpenInEditor={openInEditor}
               onEdit={handleEditMessage}
               onRegenerate={handleRegenerate}
+              autoFixMode={autoFixMode && msg.role === 'assistant'}
+              onAutoApprove={handleAutoApprove}
             />
           ))}
 
@@ -1961,6 +2334,17 @@ export default function DevTool() {
               🔀 {prMode ? 'PR mode' : 'PR'}
             </button>
 
+            {autoFixMode && (
+              <button
+                onClick={() => { setAutoFixMode(false); setAutoFixAlertId(null); }}
+                className="text-[10px] flex items-center gap-1 px-2 py-0.5 rounded font-semibold animate-pulse"
+                style={{ background: 'rgba(220,38,38,0.15)', color: '#f87171' }}
+                title="Modo Auto-fix activo — click para cancelar"
+              >
+                ⚡ Auto-fix ON ✕
+              </button>
+            )}
+
             {totalCost > 0 && (
               <span className="text-[10px] text-gray-700" title="Estimated cost this conversation">
                 ${totalCost.toFixed(4)}
@@ -1976,6 +2360,82 @@ export default function DevTool() {
       </div>
 
       {/* ── EDITOR PANEL ────────────────────────────────────────────────────── */}
+      {/* ── COMMAND PALETTE (Ctrl+K) ─────────────────────────────────────── */}
+      {cmdOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm" onClick={() => setCmdOpen(false)} />
+          <div className="fixed top-1/4 left-1/2 -translate-x-1/2 w-full max-w-lg z-50 px-4">
+            <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-800">
+                <span className="text-gray-500">⌘</span>
+                <input
+                  autoFocus
+                  value={cmdQuery}
+                  onChange={e => setCmdQuery(e.target.value)}
+                  placeholder="Buscar acción o escribir pregunta…"
+                  className="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-600 focus:outline-none"
+                  onKeyDown={e => {
+                    if (e.key === 'Escape') setCmdOpen(false);
+                    if (e.key === 'Enter' && cmdQuery.trim()) {
+                      setInput(cmdQuery.trim());
+                      setCmdOpen(false);
+                    }
+                  }}
+                />
+                <kbd className="text-[10px] text-gray-600 border border-gray-700 rounded px-1">ESC</kbd>
+              </div>
+              <div className="max-h-64 overflow-y-auto py-1">
+                {[
+                  { icon: '🗂', label: 'Indexar codebase', action: () => handleIndex(false) },
+                  { icon: '🚀', label: 'Estado del deploy', action: () => { setInput('¿Cuál es el estado actual del deploy de Vercel?'); } },
+                  { icon: '🔔', label: 'Ver alertas activas', action: () => setShowAlerts(true) },
+                  { icon: '📝', label: 'Historial de cambios', action: () => setShowHistory(true) },
+                  { icon: '🏪', label: 'Estado de tiendas', action: () => { setShowStores(true); fetchStoreStatuses(); } },
+                  { icon: '📊', label: 'Analytics de negocio', action: () => setInput('Muéstrame métricas clave: subscripciones activas, MRR en Stripe, y restaurantes sin órdenes en 30 días.') },
+                  { icon: '🔍', label: 'Auditar una tienda', action: () => setInput('Audita la tienda [escribe el slug] y reporta problemas.') },
+                  { icon: '🌐', label: 'Revisar menius.app', action: () => setInput('Revisa menius.app y dame un análisis de la landing page.') },
+                  { icon: '💡', label: 'Nueva feature con más ROI', action: () => setInput('¿Cuál sería la feature con más ROI para agregar a Menius ahora mismo?') },
+                  { icon: '📈', label: 'Market research', action: () => setInput('Investiga tendencias en menús digitales para restaurantes en Latinoamérica 2026.') },
+                  ...QUICK_ACTIONS.map(a => ({ icon: a.icon, label: a.label, action: () => setInput(a.prompt) })),
+                ]
+                  .filter(cmd => !cmdQuery || cmd.label.toLowerCase().includes(cmdQuery.toLowerCase()))
+                  .map((cmd, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { cmd.action(); setCmdOpen(false); setCmdQuery(''); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white transition-colors text-left"
+                    >
+                      <span>{cmd.icon}</span>
+                      <span>{cmd.label}</span>
+                    </button>
+                  ))}
+                {cmdQuery && (
+                  <button
+                    onClick={() => { setInput(cmdQuery); setCmdOpen(false); setCmdQuery(''); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-purple-400 hover:bg-gray-800 transition-colors text-left border-t border-gray-800"
+                  >
+                    <span>💬</span>
+                    <span>Preguntar: &ldquo;{cmdQuery}&rdquo;</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Memory facts panel (hover tooltip shows them, managed via button in header) */}
+      {memoryFacts.length > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 hidden">
+          {memoryFacts.map((f, i) => (
+            <div key={i} className="flex items-center gap-2 text-xs text-gray-400">
+              <span>🧩 {f}</span>
+              <button onClick={() => removeMemoryFact(f)} className="text-gray-700 hover:text-red-400">✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {hasTabs && (
         <div className="flex flex-col flex-1">
           {/* Tab bar */}
