@@ -113,6 +113,49 @@ async function fetchUrl(url: string): Promise<string> {
   }
 }
 
+async function rollbackVercel(deploymentId: string, reason?: string): Promise<string> {
+  const token = process.env.VERCEL_TOKEN;
+  const projectId = process.env.VERCEL_PROJECT_ID;
+  if (!token || !projectId) return 'VERCEL_TOKEN or VERCEL_PROJECT_ID not configured.';
+
+  // If "previous", find the last READY deployment before current
+  let targetId = deploymentId;
+  if (deploymentId === 'previous') {
+    const listRes = await fetch(
+      `https://api.vercel.com/v6/deployments?projectId=${projectId}&limit=10&target=production`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!listRes.ok) return `Failed to list deployments: ${listRes.status}`;
+    const list = await listRes.json();
+    const ready = (list.deployments ?? []).filter((d: {readyState:string;uid:string}) => d.readyState === 'READY');
+    if (ready.length < 2) return 'No previous successful deployment found to rollback to.';
+    targetId = ready[1].uid; // [0] is current, [1] is previous good one
+  }
+
+  // Promote deployment to production
+  const res = await fetch(
+    `https://api.vercel.com/v13/deployments/${targetId}/aliases`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ alias: 'menius.app' }),
+    }
+  );
+  if (!res.ok) {
+    // Try alternative: create an instant rollback via /v9/projects/{id}/rollback
+    const rbRes = await fetch(
+      `https://api.vercel.com/v9/projects/${projectId}/rollback/${targetId}`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      }
+    );
+    if (!rbRes.ok) return `Rollback failed: ${res.status} — ${await res.text()}`;
+    return `✅ Rollback iniciado al deployment ${targetId}${reason ? ` — Razón: ${reason}` : ''}. Vercel está re-asignando el dominio.`;
+  }
+  return `✅ Rollback exitoso al deployment ${targetId}${reason ? ` — Razón: ${reason}` : ''}. menius.app ahora apunta a esa versión.`;
+}
+
 async function queryStripe(query: string): Promise<string> {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) return 'STRIPE_SECRET_KEY not configured.';
@@ -185,14 +228,18 @@ async function queryDB(sql: string, db: ReturnType<typeof createAdminClient>): P
 }
 
 // ─── System prompt ────────────────────────────────────────────────────────────
-function buildSystemPrompt(): string {
+function buildSystemPrompt(recentConvSummaries: string[] = []): string {
   let claudeMd = '';
   try {
     const p = path.join(process.cwd(), 'CLAUDE.md');
     if (fs.existsSync(p)) claudeMd = fs.readFileSync(p, 'utf-8');
   } catch { /* ignore */ }
 
-  return `You are an elite software engineer and technical co-founder of Menius — a Next.js 14 SaaS platform for restaurants in Latin America. You have deep, expert-level knowledge of the entire codebase, architecture, and business logic.
+  const memorySection = recentConvSummaries.length > 0
+    ? `\n\n## Contexto de conversaciones recientes (memoria)\n${recentConvSummaries.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n`
+    : '';
+
+  return `You are an elite software engineer and technical co-founder of Menius — a Next.js 14 SaaS platform for restaurants in Latin America. You have deep, expert-level knowledge of the entire codebase, architecture, and business logic.${memorySection}
 
 ${claudeMd ? claudeMd : ''}
 
@@ -302,6 +349,18 @@ const TOOLS: Anthropic.Tool[] = [
     name: 'query_database',
     description: 'Run a read-only SELECT on the Supabase PRODUCTION database. Use this FIRST for any question about real data: registered stores/restaurants, orders, users, subscriptions, products, categories. Tables: restaurants, orders, order_items, profiles, products, categories, restaurant_subscriptions. Example: SELECT name, slug, created_at FROM restaurants WHERE created_at >= NOW() - INTERVAL \'7 days\' ORDER BY created_at DESC',
     input_schema: { type: 'object' as const, properties: { sql: { type: 'string', description: 'SELECT query (read-only). Always use LIMIT to avoid large payloads.' } }, required: ['sql'] },
+  },
+  {
+    name: 'rollback_vercel',
+    description: 'Rollback Vercel production to a previous successful deployment. Use when deploy fails or user asks to rollback. Provide the deployment ID to rollback to (from the deploy list).',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        deploymentId: { type: 'string', description: 'Vercel deployment UID to promote to production (e.g. dpl_xxx). If unsure, use "previous" to auto-find the last good deploy.' },
+        reason: { type: 'string', description: 'Why are we rolling back?' },
+      },
+      required: ['deploymentId'],
+    },
   },
   {
     name: 'query_stripe',
@@ -433,6 +492,8 @@ async function executeTool(
     }
     case 'query_database':
       return { result: await queryDB(inp.sql as string, db) };
+    case 'rollback_vercel':
+      return { result: await rollbackVercel(inp.deploymentId as string, inp.reason as string | undefined) };
     case 'query_stripe':
       return { result: await queryStripe(inp.query as string) };
     default:
@@ -585,11 +646,13 @@ export async function POST(request: NextRequest) {
     model,
     images: lastUserImages = [],
     thinking: thinkingMode = false,
+    recentConvSummaries = [],
   } = body as {
     messages: Array<{ role: string; content: string }>;
     model?: string;
     images?: string[];
     thinking?: boolean;
+    recentConvSummaries?: string[];
   };
 
   const resolvedModel = (() => {
@@ -618,7 +681,7 @@ export async function POST(request: NextRequest) {
         }
         try {
           await runOpenRouterStream(
-            resolvedModel, buildSystemPrompt(), messages, lastUserImages,
+            resolvedModel, buildSystemPrompt(recentConvSummaries), messages, lastUserImages,
             githubToken, voyageKey, tavilyKey, db, openrouterKey, send
           );
           send('done', { pendingChanges: [] });
@@ -646,7 +709,7 @@ export async function POST(request: NextRequest) {
           const streamParams: Parameters<typeof client.messages.stream>[0] = {
             model: resolvedModel,
             max_tokens: thinkingMode ? 16000 : 8192,
-            system: buildSystemPrompt(),
+            system: buildSystemPrompt(recentConvSummaries),
             tools: TOOLS,
             messages: currentMessages,
           };

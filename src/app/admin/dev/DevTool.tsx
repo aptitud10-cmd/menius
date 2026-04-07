@@ -110,6 +110,16 @@ interface DevAlert {
   created_at: string;
 }
 
+interface StoreInsight {
+  type: 'inactive' | 'new_store' | 'high_cancellations' | 'no_products' | 'alert' | 'tip';
+  severity: 'critical' | 'warning' | 'info';
+  store_slug?: string;
+  store_name?: string;
+  title: string;
+  description: string;
+  prompt: string;
+}
+
 const MODELS = [
   { id: 'claude-opus-4-5',              label: 'Claude Opus 4.5 ⚡',    provider: 'anthropic',  color: '#7c3aed' },
   { id: 'claude-sonnet-4-5',            label: 'Claude Sonnet 4.5',     provider: 'anthropic',  color: '#2563eb' },
@@ -282,17 +292,24 @@ function ConversationSidebar({
             <p className="text-xs text-gray-600 px-3 py-4 text-center">No commits found</p>
           ) : (
             commits.map(c => (
-              <a
+              <div
                 key={c.sha}
-                href={c.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block px-2 py-2 mx-1 rounded-lg hover:bg-gray-800 transition-colors"
+                className="block px-2 py-2 mx-1 rounded-lg hover:bg-gray-800 transition-colors relative group/commit"
               >
                 <span className="text-[10px] font-mono text-purple-400">{c.sha}</span>
                 <span className="block text-[11px] text-gray-300 truncate leading-4 mt-0.5">{c.message}</span>
                 <span className="text-[9px] text-gray-600">{c.author} · {timeAgo(c.date)}</span>
-              </a>
+                <a
+                  href={c.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute top-2 right-2 text-[10px] text-gray-700 hover:text-gray-400 opacity-0 group-hover/commit:opacity-100 transition-opacity"
+                  title="Ver en GitHub"
+                  onClick={e => e.stopPropagation()}
+                >
+                  ↗
+                </a>
+              </div>
             ))
           )}
         </div>
@@ -743,6 +760,13 @@ export default function DevTool() {
   const [showAlerts, setShowAlerts] = useState(false);
   const lastAlertPollRef = useRef<string>(new Date().toISOString());
 
+  // Store insights (proactive suggestions)
+  const [insights, setInsights] = useState<StoreInsight[]>([]);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+
+  // Monthly cost tracking (persisted in localStorage)
+  const [monthlyCost, setMonthlyCost] = useState<number>(0);
+
   // Extended thinking mode
   const [thinkingMode, setThinkingMode] = useState(false);
 
@@ -770,7 +794,7 @@ export default function DevTool() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
-  useEffect(() => { fetchDeploy(); fetchIndexStatus(); fetchConversations(); fetchCommits(); fetchAlerts(); }, []);
+  useEffect(() => { fetchDeploy(); fetchIndexStatus(); fetchConversations(); fetchCommits(); fetchAlerts(); fetchInsights(); }, []);
 
   // Poll for new alerts every 30 seconds
   useEffect(() => {
@@ -854,6 +878,35 @@ export default function DevTool() {
       setAlerts(json.alerts ?? []);
     } catch {}
   };
+
+  const fetchInsights = async () => {
+    setInsightsLoading(true);
+    try {
+      const res = await fetch('/api/admin/dev/insights');
+      if (!res.ok) return;
+      const json = await res.json();
+      setInsights(json.insights ?? []);
+    } catch {} finally { setInsightsLoading(false); }
+  };
+
+  // Load monthly cost from localStorage + accumulate
+  useEffect(() => {
+    const key = `dev-cost-${new Date().toISOString().slice(0, 7)}`; // YYYY-MM
+    const saved = parseFloat(localStorage.getItem(key) ?? '0');
+    setMonthlyCost(saved);
+  }, []);
+
+  // Accumulate cost whenever conversation cost changes
+  useEffect(() => {
+    if (totalCost <= 0) return;
+    const key = `dev-cost-${new Date().toISOString().slice(0, 7)}`;
+    const saved = parseFloat(localStorage.getItem(key) ?? '0');
+    // Only update if totalCost grew (avoid resetting)
+    if (totalCost > saved) {
+      localStorage.setItem(key, totalCost.toFixed(6));
+      setMonthlyCost(totalCost);
+    }
+  }, [totalCost]);
 
   const dismissAlert = async (id: string) => {
     setAlerts(prev => prev.filter(a => a.id !== id));
@@ -1228,6 +1281,12 @@ export default function DevTool() {
     abortControllerRef.current = abortCtrl;
 
     try {
+      // Pass recent conversation titles as memory context (exclude current)
+      const recentConvSummaries = conversations
+        .filter(c => c.id !== conversationId && c.title)
+        .slice(0, 5)
+        .map(c => c.title as string);
+
       const res = await fetch('/api/admin/dev/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1236,6 +1295,7 @@ export default function DevTool() {
           model: selectedModel,
           images: imagesToSend,
           thinking: thinkingMode,
+          recentConvSummaries,
         }),
         signal: abortCtrl.signal,
       });
@@ -1450,6 +1510,16 @@ export default function DevTool() {
             <span className="text-[10px] text-gray-500">🗂 {indexStatus.uniqueFiles}f</span>
           )}
 
+          {/* Monthly cost badge */}
+          {monthlyCost > 0 && (
+            <span
+              className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-800 text-gray-500"
+              title={`Costo estimado acumulado este mes: $${monthlyCost.toFixed(4)}`}
+            >
+              📊 ${monthlyCost.toFixed(3)}/mes
+            </span>
+          )}
+
           <button
             onClick={() => handleIndex(false)}
             disabled={indexing}
@@ -1459,7 +1529,18 @@ export default function DevTool() {
           </button>
 
           <DeployBadge deploy={deploy} onClick={() => setShowLogs(v => !v)} />
-          <button onClick={fetchDeploy} className="text-gray-500 hover:text-gray-300 text-xs" title="Refresh">↺</button>
+          <button onClick={fetchDeploy} className="text-gray-500 hover:text-gray-300 text-xs" title="Refresh deploy status">↺</button>
+          {deploy?.state === 'ERROR' && (
+            <button
+              onClick={() => {
+                setInput('El deploy de Vercel falló. Usa rollback_vercel con deploymentId="previous" para revertir al último deploy exitoso mientras se soluciona el error.');
+              }}
+              className="text-[10px] px-2 py-0.5 rounded border border-red-800 text-red-400 hover:bg-red-900/30 transition-colors"
+              title="Rollback al deploy anterior"
+            >
+              ⏪ Rollback
+            </button>
+          )}
 
           {/* Alerts bell */}
           <div className="relative">
@@ -1504,25 +1585,92 @@ export default function DevTool() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
-              <div className="text-4xl">⚡</div>
+            <div className="flex flex-col items-center justify-center h-full gap-4 text-center overflow-y-auto py-4">
+              <div className="text-3xl">⚡</div>
               <div>
                 <p className="text-white font-medium">Menius Dev Tool</p>
-                <p className="text-gray-500 text-sm mt-1">Cursor-like AI assistant · Sube imágenes · Arrastra archivos · Voz</p>
+                <p className="text-gray-500 text-xs mt-0.5">AI assistant · Imágenes · Archivos · Voz · Rollback</p>
               </div>
-              <div className="grid grid-cols-2 gap-2 w-full max-w-md">
-                {QUICK_ACTIONS.map(action => (
+
+              {/* Store insights */}
+              {(insightsLoading || insights.length > 0) && (
+                <div className="w-full max-w-md">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">🏪 Sugerencias de tiendas</span>
+                    <button onClick={fetchInsights} className="text-[10px] text-gray-600 hover:text-gray-400">↺ actualizar</button>
+                  </div>
+                  {insightsLoading ? (
+                    <div className="text-xs text-gray-600 text-center py-2">Analizando tiendas…</div>
+                  ) : (
+                    <div className="flex flex-col gap-1.5">
+                      {insights.map((ins, i) => (
+                        <button
+                          key={i}
+                          onClick={() => { setInput(ins.prompt); }}
+                          className="text-left text-xs px-3 py-2 rounded-lg border transition-colors bg-gray-900 w-full"
+                          style={{
+                            borderColor: ins.severity === 'critical' ? '#7f1d1d' : ins.severity === 'warning' ? '#78350f' : '#1f2937',
+                            color: ins.severity === 'critical' ? '#fca5a5' : ins.severity === 'warning' ? '#fcd34d' : '#9ca3af',
+                          }}
+                        >
+                          <span className="mr-1.5">{ins.severity === 'critical' ? '🚨' : ins.severity === 'warning' ? '⚠️' : '💡'}</span>
+                          <span className="font-medium">{ins.title}</span>
+                          {ins.description && (
+                            <span className="block text-[10px] mt-0.5 opacity-70">{ins.description}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Quick actions */}
+              <div className="w-full max-w-md">
+                <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1.5 text-left">⚡ Acciones rápidas</p>
+                <div className="grid grid-cols-2 gap-2">
                   <button
-                    key={action.label}
-                    onClick={() => setInput(action.prompt)}
+                    onClick={() => handleIndex(false)}
+                    disabled={indexing}
+                    className="text-left text-xs px-3 py-2 rounded-lg border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200 transition-colors bg-gray-900 disabled:opacity-50"
+                  >
+                    <span className="mr-1">🗂</span>{indexing ? 'Indexando…' : 'Indexar codebase'}
+                  </button>
+                  <button
+                    onClick={() => { fetchDeploy(); setInput('¿Cuál es el estado del último deploy de Vercel? ¿Hay algún problema?'); }}
                     className="text-left text-xs px-3 py-2 rounded-lg border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200 transition-colors bg-gray-900"
                   >
-                    <span className="mr-1">{action.icon}</span>
-                    {action.label}
+                    <span className="mr-1">🚀</span>Estado del deploy
                   </button>
-                ))}
+                  <button
+                    onClick={() => { setShowAlerts(true); setInput('Analiza las alertas activas y propón fixes para las más críticas.'); }}
+                    className="text-left text-xs px-3 py-2 rounded-lg border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200 transition-colors bg-gray-900"
+                  >
+                    <span className="mr-1">🔔</span>Ver alertas{alerts.length > 0 ? ` (${alerts.length})` : ''}
+                  </button>
+                  {deploy?.state === 'ERROR' && (
+                    <button
+                      onClick={() => setInput('El último deploy de Vercel falló. Usa el tool rollback_vercel con deploymentId="previous" para revertir al deploy anterior mientras se soluciona el problema.')}
+                      className="text-left text-xs px-3 py-2 rounded-lg border text-red-400 hover:text-red-300 transition-colors bg-gray-900"
+                      style={{ borderColor: '#7f1d1d' }}
+                    >
+                      <span className="mr-1">⏪</span>Rollback deploy
+                    </button>
+                  )}
+                  {QUICK_ACTIONS.map(action => (
+                    <button
+                      key={action.label}
+                      onClick={() => setInput(action.prompt)}
+                      className="text-left text-xs px-3 py-2 rounded-lg border border-gray-800 text-gray-400 hover:border-gray-600 hover:text-gray-200 transition-colors bg-gray-900"
+                    >
+                      <span className="mr-1">{action.icon}</span>
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <p className="text-[10px] text-gray-700">💡 Arrastra imágenes o archivos al chat · Pega screenshots con Ctrl+V · 🎙 usa el micrófono</p>
+
+              <p className="text-[10px] text-gray-700">💡 Arrastra imágenes o archivos · Pega screenshots Ctrl+V · 🎙 Micrófono</p>
             </div>
           )}
 
