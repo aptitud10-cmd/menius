@@ -538,15 +538,24 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
       );
     }
 
-    const buffer = Buffer.from(imageBase64, 'base64');
-    const ext = 'jpg';
+    const rawBuffer = Buffer.from(imageBase64, 'base64');
+
+    // Optimize AI-generated image the same way manual uploads are processed:
+    // resize to max 1200×1200, convert to WebP at quality 82.
+    const sharp = (await import('sharp')).default;
+    const buffer = await sharp(rawBuffer)
+      .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toBuffer();
+
+    const ext = 'webp';
     const fileName = `${tenant.userId}/ai-${Date.now()}.${ext}`;
 
     const adminSupabase = createAdminClient();
     const { error: uploadError } = await adminSupabase.storage
       .from('product-images')
       .upload(fileName, buffer, {
-        contentType: 'image/jpeg',
+        contentType: 'image/webp',
         cacheControl: '31536000',
         upsert: false,
       });
