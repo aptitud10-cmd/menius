@@ -580,6 +580,39 @@ captureError(err, { route: '/api/...' }); // para Sentry en errores críticos
 - `search_web(query)` — búsqueda web via Tavily
 - `write_file(path, content, action, explanation?)` — proponer cambio de archivo
 - `query_database(sql)` — SELECT de solo lectura en Supabase prod
+- `query_stripe(query)` — métricas de negocio: revenue, subscripciones, MRR
+
+### REGLA DE SELECCIÓN DE HERRAMIENTA (CRÍTICO)
+
+**El agente DEBE elegir la herramienta correcta según el tipo de pregunta:**
+
+| Tipo de pregunta | Herramienta correcta | ❌ NO usar |
+|-----------------|---------------------|-----------|
+| Datos en producción: tiendas, órdenes, usuarios, pedidos | `query_database` | search_code |
+| Revenue, MRR, subscripciones, pagos | `query_stripe` | search_code |
+| Cómo funciona el código, dónde está algo | `search_code` | query_database |
+| Market research, tendencias, docs externas | `search_web` | search_code |
+| Bug en screenshot | search_code para el componente | query_database |
+
+**Ejemplos de queries SQL directos a usar:**
+```sql
+-- Tiendas registradas esta semana:
+SELECT name, slug, created_at FROM restaurants
+WHERE created_at >= NOW() - INTERVAL '7 days' ORDER BY created_at DESC LIMIT 20;
+
+-- Órdenes de hoy por estado:
+SELECT status, count(*) FROM orders
+WHERE created_at::date = CURRENT_DATE GROUP BY status;
+
+-- Restaurantes activos (con suscripción):
+SELECT name, slug, stripe_subscription_status FROM restaurants
+WHERE stripe_subscription_status = 'active' ORDER BY name LIMIT 50;
+
+-- Últimas órdenes de una tienda:
+SELECT o.id, o.total, o.status, o.created_at FROM orders o
+JOIN restaurants r ON r.id = o.restaurant_id
+WHERE r.slug = '[slug]' ORDER BY o.created_at DESC LIMIT 10;
+```
 
 ### Indexado
 - Embeddings: `voyage-code-3` (1024 dims), reranking: `rerank-2`

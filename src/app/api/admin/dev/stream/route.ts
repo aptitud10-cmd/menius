@@ -198,21 +198,47 @@ ${claudeMd ? claudeMd : ''}
 
 ---
 
-## Cómo operar (REGLAS CRÍTICAS)
+## SELECCIÓN DE HERRAMIENTA — REGLA DE ORO
 
-### Antes de cualquier cambio de código:
-1. **search_code** primero — busca semánticamente qué archivos son relevantes
-2. **read_file** — lee el archivo completo antes de editarlo (nunca editar a ciegas)
-3. **list_files** si necesitas explorar estructura
-4. **query_database** si necesitas ver datos reales de producción
-5. **search_web** para documentación externa, errores de npm, best practices actuales
+**Antes de cualquier acción, determina el tipo de pregunta y usa la herramienta correcta INMEDIATAMENTE:**
 
-### Cuando recibes imágenes:
-- Analiza la imagen primero antes de proponer cambios
-- Si es un screenshot de bug: identifica el componente, busca el código, propón fix
-- Si es un diseño/mockup: implementa en código siguiendo los patrones de Menius
+### 🗄️ TIPO: Datos en producción → USA `query_database` PRIMERO (NO search_code)
+Ejemplos de trigger:
+- "qué tiendas se registraron esta semana / mes"
+- "cuántos pedidos hay hoy / pendientes / completados"
+- "qué restaurantes tienen suscripción activa"
+- "cuántos usuarios hay / quién se registró"
+- "cuál es el total de órdenes de [tienda]"
+- "hay algún error en las órdenes"
+- **Cualquier pregunta con datos, números, fechas o estado de producción**
 
-### Al escribir código:
+SQL de referencia:
+\`\`\`sql
+-- Tiendas registradas esta semana:
+SELECT name, slug, created_at FROM restaurants WHERE created_at >= NOW() - INTERVAL '7 days' ORDER BY created_at DESC;
+-- Órdenes de hoy:
+SELECT count(*), status FROM orders WHERE created_at::date = CURRENT_DATE GROUP BY status;
+-- Suscripciones activas:
+SELECT r.name, r.slug FROM restaurants r WHERE r.stripe_subscription_status = 'active';
+\`\`\`
+
+### 💰 TIPO: Métricas de negocio / revenue → USA `query_stripe` PRIMERO
+- "cuánto revenue este mes", "MRR", "clientes de pago", "cancelaciones"
+
+### 🔍 TIPO: Preguntas sobre el código fuente → USA `search_code` PRIMERO
+- "cómo funciona X", "dónde está Y implementado", "qué hace este componente"
+- Solo para código, NO para datos de producción
+
+### 🌐 TIPO: Investigación / tendencias / docs externas → USA `search_web` PRIMERO
+- market research, competidores, tecnologías, best practices, documentación de librerías
+
+### 🐛 TIPO: Bug en screenshot → Analiza imagen + `search_code` para el componente
+- Identifica el componente visual, búscalo en el código, propón el fix quirúrgico
+
+---
+
+## Reglas para cambios de código
+
 - Cambios QUIRÚRGICOS — mínimos y precisos. No tocar lo que no es necesario.
 - TypeScript strict — NO any, tipos explícitos
 - Sin comentarios que explican lo obvio
@@ -220,39 +246,32 @@ ${claudeMd ? claudeMd : ''}
 - Respetar los patrones existentes del archivo
 - SIEMPRE usar createAdminClient() en route handlers que requieren bypass de RLS
 - export const dynamic = 'force-dynamic' en todos los POST handlers
+- Leer el archivo COMPLETO antes de editarlo (nunca editar a ciegas)
 
-### Para investigaciones, market research, tendencias:
-- Usa search_web para buscar información actualizada
-- Usa fetch_url para leer documentación específica de librerías o competidores
-- Puedo investigar cualquier tema: tecnología, mercado, competidores, best practices
-- No limitado solo al código — soy un asistente completo
+## Comunicación
 
-### Para análisis de negocio:
-- Usa query_stripe para métricas de revenue, subscripciones, customers
-- Usa query_database para datos de producción de Menius
-
-### Comunicación:
 - Respondo en español (el idioma del equipo)
 - Explico el razonamiento antes de los cambios
 - Enumero riesgos o efectos secundarios
-- Si algo es ambiguo, pregunto antes de asumir`;
+- Si algo es ambiguo, pregunto antes de asumir
+- NO doy vueltas: si la pregunta es de datos, ejecuto el query de inmediato`;
 }
 
 // ─── Tool schemas ─────────────────────────────────────────────────────────────
 const TOOLS: Anthropic.Tool[] = [
   {
     name: 'search_code',
-    description: 'Semantic search through the Menius codebase. Results are AI-reranked. Use before reading or editing any file.',
-    input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to search for' }, limit: { type: 'number', description: 'Max results (default 5)' } }, required: ['query'] },
+    description: 'Semantic search through the Menius SOURCE CODE. Use ONLY for questions about how the code works, which file implements something, or before editing a file. DO NOT use for questions about production data (orders, users, stores, revenue) — use query_database or query_stripe instead.',
+    input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to search for in the codebase' }, limit: { type: 'number', description: 'Max results (default 5)' } }, required: ['query'] },
   },
   {
     name: 'read_file',
-    description: 'Read a file from the GitHub repo. Always read before editing.',
+    description: 'Read a source file from the GitHub repo. Always read the full file before editing it.',
     input_schema: { type: 'object' as const, properties: { path: { type: 'string', description: 'e.g. src/app/api/orders/route.ts' } }, required: ['path'] },
   },
   {
     name: 'list_files',
-    description: 'List files in a directory of the repo.',
+    description: 'List files in a directory of the repo. Use to explore the code structure, not for production data.',
     input_schema: { type: 'object' as const, properties: { path: { type: 'string', description: 'e.g. src/app/api/' } }, required: ['path'] },
   },
   {
@@ -281,12 +300,12 @@ const TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'query_database',
-    description: 'Run a read-only SELECT on the Supabase production database. Useful for debugging and analytics.',
-    input_schema: { type: 'object' as const, properties: { sql: { type: 'string', description: 'SELECT query to run' } }, required: ['sql'] },
+    description: 'Run a read-only SELECT on the Supabase PRODUCTION database. Use this FIRST for any question about real data: registered stores/restaurants, orders, users, subscriptions, products, categories. Tables: restaurants, orders, order_items, profiles, products, categories, restaurant_subscriptions. Example: SELECT name, slug, created_at FROM restaurants WHERE created_at >= NOW() - INTERVAL \'7 days\' ORDER BY created_at DESC',
+    input_schema: { type: 'object' as const, properties: { sql: { type: 'string', description: 'SELECT query (read-only). Always use LIMIT to avoid large payloads.' } }, required: ['sql'] },
   },
   {
     name: 'query_stripe',
-    description: 'Query Stripe for business metrics: revenue, subscriptions, customers, MRR. Use for business analytics questions.',
+    description: 'Query Stripe for BUSINESS METRICS: revenue, MRR, subscriptions, customers, payment failures. Use for financial and billing questions.',
     input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to query: e.g. "revenue this month", "active subscriptions", "recent customers"' } }, required: ['query'] },
   },
 ];
