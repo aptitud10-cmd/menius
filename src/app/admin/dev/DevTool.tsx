@@ -896,6 +896,12 @@ export default function DevTool() {
   const [cmdOpen, setCmdOpen] = useState(false);
   const [cmdQuery, setCmdQuery] = useState('');
 
+  // Theme (dark/light)
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  // Monaco font size
+  const [monacoFontSize, setMonacoFontSize] = useState(13);
+
   // Auto-fix mode: when true, AI responses with changes show "Aprobar y Deploy" button
   const [autoFixMode, setAutoFixMode] = useState(false);
   const [autoFixAlertId, setAutoFixAlertId] = useState<string | null>(null);
@@ -1049,6 +1055,18 @@ export default function DevTool() {
     } catch {}
   }, []);
 
+  // Load theme preference
+  useEffect(() => {
+    const saved = localStorage.getItem('dev-theme') as 'dark' | 'light' | null;
+    if (saved) setTheme(saved);
+  }, []);
+
+  // Load Monaco font size
+  useEffect(() => {
+    const saved = parseInt(localStorage.getItem('dev-monaco-font') ?? '13', 10);
+    if (!isNaN(saved)) setMonacoFontSize(saved);
+  }, []);
+
   // Load memory facts from localStorage
   useEffect(() => {
     try {
@@ -1126,6 +1144,18 @@ export default function DevTool() {
       localStorage.setItem('dev-memory-facts', JSON.stringify(next));
       return next;
     });
+  };
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    localStorage.setItem('dev-theme', next);
+  };
+
+  const changeMonacoFont = (delta: number) => {
+    const next = Math.min(24, Math.max(10, monacoFontSize + delta));
+    setMonacoFontSize(next);
+    localStorage.setItem('dev-monaco-font', String(next));
   };
 
   const saveAppliedChange = (change: AppliedChange) => {
@@ -1781,10 +1811,25 @@ export default function DevTool() {
   const hasTabs = tabs.length > 0;
   const currentTab = tabs[activeTab];
 
+  const isLight = theme === 'light';
+  const themeStyles = isLight ? {
+    background: '#f3f4f6', color: '#111827',
+    '--dt-border': 'rgba(0,0,0,0.1)',
+    '--dt-surface': '#ffffff',
+    '--dt-surface2': '#e5e7eb',
+    '--dt-muted': '#6b7280',
+  } : {
+    background: '#030712', color: '#f3f4f6',
+    '--dt-border': 'rgba(255,255,255,0.06)',
+    '--dt-surface': '#111827',
+    '--dt-surface2': '#1f2937',
+    '--dt-muted': '#6b7280',
+  };
+
   return (
     <div
-      className="flex h-screen bg-gray-950 text-gray-100"
-      style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace" }}
+      className="flex h-screen"
+      style={{ fontFamily: "'JetBrains Mono', 'Fira Code', monospace", ...themeStyles as React.CSSProperties }}
       onDragOver={e => e.preventDefault()}
       onDrop={handleDrop}
     >
@@ -2032,6 +2077,15 @@ export default function DevTool() {
             </button>
           </div>
 
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
+            title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+
           {/* Ctrl+K shortcut hint */}
           <button
             onClick={() => { setCmdOpen(true); setCmdQuery(''); }}
@@ -2233,11 +2287,11 @@ export default function DevTool() {
                   setMentionOpen(false);
                   if (e.key === 'Escape') return;
                 }
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); sendMessage(); }
+                if (e.key === 'Enter' && !e.shiftKey && !mentionOpen) { e.preventDefault(); sendMessage(); }
               }}
               onBlur={() => setTimeout(() => setMentionOpen(false), 150)}
               onPaste={handlePaste}
-              placeholder="Pregunta, pide un fix, arrastra imágenes… Escribe @ para contexto (Ctrl+Enter para enviar)"
+              placeholder="Pregunta, pide un fix, arrastra imágenes… Escribe @ para contexto (Enter para enviar, Shift+Enter nueva línea)"
               rows={3}
               className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-gray-500 resize-none"
               style={{ fontFamily: 'inherit' }}
@@ -2351,7 +2405,7 @@ export default function DevTool() {
               </span>
             )}
 
-            <span className="text-[10px] text-gray-600">Ctrl+Enter</span>
+            <span className="text-[10px] text-gray-600">Shift+Enter = nueva línea</span>
             <button onClick={() => setMessages([])} className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors">
               Clear
             </button>
@@ -2477,6 +2531,12 @@ export default function DevTool() {
             {lintErrors.length > 0 && (
               <span className="text-xs text-red-400 flex-shrink-0">⚠ {lintErrors.length} error{lintErrors.length > 1 ? 's' : ''}</span>
             )}
+            {/* Font size controls */}
+            <div className="flex items-center gap-0.5 flex-shrink-0">
+              <button onClick={() => changeMonacoFont(-1)} className="text-xs text-gray-500 hover:text-gray-300 w-5 h-5 flex items-center justify-center border border-gray-700 rounded-l" title="Reducir fuente">−</button>
+              <span className="text-[10px] text-gray-600 border-t border-b border-gray-700 px-1 py-[3px]">{monacoFontSize}</span>
+              <button onClick={() => changeMonacoFont(1)} className="text-xs text-gray-500 hover:text-gray-300 w-5 h-5 flex items-center justify-center border border-gray-700 rounded-r" title="Aumentar fuente">+</button>
+            </div>
             <button
               onClick={lintActiveTab}
               disabled={lintLoading}
@@ -2510,7 +2570,7 @@ export default function DevTool() {
                 <MonacoEditor
                   value={currentTab.content}
                   language={getLanguage(currentTab.path)}
-                  theme="vs-dark"
+                  theme={isLight ? 'vs' : 'vs-dark'}
                   onChange={value => {
                     setTabs(prev => prev.map((t, i) =>
                       i === activeTab ? { ...t, content: value ?? '', dirty: true } : t
@@ -2518,7 +2578,7 @@ export default function DevTool() {
                     setLintErrors([]);
                   }}
                   options={{
-                    fontSize: 12,
+                    fontSize: monacoFontSize,
                     minimap: { enabled: true },
                     lineNumbers: 'on',
                     wordWrap: 'on',

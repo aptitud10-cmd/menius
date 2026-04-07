@@ -133,6 +133,14 @@ export default function AdminPage() {
             <Link href="/admin/marketing" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-sm text-white font-medium transition-colors">
               <Megaphone className="w-4 h-4" /> Marketing
             </Link>
+            <Link href="/admin/metrics" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-sm text-white font-medium transition-colors">
+              <TrendingUp className="w-4 h-4" />
+              Métricas
+            </Link>
+            <Link href="/admin/onboarding" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-sm text-white font-medium transition-colors">
+              <Sparkles className="w-4 h-4" />
+              Onboarding AI
+            </Link>
             <Link href="/admin/dev" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-sm text-white font-medium transition-colors">
               <Zap className="w-4 h-4" /> Dev Tool
             </Link>
