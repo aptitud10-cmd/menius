@@ -3,7 +3,7 @@ import posthog from 'posthog-js';
 let initialized = false;
 
 const POSTHOG_KEY = typeof window !== 'undefined'
-  ? (process.env.NEXT_PUBLIC_POSTHOG_KEY ?? '')
+  ? (process.env.NEXT_PUBLIC_POSTHOG_KEY ?? process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN ?? '')
   : '';
 
 const POSTHOG_HOST = typeof window !== 'undefined'
