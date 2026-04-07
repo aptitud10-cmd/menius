@@ -136,6 +136,21 @@ export async function POST(request: NextRequest) {
 
     const allOk = results.every(r => r.status === 'ok');
 
+    // Build commit URL from GitHub API (get latest commit on branch)
+    let commitUrl: string | undefined;
+    if (allOk && !createPR) {
+      try {
+        const branchData = await githubFetch(
+          `repos/${GITHUB_OWNER}/${GITHUB_REPO}/branches/${GITHUB_BRANCH}`,
+          githubToken
+        );
+        const sha = branchData?.commit?.sha as string | undefined;
+        if (sha) {
+          commitUrl = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/commit/${sha}`;
+        }
+      } catch { /* best effort */ }
+    }
+
     // Trigger deploy notification in background (fire and forget)
     if (allOk) {
       const adminEmail = process.env.ADMIN_EMAIL?.split(',')[0];
@@ -165,6 +180,7 @@ export async function POST(request: NextRequest) {
       ok: allOk,
       results,
       prUrl,
+      commitUrl,
       deployUrl: `https://vercel.com/${GITHUB_OWNER}`,
     });
   } catch (err) {

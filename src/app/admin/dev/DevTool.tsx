@@ -587,7 +587,16 @@ function ChatMessage({
   autoFixMode?: boolean;
   onAutoApprove?: (changes: PendingChange[]) => void;
 }) {
-  const [expanded, setExpanded] = useState<string | null>(null);
+  // Auto-expand all diffs when changes arrive
+  const [expandedSet, setExpandedSet] = useState<Set<string>>(new Set());
+  const prevChangesLen = useRef(0);
+  useEffect(() => {
+    const changes = msg.pendingChanges ?? [];
+    if (changes.length > prevChangesLen.current) {
+      setExpandedSet(new Set(changes.map(c => c.path)));
+    }
+    prevChangesLen.current = changes.length;
+  }, [msg.pendingChanges]);
   const [editing, setEditing] = useState(false);
   const [editVal, setEditVal] = useState(msg.content);
   const [hovered, setHovered] = useState(false);
@@ -737,13 +746,18 @@ function ChatMessage({
                 <span className="text-xs font-mono text-gray-300 truncate">{change.path}</span>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <button onClick={() => setExpanded(expanded === change.path ? null : change.path)} className="text-xs text-gray-400 hover:text-white transition-colors">
-                  {expanded === change.path ? '▲' : '▼'} diff
+                <button onClick={() => setExpandedSet(prev => {
+                  const next = new Set(prev);
+                  if (next.has(change.path)) next.delete(change.path);
+                  else next.add(change.path);
+                  return next;
+                })} className="text-xs text-gray-400 hover:text-white transition-colors">
+                  {expandedSet.has(change.path) ? '▲' : '▼'} diff
                 </button>
                 <button onClick={() => onOpenInEditor(change)} className="text-xs text-blue-400 hover:text-blue-300 transition-colors">Open</button>
               </div>
             </div>
-            {expanded === change.path && (
+            {expandedSet.has(change.path) && (
               <div className="p-3 bg-gray-900 border-t border-gray-700">
                 <DiffViewer change={change} />
               </div>
@@ -864,6 +878,8 @@ export default function DevTool() {
   const [commitMsg, setCommitMsg] = useState('');
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyResult, setApplyResult] = useState<string | null>(null);
+  interface ApplySummary { commitUrl?: string; files: Array<{ path: string; action: string }>; commitMsg: string; prUrl?: string; }
+  const [applySummary, setApplySummary] = useState<ApplySummary | null>(null);
 
   // Git history
   const [commits, setCommits] = useState<CommitInfo[]>([]);
@@ -1489,6 +1505,12 @@ export default function DevTool() {
           ? `✅ PR creado! [Ver Pull Request](${json.prUrl})`
           : '✅ Committed! Vercel is deploying…';
         setApplyResult(resultMsg);
+        setApplySummary({
+          commitUrl: json.commitUrl,
+          prUrl: json.prUrl,
+          commitMsg: msg,
+          files: changes.map(c => ({ path: c.path, action: c.action })),
+        });
         // Save to applied history
         changes.forEach(c => saveAppliedChange({
           path: c.path, action: c.action,
@@ -2217,17 +2239,57 @@ export default function DevTool() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Apply result */}
+        {/* Apply result — detailed summary */}
         {applyResult && (
           <div
-            className="mx-4 mb-2 px-3 py-2 rounded-lg text-xs"
-            style={{
-              background: applyResult.startsWith('✅') ? 'rgba(22,163,74,0.2)' : 'rgba(220,38,38,0.2)',
-              border: `1px solid ${applyResult.startsWith('✅') ? '#16a34a' : '#dc2626'}`,
-              color: applyResult.startsWith('✅') ? '#86efac' : '#fca5a5',
-            }}
+            className="mx-4 mb-2 rounded-xl overflow-hidden"
+            style={{ border: `1px solid ${applyResult.startsWith('✅') ? '#16a34a' : '#dc2626'}` }}
           >
-            {applyResult}
+            <div
+              className="px-3 py-2 flex items-center justify-between"
+              style={{ background: applyResult.startsWith('✅') ? 'rgba(22,163,74,0.15)' : 'rgba(220,38,38,0.15)' }}
+            >
+              <span className="text-xs font-medium" style={{ color: applyResult.startsWith('✅') ? '#86efac' : '#fca5a5' }}>
+                {applyResult.startsWith('✅') ? '✅ Cambios aplicados' : '❌ Error al aplicar'}
+              </span>
+              <button onClick={() => { setApplyResult(null); setApplySummary(null); }} className="text-xs text-gray-600 hover:text-gray-400">✕</button>
+            </div>
+            {applySummary && applyResult.startsWith('✅') && (
+              <div className="px-3 py-2 bg-black/20 space-y-2">
+                <p className="text-[10px] text-gray-500 font-mono truncate">📝 {applySummary.commitMsg}</p>
+                <div className="space-y-1">
+                  {applySummary.files.map(f => (
+                    <div key={f.path} className="flex items-center gap-2">
+                      <span className="text-[10px] px-1 rounded font-bold uppercase flex-shrink-0"
+                        style={{ background: f.action === 'delete' ? '#7f1d1d' : f.action === 'create' ? '#14532d' : '#1e3a5f', color: '#e5e7eb' }}>
+                        {f.action}
+                      </span>
+                      <span className="text-[10px] font-mono text-gray-400 truncate">{f.path}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-3 pt-1">
+                  {applySummary.prUrl && (
+                    <a href={applySummary.prUrl} target="_blank" rel="noopener noreferrer"
+                      className="text-[10px] text-purple-400 hover:text-purple-300">
+                      🔀 Ver PR →
+                    </a>
+                  )}
+                  {applySummary.commitUrl && !applySummary.prUrl && (
+                    <a href={applySummary.commitUrl} target="_blank" rel="noopener noreferrer"
+                      className="text-[10px] text-blue-400 hover:text-blue-300">
+                      🔗 Ver commit en GitHub →
+                    </a>
+                  )}
+                  <button onClick={() => setShowLogs(true)} className="text-[10px] text-gray-500 hover:text-gray-300">
+                    📋 Ver logs de deploy
+                  </button>
+                </div>
+              </div>
+            )}
+            {!applySummary && (
+              <div className="px-3 py-2 text-xs" style={{ color: '#fca5a5' }}>{applyResult}</div>
+            )}
           </div>
         )}
 

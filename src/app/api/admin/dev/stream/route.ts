@@ -227,6 +227,127 @@ async function queryDB(sql: string, db: ReturnType<typeof createAdminClient>): P
   } catch (e) { return `Error: ${e instanceof Error ? e.message : String(e)}`; }
 }
 
+async function writeDB(
+  table: string, row: Record<string, unknown>, action: 'insert' | 'update' | 'delete',
+  matchColumn: string | undefined, db: ReturnType<typeof createAdminClient>
+): Promise<string> {
+  const ALLOWED_TABLES = ['restaurants', 'products', 'categories', 'restaurant_hours', 'dev_alerts'];
+  if (!ALLOWED_TABLES.includes(table)) return `Table "${table}" not allowed for writes. Allowed: ${ALLOWED_TABLES.join(', ')}`;
+  try {
+    if (action === 'insert') {
+      const { data, error } = await db.from(table).insert(row).select().single();
+      if (error) return `Insert error: ${error.message}`;
+      return `✅ Inserted into ${table}: ${JSON.stringify(data).slice(0, 500)}`;
+    } else if (action === 'update' && matchColumn && row[matchColumn]) {
+      const id = row[matchColumn];
+      const updateData = { ...row };
+      delete updateData[matchColumn];
+      const { data, error } = await db.from(table).update(updateData).eq(matchColumn, id as string).select().single();
+      if (error) return `Update error: ${error.message}`;
+      return `✅ Updated ${table} where ${matchColumn}=${id}: ${JSON.stringify(data).slice(0, 500)}`;
+    } else if (action === 'delete' && matchColumn && row[matchColumn]) {
+      const id = row[matchColumn];
+      const { error } = await db.from(table).delete().eq(matchColumn, id as string);
+      if (error) return `Delete error: ${error.message}`;
+      return `✅ Deleted from ${table} where ${matchColumn}=${id}`;
+    }
+    return 'Invalid action or missing match column/value.';
+  } catch (e) { return `Error: ${e instanceof Error ? e.message : String(e)}`; }
+}
+
+async function getSupabaseSchema(db: ReturnType<typeof createAdminClient>): Promise<string> {
+  try {
+    const { data, error } = await db.rpc('exec_readonly_sql', {
+      sql_query: `
+        SELECT table_name, column_name, data_type, is_nullable, column_default
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+        ORDER BY table_name, ordinal_position
+        LIMIT 200
+      `,
+    });
+    if (error) return `Schema error: ${error.message}`;
+    const tables: Record<string, string[]> = {};
+    for (const row of (data ?? []) as Array<{ table_name: string; column_name: string; data_type: string; is_nullable: string }>) {
+      if (!tables[row.table_name]) tables[row.table_name] = [];
+      tables[row.table_name].push(`  ${row.column_name}: ${row.data_type}${row.is_nullable === 'NO' ? ' NOT NULL' : ''}`);
+    }
+    return Object.entries(tables)
+      .map(([t, cols]) => `**${t}**\n${cols.join('\n')}`)
+      .join('\n\n')
+      .slice(0, 6000);
+  } catch (e) { return `Error: ${e instanceof Error ? e.message : String(e)}`; }
+}
+
+async function getVercelEnvVars(): Promise<string> {
+  const token = process.env.VERCEL_TOKEN;
+  const projectId = process.env.VERCEL_PROJECT_ID;
+  if (!token || !projectId) return 'VERCEL_TOKEN or VERCEL_PROJECT_ID not configured.';
+  try {
+    const res = await fetch(`https://api.vercel.com/v9/projects/${projectId}/env?limit=50`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return `Vercel API error: ${res.status}`;
+    const json = await res.json() as { envs?: Array<{ key: string; target: string[]; type: string }> };
+    const envs = json.envs ?? [];
+    return envs.map(e =>
+      `${e.key} [${e.target.join(',')}] type=${e.type}`
+    ).join('\n') || 'No env vars found.';
+  } catch (e) { return `Error: ${e instanceof Error ? e.message : String(e)}`; }
+}
+
+async function getVercelFunctionLogs(functionPath?: string): Promise<string> {
+  const token = process.env.VERCEL_TOKEN;
+  const projectId = process.env.VERCEL_PROJECT_ID;
+  if (!token || !projectId) return 'VERCEL_TOKEN or VERCEL_PROJECT_ID not configured.';
+  try {
+    // Get latest deployment
+    const depRes = await fetch(
+      `https://api.vercel.com/v6/deployments?projectId=${projectId}&limit=1&target=production`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!depRes.ok) return `Vercel deployments error: ${depRes.status}`;
+    const depJson = await depRes.json() as { deployments?: Array<{ uid: string }> };
+    const depId = depJson.deployments?.[0]?.uid;
+    if (!depId) return 'No production deployment found.';
+
+    // Get build logs
+    const logsRes = await fetch(
+      `https://api.vercel.com/v2/deployments/${depId}/events?limit=50${functionPath ? `&path=${encodeURIComponent(functionPath)}` : ''}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!logsRes.ok) return `Vercel logs error: ${logsRes.status}`;
+    const logs = await logsRes.json() as Array<{ text?: string; type?: string; date?: number }>;
+    if (!Array.isArray(logs) || logs.length === 0) return 'No logs available for this deployment.';
+    return logs
+      .filter(l => l.text)
+      .slice(-30)
+      .map(l => `[${l.type ?? 'log'}] ${l.text}`)
+      .join('\n')
+      .slice(0, 5000);
+  } catch (e) { return `Error: ${e instanceof Error ? e.message : String(e)}`; }
+}
+
+async function getSentryErrors(limit: number): Promise<string> {
+  const token = process.env.SENTRY_AUTH_TOKEN;
+  const org = process.env.SENTRY_ORG ?? 'menius';
+  const project = process.env.SENTRY_PROJECT ?? 'menius-saas';
+  if (!token) return 'SENTRY_AUTH_TOKEN not configured.';
+  try {
+    const res = await fetch(
+      `https://sentry.io/api/0/projects/${org}/${project}/issues/?limit=${limit}&query=is:unresolved`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) return `Sentry error: ${res.status}`;
+    const issues = await res.json() as Array<{ title: string; culprit: string; count: string; lastSeen: string; level: string }>;
+    if (!Array.isArray(issues)) return 'No issues found.';
+    return issues
+      .slice(0, limit)
+      .map((i, n) => `${n + 1}. [${i.level.toUpperCase()}] ${i.title}\n   at ${i.culprit}\n   ${i.count} events · last seen ${i.lastSeen}`)
+      .join('\n\n') || 'No unresolved issues.';
+  } catch (e) { return `Error: ${e instanceof Error ? e.message : String(e)}`; }
+}
+
 // ─── System prompt ────────────────────────────────────────────────────────────
 function buildSystemPrompt(recentConvSummaries: string[] = []): string {
   let claudeMd = '';
@@ -362,6 +483,52 @@ const TOOLS: Anthropic.Tool[] = [
     description: 'Query Stripe for BUSINESS METRICS: revenue, MRR, subscriptions, customers, payment failures. Use for financial and billing questions.',
     input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to query: e.g. "revenue this month", "active subscriptions", "recent customers"' } }, required: ['query'] },
   },
+  {
+    name: 'write_database',
+    description: 'Write (insert/update/delete) a row in the Supabase database. Allowed tables: restaurants, products, categories, restaurant_hours, dev_alerts. Use for fixing data issues, updating store settings, or managing content. Always confirm with user before deleting.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        table: { type: 'string', description: 'Table name' },
+        action: { type: 'string', enum: ['insert', 'update', 'delete'] },
+        row: { type: 'object', description: 'Row data as key-value pairs' },
+        matchColumn: { type: 'string', description: 'Column to match for update/delete (e.g. "id", "slug")' },
+      },
+      required: ['table', 'action', 'row'],
+    },
+  },
+  {
+    name: 'get_schema',
+    description: 'Get the full Supabase database schema: all tables and their columns with types. Use when you need to understand the DB structure before writing queries or code.',
+    input_schema: { type: 'object' as const, properties: {}, required: [] },
+  },
+  {
+    name: 'get_vercel_env',
+    description: 'List all environment variables configured in Vercel for this project. Use when debugging missing env vars or checking configuration.',
+    input_schema: { type: 'object' as const, properties: {}, required: [] },
+  },
+  {
+    name: 'get_vercel_logs',
+    description: 'Get function logs from the latest Vercel production deployment. Use when debugging runtime errors, slow functions, or checking what happened during a recent deploy.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        functionPath: { type: 'string', description: 'Optional: specific API route path to filter logs, e.g. /api/orders' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'get_sentry_errors',
+    description: 'Get unresolved errors from Sentry production monitoring. Use when investigating production bugs, crashes, or when the user mentions errors they are seeing.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        limit: { type: 'number', description: 'Number of issues to retrieve (default 10, max 25)' },
+      },
+      required: [],
+    },
+  },
 ];
 
 const OPENAI_TOOLS = TOOLS.map(t => ({
@@ -487,10 +654,20 @@ async function executeTool(
     }
     case 'query_database':
       return { result: await queryDB(inp.sql as string, db) };
+    case 'write_database':
+      return { result: await writeDB(inp.table as string, inp.row as Record<string, unknown>, inp.action as 'insert' | 'update' | 'delete', inp.matchColumn as string | undefined, db) };
+    case 'get_schema':
+      return { result: await getSupabaseSchema(db) };
     case 'rollback_vercel':
       return { result: await rollbackVercel(inp.deploymentId as string, inp.reason as string | undefined) };
+    case 'get_vercel_env':
+      return { result: await getVercelEnvVars() };
+    case 'get_vercel_logs':
+      return { result: await getVercelFunctionLogs(inp.functionPath as string | undefined) };
     case 'query_stripe':
       return { result: await queryStripe(inp.query as string) };
+    case 'get_sentry_errors':
+      return { result: await getSentryErrors(Math.min((inp.limit as number) ?? 10, 25)) };
     default:
       return { result: `Unknown tool: ${name}` };
   }
@@ -696,6 +873,10 @@ export async function POST(request: NextRequest) {
         let totalOutputTokens = 0;
         const ANTHROPIC_MAX_ROUNDS = 8;
 
+        const ROUND_TIMEOUT_MS = 55_000; // 55s per round (Vercel max is 120s total)
+        let roundsStuck = 0;
+        const lastToolNames: string[] = [];
+
         for (let round = 0; round < ANTHROPIC_MAX_ROUNDS; round++) {
           const contentBlocks: Anthropic.ContentBlock[] = [];
           let currentTextBlock = '';
@@ -750,10 +931,31 @@ export async function POST(request: NextRequest) {
           const toolUseBlocks = contentBlocks.filter(b => b.type === 'tool_use') as Anthropic.ToolUseBlock[];
           if (!toolUseBlocks.length) break;
 
+          // Detect stuck: same tool called 3+ times in a row
+          const currentToolNames = toolUseBlocks.map(t => t.name).join(',');
+          if (lastToolNames.length >= 2 && lastToolNames.slice(-2).every(n => n === currentToolNames)) {
+            roundsStuck++;
+            if (roundsStuck >= 2) {
+              send('token', { text: '\n\n⚠️ *El AI detectó que está en un loop. Deteniendo para evitar consumo innecesario. Por favor, reformula la pregunta con más contexto específico.*' });
+              break;
+            }
+          } else {
+            roundsStuck = 0;
+          }
+          lastToolNames.push(currentToolNames);
+
           currentMessages.push({ role: 'assistant', content: contentBlocks });
 
           const toolResults: Anthropic.ToolResultBlockParam[] = [];
+          const roundStart = Date.now();
+
           for (const toolUse of toolUseBlocks) {
+            // Check overall round timeout
+            if (Date.now() - roundStart > ROUND_TIMEOUT_MS) {
+              send('token', { text: '\n\n⏱️ *Tiempo límite de respuesta alcanzado. El AI tuvo que detenerse. Intenta una pregunta más específica.*' });
+              toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: 'Timeout reached — stopping.' });
+              break;
+            }
             const inp = toolUse.input as Record<string, unknown>;
             let result = '';
             try {
