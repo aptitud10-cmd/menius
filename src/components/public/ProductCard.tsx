@@ -5,9 +5,10 @@
  * Mobile layout  → ProductCardMobile.tsx   (edit this for mobile-only changes)
  * Desktop layout → ProductCardDesktop.tsx  (edit this for desktop-only changes)
  *
- * After hydration, only the layout matching the current breakpoint is mounted,
- * which eliminates the double-render (hooks, subscriptions, images) that
- * previously occurred on every product in the grid.
+ * Mobile-first SSR: initial state defaults to false (mobile) so the server
+ * and first client paint both render a single card variant, cutting the SSR
+ * HTML in half for large catalogs. After hydration, useEffect swaps to the
+ * desktop variant on wide screens (one silent re-render, imperceptible to users).
  */
 
 import { memo, useState, useEffect } from 'react';
@@ -32,7 +33,9 @@ export interface ProductCardProps {
 }
 
 export const ProductCard = memo(function ProductCard(props: ProductCardProps) {
-  const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
+  // Default false = mobile: SSR and first paint render only ProductCardMobile.
+  // useEffect detects the real breakpoint after hydration.
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
@@ -42,18 +45,6 @@ export const ProductCard = memo(function ProductCard(props: ProductCardProps) {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  if (isDesktop === true) return <ProductCardDesktop {...props} />;
-  if (isDesktop === false) return <ProductCardMobile {...props} />;
-
-  // SSR + first paint: render both with CSS-based visibility (no hydration mismatch)
-  return (
-    <>
-      <div className="lg:hidden">
-        <ProductCardMobile {...props} />
-      </div>
-      <div className="hidden lg:block">
-        <ProductCardDesktop {...props} />
-      </div>
-    </>
-  );
+  if (isDesktop) return <ProductCardDesktop {...props} />;
+  return <ProductCardMobile {...props} />;
 });
