@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/auth/verify-admin';
 import { createLogger } from '@/lib/logger';
 import ts from 'typescript';
-import path from 'path';
 
 const logger = createLogger('dev-lint');
 
@@ -18,22 +17,19 @@ interface LintError {
 
 function lintTypeScript(filePath: string, content: string): LintError[] {
   try {
-    // Try to use the project tsconfig for accurate checking
-    const projectRoot = process.cwd();
-    const tsconfigPath = path.join(projectRoot, 'tsconfig.json');
-    const tsconfigContent = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
-    const parsed = ts.parseJsonConfigFileContent(
-      tsconfigContent.config,
-      ts.sys,
-      projectRoot
-    );
-
+    // Inline compiler options — no filesystem needed, works in Vercel serverless
     const compilerOptions: ts.CompilerOptions = {
-      ...parsed.options,
-      noEmit: true,
+      target: ts.ScriptTarget.ES2020,
+      module: ts.ModuleKind.ESNext,
+      moduleResolution: ts.ModuleResolutionKind.Bundler,
+      strict: true,
+      jsx: ts.JsxEmit.ReactJSX,
+      esModuleInterop: true,
       skipLibCheck: true,
-      // Override to inline check
-      isolatedModules: false,
+      noEmit: true,
+      isolatedModules: true,
+      lib: ['ES2020', 'DOM', 'DOM.Iterable'],
+      paths: { '@/*': ['./src/*'] },
     };
 
     // Create a virtual compiler host with the file content in memory

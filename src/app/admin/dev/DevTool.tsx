@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { createDiffLines } from '@/lib/dev-tool/diff-utils';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
@@ -489,41 +490,107 @@ export default function DevTool() {
     setLoading(true);
     setApplyResult(null);
 
+    // Add empty assistant message that will be filled as stream comes in
+    const assistantIdx = newMessages.length;
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
     try {
-      const res = await fetch('/api/admin/dev/chat', {
+      const res = await fetch('/api/admin/dev/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: newMessages.map(m => ({ role: m.role, content: m.content })),
           model: selectedModel,
-          saveHistory: true,
         }),
       });
 
-      if (!res.ok) {
-        const err = await res.json();
-        setMessages(prev => [...prev, { role: 'assistant', content: `❌ Error: ${err.error}` }]);
+      if (!res.ok || !res.body) {
+        setMessages(prev => prev.map((m, i) => i === assistantIdx ? { ...m, content: `❌ Error: ${res.status}` } : m));
         return;
       }
 
-      const json = await res.json();
-      const assistantMsg: Message = {
-        role: 'assistant',
-        content: json.content || '*(no text response)*',
-        pendingChanges: json.pendingChanges?.length ? json.pendingChanges : undefined,
-      };
-      setMessages(prev => [...prev, assistantMsg]);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      const collectedChanges: PendingChange[] = [];
+      let toolStatusText = '';
 
-      // Auto-open first pending change in editor
-      if (json.pendingChanges?.length > 0) {
-        openInEditor(json.pendingChanges[0]);
-        if (json.pendingChanges.length > 1) {
-          // Queue rest as tabs
-          json.pendingChanges.slice(1).forEach((c: PendingChange) => openInEditor(c));
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            switch (event.type) {
+              case 'token':
+                setMessages(prev => prev.map((m, i) =>
+                  i === assistantIdx ? { ...m, content: m.content + event.text } : m
+                ));
+                break;
+              case 'tool_call':
+                toolStatusText = `\n\n*🔧 Using tool: \`${event.name}\`…*`;
+                setMessages(prev => prev.map((m, i) =>
+                  i === assistantIdx ? { ...m, content: m.content + toolStatusText } : m
+                ));
+                break;
+              case 'tool_done':
+                // Remove the "using tool" status text and let Claude's response continue
+                setMessages(prev => prev.map((m, i) =>
+                  i === assistantIdx ? { ...m, content: m.content.replace(toolStatusText, '') } : m
+                ));
+                toolStatusText = '';
+                break;
+              case 'pending_change':
+                collectedChanges.push(event as PendingChange);
+                break;
+              case 'done':
+                if (collectedChanges.length > 0) {
+                  setMessages(prev => prev.map((m, i) =>
+                    i === assistantIdx ? { ...m, pendingChanges: collectedChanges } : m
+                  ));
+                  collectedChanges.forEach(c => openInEditor(c));
+                }
+                break;
+              case 'error':
+                setMessages(prev => prev.map((m, i) =>
+                  i === assistantIdx ? { ...m, content: m.content + `\n\n❌ ${event.message}` } : m
+                ));
+                break;
+            }
+          } catch { /* ignore parse errors */ }
         }
       }
+
+      // Auto-generate conversation title from first message (fire and forget)
+      if (newMessages.length === 1) {
+        fetch('/api/admin/dev/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: [{ role: 'user', content: `Generate a title (max 6 words) for a conversation that starts with: "${text}". Reply ONLY with the title, no quotes.` }],
+            model: 'claude-haiku-3-5',
+            saveHistory: false,
+          }),
+        }).then(r => r.ok ? r.json() : null).then(json => {
+          if (json?.content) {
+            fetch('/api/admin/dev/chat', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ title: json.content.slice(0, 60) }),
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      }
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: '❌ Network error. Try again.' }]);
+      setMessages(prev => prev.map((m, i) =>
+        i === assistantIdx ? { ...m, content: '❌ Network error. Try again.' } : m
+      ));
     } finally { setLoading(false); }
   };
 
@@ -582,6 +649,7 @@ export default function DevTool() {
           <DeployBadge deploy={deploy} onClick={() => setShowLogs(v => !v)} />
 
           <button onClick={fetchDeploy} className="text-gray-500 hover:text-gray-300 text-xs" title="Refresh">↺</button>
+          <Link href="/admin/dev/setup" className="text-gray-600 hover:text-gray-400 text-xs transition-colors" title="Setup">⚙</Link>
         </div>
 
         {/* Messages */}
