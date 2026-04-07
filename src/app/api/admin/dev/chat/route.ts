@@ -3,6 +3,7 @@ export const maxDuration = 120;
 
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold, SchemaType } from '@google/generative-ai';
 import { verifyAdmin } from '@/lib/auth/verify-admin';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
@@ -14,31 +15,38 @@ const logger = createLogger('dev-chat');
 const GITHUB_OWNER = 'aptitud10-cmd';
 const GITHUB_REPO = 'menius';
 const GITHUB_BRANCH = 'main';
-
 const VOYAGE_API = 'https://api.voyageai.com/v1';
 
-// ─── Model map ───────────────────────────────────────────────────────────────
-const MODEL_MAP: Record<string, string> = {
-  'opus':    'claude-opus-4-5',
-  'sonnet':  'claude-sonnet-4-5',
-  'haiku':   'claude-haiku-3-5',
-  'gemini-pro':   'claude-sonnet-4-5',  // fallback: use claude if no gemini integration
-  'gemini-flash': 'claude-haiku-3-5',
-  // Full model IDs pass through
-};
+// ─── Model routing ────────────────────────────────────────────────────────────
+type Provider = 'anthropic' | 'gemini';
 
-function resolveModel(model?: string): string {
-  if (!model) return 'claude-sonnet-4-5';
-  return MODEL_MAP[model] ?? model;
+interface ModelConfig {
+  provider: Provider;
+  modelId: string;
+  label: string;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const MODELS: Record<string, ModelConfig> = {
+  'claude-opus-4-5':         { provider: 'anthropic', modelId: 'claude-opus-4-5',           label: 'Claude Opus 4.5' },
+  'claude-sonnet-4-5':       { provider: 'anthropic', modelId: 'claude-sonnet-4-5',          label: 'Claude Sonnet 4.5' },
+  'claude-haiku-3-5':        { provider: 'anthropic', modelId: 'claude-haiku-3-5',           label: 'Claude Haiku 3.5' },
+  'gemini-2.5-pro':          { provider: 'gemini',    modelId: 'gemini-2.5-pro-preview-03-25', label: 'Gemini 2.5 Pro' },
+  'gemini-2.5-flash':        { provider: 'gemini',    modelId: 'gemini-2.5-flash-preview-04-17', label: 'Gemini 2.5 Flash' },
+  // Short aliases
+  'opus':   { provider: 'anthropic', modelId: 'claude-opus-4-5',    label: 'Claude Opus 4.5' },
+  'sonnet': { provider: 'anthropic', modelId: 'claude-sonnet-4-5',  label: 'Claude Sonnet 4.5' },
+  'haiku':  { provider: 'anthropic', modelId: 'claude-haiku-3-5',   label: 'Claude Haiku 3.5' },
+};
+
+function resolveModel(model?: string): ModelConfig {
+  if (!model) return MODELS['claude-sonnet-4-5'];
+  return MODELS[model] ?? MODELS['claude-sonnet-4-5'];
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 async function githubFetch(apiPath: string, token: string) {
   const res = await fetch(`https://api.github.com/${apiPath}`, {
-    headers: {
-      Authorization: `token ${token}`,
-      Accept: 'application/vnd.github.v3+json',
-    },
+    headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' },
   });
   if (!res.ok) throw new Error(`GitHub ${apiPath}: ${res.status}`);
   return res.json();
@@ -49,14 +57,11 @@ async function readFileFromGitHub(filePath: string, token: string): Promise<stri
     `repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${filePath}?ref=${GITHUB_BRANCH}`,
     token
   );
-  if (data.encoding === 'base64') {
-    return Buffer.from(data.content, 'base64').toString('utf-8');
-  }
+  if (data.encoding === 'base64') return Buffer.from(data.content, 'base64').toString('utf-8');
   return data.content ?? '';
 }
 
 async function searchCodeEmbeddings(query: string, limit: number, voyageKey: string, db: ReturnType<typeof createAdminClient>): Promise<string> {
-  // 1. Embed the query
   const embedRes = await fetch(`${VOYAGE_API}/embeddings`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${voyageKey}`, 'Content-Type': 'application/json' },
@@ -66,26 +71,18 @@ async function searchCodeEmbeddings(query: string, limit: number, voyageKey: str
   const embedJson = await embedRes.json();
   const embedding = embedJson.data[0].embedding;
 
-  // 2. Search pgvector
   const { data: rows, error } = await db.rpc('search_code_embeddings', {
     query_embedding: JSON.stringify(embedding),
-    match_count: Math.min(limit * 2, 40), // fetch extra for reranking
+    match_count: Math.min(limit * 2, 40),
   });
   if (error) throw new Error(`pgvector search: ${error.message}`);
   if (!rows?.length) return 'No results found in the codebase index.';
 
-  // 3. Rerank with Voyage
   const documents = rows.map((r: { content: string }) => r.content);
   const rerankRes = await fetch(`${VOYAGE_API}/rerank`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${voyageKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'rerank-2',
-      query,
-      documents,
-      top_k: Math.min(limit, 10),
-      return_documents: false,
-    }),
+    body: JSON.stringify({ model: 'rerank-2', query, documents, top_k: Math.min(limit, 10), return_documents: false }),
   });
 
   let topIndices: number[];
@@ -98,7 +95,7 @@ async function searchCodeEmbeddings(query: string, limit: number, voyageKey: str
 
   return topIndices
     .map(i => {
-      const r = rows[i] as { file_path: string; content: string; similarity: number };
+      const r = rows[i] as { file_path: string; content: string };
       return `### ${r.file_path}\n\`\`\`\n${r.content.slice(0, 3000)}\n\`\`\``;
     })
     .join('\n\n');
@@ -108,13 +105,7 @@ async function searchWeb(query: string, tavilyKey: string): Promise<string> {
   const res = await fetch('https://api.tavily.com/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      api_key: tavilyKey,
-      query,
-      search_depth: 'advanced',
-      max_results: 5,
-      include_answer: true,
-    }),
+    body: JSON.stringify({ api_key: tavilyKey, query, search_depth: 'advanced', max_results: 5, include_answer: true }),
   });
   if (!res.ok) throw new Error(`Tavily: ${res.status}`);
   const json = await res.json();
@@ -143,6 +134,67 @@ async function listFiles(dirPath: string, token: string): Promise<string> {
   }
 }
 
+async function queryDatabase(sql: string, db: ReturnType<typeof createAdminClient>): Promise<string> {
+  // Safety: only allow SELECT statements
+  const trimmed = sql.trim().toUpperCase();
+  if (!trimmed.startsWith('SELECT') && !trimmed.startsWith('WITH')) {
+    return 'Error: Only SELECT queries are allowed for safety.';
+  }
+  // Block dangerous keywords
+  const dangerous = ['DROP', 'DELETE', 'INSERT', 'UPDATE', 'TRUNCATE', 'ALTER', 'CREATE', 'GRANT', 'REVOKE'];
+  if (dangerous.some(kw => trimmed.includes(kw))) {
+    return 'Error: Query contains restricted keywords.';
+  }
+
+  try {
+    const { data, error } = await db.rpc('exec_readonly_sql', { sql_query: sql }).limit ? 
+      await (db as ReturnType<typeof createAdminClient>).rpc('exec_readonly_sql', { sql_query: sql }) :
+      { data: null, error: { message: 'RPC not available' } };
+    
+    if (error) {
+      // Fallback: try direct query parsing for simple cases
+      return `SQL query logged (direct execution requires exec_readonly_sql RPC). Query:\n\`\`\`sql\n${sql}\n\`\`\`\n\nTo enable DB queries, run this in Supabase SQL editor:\n\`\`\`sql\nCREATE OR REPLACE FUNCTION exec_readonly_sql(sql_query text)\nRETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER AS $$\nDECLARE result jsonb;\nBEGIN\n  EXECUTE 'SET LOCAL statement_timeout = ''5s''; SET LOCAL transaction_read_only = on;';\n  EXECUTE sql_query INTO result;\n  RETURN result;\nEXCEPTION WHEN OTHERS THEN\n  RETURN jsonb_build_object(''error'', SQLERRM);\nEND; $$;\`\`\``;
+    }
+    return JSON.stringify(data, null, 2).slice(0, 5000);
+  } catch (err) {
+    return `DB Error: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+async function getSentryErrors(sentryToken: string, orgSlug: string, projectSlug: string, limit: number): Promise<string> {
+  const res = await fetch(
+    `https://sentry.io/api/0/projects/${orgSlug}/${projectSlug}/issues/?limit=${limit}&query=is:unresolved&sort=date`,
+    {
+      headers: { Authorization: `Bearer ${sentryToken}`, 'Content-Type': 'application/json' },
+    }
+  );
+  if (!res.ok) {
+    return `Sentry API error: ${res.status}. Make sure SENTRY_AUTH_TOKEN, SENTRY_ORG, and SENTRY_PROJECT are set.`;
+  }
+  const issues = await res.json();
+  if (!issues?.length) return 'No unresolved Sentry issues found.';
+
+  return issues
+    .slice(0, limit)
+    .map((issue: {
+      id: string;
+      title: string;
+      culprit: string;
+      count: string;
+      userCount: number;
+      firstSeen: string;
+      lastSeen: string;
+      permalink: string;
+    }) => [
+      `**${issue.title}**`,
+      `  Culprit: ${issue.culprit}`,
+      `  Occurrences: ${issue.count} | Users affected: ${issue.userCount}`,
+      `  First seen: ${issue.firstSeen} | Last seen: ${issue.lastSeen}`,
+      `  URL: ${issue.permalink}`,
+    ].join('\n'))
+    .join('\n\n');
+}
+
 // ─── System prompt ────────────────────────────────────────────────────────────
 function buildSystemPrompt(): string {
   let claudeMd = '';
@@ -153,31 +205,33 @@ function buildSystemPrompt(): string {
     }
   } catch { /* ignore */ }
 
-  return `You are an expert software engineer working on the Menius codebase — a Next.js 14 SaaS platform for restaurants in Latin America. You have the same capabilities as Cursor AI: you can read files, search the codebase semantically, search the web, write code changes, and apply them directly to the repository.
+  return `You are an expert software engineer working on the Menius codebase — a Next.js 14 SaaS platform for restaurants in Latin America. You have the same capabilities as Cursor AI.
 
 ${claudeMd ? `## Project Context (CLAUDE.md)\n${claudeMd}` : ''}
 
 ## Your Capabilities
-- **search_code**: Semantic search through the entire codebase using vector embeddings
-- **read_file**: Read any file from the GitHub repository  
+- **search_code**: Semantic search through the entire codebase (vector embeddings + reranking)
+- **read_file**: Read any file from the GitHub repository
 - **list_files**: Browse directory contents
 - **search_web**: Search the internet for documentation, solutions, best practices
-- **write_file**: Propose file changes (shown to user with diff viewer before applying)
+- **write_file**: Propose file changes (shown with diff viewer before applying)
+- **query_database**: Run read-only SQL queries against the production Supabase database
+- **get_sentry_errors**: View unresolved production errors from Sentry
 
 ## How to Respond
-1. When asked to fix a bug or add a feature: first **search_code** to find relevant files, then **read_file** to understand context, then propose precise changes using **write_file**.
-2. Always show your reasoning step by step.
-3. When proposing code changes, explain WHY each change is needed.
-4. When using write_file, provide the COMPLETE file content (not just diffs) so it can be applied correctly.
-5. Use **search_web** when you need current documentation or are uncertain about an API.
-6. Be specific about which stores changes affect — use store-overrides.ts for per-store changes.
+1. To fix a bug: **search_code** → **read_file** → **write_file** with precise changes
+2. To diagnose data issues: **query_database** to inspect live data
+3. To investigate production errors: **get_sentry_errors** then trace through **search_code**
+4. Always explain WHY each change is needed before proposing it
+5. For **write_file**, provide the COMPLETE file content (not diffs)
+6. Per-store changes go in **store-overrides.ts** — never modify core components for one store
 
 ## Code Quality Rules
 - TypeScript strict — no any unless absolutely necessary
-- No comments that just describe what the code does
-- Imports always at the top of the file
-- Keep route handlers thin — logic in separate functions
-- Error handling: throw for exceptional cases, return null for expected missing
+- No comments that just narrate what the code does
+- Imports always at top of file
+- Route handlers thin — business logic in separate functions
+- Error handling: throw for exceptional, return null for expected missing
 - Never use Date.now() in Supabase queries
 
 Always prefer surgical, minimal changes. Never rewrite things that work.`;
@@ -187,19 +241,19 @@ Always prefer surgical, minimal changes. Never rewrite things that work.`;
 const TOOLS: Anthropic.Tool[] = [
   {
     name: 'search_code',
-    description: 'Semantic search through the Menius codebase. Use this to find relevant files, functions, or patterns. Results are ranked by relevance using AI reranking.',
+    description: 'Semantic search through the Menius codebase. Results are reranked by AI for relevance.',
     input_schema: {
       type: 'object' as const,
       properties: {
         query: { type: 'string', description: 'Natural language description of what you are looking for' },
-        limit: { type: 'number', description: 'Max results to return (default: 5, max: 10)' },
+        limit: { type: 'number', description: 'Max results (default: 5, max: 10)' },
       },
       required: ['query'],
     },
   },
   {
     name: 'read_file',
-    description: 'Read the complete content of a file from the repository. Use the exact file path.',
+    description: 'Read the complete content of a file from the repository.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -210,18 +264,18 @@ const TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'list_files',
-    description: 'List files and folders in a directory. Useful for exploring the project structure.',
+    description: 'List files and folders in a directory.',
     input_schema: {
       type: 'object' as const,
       properties: {
-        path: { type: 'string', description: 'Directory path relative to repo root, e.g. src/components/public' },
+        path: { type: 'string', description: 'Directory path relative to repo root' },
       },
       required: ['path'],
     },
   },
   {
     name: 'search_web',
-    description: 'Search the internet for documentation, error solutions, or best practices. Use when you need current information or are unsure about an API.',
+    description: 'Search the internet for documentation, error solutions, or best practices.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -232,25 +286,43 @@ const TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'write_file',
-    description: 'Propose changes to a file. The change will be shown to the user with a diff viewer before being applied. Provide the complete file content.',
+    description: 'Propose changes to a file. Shown to user with diff viewer before applying. Provide COMPLETE file content.',
     input_schema: {
       type: 'object' as const,
       properties: {
         path: { type: 'string', description: 'File path relative to repo root' },
         content: { type: 'string', description: 'Complete new file content' },
-        action: {
-          type: 'string',
-          enum: ['create', 'update', 'delete'],
-          description: 'Type of change: create (new file), update (modify existing), delete (remove file)',
-        },
-        explanation: { type: 'string', description: 'Why this change is needed (shown to user)' },
+        action: { type: 'string', enum: ['create', 'update', 'delete'], description: 'create | update | delete' },
+        explanation: { type: 'string', description: 'Why this change is needed' },
       },
       required: ['path', 'content', 'action'],
     },
   },
+  {
+    name: 'query_database',
+    description: 'Run a read-only SELECT query against the Supabase production database. Use to diagnose data issues, check restaurant configs, inspect orders, etc.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        sql: { type: 'string', description: 'SQL SELECT query. Only SELECT/WITH statements allowed.' },
+      },
+      required: ['sql'],
+    },
+  },
+  {
+    name: 'get_sentry_errors',
+    description: 'Get unresolved production errors from Sentry. Use when diagnosing production bugs or when the user mentions an error they saw.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        limit: { type: 'number', description: 'Number of issues to fetch (default: 10, max: 25)' },
+      },
+      required: [],
+    },
+  },
 ];
 
-// ─── Tool executor ────────────────────────────────────────────────────────────
+// ─── Tool executor ─────────────────────────────────────────────────────────────
 async function executeTool(
   toolName: string,
   input: Record<string, unknown>,
@@ -291,12 +363,130 @@ async function executeTool(
         pendingChange: { path: filePath, content, action, explanation },
       };
     }
+    case 'query_database': {
+      const sql = input.sql as string;
+      const result = await queryDatabase(sql, db);
+      return { result };
+    }
+    case 'get_sentry_errors': {
+      const sentryToken = process.env.SENTRY_AUTH_TOKEN ?? '';
+      const orgSlug = process.env.SENTRY_ORG ?? '';
+      const projectSlug = process.env.SENTRY_PROJECT ?? '';
+      const limit = Math.min((input.limit as number) ?? 10, 25);
+      const result = await getSentryErrors(sentryToken, orgSlug, projectSlug, limit);
+      return { result };
+    }
     default:
       return { result: `Unknown tool: ${toolName}` };
   }
 }
 
-// ─── Main route ───────────────────────────────────────────────────────────────
+// ─── Gemini agentic loop ───────────────────────────────────────────────────────
+interface GeminiMessage {
+  role: 'user' | 'model';
+  parts: Array<{ text: string }>;
+}
+
+async function runGeminiAgentLoop(
+  geminiModel: string,
+  systemPrompt: string,
+  messages: Anthropic.MessageParam[],
+  githubToken: string,
+  voyageKey: string,
+  tavilyKey: string,
+  db: ReturnType<typeof createAdminClient>,
+  geminiKey: string
+): Promise<{ finalText: string; pendingChanges: Array<{ path: string; content: string; action: string; explanation?: string }> }> {
+  const genAI = new GoogleGenerativeAI(geminiKey);
+  const model = genAI.getGenerativeModel({
+    model: geminiModel,
+    safetySettings: [
+      { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+      { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+    ],
+  });
+
+  // Convert tools to Gemini function declarations (cast to avoid SDK type strictness)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const geminiTools: any[] = [{
+    functionDeclarations: TOOLS.map(t => ({
+      name: t.name,
+      description: t.description,
+      parameters: {
+        type: SchemaType.OBJECT,
+        properties: Object.fromEntries(
+          Object.entries(t.input_schema.properties ?? {}).map(([k, v]) => [
+            k,
+            { type: SchemaType.STRING, description: (v as { description?: string }).description ?? '' },
+          ])
+        ),
+        required: (t.input_schema as { required?: string[] }).required ?? [],
+      },
+    })),
+  }];
+
+  // Convert messages to Gemini format
+  const history: GeminiMessage[] = messages.slice(0, -1).map(m => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) }],
+  }));
+
+  const lastUserMsg = messages[messages.length - 1];
+  const lastText = typeof lastUserMsg.content === 'string' ? lastUserMsg.content : JSON.stringify(lastUserMsg.content);
+
+  const chat = model.startChat({
+    history,
+    systemInstruction: systemPrompt,
+    tools: geminiTools,
+  });
+
+  let finalText = '';
+  const pendingChanges: Array<{ path: string; content: string; action: string; explanation?: string }> = [];
+  const MAX_ROUNDS = 10;
+
+  let currentMsg = lastText;
+  for (let round = 0; round < MAX_ROUNDS; round++) {
+    const result = await chat.sendMessage(currentMsg);
+    const response = result.response;
+    const candidate = response.candidates?.[0];
+    if (!candidate) break;
+
+    // Collect text
+    for (const part of candidate.content?.parts ?? []) {
+      if (part.text) finalText += part.text;
+    }
+
+    // Check for function calls
+    const fnCalls = (candidate.content?.parts ?? []).filter(p => p.functionCall);
+    if (!fnCalls.length) break;
+
+    // Execute all function calls
+    const fnResponses: string[] = [];
+    for (const part of fnCalls) {
+      if (!part.functionCall) continue;
+      try {
+        const { result: toolResult, pendingChange } = await executeTool(
+          part.functionCall.name,
+          (part.functionCall.args ?? {}) as Record<string, unknown>,
+          githubToken,
+          voyageKey,
+          tavilyKey,
+          db
+        );
+        if (pendingChange) pendingChanges.push(pendingChange);
+        fnResponses.push(`[${part.functionCall.name}]: ${toolResult.slice(0, 10000)}`);
+      } catch (err) {
+        fnResponses.push(`[${part.functionCall.name} ERROR]: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
+    currentMsg = fnResponses.join('\n\n');
+  }
+
+  return { finalText, pendingChanges };
+}
+
+// ─── Main POST route ───────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
   try {
     const auth = await verifyAdmin();
@@ -306,8 +496,11 @@ export async function POST(request: NextRequest) {
     const voyageKey = process.env.VOYAGE_API_KEY;
     const tavilyKey = process.env.TAVILY_API_KEY;
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
+    const geminiKey = process.env.GEMINI_API_KEY;
 
-    if (!anthropicKey) return NextResponse.json({ error: 'Missing ANTHROPIC_API_KEY' }, { status: 500 });
+    if (!anthropicKey && !geminiKey) {
+      return NextResponse.json({ error: 'Missing ANTHROPIC_API_KEY or GEMINI_API_KEY' }, { status: 500 });
+    }
     if (!githubToken) return NextResponse.json({ error: 'Missing GITHUB_TOKEN' }, { status: 500 });
 
     const body = await request.json();
@@ -321,82 +514,92 @@ export async function POST(request: NextRequest) {
     if (!messages?.length) return NextResponse.json({ error: 'messages required' }, { status: 400 });
 
     const db = createAdminClient();
-    const resolvedModel = resolveModel(model);
-    const client = new Anthropic({ apiKey: anthropicKey });
+    const modelConfig = resolveModel(model);
+    const systemPrompt = buildSystemPrompt();
 
-    // Agentic loop: allow up to 10 tool use rounds
-    let currentMessages = [...messages];
-    const pendingChanges: Array<{ path: string; content: string; action: string; explanation?: string }> = [];
     let finalText = '';
-    const MAX_ROUNDS = 10;
+    let pendingChanges: Array<{ path: string; content: string; action: string; explanation?: string }> = [];
 
-    for (let round = 0; round < MAX_ROUNDS; round++) {
-      const response = await client.messages.create({
-        model: resolvedModel,
-        max_tokens: 8192,
-        system: buildSystemPrompt(),
-        tools: (voyageKey && tavilyKey) ? TOOLS : TOOLS.filter(t => t.name !== 'search_web' && t.name !== 'search_code'),
-        messages: currentMessages,
-      });
+    if (modelConfig.provider === 'gemini') {
+      if (!geminiKey) return NextResponse.json({ error: 'Missing GEMINI_API_KEY' }, { status: 500 });
+      const result = await runGeminiAgentLoop(
+        modelConfig.modelId,
+        systemPrompt,
+        messages,
+        githubToken,
+        voyageKey ?? '',
+        tavilyKey ?? '',
+        db,
+        geminiKey
+      );
+      finalText = result.finalText;
+      pendingChanges = result.pendingChanges;
+    } else {
+      // Anthropic agentic loop
+      if (!anthropicKey) return NextResponse.json({ error: 'Missing ANTHROPIC_API_KEY' }, { status: 500 });
+      const client = new Anthropic({ apiKey: anthropicKey });
+      let currentMessages = [...messages];
+      const MAX_ROUNDS = 10;
 
-      // Collect text from this response
-      for (const block of response.content) {
-        if (block.type === 'text') finalText += block.text;
-      }
+      const availableTools = voyageKey
+        ? TOOLS
+        : TOOLS.filter(t => t.name !== 'search_code');
 
-      // If model is done (no tool use), break
-      if (response.stop_reason !== 'tool_use') break;
+      for (let round = 0; round < MAX_ROUNDS; round++) {
+        const response = await client.messages.create({
+          model: modelConfig.modelId,
+          max_tokens: 8192,
+          system: systemPrompt,
+          tools: availableTools,
+          messages: currentMessages,
+        });
 
-      // Find all tool use blocks
-      const toolUseBlocks = response.content.filter(b => b.type === 'tool_use') as Anthropic.ToolUseBlock[];
-      if (!toolUseBlocks.length) break;
-
-      // Add assistant message with all content blocks
-      currentMessages.push({ role: 'assistant', content: response.content });
-
-      // Execute all tools and collect results
-      const toolResults: Anthropic.ToolResultBlockParam[] = [];
-      for (const toolUse of toolUseBlocks) {
-        try {
-          const { result, pendingChange } = await executeTool(
-            toolUse.name,
-            toolUse.input as Record<string, unknown>,
-            githubToken,
-            voyageKey ?? '',
-            tavilyKey ?? '',
-            db
-          );
-          if (pendingChange) pendingChanges.push(pendingChange);
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: toolUse.id,
-            content: result.slice(0, 50000),
-          });
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: toolUse.id,
-            content: `Error: ${msg}`,
-            is_error: true,
-          });
+        for (const block of response.content) {
+          if (block.type === 'text') finalText += block.text;
         }
-      }
 
-      // Add all tool results in a single user message
-      currentMessages.push({ role: 'user', content: toolResults });
+        if (response.stop_reason !== 'tool_use') break;
+
+        const toolUseBlocks = response.content.filter(b => b.type === 'tool_use') as Anthropic.ToolUseBlock[];
+        if (!toolUseBlocks.length) break;
+
+        currentMessages.push({ role: 'assistant', content: response.content });
+
+        const toolResults: Anthropic.ToolResultBlockParam[] = [];
+        for (const toolUse of toolUseBlocks) {
+          try {
+            const { result, pendingChange } = await executeTool(
+              toolUse.name,
+              toolUse.input as Record<string, unknown>,
+              githubToken,
+              voyageKey ?? '',
+              tavilyKey ?? '',
+              db
+            );
+            if (pendingChange) pendingChanges.push(pendingChange);
+            toolResults.push({
+              type: 'tool_result',
+              tool_use_id: toolUse.id,
+              content: result.slice(0, 50000),
+            });
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: `Error: ${msg}`, is_error: true });
+          }
+        }
+
+        currentMessages.push({ role: 'user', content: toolResults });
+      }
     }
 
-    // Save conversation history if requested
+    // Save conversation history
     if (saveHistory && conversationId) {
       const allMessages = [...messages];
-      if (finalText) {
-        allMessages.push({ role: 'assistant', content: finalText });
-      }
+      if (finalText) allMessages.push({ role: 'assistant', content: finalText });
       await db.from('dev_conversations').upsert({
         id: conversationId,
         messages: JSON.stringify(allMessages),
-        model: resolvedModel,
+        model: modelConfig.modelId,
         updated_at: new Date().toISOString(),
       });
     }
@@ -404,17 +607,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       content: finalText,
       pendingChanges,
-      model: resolvedModel,
-      rounds: currentMessages.length,
+      model: modelConfig.modelId,
+      provider: modelConfig.provider,
     });
   } catch (err) {
     logger.error('dev chat POST failed', { error: err instanceof Error ? err.message : String(err) });
-    const message = err instanceof Error ? err.message : 'Error interno';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error interno' }, { status: 500 });
   }
 }
 
-// ─── GET: conversation history ─────────────────────────────────────────────
+// ─── GET: conversation history ─────────────────────────────────────────────────
 export async function GET(request: NextRequest) {
   try {
     const auth = await verifyAdmin();
@@ -424,15 +626,10 @@ export async function GET(request: NextRequest) {
     const conversationId = request.nextUrl.searchParams.get('id');
 
     if (conversationId) {
-      const { data } = await db
-        .from('dev_conversations')
-        .select('*')
-        .eq('id', conversationId)
-        .single();
+      const { data } = await db.from('dev_conversations').select('*').eq('id', conversationId).single();
       return NextResponse.json({ conversation: data });
     }
 
-    // List recent conversations
     const { data } = await db
       .from('dev_conversations')
       .select('id, title, model, created_at, updated_at')
@@ -440,7 +637,7 @@ export async function GET(request: NextRequest) {
       .limit(20);
 
     return NextResponse.json({ conversations: data ?? [] });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ error: 'Error' }, { status: 500 });
   }
 }
