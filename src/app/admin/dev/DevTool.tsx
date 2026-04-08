@@ -1376,12 +1376,6 @@ export default function DevTool() {
       });
       const json = await res.json();
       if (json.ok) {
-        // If in autopilot mode, clear all pending changes
-        if (autopilotMode) {
-          setPendingChanges([]);
-          // TODO: Potentially trigger a fresh AI message to continue working if needed
-        }
-
         setMessages(prev => prev.map(m => ({
           ...m,
           pendingChanges: m.pendingChanges?.map(pc =>
@@ -1417,7 +1411,7 @@ export default function DevTool() {
         setApplyResult(`❌ ${json.error || 'Error applying changes'}`);
       }
     } finally { setApplyLoading(false); }
-  }, [commitMsg, prMode, autopilotMode, setCommitMsg, setApplyLoading, setApplyResult, setAppliedHistory, saveAppliedChange, setPendingChanges, setMessages, fetchDeploy, sendPushNotification, fetchCommits, setInput]);
+  }, [commitMsg, prMode, autopilotMode, setCommitMsg, setApplyLoading, setApplyResult, setAppliedHistory, saveAppliedChange, setMessages, fetchDeploy, sendPushNotification, fetchCommits, setInput]);
 
   const handleRerunDeploy = useCallback(async () => {
     setInput('Re-run Vercel deployment using re_run_vercel_build tool.');
