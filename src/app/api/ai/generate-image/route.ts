@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
       if (/horchata/.test(lowerName)) return 'a tall clear glass with ice, filled with creamy white horchata, a cinnamon stick resting on the rim';
       if (/smoothie|batido/.test(lowerName)) return 'a tall frosted glass with a paper straw and fresh fruit garnish on the rim';
       if (/agua mineral|sparkling water|water/.test(lowerName)) return 'a clear glass bottle with condensation and a lemon slice beside it on the surface';
-      if (/apple|manzana/.test(lowerName)) return 'a tall clear glass filled with crisp pale golden-green apple juice, clear ice cubes, a thin green apple slice perched on the rim — NO orange, NO citrus';
+      if (/apple|manzana/.test(lowerName)) return 'a tall clear glass filled with crisp pale golden-green apple juice, clear ice cubes, a thin green APPLE slice perched on the rim — NOT lime, NOT lemon, NOT orange, ONLY apple garnish';
       if (/watermelon|sand[íi]a/.test(lowerName)) return 'a tall clear glass filled with vibrant deep pink-red watermelon juice, fresh mint leaves on top, no citrus';
       if (/mango/.test(lowerName)) return 'a tall clear glass filled with thick rich golden-yellow mango juice, a fresh mango slice on the rim';
       if (/pi[ñn]a|pineapple/.test(lowerName)) return 'a tall clear glass filled with bright golden-yellow pineapple juice, a pineapple wedge on the rim';
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
         if (/whiskey|bourbon/.test(lowerName)) return 'Amber whiskey with a single large perfectly clear ice sphere. Orange peel twist garnish, one edge caught by the light.';
         if (/limonada|lemonade/.test(lowerName)) return 'Vibrant yellow liquid, fresh mint leaves, ice cubes perfectly clear, lemon wheel on rim. Condensation on the cold glass exterior.';
         if (/smoothie/.test(lowerName)) return 'Thick vibrant tropical smoothie. Fresh fruit garnish on the rim. Straw at a natural relaxed angle.';
-        if (/apple|manzana/.test(lowerName)) return 'APPLE JUICE — pale golden-green color, crystal clear. Thin green apple slice on the rim. Ice perfectly clear. Condensation on glass. The liquid is pale golden-green, NOT orange, NOT yellow — distinctly apple.';
+        if (/apple|manzana/.test(lowerName)) return 'APPLE JUICE — pale golden-green color, crystal clear. Green APPLE slice on the rim — NOT lime, NOT lemon, NOT citrus, ONLY apple. Ice perfectly clear. Condensation on glass. The liquid is pale golden-green, NOT orange, NOT yellow — distinctly apple juice.';
         if (/watermelon|sand[íi]a/.test(lowerName)) return 'Deep vibrant pink-red watermelon juice color. Fresh mint leaves. No citrus. Refreshing summer feel.';
         if (/mango/.test(lowerName)) return 'Thick rich golden-yellow mango juice, tropical and vibrant. Mango slice garnish.';
         if (/pi[ñn]a|pineapple/.test(lowerName)) return 'Bright golden-yellow pineapple juice. Pineapple wedge on rim. Tropical freshness.';
@@ -305,8 +305,9 @@ COLOR SCIENCE: Rich warm tonal depth. Deep shadows with warm amber undertones �
 - NOT CGI, NOT 3D render, NOT illustration, NOT AI-generated look
 - NO text of any kind, NO logos, NO watermarks, NO stamps, NO labels, NO captions
 - NO white patches, NO white spots, NO bright artifacts, NO digital noise in any corner
+- NO dark patches, NO dark shadows, NO dark blobs, NO vignette in corners — corners must be visible and filled
 - NO human hands, NO cooking equipment, NO utensils in frame
-- Every corner of the image must be filled with the background — NO blank white areas
+- Every corner filled with natural background — NO blank areas, NO darkness, NO undefined shapes
 
 This is an award-winning commercial food photograph in the style of Lyan van Furth or Eric Wolfinger — the world's finest food photographers. Every pixel is intentional, every corner covered with rich background texture.
 
@@ -323,7 +324,7 @@ ${styleOverride ? styleOverride : ''}
 
 LIGHTING: ${lighting}
 
-COLOR SCIENCE: Rich cinematic color grading. Deep shadows with warm amber-brown undertones — never pure black, always depth. Highlights slightly golden, never blown out. High micro-contrast revealing every individual texture detail — condensation droplets, sauce gloss, char marks, herb edges. Film-like tonal quality similar to Fujifilm Velvia — vivid but completely natural, never over-processed. Subtle vignette darkening the corners by 15% to draw the eye naturally toward the center.
+COLOR SCIENCE: Rich cinematic color grading. Deep shadows with warm amber-brown undertones — never pure black, always depth. Highlights slightly golden, never blown out. High micro-contrast revealing every individual texture detail — condensation droplets, sauce gloss, char marks, herb edges. Film-like tonal quality similar to Fujifilm Velvia — vivid but completely natural, never over-processed. NO vignette — corners must be as bright and defined as the center.
 
 FOOD STYLING: ${foodStyling}`;
 
