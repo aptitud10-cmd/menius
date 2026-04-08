@@ -333,6 +333,7 @@ function ConversationSidebar({
 }
 
 import { CommitsDropdown } from '@/components/dev-tool/CommitsDropdown';
+import { DeployHistoryDropdown } from '@/components/dev-tool/DeployHistoryDropdown';
 
 // ─── Alerts panel ─────────────────────────────────────────────────────────────
 function AlertsPanel({
