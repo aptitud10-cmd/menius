@@ -1559,7 +1559,7 @@ export default function DevTool() {
           images: imagesToSend,
           thinking: thinkingMode,
           recentConvSummaries,
-          activeFile: activeEditorTab ? { path: activeEditorTab.path, content: activeEditorTab.content || '' } : undefined,
+          activeFile: tabs[activeTab] ? { path: tabs[activeTab].path, content: tabs[activeTab].content || '' } : undefined,
         }),
         signal: abortCtrl.signal,
       });
