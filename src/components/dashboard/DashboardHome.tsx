@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { OnboardingChecklist } from './OnboardingChecklist';
+import { ActivationBanner } from './ActivationBanner';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { Order, Restaurant } from '@/types';
 
@@ -197,6 +198,15 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
           </div>
         );
       })()}
+
+      {/* Activation banner — shown until first real order */}
+      {onboarding && !onboarding.hasOrders && (
+        <ActivationBanner
+          slug={restaurant.slug}
+          restaurantName={restaurant.name}
+          locale={locale as 'es' | 'en'}
+        />
+      )}
 
       {/* Onboarding Checklist */}
       {onboarding && (

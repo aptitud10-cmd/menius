@@ -10,6 +10,7 @@ import { OrderNotifier } from '@/components/dashboard/OrderNotifier';
 import { SidebarSoundButton } from '@/components/dashboard/SidebarSoundButton';
 import { IdentifyUser } from '@/components/dashboard/IdentifyUser';
 import { TrialBanner } from '@/components/dashboard/TrialBanner';
+import { WelcomeQRModal } from '@/components/dashboard/WelcomeQRModal';
 import { DashToastProvider } from '@/components/dashboard/DashToast';
 import { RestaurantSwitcher } from '@/components/dashboard/RestaurantSwitcher';
 import { redirect } from 'next/navigation';
@@ -131,6 +132,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <AIChatWidget />
         <CrispChat userEmail={user?.email ?? undefined} userName={profile?.full_name ?? undefined} hideWidget />
         <OrderNotifier restaurantId={restaurantId} currency={restaurant?.currency || 'USD'} />
+        <WelcomeQRModal
+          slug={restaurant?.slug ?? ''}
+          restaurantName={restaurant?.name ?? 'Mi Restaurante'}
+          locale={(restaurant?.locale === 'en' ? 'en' : 'es') as 'es' | 'en'}
+        />
         <IdentifyUser
           userId={userId}
           email={user?.email ?? undefined}
