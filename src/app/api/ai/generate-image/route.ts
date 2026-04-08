@@ -316,7 +316,7 @@ ${effectiveCuisineContext ? `PLATING IDENTITY: ${effectiveCuisineContext}` : ''}
 
 CAMERA: 50mm or 85mm prime lens, ${dofInstruction}, ISO 400 — authentic DSLR photograph with natural film grain.
 ANGLE: ${angleInstruction}.
-COMPOSITION: Square 1:1 frame. Subject positioned at the power point using the rule of thirds — slightly off-center, never dead-center. Subject fills 55-60% of the frame, leaving generous negative space that gives the image breathing room and a high-end editorial feel. SAFE ZONE: all food/drink within the central 80% — outer 10% may be cropped by UI.
+COMPOSITION: 4:3 horizontal frame. Subject positioned at the power point using the rule of thirds — slightly off-center, never dead-center. Subject fills 55-65% of the frame, leaving generous negative space that gives the image breathing room and a high-end editorial feel. SAFE ZONE: all food/drink within the central 80% — outer 10% may be cropped by UI.
 
 SURFACE & SETTING: ${surfaceInstruction}
 ${styleOverride ? styleOverride : ''}
@@ -327,7 +327,7 @@ COLOR SCIENCE: Rich cinematic color grading. Deep shadows with warm amber-brown 
 
 FOOD STYLING: ${foodStyling}`;
 
-    const aspectRatio = isBanner ? '16:9' : '1:1';
+    const aspectRatio = isBanner ? '16:9' : '4:3';
 
     // ─── FETCH STYLE ANCHOR FOR THIS RESTAURANT + CATEGORY ───────────────────
     let anchorBase64: string | null = null;
@@ -368,8 +368,7 @@ Served in/on: ${container}.
 ${foodStyling}
 Keep everything else — surface, lighting, background, atmosphere — pixel-perfect consistent with the reference.` : null;
 
-    // ─── PRIMARY: fal.ai (no anchor → flux-pro/v1.1 ; anchor → flux-pro/kontext) ─
-    // Generates 2 variations and picks the best using Gemini Flash Vision.
+    // ─── PRIMARY: fal.ai flux-pro/v1.1 — single image, fast ─────────────────
     let imageBase64: string | null = null;
     let engine = 'gemini';
     const mimeType = 'image/jpeg';
@@ -380,7 +379,7 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
         const { fal } = await import('@fal-ai/client');
         fal.config({ credentials: falKey });
 
-        let falImages: Array<{ url: string }> = [];
+        let falImageUrl: string | null = null;
 
         if (anchorBase64) {
           // flux-pro/kontext: image-aware generation using the style anchor as reference
@@ -388,70 +387,32 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
             input: {
               prompt: anchorPrompt ?? prompt,
               image_url: `data:image/jpeg;base64,${anchorBase64}`,
-              num_images: 2,
+              num_images: 1,
               output_format: 'jpeg',
               guidance_scale: 3.5,
             },
           });
-          falImages = (kontextResult as any)?.images ?? [];
+          falImageUrl = (kontextResult as any)?.images?.[0]?.url ?? null;
         } else {
-          // flux-pro/v1.1: pure text-to-image, 2 variations
+          // flux-pro/v1.1: pure text-to-image, single image for speed
           const v1Result = await (fal as any).subscribe('fal-ai/flux-pro/v1.1', {
             input: {
               prompt,
-              image_size: isBanner ? 'landscape_16_9' : 'square_hd',
-              num_inference_steps: 40,
+              image_size: isBanner ? 'landscape_16_9' : 'portrait_4_3',
+              num_inference_steps: 28,
               guidance_scale: 3.5,
-              num_images: 2,
+              num_images: 1,
               output_format: 'jpeg',
             },
           });
-          falImages = (v1Result as any)?.images ?? [];
+          falImageUrl = (v1Result as any)?.images?.[0]?.url ?? null;
         }
 
-        if (falImages.length > 0) {
-          // Download all variations
-          const downloaded: Array<{ base64: string; url: string }> = [];
-          for (const img of falImages) {
-            try {
-              const res = await fetch(img.url, { signal: AbortSignal.timeout(30000) });
-              if (res.ok) {
-                downloaded.push({
-                  base64: Buffer.from(await res.arrayBuffer()).toString('base64'),
-                  url: img.url,
-                });
-              }
-            } catch { /* skip failed downloads */ }
-          }
-
-          if (downloaded.length === 1) {
-            imageBase64 = downloaded[0].base64;
+        if (falImageUrl) {
+          const res = await fetch(falImageUrl, { signal: AbortSignal.timeout(30000) });
+          if (res.ok) {
+            imageBase64 = Buffer.from(await res.arrayBuffer()).toString('base64');
             engine = 'fal-ai';
-          } else if (downloaded.length >= 2 && apiKey) {
-            // Use Gemini Flash Vision to pick the best food photo
-            try {
-              const { GoogleGenAI } = await import('@google/genai');
-              const picker = new GoogleGenAI({ apiKey });
-              const pickResp = await picker.models.generateContent({
-                model: 'gemini-2.0-flash',
-                contents: [{
-                  role: 'user',
-                  parts: [
-                    { inlineData: { mimeType: 'image/jpeg', data: downloaded[0].base64 } },
-                    { inlineData: { mimeType: 'image/jpeg', data: downloaded[1].base64 } },
-                    { text: `You are a professional food photography judge. Look at these two food photos for "${productName}". Reply with ONLY "1" or "2" — the number of the photo that has better food photography quality: sharper focus, more appetizing colors, better lighting, more professional composition, NO white spots or artifacts in corners, NO watermarks or text. Prefer the cleanest, most professional image. No explanation, just the number.` },
-                  ],
-                }],
-              });
-              const pick = (pickResp as any).candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-              imageBase64 = pick === '2' ? downloaded[1].base64 : downloaded[0].base64;
-              engine = 'fal-ai';
-              logger.info('Best variation picked', { pick, productName });
-            } catch {
-              // Picker failed — just use the first
-              imageBase64 = downloaded[0].base64;
-              engine = 'fal-ai';
-            }
           }
         }
       } catch (falErr) {
@@ -461,25 +422,13 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
       }
     }
 
-    // ─── GEMINI CHAIN (fallback when fal.ai unavailable or failed) ───────────
+    // ─── FALLBACK: Gemini 3 Pro (when fal.ai unavailable or failed) ──────────
     if (!imageBase64) {
       try {
-        // If anchor exists and fal.ai/kontext handled it, skip anchor here to avoid redundancy.
-        // Otherwise pass anchor to Gemini for reference-aware generation.
         const useAnchor = anchorBase64 && anchorPrompt && !falKey;
-        let contents: object[];
-
-        if (useAnchor) {
-          contents = [{
-            role: 'user',
-            parts: [
-              { inlineData: { mimeType, data: anchorBase64 } },
-              { text: anchorPrompt },
-            ],
-          }];
-        } else {
-          contents = [{ role: 'user', parts: [{ text: prompt }] }];
-        }
+        const contents: object[] = useAnchor
+          ? [{ role: 'user', parts: [{ inlineData: { mimeType, data: anchorBase64 } }, { text: anchorPrompt }] }]
+          : [{ role: 'user', parts: [{ text: prompt }] }];
 
         const response = await ai.models.generateContent({
           model: 'gemini-3-pro-image-preview',
@@ -500,51 +449,6 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
       } catch (primaryErr) {
         logger.warn('gemini-3-pro-image-preview failed', {
           error: primaryErr instanceof Error ? primaryErr.message : String(primaryErr),
-        });
-      }
-    }
-
-    // ─── FALLBACK 1: Imagen 4 ──────────────────────────────────────────────────
-    if (!imageBase64) {
-      logger.warn('Gemini returned no image, trying Imagen 4');
-      try {
-        const imagenResponse = await ai.models.generateImages({
-          model: 'imagen-4.0-generate-001',
-          prompt,
-          config: { numberOfImages: 1, aspectRatio },
-        });
-        const firstImage = imagenResponse.generatedImages?.[0];
-        if (firstImage?.image?.imageBytes) {
-          imageBase64 = firstImage.image.imageBytes as string;
-          engine = 'imagen-4';
-        }
-      } catch (imagenErr) {
-        logger.warn('Imagen 4 failed', {
-          error: imagenErr instanceof Error ? imagenErr.message : String(imagenErr),
-        });
-      }
-    }
-
-    // ─── FALLBACK 2: gemini-2.5-flash-image ───────────────────────────────────
-    if (!imageBase64) {
-      logger.warn('Imagen 4 returned no image, trying gemini-2.5-flash-image');
-      try {
-        const flashResponse = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-image',
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          config: { responseModalities: ['TEXT', 'IMAGE'] as any } as any,
-        });
-        const flashParts = (flashResponse as any).candidates?.[0]?.content?.parts ?? [];
-        for (const part of flashParts) {
-          if (part.inlineData?.data) {
-            imageBase64 = part.inlineData.data;
-            engine = 'gemini-flash';
-            break;
-          }
-        }
-      } catch (flashErr) {
-        logger.warn('gemini-2.5-flash-image also failed', {
-          error: flashErr instanceof Error ? flashErr.message : String(flashErr),
         });
       }
     }
