@@ -21,7 +21,7 @@ export const dynamicParams = true;
 export async function generateStaticParams() {
   const slugs = await fetchAllSlugs();
   // Also include the demo slugs so they are always pre-built
-  const demoSlugs = ['la-casa-del-sabor', 'the-grill-house'];
+  const demoSlugs = ['la-casa-del-sabor', 'the-grill-house', 'adri'];
   const all = Array.from(new Set([...demoSlugs, ...slugs]));
   return all.map((slug) => ({ slug }));
 }
@@ -125,6 +125,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function SlugMenuPage({ params }: PageProps) {
   // Skip reserved paths — let Next.js handle them via their own routes
   if (RESERVED_PATHS.has(params.slug)) notFound();
+
+  // High-conversion demo slug — no DB required
+  if (params.slug === 'adri') {
+    const heroProduct = demoProducts.find(p => p.id === 'demo-p-burger')!;
+    const packs = demoProducts.filter(p => ['demo-p-pizza', 'demo-p-alitas', 'demo-p-churros'].includes(p.id));
+    return (
+      <HighConversionLayout
+        restaurant={{ ...demoRestaurant, name: 'Adri\'s Kitchen', slug: 'adri' }}
+        mainProduct={heroProduct}
+        packOptions={packs}
+      />
+    );
+  }
 
   // Demo slugs
   const demoConfig = DEMO_SLUGS[params.slug];
