@@ -1,10 +1,13 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { MenuShell } from '@/components/public/MenuShell';
+import { HighConversionLayout } from '@/components/public/high-conversion/HighConversionLayout'; // Nuevo import
 import { fetchMenuData, fetchRestaurantMeta, fetchAllSlugs } from './menu-data';
 import { demoRestaurant, demoCategories, demoProducts } from '@/lib/demo-data';
 import { grillHouseRestaurant, grillHouseCategories, grillHouseProducts } from '@/lib/demo-data-en';
 import { JsonLdScript } from '@/components/public/JsonLdScript';
+import { getStoreOverrides } from '@/lib/store-overrides'; // Nuevo import
+import { Product, Restaurant } from '@/types'; // Asumiendo estos tipos
 
 export const revalidate = 300;
 // Allow slugs not in generateStaticParams (new restaurants created after build) to work via ISR
@@ -144,6 +147,26 @@ export default async function SlugMenuPage({ params }: PageProps) {
 
   const data = await fetchMenuData(params.slug);
   if (!data) notFound();
+
+  const storeOverrides = getStoreOverrides(params.slug);
+
+  if (storeOverrides.layout_mode === 'high_conversion' && data.restaurant) {
+    const mainProduct = data.products.find(p => p.id === storeOverrides.heroProductId);
+    const packOptions = data.products.filter(p => storeOverrides.packProductIds?.includes(p.id));
+
+    if (mainProduct) {
+      return (
+        <>
+          <JsonLdScript restaurant={data.restaurant} slug={params.slug} categories={data.categories} products={data.products} reviewStats={data.reviewStats} />
+          <HighConversionLayout
+            restaurant={data.restaurant}
+            mainProduct={mainProduct}
+            packOptions={packOptions || []}
+          />
+        </>
+      );
+    }
+  }
 
   // Slim products: strip modifier payload before serialising into the RSC client bundle.
   // The has_modifiers flag preserves "Customize" vs "Add" button behaviour.

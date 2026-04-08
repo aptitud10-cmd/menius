@@ -62,7 +62,17 @@ export async function sendSMS({ to, text }: SmsMessage): Promise<{ success: bool
  * SMS (Twilio) is used as primary while WhatsApp Business API approval is pending.
  * Switch back to 'whatsapp' once Meta approves the number.
  */
-export function resolveChannel(_phone: string): 'whatsapp' | 'sms' {
+import { isWhatsAppConfigured } from './whatsapp';
+
+export function resolveChannel(phone: string): 'whatsapp' | 'sms' {
+  // Simple check for valid WhatsApp number (any 10+ digits, not starting with 0)
+  const digits = phone.replace(/[^0-9]/g, '');
+  const isValidWhatsAppFormat = digits.length >= 10 && !digits.startsWith('0');
+
+  if (isWhatsAppConfigured() && isValidWhatsAppFormat) {
+    // If WhatsApp is configured and phone format looks valid, prioritize WhatsApp
+    return 'whatsapp';
+  }
   return 'sms';
 }
 

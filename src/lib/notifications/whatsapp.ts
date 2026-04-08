@@ -1,3 +1,7 @@
+export function isWhatsAppConfigured(): boolean {
+  return !!process.env.WHATSAPP_TOKEN && !!process.env.WHATSAPP_PHONE_ID;
+}
+
 /**
  * Send WhatsApp messages via Meta WhatsApp Cloud API.
  * Required env vars:

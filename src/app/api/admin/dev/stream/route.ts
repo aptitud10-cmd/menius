@@ -5,673 +5,20 @@ import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { verifyAdmin } from '@/lib/auth/verify-admin';
 import { createAdminClient } from '@/lib/supabase/admin';
-import fs from 'fs';
-import path from 'path';
 import Stripe from 'stripe';
+import { Buffer } from 'buffer'; // Still needed for parseBase64Image
+
+import {
+  githubFetch, readFileGH, listFiles, getRelatedFiles,
+  searchCode, searchWebTavily, fetchUrl, rollbackVercel,
+  queryStripe, queryDB, writeDB, getSupabaseSchema,
+  getVercelEnvVars, getVercelFunctionLogs, getSentryErrors
+} from '@/lib/dev-tool/file-utils';
 
 const GITHUB_OWNER = 'aptitud10-cmd';
-const GITHUB_REPO  = 'menius';
+const GITHUB_REPO = 'menius';
 const GITHUB_BRANCH = 'main';
 const VOYAGE_API = 'https://api.voyageai.com/v1';
-
-// ─── Helpers (self-contained) ─────────────────────────────────────────────────
-async function githubFetch(apiPath: string, token: string) {
-  const res = await fetch(`https://api.github.com/${apiPath}`, {
-    headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' },
-  });
-  if (!res.ok) throw new Error(`GitHub ${apiPath}: ${res.status}`);
-  return res.json();
-}
-
-async function readFileGH(filePath: string, token: string): Promise<string> {
-  const data = await githubFetch(
-    `repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${filePath}?ref=${GITHUB_BRANCH}`, token
-  );
-  return data.encoding === 'base64' ? Buffer.from(data.content, 'base64').toString('utf-8') : (data.content ?? '');
-}
-
-async function searchCode(query: string, limit: number, voyageKey: string, db: ReturnType<typeof createAdminClient>): Promise<string> {
-  if (!voyageKey) return 'VOYAGE_API_KEY not configured. Index the codebase first.';
-  const embedRes = await fetch(`${VOYAGE_API}/embeddings`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${voyageKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'voyage-code-3', input: [query], input_type: 'query' }),
-  });
-  if (!embedRes.ok) throw new Error(`Voyage embed: ${embedRes.status}`);
-  const embedding = (await embedRes.json()).data[0].embedding;
-
-  const { data: rows, error } = await db.rpc('search_code_embeddings', {
-    query_embedding: JSON.stringify(embedding),
-    match_count: Math.min(limit * 2, 40),
-  });
-  if (error) throw new Error(`pgvector: ${error.message}`);
-  if (!rows?.length) return 'No results found. The codebase may not be indexed yet.';
-
-  const rerankRes = await fetch(`${VOYAGE_API}/rerank`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${voyageKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'rerank-2', query, documents: rows.map((r: { content: string }) => r.content), top_k: Math.min(limit, 10), return_documents: false }),
-  });
-  const topIndices: number[] = rerankRes.ok
-    ? (await rerankRes.json()).data.map((r: { index: number }) => r.index)
-    : rows.slice(0, limit).map((_: unknown, i: number) => i);
-
-  return topIndices.map(i => {
-    const r = rows[i] as { file_path: string; content: string };
-    return `### ${r.file_path}\n\`\`\`\n${r.content.slice(0, 3000)}\n\`\`\``;
-  }).join('\n\n');
-}
-
-async function searchWebTavily(query: string, tavilyKey: string): Promise<string> {
-  if (!tavilyKey) return 'TAVILY_API_KEY not configured.';
-  const res = await fetch('https://api.tavily.com/search', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ api_key: tavilyKey, query, search_depth: 'advanced', max_results: 6, include_answer: true }),
-  });
-  if (!res.ok) throw new Error(`Tavily: ${res.status}`);
-  const json = await res.json();
-  const parts: string[] = [];
-  if (json.answer) parts.push(`**Answer**: ${json.answer}`);
-  for (const r of (json.results ?? []).slice(0, 6)) {
-    parts.push(`**${r.title}** (${r.url})\n${r.content?.slice(0, 600) ?? ''}`);
-  }
-  return parts.join('\n\n') || 'No results.';
-}
-
-async function fetchUrl(url: string): Promise<string> {
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    return 'Error: URL must start with http:// or https://';
-  }
-  try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'MeniusDevBot/1.0 (compatible; +https://menius.app)' },
-      signal: AbortSignal.timeout(10_000),
-    });
-    const contentType = res.headers.get('content-type') ?? '';
-    if (!res.ok) return `HTTP ${res.status} ${res.statusText} from ${url}`;
-    if (contentType.includes('application/json')) {
-      const json = await res.json();
-      return `**${url}** (JSON)\n\`\`\`json\n${JSON.stringify(json, null, 2).slice(0, 8000)}\n\`\`\``;
-    }
-    const html = await res.text();
-    // Strip HTML tags, collapse whitespace, remove scripts/styles
-    const text = html
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/\s+/g, ' ')
-      .trim();
-    return `**Content from ${url}**\n\n${text.slice(0, 10000)}`;
-  } catch (err) {
-    return `Error fetching ${url}: ${err instanceof Error ? err.message : String(err)}`;
-  }
-}
-
-async function rollbackVercel(deploymentId: string, reason?: string): Promise<string> {
-  const token = process.env.VERCEL_TOKEN;
-  const projectId = process.env.VERCEL_PROJECT_ID;
-  if (!token || !projectId) return 'VERCEL_TOKEN or VERCEL_PROJECT_ID not configured.';
-
-  // If "previous", find the last READY deployment before current
-  let targetId = deploymentId;
-  if (deploymentId === 'previous') {
-    const listRes = await fetch(
-      `https://api.vercel.com/v6/deployments?projectId=${projectId}&limit=10&target=production`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (!listRes.ok) return `Failed to list deployments: ${listRes.status}`;
-    const list = await listRes.json();
-    const ready = (list.deployments ?? []).filter((d: {readyState:string;uid:string}) => d.readyState === 'READY');
-    if (ready.length < 2) return 'No previous successful deployment found to rollback to.';
-    targetId = ready[1].uid; // [0] is current, [1] is previous good one
-  }
-
-  // Promote deployment to production
-  const res = await fetch(
-    `https://api.vercel.com/v13/deployments/${targetId}/aliases`,
-    {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ alias: 'menius.app' }),
-    }
-  );
-  if (!res.ok) {
-    // Try alternative: create an instant rollback via /v9/projects/{id}/rollback
-    const rbRes = await fetch(
-      `https://api.vercel.com/v9/projects/${projectId}/rollback/${targetId}`,
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      }
-    );
-    if (!rbRes.ok) return `Rollback failed: ${res.status} — ${await res.text()}`;
-    return `✅ Rollback iniciado al deployment ${targetId}${reason ? ` — Razón: ${reason}` : ''}. Vercel está re-asignando el dominio.`;
-  }
-  return `✅ Rollback exitoso al deployment ${targetId}${reason ? ` — Razón: ${reason}` : ''}. menius.app ahora apunta a esa versión.`;
-}
-
-async function queryStripe(query: string): Promise<string> {
-  const stripeKey = process.env.STRIPE_SECRET_KEY;
-  if (!stripeKey) return 'STRIPE_SECRET_KEY not configured.';
-  const stripe = new Stripe(stripeKey, { apiVersion: '2026-01-28.clover' });
-  const q = query.toLowerCase();
-
-  try {
-    // Revenue / charges
-    if (q.includes('revenue') || q.includes('charge') || q.includes('payment') || q.includes('ingreso') || q.includes('pago')) {
-      const charges = await stripe.charges.list({ limit: 100 });
-      const total = charges.data.filter(c => c.paid && !c.refunded).reduce((s, c) => s + c.amount, 0);
-      const byMonth: Record<string, number> = {};
-      for (const c of charges.data) {
-        if (c.paid) {
-          const month = new Date(c.created * 1000).toISOString().slice(0, 7);
-          byMonth[month] = (byMonth[month] ?? 0) + c.amount;
-        }
-      }
-      return `**Stripe Revenue (last 100 charges)**\nTotal: $${(total / 100).toFixed(2)}\n\nBy month:\n${Object.entries(byMonth).sort().map(([m, v]) => `- ${m}: $${(v / 100).toFixed(2)}`).join('\n')}`;
-    }
-
-    // Subscriptions
-    if (q.includes('subscription') || q.includes('suscripcion') || q.includes('suscripción') || q.includes('plan')) {
-      const subs = await stripe.subscriptions.list({ limit: 100 });
-      const active = subs.data.filter(s => s.status === 'active').length;
-      const trialing = subs.data.filter(s => s.status === 'trialing').length;
-      const canceled = subs.data.filter(s => s.status === 'canceled').length;
-      const pastDue = subs.data.filter(s => s.status === 'past_due').length;
-      const mrr = subs.data
-        .filter(s => s.status === 'active' || s.status === 'past_due')
-        .reduce((sum, s) => sum + (s.items.data[0]?.price?.unit_amount ?? 0), 0);
-      return `**Stripe Subscriptions**\nActive: ${active} | Trialing: ${trialing} | Past Due: ${pastDue} | Canceled: ${canceled}\nEstimated MRR: $${(mrr / 100).toFixed(2)}/mo`;
-    }
-
-    // Customers
-    if (q.includes('customer') || q.includes('cliente')) {
-      const customers = await stripe.customers.list({ limit: 10 });
-      const rows = customers.data.map(c =>
-        `- ${c.email ?? 'no-email'} | ${c.name ?? ''} | Created: ${new Date(c.created * 1000).toLocaleDateString()}`
-      );
-      return `**Recent Stripe Customers (last 10)**\n${rows.join('\n')}`;
-    }
-
-    return `I can answer questions about: revenue/payments, subscriptions/plans, customers. Ask me one of those!`;
-  } catch (err) {
-    return `Stripe error: ${err instanceof Error ? err.message : String(err)}`;
-  }
-}
-
-async function listFiles(dirPath: string, token: string): Promise<string> {
-  try {
-    const data = await githubFetch(`repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${dirPath}?ref=${GITHUB_BRANCH}`, token);
-    if (!Array.isArray(data)) return JSON.stringify(data);
-    return data.map((f: { name: string; type: string; size?: number }) =>
-      `${f.type === 'dir' ? '📁' : '📄'} ${f.name}${f.size ? ` (${f.size}b)` : ''}`
-    ).join('\n');
-  } catch (err) { return `Error: ${err instanceof Error ? err.message : String(err)}`; }
-}
-
-async function queryDB(sql: string, db: ReturnType<typeof createAdminClient>): Promise<string> {
-  const trimmed = sql.trim().toUpperCase();
-  if (!trimmed.startsWith('SELECT') && !trimmed.startsWith('WITH')) return 'Only SELECT queries allowed.';
-  const dangerous = ['DROP','DELETE','INSERT','UPDATE','TRUNCATE','ALTER','CREATE','GRANT','REVOKE'];
-  if (dangerous.some(kw => trimmed.includes(kw))) return 'Query contains restricted keywords.';
-  try {
-    const { data, error } = await db.rpc('exec_readonly_sql', { sql_query: sql });
-    if (error) return `DB Error: ${error.message}`;
-    return JSON.stringify(data, null, 2).slice(0, 5000);
-  } catch (e) { return `Error: ${e instanceof Error ? e.message : String(e)}`; }
-}
-
-async function writeDB(
-  table: string, row: Record<string, unknown>, action: 'insert' | 'update' | 'delete',
-  matchColumn: string | undefined, db: ReturnType<typeof createAdminClient>
-): Promise<string> {
-  const ALLOWED_TABLES = ['restaurants', 'products', 'categories', 'restaurant_hours', 'dev_alerts'];
-  if (!ALLOWED_TABLES.includes(table)) return `Table "${table}" not allowed for writes. Allowed: ${ALLOWED_TABLES.join(', ')}`;
-  try {
-    if (action === 'insert') {
-      const { data, error } = await db.from(table).insert(row).select().single();
-      if (error) return `Insert error: ${error.message}`;
-      return `✅ Inserted into ${table}: ${JSON.stringify(data).slice(0, 500)}`;
-    } else if (action === 'update' && matchColumn && row[matchColumn]) {
-      const id = row[matchColumn];
-      const updateData = { ...row };
-      delete updateData[matchColumn];
-      const { data, error } = await db.from(table).update(updateData).eq(matchColumn, id as string).select().single();
-      if (error) return `Update error: ${error.message}`;
-      return `✅ Updated ${table} where ${matchColumn}=${id}: ${JSON.stringify(data).slice(0, 500)}`;
-    } else if (action === 'delete' && matchColumn && row[matchColumn]) {
-      const id = row[matchColumn];
-      const { error } = await db.from(table).delete().eq(matchColumn, id as string);
-      if (error) return `Delete error: ${error.message}`;
-      return `✅ Deleted from ${table} where ${matchColumn}=${id}`;
-    }
-    return 'Invalid action or missing match column/value.';
-  } catch (e) { return `Error: ${e instanceof Error ? e.message : String(e)}`; }
-}
-
-async function getSupabaseSchema(db: ReturnType<typeof createAdminClient>): Promise<string> {
-  try {
-    const { data, error } = await db.rpc('exec_readonly_sql', {
-      sql_query: `
-        SELECT table_name, column_name, data_type, is_nullable, column_default
-        FROM information_schema.columns
-        WHERE table_schema = 'public'
-        ORDER BY table_name, ordinal_position
-        LIMIT 200
-      `,
-    });
-    if (error) return `Schema error: ${error.message}`;
-    const tables: Record<string, string[]> = {};
-    for (const row of (data ?? []) as Array<{ table_name: string; column_name: string; data_type: string; is_nullable: string }>) {
-      if (!tables[row.table_name]) tables[row.table_name] = [];
-      tables[row.table_name].push(`  ${row.column_name}: ${row.data_type}${row.is_nullable === 'NO' ? ' NOT NULL' : ''}`);
-    }
-    return Object.entries(tables)
-      .map(([t, cols]) => `**${t}**\n${cols.join('\n')}`)
-      .join('\n\n')
-      .slice(0, 6000);
-  } catch (e) { return `Error: ${e instanceof Error ? e.message : String(e)}`; }
-}
-
-async function getVercelEnvVars(): Promise<string> {
-  const token = process.env.VERCEL_TOKEN;
-  const projectId = process.env.VERCEL_PROJECT_ID;
-  if (!token || !projectId) return 'VERCEL_TOKEN or VERCEL_PROJECT_ID not configured.';
-  try {
-    const res = await fetch(`https://api.vercel.com/v9/projects/${projectId}/env?limit=50`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) return `Vercel API error: ${res.status}`;
-    const json = await res.json() as { envs?: Array<{ key: string; target: string[]; type: string }> };
-    const envs = json.envs ?? [];
-    return envs.map(e =>
-      `${e.key} [${e.target.join(',')}] type=${e.type}`
-    ).join('\n') || 'No env vars found.';
-  } catch (e) { return `Error: ${e instanceof Error ? e.message : String(e)}`; }
-}
-
-async function getVercelFunctionLogs(functionPath?: string): Promise<string> {
-  const token = process.env.VERCEL_TOKEN;
-  const projectId = process.env.VERCEL_PROJECT_ID;
-  if (!token || !projectId) return 'VERCEL_TOKEN or VERCEL_PROJECT_ID not configured.';
-  try {
-    // Get latest deployment
-    const depRes = await fetch(
-      `https://api.vercel.com/v6/deployments?projectId=${projectId}&limit=1&target=production`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (!depRes.ok) return `Vercel deployments error: ${depRes.status}`;
-    const depJson = await depRes.json() as { deployments?: Array<{ uid: string }> };
-    const depId = depJson.deployments?.[0]?.uid;
-    if (!depId) return 'No production deployment found.';
-
-    // Get build logs
-    const logsRes = await fetch(
-      `https://api.vercel.com/v2/deployments/${depId}/events?limit=50${functionPath ? `&path=${encodeURIComponent(functionPath)}` : ''}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (!logsRes.ok) return `Vercel logs error: ${logsRes.status}`;
-    const logs = await logsRes.json() as Array<{ text?: string; type?: string; date?: number }>;
-    if (!Array.isArray(logs) || logs.length === 0) return 'No logs available for this deployment.';
-    return logs
-      .filter(l => l.text)
-      .slice(-30)
-      .map(l => `[${l.type ?? 'log'}] ${l.text}`)
-      .join('\n')
-      .slice(0, 5000);
-  } catch (e) { return `Error: ${e instanceof Error ? e.message : String(e)}`; }
-}
-
-async function getSentryErrors(limit: number): Promise<string> {
-  const token = process.env.SENTRY_AUTH_TOKEN;
-  const org = process.env.SENTRY_ORG ?? 'menius';
-  const project = process.env.SENTRY_PROJECT ?? 'menius-saas';
-  if (!token) return 'SENTRY_AUTH_TOKEN not configured.';
-  try {
-    const res = await fetch(
-      `https://sentry.io/api/0/projects/${org}/${project}/issues/?limit=${limit}&query=is:unresolved`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (!res.ok) return `Sentry error: ${res.status}`;
-    const issues = await res.json() as Array<{ title: string; culprit: string; count: string; lastSeen: string; level: string }>;
-    if (!Array.isArray(issues)) return 'No issues found.';
-    return issues
-      .slice(0, limit)
-      .map((i, n) => `${n + 1}. [${i.level.toUpperCase()}] ${i.title}\n   at ${i.culprit}\n   ${i.count} events · last seen ${i.lastSeen}`)
-      .join('\n\n') || 'No unresolved issues.';
-  } catch (e) { return `Error: ${e instanceof Error ? e.message : String(e)}`; }
-}
-
-// ─── System prompt ────────────────────────────────────────────────────────────
-function buildSystemPrompt(recentConvSummaries: string[] = []): string {
-  let claudeMd = '';
-  try {
-    const p = path.join(process.cwd(), 'CLAUDE.md');
-    if (fs.existsSync(p)) claudeMd = fs.readFileSync(p, 'utf-8');
-  } catch { /* ignore */ }
-
-  const memorySection = recentConvSummaries.length > 0
-    ? `\n\n## Contexto de conversaciones recientes (memoria)\n${recentConvSummaries.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n`
-    : '';
-
-  return `You are an elite software engineer and technical co-founder of Menius — a Next.js 14 SaaS platform for restaurants in Latin America. You have deep, expert-level knowledge of the entire codebase, architecture, and business logic.${memorySection}
-
-${claudeMd ? claudeMd : ''}
-
----
-
-## SELECCIÓN DE HERRAMIENTA — REGLA DE ORO
-
-**Antes de cualquier acción, determina el tipo de pregunta y usa la herramienta correcta INMEDIATAMENTE:**
-
-### TIPO: Datos en producción → USA query_database PRIMERO (NO search_code)
-Ejemplos de trigger:
-- "qué tiendas se registraron esta semana / mes"
-- "cuántos pedidos hay hoy / pendientes / completados"
-- "qué restaurantes tienen suscripción activa"
-- "cuántos usuarios hay / quién se registró"
-- "cuál es el total de órdenes de [tienda]"
-- "hay algún error en las órdenes"
-- Cualquier pregunta con datos, números, fechas o estado de producción
-
-SQL de referencia:
-SELECT name, slug, created_at FROM restaurants WHERE created_at >= NOW() - INTERVAL '7 days' ORDER BY created_at DESC;
-SELECT count(*), status FROM orders WHERE created_at::date = CURRENT_DATE GROUP BY status;
-SELECT r.name, r.slug FROM restaurants r WHERE r.stripe_subscription_status = 'active';
-
-### TIPO: Métricas de negocio / revenue → USA query_stripe PRIMERO
-- "cuánto revenue este mes", "MRR", "clientes de pago", "cancelaciones"
-
-### TIPO: Preguntas sobre el código fuente → USA search_code PRIMERO
-- "cómo funciona X", "dónde está Y implementado", "qué hace este componente"
-- Solo para código, NO para datos de producción
-
-### TIPO: Investigación / tendencias / docs externas → USA search_web PRIMERO
-- market research, competidores, tecnologías, best practices, documentación de librerías
-
-### TIPO: Bug en screenshot → Analiza imagen + search_code para el componente
-- Identifica el componente visual, búscalo en el código, propón el fix quirúrgico
-
----
-
-## Reglas para cambios de código
-
-- Cambios QUIRÚRGICOS — mínimos y precisos. No tocar lo que no es necesario.
-- TypeScript strict — NO any, tipos explícitos
-- Sin comentarios que explican lo obvio
-- Imports siempre al tope del archivo
-- Respetar los patrones existentes del archivo
-- SIEMPRE usar createAdminClient() en route handlers que requieren bypass de RLS
-- export const dynamic = 'force-dynamic' en todos los POST handlers
-- Leer el archivo COMPLETO antes de editarlo (nunca editar a ciegas)
-
-## Comunicación
-
-- Respondo en español (el idioma del equipo)
-- Explico el razonamiento antes de los cambios
-- Enumero riesgos o efectos secundarios
-- Si algo es ambiguo, pregunto antes de asumir
-- NO doy vueltas: si la pregunta es de datos, ejecuto el query de inmediato`;
-}
-
-// ─── Tool schemas ─────────────────────────────────────────────────────────────
-const TOOLS: Anthropic.Tool[] = [
-  {
-    name: 'search_code',
-    description: 'Semantic search through the Menius SOURCE CODE. Use ONLY for questions about how the code works, which file implements something, or before editing a file. DO NOT use for questions about production data (orders, users, stores, revenue) — use query_database or query_stripe instead.',
-    input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to search for in the codebase' }, limit: { type: 'number', description: 'Max results (default 5)' } }, required: ['query'] },
-  },
-  {
-    name: 'read_file',
-    description: 'Read a source file from the GitHub repo. Always read the full file before editing it.',
-    input_schema: { type: 'object' as const, properties: { path: { type: 'string', description: 'e.g. src/app/api/orders/route.ts' } }, required: ['path'] },
-  },
-  {
-    name: 'list_files',
-    description: 'List files in a directory of the repo. Use to explore the code structure, not for production data.',
-    input_schema: { type: 'object' as const, properties: { path: { type: 'string', description: 'e.g. src/app/api/' } }, required: ['path'] },
-  },
-  {
-    name: 'search_web',
-    description: 'Search the internet for docs, trends, solutions, market research, competitor analysis.',
-    input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] },
-  },
-  {
-    name: 'fetch_url',
-    description: 'Fetch and read the content of any URL. Use for reading npm docs, API references, competitor sites, or any webpage.',
-    input_schema: { type: 'object' as const, properties: { url: { type: 'string', description: 'Full URL to fetch, e.g. https://menius.app/buccaneer' } }, required: ['url'] },
-  },
-  {
-    name: 'write_file',
-    description: 'Propose a file change. Provide COMPLETE file content. The user will review and apply.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        path: { type: 'string', description: 'File path relative to repo root' },
-        content: { type: 'string', description: 'COMPLETE new file content' },
-        action: { type: 'string', enum: ['create', 'update', 'delete'] },
-        explanation: { type: 'string', description: 'What changed and why' },
-      },
-      required: ['path', 'content', 'action'],
-    },
-  },
-  {
-    name: 'query_database',
-    description: 'Run a read-only SELECT on the Supabase PRODUCTION database. Use this FIRST for any question about real data: registered stores/restaurants, orders, users, subscriptions, products, categories. Tables: restaurants, orders, order_items, profiles, products, categories, restaurant_subscriptions. Example: SELECT name, slug, created_at FROM restaurants WHERE created_at >= NOW() - INTERVAL \'7 days\' ORDER BY created_at DESC',
-    input_schema: { type: 'object' as const, properties: { sql: { type: 'string', description: 'SELECT query (read-only). Always use LIMIT to avoid large payloads.' } }, required: ['sql'] },
-  },
-  {
-    name: 'rollback_vercel',
-    description: 'Rollback Vercel production to a previous successful deployment. Use when deploy fails or user asks to rollback. Provide the deployment ID to rollback to (from the deploy list).',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        deploymentId: { type: 'string', description: 'Vercel deployment UID to promote to production (e.g. dpl_xxx). If unsure, use "previous" to auto-find the last good deploy.' },
-        reason: { type: 'string', description: 'Why are we rolling back?' },
-      },
-      required: ['deploymentId'],
-    },
-  },
-  {
-    name: 'query_stripe',
-    description: 'Query Stripe for BUSINESS METRICS: revenue, MRR, subscriptions, customers, payment failures. Use for financial and billing questions.',
-    input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to query: e.g. "revenue this month", "active subscriptions", "recent customers"' } }, required: ['query'] },
-  },
-  {
-    name: 'write_database',
-    description: 'Write (insert/update/delete) a row in the Supabase database. Allowed tables: restaurants, products, categories, restaurant_hours, dev_alerts. Use for fixing data issues, updating store settings, or managing content. Always confirm with user before deleting.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        table: { type: 'string', description: 'Table name' },
-        action: { type: 'string', enum: ['insert', 'update', 'delete'] },
-        row: { type: 'object', description: 'Row data as key-value pairs' },
-        matchColumn: { type: 'string', description: 'Column to match for update/delete (e.g. "id", "slug")' },
-      },
-      required: ['table', 'action', 'row'],
-    },
-  },
-  {
-    name: 'get_schema',
-    description: 'Get the full Supabase database schema: all tables and their columns with types. Use when you need to understand the DB structure before writing queries or code.',
-    input_schema: { type: 'object' as const, properties: {}, required: [] },
-  },
-  {
-    name: 'get_vercel_env',
-    description: 'List all environment variables configured in Vercel for this project. Use when debugging missing env vars or checking configuration.',
-    input_schema: { type: 'object' as const, properties: {}, required: [] },
-  },
-  {
-    name: 'get_vercel_logs',
-    description: 'Get function logs from the latest Vercel production deployment. Use when debugging runtime errors, slow functions, or checking what happened during a recent deploy.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        functionPath: { type: 'string', description: 'Optional: specific API route path to filter logs, e.g. /api/orders' },
-      },
-      required: [],
-    },
-  },
-  {
-    name: 'get_sentry_errors',
-    description: 'Get unresolved errors from Sentry production monitoring. Use when investigating production bugs, crashes, or when the user mentions errors they are seeing.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        limit: { type: 'number', description: 'Number of issues to retrieve (default 10, max 25)' },
-      },
-      required: [],
-    },
-  },
-];
-
-const OPENAI_TOOLS = TOOLS.map(t => ({
-  type: 'function',
-  function: {
-    name: t.name,
-    description: t.description,
-    parameters: t.input_schema,
-  },
-}));
-
-const OPENROUTER_MODEL_IDS = new Set([
-  'openai/o3', 'openai/o3-mini', 'openai/o4-mini', 'openai/gpt-4.5',
-  'openai/gpt-4o', 'openai/gpt-4o-mini',
-  'meta-llama/llama-4-maverick', 'meta-llama/llama-4-scout',
-  'google/gemini-2.5-pro', 'mistralai/mistral-large',
-]);
-
-function isOpenRouterModel(modelId: string): boolean {
-  return modelId.includes('/') || OPENROUTER_MODEL_IDS.has(modelId);
-}
-
-// ─── Image helpers ────────────────────────────────────────────────────────────
-function parseBase64Image(dataUrl: string): { mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'; data: string } | null {
-  const match = dataUrl.match(/^data:(image\/(?:jpeg|jpg|png|gif|webp));base64,(.+)$/);
-  if (!match) return null;
-  const raw = match[1].replace('image/jpg', 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
-  return { mediaType: raw, data: match[2] };
-}
-
-function buildAnthropicMessages(
-  messages: Array<{ role: string; content: string }>,
-  lastUserImages: string[],
-): Anthropic.MessageParam[] {
-  if (lastUserImages.length === 0) {
-    return messages as Anthropic.MessageParam[];
-  }
-
-  const result: Anthropic.MessageParam[] = [];
-  for (let i = 0; i < messages.length; i++) {
-    const m = messages[i];
-    if (m.role === 'user' && i === messages.length - 1 && lastUserImages.length > 0) {
-      const imageBlocks: Anthropic.ImageBlockParam[] = lastUserImages
-        .map(parseBase64Image)
-        .filter((img): img is NonNullable<typeof img> => img !== null)
-        .map(img => ({
-          type: 'image' as const,
-          source: { type: 'base64' as const, media_type: img.mediaType, data: img.data },
-        }));
-      result.push({
-        role: 'user',
-        content: [
-          ...imageBlocks,
-          { type: 'text', text: m.content || 'Analiza esta imagen.' },
-        ],
-      });
-    } else {
-      result.push(m as Anthropic.MessageParam);
-    }
-  }
-  return result;
-}
-
-function buildOpenRouterMessages(
-  messages: Array<{ role: string; content: string }>,
-  lastUserImages: string[],
-): Array<Record<string, unknown>> {
-  if (lastUserImages.length === 0) {
-    return messages.map(m => ({ role: m.role, content: m.content }));
-  }
-
-  return messages.map((m, i) => {
-    if (m.role === 'user' && i === messages.length - 1) {
-      const imageParts = lastUserImages
-        .filter(d => d.startsWith('data:image/'))
-        .map(d => ({ type: 'image_url', image_url: { url: d } }));
-      return {
-        role: 'user',
-        content: [
-          ...imageParts,
-          { type: 'text', text: m.content || 'Analiza esta imagen.' },
-        ],
-      };
-    }
-    return { role: m.role, content: m.content };
-  });
-}
-
-// ─── Tool executor ────────────────────────────────────────────────────────────
-type PendingChange = { path: string; content: string; action: string; explanation?: string };
-
-async function executeTool(
-  name: string,
-  inp: Record<string, unknown>,
-  { githubToken, voyageKey, tavilyKey, db, send }: {
-    githubToken: string;
-    voyageKey: string;
-    tavilyKey: string;
-    db: ReturnType<typeof createAdminClient>;
-    send: (type: string, data: object) => void;
-  }
-): Promise<{ result: string; pendingChange?: PendingChange }> {
-  switch (name) {
-    case 'search_code':
-      return { result: await searchCode(inp.query as string, Math.min((inp.limit as number) ?? 5, 10), voyageKey, db) };
-    case 'read_file':
-      return { result: `\`\`\`\n${(await readFileGH(inp.path as string, githubToken)).slice(0, 8000)}\n\`\`\`` };
-    case 'list_files':
-      return { result: await listFiles(inp.path as string, githubToken) };
-    case 'search_web':
-      return { result: await searchWebTavily(inp.query as string, tavilyKey) };
-    case 'fetch_url':
-      return { result: await fetchUrl(inp.url as string) };
-    case 'write_file': {
-      const pendingChange: PendingChange = {
-        path: inp.path as string,
-        content: inp.content as string,
-        action: (inp.action as string) ?? 'update',
-        explanation: inp.explanation as string | undefined,
-      };
-      send('pending_change', pendingChange);
-      return { result: `File change prepared: ${pendingChange.action} ${pendingChange.path}`, pendingChange };
-    }
-    case 'query_database':
-      return { result: await queryDB(inp.sql as string, db) };
-    case 'write_database':
-      return { result: await writeDB(inp.table as string, inp.row as Record<string, unknown>, inp.action as 'insert' | 'update' | 'delete', inp.matchColumn as string | undefined, db) };
-    case 'get_schema':
-      return { result: await getSupabaseSchema(db) };
-    case 'rollback_vercel':
-      return { result: await rollbackVercel(inp.deploymentId as string, inp.reason as string | undefined) };
-    case 'get_vercel_env':
-      return { result: await getVercelEnvVars() };
-    case 'get_vercel_logs':
-      return { result: await getVercelFunctionLogs(inp.functionPath as string | undefined) };
-    case 'query_stripe':
-      return { result: await queryStripe(inp.query as string) };
-    case 'get_sentry_errors':
-      return { result: await getSentryErrors(Math.min((inp.limit as number) ?? 10, 25)) };
-    default:
-      return { result: `Unknown tool: ${name}` };
-  }
-}
 
 // ─── OpenRouter stream loop ───────────────────────────────────────────────────
 async function runOpenRouterStream(
@@ -790,6 +137,298 @@ async function runOpenRouterStream(
   }
 }
 
+// ─── System prompt ────────────────────────────────────────────────────────────
+function buildSystemPrompt(recentConvSummaries: string[] = []): string {
+  // fs and path are not needed here since CLAUDE.md is bundled and read at build time
+  const claudeMd = process.env.CLAUDE_MD_CONTENT || '';
+
+  const memorySection = recentConvSummaries.length > 0
+    ? `\n\n## Contexto de conversaciones recientes (memoria)\n${recentConvSummaries.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n`
+    : '';
+
+  return `You are an elite software engineer and technical co-founder of Menius — a Next.js 14 SaaS platform for restaurants in Latin America. You have deep, expert-level knowledge of the entire codebase, architecture, and business logic.${memorySection}\n\n${claudeMd ? claudeMd : ''}\n\n---\n\n## SELECCIÓN DE HERRAMIENTA — REGLA DE ORO\n\n**Antes de cualquier acción, determina el tipo de pregunta y usa la herramienta correcta INMEDIATAMENTE:**\n\n### TIPO: Datos en producción → USA query_database PRIMERO (NO search_code)\nEjemplos de trigger:\n- "qué tiendas se registraron esta semana / mes"
+- "cuántos pedidos hay hoy / pendientes / completados"
+- "qué restaurantes tienen suscripción activa"
+- "cuántos usuarios hay / quién se registró"
+- "cuál es el total de órdenes de [tienda]"
+- "hay algún error en las órdenes"
+- Cualquier pregunta con datos, números, fechas o estado de producción\n\nSQL de referencia:\nSELECT name, slug, created_at FROM restaurants WHERE created_at >= NOW() - INTERVAL '7 days' ORDER BY created_at DESC;\nSELECT count(*), status FROM orders WHERE created_at::date = CURRENT_DATE GROUP BY status;\nSELECT r.name, r.slug FROM restaurants r WHERE r.stripe_subscription_status = 'active';\n\n### TIPO: Métricas de negocio / revenue → USA query_stripe PRIMERO\n- "cuánto revenue este mes", "MRR", "clientes de pago", "cancelaciones"\n\n### TIPO: Preguntas sobre el código fuente → USA search_code PRIMERO\n- "cómo funciona X", "dónde está Y implementado", "qué hace este componente"
+- Solo para código, NO para datos de producción\n\n### TIPO: Investigación / tendencias / docs externas → USA search_web PRIMERO\n- market research, competidores, tecnologías, best practices, documentación de librerías\n\n### TIPO: Bug en screenshot → Analiza imagen + search_code para el componente\n- Identifica el componente visual, búscalo en el código, propón el fix quirúrgico\n\n---\n\n## Reglas para cambios de código\n\n- Cambios QUIRÚRGICOS — mínimos y precisos. No tocar lo que no es necesario.\n- TypeScript strict — NO any, tipos explícitos\n- Sin comentarios que explican lo obvio\n- Imports siempre al tope del archivo\n- Respetar los patrones existentes del archivo\n- SIEMPRE usar createAdminClient() en route handlers que requieren bypass de RLS\n- export const dynamic = 'force-dynamic' en todos los POST handlers\n- Leer el archivo COMPLETO antes de editarlo (nunca editar a ciegas)\n\n## Comunicación\n\n- Respondo en español (el idioma del equipo)\n- Explico el razonamiento antes de los cambios\n- Enumero riesgos o efectos secundarios\n- Si algo es ambiguo, pregunto antes de asumir\n- NO doy vueltas: si la pregunta es de datos, ejecuto el query de inmediato`;
+}
+
+// ─── Tool schemas ─────────────────────────────────────────────────────────────
+const TOOLS: Anthropic.Tool[] = [
+  {
+    name: 'search_code',
+    description: 'Semantic search through the Menius SOURCE CODE. Use ONLY for questions about how the code works, which file implements something, or before editing a file. DO NOT use for questions about production data (orders, users, stores, revenue) — use query_database or query_stripe instead.',
+    input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to search for in the codebase' }, limit: { type: 'number', description: 'Max results (default 5)' } }, required: ['query'] },
+  },
+  {
+    name: 'read_file',
+    description: 'Read a source file from the GitHub repo. Always read the full file before editing it.',
+    input_schema: { type: 'object' as const, properties: { path: { type: 'string', description: 'e.g. src/app/api/orders/route.ts' } }, required: ['path'] },
+  },
+  {
+    name: 'list_files',
+    description: 'List files in a directory of the repo. Use to explore the code structure, not for production data.',
+    input_schema: { type: 'object' as const, properties: { path: { type: 'string', description: 'e.g. src/app/api/' } }, required: ['path'] },
+  },
+  {
+    name: 'search_web',
+    description: 'Search the internet for docs, trends, solutions, market research, competitor analysis.',
+    input_schema: { type: 'object' as const, properties: { query: { type: 'string' } }, required: ['query'] },
+  },
+  {
+    name: 'fetch_url',
+    description: 'Fetch and read the content of any URL. Use for reading npm docs, API references, competitor sites, or any webpage.',
+    input_schema: { type: 'object' as const, properties: { url: { type: 'string', description: 'Full URL to fetch, e.g. https://menius.app/buccaneer' } }, required: ['url'] },
+  },
+  {
+    name: 're_run_vercel_build',
+    description: 'Triggers a new Vercel deployment for the project. Use to re-run a build for the project.',
+    input_schema: { type: 'object' as const, properties: {}, required: [] },
+  },
+  {
+    name: 'write_file',
+    description: 'Propose a file change. Provide COMPLETE file content. The user will review and apply.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        path: { type: 'string', description: 'File path relative to repo root' },
+        content: { type: 'string', description: 'COMPLETE new file content' },
+        action: { type: 'string', enum: ['create', 'update', 'delete'] },
+        explanation: { type: 'string', description: 'What changed and why' },
+      },
+      required: ['path', 'content', 'action'],
+    },
+  },
+  {
+    name: 'query_database',
+    description: 'Run a read-only SELECT on the Supabase PRODUCTION database. Use this FIRST for any question about real data: registered stores/restaurants, orders, users, subscriptions, products, categories. Tables: restaurants, orders, order_items, profiles, products, categories, restaurant_subscriptions. Example: SELECT name, slug, created_at FROM restaurants WHERE created_at >= NOW() - INTERVAL \'7 days\' ORDER BY created_at DESC',
+    input_schema: { type: 'object' as const, properties: { sql: { type: 'string', description: 'SELECT query (read-only). Always use LIMIT to avoid large payloads.' } }, required: ['sql'] },
+  },
+  {
+    name: 'write_database',
+    description: 'Write (insert/update/delete) a row in the Supabase database. Allowed tables: restaurants, products, categories, restaurant_hours, dev_alerts. Use for fixing data issues, updating store settings, or managing content. Always confirm with user before deleting.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        table: { type: 'string', description: 'Table name' },
+        action: { type: 'string', enum: ['insert', 'update', 'delete'] },
+        row: { type: 'object', description: 'Row data as key-value pairs' },
+        matchColumn: { type: 'string', description: 'Column to match for update/delete (e.g. "id", "slug")' },
+      },
+      required: ['table', 'action', 'row'],
+    },
+  },
+  {
+    name: 'get_schema',
+    description: 'Get the full Supabase database schema: all tables and their columns with types. Use when you need to understand the DB structure before writing queries or code.',
+    input_schema: { type: 'object' as const, properties: {}, required: [] },
+  },
+  {
+    name: 'rollback_vercel',
+    description: 'Rollback Vercel production to a previous successful deployment. Use when deploy fails or user asks to rollback. Provide the deployment ID to rollback to (from the deploy list).',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        deploymentId: { type: 'string', description: 'Vercel deployment UID to promote to production (e.g. dpl_xxx). If unsure, use "previous" to auto-find the last good deploy.' },
+        reason: { type: 'string', description: 'Why are we rolling back?' },
+      },
+      required: ['deploymentId'],
+    },
+  },
+  {
+    name: 'get_vercel_env',
+    description: 'List all environment variables configured in Vercel for this project. Use when debugging missing env vars or checking configuration.',
+    input_schema: { type: 'object' as const, properties: {}, required: [] },
+  },
+  {
+    name: 'get_vercel_logs',
+    description: 'Get function logs from the latest Vercel production deployment. Use when debugging runtime errors, slow functions, or checking what happened during a recent deploy.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        functionPath: { type: 'string', description: 'Optional: specific API route path to filter logs, e.g. /api/orders' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'query_stripe',
+    description: 'Query Stripe for BUSINESS METRICS: revenue, MRR, subscriptions, customers, payment failures. Use for financial and billing questions.',
+    input_schema: { type: 'object' as const, properties: { query: { type: 'string', description: 'What to query: e.g. "revenue this month", "active subscriptions", "recent customers"' } }, required: ['query'] },
+  },
+  {
+    name: 'get_sentry_errors',
+    description: 'Get unresolved errors from Sentry production monitoring. Use when investigating production bugs, crashes, or when the user mentions errors they are seeing.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        limit: { type: 'number', description: 'Number of issues to retrieve (default 10, max 25)' },
+      },
+      required: [],
+    },
+  },
+];
+
+const OPENAI_TOOLS = TOOLS.map(t => ({
+  type: 'function',
+  function: {
+    name: t.name,
+    description: t.description,
+    parameters: t.input_schema,
+  },
+}));
+
+const OPENROUTER_MODEL_IDS = new Set([
+  'openai/o3', 'openai/o3-mini', 'openai/o4-mini',
+  'openai/gpt-4.5',
+  'openai/gpt-4o', 'openai/gpt-4o-mini',
+  'meta-llama/llama-4-maverick', 'meta-llama/llama-4-scout',
+  'openrouter/google/gemini-2.5-pro', 'mistralai/mistral-large',
+]);
+
+function isOpenRouterModel(modelId: string): boolean {
+  return modelId.includes('/') || OPENROUTER_MODEL_IDS.has(modelId);
+}
+
+// ─── Image helpers ────────────────────────────────────────────────────────────
+function parseBase64Image(dataUrl: string): { mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'; data: string } | null {
+  const match = dataUrl.match(/^data:(image\/(?:jpeg|jpg|png|gif|webp));base64,(.+)$/);
+  if (!match) return null;
+  const raw = match[1].replace('image/jpg', 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp';
+  return { mediaType: raw, data: match[2] };
+}
+
+function buildAnthropicMessages(
+  messages: Array<{ role: string; content: string }>,
+  lastUserImages: string[],
+): Anthropic.MessageParam[] {
+  if (lastUserImages.length === 0) {
+    return messages as Anthropic.MessageParam[];
+  }
+
+  const result: Anthropic.MessageParam[] = [];
+  for (let i = 0; i < messages.length; i++) {
+    const m = messages[i];
+    if (m.role === 'user' && i === messages.length - 1 && lastUserImages.length > 0) {
+      const imageBlocks: Anthropic.ImageBlockParam[] = lastUserImages
+        .map(parseBase64Image)
+        .filter((img): img is NonNullable<typeof img> => img !== null)
+        .map(img => ({
+          type: 'image' as const,
+          source: { type: 'base64' as const, media_type: img.mediaType, data: img.data },
+        }));
+      result.push({
+        role: 'user',
+        content: [
+          ...imageBlocks,
+          { type: 'text', text: m.content || 'Analiza esta imagen.' },
+        ],
+      });
+    } else {
+      result.push(m as Anthropic.MessageParam);
+    }
+  }
+  return result;
+}
+
+function buildOpenRouterMessages(
+  messages: Array<{ role: string; content: string }>,
+  lastUserImages: string[],
+): Array<Record<string, unknown>> {
+  if (lastUserImages.length === 0) {
+    return messages.map(m => ({ role: m.role, content: m.content }));
+  }
+
+  return messages.map((m, i) => {
+    if (m.role === 'user' && i === messages.length - 1) {
+      const imageParts = lastUserImages
+        .filter(d => d.startsWith('data:image/'))
+        .map(d => ({ type: 'image_url', image_url: { url: d } }));
+      return {
+        role: 'user',
+        content: [
+          ...imageParts,
+          { type: 'text', text: m.content || 'Analiza esta imagen.' },
+        ],
+      };
+    }
+    return { role: m.role, content: m.content };
+  });
+}
+
+// ─── Tool executor ────────────────────────────────────────────────────────────
+type PendingChange = { path: string; content: string; action: string; explanation?: string };
+
+async function executeTool(
+  name: string,
+  inp: Record<string, unknown>,
+  { githubToken, voyageKey, tavilyKey, db, send }: {
+    githubToken: string;
+    voyageKey: string;
+    tavilyKey: string;
+    db: ReturnType<typeof createAdminClient>;
+    send: (type: string, data: object) => void;
+  }
+): Promise<{ result: string; pendingChange?: PendingChange }> {
+  switch (name) {
+    case 'search_code':
+      return { result: await searchCode(inp.query as string, Math.min((inp.limit as number) ?? 5, 10), voyageKey, db) };
+    case 'read_file':
+      return { result: `\`\`\`\n${(await readFileGH(inp.path as string, githubToken)).slice(0, 8000)}\n\`\`\`` };
+    case 'list_files':
+      return { result: await listFiles(inp.path as string, githubToken) };
+    case 'search_web':
+      return { result: await searchWebTavily(inp.query as string, tavilyKey) };
+    case 'fetch_url':
+      return { result: await fetchUrl(inp.url as string) };
+    case 'write_file': {
+      const pendingChange: PendingChange = {
+        path: inp.path as string,
+        content: inp.content as string,
+        action: (inp.action as string) ?? 'update',
+        explanation: inp.explanation as string | undefined,
+      };
+      send('pending_change', pendingChange);
+      return { result: `File change prepared: ${pendingChange.action} ${pendingChange.path}`, pendingChange };
+    }
+    case 'query_database':
+      return { result: await queryDB(inp.sql as string, db) };
+    case 'write_database':
+      return { result: await writeDB(inp.table as string, inp.row as Record<string, unknown>, inp.action as 'insert' | 'update' | 'delete', inp.matchColumn as string | undefined, db) };
+    case 'get_schema':
+      return { result: await getSupabaseSchema(db) };
+    case 'rollback_vercel':
+      return { result: await rollbackVercel(inp.deploymentId as string, inp.reason as string | undefined) };
+
+    case 're_run_vercel_build':
+      send('tool_code', { code: 'A new Vercel deployment has been triggered.' }); // Frontend notification
+      const reRunResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/dev/re-run-deploy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!reRunResponse.ok) {
+        const errorJson = await reRunResponse.json();
+        return { result: `Error re-triggering deployment: ${errorJson.error}` };
+      }
+      return { result: 'Vercel deployment re-triggered successfully.' };
+
+    case 'get_vercel_env':
+      return { result: await getVercelEnvVars() };
+    case 'get_vercel_logs':
+      return { result: await getVercelFunctionLogs(inp.functionPath as string | undefined) };
+    case 'query_stripe':
+      return { result: await queryStripe(inp.query as string) };
+    case 'get_sentry_errors':
+      return { result: await getSentryErrors(Math.min((inp.limit as number) ?? 10, 25)) };
+    default:
+      return { result: `Unknown tool: ${name}` };
+  }
+}
+
 // ─── SSE encoder ──────────────────────────────────────────────────────────────
 function sseEvent(type: string, data: object): string {
   return `data: ${JSON.stringify({ type, ...data })}\n\n`;
@@ -819,12 +458,14 @@ export async function POST(request: NextRequest) {
     images: lastUserImages = [],
     thinking: thinkingMode = false,
     recentConvSummaries = [],
+    activeFile, // New: active file from frontend
   } = body as {
     messages: Array<{ role: string; content: string }>;
     model?: string;
     images?: string[];
     thinking?: boolean;
     recentConvSummaries?: string[];
+    activeFile?: { path: string; content: string };
   };
 
   const resolvedModel = (() => {
@@ -845,6 +486,26 @@ export async function POST(request: NextRequest) {
         controller.enqueue(encoder.encode(sseEvent(type, data)));
       };
 
+      // --- Pre-context Deep Linking (AI auto-reads related files) ---
+      const initialMessages = [...messages];
+      if (activeFile && activeFile.path && initialMessages.length > 0) {
+        // Find the last user message to prepend context to
+        const lastUserMsgIndex = initialMessages.findLastIndex(m => m.role === 'user');
+        if (lastUserMsgIndex !== -1) {
+          const relatedFiles = await getRelatedFiles(activeFile.path, activeFile.content, githubToken);
+          if (relatedFiles.length > 0) {
+            const contextString = relatedFiles.map(f =>
+              `[Contexto de archivo relacionado: ${f.path}]\n\`\`\`\n${f.content}\n\`\`\``
+            ).join('\n\n');
+
+            initialMessages[lastUserMsgIndex].content =
+              `${contextString}\n\n${initialMessages[lastUserMsgIndex].content}`;
+            send('context_inject', { paths: relatedFiles.map(f => f.path) });
+          }
+        }
+      }
+      // --- End Pre-context Deep Linking ---
+
       if (isOpenRouterModel(resolvedModel)) {
         if (!openrouterKey) {
           send('error', { message: 'Missing OPENROUTER_API_KEY. Add it in Vercel env vars.' });
@@ -853,7 +514,7 @@ export async function POST(request: NextRequest) {
         }
         try {
           await runOpenRouterStream(
-            resolvedModel, buildSystemPrompt(recentConvSummaries), messages, lastUserImages,
+            resolvedModel, buildSystemPrompt(recentConvSummaries), initialMessages, lastUserImages,
             githubToken, voyageKey, tavilyKey, db, openrouterKey, send
           );
           send('done', { pendingChanges: [] });
@@ -865,7 +526,7 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        const anthropicMessages = buildAnthropicMessages(messages, lastUserImages);
+        const anthropicMessages = buildAnthropicMessages(initialMessages, lastUserImages);
         let currentMessages = [...anthropicMessages] as Anthropic.MessageParam[];
         const pendingChanges: PendingChange[] = [];
         const MAX_ROUNDS = 10;
