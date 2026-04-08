@@ -128,7 +128,14 @@ export async function POST(request: NextRequest) {
       if (/horchata/.test(lowerName)) return 'a tall clear glass with ice, filled with creamy white horchata, a cinnamon stick resting on the rim';
       if (/smoothie|batido/.test(lowerName)) return 'a tall frosted glass with a paper straw and fresh fruit garnish on the rim';
       if (/agua mineral|sparkling water|water/.test(lowerName)) return 'a clear glass bottle with condensation and a lemon slice beside it on the surface';
-      if (/jugo|juice|naranja/.test(lowerName)) return 'a chilled clear glass filled with freshly squeezed vibrant juice, a citrus slice on the rim';
+      if (/apple|manzana/.test(lowerName)) return 'a tall clear glass filled with crisp pale golden-green apple juice, clear ice cubes, a thin green apple slice perched on the rim — NO orange, NO citrus';
+      if (/watermelon|sand[íi]a/.test(lowerName)) return 'a tall clear glass filled with vibrant deep pink-red watermelon juice, fresh mint leaves on top, no citrus';
+      if (/mango/.test(lowerName)) return 'a tall clear glass filled with thick rich golden-yellow mango juice, a fresh mango slice on the rim';
+      if (/pi[ñn]a|pineapple/.test(lowerName)) return 'a tall clear glass filled with bright golden-yellow pineapple juice, a pineapple wedge on the rim';
+      if (/fresa|strawberry/.test(lowerName)) return 'a tall clear glass filled with vibrant deep pink-red strawberry juice, a fresh strawberry on the rim';
+      if (/zanahoria|carrot/.test(lowerName)) return 'a tall clear glass filled with bright orange carrot juice, a carrot stick beside it';
+      if (/guanabana|tamarindo|maracuy[áa]|passion.?fruit|guava|guayaba/.test(lowerName)) return 'a tall clear glass filled with tropical juice, garnish of the matching fruit on the rim';
+      if (/jugo|juice|naranja|orange/.test(lowerName)) return 'a chilled clear glass filled with freshly squeezed vibrant orange juice, a citrus orange slice on the rim';
       if (/café|coffee|espresso|latte|cappuccino|olla/.test(lowerName)) return 'a beautiful ceramic coffee mug or artisan clay pot, steam gently curling upward';
       if (/tea|té/.test(lowerName)) return 'a delicate ceramic mug or clear glass cup showing the tea color';
       if (/hot chocolate|chocolate caliente/.test(lowerName)) return 'a large ceramic mug topped with a cloud of whipped cream and a dusting of cocoa powder';
@@ -207,7 +214,13 @@ export async function POST(request: NextRequest) {
         if (/whiskey|bourbon/.test(lowerName)) return 'Amber whiskey with a single large perfectly clear ice sphere. Orange peel twist garnish, one edge caught by the light.';
         if (/limonada|lemonade/.test(lowerName)) return 'Vibrant yellow liquid, fresh mint leaves, ice cubes perfectly clear, lemon wheel on rim. Condensation on the cold glass exterior.';
         if (/smoothie/.test(lowerName)) return 'Thick vibrant tropical smoothie. Fresh fruit garnish on the rim. Straw at a natural relaxed angle.';
-        if (/juice|jugo/.test(lowerName)) return 'Bright vibrant freshly squeezed color. Citrus slice on the rim. Natural pulp visible. Condensation on the cold glass.';
+        if (/apple|manzana/.test(lowerName)) return 'APPLE JUICE — pale golden-green color, crystal clear. Thin green apple slice on the rim. Ice perfectly clear. Condensation on glass. The liquid is pale golden-green, NOT orange, NOT yellow — distinctly apple.';
+        if (/watermelon|sand[íi]a/.test(lowerName)) return 'Deep vibrant pink-red watermelon juice color. Fresh mint leaves. No citrus. Refreshing summer feel.';
+        if (/mango/.test(lowerName)) return 'Thick rich golden-yellow mango juice, tropical and vibrant. Mango slice garnish.';
+        if (/pi[ñn]a|pineapple/.test(lowerName)) return 'Bright golden-yellow pineapple juice. Pineapple wedge on rim. Tropical freshness.';
+        if (/fresa|strawberry/.test(lowerName)) return 'Vibrant deep pink-red strawberry juice. Fresh strawberry on rim. Sweet and fresh.';
+        if (/zanahoria|carrot/.test(lowerName)) return 'Bright vivid orange carrot juice. Carrot stick garnish. Earthy and fresh.';
+        if (/juice|jugo/.test(lowerName)) return 'Bright vibrant freshly squeezed orange-citrus color. Citrus slice on the rim. Natural pulp visible. Condensation on the cold glass.';
         if (/coffee|café|espresso|latte|cappuccino/.test(lowerName)) return 'Perfect latte art rosette or tulip pattern. Steam rising delicately. Crema golden-brown and smooth. Impeccable barista craft visible.';
         return 'Drink fresh, vibrant, and perfectly prepared. Garnish precisely placed. Condensation visible on cold glass. Every detail of the preparation visible.';
       }
