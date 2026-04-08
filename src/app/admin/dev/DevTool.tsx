@@ -332,56 +332,7 @@ function ConversationSidebar({
   );
 }
 
-// ─── Commits dropdown (header) ────────────────────────────────────────────────
-function CommitsDropdown({ commits }: { commits: CommitInfo[] }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="text-[10px] px-2 py-1 rounded border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-colors flex items-center gap-1"
-        title="Historial de commits"
-      >
-        📋 {commits.length > 0 ? commits.length : '…'}
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-80 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-800">
-              <span className="text-xs font-bold text-gray-200">📋 Últimos commits</span>
-              <button onClick={() => setOpen(false)} className="text-gray-600 hover:text-gray-400 text-xs">✕</button>
-            </div>
-            <div className="max-h-72 overflow-y-auto">
-              {commits.length === 0 ? (
-                <p className="text-xs text-gray-600 text-center py-4">No hay commits</p>
-              ) : commits.map(c => (
-                <div key={c.sha} className="px-3 py-2 border-b border-gray-800 hover:bg-gray-800 transition-colors relative group/commit">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-mono text-purple-400">{c.sha}</span>
-                      <p className="text-[11px] text-gray-300 truncate leading-4 mt-0.5">{c.message}</p>
-                      <span className="text-[9px] text-gray-600">{c.author} · {timeAgo(c.date)}</span>
-                    </div>
-                    <a
-                      href={c.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-shrink-0 text-[10px] text-gray-600 hover:text-gray-300 mt-0.5"
-                      title="Ver en GitHub"
-                    >
-                      ↗
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+import { CommitsDropdown } from '@/components/dev-tool/CommitsDropdown';
 
 // ─── Alerts panel ─────────────────────────────────────────────────────────────
 function AlertsPanel({
@@ -542,30 +493,7 @@ function LogsPanel({ deployId, onClose }: { deployId: string; onClose: () => voi
   );
 }
 
-// ─── Diff viewer ──────────────────────────────────────────────────────────────
-function DiffViewer({ change }: { change: PendingChange }) {
-  const lines = useMemo(() => createDiffLines(change.content), [change.content]);
-  return (
-    <div className="text-xs font-mono">
-      {change.explanation && <p className="text-gray-400 mb-2 text-[11px]">{change.explanation}</p>}
-      <div className="overflow-auto max-h-56 border border-gray-700 rounded">
-        {lines.map((line, i) => (
-          <div
-            key={i}
-            className="px-2 py-0.5 leading-5 whitespace-pre"
-            style={{
-              background: line.type === '+' ? 'rgba(22,163,74,0.12)' : line.type === '-' ? 'rgba(220,38,38,0.12)' : 'transparent',
-              color: line.type === '+' ? '#86efac' : line.type === '-' ? '#fca5a5' : '#9ca3af',
-            }}
-          >
-            <span className="select-none mr-2 opacity-40 w-3 inline-block">{line.type === '+' ? '+' : line.type === '-' ? '-' : ' '}</span>
-            {line.text}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+import { DiffViewer } from '@/components/dev-tool/DiffViewer';
 
 // ─── Chat message ─────────────────────────────────────────────────────────────
 function ChatMessage({
@@ -577,6 +505,7 @@ function ChatMessage({
   onRegenerate,
   autoFixMode,
   onAutoApprove,
+  autopilotMode, // New prop
 }: {
   msg: Message;
   msgIdx: number;
@@ -586,6 +515,7 @@ function ChatMessage({
   onRegenerate: (idx: number) => void;
   autoFixMode?: boolean;
   onAutoApprove?: (changes: PendingChange[]) => void;
+  autopilotMode?: boolean; // New prop
 }) {
   // Auto-expand all diffs when changes arrive
   const [expandedSet, setExpandedSet] = useState<Set<string>>(new Set());
@@ -699,24 +629,27 @@ function ChatMessage({
           </div>
         )}
 
-        {msg.pendingChanges && msg.pendingChanges.length > 0 && autoFixMode && !msg.pendingChanges.every(c => c.applied) && onAutoApprove && (
+        {msg.pendingChanges && msg.pendingChanges.length > 0 && (autoFixMode || autopilotMode) && !msg.pendingChanges.every(c => c.applied) && onAutoApprove && (
           <div
             className="w-full rounded-xl border-2 p-3 flex flex-col gap-2 mb-1"
-            style={{ borderColor: '#16a34a', background: 'rgba(22,163,74,0.08)' }}
+            style={{ borderColor: autopilotMode ? '#10b981' : '#16a34a', background: autopilotMode ? 'rgba(16,185,129,0.08)' : 'rgba(22,163,74,0.08)' }}
           >
             <div className="flex items-center gap-2">
-              <span className="text-base">⚡</span>
-              <span className="text-xs font-bold text-green-400">Modo Auto-fix activo</span>
+              <span className="text-base">{autopilotMode ? '⚡' : '⚡'}</span>
+              <span className="text-xs font-bold" style={{ color: autopilotMode ? '#34d399' : '#16a34a' }}>
+                {autopilotMode ? 'Modo Autopilot activo' : 'Modo Auto-fix activo'}
+              </span>
             </div>
             <p className="text-[11px] text-gray-400">
-              El AI propone {msg.pendingChanges.length} cambio{msg.pendingChanges.length > 1 ? 's' : ''}.
-              Revisa el diff y aprueba para aplicar y deployar automáticamente.
+              {autopilotMode ? 
+                `El AI ha preparado ${msg.pendingChanges.length} cambio${msg.pendingChanges.length > 1 ? 's' : ''}. Aprueba para aplicar y deployar automáticamente.` :
+                `El AI propone ${msg.pendingChanges.length} cambio${msg.pendingChanges.length > 1 ? 's' : ''}. Revisa el diff y aprueba para aplicar y deployar automáticamente.`}
             </p>
             <div className="flex gap-2">
               <button
                 onClick={() => onAutoApprove(msg.pendingChanges!.filter(c => !c.applied))}
                 className="flex-1 text-sm font-bold py-2 rounded-lg transition-colors"
-                style={{ background: '#16a34a', color: 'white' }}
+                style={{ background: autopilotMode ? '#10b981' : '#16a34a', color: 'white' }}
               >
                 ✅ Aprobar y Deploy
               </button>
@@ -730,7 +663,7 @@ function ChatMessage({
           </div>
         )}
 
-        {msg.pendingChanges?.map((change) => (
+        {!autopilotMode && msg.pendingChanges?.map((change) => (
           <div key={change.path} className="w-full border border-gray-700 rounded-lg overflow-hidden">
             <div className="flex items-center justify-between px-3 py-2 bg-gray-800 gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -779,68 +712,7 @@ function ChatMessage({
   );
 }
 
-// ─── Code block with copy button ─────────────────────────────────────────────
-function CodeBlock({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="relative my-2 group/code">
-      <pre className="bg-gray-950 rounded p-3 overflow-x-auto text-xs text-green-300 border border-gray-700 pr-16">
-        <code>{code}</code>
-      </pre>
-      <button
-        onClick={() => {
-          navigator.clipboard.writeText(code).then(() => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-          }).catch(() => {});
-        }}
-        className="absolute top-1.5 right-1.5 text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-500 hover:text-white hover:bg-gray-700 transition-colors opacity-0 group-hover/code:opacity-100"
-      >
-        {copied ? '✓ Copied' : 'Copy'}
-      </button>
-    </div>
-  );
-}
-
-// ─── Minimal markdown renderer ────────────────────────────────────────────────
-function MarkdownText({ text }: { text: string }) {
-  const elements: React.ReactNode[] = [];
-  let inCode = false;
-  let codeLines: string[] = [];
-  let key = 0;
-
-  for (const line of text.split('\n')) {
-    if (line.startsWith('```')) {
-      if (!inCode) { inCode = true; codeLines = []; }
-      else {
-        const codeStr = codeLines.join('\n');
-        elements.push(<CodeBlock key={key++} code={codeStr} />);
-        inCode = false;
-      }
-      continue;
-    }
-    if (inCode) { codeLines.push(line); continue; }
-
-    if (line.startsWith('### ')) elements.push(<h3 key={key++} className="font-bold text-sm mt-2 mb-0.5">{line.slice(4)}</h3>);
-    else if (line.startsWith('## ')) elements.push(<h2 key={key++} className="font-bold text-base mt-3 mb-1">{line.slice(3)}</h2>);
-    else if (line.startsWith('# ')) elements.push(<h1 key={key++} className="font-bold text-lg mt-3 mb-1">{line.slice(2)}</h1>);
-    else if (line.startsWith('- ') || line.startsWith('* ')) elements.push(<li key={key++} className="ml-4 list-disc">{renderInline(line.slice(2))}</li>);
-    else if (line.trim() === '') elements.push(<br key={key++} />);
-    else elements.push(<span key={key++} className="block">{renderInline(line)}</span>);
-  }
-
-  return <>{elements}</>;
-}
-
-function renderInline(text: string): React.ReactNode {
-  return text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g).map((part, i) => {
-    if (part.startsWith('`') && part.endsWith('`'))
-      return <code key={i} className="bg-gray-700 text-green-300 px-1 rounded text-xs">{part.slice(1, -1)}</code>;
-    if (part.startsWith('**') && part.endsWith('**'))
-      return <strong key={i}>{part.slice(2, -2)}</strong>;
-    return part;
-  });
-}
+import { MarkdownText } from '@/components/dev-tool/MarkdownText';
 
 // ─── Main DevTool ─────────────────────────────────────────────────────────────
 export default function DevTool() {
@@ -868,6 +740,7 @@ export default function DevTool() {
 
   // Deploy / logs state
   const [deploy, setDeploy] = useState<DeployInfo | null>(null);
+  const [deploymentsHistory, setDeploymentsHistory] = useState<DeployInfo[]>([]); // New state for deploy history
   const [showLogs, setShowLogs] = useState(false);
 
   // Index state
@@ -921,6 +794,9 @@ export default function DevTool() {
   // Auto-fix mode: when true, AI responses with changes show "Aprobar y Deploy" button
   const [autoFixMode, setAutoFixMode] = useState(false);
   const [autoFixAlertId, setAutoFixAlertId] = useState<string | null>(null);
+
+  // Autopilot mode: when true, AI applies all pending changes automatically after response
+  const [autopilotMode, setAutopilotMode] = useState(false);
 
   // Extended thinking mode
   const [thinkingMode, setThinkingMode] = useState(false);
@@ -993,10 +869,13 @@ export default function DevTool() {
 
   const fetchDeploy = async () => {
     try {
-      const res = await fetch('/api/admin/dev/deploy');
+      const res = await fetch('/api/admin/dev/deploy?limit=10'); // Fetch more deployments
       if (!res.ok) return;
       const json = await res.json();
-      if (json.deployments?.[0]) setDeploy(json.deployments[0]);
+      if (json.deployments) {
+        setDeploy(json.deployments[0] ?? null); // Still set the latest deploy
+        setDeploymentsHistory(json.deployments); // Set entire history
+      }
     } catch {}
   };
 
@@ -1491,10 +1370,17 @@ export default function DevTool() {
           changes: changes.map(c => ({ path: c.path, content: c.content, action: c.action })),
           commitMessage: msg,
           createPR: prMode,
+          autopilotMode, // Pass autopilotMode flag to backend
         }),
       });
       const json = await res.json();
       if (json.ok) {
+        // If in autopilot mode, clear all pending changes
+        if (autopilotMode) {
+          setPendingChanges([]);
+          // TODO: Potentially trigger a fresh AI message to continue working if needed
+        }
+
         setMessages(prev => prev.map(m => ({
           ...m,
           pendingChanges: m.pendingChanges?.map(pc =>
@@ -1530,7 +1416,12 @@ export default function DevTool() {
         setApplyResult(`❌ ${json.error || 'Error applying changes'}`);
       }
     } finally { setApplyLoading(false); }
-  }, [commitMsg, prMode]);
+  }, [commitMsg, prMode, autopilotMode, setCommitMsg, setApplyLoading, setApplyResult, setAppliedHistory, saveAppliedChange, setPendingChanges, setMessages, fetchDeploy, sendPushNotification, fetchCommits, setInput]);
+
+  const handleRerunDeploy = useCallback(async () => {
+    setInput('Re-run Vercel deployment using re_run_vercel_build tool.');
+    sendMessage(); // Trigger AI to use the tool
+  }, [sendMessage, setInput]);
 
   const applyActiveTab = useCallback(() => {
     const tab = tabs[activeTab];
@@ -1668,34 +1559,18 @@ export default function DevTool() {
         ...(memoryFacts.length > 0 ? [`[Memoria]: ${memoryFacts.slice(0, 5).join(' | ')}`] : []),
       ];
 
-      // Pre-context: inject currently open file so AI has immediate context
-      let preContextMessages = newMessages.map(m => ({ role: m.role, content: m.content }));
-      if (tabs.length > 0 && tabs[activeTab]) {
-        const activeFile = tabs[activeTab];
-        const userMsgIdx = preContextMessages.length - 1;
-        const lastUserMsg = preContextMessages[userMsgIdx];
-        if (lastUserMsg && lastUserMsg.role === 'user') {
-          preContextMessages = [
-            ...preContextMessages.slice(0, userMsgIdx),
-            {
-              ...lastUserMsg,
-              content: `[Archivo activo en editor: ${activeFile.path}]\n\`\`\`\n${activeFile.content.slice(0, 3000)}${activeFile.content.length > 3000 ? '\n…(truncado)' : ''}\n\`\`\`\n\n${lastUserMsg.content}`,
-            },
-          ];
-        }
-      }
 
       const res = await fetch('/api/admin/dev/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: preContextMessages,
+          messages: newMessages,
           model: selectedModel,
           images: imagesToSend,
           thinking: thinkingMode,
           recentConvSummaries,
-        }),
-        signal: abortCtrl.signal,
+          activeFile: activeEditorTab ? { path: activeEditorTab.path, content: activeEditorTab.content || '' } : undefined,
+        signal: abortCtrl.signal
       });
 
       if (!res.ok || !res.body) {
@@ -1943,6 +1818,7 @@ export default function DevTool() {
 
           <DeployBadge deploy={deploy} onClick={() => setShowLogs(v => !v)} />
           <button onClick={fetchDeploy} className="text-gray-500 hover:text-gray-300 text-xs" title="Refresh deploy status">↺</button>
+          <DeployHistoryDropdown deployments={deploymentsHistory} onRerunDeploy={handleRerunDeploy} />
           <CommitsDropdown commits={commits} />
           {deploy?.state === 'ERROR' && (
             <button
@@ -2223,8 +2099,22 @@ export default function DevTool() {
               onRegenerate={handleRegenerate}
               autoFixMode={autoFixMode && msg.role === 'assistant'}
               onAutoApprove={handleAutoApprove}
+              autopilotMode={autopilotMode && msg.role === 'assistant'}
             />
           ))}
+
+          {/* Autopilot: Approve & Deploy all pending changes */}
+          {autopilotMode && pendingChanges.length > 0 && !pendingChanges.every(c => c.applied) && (
+            <div className="w-full flex justify-end sticky bottom-0 z-10 p-3 bg-gray-950/90 backdrop-blur-sm border-t border-gray-800">
+              <button
+                onClick={() => handleApplyChanges(pendingChanges.filter(c => !c.applied))}
+                className="flex-1 text-sm font-bold py-2 rounded-lg transition-colors"
+                style={{ background: '#10b981', color: 'white', maxWidth: '300px' }}
+              >
+                ✅ Aprobar y Deployar ({pendingChanges.filter(c => !c.applied).length} cambios)
+              </button>
+            </div>
+          )}
 
           {loading && (
             <div className="flex gap-3">
@@ -2448,6 +2338,16 @@ export default function DevTool() {
               style={{ color: prMode ? '#f59e0b' : '#6b7280' }}
             >
               🔀 {prMode ? 'PR mode' : 'PR'}
+            </button>
+
+            {/* Autopilot mode toggle */}
+            <button
+              onClick={() => setAutopilotMode(v => !v)}
+              title="Autopilot mode: automatically applies all pending changes after AI response"
+              className="text-[10px] transition-colors flex items-center gap-1"
+              style={{ color: autopilotMode ? '#10b981' : '#6b7280' }}
+            >
+              ⚡ {autopilotMode ? 'Autopilot ON' : 'Autopilot'}
             </button>
 
             {autoFixMode && (
