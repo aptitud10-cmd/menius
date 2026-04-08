@@ -8,6 +8,7 @@ interface AlertPayload {
   description?: string;
   severity?: 'low' | 'medium' | 'high' | 'critical' | 'warning' | 'info';
   metadata?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export async function createAlert(payload: AlertPayload): Promise<void> {
