@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 180;
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
@@ -543,6 +543,14 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
     // Optimize AI-generated image the same way manual uploads are processed:
     // resize to max 1200×1200, convert to WebP at quality 82.
     const sharp = (await import('sharp')).default;
+    // Optimize sharp performance
+    sharp.simd(true);
+    // Determine concurrency based on environment (e.g., Vercel's CPU count)
+    // Fallback to 2 if os.cpus() is not available or appropriate for serverless
+    const os = await import('os');
+    const cpuCount = os.cpus().length;
+    sharp.concurrency(Math.max(2, Math.min(cpuCount, 4))); // Limit to 4 concurrent operations
+    logger.info('Sharp concurrency and SIMD enabled', { cpuCount, sharpConcurrency: sharp.concurrency() });
     const buffer = await sharp(rawBuffer)
       .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 82 })
