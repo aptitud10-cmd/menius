@@ -292,12 +292,14 @@ export function CustomizationSheet({
 
     if (isEditing && editIndex !== null) {
       replaceItem(editIndex, product, legacyVariant, legacyExtras, qty, '', modifierSelections);
+      // Close immediately after editing — user expects to return to menu
+      setTimeout(onClose, 350);
     } else {
       addItem(product, legacyVariant, legacyExtras, qty, '', modifierSelections);
       onAddToCart?.(displayName);
+      // Stay open so user can add suggested products — they close manually
     }
     setAdded(true);
-    setTimeout(onClose, 400);
   };
 
   const getRuleLabel = (g: ModifierGroup) => {
@@ -556,27 +558,41 @@ export function CustomizationSheet({
               <Plus className="w-4 h-4 text-gray-600" />
             </button>
           </div>
-          <button
-            onClick={handleSubmit}
-            disabled={!isValid || added}
-            className={cn(
-              'flex-1 h-[52px] rounded-2xl font-extrabold text-[16px] transition-all duration-200',
-              added
-                ? 'bg-[#05c8a7] text-white'
-                : !isValid
+          {added ? (
+            // After adding: show two actions — close or keep browsing suggestions
+            <div className="flex flex-1 gap-2">
+              <button
+                onClick={onClose}
+                className="flex-1 h-[52px] rounded-2xl font-extrabold text-[15px] bg-[#05c8a7] text-white transition-all duration-200 active:scale-[0.98]"
+              >
+                ✓ {locale === 'es' ? 'Ver carrito' : 'View cart'}
+              </button>
+              <button
+                onClick={onClose}
+                className="h-[52px] px-4 rounded-2xl font-semibold text-[14px] bg-gray-100 text-gray-600 transition-all duration-200 active:scale-[0.98] whitespace-nowrap"
+              >
+                {locale === 'es' ? 'Seguir' : 'Continue'}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={!isValid}
+              className={cn(
+                'flex-1 h-[52px] rounded-2xl font-extrabold text-[16px] transition-all duration-200',
+                !isValid
                   ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   : 'bg-[#05c8a7] text-white active:scale-[0.98] shadow-sm hover:bg-[#04b096]'
-            )}
-          >
-            {added
-              ? t.added
-              : !isValid
+              )}
+            >
+              {!isValid
                 ? (locale === 'es' ? `Selecciona: ${validationErrors.join(', ')}` : `Choose: ${validationErrors.join(', ')}`)
                 : isEditing
                   ? `${t.updateItem} · ${fmtPrice(unitPrice * qty)}`
                   : `${t.add} · ${fmtPrice(unitPrice * qty)}`
-            }
-          </button>
+              }
+            </button>
+          )}
         </div>
       </div>
     </div>

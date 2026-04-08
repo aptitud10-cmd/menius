@@ -1851,16 +1851,9 @@ export function MenuShell({
             defaultLocale={defaultLocale}
             suggestedProducts={suggestedProducts}
             onSuggestAdd={(p) => {
-              // Use has_modifiers when products are slimmed; fall back to array checks
-              const hasReqModifiers =
-                p.has_modifiers ??
-                ((p.modifier_groups ?? []).some((g) => g.is_required) ||
-                  (p.variants ?? []).length > 0);
-              if (hasReqModifiers) {
-                setCustomization({ product: p, editIndex: null });
-              } else {
-                handleQuickAdd(p);
-              }
+              // Suggestions always quick-add — never replace the current sheet.
+              // This keeps the current product visible so the user can still add it.
+              handleQuickAdd(p);
             }}
           />
         )}
