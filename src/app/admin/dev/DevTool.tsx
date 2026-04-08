@@ -1413,11 +1413,6 @@ export default function DevTool() {
     } finally { setApplyLoading(false); }
   }, [commitMsg, prMode, autopilotMode, setCommitMsg, setApplyLoading, setApplyResult, setAppliedHistory, saveAppliedChange, setMessages, fetchDeploy, sendPushNotification, fetchCommits, setInput]);
 
-  const handleRerunDeploy = useCallback(async () => {
-    setInput('Re-run Vercel deployment using re_run_vercel_build tool.');
-    sendMessage(); // Trigger AI to use the tool
-  }, [sendMessage, setInput]);
-
   const applyActiveTab = useCallback(() => {
     const tab = tabs[activeTab];
     if (!tab) return;
@@ -1699,6 +1694,12 @@ export default function DevTool() {
       setLoading(false);
     }
   };
+
+  const handleRerunDeploy = useCallback(async () => {
+    setInput('Re-run Vercel deployment using re_run_vercel_build tool.');
+    setTimeout(() => sendMessage(), 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const currentModel = MODELS.find(m => m.id === selectedModel) ?? MODELS[1];
   const hasTabs = tabs.length > 0;
