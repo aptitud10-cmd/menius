@@ -1570,7 +1570,8 @@ export default function DevTool() {
           thinking: thinkingMode,
           recentConvSummaries,
           activeFile: activeEditorTab ? { path: activeEditorTab.path, content: activeEditorTab.content || '' } : undefined,
-        signal: abortCtrl.signal, // TEMP
+        }),
+        signal: abortCtrl.signal,
       });
 
       if (!res.ok || !res.body) {
