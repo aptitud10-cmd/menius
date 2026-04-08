@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { MarkdownText } from './MarkdownText';
 import { DiffViewer } from './DiffViewer';

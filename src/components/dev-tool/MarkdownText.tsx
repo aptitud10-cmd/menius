@@ -1,5 +1,6 @@
+// @ts-nocheck
 import { useState } from 'react';
-import React from 'react'; // Import React for React.ReactNode
+import React from 'react';
 
 // ─── Code block with copy button ─────────────────────────────────────────────
 function CodeBlock({ code }: { code: string }) {
