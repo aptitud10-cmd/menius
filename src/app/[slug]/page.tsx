@@ -126,15 +126,46 @@ export default async function SlugMenuPage({ params }: PageProps) {
   // Skip reserved paths — let Next.js handle them via their own routes
   if (RESERVED_PATHS.has(params.slug)) notFound();
 
-  // High-conversion demo slug — no DB required
+  // High-conversion demo slug — Lechonería Donde Adri
   if (params.slug === 'adri') {
-    const heroProduct = demoProducts.find(p => p.id === 'demo-p-burger')!;
-    const packs = demoProducts.filter(p => ['demo-p-pizza', 'demo-p-alitas', 'demo-p-churros'].includes(p.id));
+    const adriRestaurant = {
+      ...demoRestaurant,
+      name: 'Lechonería Donde Adri',
+      slug: 'adri',
+      description: 'La mejor lechona de Bogotá para tu evento',
+      cover_image_url: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1400&q=85',
+    };
+
+    const lechonas = [
+      { id: 'adri-l-50', name: '50 platos', price: 350000, description: 'Ideal para reuniones pequeñas', category_id: 'lechona', restaurant_id: demoRestaurant.id, is_active: true, in_stock: true, sort_order: 1, is_featured: false, is_new: false, dietary_tags: [], prep_time_minutes: null, image_url: null, translations: null, created_at: new Date().toISOString() },
+      { id: 'adri-l-60', name: '60 platos', price: 370000, description: '', category_id: 'lechona', restaurant_id: demoRestaurant.id, is_active: true, in_stock: true, sort_order: 2, is_featured: false, is_new: false, dietary_tags: [], prep_time_minutes: null, image_url: null, translations: null, created_at: new Date().toISOString() },
+      { id: 'adri-l-70', name: '70 platos', price: 420000, description: '', category_id: 'lechona', restaurant_id: demoRestaurant.id, is_active: true, in_stock: true, sort_order: 3, is_featured: false, is_new: false, dietary_tags: [], prep_time_minutes: null, image_url: null, translations: null, created_at: new Date().toISOString() },
+      { id: 'adri-l-80', name: '80 platos', price: 450000, description: 'El más popular', category_id: 'lechona', restaurant_id: demoRestaurant.id, is_active: true, in_stock: true, sort_order: 4, is_featured: true, is_new: false, dietary_tags: [], prep_time_minutes: null, image_url: null, translations: null, created_at: new Date().toISOString() },
+      { id: 'adri-l-100', name: '100 platos', price: 500000, description: '', category_id: 'lechona', restaurant_id: demoRestaurant.id, is_active: true, in_stock: true, sort_order: 5, is_featured: false, is_new: false, dietary_tags: [], prep_time_minutes: null, image_url: null, translations: null, created_at: new Date().toISOString() },
+      { id: 'adri-l-120', name: '120 platos', price: 550000, description: '', category_id: 'lechona', restaurant_id: demoRestaurant.id, is_active: true, in_stock: true, sort_order: 6, is_featured: false, is_new: false, dietary_tags: [], prep_time_minutes: null, image_url: null, translations: null, created_at: new Date().toISOString() },
+      { id: 'adri-l-150', name: '150 platos', price: 600000, description: 'Para eventos grandes', category_id: 'lechona', restaurant_id: demoRestaurant.id, is_active: true, in_stock: true, sort_order: 7, is_featured: false, is_new: false, dietary_tags: [], prep_time_minutes: null, image_url: null, translations: null, created_at: new Date().toISOString() },
+      { id: 'adri-l-200', name: '200 platos', price: 750000, description: 'Eventos masivos', category_id: 'lechona', restaurant_id: demoRestaurant.id, is_active: true, in_stock: true, sort_order: 8, is_featured: false, is_new: false, dietary_tags: [], prep_time_minutes: null, image_url: null, translations: null, created_at: new Date().toISOString() },
+    ] as unknown as Product[];
+
+    const cojines = [
+      { id: 'adri-c-20', name: '20 platos', price: 230000, description: '', category_id: 'cojin', restaurant_id: demoRestaurant.id, is_active: true, in_stock: true, sort_order: 1, is_featured: false, is_new: false, dietary_tags: [], prep_time_minutes: null, image_url: null, translations: null, created_at: new Date().toISOString() },
+      { id: 'adri-c-30', name: '30 platos', price: 250000, description: '', category_id: 'cojin', restaurant_id: demoRestaurant.id, is_active: true, in_stock: true, sort_order: 2, is_featured: false, is_new: false, dietary_tags: [], prep_time_minutes: null, image_url: null, translations: null, created_at: new Date().toISOString() },
+      { id: 'adri-c-40', name: '40 platos', price: 290000, description: '', category_id: 'cojin', restaurant_id: demoRestaurant.id, is_active: true, in_stock: true, sort_order: 3, is_featured: false, is_new: false, dietary_tags: [], prep_time_minutes: null, image_url: null, translations: null, created_at: new Date().toISOString() },
+      { id: 'adri-c-50', name: '50 platos', price: 330000, description: '', category_id: 'cojin', restaurant_id: demoRestaurant.id, is_active: true, in_stock: true, sort_order: 4, is_featured: false, is_new: false, dietary_tags: [], prep_time_minutes: null, image_url: null, translations: null, created_at: new Date().toISOString() },
+    ] as unknown as Product[];
+
     return (
       <HighConversionLayout
-        restaurant={{ ...demoRestaurant, name: 'Adri\'s Kitchen', slug: 'adri' }}
-        mainProduct={heroProduct}
-        packOptions={packs}
+        restaurant={adriRestaurant}
+        productCategories={[
+          { id: 'lechona', name: 'Lechona', emoji: '🐷', packs: lechonas },
+          { id: 'cojin', name: 'Cojín', emoji: '🥔', packs: cojines },
+        ]}
+        whatsappNumber="573157727799"
+        includes="Incluye arepas, tenedores y platos"
+        deliveryNote="Domicilio gratis en Bogotá y Soacha"
+        heroTitle="La mejor lechona de Bogotá"
+        heroSubtitle="Crujiente, jugosa y de fábrica — para tu evento especial"
       />
     );
   }
