@@ -284,7 +284,7 @@ export async function POST(request: NextRequest) {
     const lighting = getLighting();
 
     // ─── BANNER MODE ──────────────────────────────────────────────────────────
-    const bannerPrompt = isBanner ? `NOT CGI, NOT 3D render, NOT illustration — this is a REAL photograph. NO cooking equipment, NO text, NO human hands visible.
+    const bannerPrompt = isBanner ? `CRITICAL RULES — strictly enforce: NOT CGI, NOT 3D render, NOT illustration. NO text, NO logos, NO watermarks, NO white patches or artifacts in any corner, NO human hands, NO cooking equipment. Every corner filled with background — no blank white areas.
 
 Award-winning wide-format restaurant banner photograph. Indistinguishable from a professional DSLR photograph. Shot in a real restaurant or professional food photography studio.
 
@@ -301,9 +301,14 @@ SCENE: Beautifully plated dishes on a restaurant table. Natural textures — lin
 
 COLOR SCIENCE: Rich warm tonal depth. Deep shadows with warm amber undertones — not pure black. Highlights golden and inviting. Film-like color rendering, naturally saturated.` : null;
 
-    const prompt = bannerPrompt ?? `NOT CGI, NOT 3D render, NOT illustration — this is a REAL photograph. NO cooking equipment visible, NO text or logos, NO human hands.
+    const prompt = bannerPrompt ?? `CRITICAL RULES — strictly enforce, no exceptions:
+- NOT CGI, NOT 3D render, NOT illustration, NOT AI-generated look
+- NO text of any kind, NO logos, NO watermarks, NO stamps, NO labels, NO captions
+- NO white patches, NO white spots, NO bright artifacts, NO digital noise in any corner
+- NO human hands, NO cooking equipment, NO utensils in frame
+- Every corner of the image must be filled with the background — NO blank white areas
 
-This is an award-winning commercial food photograph in the style of Lyan van Furth or Eric Wolfinger — the world's finest food photographers. Every element is deliberate and masterfully composed.
+This is an award-winning commercial food photograph in the style of Lyan van Furth or Eric Wolfinger — the world's finest food photographers. Every pixel is intentional, every corner covered with rich background texture.
 
 SUBJECT: "${productName}"${description ? ` — ${description}` : ''}.
 SERVED IN/ON: ${container}.
@@ -434,7 +439,7 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
                   parts: [
                     { inlineData: { mimeType: 'image/jpeg', data: downloaded[0].base64 } },
                     { inlineData: { mimeType: 'image/jpeg', data: downloaded[1].base64 } },
-                    { text: `You are a professional food photography judge. Look at these two food photos for "${productName}". Reply with ONLY "1" or "2" — the number of the photo that has better food photography quality: sharper focus, more appetizing colors, better lighting, more professional composition. No explanation, just the number.` },
+                    { text: `You are a professional food photography judge. Look at these two food photos for "${productName}". Reply with ONLY "1" or "2" — the number of the photo that has better food photography quality: sharper focus, more appetizing colors, better lighting, more professional composition, NO white spots or artifacts in corners, NO watermarks or text. Prefer the cleanest, most professional image. No explanation, just the number.` },
                   ],
                 }],
               });
