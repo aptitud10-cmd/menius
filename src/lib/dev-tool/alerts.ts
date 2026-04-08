@@ -1,10 +1,12 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 
 interface AlertPayload {
-  type: string;
+  type?: string;
+  source?: string;
   title: string;
-  message: string;
-  severity?: 'low' | 'medium' | 'high' | 'critical';
+  message?: string;
+  description?: string;
+  severity?: 'low' | 'medium' | 'high' | 'critical' | 'warning' | 'info';
   metadata?: Record<string, unknown>;
 }
 
@@ -12,9 +14,9 @@ export async function createAlert(payload: AlertPayload): Promise<void> {
   try {
     const db = createAdminClient();
     await db.from('dev_alerts').insert({
-      type: payload.type,
+      type: payload.type ?? payload.source ?? 'system',
       title: payload.title,
-      message: payload.message,
+      message: payload.message ?? payload.description ?? '',
       severity: payload.severity ?? 'medium',
       metadata: payload.metadata ?? {},
       created_at: new Date().toISOString(),
