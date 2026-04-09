@@ -254,6 +254,21 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     setSubmitting(true);
     setOrderError('');
     try {
+      // Demo restaurants: simulate success without hitting the real orders API
+      if (restaurant.id.startsWith('demo')) {
+        await new Promise((r) => setTimeout(r, 1200));
+        saveLastOrder();
+        setConfirmedItems(items.map((i) => ({ name: i.product.name, qty: i.qty, variant: i.variant?.name, lineTotal: i.lineTotal })));
+        setConfirmedTotal(finalTotal);
+        clearCart();
+        setOrderNumber('DEMO-0042');
+        setOrderId('demo-order-id');
+        setStep('confirmation');
+        playSuccessChime();
+        confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
+        return;
+      }
+
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKeyRef.current },

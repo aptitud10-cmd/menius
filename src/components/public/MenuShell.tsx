@@ -1043,7 +1043,8 @@ export function MenuShell({
         {locale === 'en' ? 'Skip to menu' : 'Ir al menú'}
       </a>
 
-      {/* Fixed header — absolute over banner on mobile when hasCover */}
+      {/* Fixed header — hidden for demo restaurants (embedded in landing page iframe) */}
+      {!restaurant.id.startsWith('demo') && (
       <div className={cn(
         'lg:flex-shrink-0 lg:relative',
         hasCover ? 'absolute inset-x-0 top-0 z-40' : 'flex-shrink-0'
@@ -1065,6 +1066,7 @@ export function MenuShell({
         locale={locale}
       />
       </div>
+      )}
 
       {/* ── Outer scroll: banner scrolls away, sidebar/cart stay sticky ── */}
       <div

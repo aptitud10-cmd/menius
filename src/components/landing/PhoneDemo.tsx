@@ -74,6 +74,7 @@ export function PhoneDemo() {
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      onWheel={(e) => e.stopPropagation()}
       style={{ perspective: '900px' }}
     >
       <motion.div
