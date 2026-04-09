@@ -655,17 +655,6 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
 
       <div className="separator-gradient max-w-5xl mx-auto" />
 
-      {/* ── Pricing ── */}
-      <section id="precios" className="relative py-24 md:py-40 overflow-clip">
-        <div className="section-glow section-glow-blue" />
-        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-[#05c8a7]/15 blur-[100px] pointer-events-none" />
-        <div className="relative z-10 max-w-5xl mx-auto px-6">
-          <PricingSection t={t} isColombia={isColombia} />
-        </div>
-      </section>
-
-      <div className="separator-gradient max-w-5xl mx-auto" />
-
       {/* ── How it works ── */}
       <section className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-purple" />
@@ -714,6 +703,17 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
             <TestimonialsSection t={t.testimonials} />
           </div>
 
+        </div>
+      </section>
+
+      <div className="separator-gradient max-w-5xl mx-auto" />
+
+      {/* ── Pricing ── */}
+      <section id="precios" className="relative py-24 md:py-40 overflow-clip">
+        <div className="section-glow section-glow-blue" />
+        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-[#05c8a7]/15 blur-[100px] pointer-events-none" />
+        <div className="relative z-10 max-w-5xl mx-auto px-6">
+          <PricingSection t={t} isColombia={isColombia} />
         </div>
       </section>
 
