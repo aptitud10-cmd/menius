@@ -258,7 +258,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       if (restaurant.id.startsWith('demo')) {
         await new Promise((r) => setTimeout(r, 1200));
         saveLastOrder();
-        setConfirmedItems(items.map((i) => ({ name: i.product.name, qty: i.qty, variant: i.variant?.name, lineTotal: i.lineTotal })));
+        const demoSnapshot = items.map((i) => ({ name: i.product.name, qty: i.qty, variant: i.variant?.name, lineTotal: i.lineTotal }));
+        setConfirmedItems(demoSnapshot);
         setConfirmedTotal(finalTotal);
         clearCart();
         setOrderNumber('DEMO-0042');
@@ -266,6 +267,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         setStep('confirmation');
         playSuccessChime();
         confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
+        // If visitor entered a real email, send them a branded demo confirmation
+        if (customerEmail?.trim() && customerEmail.includes('@')) {
+          fetch('/api/demo/email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: customerEmail.trim(), items: demoSnapshot, total: finalTotal }),
+          }).catch(() => {});
+        }
         return;
       }
 

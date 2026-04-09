@@ -26,6 +26,11 @@ const FRAME_H = SCREEN_H + FRAME_BORDER;              // ≈ 591 px
 const R_OUTER = Math.round(FRAME_W * 0.118);          // 33 px
 const R_INNER = R_OUTER - 5;                          // 28 px
 
+// Dynamic Island dimensions — used to offset iframe so content sits below it
+const DI_TOP = 9;
+const DI_H = Math.round(FRAME_W * 0.088);            // ≈ 25 px
+const DI_OFFSET = DI_TOP + DI_H;                     // ≈ 34 px
+
 const MAX_TILT = 10;
 
 const AMBIENT_SHADOWS = [
@@ -58,8 +63,9 @@ export function PhoneDemo() {
   const shineX = useTransform(rotateY, [-MAX_TILT, MAX_TILT], [FRAME_W * 0.04, -(FRAME_W * 0.04)]);
   const shineY = useTransform(rotateX, [-MAX_TILT, MAX_TILT], [-(FRAME_W * 0.04), FRAME_W * 0.04]);
 
-  // Native (non-passive) wheel handler so we can call preventDefault()
-  // and route scroll directly into the iframe's scrollable element.
+  // Native (non-passive) wheel handler — routes scroll into whichever sheet
+  // is currently open (CustomizationSheet, cart sheet, or the main menu).
+  // We reverse the list so the topmost open sheet always wins.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -67,10 +73,12 @@ export function PhoneDemo() {
       e.preventDefault();
       e.stopPropagation();
       const doc = iframeRef.current?.contentDocument;
-      const scrollEl = doc?.querySelector<HTMLElement>('.overflow-y-auto');
-      if (scrollEl) {
-        scrollEl.scrollTop += e.deltaY;
-      }
+      if (!doc) return;
+      const candidates = Array.from(doc.querySelectorAll<HTMLElement>('.overflow-y-auto'));
+      const target = [...candidates].reverse().find(
+        (node) => node.scrollHeight > node.clientHeight && node.offsetParent !== null
+      );
+      if (target) target.scrollTop += e.deltaY;
     };
     el.addEventListener('wheel', handler, { passive: false });
     return () => el.removeEventListener('wheel', handler);
@@ -130,12 +138,16 @@ export function PhoneDemo() {
                 background: '#fff',
               }}>
 
-                {/* ── The real Menius app ── */}
+                {/* ── The real Menius app ──
+                    Starts below the Dynamic Island so the header is fully visible.
+                    The DI_OFFSET gap above is white — mimics the iPhone status bar area. */}
                 <div style={{
                   width: SCREEN_W,
-                  height: SCREEN_H,
+                  height: SCREEN_H - DI_OFFSET,
                   position: 'absolute',
-                  inset: 0,
+                  top: DI_OFFSET,
+                  left: 0,
+                  right: 0,
                   overflow: 'hidden',
                 }}>
                   <iframe
