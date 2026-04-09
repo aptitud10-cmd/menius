@@ -93,8 +93,8 @@ const es = {
   },
   hero: {
     badge: '0% comisiones · Plan gratis para siempre',
-    titleLine1: 'Menú digital y ',
-    titleHighlight: 'pedidos directos',
+    titleLine1: 'Deja de pagar comisiones. ',
+    titleHighlight: 'Vende directo.',
     subtitle: 'QR por mesa, pedidos online, cocina KDS y asistente IA. Sin comisiones. Configura en 2 minutos.',
     ctaPrimary: 'Crea tu menú en 2 min',
     ctaSecondary: 'Ver demo en vivo',
@@ -446,8 +446,8 @@ const en: LandingT = {
   },
   hero: {
     badge: '0% commissions · forever free plan',
-    titleLine1: 'Digital menu & ',
-    titleHighlight: 'direct orders',
+    titleLine1: 'Stop paying commissions. ',
+    titleHighlight: 'Sell direct.',
     subtitle: 'QR per table, online orders, kitchen KDS & AI assistant. Zero commissions. Set up in 2 minutes.',
     ctaPrimary: 'Create your menu in 2 min',
     ctaSecondary: 'View live demo',

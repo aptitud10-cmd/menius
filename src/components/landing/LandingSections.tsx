@@ -504,6 +504,38 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
 
       <div className="separator-gradient max-w-5xl mx-auto" />
 
+      {/* ── Savings Calculator ── */}
+      <section className="relative py-24 md:py-40 overflow-clip">
+        <div className="section-glow section-glow-purple" />
+
+        <div className="relative z-10 max-w-6xl mx-auto px-6">
+          <div className="text-center mb-10 md:mb-14 d-fade-up">
+            <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.savings.sectionLabel}</p>
+            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
+              {t.savings.sectionTitle}
+            </h2>
+            <p className="text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
+              {t.savings.sectionDesc}
+            </p>
+          </div>
+
+          <div className="d-fade-up d-delay-2">
+            <SavingsCalculator t={t.savings} />
+          </div>
+        </div>
+      </section>
+
+      {/* ── Mid CTA: after Savings Calculator ── */}
+      <div className="max-w-4xl mx-auto px-6 -mt-10 mb-6">
+        <MidCta
+          text={t.savings.midCta.text}
+          highlight={t.savings.midCta.highlight}
+          cta={t.savings.midCta.cta}
+        />
+      </div>
+
+      <div className="separator-gradient max-w-5xl mx-auto" />
+
       {/* ── Features with Tabs ── */}
       <section id="funciones" className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-purple" />
@@ -618,38 +650,6 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
           text={t.comparison.midCta.text}
           highlight={t.comparison.midCta.highlight}
           cta={t.comparison.midCta.cta}
-        />
-      </div>
-
-      <div className="separator-gradient max-w-5xl mx-auto" />
-
-      {/* ── Savings Calculator ── */}
-      <section className="relative py-24 md:py-40 overflow-clip">
-        <div className="section-glow section-glow-purple" />
-
-        <div className="relative z-10 max-w-6xl mx-auto px-6">
-          <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.savings.sectionLabel}</p>
-            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
-              {t.savings.sectionTitle}
-            </h2>
-            <p className="text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
-              {t.savings.sectionDesc}
-            </p>
-          </div>
-
-          <div className="d-fade-up d-delay-2">
-            <SavingsCalculator t={t.savings} />
-          </div>
-        </div>
-      </section>
-
-      {/* ── Mid CTA: after Savings Calculator ── */}
-      <div className="max-w-4xl mx-auto px-6 -mt-10 mb-6">
-        <MidCta
-          text={t.savings.midCta.text}
-          highlight={t.savings.midCta.highlight}
-          cta={t.savings.midCta.cta}
         />
       </div>
 
