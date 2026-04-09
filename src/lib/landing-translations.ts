@@ -228,8 +228,8 @@ const es = {
   },
   savings: {
     sectionLabel: 'Calculadora de ahorro',
-    sectionTitle: '¿Cuánto ahorras con MENIUS?',
-    sectionDesc: 'Mueve el slider y calcula cuánto pierdes en comisiones con apps de delivery.',
+    sectionTitle: '¿Cuánto te están cobrando las apps de delivery?',
+    sectionDesc: 'Uber Eats cobra hasta 30%. Rappi cobra 25%. Mueve el slider y ve cuánto pierdes al mes.',
     sliderLabel: 'Ventas mensuales de tu restaurante',
     perMonth: '/mes',
     withApps: 'Con apps de delivery',
@@ -581,8 +581,8 @@ const en: LandingT = {
   },
   savings: {
     sectionLabel: 'Savings calculator',
-    sectionTitle: 'How much do you save with MENIUS?',
-    sectionDesc: 'Move the slider and calculate how much you lose in commissions with delivery apps.',
+    sectionTitle: 'How much are delivery apps charging you?',
+    sectionDesc: 'Uber Eats charges up to 30%. Rappi charges 25%. Move the slider and see how much you lose every month.',
     sliderLabel: "Your restaurant's monthly sales",
     perMonth: '/mo',
     withApps: 'With delivery apps',
