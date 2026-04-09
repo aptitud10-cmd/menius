@@ -32,44 +32,6 @@ const accentColors: Record<string, { bg: string; text: string; border: string; g
   amber: { bg: 'bg-amber-500/[0.08]', text: 'text-amber-400', border: 'border-amber-500/20', glow: 'bg-amber-500/20' },
 };
 
-const integrationLogos: { name: string; gradient: string; borderHover: string; logo: React.ReactNode }[] = [
-  {
-    name: 'Stripe',
-    gradient: 'from-indigo-500/10 to-purple-500/10',
-    borderHover: 'hover:border-indigo-500/30',
-    logo: <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none"><path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z" fill="#635BFF"/></svg>,
-  },
-  {
-    name: 'WhatsApp',
-    gradient: 'from-green-500/10 to-emerald-500/10',
-    borderHover: 'hover:border-green-500/30',
-    logo: <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" fill="#25D366"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.555 4.124 1.527 5.86L.055 23.765l6.068-1.45A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818c-1.855 0-3.632-.5-5.182-1.445l-.372-.22-3.6.86.902-3.498-.243-.387A9.782 9.782 0 012.182 12c0-5.413 4.405-9.818 9.818-9.818S21.818 6.587 21.818 12s-4.405 9.818-9.818 9.818z" fill="#25D366"/></svg>,
-  },
-  {
-    name: 'Visa',
-    gradient: 'from-blue-500/10 to-indigo-500/10',
-    borderHover: 'hover:border-blue-500/30',
-    logo: <svg viewBox="0 0 48 16" className="w-12 h-6" fill="none"><text x="0" y="14" fontFamily="Arial, sans-serif" fontWeight="900" fontSize="16" fill="#1A1F71" letterSpacing="-0.5">VISA</text></svg>,
-  },
-  {
-    name: 'Google Maps',
-    gradient: 'from-green-500/10 to-blue-500/10',
-    borderHover: 'hover:border-green-500/30',
-    logo: <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#EA4335"/><circle cx="12" cy="9" r="2.5" fill="white"/></svg>,
-  },
-  {
-    name: 'Instagram',
-    gradient: 'from-pink-500/10 to-purple-500/10',
-    borderHover: 'hover:border-pink-500/30',
-    logo: <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none"><rect x="2" y="2" width="20" height="20" rx="5" fill="url(#ig-a)"/><rect x="7" y="7" width="10" height="10" rx="3" stroke="white" strokeWidth="1.5"/><circle cx="12" cy="12" r="3" stroke="white" strokeWidth="1.5"/><circle cx="17" cy="7" r="1" fill="white"/><defs><linearGradient id="ig-a" x1="2" y1="22" x2="22" y2="2" gradientUnits="userSpaceOnUse"><stop stopColor="#F58529"/><stop offset=".5" stopColor="#DD2A7B"/><stop offset="1" stopColor="#515BD4"/></linearGradient></defs></svg>,
-  },
-  {
-    name: 'Gemini AI',
-    gradient: 'from-amber-500/10 to-orange-500/10',
-    borderHover: 'hover:border-amber-500/30',
-    logo: <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="url(#gm-a)"/><path d="M12 7.5l1.2 3.3 3.3 1.2-3.3 1.2L12 16.5l-1.2-3.3L7.5 12l3.3-1.2L12 7.5z" fill="white"/><defs><linearGradient id="gm-a" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse"><stop stopColor="#4285F4"/><stop offset=".33" stopColor="#9B72CB"/><stop offset=".66" stopColor="#D96570"/><stop offset="1" stopColor="#F0C14E"/></linearGradient></defs></svg>,
-  },
-];
 
 /* ─── COMPONENTS ─── */
 
@@ -204,26 +166,6 @@ function SocialProof({ t }: { t: LandingT['socialProof'] }) {
   );
 }
 
-function IntegrationsGrid({ t }: { t: LandingT['integrations'] }) {
-  return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 max-w-3xl mx-auto">
-      {integrationLogos.map((item, i) => (
-        <div key={item.name} className="group">
-          <div className={`relative rounded-2xl border border-white/[0.06] bg-gradient-to-br ${item.gradient} p-6 md:p-7 text-center ${item.borderHover} hover:bg-white/[0.04] transition-all duration-300 overflow-hidden`}>
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <div className="relative z-10">
-              <div className="w-14 h-14 rounded-xl bg-white/[0.06] mx-auto mb-4 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                {item.logo}
-              </div>
-              <p className="text-sm font-semibold text-white">{item.name}</p>
-              <p className="text-xs text-gray-500 mt-1">{t.items[i]?.desc}</p>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function getRecommendedPlan(revenue: number) {
   if (revenue < 8000) return PLANS.starter;
@@ -553,29 +495,6 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
 
           <div className="d-fade-up d-delay-2">
             <FeatureTabs t={t} />
-          </div>
-        </div>
-      </section>
-
-      <div className="separator-gradient max-w-5xl mx-auto" />
-
-      {/* ── Integrations ── */}
-      <section className="relative py-24 md:py-40 overflow-clip">
-        <div className="section-glow section-glow-teal" />
-
-        <div className="relative z-10 max-w-6xl mx-auto px-6">
-          <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.integrations.sectionLabel}</p>
-            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
-              {t.integrations.sectionTitle}
-            </h2>
-            <p className="text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
-              {t.integrations.sectionDesc}
-            </p>
-          </div>
-
-          <div className="d-scale-in d-delay-2">
-            <IntegrationsGrid t={t.integrations} />
           </div>
         </div>
       </section>

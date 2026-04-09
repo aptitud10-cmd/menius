@@ -5,6 +5,7 @@ import { LandingHero } from '@/components/landing/LandingHero';
 import { LandingSections } from '@/components/landing/LandingSections';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { LandingFooter } from '@/components/landing/LandingFooter';
+import { LandingStickyCta } from '@/components/landing/LandingStickyCta';
 import CrispChat from '@/components/CrispChat';
 import type { LandingLocale } from '@/lib/landing-translations';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -116,7 +117,7 @@ export default async function LandingPage() {
   };
 
   return (
-    <div className="landing-bg relative w-full max-w-[100vw] overflow-x-hidden overflow-y-auto">
+    <div className="landing-bg relative w-full max-w-[100vw] overflow-x-clip">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppSchema) }}
@@ -130,6 +131,7 @@ export default async function LandingPage() {
         <LandingHero locale={locale} ordersCount={ordersCount} />
         <LandingSections locale={locale} country={country} />
       </main>
+      <LandingStickyCta locale={locale} />
       <LandingFooter locale={locale} />
       <CrispChat desktopOnly />
     </div>
