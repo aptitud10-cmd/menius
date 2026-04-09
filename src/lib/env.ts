@@ -32,13 +32,16 @@ const RECOMMENDED = [
 ] as const;
 
 export function validateEnv() {
+  // Skip all validation during Next.js build phase — vars are only needed at runtime
+  if (process.env.NEXT_PHASE === 'phase-production-build') return;
+
   const missing: string[] = [];
 
   for (const key of REQUIRED_PUBLIC) {
     if (!process.env[key]) missing.push(key);
   }
 
-  // Only validate server-only vars when running on the server
+  // Only validate server-only vars at runtime (not during build or in the browser)
   if (typeof window === 'undefined') {
     for (const key of REQUIRED_SERVER) {
       if (!process.env[key]) missing.push(key);
