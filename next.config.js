@@ -42,13 +42,20 @@ const nextConfig = {
               "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://*.stripe.com https://image.crisp.chat https://storage.crisp.chat https://maps.gstatic.com https://maps.googleapis.com https://*.mapbox.com",
               "font-src 'self' https://fonts.gstatic.com https://client.crisp.chat https://api.mapbox.com",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://generativelanguage.googleapis.com https://api.resend.com https://client.crisp.chat wss://client.relay.crisp.chat https://storage.crisp.chat https://*.sentry.io https://*.ingest.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://api.mapbox.com https://events.mapbox.com",
-              "frame-src https://js.stripe.com https://hooks.stripe.com https://game.crisp.chat",
+              "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://game.crisp.chat",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
               "upgrade-insecure-requests",
             ].join('; '),
           },
+        ],
+      },
+      {
+        // Demo restaurant slugs — allow same-origin iframe embedding for the hero demo
+        source: '/(the-grill-house|la-casa-del-sabor|adri)',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
         ],
       },
       {
