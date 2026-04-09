@@ -4,11 +4,14 @@ import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { Eye, EyeOff, Sparkles, Check } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { signup } from '@/lib/actions/auth';
 import { signupSchema } from '@/lib/validations';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { useLocale } from '@/providers/locale-provider';
 import { getLandingT } from '@/lib/landing-translations';
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
 
 function getPasswordStrength(pw: string): 0 | 1 | 2 | 3 | 4 {
   if (!pw) return 0;
@@ -66,6 +69,7 @@ export default function SignupPage() {
   const [confirmEmail, setConfirmEmail] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [turnstileToken, setTurnstileToken] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +82,7 @@ export default function SignupPage() {
     }
 
     setLoading(true);
-    const result = await signup(parsed.data);
+    const result = await signup({ ...parsed.data, turnstileToken });
     if (result?.error) {
       setError(mapAuthError(result.error, locale));
       setLoading(false);
@@ -269,9 +273,18 @@ export default function SignupPage() {
                 })()}
               </div>
 
+              {TURNSTILE_SITE_KEY && (
+                <Turnstile
+                  siteKey={TURNSTILE_SITE_KEY}
+                  onSuccess={setTurnstileToken}
+                  onExpire={() => setTurnstileToken('')}
+                  options={{ theme: 'dark', size: 'flexible' }}
+                />
+              )}
+
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
                 className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] md:text-sm hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {loading ? (

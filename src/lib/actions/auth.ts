@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
+import { verifyTurnstile } from '@/lib/turnstile';
 import type { SignupInput, LoginInput } from '@/lib/validations';
 
 function getIPFromHeaders(): string {
@@ -13,10 +14,13 @@ function getIPFromHeaders(): string {
     || '127.0.0.1';
 }
 
-export async function signup(data: SignupInput) {
+export async function signup(data: SignupInput & { turnstileToken?: string }) {
   const ip = getIPFromHeaders();
   const { allowed } = await checkRateLimitAsync(`signup:${ip}`, { limit: 5, windowSec: 300 });
   if (!allowed) return { error: 'Demasiados intentos. Espera unos minutos.' };
+
+  const humanVerified = await verifyTurnstile(data.turnstileToken);
+  if (!humanVerified) return { error: 'Verificación de seguridad fallida. Intenta de nuevo.' };
 
   const supabase = createClient();
 
@@ -37,10 +41,13 @@ export async function signup(data: SignupInput) {
   redirect('/onboarding/create-restaurant');
 }
 
-export async function login(data: LoginInput) {
+export async function login(data: LoginInput & { turnstileToken?: string }) {
   const ip = getIPFromHeaders();
   const { allowed } = await checkRateLimitAsync(`login:${ip}`, { limit: 10, windowSec: 300 });
   if (!allowed) return { error: 'Demasiados intentos. Espera unos minutos.' };
+
+  const humanVerified = await verifyTurnstile(data.turnstileToken);
+  if (!humanVerified) return { error: 'Verificación de seguridad fallida. Intenta de nuevo.' };
 
   const supabase = createClient();
 

@@ -21,6 +21,7 @@
     "@fal-ai/client": "^1.9.5",
     "@google/genai": "^1.46.0",
     "@google/generative-ai": "^0.24.1",
+    "@marsidev/react-turnstile": "^1.5.0",
     "@monaco-editor/react": "^4.7.0",
     "@sentry/nextjs": "^10.39.0",
     "@stripe/stripe-js": "^8.8.0",

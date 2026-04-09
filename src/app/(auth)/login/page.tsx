@@ -3,11 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { login } from '@/lib/actions/auth';
 import { loginSchema } from '@/lib/validations';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { useLocale } from '@/providers/locale-provider';
 import { getLandingT } from '@/lib/landing-translations';
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
 
 export default function LoginPage() {
   const locale = useLocale();
@@ -19,6 +22,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +33,7 @@ export default function LoginPage() {
       return;
     }
     setLoading(true);
-    const result = await login(parsed.data);
+    const result = await login({ ...parsed.data, turnstileToken });
     if (result?.error) {
       setError(result.error);
       setLoading(false);
@@ -132,9 +136,18 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {TURNSTILE_SITE_KEY && (
+                <Turnstile
+                  siteKey={TURNSTILE_SITE_KEY}
+                  onSuccess={setTurnstileToken}
+                  onExpire={() => setTurnstileToken('')}
+                  options={{ theme: 'dark', size: 'flexible' }}
+                />
+              )}
+
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
                 className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] md:text-sm hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {loading ? (
