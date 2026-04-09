@@ -468,7 +468,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (orderError) {
-      return NextResponse.json({ error: orderError.message }, { status: 500 });
+      logger.error('Failed to insert order', { error: orderError.message, restaurantId: restaurant.id });
+      return NextResponse.json({ error: 'No se pudo crear la orden. Intenta de nuevo.' }, { status: 500 });
     }
 
     const { data: insertedItems, error: itemsError } = await adminDb

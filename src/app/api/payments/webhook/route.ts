@@ -59,6 +59,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
+    // ── Idempotency guard ──
+    const adminDb = createAdminClient();
+    const { data: alreadyProcessed } = await adminDb
+      .from('processed_webhook_events')
+      .select('id')
+      .eq('event_id', event.id)
+      .maybeSingle();
+
+    if (alreadyProcessed) {
+      logger.info('Duplicate payments webhook — skipping', { eventId: event.id });
+      return NextResponse.json({ received: true });
+    }
+
     const session = event.data.object as any;
     const orderId = session.metadata?.order_id;
 
@@ -113,6 +126,11 @@ export async function POST(request: NextRequest) {
       default:
         logger.info('Unhandled event type', { type: event.type });
     }
+
+    // Mark event as processed
+    await adminDb
+      .from('processed_webhook_events')
+      .upsert({ event_id: event.id, processed_at: new Date().toISOString() }, { onConflict: 'event_id' });
 
     return NextResponse.json({ received: true });
   } catch (err: unknown) {

@@ -1,6 +1,7 @@
 import { Redis } from '@upstash/redis';
 import { sendWhatsApp } from '@/lib/notifications/whatsapp';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { canTransition } from '@/lib/order-state';
 
 function getAdminClient() {
   return createAdminClient();
@@ -560,28 +561,53 @@ export async function handleIncomingMessage({ from, text, name, messageId }: Inc
     const intent = detectIntent(text);
 
     if (intent === 'confirm_order') {
-      // Mark order as confirmed
-      await supabase.from('orders').update({ status: 'confirmed' }).eq('id', session.pendingOrderId);
+      // Fetch current status before updating to enforce state machine
+      const { data: currentOrder } = await supabase
+        .from('orders')
+        .select('status')
+        .eq('id', session.pendingOrderId)
+        .maybeSingle();
+
+      const savedOrderNumber = session.pendingOrderNumber;
       session.step = 'browsing';
       session.pendingOrderId = undefined;
       session.pendingOrderNumber = undefined;
       await setSession(from, session);
+
+      if (currentOrder && canTransition(currentOrder.status, 'confirmed')) {
+        await supabase.from('orders').update({ status: 'confirmed' }).eq('id', session.pendingOrderId!);
+      }
+
       reply = isEn
-        ? `✅ Order *#${session.pendingOrderNumber}* confirmed! We'll notify you when it's ready. 🙌`
-        : `✅ ¡Orden *#${session.pendingOrderNumber}* confirmada! Te avisamos cuando esté lista. 🙌`;
+        ? `✅ Order *#${savedOrderNumber}* confirmed! We'll notify you when it's ready. 🙌`
+        : `✅ ¡Orden *#${savedOrderNumber}* confirmada! Te avisamos cuando esté lista. 🙌`;
       await sendWhatsApp({ to: from, text: reply });
       return;
     }
 
     if (intent === 'cancel_order') {
-      await supabase.from('orders').update({ status: 'cancelled', cancellation_reason: isEn ? 'Cancelled by customer via WhatsApp' : 'Cancelado por cliente via WhatsApp' }).eq('id', session.pendingOrderId);
+      const { data: currentOrder } = await supabase
+        .from('orders')
+        .select('status')
+        .eq('id', session.pendingOrderId)
+        .maybeSingle();
+
+      const savedOrderNumber = session.pendingOrderNumber;
       session.step = 'browsing';
       session.pendingOrderId = undefined;
       session.pendingOrderNumber = undefined;
       await setSession(from, session);
+
+      if (currentOrder && canTransition(currentOrder.status, 'cancelled')) {
+        await supabase.from('orders').update({
+          status: 'cancelled',
+          cancellation_reason: isEn ? 'Cancelled by customer via WhatsApp' : 'Cancelado por cliente via WhatsApp',
+        }).eq('id', session.pendingOrderId!);
+      }
+
       reply = isEn
-        ? `❌ Order *#${session.pendingOrderNumber}* has been cancelled. Let us know if you need anything else!`
-        : `❌ Orden *#${session.pendingOrderNumber}* cancelada. ¡Avísanos si necesitas algo más!`;
+        ? `❌ Order *#${savedOrderNumber}* has been cancelled. Let us know if you need anything else!`
+        : `❌ Orden *#${savedOrderNumber}* cancelada. ¡Avísanos si necesitas algo más!`;
       await sendWhatsApp({ to: from, text: reply });
       return;
     }

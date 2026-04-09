@@ -44,25 +44,41 @@ function memoryRateLimit(
   return { allowed, remaining, resetAt: existing.resetAt };
 }
 
-// ── Redis rate limiter (singleton) ──
+// ── Redis rate limiter (per-config cache) ──
 
-let redisLimiter: Ratelimit | null = null;
+let redisClient: Redis | null = null;
+const redisLimiterCache = new Map<string, Ratelimit>();
 
-function getRedisLimiter(): Ratelimit | null {
-  if (redisLimiter) return redisLimiter;
+function getRedisClient(): Redis | null {
+  if (redisClient) return redisClient;
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return null;
+  try {
+    redisClient = new Redis({ url, token });
+    return redisClient;
+  } catch {
+    return null;
+  }
+}
+
+function getRedisLimiter(config: RateLimitConfig): Ratelimit | null {
+  const redis = getRedisClient();
+  if (!redis) return null;
+
+  const key = `${config.limit}:${config.windowSec}`;
+  const cached = redisLimiterCache.get(key);
+  if (cached) return cached;
 
   try {
-    const redis = new Redis({ url, token });
-    redisLimiter = new Ratelimit({
+    const limiter = new Ratelimit({
       redis,
-      limiter: Ratelimit.slidingWindow(30, '60 s'),
+      limiter: Ratelimit.slidingWindow(config.limit, `${config.windowSec} s`),
       analytics: false,
       prefix: 'menius-rl',
     });
-    return redisLimiter;
+    redisLimiterCache.set(key, limiter);
+    return limiter;
   } catch {
     return null;
   }
@@ -90,7 +106,7 @@ export async function checkRateLimitAsync(
   identifier: string,
   config: RateLimitConfig = { limit: 30, windowSec: 60 }
 ): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
-  const limiter = getRedisLimiter();
+  const limiter = getRedisLimiter(config);
   if (!limiter) {
     if (!redisWarningLogged && process.env.NODE_ENV === 'production') {
       console.warn('[rate-limit] Upstash Redis not configured — using in-memory fallback (not shared across instances)');

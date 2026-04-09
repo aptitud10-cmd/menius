@@ -12,14 +12,16 @@ export type OrderStatus =
   | 'preparing'
   | 'ready'
   | 'delivered'
+  | 'completed'
   | 'cancelled';
 
 export const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending:   ['confirmed', 'preparing', 'cancelled'],
   confirmed: ['preparing', 'ready', 'cancelled'],
   preparing: ['ready', 'delivered', 'cancelled'],
-  ready:     ['delivered', 'cancelled'],
-  delivered: [],
+  ready:     ['delivered', 'completed', 'cancelled'],
+  delivered: ['completed'],
+  completed: [],
   cancelled: [],
 };
 
