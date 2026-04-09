@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { getLandingT, type LandingLocale } from '@/lib/landing-translations';
+import { PhoneMockup } from './PhoneMockup';
 
 function formatCount(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1).replace('.0', '')}k+`;
@@ -68,74 +69,8 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
             </div>
           </div>
 
-          <div className="hidden lg:flex justify-center d-scale-in d-delay-3" style={{ perspective: '1200px' }}>
-            <div className="d-float" style={{ transformStyle: 'preserve-3d', transform: 'rotateY(-6deg) rotateX(2deg)' }}>
-              <div className="relative w-[280px] h-[580px] rounded-[2.5rem] border-[3px] border-white/[0.12] bg-gray-950 shadow-[0_0_80px_rgba(16,185,129,0.15),0_25px_50px_rgba(0,0,0,0.5)] overflow-hidden">
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[90px] h-[28px] bg-black rounded-full z-20" />
-
-                <div className="relative z-10 pt-10 px-5 pb-2 flex items-center justify-between">
-                  <span className="text-[10px] text-white/50 font-medium">9:41</span>
-                  <div className="flex items-center gap-1.5">
-                    <svg className="w-3 h-3 text-white/40" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3a4.24 4.24 0 00-6 0zm-4-4l2 2a7.07 7.07 0 0110 0l2-2C15.14 9.14 8.87 9.14 5 13z" />
-                    </svg>
-                    <div className="w-4 h-2 border border-white/40 rounded-sm">
-                      <div className="w-3 h-1.5 bg-[#05c8a7]/70 rounded-[1px] m-[0.5px]" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="relative z-10 px-4 pb-4">
-                  <div className="text-center mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#05c8a7]/90 to-[#04a88c]/70 mx-auto mb-1.5 flex items-center justify-center shadow-lg shadow-[#05c8a7]/20">
-                      <span className="text-white text-sm font-bold">M</span>
-                    </div>
-                    <p className="text-white text-[11px] font-semibold">{h.phone.restaurantName}</p>
-                    <p className="text-gray-500 text-[9px]">{h.phone.tableInfo}</p>
-                  </div>
-
-                  <div className="flex gap-1.5 mb-3 overflow-hidden">
-                    {h.phone.categories.map((cat, i) => (
-                      <span key={cat} className={`px-2.5 py-1 rounded-full text-[9px] font-medium flex-shrink-0 ${i === 0 ? 'bg-white text-black' : 'bg-white/[0.06] text-gray-400'}`}>
-                        {cat}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="space-y-2">
-                    {h.phone.items.map((item) => (
-                      <div key={item.name} className="flex items-center gap-2.5 p-2 rounded-xl bg-white/[0.03] border border-white/[0.05]">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-white/[0.06] to-white/[0.02] flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="text-white text-[10px] font-medium truncate">{item.name}</p>
-                            {item.popular && <span className="px-1 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[7px] font-bold flex-shrink-0">★</span>}
-                          </div>
-                          <p className="text-gray-500 text-[8px] truncate">{item.desc}</p>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-white text-[10px] font-semibold">{item.price}</p>
-                          <span className="mt-0.5 inline-block px-2 py-0.5 rounded-md bg-[#05c8a7]/20 text-[#05c8a7] text-[7px] font-semibold">+</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-3 py-2.5 rounded-xl bg-white text-center">
-                    <span className="text-black text-[10px] font-semibold">{h.phone.cartButton}</span>
-                  </div>
-
-                  <div className="mt-2 p-2 rounded-lg bg-[#05c8a7]/10 border border-[#05c8a7]/20 flex items-center gap-2">
-                    <svg className="w-3 h-3 text-[#05c8a7] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <p className="text-[#05c8a7] text-[9px] font-medium">{h.phone.orderSent}</p>
-                  </div>
-                </div>
-
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-24 h-[4px] bg-white/15 rounded-full" />
-              </div>
-            </div>
+          <div className="hidden lg:flex justify-center items-center d-scale-in d-delay-3">
+            <PhoneMockup locale={locale} />
           </div>
 
         </div>
