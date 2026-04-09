@@ -151,6 +151,7 @@ export function MenuShell({
   const CATEGORY_PREVIEW = 8; // kept for potential future use
   // Activated automatically for stores with many products or categories (e.g. Buccaneer)
   const isLargeCatalog = products.length > 80 || categories.length > 12;
+  const isDemo = restaurant.id.startsWith('demo');
   const storeConfig = getStoreOverrides(restaurant.slug);
   const [activeCatFilter, setActiveCatFilter] = useState<string | null>(null);
   const [showFavs, setShowFavs] = useState(false);
@@ -1074,8 +1075,18 @@ export function MenuShell({
         className={`flex-1 overflow-y-auto overscroll-contain max-w-[1440px] w-full mx-auto ${cartCount > 0 ? 'pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0' : 'pb-[env(safe-area-inset-bottom)]'}`}
       >
 
+        {/* Demo restaurants: minimal sticky name bar instead of cover image */}
+        {isDemo && (
+          <div className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-2.5 shadow-sm">
+            {restaurant.logo_url && (
+              <img src={restaurant.logo_url} alt={restaurant.name} className="w-7 h-7 rounded-lg object-cover flex-shrink-0" />
+            )}
+            <p className="font-bold text-gray-900 text-sm truncate">{restaurant.name}</p>
+          </div>
+        )}
+
         {/* Cover banner — full width, scrolls away naturally with content */}
-        {restaurant.cover_image_url && (
+        {!isDemo && restaurant.cover_image_url && (
           <div ref={bannerRef} className="relative w-full h-48 sm:h-56 lg:h-72 bg-gray-100 overflow-hidden">
             <Image
               src={restaurant.cover_image_url}

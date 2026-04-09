@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import {
   motion,
   useMotionValue,
@@ -40,6 +40,7 @@ const AMBIENT_SHADOWS = [
 
 export function PhoneDemo() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -56,6 +57,24 @@ export function PhoneDemo() {
   // Shine glint slides with tilt, oversized so borders never show
   const shineX = useTransform(rotateY, [-MAX_TILT, MAX_TILT], [FRAME_W * 0.04, -(FRAME_W * 0.04)]);
   const shineY = useTransform(rotateX, [-MAX_TILT, MAX_TILT], [-(FRAME_W * 0.04), FRAME_W * 0.04]);
+
+  // Native (non-passive) wheel handler so we can call preventDefault()
+  // and route scroll directly into the iframe's scrollable element.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const doc = iframeRef.current?.contentDocument;
+      const scrollEl = doc?.querySelector<HTMLElement>('.overflow-y-auto');
+      if (scrollEl) {
+        scrollEl.scrollTop += e.deltaY;
+      }
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, []);
 
   function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -74,7 +93,6 @@ export function PhoneDemo() {
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      onWheel={(e) => e.stopPropagation()}
       style={{ perspective: '900px' }}
     >
       <motion.div
@@ -121,6 +139,7 @@ export function PhoneDemo() {
                   overflow: 'hidden',
                 }}>
                   <iframe
+                    ref={iframeRef}
                     src="/the-grill-house"
                     title="Menius — Live Demo"
                     style={{
