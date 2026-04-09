@@ -1,4 +1,5 @@
 import { cookies, headers } from 'next/headers';
+import { unstable_cache } from 'next/cache';
 import type { Metadata, Viewport } from 'next';
 import { LandingHero } from '@/components/landing/LandingHero';
 import { LandingSections } from '@/components/landing/LandingSections';
@@ -6,6 +7,24 @@ import { LandingNav } from '@/components/landing/LandingNav';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import CrispChat from '@/components/CrispChat';
 import type { LandingLocale } from '@/lib/landing-translations';
+import { createAdminClient } from '@/lib/supabase/admin';
+
+const getPublicStats = unstable_cache(
+  async () => {
+    try {
+      const supabase = createAdminClient();
+      const { count } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .neq('status', 'cancelled');
+      return { ordersCount: count ?? 0 };
+    } catch {
+      return { ordersCount: 0 };
+    }
+  },
+  ['landing-public-stats'],
+  { revalidate: 3600 }
+);
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
@@ -60,6 +79,8 @@ export default async function LandingPage() {
   const headerStore = await headers();
   const country = headerStore.get('x-vercel-ip-country') ?? undefined;
 
+  const { ordersCount } = await getPublicStats();
+
   const softwareAppSchema = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -106,7 +127,7 @@ export default async function LandingPage() {
       />
       <LandingNav locale={locale} />
       <main id="main-content">
-        <LandingHero locale={locale} />
+        <LandingHero locale={locale} ordersCount={ordersCount} />
         <LandingSections locale={locale} country={country} />
       </main>
       <LandingFooter locale={locale} />

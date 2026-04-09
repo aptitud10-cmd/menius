@@ -1,7 +1,13 @@
 import Link from 'next/link';
 import { getLandingT, type LandingLocale } from '@/lib/landing-translations';
 
-export function LandingHero({ locale }: { locale: LandingLocale }) {
+function formatCount(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1).replace('.0', '')}k+`;
+  if (n > 0) return `${n}+`;
+  return '—';
+}
+
+export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; ordersCount?: number }) {
   const h = getLandingT(locale).hero;
 
   return (
@@ -38,7 +44,7 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
                 <span className="inline-block ml-1.5 group-hover:translate-x-1 transition-transform duration-200">&rarr;</span>
               </Link>
               <Link
-                href="/demo"
+                href="/#calculadora"
                 className="w-full sm:w-auto px-8 py-5 rounded-2xl border-2 border-white/15 text-gray-200 font-bold text-[17px] hover:text-white hover:border-white/30 hover:bg-white/[0.04] active:scale-[0.97] transition-[transform,border-color,background,color] duration-150 text-center"
               >
                 {h.ctaSecondary}
@@ -46,12 +52,19 @@ export function LandingHero({ locale }: { locale: LandingLocale }) {
             </div>
 
             <div className="d-fade-up d-delay-4 mt-12 md:mt-14 w-full flex items-start justify-center lg:justify-start gap-4 sm:gap-8">
-              {h.stats.map((s) => (
-                <div key={s.label} className="text-center lg:text-left min-w-0">
-                  <p className="text-xl sm:text-3xl font-semibold text-white tracking-tight">{s.value}</p>
-                  <p className="text-xs sm:text-sm text-gray-400 mt-1.5 font-medium">{s.label}</p>
-                </div>
-              ))}
+              {h.stats.map((s, i) => {
+                const isDynamic = i === 1 && ordersCount != null && ordersCount > 0;
+                const value = isDynamic ? formatCount(ordersCount!) : s.value;
+                const label = isDynamic
+                  ? (locale === 'es' ? 'Pedidos sin comisión' : 'Orders, zero commission')
+                  : s.label;
+                return (
+                  <div key={s.label} className="text-center lg:text-left min-w-0">
+                    <p className="text-xl sm:text-3xl font-semibold text-white tracking-tight">{value}</p>
+                    <p className="text-xs sm:text-sm text-gray-400 mt-1.5 font-medium">{label}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

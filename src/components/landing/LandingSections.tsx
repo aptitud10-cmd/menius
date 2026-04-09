@@ -505,7 +505,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Savings Calculator ── */}
-      <section className="relative py-24 md:py-40 overflow-clip">
+      <section id="calculadora" className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">

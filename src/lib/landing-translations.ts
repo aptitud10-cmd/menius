@@ -96,8 +96,8 @@ const es = {
     titleLine1: 'Deja de pagar comisiones. ',
     titleHighlight: 'Vende directo.',
     subtitle: 'Tus clientes ordenan desde el celular. Tú cobras directo. Sin intermediarios. Sin comisiones. Listo en 2 minutos.',
-    ctaPrimary: 'Crea tu menú en 2 min',
-    ctaSecondary: 'Ver demo en vivo',
+    ctaPrimary: 'Empezar gratis — sin tarjeta',
+    ctaSecondary: 'Calcula tu ahorro',
     stats: [
       { value: '0%', label: 'Comisión por pedido' },
       { value: '+30%', label: 'Más ganancia vs apps' },
@@ -118,8 +118,8 @@ const es = {
     },
   },
   socialProof: {
-    headline: 'Tecnología de clase mundial para tu restaurante',
-    logos: ['Stripe', 'Google Gemini', 'Supabase', 'Vercel', 'Sentry', 'Cloudflare'],
+    headline: 'Restaurantes en México, Colombia, Perú y EE.UU. ya venden sin comisiones',
+    logos: ['Ciudad de México', 'Bogotá', 'Lima', 'Miami', 'Guadalajara'],
     stats: [
       { value: '0%', label: 'Comisión por pedido' },
       { value: '2 min', label: 'Menú listo' },
@@ -299,24 +299,24 @@ const es = {
   },
   testimonials: {
     sectionLabel: 'La industria en números',
-    sectionTitle: 'El mercado que estás dejando ir',
+    sectionTitle: 'Por qué los mejores restaurantes están dejando las apps',
     items: [
       {
         name: '25–35%',
         role: 'McKinsey & Company, Food Delivery Report 2023',
-        quote: 'Eso pierde tu restaurante en comisiones cada vez que llega un pedido por Rappi, Uber Eats o DoorDash. Con MENIUS esa cifra es 0%. Cada peso va directo a tu cuenta.',
+        quote: 'Si vendes $10,000 al mes por apps de delivery, estás regalando hasta $3,500 — cada mes, no al año. Doce veces al año. Con MENIUS esa cifra es $0. Cada peso va directo a tu cuenta.',
         initials: '💸',
       },
       {
         name: '73%',
         role: 'Square Restaurant Industry Report, 2024',
-        quote: 'De los comensales preferiría pedir directamente al restaurante si la experiencia fuera igual de fácil. MENIUS lo hace posible desde cualquier celular, sin descargar apps.',
+        quote: 'De cada 10 clientes, 7 prefieren pedir directo al restaurante si es igual de fácil. Con MENIUS lo hacen desde su celular, sin bajar apps, sin que tú pagues comisión por eso.',
         initials: '📱',
       },
       {
         name: '+22%',
         role: 'Toast Restaurant Technology Report, 2023',
-        quote: 'Más ticket promedio generan los restaurantes con menú digital vs. menú en papel. Las fotos reales, sugerencias IA y extras visibles venden solos.',
+        quote: 'Los restaurantes con menú digital venden un 22% más por pedido. Las fotos reales, los extras visibles y las sugerencias de IA hacen que tus clientes gasten más — sin que les pidas nada.',
         initials: '📈',
       },
     ],
@@ -448,8 +448,8 @@ const en: LandingT = {
     titleLine1: 'Stop paying commissions. ',
     titleHighlight: 'Sell direct.',
     subtitle: 'Your customers order from their phone. You collect directly. No middlemen. No commissions. Ready in 2 minutes.',
-    ctaPrimary: 'Create your menu in 2 min',
-    ctaSecondary: 'View live demo',
+    ctaPrimary: 'Start free — no card needed',
+    ctaSecondary: 'Calculate your savings',
     stats: [
       { value: '0%', label: 'Commission per order' },
       { value: '+30%', label: 'More profit vs apps' },
@@ -470,8 +470,8 @@ const en: LandingT = {
     },
   },
   socialProof: {
-    headline: 'World-class technology for your restaurant',
-    logos: ['Stripe', 'Google Gemini', 'Supabase', 'Vercel', 'Sentry', 'Cloudflare'],
+    headline: 'Restaurants in Mexico, Colombia, Peru and the U.S. already sell without commissions',
+    logos: ['Mexico City', 'Bogotá', 'Lima', 'Miami', 'Guadalajara'],
     stats: [
       { value: '0%', label: 'Commission per order' },
       { value: '2 min', label: 'Menu ready' },
@@ -651,24 +651,24 @@ const en: LandingT = {
   },
   testimonials: {
     sectionLabel: 'Industry by the numbers',
-    sectionTitle: 'The market you\'re missing out on',
+    sectionTitle: 'Why the best restaurants are leaving delivery apps',
     items: [
       {
         name: '25–35%',
         role: 'McKinsey & Company, Food Delivery Report 2023',
-        quote: 'That\'s how much restaurants lose in commissions on every order through Rappi, Uber Eats or DoorDash. With MENIUS that number is 0%. Every dollar goes straight to your account.',
+        quote: 'If you sell $10,000/month through delivery apps, you\'re giving away up to $3,500 — every month, not per year. Twelve times a year. With MENIUS that number is $0. Every dollar goes straight to you.',
         initials: '💸',
       },
       {
         name: '73%',
         role: 'Square Restaurant Industry Report, 2024',
-        quote: 'Of diners would prefer to order directly from the restaurant if the experience were just as easy. MENIUS makes that possible from any phone, with no app download.',
+        quote: '7 out of 10 customers prefer ordering directly from the restaurant if it\'s just as easy. With MENIUS they do it from their phone — no app download, no commission charged to you.',
         initials: '📱',
       },
       {
         name: '+22%',
         role: 'Toast Restaurant Technology Report, 2023',
-        quote: 'Higher average order value for restaurants with digital menus vs. paper menus. Real photos, AI suggestions and visible add-ons sell themselves.',
+        quote: 'Restaurants with digital menus earn 22% more per order. Real photos, visible add-ons and AI suggestions make your customers spend more — without you having to ask.',
         initials: '📈',
       },
     ],
