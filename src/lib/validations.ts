@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const signupSchema = z.object({
-  full_name: z.string().min(2, 'Mínimo 2 caracteres'),
+  full_name: z.string().min(2, 'Mínimo 2 caracteres').optional(),
   email: z.string().email('Email inválido'),
   password: z.string().min(8, 'Mínimo 8 caracteres'),
 });

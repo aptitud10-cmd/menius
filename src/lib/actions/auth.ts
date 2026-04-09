@@ -24,7 +24,7 @@ export async function signup(data: SignupInput) {
     email: data.email,
     password: data.password,
     options: {
-      data: { full_name: data.full_name },
+      data: { full_name: data.full_name ?? '' },
     },
   });
 

@@ -58,14 +58,12 @@ export default function SignupPage() {
   const locale = useLocale();
   const t = getLandingT(locale).auth.signup;
 
-  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState(false);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
@@ -73,12 +71,7 @@ export default function SignupPage() {
     e.preventDefault();
     setError('');
 
-    if (!acceptedTerms) {
-      setError(t.termsRequired);
-      return;
-    }
-
-    const parsed = signupSchema.safeParse({ full_name: fullName, email, password });
+    const parsed = signupSchema.safeParse({ email, password });
     if (!parsed.success) {
       setError(parsed.error.errors[0].message);
       return;
@@ -147,8 +140,8 @@ export default function SignupPage() {
           <h1 className="text-2xl md:text-3xl font-black text-white mt-4 leading-tight tracking-tight">{t.subtitle}</h1>
           <div className="flex items-center justify-center gap-4 mt-3 flex-wrap">
             {(locale === 'es'
-              ? ['Gratis para siempre', 'Sin contrato', '2 min para empezar']
-              : ['Free forever', 'No contract', 'Start in 2 min']
+              ? ['0% comisión por pedido', 'Sin tarjeta de crédito', 'Listo en 2 minutos']
+              : ['0% commission per order', 'No credit card', 'Ready in 2 minutes']
             ).map((chip) => (
               <span key={chip} className="inline-flex items-center gap-1.5 text-[11px] text-gray-500">
                 <span className="w-1 h-1 rounded-full bg-emerald-500/60 inline-block flex-shrink-0" />
@@ -202,23 +195,6 @@ export default function SignupPage() {
                   </span>
                 </div>
               )}
-
-              <div>
-                <label htmlFor="signup-name" className="block text-sm font-medium text-gray-400 mb-2">{t.fullName}</label>
-                <div className={`relative rounded-xl transition-all duration-300 ${focused === 'name' ? 'ring-1 ring-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]' : ''}`}>
-                  <input
-                    id="signup-name"
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    onFocus={() => setFocused('name')}
-                    onBlur={() => setFocused(null)}
-                    className="w-full px-4 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm placeholder-gray-500 focus:outline-none transition-colors"
-                    placeholder={t.namePlaceholder}
-                    autoComplete="name"
-                  />
-                </div>
-              </div>
 
               <div>
                 <label htmlFor="signup-email" className="block text-sm font-medium text-gray-400 mb-2">{t.email}</label>
@@ -293,37 +269,9 @@ export default function SignupPage() {
                 })()}
               </div>
 
-              <label className="flex items-start gap-3 cursor-pointer group">
-                <div className="relative mt-0.5">
-                  <input
-                    type="checkbox"
-                    checked={acceptedTerms}
-                    onChange={(e) => setAcceptedTerms(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-4 h-4 rounded border border-white/[0.12] bg-white/[0.04] peer-checked:bg-emerald-500 peer-checked:border-emerald-500 transition-all flex items-center justify-center">
-                    {acceptedTerms && (
-                      <svg className="w-2.5 h-2.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                </div>
-                <span className="text-[12px] text-gray-500 leading-relaxed group-hover:text-gray-400 transition-colors">
-                  {t.termsPrefix}{' '}
-                  <Link href="/terms" target="_blank" className="text-gray-300 hover:text-white underline underline-offset-2 transition-colors">
-                    {t.termsLink}
-                  </Link>{' '}
-                  {t.termsAnd}{' '}
-                  <Link href="/privacy" target="_blank" className="text-gray-300 hover:text-white underline underline-offset-2 transition-colors">
-                    {t.privacyLink}
-                  </Link>
-                </span>
-              </label>
-
               <button
                 type="submit"
-                disabled={loading || !acceptedTerms}
+                disabled={loading}
                 className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] md:text-sm hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {loading ? (
@@ -333,6 +281,13 @@ export default function SignupPage() {
                   </span>
                 ) : t.submit}
               </button>
+
+              <p className="text-[12px] text-gray-500 leading-relaxed text-center">
+                {locale === 'es'
+                  ? <>Al crear tu cuenta aceptas los{' '}<Link href="/terms" target="_blank" className="text-gray-300 hover:text-white underline underline-offset-2 transition-colors">Términos</Link>{' '}y la{' '}<Link href="/privacy" target="_blank" className="text-gray-300 hover:text-white underline underline-offset-2 transition-colors">Política de Privacidad</Link>.</>
+                  : <>By creating your account you agree to our{' '}<Link href="/terms" target="_blank" className="text-gray-300 hover:text-white underline underline-offset-2 transition-colors">Terms</Link>{' '}and{' '}<Link href="/privacy" target="_blank" className="text-gray-300 hover:text-white underline underline-offset-2 transition-colors">Privacy Policy</Link>.</>
+                }
+              </p>
             </form>
           </div>
         </div>

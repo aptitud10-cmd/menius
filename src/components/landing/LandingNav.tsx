@@ -48,8 +48,6 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
         <nav className="hidden md:flex items-center gap-8">
           <Link href="/#funciones" className="text-sm text-gray-400 hover:text-white transition-colors">{n.features}</Link>
           <Link href="/#precios" className="text-sm text-gray-400 hover:text-white transition-colors">{n.pricing}</Link>
-          <Link href="/blog" className="text-sm text-gray-400 hover:text-white transition-colors">{n.blog}</Link>
-          <Link href="/faq" className="text-sm text-gray-400 hover:text-white transition-colors">{n.faq}</Link>
           <Link href="/demo" className="text-sm text-gray-400 hover:text-white transition-colors">{n.demo}</Link>
         </nav>
 
@@ -87,8 +85,6 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
             <Link href="/#funciones" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors active:text-white">{n.features}</Link>
             <Link href="/#precios" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors active:text-white">{n.pricing}</Link>
             <Link href="/demo" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors active:text-white">{n.demo}</Link>
-            <Link href="/blog" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors active:text-white">{n.blog}</Link>
-            <Link href="/faq" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors active:text-white">{n.faq}</Link>
             <div className="h-px bg-white/[0.06] my-2" />
             <div className="flex items-center gap-3 py-3">
               <button onClick={() => switchLocale('es')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'es' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}>ES</button>
