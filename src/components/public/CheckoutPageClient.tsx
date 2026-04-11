@@ -514,14 +514,34 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         setPayLoading(false);
         return;
       }
+      const {
+        publicKey,
+        currency,
+        amountInCents,
+        reference,
+        integrityHash,
+        redirectUrl,
+      } = data;
+      if (
+        !publicKey ||
+        !currency ||
+        amountInCents === undefined ||
+        !reference ||
+        !integrityHash ||
+        !redirectUrl
+      ) {
+        setOrderError(formatPaymentStartError(res.status, undefined, locale));
+        setPayLoading(false);
+        return;
+      }
       // Use Wompi Web Checkout redirect (most compatible approach)
       const params = new URLSearchParams({
-        'public-key': data.publicKey,
-        'currency': data.currency,
-        'amount-in-cents': String(data.amountInCents),
-        'reference': data.reference,
-        'signature:integrity': data.integrityHash,
-        'redirect-url': data.redirectUrl,
+        'public-key': publicKey,
+        currency,
+        'amount-in-cents': String(amountInCents),
+        reference,
+        'signature:integrity': integrityHash,
+        'redirect-url': redirectUrl,
       });
       if (data.customerData?.email) params.append('customer-data:email', data.customerData.email);
       if (data.customerData?.fullName) params.append('customer-data:full-name', data.customerData.fullName);
