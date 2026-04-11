@@ -40,7 +40,7 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
   return (
     <header
       ref={navRef}
-      className={`fixed top-0 w-full z-50 bg-[#050505]/80 backdrop-blur-2xl border-b transition-colors duration-300 ${scrolled ? 'border-white/[0.09] shadow-[0_1px_0_rgba(255,255,255,0.04)]' : 'border-white/[0.04]'}`}
+      className={`fixed top-0 w-full z-[120] bg-[#050505]/80 backdrop-blur-2xl border-b transition-colors duration-300 ${scrolled ? 'border-white/[0.09] shadow-[0_1px_0_rgba(255,255,255,0.04)]' : 'border-white/[0.04]'}`}
     >
       <div className="max-w-6xl mx-auto px-5 h-14 md:h-16 flex items-center justify-between">
         <Link href="/" className="font-display text-lg font-bold tracking-[-0.04em] text-white">MENIUS</Link>
