@@ -352,13 +352,17 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         setOrderError(formatOrderSubmitError(res.status, data.error, locale));
         return;
       }
-      setOrderNumber(data.order_number);
-      setOrderId(data.order_id);
-      // For online payments: redirect immediately to Stripe
+      // Online payment: redirect immediately — no need for order id in local state
       if (data.stripe_url) {
         window.location.href = data.stripe_url;
         return;
       }
+      if (!data.order_number || !data.order_id) {
+        setOrderError(formatOrderSubmitError(res.status, undefined, locale));
+        return;
+      }
+      setOrderNumber(data.order_number);
+      setOrderId(data.order_id);
       // Demo restaurant + online payment → show simulated card payment step
       if (restaurant.id.startsWith('demo') && paymentMethod === 'online') {
         setStep('payment');
