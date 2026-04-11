@@ -13,6 +13,11 @@ import type { Restaurant, OrderType, PaymentMethod } from '@/types';
 import { trackEvent } from '@/lib/analytics';
 import { playSuccessChime, spawnConfetti } from '@/lib/celebration';
 import { computeTaxAmount } from '@/lib/tax-presets';
+import {
+  formatOrderSubmitError,
+  formatPaymentStartError,
+  safeParseJson,
+} from '@/lib/checkout-errors';
 
 const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl skeleton" />;
 
@@ -330,8 +335,23 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           })),
         }),
       });
-      const data = await res.json();
-      if (!res.ok) { setOrderError(data.error || (locale === 'en' ? 'Error sending order' : 'Error enviando orden')); return; }
+      const text = await res.text();
+      const parsed = safeParseJson<{
+        error?: string;
+        order_number?: string;
+        order_id?: string;
+        stripe_url?: string;
+        idempotent?: boolean;
+      }>(text);
+      if (!parsed.ok) {
+        setOrderError(formatOrderSubmitError(res.status, undefined, locale));
+        return;
+      }
+      const data = parsed.data;
+      if (!res.ok) {
+        setOrderError(formatOrderSubmitError(res.status, data.error, locale));
+        return;
+      }
       setOrderNumber(data.order_number);
       setOrderId(data.order_id);
       // For online payments: redirect immediately to Stripe
@@ -375,7 +395,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       playSuccessChime();
       confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
     } catch {
-      setOrderError(locale === 'en' ? 'Connection error' : 'Error de conexión');
+      setOrderError(
+        locale === 'es'
+          ? 'No hay conexión. Revisa tu red e inténtalo de nuevo.'
+          : 'No connection. Check your network and try again.'
+      );
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -432,15 +456,26 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: orderId, slug: restaurant.slug }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      const parsed = safeParseJson<{ error?: string; url?: string | null }>(text);
+      if (!parsed.ok) {
+        setOrderError(formatPaymentStartError(res.status, undefined, locale));
+        setPayLoading(false);
+        return;
+      }
+      const data = parsed.data;
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setOrderError(data.error || (locale === 'es' ? 'Error al iniciar el pago. Intenta de nuevo.' : 'Payment failed. Please try again.'));
+        setOrderError(formatPaymentStartError(res.status, data.error, locale));
         setPayLoading(false);
       }
     } catch {
-      setOrderError(locale === 'es' ? 'Error de conexión al procesar el pago.' : 'Connection error processing payment.');
+      setOrderError(
+        locale === 'es'
+          ? 'Sin conexión al iniciar el pago. Revisa tu red e inténtalo.'
+          : 'Could not reach the server to start payment. Check your connection.'
+      );
       setPayLoading(false);
     }
   };
@@ -453,9 +488,25 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: orderId, slug: restaurant.slug }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      const parsed = safeParseJson<{
+        error?: string;
+        publicKey?: string;
+        currency?: string;
+        amountInCents?: number;
+        reference?: string;
+        integrityHash?: string;
+        redirectUrl?: string;
+        customerData?: { email?: string; fullName?: string; phoneNumber?: string; phonePrefix?: string };
+      }>(text);
+      if (!parsed.ok) {
+        setOrderError(formatPaymentStartError(res.status, undefined, locale));
+        setPayLoading(false);
+        return;
+      }
+      const data = parsed.data;
       if (data.error) {
-        setOrderError(data.error);
+        setOrderError(formatPaymentStartError(res.status, data.error, locale));
         setPayLoading(false);
         return;
       }
@@ -478,7 +529,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       }
       window.location.href = `https://checkout.wompi.co/p/?${params.toString()}`;
     } catch {
-      setOrderError(locale === 'es' ? 'Error de conexión al procesar el pago.' : 'Connection error processing payment.');
+      setOrderError(
+        locale === 'es'
+          ? 'Sin conexión al iniciar el pago. Revisa tu red e inténtalo.'
+          : 'Could not reach the server to start payment. Check your connection.'
+      );
       setPayLoading(false);
     }
   };
