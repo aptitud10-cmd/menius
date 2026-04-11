@@ -48,6 +48,8 @@ export interface StoreOverrides {
 const OVERRIDES: Record<string, StoreOverrides> = {
   buccaneer: {
     optimizeImages: true,
+    /** Long menu: show “back to top” in the mobile category bar when scrolled. */
+    showScrollTop: true,
   },
   // Configuración para el nuevo modo de alta conversión (ejemplo)
   // ¡Recuerda reemplazar los IDs de producto con IDs reales de tu base de datos!

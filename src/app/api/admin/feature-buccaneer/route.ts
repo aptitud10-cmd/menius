@@ -1,30 +1,32 @@
 export const dynamic = 'force-dynamic';
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdmin } from '@/lib/auth/verify-admin';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { BUCCANEER_SLUG } from '@/lib/buccaneer';
 
-// Temporary route — marks top products per category as featured in Buccaneer
-// GET /api/admin/feature-buccaneer
+/**
+ * Marks one product per category as featured (highest price per category) for Buccaneer.
+ * POST only — avoids accidental triggers from crawlers or prefetch on GET.
+ *
+ * Legacy: GET was supported; returns 405 with hint to use POST.
+ */
 
-export async function GET() {
-  const auth = await verifyAdmin();
-  if (!auth) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
-
+async function runFeatureBuccaneer(): Promise<NextResponse> {
   const supabase = createAdminClient();
   const log: string[] = [];
 
-  // Find Buccaneer
   const { data: restaurant } = await supabase
     .from('restaurants')
     .select('id')
-    .eq('slug', 'buccaneer')
+    .eq('slug', BUCCANEER_SLUG)
     .single();
 
-  if (!restaurant) return NextResponse.json({ error: 'Buccaneer not found' }, { status: 404 });
+  if (!restaurant) {
+    return NextResponse.json({ error: `Restaurant "${BUCCANEER_SLUG}" not found` }, { status: 404 });
+  }
   const rid = restaurant.id;
 
-  // Fetch all active products with their categories
   const { data: products, error } = await supabase
     .from('products')
     .select('id, name, price, category_id, is_featured')
@@ -32,9 +34,10 @@ export async function GET() {
     .eq('is_active', true)
     .order('price', { ascending: false });
 
-  if (error || !products) return NextResponse.json({ error: error?.message }, { status: 500 });
+  if (error || !products) {
+    return NextResponse.json({ error: error?.message ?? 'Failed to load products' }, { status: 500 });
+  }
 
-  // Group by category, pick top 1 per category (highest price = likely signature item)
   const topByCategory = new Map<string, { id: string; name: string; price: number }>();
   for (const p of products) {
     if (!topByCategory.has(p.category_id)) {
@@ -43,28 +46,37 @@ export async function GET() {
   }
 
   const toFeature = Array.from(topByCategory.values());
-  const ids = toFeature.map(p => p.id);
+  const ids = toFeature.map((p) => p.id);
 
-  // First clear all existing featured flags for this restaurant
-  await supabase
-    .from('products')
-    .update({ is_featured: false })
-    .eq('restaurant_id', rid);
+  await supabase.from('products').update({ is_featured: false }).eq('restaurant_id', rid);
 
-  // Mark selected products as featured
-  const { error: updateErr } = await supabase
-    .from('products')
-    .update({ is_featured: true })
-    .in('id', ids);
+  const { error: updateErr } = await supabase.from('products').update({ is_featured: true }).in('id', ids);
 
-  if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
+  if (updateErr) {
+    return NextResponse.json({ error: updateErr.message }, { status: 500 });
+  }
 
   for (const p of toFeature) {
     log.push(`⭐ ${p.name} — $${p.price}`);
   }
-
   log.push('');
   log.push(`✅ ${toFeature.length} products marked as featured (1 per category)`);
 
   return NextResponse.json({ success: true, log });
+}
+
+export async function POST(_req: NextRequest) {
+  const auth = await verifyAdmin();
+  if (!auth) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
+  return runFeatureBuccaneer();
+}
+
+export async function GET() {
+  return NextResponse.json(
+    {
+      error: 'Method not allowed',
+      hint: 'Use POST /api/admin/feature-buccaneer (admin session required). GET is disabled to avoid accidental runs.',
+    },
+    { status: 405, headers: { Allow: 'POST' } }
+  );
 }

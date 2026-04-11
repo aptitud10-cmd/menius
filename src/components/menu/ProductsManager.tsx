@@ -614,7 +614,7 @@ export function ProductsManager({
         </Suspense>
       )}
 
-      {/* Admin bulk image regeneration (only for Buccaneer) */}
+      {/* Admin bulk image regeneration when NEXT_PUBLIC_ADMIN_REGEN_RESTAURANT_ID matches this restaurant */}
       {showAdminRegen && restaurantId && (
         <Suspense fallback={null}>
           <AdminBulkRegenerateLazy

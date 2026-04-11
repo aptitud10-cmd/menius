@@ -86,6 +86,8 @@ export interface Translations {
   filterAll: string;
   filterPopular: string;
   filterWithOptions: string;
+  /** Long menus (e.g. store override): scroll to top */
+  backToTop: string;
   // Search
   searchPlaceholder: string;
   noResults: string;
@@ -229,6 +231,7 @@ const es: Translations = {
   filterAll: 'Todos',
   filterPopular: 'Populares',
   filterWithOptions: 'Con opciones',
+  backToTop: 'Volver arriba',
   searchPlaceholder: 'Buscar platillos...',
   noResults: 'No se encontraron resultados',
   orderType: 'Tipo de orden',
@@ -353,6 +356,7 @@ const en: Translations = {
   filterAll: 'All',
   filterPopular: 'Popular',
   filterWithOptions: 'With options',
+  backToTop: 'Back to top',
   searchPlaceholder: 'Search dishes...',
   noResults: 'No results found',
   orderType: 'Order type',

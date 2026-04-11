@@ -21,7 +21,7 @@ export const dynamicParams = true;
 export async function generateStaticParams() {
   const slugs = await fetchAllSlugs();
   // Also include the demo slugs so they are always pre-built
-  const demoSlugs = ['la-casa-del-sabor', 'the-grill-house', 'adri'];
+  const demoSlugs = ['la-casa-del-sabor', 'the-grill-house', 'adri', 'buccaneer'];
   const all = Array.from(new Set([...demoSlugs, ...slugs]));
   return all.map((slug) => ({ slug }));
 }

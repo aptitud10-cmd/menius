@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, Search, Globe, RotateCcw, AlertCircle, AlignJustify } from 'lucide-react';
+import { ShoppingCart, ChevronLeft, ChevronRight, X, MapPin, Clock, Heart, Star, ArrowLeft, ArrowUp, Search, Globe, RotateCcw, AlertCircle, AlignJustify } from 'lucide-react';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
@@ -153,6 +153,7 @@ export function MenuShell({
   const isLargeCatalog = products.length > 80 || categories.length > 12;
   const isDemo = restaurant.id.startsWith('demo');
   const storeConfig = getStoreOverrides(restaurant.slug);
+  const showScrollTopPill = Boolean(storeConfig.showScrollTop);
   const [activeCatFilter, setActiveCatFilter] = useState<string | null>(null);
   const [showFavs, setShowFavs] = useState(false);
   const favIds = useFavoritesStore((s) => s.ids);
@@ -725,15 +726,19 @@ export function MenuShell({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemsByCategory, mainMounted]);
 
-  // Track scroll for collapsing header.
+  // Track scroll for collapsing header + optional “back to top” pill (large-catalog stores).
+  const [mainScrollTop, setMainScrollTop] = useState(0);
   useEffect(() => {
     const main = mainRef.current;
     if (!main) return;
     const threshold = hasCover ? 100 : 40;
     const onScroll = () => {
-      setHeaderScrolled(main.scrollTop > threshold);
+      const top = main.scrollTop;
+      setMainScrollTop(top);
+      setHeaderScrolled(top > threshold);
     };
     main.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
     return () => { main.removeEventListener('scroll', onScroll); };
   }, [hasCover, mainMounted]);
 
@@ -1022,6 +1027,18 @@ export function MenuShell({
         ))}
         {filterDivider}
         {mobileFavPill}
+        {showScrollTopPill && mainScrollTop > 180 && (
+          <button
+            type="button"
+            onClick={() => mainRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+            style={{ touchAction: 'manipulation' }}
+            className="flex-shrink-0 inline-flex items-center gap-1 px-3 py-[7px] rounded-lg text-[13px] font-semibold whitespace-nowrap bg-brand-500 text-white shadow-sm active:bg-brand-600"
+            aria-label={t.backToTop}
+          >
+            <ArrowUp className="w-3.5 h-3.5" strokeWidth={2.5} />
+            <span className="max-w-[7rem] truncate">{t.backToTop}</span>
+          </button>
+        )}
         {/* Spacer so last pill doesn't sit under the fade */}
         <div className="w-8 flex-shrink-0" aria-hidden="true" />
       </div>
@@ -1079,7 +1096,14 @@ export function MenuShell({
         {isDemo && (
           <div className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-2.5 shadow-sm">
             {restaurant.logo_url && (
-              <img src={restaurant.logo_url} alt={restaurant.name} className="w-7 h-7 rounded-lg object-cover flex-shrink-0" />
+              <Image
+                src={restaurant.logo_url}
+                alt={restaurant.name}
+                width={28}
+                height={28}
+                unoptimized
+                className="w-7 h-7 rounded-lg object-cover flex-shrink-0"
+              />
             )}
             <p className="font-bold text-gray-900 text-sm truncate">{restaurant.name}</p>
           </div>
