@@ -152,9 +152,9 @@ function SocialProof({ t }: { t: LandingT['socialProof'] }) {
             })}
           </div>
 
-          <div className="mt-14 flex items-center justify-center gap-4 sm:gap-10 md:gap-20">
+          <div className="mt-14 flex items-center justify-center gap-4 sm:gap-10 md:gap-20 max-w-md md:max-w-none mx-auto w-full">
             {t.stats.map((stat) => (
-              <div key={stat.label} className="text-center">
+              <div key={stat.label} className="text-center flex-1">
                 <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight">{stat.value}</p>
                 <p className="text-xs text-gray-500 mt-2 font-medium tracking-wide">{stat.label}</p>
               </div>

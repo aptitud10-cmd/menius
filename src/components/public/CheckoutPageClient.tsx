@@ -883,11 +883,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   }
 
   return (
-    <motion.div
+    <div
       className="h-[100dvh] bg-[#f5f5f5] flex flex-col overflow-hidden"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
     >
       {/* Sticky header */}
       <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between">
@@ -1392,6 +1389,6 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           </button>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

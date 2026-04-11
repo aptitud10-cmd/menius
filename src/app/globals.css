@@ -47,6 +47,7 @@ html {
   -webkit-text-size-adjust: 100%;
   height: 100%;
   overscroll-behavior: none;
+  background-color: #050505; /* prevents white rubber-band flash on iOS Safari */
 }
 body {
   -webkit-font-smoothing: antialiased;
@@ -174,6 +175,7 @@ label {
 html, body {
   max-width: 100vw;
   overflow-x: clip;
+  overscroll-behavior: none;
 }
 
 /* Native-feel touch targets on touch devices */

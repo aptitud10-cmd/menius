@@ -118,6 +118,25 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
         />
+        <script dangerouslySetInnerHTML={{ __html: `
+(function(){
+  var startY=0;
+  document.addEventListener('touchstart',function(e){startY=e.touches[0].pageY;},{passive:true});
+  document.addEventListener('touchmove',function(e){
+    var el=e.target;
+    while(el&&el!==document.documentElement){
+      var s=window.getComputedStyle(el);
+      if((s.overflowY==='auto'||s.overflowY==='scroll')&&el.scrollHeight>el.clientHeight)return;
+      el=el.parentElement;
+    }
+    var st=document.documentElement.scrollTop||document.body.scrollTop;
+    var sh=document.documentElement.scrollHeight;
+    var ch=document.documentElement.clientHeight;
+    var dy=e.touches[0].pageY-startY;
+    if((st<=0&&dy>0)||(st+ch>=sh&&dy<0))e.preventDefault();
+  },{passive:false});
+})();
+        `}} />
         <Suspense fallback={null}>
           <PostHogProvider>{children}</PostHogProvider>
         </Suspense>
