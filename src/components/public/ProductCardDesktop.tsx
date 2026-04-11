@@ -98,7 +98,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             src={product.image_url}
             alt={imgAlt}
             fill
-            sizes="(max-width: 1280px) 50vw, 33vw"
+            sizes="(max-width: 1280px) 40vw, 28vw"
             priority={priority}
             unoptimized={product.image_url.includes('.supabase.co/storage/')}
             placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}

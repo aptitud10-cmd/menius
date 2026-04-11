@@ -68,7 +68,8 @@ const nextConfig = {
       {
         source: '/:slug((?!app|api|auth|admin|blog|_next|favicon|robots|sitemap|sw\\.js|icons|images|manifest|offline|privacy|terms|cookies|faq|changelog|status|start|onboarding|setup-profesional|demo|login|signup|kds|counter|monitoring).*)',
         headers: [
-          { key: 'Cache-Control', value: 'public, s-maxage=60, stale-while-revalidate=300' },
+          // Align with app/[slug]/page.tsx revalidate=300 — fewer origin hits, faster repeat views at the edge
+          { key: 'Cache-Control', value: 'public, s-maxage=300, stale-while-revalidate=600' },
         ],
       },
       {

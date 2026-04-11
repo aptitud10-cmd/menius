@@ -220,6 +220,9 @@ export function MenuShell({
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  /** Skip per-card Framer Motion on mobile for large catalogs — only after mount so SSR/hydration match. */
+  const lightMobileProductGrid = hasMounted && isLargeCatalog && !isDesktopView;
+
   // NOTE: useBodyScrollLock is intentionally NOT used here.
   // Menius scrolls via mainRef (a custom div), not document.body — window.scrollY is always 0.
   // Applying position:fixed to body on iOS shifts the visual viewport, which breaks the
@@ -1477,6 +1480,7 @@ export function MenuShell({
                   <section
                     key={category.id}
                     data-cat-id={category.id}
+                    style={{ contentVisibility: 'auto' }}
                     ref={(el) => {
                       if (el) sectionRefs.current.set(category.id, el);
                       else sectionRefs.current.delete(category.id);
@@ -1515,48 +1519,79 @@ export function MenuShell({
                           </div>
                         </div>
                       )}
-                      <motion.div
-                        className={cn('grid grid-cols-2 xl:grid-cols-3 gap-3', isLocked && 'opacity-40')}
-                        {...(isLocked ? { 'aria-hidden': true } : {})}
-                        initial={isDesktopView ? 'hidden' : false}
-                        whileInView={isDesktopView ? 'visible' : undefined}
-                        viewport={isDesktopView ? { once: true, margin: '-40px' } : undefined}
-                        variants={isDesktopView ? {
-                          hidden: {},
-                          visible: { transition: { staggerChildren: 0.06 } },
-                        } : undefined}
-                      >
-                        {items.map((product) => {
-                          const isPriority = globalProductIdx < 8;
-                          globalProductIdx++;
-                          return (
-                          <motion.div
-                            key={product.id}
-                            className="rounded-2xl overflow-hidden"
-                            variants={isDesktopView ? {
-                              hidden: { opacity: 0, y: 16 },
-                              visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
-                            } : undefined}
-                          >
-                            <ProductCard
-                              product={product}
-                              onSelect={handleProductSelect}
-                              onQuickAdd={handleQuickAdd}
-                              fmtPrice={fmtPrice}
-                              addLabel={t.addToCart}
-                              customizeLabel={t.customize}
-                              popularLabel={t.popular}
-                              soldOutLabel={t.soldOut}
-                              unavailableLabel={t.unavailable}
-                              addedShortLabel={t.addedShort}
-                              locale={locale}
-                              defaultLocale={defaultLocale}
-                              priority={isPriority}
-                            />
-                          </motion.div>
-                          );
-                        })}
-                      </motion.div>
+                      {lightMobileProductGrid ? (
+                        <div
+                          className={cn('grid grid-cols-2 xl:grid-cols-3 gap-3', isLocked && 'opacity-40')}
+                          {...(isLocked ? { 'aria-hidden': true } : {})}
+                        >
+                          {items.map((product) => {
+                            const isPriority = globalProductIdx < 4;
+                            globalProductIdx++;
+                            return (
+                              <div key={product.id} className="rounded-2xl overflow-hidden">
+                                <ProductCard
+                                  product={product}
+                                  onSelect={handleProductSelect}
+                                  onQuickAdd={handleQuickAdd}
+                                  fmtPrice={fmtPrice}
+                                  addLabel={t.addToCart}
+                                  customizeLabel={t.customize}
+                                  popularLabel={t.popular}
+                                  soldOutLabel={t.soldOut}
+                                  unavailableLabel={t.unavailable}
+                                  addedShortLabel={t.addedShort}
+                                  locale={locale}
+                                  defaultLocale={defaultLocale}
+                                  priority={isPriority}
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <motion.div
+                          className={cn('grid grid-cols-2 xl:grid-cols-3 gap-3', isLocked && 'opacity-40')}
+                          {...(isLocked ? { 'aria-hidden': true } : {})}
+                          initial={isDesktopView ? 'hidden' : false}
+                          whileInView={isDesktopView ? 'visible' : undefined}
+                          viewport={isDesktopView ? { once: true, margin: '-40px' } : undefined}
+                          variants={isDesktopView ? {
+                            hidden: {},
+                            visible: { transition: { staggerChildren: 0.06 } },
+                          } : undefined}
+                        >
+                          {items.map((product) => {
+                            const isPriority = globalProductIdx < 8;
+                            globalProductIdx++;
+                            return (
+                              <motion.div
+                                key={product.id}
+                                className="rounded-2xl overflow-hidden"
+                                variants={isDesktopView ? {
+                                  hidden: { opacity: 0, y: 16 },
+                                  visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+                                } : undefined}
+                              >
+                                <ProductCard
+                                  product={product}
+                                  onSelect={handleProductSelect}
+                                  onQuickAdd={handleQuickAdd}
+                                  fmtPrice={fmtPrice}
+                                  addLabel={t.addToCart}
+                                  customizeLabel={t.customize}
+                                  popularLabel={t.popular}
+                                  soldOutLabel={t.soldOut}
+                                  unavailableLabel={t.unavailable}
+                                  addedShortLabel={t.addedShort}
+                                  locale={locale}
+                                  defaultLocale={defaultLocale}
+                                  priority={isPriority}
+                                />
+                              </motion.div>
+                            );
+                          })}
+                        </motion.div>
+                      )}
                     </div>
                   </section>
                 );
