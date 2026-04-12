@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { Turnstile } from '@marsidev/react-turnstile';
@@ -24,7 +24,18 @@ export default function LoginPage() {
   const [focused, setFocused] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string>('');
   const [turnstileError, setTurnstileError] = useState(false);
+  const [turnstileReady, setTurnstileReady] = useState(false);
   const requiresTurnstile = TURNSTILE_SITE_KEY.length > 0;
+
+  useEffect(() => {
+    if (!requiresTurnstile) return;
+    const timer = window.setTimeout(() => {
+      if (!turnstileReady && !turnstileToken) {
+        setTurnstileError(true);
+      }
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [requiresTurnstile, turnstileReady, turnstileToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,6 +162,10 @@ export default function LoginPage() {
                   <Turnstile
                     siteKey={TURNSTILE_SITE_KEY}
                     onLoadScript={() => setTurnstileError(false)}
+                    onWidgetLoad={() => {
+                      setTurnstileReady(true);
+                      setTurnstileError(false);
+                    }}
                     onSuccess={(token) => {
                       setTurnstileError(false);
                       setTurnstileToken(token);
@@ -168,16 +183,26 @@ export default function LoginPage() {
                       onError: () => {
                         setTurnstileToken('');
                         setTurnstileError(true);
+                        setTurnstileReady(false);
                       },
                     }}
                     options={{ theme: 'dark', size: 'flexible' }}
                   />
                   {turnstileError ? (
-                    <p className="text-[12px] text-amber-400">
-                      {locale === 'es'
-                        ? 'No se pudo cargar la verificacion anti-bot. Desactiva adblock/Brave shields o recarga la pagina.'
-                        : 'Could not load anti-bot verification. Disable ad blockers/Brave shields or reload the page.'}
-                    </p>
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                      <p className="text-[12px] text-amber-300">
+                        {locale === 'es'
+                          ? 'No se pudo cargar la verificacion anti-bot. Desactiva adblock/Brave shields y recarga la pagina.'
+                          : 'Could not load anti-bot verification. Disable ad blockers/Brave shields and reload the page.'}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                        className="mt-2 text-[12px] text-white underline underline-offset-2 hover:text-emerald-300 transition-colors"
+                      >
+                        {locale === 'es' ? 'Recargar pagina' : 'Reload page'}
+                      </button>
+                    </div>
                   ) : (
                     !turnstileToken && (
                       <p className="text-[12px] text-gray-500">
