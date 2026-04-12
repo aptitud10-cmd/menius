@@ -94,15 +94,6 @@ export default function SignupPage() {
       setError(parsed.error.errors[0].message);
       return;
     }
-    if (requiresTurnstile && !turnstileToken) {
-      setError(
-        locale === 'es'
-          ? 'Completa la verificacion anti-bot para continuar.'
-          : 'Complete anti-bot verification to continue.'
-      );
-      return;
-    }
-
     setLoading(true);
     const result = await signup({ ...parsed.data, turnstileToken });
     if (result?.error) {
@@ -355,7 +346,7 @@ export default function SignupPage() {
 
               <button
                 type="submit"
-                disabled={loading || (requiresTurnstile && !turnstileToken)}
+                disabled={loading}
                 className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] md:text-sm hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {loading ? (
