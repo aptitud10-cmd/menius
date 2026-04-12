@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('id, name, stripe_account_id')
+      .select('id, name, stripe_account_id, country_code, currency')
       .eq('owner_user_id', user.id)
       .maybeSingle();
 
@@ -32,8 +32,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
     }
 
+    const countryCode = (restaurant.country_code ?? '').toUpperCase();
+    const currency = (restaurant.currency ?? '').toUpperCase();
+    const isColombianRestaurant = countryCode === 'CO' || currency === 'COP';
+    if (isColombianRestaurant) {
+      return NextResponse.json(
+        { error: 'This restaurant uses Wompi for online payments.' },
+        { status: 400 }
+      );
+    }
+
     const stripe = getStripe();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
+    const stripeCountryByCurrency: Record<string, string> = {
+      USD: 'US',
+      MXN: 'MX',
+      PEN: 'PE',
+      CLP: 'CL',
+      ARS: 'AR',
+      EUR: 'ES',
+    };
+    const stripeCountry = (countryCode || stripeCountryByCurrency[currency] || 'MX').toLowerCase();
 
     let accountId = restaurant.stripe_account_id;
 
@@ -49,7 +68,7 @@ export async function POST(request: NextRequest) {
         display_name: restaurant.name,
         contact_email: user.email,
         identity: {
-          country: 'mx',
+          country: stripeCountry,
         },
         dashboard: 'full',
         defaults: {
