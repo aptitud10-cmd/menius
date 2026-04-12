@@ -23,6 +23,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string>('');
+  const [turnstileError, setTurnstileError] = useState(false);
+  const requiresTurnstile = TURNSTILE_SITE_KEY.length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +32,14 @@ export default function LoginPage() {
     const parsed = loginSchema.safeParse({ email, password });
     if (!parsed.success) {
       setError(parsed.error.errors[0].message);
+      return;
+    }
+    if (requiresTurnstile && !turnstileToken) {
+      setError(
+        locale === 'es'
+          ? 'Completa la verificacion anti-bot para continuar.'
+          : 'Complete anti-bot verification to continue.'
+      );
       return;
     }
     setLoading(true);
@@ -136,18 +146,53 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {TURNSTILE_SITE_KEY && (
-                <Turnstile
-                  siteKey={TURNSTILE_SITE_KEY}
-                  onSuccess={setTurnstileToken}
-                  onExpire={() => setTurnstileToken('')}
-                  options={{ theme: 'dark', size: 'flexible' }}
-                />
+              {requiresTurnstile && (
+                <div className="space-y-2">
+                  <Turnstile
+                    siteKey={TURNSTILE_SITE_KEY}
+                    onLoadScript={() => setTurnstileError(false)}
+                    onSuccess={(token) => {
+                      setTurnstileError(false);
+                      setTurnstileToken(token);
+                    }}
+                    onExpire={() => setTurnstileToken('')}
+                    onError={() => {
+                      setTurnstileToken('');
+                      setTurnstileError(true);
+                    }}
+                    onUnsupported={() => {
+                      setTurnstileToken('');
+                      setTurnstileError(true);
+                    }}
+                    scriptOptions={{
+                      onError: () => {
+                        setTurnstileToken('');
+                        setTurnstileError(true);
+                      },
+                    }}
+                    options={{ theme: 'dark', size: 'flexible' }}
+                  />
+                  {turnstileError ? (
+                    <p className="text-[12px] text-amber-400">
+                      {locale === 'es'
+                        ? 'No se pudo cargar la verificacion anti-bot. Desactiva adblock/Brave shields o recarga la pagina.'
+                        : 'Could not load anti-bot verification. Disable ad blockers/Brave shields or reload the page.'}
+                    </p>
+                  ) : (
+                    !turnstileToken && (
+                      <p className="text-[12px] text-gray-500">
+                        {locale === 'es'
+                          ? 'Completa la verificacion anti-bot para habilitar el boton.'
+                          : 'Complete anti-bot verification to enable the button.'}
+                      </p>
+                    )
+                  )}
+                </div>
               )}
 
               <button
                 type="submit"
-                disabled={loading || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
+                disabled={loading || (requiresTurnstile && !turnstileToken)}
                 className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] md:text-sm hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {loading ? (
