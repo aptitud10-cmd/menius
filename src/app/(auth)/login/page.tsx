@@ -11,6 +11,7 @@ import { useLocale } from '@/providers/locale-provider';
 import { getLandingT } from '@/lib/landing-translations';
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
+const IS_VERCEL_PREVIEW = process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview';
 
 export default function LoginPage() {
   const locale = useLocale();
@@ -25,7 +26,7 @@ export default function LoginPage() {
   const [turnstileToken, setTurnstileToken] = useState<string>('');
   const [turnstileError, setTurnstileError] = useState(false);
   const [turnstileReady, setTurnstileReady] = useState(false);
-  const requiresTurnstile = TURNSTILE_SITE_KEY.length > 0;
+  const requiresTurnstile = TURNSTILE_SITE_KEY.length > 0 && !IS_VERCEL_PREVIEW;
 
   useEffect(() => {
     if (!requiresTurnstile) return;
