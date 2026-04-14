@@ -30,6 +30,20 @@ const PhoneField = dynamic(
   { ssr: false, loading: () => fieldSkeleton }
 );
 
+interface CartQuoteResponse {
+  subtotal: number;
+  delivery_fee: number;
+  discount_amount: number;
+  loyalty_discount: number;
+  tip_amount: number;
+  tax_amount: number;
+  tax_included: boolean;
+  tax_rate: number;
+  tax_label: string;
+  total: number;
+  currency: string;
+}
+
 interface CheckoutPageClientProps {
   restaurant: Restaurant;
   locale: Locale;
@@ -163,6 +177,62 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [demoPayProcessing, setDemoPayProcessing] = useState(false);
   const tipAmount = tipPercent !== null ? Math.round(cartTotal * tipPercent) / 100 : 0;
 
+  const [serverQuote, setServerQuote] = useState<CartQuoteResponse | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+
+  // Fetch server-authoritative pricing whenever the cart, order type, promo or tip changes.
+  // Falls back to local estimate on network failure so checkout is never blocked.
+  useEffect(() => {
+    if (!hasMounted || items.length === 0 || restaurant.id.startsWith('demo')) {
+      setServerQuote(null);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setQuoteLoading(true);
+      try {
+        const res = await fetch('/api/cart/quote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            restaurant_id: restaurant.id,
+            order_type: orderType,
+            items: items.map((item) => ({
+              product_id: item.product.id,
+              variant_id: item.variant?.id ?? null,
+              qty: item.qty,
+              extras: item.extras.map((e) => ({ extra_id: e.id })),
+              modifiers: (item.modifierSelections ?? []).flatMap((ms) =>
+                ms.selectedOptions.map((opt) => ({
+                  group_id: ms.group.id,
+                  option_id: opt.id,
+                }))
+              ),
+            })),
+            promo_code: promoResult?.valid ? promoCode.trim() : undefined,
+            loyalty_account_id: loyaltyApplied && loyaltyBalance?.account_id ? loyaltyBalance.account_id : undefined,
+            loyalty_points_redeemed: loyaltyApplied ? (loyaltyBalance?.points ?? 0) : 0,
+            tip_amount: tipAmount,
+          }),
+        });
+        if (cancelled || !res.ok) return;
+        const data: CartQuoteResponse = await res.json();
+        if (!cancelled) setServerQuote(data);
+      } catch {
+        // Network failure — local estimate remains visible
+      } finally {
+        if (!cancelled) setQuoteLoading(false);
+      }
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMounted, items, orderType, promoResult, promoCode, loyaltyApplied, loyaltyBalance, tipPercent, restaurant.id, tipAmount]);
+
+  const displayTotal = serverQuote?.total ?? finalTotal;
+
   // Reactive form validation — drives CTA disabled state
   const isFormReady = Boolean(
     customerName.trim().length >= 2 &&
@@ -265,7 +335,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         saveLastOrder();
         const demoSnapshot = items.map((i) => ({ name: i.product.name, qty: i.qty, variant: i.variant?.name, lineTotal: i.lineTotal }));
         setConfirmedItems(demoSnapshot);
-        setConfirmedTotal(finalTotal);
+        setConfirmedTotal(displayTotal);
         clearCart();
         setOrderNumber('DEMO-0042');
         setOrderId('demo-order-id');
@@ -371,7 +441,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       saveLastOrder();
       // Capture snapshot before clearing cart — used in confirmation screen
       setConfirmedItems(items.map(i => ({ name: i.product.name, qty: i.qty, variant: i.variant?.name, lineTotal: i.lineTotal })));
-      setConfirmedTotal(finalTotal);
+      setConfirmedTotal(displayTotal);
       // Save customer info for next visit
       try {
         if (rememberMe) {
@@ -417,7 +487,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     saveLastOrder();
     // Capture snapshot before clearing cart — used in confirmation screen
     setConfirmedItems(items.map(i => ({ name: i.product.name, qty: i.qty, variant: i.variant?.name, lineTotal: i.lineTotal })));
-    setConfirmedTotal(finalTotal);
+    setConfirmedTotal(displayTotal);
     try {
       if (rememberMe) {
         localStorage.setItem('menius_guest_info', JSON.stringify({
@@ -698,7 +768,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               {/* Name */}
               <p className="text-sm text-gray-500 font-medium">{restaurant.name}</p>
               {/* Amount */}
-              <p className="text-4xl font-black text-gray-900 tabular-nums tracking-tight">{fmtPrice(finalTotal)}</p>
+              <p className={`text-4xl font-black text-gray-900 tabular-nums tracking-tight transition-opacity ${quoteLoading ? 'opacity-50' : 'opacity-100'}`}>{fmtPrice(displayTotal)}</p>
             </div>
 
             {/* Order summary — collapsible like Stripe */}
@@ -727,7 +797,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   ))}
                   <div className="border-t border-gray-100 pt-2 flex justify-between text-sm font-semibold text-gray-800">
                     <span>{locale === 'es' ? 'Total' : 'Total'}</span>
-                    <span className="tabular-nums">{fmtPrice(finalTotal)}</span>
+                    <span className={`tabular-nums transition-opacity ${quoteLoading ? 'opacity-50' : 'opacity-100'}`}>{fmtPrice(displayTotal)}</span>
                   </div>
                 </div>
               )}
@@ -825,7 +895,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   {locale === 'es' ? 'Procesando…' : 'Processing…'}
                 </span>
               ) : (
-                `${locale === 'es' ? 'Pagar' : 'Pay'} ${fmtPrice(finalTotal)}`
+                `${locale === 'es' ? 'Pagar' : 'Pay'} ${fmtPrice(displayTotal)}`
               )}
             </button>
 
@@ -999,7 +1069,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           <span className="text-sm font-medium">{t.backToMenu}</span>
         </button>
         <h1 className="text-base font-bold text-gray-900">
-          {locale === 'es' ? 'Pagar' : 'Pay'} {fmtPrice(finalTotal)}
+          {locale === 'es' ? 'Pagar' : 'Pay'} {fmtPrice(displayTotal)}
         </h1>
         <div className="flex items-center gap-1.5 text-gray-400">
           <Lock className="w-3.5 h-3.5" />
@@ -1137,8 +1207,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </div>
             )}
             <div className="border-t border-gray-200 pt-3 flex justify-between font-bold text-lg">
-              <span>{t.total}</span>
-              <span className="tabular-nums">{fmtPrice(finalTotal)}</span>
+              <span className="flex items-center gap-2">
+                {t.total}
+                {quoteLoading && (
+                  <span className="inline-block w-3 h-3 rounded-full border-2 border-gray-300 border-t-gray-600 animate-spin" />
+                )}
+              </span>
+              <span className={`tabular-nums transition-opacity ${quoteLoading ? 'opacity-50' : 'opacity-100'}`}>{fmtPrice(displayTotal)}</span>
             </div>
           </div>
 
@@ -1490,7 +1565,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 {t.sending}
               </span>
             ) : (
-              `${t.confirmOrder} · ${fmtPrice(finalTotal)}`
+              `${t.confirmOrder} · ${fmtPrice(displayTotal)}`
             )}
           </button>
         </div>
