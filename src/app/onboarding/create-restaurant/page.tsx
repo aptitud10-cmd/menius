@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createRestaurant, createCategory, createProduct } from '@/lib/actions/restaurant';
+import { createRestaurant, createProduct } from '@/lib/actions/restaurant';
+import { createBrowserClient } from '@/lib/supabase/browser';
 import { createRestaurantSchema } from '@/lib/validations';
 import { slugify } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
@@ -42,11 +43,6 @@ const TIMEZONES = [
   { tz: 'Europe/London', label: 'Londres (GMT/BST)' },
 ];
 
-const CATEGORY_SUGGESTIONS = [
-  'Entradas', 'Platos principales', 'Bebidas', 'Postres', 'Ensaladas', 'Pizzas',
-  'Hamburguesas', 'Tacos', 'Sushi', 'Desayunos', 'Snacks', 'Especiales del día',
-  'Sodas & Refrescos', 'Cervezas', 'Licores',
-];
 
 export default function CreateRestaurantPage() {
   const router = useRouter();
@@ -66,10 +62,6 @@ export default function CreateRestaurantPage() {
   const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const slugDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Step 2 state
-  const [categoryName, setCategoryName] = useState('');
-  const [categoryError, setCategoryError] = useState('');
-  const [categoryLoading, setCategoryLoading] = useState(false);
   const [createdCategoryId, setCreatedCategoryId] = useState<string | null>(null);
 
   // Step 3 state — up to 3 products
@@ -122,7 +114,6 @@ export default function CreateRestaurantPage() {
       setLoading(false);
       return;
     }
-    setLoading(false);
     trackEvent('restaurant_created', {
       restaurant_name: parsed.data.name,
       slug: parsed.data.slug,
@@ -130,27 +121,23 @@ export default function CreateRestaurantPage() {
       locale: parsed.data.locale,
       business_type: businessType || 'unknown',
     });
-    setStep(2);
-  };
-
-  const handleStep2Submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!categoryName.trim()) {
-      setCategoryError('Ingresa el nombre de la categoría');
-      return;
+    // Fetch the first seeded category so products can be assigned to it in Step 3
+    if (result.restaurantId) {
+      try {
+        const supabase = createBrowserClient();
+        const { data: cats } = await supabase
+          .from('categories')
+          .select('id')
+          .eq('restaurant_id', result.restaurantId)
+          .order('sort_order', { ascending: true })
+          .limit(1);
+        if (cats?.[0]?.id) setCreatedCategoryId(cats[0].id);
+      } catch { /* non-critical — products will still be created without category */ }
     }
-    setCategoryError('');
-    setCategoryLoading(true);
-    const result = await createCategory({ name: categoryName.trim(), sort_order: 0, is_active: true });
-    setCategoryLoading(false);
-    if (result?.error) {
-      setCategoryError(result.error);
-      return;
-    }
-    if (result?.id) setCreatedCategoryId(result.id);
-    trackEvent('onboarding_step_completed', { step: 2, step_name: 'first_category', category_name: categoryName.trim() });
+    setLoading(false);
     setStep(3);
   };
+
 
   const handleStep3Submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,11 +197,11 @@ export default function CreateRestaurantPage() {
             <span className="text-white">MENIUS</span>
           </Link>
 
-          {/* Step indicator — oculto en paso 0 */}
-          {step > 0 && (
+          {/* Step indicator — oculto en paso 0, paso 2 no existe, remapeamos 3→2, 4→3 */}
+          {step > 0 && step < 4 && (
             <>
               <div className="flex items-center justify-center gap-2 mt-6 mb-4">
-                {[1, 2, 3, 4].map((s) => (
+                {[1, 3, 4].map((s) => (
                   <div
                     key={s}
                     className={`h-1 rounded-full transition-all duration-300 ${
@@ -224,7 +211,9 @@ export default function CreateRestaurantPage() {
                 ))}
               </div>
               <div className="flex items-center justify-center gap-3">
-                <p className="text-xs text-gray-600 tabular-nums">Paso {Math.min(step, 4)} de 4</p>
+                <p className="text-xs text-gray-600 tabular-nums">
+                  Paso {step === 1 ? 1 : step === 3 ? 2 : 3} de 3
+                </p>
                 <span className="text-[10px] text-gray-700">·</span>
                 <p className="text-[10px] text-gray-600">~2 min</p>
               </div>
@@ -433,90 +422,6 @@ export default function CreateRestaurantPage() {
           </>
         )}
 
-        {/* ── STEP 2: First section (not "categoría") ── */}
-        {step === 2 && (
-          <>
-            <div className="text-center mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
-                </svg>
-              </div>
-              <h1 className="text-3xl font-black text-white leading-tight tracking-tight">¿Cómo organizas tu menú?</h1>
-              <p className="text-gray-400 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
-                Elige o escribe la primera sección de tu menú. Después agregas más.
-              </p>
-            </div>
-
-            <div className="rounded-2xl p-[1px] bg-gradient-to-b from-white/[0.08] to-white/[0.02]">
-              <form onSubmit={handleStep2Submit} className="bg-[#0a0a0a] rounded-2xl p-8 space-y-6">
-                {categoryError && (
-                  <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-red-500/[0.06] border border-red-500/[0.1]">
-                    <span className="text-red-400 text-[13px]">{categoryError}</span>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Nombre de la sección</label>
-                  <div className={wrapClass('cat')}>
-                    <input
-                      type="text"
-                      value={categoryName}
-                      onChange={(e) => setCategoryName(e.target.value)}
-                      onFocus={() => setFocused('cat')}
-                      onBlur={() => setFocused(null)}
-                      className={inputClass('cat')}
-                      placeholder="Ej: Platos principales"
-                      autoFocus
-                    />
-                  </div>
-                </div>
-
-                {/* Quick suggestions */}
-                <div>
-                  <p className="text-[11px] text-gray-600 mb-2">Toca una para seleccionarla:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {CATEGORY_SUGGESTIONS.map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => setCategoryName(s)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
-                          categoryName === s
-                            ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                            : 'bg-white/[0.03] border-white/[0.08] text-gray-500 hover:text-gray-300 hover:border-white/[0.15]'
-                        }`}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={categoryLoading || !categoryName.trim()}
-                  className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] md:text-sm hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {categoryLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                      Guardando...
-                    </span>
-                  ) : 'Continuar →'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => router.push('/app')}
-                  className="w-full py-2.5 text-[13px] text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  Omitir por ahora →
-                </button>
-              </form>
-            </div>
-          </>
-        )}
 
         {/* ── STEP 3: First products (up to 3) ── */}
         {step === 3 && (
@@ -529,8 +434,7 @@ export default function CreateRestaurantPage() {
               </div>
               <h1 className="text-3xl font-black text-white leading-tight tracking-tight">¿Qué vendes?</h1>
               <p className="text-gray-400 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
-                Agrega tus primeros platillos{categoryName ? ` de la sección "${categoryName}"` : ''}.
-                Con nombre y precio ya apareceré en tu menú.
+                Agrega tus primeros platillos. Con nombre y precio ya aparecen en tu menú.
               </p>
             </div>
 
