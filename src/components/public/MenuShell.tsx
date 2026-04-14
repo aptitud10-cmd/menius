@@ -517,6 +517,11 @@ export function MenuShell({
     setCustomization(null);
   }, []);
 
+  const handleViewCartFromCustomization = useCallback(() => {
+    setCustomization(null);
+    setOpen(true);
+  }, [setOpen]);
+
   const handleOpenCheckout = useCallback(() => {
     trackEvent('checkout_started', {
       restaurant_id: restaurant.id,
@@ -1844,6 +1849,7 @@ export function MenuShell({
             product={customization.product}
             editIndex={customization.editIndex}
             onClose={handleCloseCustomization}
+            onViewCart={handleViewCartFromCustomization}
             onAddToCart={showToast}
             fmtPrice={fmtPrice}
             t={t}
