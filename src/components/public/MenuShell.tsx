@@ -13,6 +13,7 @@ import type { Restaurant, Category, Product, OrderType, DietaryTag } from '@/typ
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { getLocaleFlag, SUPPORTED_LOCALES, tName, tDesc } from '@/lib/i18n';
 import { trackEvent } from '@/lib/analytics';
+import { supabaseLoader } from '@/lib/image-loader';
 
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { MenuHeader, HEADER_HEIGHT } from './MenuHeader';
@@ -985,7 +986,7 @@ export function MenuShell({
   const ordersLeft = limitedMode ? Math.max(0, limitedMode.dailyLimit - limitedMode.ordersToday) : null;
 
   return (
-    <div className="relative h-[100dvh] flex flex-col bg-[#f5f5f3] lg:bg-[#f8f8f8] overflow-hidden overscroll-none">
+    <div className="relative flex flex-col bg-[#f5f5f3] lg:bg-[#f8f8f8] overflow-hidden overscroll-none" style={{ height: 'calc(100dvh - env(safe-area-inset-top, 0px))' }}>
       {/* Skip to main content — visible on keyboard focus only */}
       <a
         href="#menu-main"
@@ -1885,6 +1886,7 @@ export function MenuShell({
                             alt={product.name}
                             fill
                             sizes="48px"
+                            loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
                             className="object-cover"
                           />
                         </div>

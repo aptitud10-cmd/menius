@@ -12,17 +12,6 @@ import { cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import type { MenuHeaderProps } from './MenuHeader';
 
-let _sessionCache: Promise<boolean> | null = null;
-function checkIsLoggedIn(): Promise<boolean> {
-  if (!_sessionCache) {
-    _sessionCache = getSupabaseBrowser()
-      .auth.getSession()
-      .then(({ data }) => !!data.session)
-      .catch(() => false);
-  }
-  return _sessionCache;
-}
-
 export const MenuHeaderMobile = memo(function MenuHeaderMobile({
   restaurant,
   onToggleSearch,
@@ -35,8 +24,16 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
 }: MenuHeaderProps) {
   const [isOwner, setIsOwner] = useState(false);
   useEffect(() => {
-    checkIsLoggedIn().then((loggedIn) => { if (loggedIn) setIsOwner(true); });
-  }, []);
+    getSupabaseBrowser()
+      .auth.getSession()
+      .then(({ data }) => {
+        const uid = data.session?.user?.id;
+        if (uid && restaurant.owner_user_id && uid === restaurant.owner_user_id) {
+          setIsOwner(true);
+        }
+      })
+      .catch(() => {});
+  }, [restaurant.owner_user_id]);
 
   const showName = !hasCover || isScrolled;
   const isTransparent = hasCover && !isScrolled;
