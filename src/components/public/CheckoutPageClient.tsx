@@ -228,10 +228,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       cancelled = true;
       clearTimeout(timer);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMounted, items, orderType, promoResult, promoCode, loyaltyApplied, loyaltyBalance, tipPercent, restaurant.id, tipAmount]);
-
-  const displayTotal = serverQuote?.total ?? finalTotal;
 
   // Reactive form validation — drives CTA disabled state
   const isFormReady = Boolean(
@@ -264,6 +262,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const taxAmount = computeTaxAmount(taxableBase, taxRate, taxIncluded);
 
   const finalTotal = Math.max(0, cartTotal - discount + deliveryFee + tipAmount + (taxIncluded ? 0 : taxAmount));
+  const displayTotal = serverQuote?.total ?? finalTotal;
 
   const goBack = useCallback(() => router.push(`/${slug}`), [router, slug]);
 
@@ -514,7 +513,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     setStep('confirmation');
     playSuccessChime();
     confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
-  }, [saveLastOrder, rememberMe, customerName, customerPhone, customerEmail, restaurant, orderNumber, orderType, items, cartTotal, finalTotal, clearCart, confettiTimer]);
+  }, [saveLastOrder, rememberMe, customerName, customerPhone, customerEmail, restaurant, orderNumber, orderType, items, cartTotal, finalTotal, displayTotal, clearCart, confettiTimer]);
 
   const isColombianRestaurant = restaurant.currency?.toUpperCase() === 'COP';
 
