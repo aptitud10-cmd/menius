@@ -82,7 +82,19 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         if (email) setCustomerEmail(email);
       }
     } catch {}
+    // Fire begin_checkout once — tracks how many users enter the checkout page
+    const cartItems = useCartStore.getState().items;
+    if (cartItems.length > 0 && !restaurant.id.startsWith('demo')) {
+      trackEvent('begin_checkout', {
+        restaurant_id: restaurant.id,
+        restaurant_slug: restaurant.slug,
+        item_count: cartItems.length,
+        subtotal: cartItems.reduce((s, i) => s + i.lineTotal, 0),
+        currency: restaurant.currency,
+      });
+    }
     return () => { clearTimeout(confettiTimer.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const enabledOrderTypes = restaurant.order_types_enabled?.length
@@ -300,8 +312,23 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         body: JSON.stringify({ code: promoCode, restaurant_id: restaurant.id, order_total: cartTotal, locale }),
       });
       const data = await res.json();
-      if (res.ok) setPromoResult(data);
-      else { setPromoError(data.error); setPromoResult(null); }
+      if (res.ok) {
+        setPromoResult(data);
+        trackEvent('promo_applied', {
+          restaurant_id: restaurant.id,
+          code: promoCode.trim().toUpperCase(),
+          discount: data.discount,
+          valid: data.valid,
+        });
+      } else {
+        setPromoError(data.error);
+        setPromoResult(null);
+        trackEvent('promo_failed', {
+          restaurant_id: restaurant.id,
+          code: promoCode.trim().toUpperCase(),
+          reason: data.error,
+        });
+      }
     } catch {
       setPromoError(locale === 'es' ? 'Error validando código' : 'Error validating code');
     } finally {
@@ -313,15 +340,18 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     if (submittingRef.current) return;
     if (!customerName.trim() || !customerPhone.trim()) {
       setOrderError(locale === 'es' ? 'Nombre y teléfono son requeridos' : 'Name and phone required');
+      trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'name_or_phone', order_type: orderType });
       return;
     }
     if (!customerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
       setOrderError(locale === 'es' ? 'Email requerido para recibir tu confirmación de pedido' : 'Email required to receive your order confirmation');
       validateField('customer_email', customerEmail);
+      trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'email', order_type: orderType });
       return;
     }
     if (orderType === 'delivery' && !deliveryAddress.trim()) {
       setOrderError(locale === 'es' ? 'Dirección de entrega requerida' : 'Delivery address required');
+      trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'delivery_address', order_type: orderType });
       return;
     }
     submittingRef.current = true;
@@ -414,11 +444,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       }>(text);
       if (!parsed.ok) {
         setOrderError(formatOrderSubmitError(res.status, undefined, locale));
+        trackEvent('checkout_error', { restaurant_id: restaurant.id, reason: 'parse_error', status: res.status, order_type: orderType });
         return;
       }
       const data = parsed.data;
       if (!res.ok) {
         setOrderError(formatOrderSubmitError(res.status, data.error, locale));
+        trackEvent('checkout_error', { restaurant_id: restaurant.id, reason: data.error ?? 'server_error', status: res.status, order_type: orderType, payment_method: paymentMethod });
         return;
       }
       // Online payment: redirect immediately — no need for order id in local state
@@ -1223,7 +1255,16 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               {enabledOrderTypes.map((type) => (
                 <button
                   key={type}
-                  onClick={() => setOrderType(type)}
+                  onClick={() => {
+                    if (type !== orderType) {
+                      trackEvent('fulfillment_mode_changed', {
+                        restaurant_id: restaurant.id,
+                        from: orderType,
+                        to: type,
+                      });
+                    }
+                    setOrderType(type);
+                  }}
                   className={cn(
                     'py-3.5 px-3 rounded-xl text-[15px] font-bold text-center transition-all duration-150 border',
                     orderType === type

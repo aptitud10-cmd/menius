@@ -456,8 +456,15 @@ export function MenuShell({
   }, [isLargeCatalog, hasCover]);
 
   const handleProductSelect = useCallback((product: Product) => {
+    trackEvent('product_viewed', {
+      product_id: product.id,
+      product_name: product.name,
+      price: product.price,
+      restaurant_id: restaurant.id,
+      has_modifiers: product.has_modifiers,
+    });
     setCustomization({ product, editIndex: null });
-  }, []);
+  }, [restaurant.id]);
 
 
   const showToast = useCallback((name: string) => {
