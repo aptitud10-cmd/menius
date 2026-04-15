@@ -889,6 +889,12 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
 
   if (error) return { error: error.message };
 
+  // Broadcast to customer tracking page (non-blocking, fire-and-forget).
+  // Uses Supabase HTTP Broadcast API — no RLS check on broadcast channels.
+  void import('@/lib/realtime/broadcast-order').then(({ broadcastOrderUpdate }) =>
+    broadcastOrderUpdate(orderId, status).catch(() => {})
+  );
+
   // Log the transition to order_status_history (non-blocking, graceful)
   void (async () => {
     try {

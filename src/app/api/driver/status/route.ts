@@ -17,6 +17,7 @@ import { sendSMS, resolveChannel } from '@/lib/notifications/sms';
 import { canTransition } from '@/lib/order-state';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
+import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
 
 const logger = createLogger('driver-status');
 
@@ -117,6 +118,9 @@ export async function POST(req: NextRequest) {
 
     if (statusErr) return NextResponse.json({ error: statusErr.message }, { status: 500 });
 
+    // Broadcast to customer tracking page immediately (no-RLS broadcast channel).
+    broadcastOrderUpdate(order.id, 'delivered').catch(() => {});
+
     // Full notification stack (WhatsApp + email + push + log) via notifyStatusChange
     try {
       const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
@@ -146,6 +150,11 @@ export async function POST(req: NextRequest) {
       .eq('driver_tracking_token', token);
 
     if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
+
+    // Broadcast driver milestone to customer tracking page immediately.
+    // We reuse the status field for driver events (ready/picked_up/at_door) so
+    // the client knows what changed without a full refetch.
+    broadcastOrderUpdate(order.id, updateData.status as string ?? order.status).catch(() => {});
   }
 
   // Send customer notification (fire-and-forget, don't block the response)

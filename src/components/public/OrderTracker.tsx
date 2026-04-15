@@ -191,34 +191,40 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Polling fallback — refreshes order every 15 s so status updates even if
-  // realtime websocket is unavailable (e.g. anon key has no realtime perms).
+  // Polling fallback — refreshes every 5 s for active orders.
+  // Fires even when the WebSocket is up, so GPS coordinates and ETA
+  // countdown stay fresh without extra subscriptions.
   useEffect(() => {
     if (!order?.id || order.status === 'delivered' || order.status === 'cancelled') return;
-    const interval = setInterval(fetchOrder, 15_000);
+    const interval = setInterval(fetchOrder, 5_000);
     return () => clearInterval(interval);
   }, [order?.id, order?.status, fetchOrder]);
 
+  // Supabase Realtime Broadcast subscription.
+  //
+  // We deliberately use BROADCAST instead of postgres_changes.
+  // postgres_changes requires the connected user to have RLS SELECT access
+  // on the row being watched. Customers are anonymous (anon key, no session)
+  // so their RLS policy blocks the events — they arrive at the server but
+  // are silently dropped before reaching the client.
+  //
+  // Broadcast channels are NOT gated by RLS: any client that knows the
+  // channel name can subscribe. We use the order UUID as the channel name
+  // (opaque, server-issued, only the tracking page URL holder knows it).
+  //
+  // The server sends a broadcast via HTTP Broadcast API from every route
+  // that changes order state: updateOrderStatus, driver/status, cron jobs.
   useEffect(() => {
     if (!order?.id) return;
 
     const supabase = getSupabaseBrowser();
     const channel = supabase
       .channel(`order-track:${order.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
-          filter: `id=eq.${order.id}`,
-        },
-        () => {
-          // Full refetch instead of partial merge: ensures joined fields
-          // (driver timestamps, payment_status, etc.) are always up-to-date.
-          fetchOrder();
-        }
-      )
+      .on('broadcast', { event: 'status_change' }, () => {
+        // Full refetch: ensures driver timestamps, ETA, and all joined fields
+        // are always up-to-date rather than relying on the partial payload.
+        fetchOrder();
+      })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           setRtStatus('connected');
