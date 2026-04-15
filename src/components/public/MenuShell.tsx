@@ -1485,7 +1485,10 @@ export function MenuShell({
               <button onClick={() => setActiveDiet(null)} className="mt-1 text-sm text-[#05c8a7] font-semibold hover:text-[#047a65] transition-colors">{t.viewFullMenu}</button>
             </motion.div>
           ) : (
-            <div className="space-y-8">
+            <div
+              key={activeCatFilter ?? 'all'}
+              className="space-y-8 menu-cat-fade"
+            >
               {(() => {
                 let globalProductIdx = 0;
                 return displayedGroups.map(({ category, items, available }) => {

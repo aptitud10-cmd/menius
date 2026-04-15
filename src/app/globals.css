@@ -236,6 +236,18 @@ a, button, [role="button"] {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+/* Category filter fade-in — triggered by key change on activeCatFilter */
+@keyframes menuCatFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.menu-cat-fade {
+  animation: menuCatFadeIn 200ms ease-out both;
+  will-change: opacity, transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-cat-fade { animation: none; }
+}
 @keyframes slideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
