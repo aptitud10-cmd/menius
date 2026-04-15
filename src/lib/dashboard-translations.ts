@@ -706,6 +706,8 @@ export interface DashboardTranslations {
   onboarding_setupSubtitle: string;
   onboarding_progressLabel: string;
   onboarding_improveOps: string;
+  onboarding_close: string;
+  onboarding_hide: string;
 
   // General
   general_delete: string;
@@ -1912,6 +1914,8 @@ const es: DashboardTranslations = {
   onboarding_setupSubtitle: 'Sigue estos pasos para recibir tu primer pedido',
   onboarding_progressLabel: 'pasos completados · ¡Empieza ahora!',
   onboarding_improveOps: 'Mejora tu operación',
+  onboarding_close: 'Cerrar',
+  onboarding_hide: 'Ocultar',
 
   // General
   general_delete: 'Eliminar',
@@ -3118,6 +3122,8 @@ const en: DashboardTranslations = {
   onboarding_setupSubtitle: 'Follow these steps to receive your first order',
   onboarding_progressLabel: 'steps completed · Get started!',
   onboarding_improveOps: 'Improve your operations',
+  onboarding_close: 'Close',
+  onboarding_hide: 'Hide',
 
   // General
   general_delete: 'Delete',

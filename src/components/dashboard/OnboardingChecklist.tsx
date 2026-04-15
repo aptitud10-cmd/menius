@@ -171,7 +171,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
         <button
           onClick={handleDismiss}
           className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-600 hover:text-gray-500 hover:bg-gray-50 transition-colors"
-          aria-label="Cerrar"
+          aria-label={t.onboarding_close}
         >
           <X className="w-4 h-4" />
         </button>
@@ -319,7 +319,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
             <button
               onClick={handleDismiss}
               className="p-1.5 rounded-lg text-gray-600 hover:text-gray-500 hover:bg-gray-50 transition-colors"
-              aria-label="Ocultar"
+              aria-label={t.onboarding_hide}
             >
               <X className="w-4 h-4" />
             </button>

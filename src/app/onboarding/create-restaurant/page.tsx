@@ -42,9 +42,9 @@ const WIZARD_TEXT = {
     successTitle: '¡Tu restaurante está listo!',
     successDesc: 'Ya puedes recibir pedidos, gestionar tu menú y ver todo en tiempo real desde el Counter.',
     quickWins: [
-      { icon: '🍽', title: 'Tu menú ya está en línea', sub: (slug: string) => `menius.app/${slug} — compártelo ahora` },
-      { icon: '📲', title: 'Clientes pueden pedir desde su celular', sub: 'Escanean el QR de tu mesa y listo' },
-      { icon: '🔔', title: 'Los pedidos te llegan al instante', sub: 'Te avisamos en tu celular o tablet' },
+      { icon: '🍽', title: 'Tu menú ya está en línea', sub: (s: string) => `menius.app/${s} — compártelo ahora` },
+      { icon: '📲', title: 'Clientes pueden pedir desde su celular', sub: (_s: string) => 'Escanean el QR de tu mesa y listo' },
+      { icon: '🔔', title: 'Los pedidos te llegan al instante', sub: (_s: string) => 'Te avisamos en tu celular o tablet' },
     ],
     viewOrders: 'Ver cómo llegan mis pedidos →',
     goDashboard: 'Ir a mi panel →',
@@ -87,9 +87,9 @@ const WIZARD_TEXT = {
     successTitle: 'Your restaurant is ready!',
     successDesc: 'You can now receive orders, manage your menu and see everything in real time from the Counter.',
     quickWins: [
-      { icon: '🍽', title: 'Your menu is live', sub: (slug: string) => `menius.app/${slug} — share it now` },
-      { icon: '📲', title: 'Customers can order from their phone', sub: 'They scan the QR on your table and go' },
-      { icon: '🔔', title: 'Orders arrive instantly', sub: "We'll notify you on your phone or tablet" },
+      { icon: '🍽', title: 'Your menu is live', sub: (s: string) => `menius.app/${s} — share it now` },
+      { icon: '📲', title: 'Customers can order from their phone', sub: (_s: string) => 'They scan the QR on your table and go' },
+      { icon: '🔔', title: 'Orders arrive instantly', sub: (_s: string) => "We'll notify you on your phone or tablet" },
     ],
     viewOrders: 'See how orders come in →',
     goDashboard: 'Go to my dashboard →',
@@ -129,7 +129,7 @@ const TIMEZONES = [
   { tz: 'America/Bogota', label: 'Bogotá (COT)' },
   { tz: 'America/Lima', label: 'Lima (PET)' },
   { tz: 'America/Santiago', label: 'Santiago (CLT)' },
-  { tz: 'America/Buenos_Aires', label: 'Buenos Aires (ART)' },
+  { tz: 'America/Argentina/Buenos_Aires', label: 'Buenos Aires (ART)' },
   { tz: 'America/Sao_Paulo', label: 'São Paulo (BRT)' },
   { tz: 'America/Santo_Domingo', label: 'Santo Domingo (AST)' },
   { tz: 'Europe/Madrid', label: 'Madrid (CET)' },
@@ -140,24 +140,29 @@ const TIMEZONES = [
 export default function CreateRestaurantPage() {
   const router = useRouter();
 
-  // Detect browser/cookie locale for UI language
-  const uiLocale: 'es' | 'en' = (() => {
-    if (typeof document !== 'undefined') {
-      const match = document.cookie.match(/menius_locale=(\w+)/);
-      if (match?.[1] === 'en') return 'en';
-    }
-    return 'es';
-  })();
+  // Detect browser/cookie locale after hydration to avoid SSR mismatch
+  const [uiLocale, setUiLocale] = useState<'es' | 'en'>('es');
   const ui = WIZARD_TEXT[uiLocale];
+
+  useEffect(() => {
+    const match = document.cookie.match(/menius_locale=(\w+)/);
+    if (match?.[1] === 'en') {
+      setUiLocale('en');
+      setLocale('en');
+      setCurrency('USD');
+      setTimezone('America/New_York');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Step 0 (intent) + Step 1–4 state
   const [step, setStep] = useState(0);
   const [businessType, setBusinessType] = useState('');
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
-  const [locale, setLocale] = useState(uiLocale); // default menu language to UI locale
-  const [currency, setCurrency] = useState(uiLocale === 'en' ? 'USD' : 'MXN');
-  const [timezone, setTimezone] = useState(uiLocale === 'en' ? 'America/New_York' : 'America/Mexico_City');
+  const [locale, setLocale] = useState('es');
+  const [currency, setCurrency] = useState('MXN');
+  const [timezone, setTimezone] = useState('America/Mexico_City');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
