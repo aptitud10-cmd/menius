@@ -72,18 +72,34 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
     setLoading(true);
 
     for (const item of data.items) {
-      addItem({
+      const product = {
         id: item.product_id,
         name: item.product_name,
         price: item.current_price,
-        qty: item.qty,
-        variant_id: item.variant_id,
-        variant_name: item.variant_name,
         image_url: item.image_url,
-        notes: item.notes,
+        description: null,
+        category_id: '',
+        restaurant_id: restaurantId,
+        is_active: true,
+        in_stock: true,
+        is_featured: false,
+        is_new: false,
+        sort_order: 0,
+        dietary_tags: [],
+        prep_time_minutes: null,
+        translations: null,
+        created_at: '',
+        has_modifiers: false,
+        modifier_groups: [],
+        variants: [],
         extras: [],
-        modifiers: [],
-      });
+      } as Parameters<typeof addItem>[0];
+
+      const variant = item.variant_id
+        ? ({ id: item.variant_id, name: item.variant_name ?? '', price_delta: 0, sort_order: 0 } as Parameters<typeof addItem>[1])
+        : null;
+
+      addItem(product, variant, [], item.qty, item.notes ?? '');
     }
 
     setTimeout(() => {
