@@ -215,6 +215,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   // CTA shake animation when form not ready
   const [ctaShake, setCtaShake] = useState(false);
   const ctaShakeTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => { return () => { clearTimeout(ctaShakeTimer.current); }; }, []);
 
   // Snapshot of items captured before clearCart() — shown on confirmation screen
   const [confirmedItems, setConfirmedItems] = useState<{ name: string; qty: number; variant?: string; lineTotal: number }[]>([]);
