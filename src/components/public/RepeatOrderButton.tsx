@@ -93,7 +93,7 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
         modifier_groups: [],
         variants: [],
         extras: [],
-      } as Parameters<typeof addItem>[0];
+      } as unknown as Parameters<typeof addItem>[0];
 
       const variant = item.variant_id
         ? ({ id: item.variant_id, name: item.variant_name ?? '', price_delta: 0, sort_order: 0 } as Parameters<typeof addItem>[1])
