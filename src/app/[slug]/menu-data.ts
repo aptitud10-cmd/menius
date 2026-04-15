@@ -24,12 +24,23 @@ export async function fetchAllSlugs(): Promise<string[]> {
 export const fetchRestaurantMeta = cache(async function fetchRestaurantMeta(slug: string) {
   try {
     const db = createAdminClient();
-    const { data } = await db
+    const { data: restaurant } = await db
       .from('restaurants')
-      .select('name, description, cover_image_url, logo_url, slug, locale, available_locales')
+      .select('id, name, description, cover_image_url, logo_url, slug, locale, available_locales, cuisine_type, address, country_code')
       .eq('slug', slug)
       .single();
-    return data ?? null;
+    if (!restaurant) return null;
+
+    // Fetch top category names for auto-generated SEO description when the restaurant hasn't filled one
+    const { data: topCategories } = await db
+      .from('categories')
+      .select('name')
+      .eq('restaurant_id', restaurant.id)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .limit(4);
+
+    return { ...restaurant, topCategoryNames: (topCategories ?? []).map((c: { name: string }) => c.name) };
   } catch {
     return null;
   }

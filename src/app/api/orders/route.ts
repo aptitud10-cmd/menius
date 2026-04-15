@@ -165,6 +165,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Commission rate in basis points (bps). Applied as Stripe application_fee_amount
+    // on online payments where the restaurant uses Stripe Connect.
+    // free: 2% | starter/trialing: 1% | pro/business: 0%
+    let commissionBps = 0;
+
     // Check subscription — enforce monthly limit for FREE-tier restaurants
     try {
       const { data: sub } = await supabase
@@ -179,18 +184,23 @@ export async function POST(request: NextRequest) {
       if (!sub) {
         // No subscription row → FREE tier
         isFreeTier = true;
+        commissionBps = 200; // 2%
       } else {
-        const { status } = sub;
+        const { status, plan_id } = sub;
         const trialStillValid = sub.trial_end && new Date(sub.trial_end) > now;
 
         if (status === 'active' || status === 'past_due') {
           isFreeTier = false;
+          // Pro/Business pay no platform fee; Starter pays 1%
+          commissionBps = (plan_id === 'pro' || plan_id === 'business') ? 0 : 100;
         } else if (trialStillValid) {
-          // Legacy trial still running → full access
+          // Trial period → same as starter (1%)
           isFreeTier = false;
+          commissionBps = 100;
         } else {
           // canceled, expired trial, or explicitly free plan → FREE limits apply
           isFreeTier = true;
+          commissionBps = 200; // 2%
         }
       }
 
@@ -213,6 +223,8 @@ export async function POST(request: NextRequest) {
       }
     } catch (subErr) {
       logger.warn('Subscription check failed during order creation — proceeding', { error: subErr });
+      // Default to 0% on subscription check failure to avoid blocking the order
+      commissionBps = 0;
     }
 
     const productIds = parsed.data.items.map((i) => i.product_id);
@@ -734,13 +746,25 @@ export async function POST(request: NextRequest) {
           };
         });
 
+        // Menius platform commission: collected as a Stripe application fee on the payment.
+        // Calculated on the gross order total (after discounts, before Stripe fees).
+        // Only applied when commissionBps > 0 — Pro/Business restaurants pay 0%.
+        const applicationFeeAmount = commissionBps > 0
+          ? Math.round(total * 100 * commissionBps / 10000) // total is in currency units
+          : undefined;
+
         const sessionParams: import('stripe').Stripe.Checkout.SessionCreateParams = {
           line_items: lineItems,
           mode: 'payment',
           success_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=true`,
           cancel_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=false`,
           metadata: { order_id: order.id, order_number: order.order_number },
-          payment_intent_data: { transfer_data: { destination: connectedAccount } },
+          payment_intent_data: {
+            transfer_data: { destination: connectedAccount },
+            ...(applicationFeeAmount !== undefined && applicationFeeAmount > 0 && {
+              application_fee_amount: applicationFeeAmount,
+            }),
+          },
         };
         const session = await stripe.checkout.sessions.create(sessionParams);
         stripeUrl = session.url;

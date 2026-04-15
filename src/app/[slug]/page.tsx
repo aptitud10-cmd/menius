@@ -91,7 +91,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const isEn = (restaurant.locale ?? 'es') === 'en';
   const title = `${restaurant.name} — ${isEn ? 'Digital Menu' : 'Menú Digital'} | MENIUS`;
-  const description = restaurant.description ?? (isEn ? `Order online from ${restaurant.name}.` : `Pide online en ${restaurant.name}. Menú digital con MENIUS.`);
+
+  // Build a rich description when the restaurant hasn't set one.
+  // Include top category names so Google can show relevant snippets.
+  const topCats: string[] = (restaurant as any).topCategoryNames ?? [];
+  const autoDescription = isEn
+    ? topCats.length > 0
+      ? `Order online from ${restaurant.name}. Menu includes: ${topCats.join(', ')}. Fast and easy digital ordering.`
+      : `Order online from ${restaurant.name}. Browse the full menu and place your order in seconds.`
+    : topCats.length > 0
+      ? `Pide en línea en ${restaurant.name}. Menú con: ${topCats.join(', ')}. Ordena fácil y rápido desde tu celular.`
+      : `Pide en línea en ${restaurant.name}. Explora el menú completo y ordena en segundos desde tu celular.`;
+  const description = restaurant.description || autoDescription;
+
   const url = `${APP_URL}/${restaurant.slug}`;
   const image = restaurant.cover_image_url || restaurant.logo_url || `${APP_URL}/opengraph-image`;
   const logoUrl = restaurant.logo_url ?? undefined;

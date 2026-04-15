@@ -12,6 +12,29 @@ export function JsonLdScript({
   reviewStats?: { average: number; total: number } | null;
 }) {
   const url = `${APP_URL}/${slug}`;
+
+  // BreadcrumbList: helps Google show breadcrumbs in search results
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'MENIUS',
+        item: APP_URL,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: restaurant.name,
+        item: url,
+      },
+    ],
+  };
+  const safeBreadcrumb = JSON.stringify(breadcrumbLd)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e');
   const currency = restaurant.currency ?? 'MXN';
 
   const paymentMap: Record<string, string> = {
@@ -54,7 +77,12 @@ export function JsonLdScript({
     ...(restaurant.logo_url && { logo: restaurant.logo_url }),
     ...(paymentAccepted && paymentAccepted.length > 0 && { paymentAccepted }),
     ...(priceRange && { priceRange }),
-    ...(restaurant.cuisine_type && { servesCuisine: restaurant.cuisine_type }),
+    // Use explicit cuisine_type if available; otherwise derive from top categories
+    ...(restaurant.cuisine_type
+      ? { servesCuisine: restaurant.cuisine_type }
+      : categories && categories.length > 0
+        ? { servesCuisine: categories.slice(0, 3).map((c: any) => c.name).join(', ') }
+        : {}),
     acceptsReservations: false,
   };
 
@@ -134,9 +162,15 @@ export function JsonLdScript({
     .replace(/>/g, '\\u003e');
 
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: safeJson }}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJson }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeBreadcrumb }}
+      />
+    </>
   );
 }
