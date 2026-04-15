@@ -195,9 +195,10 @@ export async function POST(request: NextRequest) {
             ? new Date(sub.ended_at * 1000).toISOString()
             : new Date().toISOString();
 
+        // Do NOT set plan_id here — 'free' is never stored in DB.
+        // getEffectivePlanId() infers free when there's no active subscription.
         const updateData = {
           status: 'canceled',
-          plan_id: 'free',
           stripe_subscription_id: null,
           canceled_at: stripeCanceledAt,
           updated_at: new Date().toISOString(),
@@ -218,6 +219,16 @@ export async function POST(request: NextRequest) {
         }
 
         await auditLog(resolvedId, 'webhook_subscription_deleted', previousStatus, 'canceled');
+
+        if (resolvedId) {
+          createDashboardNotification({
+            restaurantId: resolvedId,
+            type: 'subscription',
+            title: 'Tu plan fue cancelado',
+            actionUrl: '/app/billing',
+            metadata: { status: 'canceled' },
+          }).catch(() => {});
+        }
         break;
       }
 
@@ -309,6 +320,16 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'DB error' }, { status: 500 });
           }
           await auditLog(resolvedId, 'webhook_payment_failed', null, 'past_due', { invoice_id: invoice.id });
+
+          if (resolvedId) {
+            createDashboardNotification({
+              restaurantId: resolvedId,
+              type: 'subscription',
+              title: 'Pago fallido — actualiza tu tarjeta',
+              actionUrl: '/app/billing',
+              metadata: { invoice_id: invoice.id },
+            }).catch(() => {});
+          }
         }
         break;
       }
