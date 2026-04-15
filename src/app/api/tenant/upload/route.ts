@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
       // Sharp validates the actual file content — if this throws, the file
       // is not a real image regardless of what Content-Type the client claimed.
       optimizedBuffer = await sharp(buffer)
-        .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 82 })
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 72 })
         .toBuffer();
     } catch {
       // Reject: file claims to be an image but Sharp cannot decode it.

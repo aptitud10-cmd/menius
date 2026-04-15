@@ -4,6 +4,7 @@ import { RestaurantSettings } from '@/components/dashboard/RestaurantSettings';
 import { PrinterSettingsSection } from '@/components/dashboard/PrinterSettingsSection';
 import { FiscalSettings } from '@/components/dashboard/FiscalSettings';
 import { KDSStationsSettings } from '@/components/dashboard/KDSStationsSettings';
+import { WidgetCode } from './WidgetCode';
 
 export default async function SettingsPage() {
   const { supabase, restaurantId } = await getDashboardContext();
@@ -46,6 +47,11 @@ export default async function SettingsPage() {
           <li className="flex gap-2"><span className="font-semibold text-gray-900">2.</span>{isEn ? 'Tap the Share button (iPhone) or the menu ⋮ (Android) or the ⊕ icon in the address bar (Desktop).' : 'Toca el botón Compartir (iPhone), el menú ⋮ (Android) o el ícono ⊕ en la barra de direcciones (Escritorio).'}</li>
           <li className="flex gap-2"><span className="font-semibold text-gray-900">3.</span>{isEn ? 'Select "Add to Home Screen" and confirm.' : 'Selecciona "Agregar a pantalla de inicio" y confirma.'}</li>
         </ol>
+      </div>
+
+      <div id="widget" className="scroll-mt-20 bg-white rounded-2xl border border-gray-200 p-5">
+        <h2 className="dash-heading mb-2">{isEn ? 'Embeddable Widget' : 'Widget embebible'}</h2>
+        <WidgetCode slug={restaurant.slug} isEn={isEn} />
       </div>
 
       {isMxn && (

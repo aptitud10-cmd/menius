@@ -10,6 +10,7 @@ import { OrderNotifier } from '@/components/dashboard/OrderNotifier';
 import { SidebarSoundButton } from '@/components/dashboard/SidebarSoundButton';
 import { IdentifyUser } from '@/components/dashboard/IdentifyUser';
 import { TrialBanner } from '@/components/dashboard/TrialBanner';
+import { StripeConnectBanner } from '@/components/dashboard/StripeConnectBanner';
 import { WelcomeQRModal } from '@/components/dashboard/WelcomeQRModal';
 import { DashToastProvider } from '@/components/dashboard/DashToast';
 import { RestaurantSwitcher } from '@/components/dashboard/RestaurantSwitcher';
@@ -26,7 +27,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       .maybeSingle(),
     supabase
       .from('restaurants')
-      .select('name, slug, locale, currency')
+      .select('name, slug, locale, currency, stripe_onboarding_complete')
       .eq('id', restaurantId)
       .maybeSingle(),
     supabase.auth.getUser(),
@@ -121,6 +122,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <div className="md:hidden">
             <TrialBanner />
           </div>
+
+          <StripeConnectBanner
+            stripeOnboardingComplete={restaurant?.stripe_onboarding_complete ?? false}
+            isEn={restaurant?.locale === 'en'}
+          />
 
           <main id="main-content" className="flex-1 p-4 md:p-6 lg:p-8 max-w-6xl w-full mx-auto overflow-x-hidden">
             <Breadcrumbs />

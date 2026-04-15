@@ -56,6 +56,7 @@ interface MenuShellProps {
   reviewStats?: ReviewStats | null;
   recentReviews?: ReviewItem[];
   limitedMode?: LimitedMode | null;
+  isFreePlan?: boolean;
 }
 
 interface CustomizationTarget {
@@ -77,6 +78,7 @@ export function MenuShell({
   reviewStats,
   recentReviews,
   limitedMode,
+  isFreePlan = false,
 }: MenuShellProps) {
   const router = useRouter();
   const defaultLocale = initialLocale;
@@ -1773,27 +1775,29 @@ export function MenuShell({
             </section>
           )}
 
-          {/* Powered by MENIUS — always visible */}
-          <div className="mt-8 mb-4 pt-5 border-t border-gray-100 flex flex-col items-center gap-2">
-            <a
-              href="https://menius.app?ref=menu"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group/pw inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-50 hover:bg-[#e6faf7] border border-gray-100 hover:border-[#b3efe6] text-xs text-gray-400 hover:text-[#05c8a7] transition-all duration-300"
-            >
-              <svg className="w-4 h-4 text-[#05c8a7] group-hover/pw:text-[#04b096] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>
-              <span>{t.poweredBy}</span>
-              <span className="font-bold text-gray-600 group-hover/pw:text-[#047a65] tracking-tight transition-colors">MENIUS</span>
-            </a>
-            <a
-              href="https://menius.app?ref=menu-cta"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[10px] text-gray-300 hover:text-[#05c8a7] transition-colors"
-            >
-              {t.createYourMenu} →
-            </a>
-          </div>
+          {/* Powered by MENIUS — solo plan free */}
+          {isFreePlan && (
+            <div className="mt-8 mb-4 pt-5 border-t border-gray-100 flex flex-col items-center gap-2">
+              <a
+                href="https://menius.app?ref=menu"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group/pw inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-50 hover:bg-[#e6faf7] border border-gray-100 hover:border-[#b3efe6] text-xs text-gray-400 hover:text-[#05c8a7] transition-all duration-300"
+              >
+                <svg className="w-4 h-4 text-[#05c8a7] group-hover/pw:text-[#04b096] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>
+                <span>{t.poweredBy}</span>
+                <span className="font-bold text-gray-600 group-hover/pw:text-[#047a65] tracking-tight transition-colors">MENIUS</span>
+              </a>
+              <a
+                href="https://menius.app?ref=menu-cta"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-gray-300 hover:text-[#05c8a7] transition-colors"
+              >
+                {t.createYourMenu} →
+              </a>
+            </div>
+          )}
 
           </div>{/* end px wrapper */}
         </main>

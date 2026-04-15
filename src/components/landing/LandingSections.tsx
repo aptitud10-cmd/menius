@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { getLandingT, type LandingLocale, type LandingT } from '@/lib/landing-translations';
 import { PLANS } from '@/lib/plans';
+import { SavingsCalculator } from './SavingsCalculator';
 
 /* ─── STATIC DATA ─── */
 
@@ -633,6 +634,16 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
         <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-[#05c8a7]/15 blur-[100px] pointer-events-none" />
         <div className="relative z-10 max-w-5xl mx-auto px-6">
           <PricingSection t={t} isColombia={isColombia} />
+        </div>
+      </section>
+
+      <div className="separator-gradient max-w-5xl mx-auto" />
+
+      {/* ── Savings Calculator ── */}
+      <section className="relative py-24 md:py-32 overflow-clip">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-[#05c8a7]/10 blur-[120px] pointer-events-none" />
+        <div className="relative z-10 max-w-5xl mx-auto px-6">
+          <SavingsCalculator locale={locale} />
         </div>
       </section>
 

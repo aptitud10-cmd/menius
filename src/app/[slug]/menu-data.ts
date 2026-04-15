@@ -64,6 +64,7 @@ export interface MenuData {
   recentReviews: ReviewItem[];
   subscriptionExpired?: boolean;
   limitedMode?: LimitedMode | null;
+  isFreePlan?: boolean;
 }
 
 /**
@@ -143,6 +144,7 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
     const DAILY_FREE_LIMIT = 3;
     let subscriptionExpired = false;
     let limitedMode: LimitedMode | null = null;
+    let isFreePlan = true;
 
     try {
       const subscription = subData as {
@@ -159,9 +161,9 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       } else {
         const { status } = subscription;
         if (status === 'active' || status === 'past_due') {
-          // full access
+          isFreePlan = false; // paid plan
         } else if (subscription.trial_end && new Date(subscription.trial_end) > now) {
-          // trial_end in future → full access (covers 'trialing' + manual admin extensions)
+          isFreePlan = false; // active trial
         } else {
           subscriptionExpired = true;
         }
@@ -248,6 +250,7 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       recentReviews,
       subscriptionExpired,
       limitedMode,
+      isFreePlan,
     };
   } catch (err) {
     console.error('[menu-data] Unexpected error in fetchMenuData', {

@@ -240,6 +240,7 @@ export default async function SlugMenuPage({ params }: PageProps) {
         reviewStats={data.reviewStats}
         recentReviews={data.recentReviews}
         limitedMode={data.limitedMode ?? null}
+        isFreePlan={data.isFreePlan ?? true}
       />
     </>
   );
