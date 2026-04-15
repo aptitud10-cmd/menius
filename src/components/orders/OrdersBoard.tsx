@@ -128,6 +128,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
       const total = formatPrice(Number(order.total), currency);
       notifyNewOrder(order.order_number, total);
       setNewOrderIds((prev) => new Set(Array.from(prev).concat(order.id)));
+      setMobileTab('pending');
       setTimeout(() => {
         setNewOrderIds((prev) => { const next = new Set(prev); next.delete(order.id); return next; });
       }, 12000);
@@ -433,7 +434,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
                 const config = ORDER_STATUS_CONFIG[status];
                 const count = activeOrders.filter((o) => o.status === status).length;
                 const isActive = mobileTab === status;
-                const hasNew = status === 'pending' && count > 0 && Array.from(newOrderIds).some((id) => orders.find((o) => o.id === id)?.status === 'pending');
+                const hasNew = newOrderIds.size > 0 && Array.from(newOrderIds).some((id) => orders.find((o) => o.id === id)?.status === status);
                 return (
                   <button
                     key={status}

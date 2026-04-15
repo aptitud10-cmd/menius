@@ -129,7 +129,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             isEn={restaurant?.locale === 'en'}
           />
 
-          <main id="main-content" className="flex-1 p-4 pb-24 md:pb-8 md:p-6 lg:p-8 max-w-6xl w-full mx-auto overflow-x-hidden">
+          <main id="main-content" className="flex-1 p-4 pb-24 md:p-6 lg:p-8 max-w-6xl w-full mx-auto overflow-x-hidden">
             <Breadcrumbs />
             {children}
           </main>

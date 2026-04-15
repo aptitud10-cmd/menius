@@ -9,7 +9,7 @@ import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 const NAV_ITEMS = [
   { href: '/app', labelKey: 'nav_home' as const, icon: LayoutDashboard, exact: true },
   { href: '/app/orders', labelKey: 'nav_orders' as const, icon: ClipboardList },
-  { href: '/app/menu/products', labelKey: 'nav_menu' as const, icon: UtensilsCrossed },
+  { href: '/app/menu/products', labelKey: 'nav_menu' as const, activePrefix: '/app/menu', icon: UtensilsCrossed },
   { href: '/app/counter', labelKey: 'nav_counter' as const, icon: Monitor },
 ] as const;
 
@@ -17,8 +17,11 @@ export function MobileBottomNav() {
   const pathname = usePathname();
   const { t } = useDashboardLocale();
 
-  const isActive = (href: string, exact?: boolean) =>
-    exact ? pathname === href : pathname.startsWith(href);
+  const isActive = (item: typeof NAV_ITEMS[number]) => {
+    if ('exact' in item && item.exact) return pathname === item.href;
+    const prefix = ('activePrefix' in item ? item.activePrefix : undefined) ?? item.href;
+    return pathname.startsWith(prefix);
+  };
 
   return (
     <nav
@@ -27,7 +30,7 @@ export function MobileBottomNav() {
     >
       <div className="flex items-stretch">
         {NAV_ITEMS.map((item) => {
-          const active = isActive(item.href, item.exact);
+          const active = isActive(item);
           const label = t[item.labelKey];
           const shortLabel = label.includes('/') ? label.split('/')[0].trim() : label;
           return (
