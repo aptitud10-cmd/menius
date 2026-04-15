@@ -27,7 +27,6 @@ const nextConfig = {
         source: '/(.*)',
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(self), microphone=(), geolocation=(self)' },
@@ -42,7 +41,8 @@ const nextConfig = {
               "img-src 'self' data: blob: https://*.supabase.co https://images.unsplash.com https://*.stripe.com https://image.crisp.chat https://storage.crisp.chat https://maps.gstatic.com https://maps.googleapis.com https://*.mapbox.com",
               "font-src 'self' https://fonts.gstatic.com https://client.crisp.chat https://api.mapbox.com",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://generativelanguage.googleapis.com https://api.resend.com https://client.crisp.chat wss://client.relay.crisp.chat https://storage.crisp.chat https://*.sentry.io https://*.ingest.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://api.mapbox.com https://events.mapbox.com https://challenges.cloudflare.com",
-              "frame-src https://js.stripe.com https://hooks.stripe.com https://game.crisp.chat https://challenges.cloudflare.com",
+              // 'self' allows the landing-page hero to embed demo menu slugs in an iframe
+              "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://game.crisp.chat https://challenges.cloudflare.com",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
@@ -52,7 +52,14 @@ const nextConfig = {
         ],
       },
       {
-        // Demo restaurant slugs — allow same-origin iframe embedding for the hero demo
+        // Non-demo routes: deny framing entirely
+        source: '/((?!the-grill-house|la-casa-del-sabor|adri).*)',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+        ],
+      },
+      {
+        // Demo restaurant slugs — allow same-origin iframe embedding for the hero phone mockup
         source: '/(the-grill-house|la-casa-del-sabor|adri)',
         headers: [
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
