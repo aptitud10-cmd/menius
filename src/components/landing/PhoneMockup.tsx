@@ -156,13 +156,13 @@ function MenuScreen({ locale }: { locale: LandingLocale }) {
       {/* Restaurant header */}
       <div className="px-4 pt-5 pb-2 text-center flex-shrink-0">
         <div
-          className="w-10 h-10 rounded-full mx-auto mb-1.5 flex items-center justify-center"
+          className="w-10 h-10 mx-auto mb-1.5 flex items-center justify-center"
           style={{
-            background: '#0f2d25',
-            border: '2px solid #0d9488',
+            borderRadius: 12,
+            background: '#0d9488',
           }}
         >
-          <span style={{ fontSize: 15, fontWeight: 800, color: '#0d9488', fontFamily: 'sans-serif' }}>M</span>
+          <span style={{ fontSize: 16, fontWeight: 800, color: '#fff', fontFamily: 'sans-serif' }}>M</span>
         </div>
         <p style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>La Taquería</p>
         <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
@@ -181,8 +181,8 @@ function MenuScreen({ locale }: { locale: LandingLocale }) {
               fontSize: 9,
               fontWeight: 600,
               flexShrink: 0,
-              background: i === 0 ? '#0d9488' : '#1e1e1e',
-              color: i === 0 ? '#fff' : 'rgba(255,255,255,0.45)',
+              background: i === 0 ? '#fff' : '#1e1e1e',
+              color: i === 0 ? '#111' : 'rgba(255,255,255,0.45)',
             }}
           >
             {cat}
@@ -216,7 +216,7 @@ function MenuScreen({ locale }: { locale: LandingLocale }) {
               <div className="flex items-center gap-1">
                 <p style={{ fontSize: 10, fontWeight: 600, color: '#fff' }}>{item.name}</p>
                 {item.popular && (
-                  <span style={{ fontSize: 10, lineHeight: 1 }}>🌶️</span>
+                  <span style={{ fontSize: 10, lineHeight: 1 }}>⭐</span>
                 )}
               </div>
               <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.38)', marginTop: 1 }}>
