@@ -70,6 +70,15 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
 
   if (dismissed === null) return null;
 
+  const STEP_TIME: Record<string, string> = {
+    logo: '~1 min',
+    profile: '~2 min',
+    hours: '~2 min',
+    menu: '~5 min',
+    tables: '~1 min',
+    orders: '~1 min',
+  };
+
   const coreSteps: OnboardingStep[] = [
     {
       id: 'logo',
@@ -155,7 +164,8 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
   const totalSteps = coreSteps.length;
   const allComplete = completedCount === totalSteps;
   const progress = (completedCount / totalSteps) * 100;
-  const canDismiss = allComplete;
+  // Allow dismissing once 4 of 6 core steps are done — no need to force all 6
+  const canDismiss = completedCount >= 4 || allComplete;
 
   if (dismissed && allComplete) return null;
 
@@ -192,14 +202,15 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
 
   const isNewUser = completedCount === 0;
   const nextStep = coreSteps.find((s) => !s.completed);
+  const accentColor = isNewUser ? 'violet' : 'emerald';
 
   const renderStep = (step: OnboardingStep, i: number, list: OnboardingStep[], isOptional = false) => {
     const isNext = !isOptional && nextStep?.id === step.id;
-    const accentColor = isNewUser ? 'violet' : 'emerald';
     const LinkComponent = step.external ? 'a' : Link;
     const linkProps = step.external
       ? { href: step.href, target: '_blank', rel: 'noopener noreferrer' }
       : { href: step.href };
+    const timeEst = !isOptional ? STEP_TIME[step.id] : undefined;
 
     return (
       <LinkComponent
@@ -237,7 +248,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <p className={cn(
               'text-sm font-medium',
               step.completed ? 'text-gray-500 line-through' : isNext ? 'text-gray-900 font-semibold' : 'text-gray-700'
@@ -258,6 +269,9 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
               <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
                 {t.onboarding_optional}
               </span>
+            )}
+            {!step.completed && timeEst && (
+              <span className="text-[10px] text-gray-400 flex-shrink-0">{timeEst}</span>
             )}
           </div>
           <p className={cn(
@@ -318,8 +332,9 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
           {canDismiss && (
             <button
               onClick={handleDismiss}
-              className="p-1.5 rounded-lg text-gray-600 hover:text-gray-500 hover:bg-gray-50 transition-colors"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
               aria-label={t.onboarding_hide}
+              title={t.onboarding_hide}
             >
               <X className="w-4 h-4" />
             </button>
@@ -340,6 +355,31 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
           <p className="text-[11px] text-gray-400 mt-1.5">
             0 {t.onboarding_stepsOf} {totalSteps} {t.onboarding_progressLabel}
           </p>
+        )}
+
+        {/* Quick-start CTA — always visible, points to the next uncompleted step */}
+        {nextStep && !allComplete && (
+          (() => {
+            const NextLink = nextStep.external ? 'a' : Link;
+            const nextLinkProps = nextStep.external
+              ? { href: nextStep.href, target: '_blank', rel: 'noopener noreferrer' }
+              : { href: nextStep.href };
+            return (
+              <NextLink
+                {...nextLinkProps as any}
+                className={cn(
+                  'mt-4 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold transition-colors',
+                  accentColor === 'violet'
+                    ? 'bg-violet-600 hover:bg-violet-700 text-white'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                )}
+              >
+                {nextStep.icon}
+                {nextStep.title}
+                <ChevronRight className="w-4 h-4 ml-auto" />
+              </NextLink>
+            );
+          })()
         )}
       </div>
 
