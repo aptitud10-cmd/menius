@@ -28,7 +28,6 @@ import { MenuErrorBoundary } from './MenuErrorBoundary';
 import { ReservationWidget } from './ReservationWidget';
 import { MenuUpdateBanner } from './MenuUpdateBanner';
 import { CartFlyParticles } from './CartFlyParticles';
-import RepeatOrderButton from './RepeatOrderButton';
 interface ReviewStats {
   average: number;
   total: number;
@@ -2143,9 +2142,6 @@ export function MenuShell({
 
       {/* ── Menu Update Banner ── */}
       <MenuUpdateBanner restaurantId={restaurant.id} locale={locale} />
-
-      {/* ── Repeat Last Order (floating pill for returning customers) ── */}
-      <RepeatOrderButton restaurantId={restaurant.id} locale={locale === 'en' ? 'en' : 'es'} />
 
       {/* ── PWA Install Banner ── */}
       <InstallBanner
