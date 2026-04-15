@@ -54,6 +54,13 @@ export async function POST(request: NextRequest) {
     const currency = (rest?.currency || 'usd').toLowerCase();
     const connectedAccount = rest?.stripe_onboarding_complete ? rest?.stripe_account_id : null;
 
+    if (currency === 'cop') {
+      return NextResponse.json(
+        { error: 'This restaurant uses Wompi for online payments.' },
+        { status: 400 }
+      );
+    }
+
     if (!connectedAccount) {
       return NextResponse.json(
         {

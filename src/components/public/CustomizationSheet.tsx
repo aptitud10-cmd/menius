@@ -18,6 +18,7 @@ interface CustomizationSheetProps {
   product: Product;
   editIndex: number | null;
   onClose: () => void;
+  onViewCart?: () => void;
   onAddToCart?: (productName: string) => void;
   fmtPrice: (n: number) => string;
   t: Translations;
@@ -32,6 +33,7 @@ export function CustomizationSheet({
   product,
   editIndex,
   onClose,
+  onViewCart,
   onAddToCart,
   fmtPrice,
   t,
@@ -562,7 +564,7 @@ export function CustomizationSheet({
             // After adding: show two actions — close or keep browsing suggestions
             <div className="flex flex-1 gap-2">
               <button
-                onClick={onClose}
+                onClick={onViewCart ?? onClose}
                 className="flex-1 h-[52px] rounded-2xl font-extrabold text-[15px] bg-[#05c8a7] text-white transition-all duration-200 active:scale-[0.98]"
               >
                 ✓ {locale === 'es' ? 'Ver carrito' : 'View cart'}
