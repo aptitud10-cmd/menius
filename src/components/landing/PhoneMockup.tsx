@@ -95,64 +95,78 @@ function DynamicIsland({ tilt }: { tilt: Tilt }) {
 
 function MenuScreen({ locale }: { locale: LandingLocale }) {
   const isEs = locale === 'es';
-  const items = isEs
-    ? [
-        { name: 'Tacos al Pastor', price: '$89', emoji: '🌮', popular: true },
-        { name: 'Guac + Totopos', price: '$65', emoji: '🥑', popular: false },
-        { name: 'Agua Fresca', price: '$35', emoji: '🍹', popular: false },
-      ]
-    : [
-        { name: 'BBQ Burger', price: '$12', emoji: '🍔', popular: true },
-        { name: 'Loaded Fries', price: '$8', emoji: '🍟', popular: false },
-        { name: 'Lemonade', price: '$5', emoji: '🍋', popular: false },
-      ];
+
+  const items = [
+    {
+      name: 'Tacos al Pastor',
+      price: '$12.99',
+      desc: isEs ? 'Piña, cilantro, cebolla' : 'Pineapple, cilantro, onion',
+      popular: true,
+    },
+    {
+      name: 'Fresh Guacamole',
+      price: '$8.50',
+      desc: isEs ? 'Aguacate, jitomate, limón' : 'Avocado, tomato, lime',
+      popular: false,
+    },
+    {
+      name: 'Enchiladas Suizas',
+      price: '$14.99',
+      desc: isEs ? 'Pollo, salsa verde, queso' : 'Chicken, green salsa, cheese',
+      popular: false,
+    },
+    {
+      name: 'Horchata',
+      price: '$4.00',
+      desc: isEs ? 'Arroz, canela, vainilla' : 'Rice, cinnamon, vanilla',
+      popular: false,
+    },
+  ];
 
   const categories = isEs
     ? ['Popular', 'Tacos', 'Bebidas', 'Postres']
-    : ['Popular', 'Burgers', 'Sides', 'Drinks'];
-
-  const restaurantName = isEs ? 'Casa de Tacos' : 'The Burger Joint';
+    : ['Popular', 'Tacos', 'Drinks', 'Desserts'];
 
   return (
     <div
       className="absolute inset-0 flex flex-col"
-      style={{ background: '#FAFAF8', color: '#1a1a1a' }}
+      style={{ background: '#0f0f0f', color: '#fff' }}
     >
       {/* Status bar */}
       <div
         className="flex items-center justify-between px-5 pt-3 pb-1 flex-shrink-0"
-        style={{ fontSize: 10, color: '#666' }}
+        style={{ fontSize: 10 }}
       >
-        <span style={{ fontWeight: 600 }}>9:41</span>
+        <span style={{ fontWeight: 600, color: '#fff' }}>9:41</span>
         <div className="flex items-center gap-1">
           <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
-            <rect x="0" y="5" width="2" height="3" rx="0.5" fill="#1a1a1a" />
-            <rect x="3" y="3" width="2" height="5" rx="0.5" fill="#1a1a1a" />
-            <rect x="6" y="1" width="2" height="7" rx="0.5" fill="#1a1a1a" />
-            <rect x="9" y="0" width="2" height="8" rx="0.5" fill="#1a1a1a" />
+            <rect x="0" y="5" width="2" height="3" rx="0.5" fill="rgba(255,255,255,0.8)" />
+            <rect x="3" y="3" width="2" height="5" rx="0.5" fill="rgba(255,255,255,0.8)" />
+            <rect x="6" y="1" width="2" height="7" rx="0.5" fill="rgba(255,255,255,0.8)" />
+            <rect x="9" y="0" width="2" height="8" rx="0.5" fill="rgba(255,255,255,0.8)" />
           </svg>
           <svg width="15" height="8" viewBox="0 0 15 8" fill="none">
-            <rect x="0.5" y="0.5" width="12" height="7" rx="1.5" stroke="#1a1a1a" strokeOpacity="0.4" />
-            <rect x="13" y="2.5" width="1.5" height="3" rx="0.75" fill="#1a1a1a" fillOpacity="0.4" />
-            <rect x="1.5" y="1.5" width="9" height="5" rx="0.75" fill="#1a1a1a" />
+            <rect x="0.5" y="0.5" width="12" height="7" rx="1.5" stroke="rgba(255,255,255,0.35)" />
+            <rect x="13" y="2.5" width="1.5" height="3" rx="0.75" fill="rgba(255,255,255,0.35)" />
+            <rect x="1.5" y="1.5" width="9" height="5" rx="0.75" fill="rgba(255,255,255,0.8)" />
           </svg>
         </div>
       </div>
 
       {/* Restaurant header */}
-      <div className="px-4 pt-8 pb-2 text-center flex-shrink-0">
+      <div className="px-4 pt-5 pb-2 text-center flex-shrink-0">
         <div
-          className="w-9 h-9 rounded-xl mx-auto mb-1.5 flex items-center justify-center"
+          className="w-10 h-10 rounded-full mx-auto mb-1.5 flex items-center justify-center"
           style={{
-            background: 'linear-gradient(135deg, #ff6b35 0%, #e8431a 100%)',
-            boxShadow: '0 4px 12px rgba(232,67,26,0.35)',
+            background: '#0f2d25',
+            border: '2px solid #0d9488',
           }}
         >
-          <span style={{ fontSize: 16 }}>🍽️</span>
+          <span style={{ fontSize: 15, fontWeight: 800, color: '#0d9488', fontFamily: 'sans-serif' }}>M</span>
         </div>
-        <p style={{ fontSize: 11, fontWeight: 700, color: '#1a1a1a' }}>{restaurantName}</p>
-        <p style={{ fontSize: 9, color: '#888', marginTop: 2 }}>
-          {isEs ? '⭐ 4.9 · Mesa 4' : '⭐ 4.9 · Table 4'}
+        <p style={{ fontSize: 11, fontWeight: 700, color: '#fff' }}>La Taquería</p>
+        <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+          {isEs ? 'Mesa 5 · Menú digital' : 'Table 5 · Digital menu'}
         </p>
       </div>
 
@@ -167,8 +181,8 @@ function MenuScreen({ locale }: { locale: LandingLocale }) {
               fontSize: 9,
               fontWeight: 600,
               flexShrink: 0,
-              background: i === 0 ? '#ff6b35' : 'rgba(0,0,0,0.06)',
-              color: i === 0 ? '#fff' : '#666',
+              background: i === 0 ? '#0d9488' : '#1e1e1e',
+              color: i === 0 ? '#fff' : 'rgba(255,255,255,0.45)',
             }}
           >
             {cat}
@@ -177,70 +191,54 @@ function MenuScreen({ locale }: { locale: LandingLocale }) {
       </div>
 
       {/* Items */}
-      <div className="px-4 flex flex-col gap-2 flex-1 overflow-hidden">
+      <div className="px-4 flex flex-col gap-1.5 flex-1 overflow-hidden">
         {items.map((item) => (
           <div
             key={item.name}
             className="flex items-center gap-2.5"
             style={{
               padding: '7px 8px',
-              borderRadius: 12,
-              background: '#fff',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-              border: '1px solid rgba(0,0,0,0.05)',
+              borderRadius: 10,
+              background: '#1a1a1a',
             }}
           >
+            {/* Image placeholder */}
             <div
-              className="flex items-center justify-center flex-shrink-0"
               style={{
                 width: 36,
                 height: 36,
-                borderRadius: 10,
-                background: 'rgba(255,107,53,0.08)',
-                fontSize: 18,
+                borderRadius: 8,
+                background: '#2a2a2a',
+                flexShrink: 0,
               }}
-            >
-              {item.emoji}
-            </div>
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1">
-                <p style={{ fontSize: 10, fontWeight: 600, color: '#1a1a1a' }}>{item.name}</p>
+                <p style={{ fontSize: 10, fontWeight: 600, color: '#fff' }}>{item.name}</p>
                 {item.popular && (
-                  <span
-                    style={{
-                      padding: '1px 4px',
-                      borderRadius: 4,
-                      background: 'rgba(255,107,53,0.12)',
-                      color: '#ff6b35',
-                      fontSize: 7,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {isEs ? 'POPULAR' : 'HOT'}
-                  </span>
+                  <span style={{ fontSize: 10, lineHeight: 1 }}>🌶️</span>
                 )}
               </div>
-              <p style={{ fontSize: 8, color: '#999', marginTop: 1 }}>
-                {isEs ? 'Hecho al momento' : 'Made fresh'}
+              <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.38)', marginTop: 1 }}>
+                {item.desc}
               </p>
             </div>
             <div className="text-right flex-shrink-0">
-              <p style={{ fontSize: 10, fontWeight: 700, color: '#1a1a1a' }}>{item.price}</p>
+              <p style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>{item.price}</p>
               <div
                 style={{
                   marginTop: 3,
                   width: 20,
                   height: 20,
                   borderRadius: 6,
-                  background: '#ff6b35',
+                  background: '#0d9488',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginLeft: 'auto',
-                  boxShadow: '0 2px 6px rgba(255,107,53,0.4)',
                 }}
               >
-                <span style={{ color: '#fff', fontSize: 12, lineHeight: 1 }}>+</span>
+                <span style={{ color: '#fff', fontSize: 13, lineHeight: 1 }}>+</span>
               </div>
             </div>
           </div>
@@ -248,28 +246,46 @@ function MenuScreen({ locale }: { locale: LandingLocale }) {
       </div>
 
       {/* Cart CTA */}
-      <div className="px-4 pb-5 pt-2 flex-shrink-0">
+      <div className="px-4 pt-2 pb-1 flex-shrink-0">
         <div
           style={{
-            padding: '9px 14px',
+            padding: '10px 14px',
             borderRadius: 12,
-            background: 'linear-gradient(135deg, #ff6b35 0%, #e8431a 100%)',
-            boxShadow: '0 4px 14px rgba(232,67,26,0.4)',
+            background: '#fff',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justifyContent: 'center',
+            gap: 4,
           }}
         >
-          <span style={{ fontSize: 9, fontWeight: 700, color: '#fff' }}>
-            🛒 {isEs ? 'Ver pedido' : 'View order'}
+          <span style={{ fontSize: 9, fontWeight: 700, color: '#111' }}>
+            🛒 {isEs ? 'Ver carrito' : 'View cart'} · $40.48
           </span>
-          <span style={{ fontSize: 9, fontWeight: 700, color: '#fff' }}>$89</span>
+        </div>
+      </div>
+
+      {/* Order sent to kitchen */}
+      <div className="px-4 pt-1 pb-1 flex-shrink-0">
+        <div
+          style={{
+            padding: '7px 12px',
+            borderRadius: 10,
+            background: '#052e1e',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+          }}
+        >
+          <span style={{ color: '#10b981', fontSize: 9, fontWeight: 700 }}>✓</span>
+          <span style={{ fontSize: 9, fontWeight: 600, color: '#6ee7b7' }}>
+            {isEs ? 'Pedido enviado a cocina' : 'Order sent to kitchen!'}
+          </span>
         </div>
       </div>
 
       {/* Home indicator */}
-      <div className="flex justify-center pb-2 flex-shrink-0">
-        <div style={{ width: 80, height: 3, borderRadius: 99, background: 'rgba(0,0,0,0.12)' }} />
+      <div className="flex justify-center pb-2 pt-1 flex-shrink-0">
+        <div style={{ width: 80, height: 3, borderRadius: 99, background: 'rgba(255,255,255,0.18)' }} />
       </div>
     </div>
   );
