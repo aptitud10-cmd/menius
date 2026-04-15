@@ -440,7 +440,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                           <div className="relative w-20 h-20 mx-auto mb-6">
                             <div
                               className="delivered-ring absolute inset-0 rounded-full"
-                              style={{ background: cfg.solid, opacity: 0 }}
+                              style={{ background: cfg.solid }}
                             />
                             <div
                               className="delivered-icon relative w-20 h-20 rounded-full flex items-center justify-center"
@@ -778,38 +778,6 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 <span className="text-sm text-gray-600 text-right max-w-[60%] italic">&quot;{order.notes}&quot;</span>
               </div>
             )}
-          </div>
-
-          {/* Items list */}
-          <div className="px-5 py-4 border-t border-gray-50 space-y-3">
-            {order.order_items?.map((item: any) => {
-              // Support both RPC flat format (product_name) and nested format (products?.name)
-              const productName = item.product_name ?? item.products?.name ?? (t.en ? 'Item' : 'Producto');
-              const variantName = item.variant_name ?? item.product_variants?.name;
-              return (
-                <div key={item.id} className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800">
-                      <span className="text-brand-600 font-bold">{item.qty}×</span>{' '}
-                      {productName}
-                      {variantName && (
-                        <span className="text-gray-400 font-normal text-xs ml-1">({variantName})</span>
-                      )}
-                    </p>
-                    {(item.order_item_extras ?? []).length > 0 && (
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        + {(item.order_item_extras ?? []).map((ex: any) => ex.product_extras?.name).filter(Boolean).join(', ')}
-                      </p>
-                    )}
-                    {(item.order_item_modifiers ?? []).map((mod: any, i: number) => (
-                      <p key={i} className="text-xs text-gray-400">{mod.group_name}: {mod.option_name}</p>
-                    ))}
-                    {item.notes && <p className="text-xs text-amber-600 italic mt-0.5">&quot;{item.notes}&quot;</p>}
-                  </div>
-                  <span className="text-sm font-semibold text-gray-800 flex-shrink-0">{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
-                </div>
-              );
-            })}
           </div>
 
           {/* Price breakdown */}
