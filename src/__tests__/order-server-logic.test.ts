@@ -299,14 +299,10 @@ describe('Order state machine — canTransition', () => {
     }
   });
 
-  it('delivered can only transition to completed', () => {
+  it('delivered is a terminal state — no further transitions allowed', () => {
     const allStatuses = Object.keys(VALID_TRANSITIONS) as OrderStatus[];
     for (const to of allStatuses) {
-      if (to === 'completed') {
-        expect(canTransition('delivered', to)).toBe(true);
-      } else {
-        expect(canTransition('delivered', to)).toBe(false);
-      }
+      expect(canTransition('delivered', to)).toBe(false);
     }
   });
 
