@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createDashboardNotification } from './dashboard-notifications';
 import {
   sendWhatsApp,
   formatNewOrderWhatsApp,
@@ -233,6 +234,16 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
     if (emailJobs.length > 0) {
       await Promise.all(emailJobs).catch(() => {});
     }
+
+    // In-app dashboard notification (fire-and-forget)
+    createDashboardNotification({
+      restaurantId,
+      type: 'new_order',
+      title: `Nuevo pedido #${orderNumber}`,
+      body: `${customerName} — ${totalFormatted}`,
+      actionUrl: '/app/orders',
+      metadata: { order_id: orderId, order_number: orderNumber },
+    }).catch(() => {});
   } catch (err) {
     console.error('[Notifications] Error sending new order notifications:', err);
   }

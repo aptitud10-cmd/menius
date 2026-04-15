@@ -6,6 +6,7 @@ import { getPlanByStripePrice, getIntervalByStripePrice } from '@/lib/plans';
 import { createLogger } from '@/lib/logger';
 import { getStripe, getWebhookSecret } from '@/lib/stripe';
 import { captureError } from '@/lib/error-reporting';
+import { createDashboardNotification } from '@/lib/notifications/dashboard-notifications';
 
 const logger = createLogger('billing-webhook');
 
@@ -144,6 +145,21 @@ export async function POST(request: NextRequest) {
         }
 
         await auditLog(resolvedId, `webhook_${event.type}`, previousStatus, status, { plan_id: plan?.id, interval });
+
+        // In-app notification for plan changes
+        if (resolvedId && plan && previousStatus !== status) {
+          createDashboardNotification({
+            restaurantId: resolvedId,
+            type: 'subscription',
+            title: status === 'active'
+              ? `Plan ${plan.id.charAt(0).toUpperCase() + plan.id.slice(1)} activado`
+              : status === 'past_due'
+                ? 'Pago vencido — actualiza tu método de pago'
+                : `Suscripción actualizada`,
+            actionUrl: '/app/billing',
+            metadata: { plan_id: plan.id, status },
+          }).catch(() => {});
+        }
 
         // Auto-seed style anchors when restaurant activates Pro or Business plan
         if (resolvedId && ['pro', 'business'].includes(plan?.id ?? '') && ['active', 'trialing'].includes(status)) {

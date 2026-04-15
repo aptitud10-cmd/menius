@@ -39,6 +39,10 @@
     {
       "path": "/api/cron/monitor-orders",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/stripe-connect-reminders",
+      "schedule": "0 14 * * 1"
     }
   ]
 }

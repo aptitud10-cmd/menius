@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { formatPrice, cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import ShareReceiptButton from './ShareReceiptButton';
 const DeliveryMap = dynamic(
   () => import('./DeliveryMap').then((m) => m.DeliveryMap),
   { ssr: false, loading: () => <div className="w-full h-48 rounded-2xl bg-gray-100 animate-pulse" /> }
@@ -870,6 +871,20 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           >
             {t.backToMenu}
           </Link>
+          {isComplete && order.order_items?.length > 0 && (
+            <ShareReceiptButton
+              orderNumber={order.order_number}
+              restaurantName={restaurantName}
+              restaurantSlug={restaurantSlug}
+              total={Number(order.total)}
+              currency={currency}
+              items={(order.order_items as any[]).map((i: any) => ({
+                name: i.product_name ?? i.products?.name ?? 'Item',
+                qty: i.qty,
+              }))}
+              locale={locale === 'en' ? 'en' : 'es'}
+            />
+          )}
           {restaurantPhone && (
             <a
               href={`tel:${restaurantPhone}`}

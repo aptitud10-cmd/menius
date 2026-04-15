@@ -481,8 +481,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             phone: customerPhone.trim(),
             email: customerEmail.trim(),
           }));
+          localStorage.setItem('menius_customer_phone', customerPhone.trim());
         } else {
           localStorage.removeItem('menius_guest_info');
+          localStorage.removeItem('menius_customer_phone');
         }
       } catch {}
       trackEvent('order_placed', {
@@ -526,8 +528,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           phone: customerPhone.trim(),
           email: customerEmail.trim(),
         }));
+        localStorage.setItem('menius_customer_phone', customerPhone.trim());
       } else {
         localStorage.removeItem('menius_guest_info');
+        localStorage.removeItem('menius_customer_phone');
       }
     } catch {}
     trackEvent('order_placed', {
