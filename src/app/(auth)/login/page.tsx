@@ -1,16 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { login } from '@/lib/actions/auth';
 import { loginSchema } from '@/lib/validations';
-import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { useLocale } from '@/providers/locale-provider';
 import { getLandingT } from '@/lib/landing-translations';
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
+const IS_VERCEL_PREVIEW = process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview';
 
 export default function LoginPage() {
   const locale = useLocale();
@@ -23,6 +23,19 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState<string>('');
+  const [turnstileError, setTurnstileError] = useState(false);
+  const [turnstileReady, setTurnstileReady] = useState(false);
+  const requiresTurnstile = TURNSTILE_SITE_KEY.length > 0 && !IS_VERCEL_PREVIEW;
+
+  useEffect(() => {
+    if (!requiresTurnstile) return;
+    const timer = window.setTimeout(() => {
+      if (!turnstileReady && !turnstileToken) {
+        setTurnstileError(true);
+      }
+    }, 5000);
+    return () => window.clearTimeout(timer);
+  }, [requiresTurnstile, turnstileReady, turnstileToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,20 +70,13 @@ export default function LoginPage() {
           <div className="bg-[#0a0a0a] rounded-2xl p-8 md:p-10 space-y-6">
 
             {/* Google first */}
-            <button
-              type="button"
-              onClick={async () => {
-                const supabase = getSupabaseBrowser();
-                await supabase.auth.signInWithOAuth({
-                  provider: 'google',
-                  options: { redirectTo: `${window.location.origin}/auth/callback` },
-                });
-              }}
+            <Link
+              href="/auth/google?flow=login"
               className="w-full py-3.5 rounded-xl border border-white/[0.08] bg-white/[0.02] text-gray-300 font-medium text-sm hover:bg-white/[0.06] hover:text-white transition-all flex items-center justify-center gap-2.5"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 2.09 2.27 3.87l3.57 2.77C6.71 4.42 9.14 3.84 12 5.38z"/></svg>
               {t.google}
-            </button>
+            </Link>
 
             <div className="flex items-center gap-4">
               <div className="flex-1 h-px bg-white/[0.06]" />
@@ -136,18 +142,67 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {TURNSTILE_SITE_KEY && (
-                <Turnstile
-                  siteKey={TURNSTILE_SITE_KEY}
-                  onSuccess={setTurnstileToken}
-                  onExpire={() => setTurnstileToken('')}
-                  options={{ theme: 'dark', size: 'flexible' }}
-                />
+              {requiresTurnstile && (
+                <div className="space-y-2">
+                  <Turnstile
+                    siteKey={TURNSTILE_SITE_KEY}
+                    onLoadScript={() => setTurnstileError(false)}
+                    onWidgetLoad={() => {
+                      setTurnstileReady(true);
+                      setTurnstileError(false);
+                    }}
+                    onSuccess={(token) => {
+                      setTurnstileError(false);
+                      setTurnstileToken(token);
+                    }}
+                    onExpire={() => setTurnstileToken('')}
+                    onError={() => {
+                      setTurnstileToken('');
+                      setTurnstileError(true);
+                    }}
+                    onUnsupported={() => {
+                      setTurnstileToken('');
+                      setTurnstileError(true);
+                    }}
+                    scriptOptions={{
+                      onError: () => {
+                        setTurnstileToken('');
+                        setTurnstileError(true);
+                        setTurnstileReady(false);
+                      },
+                    }}
+                    options={{ theme: 'dark', size: 'flexible' }}
+                  />
+                  {turnstileError ? (
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                      <p className="text-[12px] text-amber-300">
+                        {locale === 'es'
+                          ? 'No se pudo cargar la verificacion anti-bot. Desactiva adblock/Brave shields y recarga la pagina.'
+                          : 'Could not load anti-bot verification. Disable ad blockers/Brave shields and reload the page.'}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                        className="mt-2 text-[12px] text-white underline underline-offset-2 hover:text-emerald-300 transition-colors"
+                      >
+                        {locale === 'es' ? 'Recargar pagina' : 'Reload page'}
+                      </button>
+                    </div>
+                  ) : (
+                    !turnstileToken && (
+                      <p className="text-[12px] text-gray-500">
+                        {locale === 'es'
+                          ? 'Completa la verificacion anti-bot para habilitar el boton.'
+                          : 'Complete anti-bot verification to enable the button.'}
+                      </p>
+                    )
+                  )}
+                </div>
               )}
 
               <button
                 type="submit"
-                disabled={loading || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
+                disabled={loading}
                 className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] md:text-sm hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {loading ? (

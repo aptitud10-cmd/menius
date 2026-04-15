@@ -454,6 +454,7 @@ export async function POST(request: NextRequest) {
       include_utensils: body.include_utensils !== false,
       driver_tracking_token: preToken,
       driver_token_expires_at: preTokenExpiresAt,
+      customer_locale: bodyLocale,
     };
     if (tipAmt > 0) orderInsert.tip_amount = tipAmt;
     if (deliveryFeeAmt > 0) orderInsert.delivery_fee = deliveryFeeAmt;
@@ -681,8 +682,9 @@ export async function POST(request: NextRequest) {
     // so that if Stripe rejects (no connected account), we can roll back and return early
     // without the restaurant already having received a phantom order notification.
     // 'wallet' payments (Apple Pay / Google Pay) use a PaymentIntent directly — no Checkout Session needed.
+    const isColombianCurrency = (restaurant.currency ?? '').toUpperCase() === 'COP';
     let stripeUrl: string | null = null;
-    if (parsed.data.payment_method === 'online') {
+    if (parsed.data.payment_method === 'online' && !isColombianCurrency) {
       try {
         const stripe = getStripe();
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
@@ -802,6 +804,7 @@ export async function POST(request: NextRequest) {
         customerName: parsed.data.customer_name,
         customerEmail: customer_email || undefined,
         customerPhone: parsed.data.customer_phone || undefined,
+        customerLocale: bodyLocale,
         orderType: order_type || 'dine_in',
         deliveryAddress: delivery_address || null,
         paymentMethod: parsed.data.payment_method || undefined,

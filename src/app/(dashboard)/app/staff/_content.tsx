@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Users, Plus, Trash2, Loader2, Mail, Shield, ChefHat, UserCheck, UserX, UserPlus, Bike, Phone, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
+import type { DashboardTranslations } from '@/lib/dashboard-translations';
 
 interface Driver {
   id: string;
@@ -11,9 +12,7 @@ interface Driver {
   is_active: boolean;
 }
 
-function DriversSection({ t }: { t: any }) {
-  const { locale } = useDashboardLocale();
-  const en = locale === 'en';
+function DriversSection({ t }: { t: DashboardTranslations }) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -53,7 +52,7 @@ function DriversSection({ t }: { t: any }) {
   };
 
   const del = async (id: string) => {
-    if (!confirm(en ? 'Delete this driver?' : '¿Eliminar este repartidor?')) return;
+    if (!confirm(t.drivers_deleteConfirm)) return;
     await fetch('/api/tenant/drivers', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
@@ -67,35 +66,35 @@ function DriversSection({ t }: { t: any }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Bike className="w-6 h-6 text-emerald-500" />
-          <h2 className="text-lg font-bold text-gray-900">{en ? 'Delivery Drivers' : 'Repartidores'}</h2>
+          <h2 className="text-lg font-bold text-gray-900">{t.drivers_title}</h2>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
           className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition text-sm"
         >
           <Plus className="w-4 h-4" />
-          {en ? 'Add driver' : 'Agregar repartidor'}
+          {t.drivers_add}
         </button>
       </div>
 
       {showForm && (
         <form onSubmit={handleAdd} className="bg-white border border-gray-200 rounded-xl p-4 mb-4 flex gap-3 flex-wrap items-end">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{en ? 'Name' : 'Nombre'}</label>
+            <label className="block text-xs text-gray-500 mb-1">{t.drivers_name}</label>
             <input value={name} onChange={e => setName(e.target.value)} required
-              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" placeholder={en ? 'John Doe' : 'Juan Pérez'} />
+              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" placeholder="John Doe" />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">{en ? 'Phone' : 'Teléfono'}</label>
+            <label className="block text-xs text-gray-500 mb-1">{t.drivers_phone}</label>
             <input value={phone} onChange={e => setPhone(e.target.value)}
               className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" placeholder="+1 555 123 4567" />
           </div>
           <button type="submit" disabled={saving}
             className="flex items-center gap-1 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold disabled:opacity-50">
             {saving && <Loader2 className="w-3 h-3 animate-spin" />}
-            {en ? 'Save' : 'Guardar'}
+            {t.drivers_save}
           </button>
-          <button type="button" onClick={() => setShowForm(false)} className="px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm">{en ? 'Cancel' : 'Cancelar'}</button>
+          <button type="button" onClick={() => setShowForm(false)} className="px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm">{t.drivers_cancel}</button>
         </form>
       )}
 
@@ -104,7 +103,7 @@ function DriversSection({ t }: { t: any }) {
       ) : drivers.length === 0 ? (
         <div className="text-center py-10 text-gray-500">
           <Bike className="w-10 h-10 mx-auto mb-2 opacity-30" />
-          <p className="text-sm">{en ? 'No drivers yet. Add your first driver.' : 'No hay repartidores. Agrega el primero.'}</p>
+          <p className="text-sm">{t.drivers_noDrivers}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -125,7 +124,7 @@ function DriversSection({ t }: { t: any }) {
               </div>
               <div className="flex items-center gap-2">
                 <span className={`text-xs font-medium ${d.is_active ? 'text-emerald-600' : 'text-gray-400'}`}>
-                  {d.is_active ? (en ? 'Active' : 'Activo') : (en ? 'Inactive' : 'Inactivo')}
+                  {d.is_active ? t.drivers_active : t.drivers_inactive}
                 </span>
                 <button onClick={() => toggle(d)} className="p-1 hover:bg-gray-100 rounded-lg transition">
                   {d.is_active ? <ToggleRight className="w-5 h-5 text-emerald-500" /> : <ToggleLeft className="w-5 h-5 text-gray-400" />}
@@ -191,6 +190,15 @@ export default function StaffContent() {
     setEmail(''); setFullName(''); setRole('staff'); setFormError(''); setShowForm(false);
   };
 
+  const API_ERROR_MAP: Record<string, keyof typeof t> = {
+    DUPLICATE_EMAIL: 'error_duplicateEmail',
+    MEMBER_NOT_FOUND: 'error_memberNotFound',
+    ID_REQUIRED: 'error_idRequired',
+    ID_INVALID: 'error_idInvalid',
+    INVALID_ROLE: 'error_invalidRole',
+    INVALID_STATUS: 'error_invalidStatus',
+  };
+
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -201,7 +209,11 @@ export default function StaffContent() {
       body: JSON.stringify({ email, full_name: fullName, role }),
     });
     if (res.ok) { resetForm(); fetchStaff(); }
-    else { const d = await res.json(); setFormError(d.error); }
+    else {
+      const d = await res.json();
+      const key = API_ERROR_MAP[d.error];
+      setFormError(key ? String(t[key]) : (d.error ?? t.settings_errorSaving));
+    }
     setSaving(false);
   };
 

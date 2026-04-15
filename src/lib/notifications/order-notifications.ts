@@ -33,6 +33,7 @@ interface OrderNotificationPayload {
   customerName: string;
   customerEmail?: string;
   customerPhone?: string;
+  customerLocale?: string; // customer's session locale (overrides restaurant.locale for customer-facing comms)
   orderType?: string;
   deliveryAddress?: string | null;
   paymentMethod?: string;
@@ -95,7 +96,7 @@ async function fetchRichItems(orderId: string, currency: string): Promise<OrderE
  * Non-blocking — errors are logged but don't affect the order flow.
  */
 export async function notifyNewOrder(payload: OrderNotificationPayload) {
-  const { orderId, orderNumber, restaurantId, restaurantData, customerName, customerEmail, customerPhone, orderType, deliveryAddress, paymentMethod, tableNumber, notes, includeUtensils, total, items } = payload;
+  const { orderId, orderNumber, restaurantId, restaurantData, customerName, customerEmail, customerPhone, customerLocale, orderType, deliveryAddress, paymentMethod, tableNumber, notes, includeUtensils, total, items } = payload;
 
   try {
     let restaurant = restaurantData ?? null;
@@ -116,8 +117,12 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
     const totalFormatted = formatPrice(total, currency);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
     const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}`;
-    const locale = restaurant.locale ?? 'es';
+    const restaurantLocale = restaurant.locale ?? 'es';
+    // Customer-facing comms use the locale from the checkout session; owner-facing use restaurant locale
+    const customerEffectiveLocale = customerLocale ?? restaurantLocale;
+    const locale = restaurantLocale; // kept for owner email + legacy references
     const en = locale === 'en';
+    const customerEn = customerEffectiveLocale === 'en';
     const notificationsOn = restaurant.notifications_enabled !== false;
 
     // Fetch rich items (with variants/modifiers/extras) if orderId available
@@ -154,13 +159,12 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
     if (notificationsOn && customerPhone && paymentMethod !== 'online') {
       const channel = resolveChannel(customerPhone);
       if (channel === 'sms') {
-        const text = formatOrderConfirmationSMS(orderNumber, restaurant.name, totalFormatted, trackingUrl, locale);
+        const text = formatOrderConfirmationSMS(orderNumber, restaurant.name, totalFormatted, trackingUrl, customerEffectiveLocale);
         sendSMS({ to: customerPhone, text }).catch(() => {});
       } else {
-        const en = locale === 'en';
-        const confirmText = formatCustomerOrderConfirmationWhatsApp(orderNumber, restaurant.name, totalFormatted, trackingUrl, locale);
-        // Append bidirectional confirmation prompt
-        const biText = en
+        const confirmText = formatCustomerOrderConfirmationWhatsApp(orderNumber, restaurant.name, totalFormatted, trackingUrl, customerEffectiveLocale);
+        // Append bidirectional confirmation prompt in customer's language
+        const biText = customerEn
           ? `${confirmText}\n\nReply *1* to confirm your order or *2* to cancel it.`
           : `${confirmText}\n\nResponde *1* para confirmar tu orden o *2* para cancelarla.`;
         sendWhatsApp({ to: customerPhone, text: biText }).catch(() => {});
@@ -170,7 +174,7 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
           (async () => {
             try {
               const { storeOrderAwaitingConfirmation } = await import('@/lib/whatsapp/agent');
-              await storeOrderAwaitingConfirmation(customerPhone, orderId, orderNumber, restaurant.id ?? '', restaurant.name, restaurant.slug, locale, restaurant.currency ?? 'MXN');
+              await storeOrderAwaitingConfirmation(customerPhone, orderId, orderNumber, restaurant.id ?? '', restaurant.name, restaurant.slug, customerEffectiveLocale, restaurant.currency ?? 'MXN');
             } catch { /* non-critical */ }
           })();
         }
@@ -179,7 +183,7 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
 
     const emailJobs: Promise<boolean>[] = [];
 
-    // Confirmation email to customer
+    // Confirmation email to customer — use customer's language, not restaurant's
     if (notificationsOn && customerEmail) {
       const html = buildOrderConfirmationEmail({
         customerName,
@@ -192,13 +196,13 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
         paymentMethod,
         tableNumber,
         notes,
-        locale,
+        locale: customerEffectiveLocale,
       });
 
       emailJobs.push(sendEmail({
         to: customerEmail,
         from: `${restaurant.name} <noreply@menius.app>`,
-        subject: en
+        subject: customerEn
           ? `Order #${orderNumber} confirmed — ${restaurant.name}`
           : `Pedido #${orderNumber} confirmado — ${restaurant.name}`,
         html,
@@ -288,11 +292,12 @@ export async function notifyStatusChange(params: {
   customerName: string;
   customerEmail?: string;
   customerPhone?: string;
+  customerLocale?: string; // customer's preferred language, falls back to restaurant locale
   orderType?: string;
   deliveryAddress?: string;
   estimatedMinutes?: number;
 }): Promise<NotifyStatusResult> {
-  const { orderId, orderNumber, restaurantId, status, customerName, customerEmail, customerPhone, orderType, estimatedMinutes } = params;
+  const { orderId, orderNumber, restaurantId, status, customerName, customerEmail, customerPhone, customerLocale, orderType, estimatedMinutes } = params;
 
   try {
     const adminDb = createAdminClient();
@@ -308,6 +313,16 @@ export async function notifyStatusChange(params: {
     }
 
     const rLocale = restaurant.locale ?? 'es';
+    // If not explicitly provided, try to fetch from the stored order locale
+    let resolvedCustomerLocale = customerLocale ?? rLocale;
+    if (!customerLocale && orderId) {
+      const { data: orderRow } = await adminDb
+        .from('orders')
+        .select('customer_locale')
+        .eq('id', orderId)
+        .maybeSingle();
+      if (orderRow?.customer_locale) resolvedCustomerLocale = orderRow.customer_locale;
+    }
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
     const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}`;
     const reviewUrl = orderId ? `${appUrl}/${restaurant.slug}/review/${orderId}` : undefined;
@@ -315,41 +330,42 @@ export async function notifyStatusChange(params: {
     let result: NotifyStatusResult;
 
     // Route by channel based on phone country code
+    // All customer-facing text uses resolvedCustomerLocale; owner comms use rLocale
     if (customerPhone) {
       const primaryChannel = resolveChannel(customerPhone);
 
       if (primaryChannel === 'sms') {
         // SMS primary channel
-        const text = formatStatusUpdateSMS(orderNumber, status, restaurant.name, trackingUrl, reviewUrl, orderType, rLocale, estimatedMinutes);
+        const text = formatStatusUpdateSMS(orderNumber, status, restaurant.name, trackingUrl, reviewUrl, orderType, resolvedCustomerLocale, estimatedMinutes);
         const smsResult = await sendSMS({ to: customerPhone, text });
         if (smsResult.success) {
           if (customerEmail) {
-            const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale, orderType, estimatedMinutes });
-            sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale, orderType), html }).catch(() => {});
+            const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: resolvedCustomerLocale, orderType, estimatedMinutes });
+            sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, resolvedCustomerLocale, orderType), html }).catch(() => {});
           }
           result = { channel: 'sms', success: true };
         } else if (customerEmail) {
           // SMS failed — fallback to email
-          const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale, orderType, estimatedMinutes });
-          const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale, orderType), html });
+          const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: resolvedCustomerLocale, orderType, estimatedMinutes });
+          const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, resolvedCustomerLocale, orderType), html });
           result = { channel: 'email', success: emailOk, error: 'sms_failed_fallback_email' };
         } else {
           result = { channel: 'sms', success: false, error: 'sms_failed_no_fallback' };
         }
       } else {
         // LATAM + rest of world: WhatsApp primary
-        const text = formatStatusUpdateWhatsApp(orderNumber, status, restaurant.name, rLocale, trackingUrl, reviewUrl, orderType, estimatedMinutes);
+        const text = formatStatusUpdateWhatsApp(orderNumber, status, restaurant.name, resolvedCustomerLocale, trackingUrl, reviewUrl, orderType, estimatedMinutes);
         const waResult = await sendWhatsApp({ to: customerPhone, text });
         if (waResult.success) {
           if (customerEmail) {
-            const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale, orderType, estimatedMinutes });
-            sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale, orderType), html }).catch(() => {});
+            const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: resolvedCustomerLocale, orderType, estimatedMinutes });
+            sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, resolvedCustomerLocale, orderType), html }).catch(() => {});
           }
           result = { channel: 'whatsapp', success: true };
         } else if (customerEmail) {
           // WhatsApp failed — fallback to email
-          const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale, orderType, estimatedMinutes });
-          const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale, orderType), html });
+          const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: resolvedCustomerLocale, orderType, estimatedMinutes });
+          const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, resolvedCustomerLocale, orderType), html });
           result = { channel: 'email', success: emailOk, error: 'whatsapp_failed_fallback_email' };
         } else {
           result = { channel: 'whatsapp', success: false, error: 'whatsapp_failed_no_fallback' };
@@ -357,8 +373,8 @@ export async function notifyStatusChange(params: {
       }
     } else if (customerEmail) {
       // No phone — email only
-      const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: rLocale, orderType, estimatedMinutes });
-      const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, rLocale, orderType), html });
+      const html = buildStatusUpdateEmail({ customerName, orderNumber, restaurantName: restaurant.name, status, trackingUrl, reviewUrl, locale: resolvedCustomerLocale, orderType, estimatedMinutes });
+      const emailOk = await sendEmail({ to: customerEmail, from: `${restaurant.name} <noreply@menius.app>`, subject: getStatusSubject(status, orderNumber, restaurant.name, resolvedCustomerLocale, orderType), html });
       result = { channel: 'email', success: emailOk };
     } else {
       result = { channel: 'none', success: false, error: 'no_contact_info' };
@@ -372,7 +388,7 @@ export async function notifyStatusChange(params: {
       import('./push').then(({ sendPushToOrder, getStatusPushPayload }) => {
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
         const trackUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}`;
-        const payload = getStatusPushPayload(status, orderNumber, restaurant.name, trackUrl, rLocale, orderType);
+        const payload = getStatusPushPayload(status, orderNumber, restaurant.name, trackUrl, resolvedCustomerLocale, orderType);
         sendPushToOrder(orderId, payload).catch(() => {});
 
         // Clean up subscriptions after terminal statuses — no more updates coming
@@ -405,7 +421,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
     .from('orders')
     .select(`
       id, order_number, total, customer_name, customer_email, customer_phone,
-      order_type, delivery_address,
+      order_type, delivery_address, customer_locale,
       restaurants ( name, slug, currency, locale, notification_email, notifications_enabled )
     `)
     .eq('id', orderId)
@@ -422,8 +438,10 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
   if (!notificationsOn) return;
 
   const currency = restaurant.currency ?? 'MXN';
-  const locale = restaurant.locale ?? 'es';
-  const en = locale === 'en';
+  const restaurantLocale = restaurant.locale ?? 'es';
+  // Use customer's checkout language for customer receipt; restaurant locale for owner notification
+  const customerLocale = (order as any).customer_locale ?? restaurantLocale;
+  const en = customerLocale === 'en';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
   const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}`;
   const totalFormatted = formatPrice(Number(order.total), currency);
@@ -433,7 +451,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
 
   const jobs: Promise<boolean>[] = [];
 
-  // Receipt to customer
+  // Receipt to customer — use customer's language
   if (order.customer_email) {
     const html = buildPaymentReceiptEmail({
       customerName: order.customer_name,
@@ -442,7 +460,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
       total: totalFormatted,
       items: emailItems,
       trackingUrl,
-      locale,
+      locale: customerLocale,
     });
 
     jobs.push(sendEmail({
@@ -468,26 +486,29 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
       total: totalFormatted,
       items: emailItems,
       dashboardUrl: `${appUrl}/app/orders`,
-      locale,
+      locale: restaurantLocale, // owner email always in restaurant's language
     });
+    const ownerEn = restaurantLocale === 'en';
     jobs.push(sendEmail({
       to: restaurant.notification_email,
-      subject: en
+      subject: ownerEn
         ? `💳 Payment confirmed — Order #${order.order_number} — ${totalFormatted}`
         : `💳 Pago confirmado — Pedido #${order.order_number} — ${totalFormatted}`,
       html: ownerHtml,
     }));
   }
 
-  // Payment confirmation to customer (channel routed by phone country)
+  // Payment confirmation to customer (channel routed by phone country) — in customer's language
   if ((order as any).customer_phone) {
     const phone: string = (order as any).customer_phone;
     const channel = resolveChannel(phone);
     if (channel === 'sms') {
-      const text = `✅ Payment confirmed for order #${order.order_number} at ${restaurant.name}. Total: ${totalFormatted}. Track: ${trackingUrl}`;
+      const text = en
+        ? `✅ Payment confirmed for order #${order.order_number} at ${restaurant.name}. Total: ${totalFormatted}. Track: ${trackingUrl}`
+        : `✅ Pago confirmado para el pedido #${order.order_number} en ${restaurant.name}. Total: ${totalFormatted}. Rastrea: ${trackingUrl}`;
       sendSMS({ to: phone, text }).catch(() => {});
     } else {
-      const text = formatCustomerPaymentConfirmedWhatsApp(order.order_number, restaurant.name, totalFormatted, trackingUrl, locale);
+      const text = formatCustomerPaymentConfirmedWhatsApp(order.order_number, restaurant.name, totalFormatted, trackingUrl, customerLocale);
       sendWhatsApp({ to: phone, text }).catch(() => {});
     }
   }

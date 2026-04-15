@@ -116,7 +116,17 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     connecting: boolean;
   }>({ connected: !!initialData.stripe_account_id, onboarding_complete: !!initialData.stripe_onboarding_complete, loading: true, connecting: false });
 
+  const isColombianRestaurant =
+    (form.country_code ?? '').toUpperCase() === 'CO' ||
+    (form.currency ?? '').toUpperCase() === 'COP';
+
   useEffect(() => {
+    if (isColombianRestaurant) {
+      setStripeStatus((prev) => ({ ...prev, loading: false }));
+      return;
+    }
+
+    setStripeStatus((prev) => ({ ...prev, loading: true }));
     fetch('/api/connect/status')
       .then((r) => r.json())
       .then((data) => {
@@ -128,7 +138,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         }));
       })
       .catch(() => setStripeStatus((prev) => ({ ...prev, loading: false })));
-  }, []);
+  }, [isColombianRestaurant]);
 
   const handleConnectStripe = async () => {
     setStripeStatus((prev) => ({ ...prev, connecting: true }));
@@ -307,7 +317,15 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        const API_ERROR_MAP: Record<string, string> = {
+          DOMAIN_INVALID: t.error_domainInvalid,
+          NO_CHANGES: t.error_noChanges,
+          TAX_RATE_INVALID: t.error_taxRateInvalid,
+          EMAIL_INVALID: t.error_emailInvalid,
+        };
+        throw new Error(API_ERROR_MAP[data.error] ?? data.error ?? t.settings_errorSaving);
+      }
       setSaved(true);
     } catch (err: any) {
       setError(err.message ?? t.settings_errorSaving);
@@ -1014,7 +1032,15 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         <div className="space-y-2.5">
           {([
             { key: 'cash', label: t.settings_cash, desc: t.settings_cashDesc },
-            { key: 'online', label: t.settings_onlinePayment, desc: t.settings_onlinePaymentDesc },
+            {
+              key: 'online',
+              label: t.settings_onlinePayment,
+              desc: isColombianRestaurant
+                ? (locale === 'en'
+                  ? 'Customer pays online with Wompi (cards, PSE, Nequi, Daviplata).'
+                  : 'El cliente paga en linea con Wompi (tarjetas, PSE, Nequi, Daviplata).')
+                : t.settings_onlinePaymentDesc,
+            },
           ] as const).map((opt) => {
             const checked = form.payment_methods_enabled.includes(opt.key);
             return (
@@ -1046,7 +1072,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         </div>
 
         {/* Warning: online enabled but Connect not ready */}
-        {form.payment_methods_enabled.includes('online') && !stripeStatus.onboarding_complete && (
+        {form.payment_methods_enabled.includes('online') && !isColombianRestaurant && !stripeStatus.onboarding_complete && (
           <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
             <span className="mt-0.5 shrink-0">⚠️</span>
             <span>
@@ -1057,52 +1083,75 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           </div>
         )}
 
-        {/* Stripe Connect */}
-        <div className="mt-4 p-4 rounded-xl border border-gray-200 bg-gray-50">
-          <div className="flex items-center gap-2 mb-2">
-            <Link2 className="w-4 h-4 text-violet-600" />
-            <h3 className="text-sm font-semibold text-gray-900">{t.settings_stripeConnect}</h3>
-          </div>
-          <p className="text-xs text-gray-500 mb-3">
-            {t.settings_stripeConnectDesc}
-          </p>
-          {stripeStatus.loading ? (
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" /> {t.settings_stripeVerifying}
+        {isColombianRestaurant ? (
+          <div className="mt-4 p-4 rounded-xl border border-gray-200 bg-gray-50">
+            <div className="flex items-center gap-2 mb-2">
+              <Link2 className="w-4 h-4 text-amber-500" />
+              <h3 className="text-sm font-semibold text-gray-900">
+                {locale === 'en' ? 'Wompi (Colombia)' : 'Wompi (Colombia)'}
+              </h3>
             </div>
-          ) : stripeStatus.onboarding_complete ? (
+            <p className="text-xs text-gray-500 mb-3">
+              {locale === 'en'
+                ? 'For COP restaurants, MENIUS processes online payments with Wompi (cards, PSE, Nequi, and Daviplata).'
+                : 'Para restaurantes con moneda COP, MENIUS procesa pagos en linea con Wompi (tarjetas, PSE, Nequi y Daviplata).'}
+            </p>
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span className="text-sm font-medium text-emerald-700">{t.settings_stripeReady}</span>
+              <span className="text-sm font-medium text-emerald-700">
+                {locale === 'en'
+                  ? 'Active - customers will pay with Wompi at checkout'
+                  : 'Activo - tus clientes pagaran con Wompi en checkout'}
+              </span>
             </div>
-          ) : stripeStatus.connected ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
-                <Clock className="w-4 h-4 text-amber-600" />
-                <span className="text-sm text-amber-700">{t.settings_stripePendingVerify}</span>
+          </div>
+        ) : (
+          <div className="mt-4 p-4 rounded-xl border border-gray-200 bg-gray-50">
+            <div className="flex items-center gap-2 mb-2">
+              <Link2 className="w-4 h-4 text-violet-600" />
+              <h3 className="text-sm font-semibold text-gray-900">{t.settings_stripeConnect}</h3>
+            </div>
+            <p className="text-xs text-gray-500 mb-3">
+              {t.settings_stripeConnectDesc}
+            </p>
+            {stripeStatus.loading ? (
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> {t.settings_stripeVerifying}
               </div>
+            ) : stripeStatus.onboarding_complete ? (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-200">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span className="text-sm font-medium text-emerald-700">{t.settings_stripeReady}</span>
+              </div>
+            ) : stripeStatus.connected ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                  <span className="text-sm text-amber-700">{t.settings_stripePendingVerify}</span>
+                </div>
+                <button
+                  onClick={handleConnectStripe}
+                  disabled={stripeStatus.connecting}
+                  className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors"
+                >
+                  {stripeStatus.connecting ? t.settings_stripeRedirecting : t.settings_stripeCompleteVerify}
+                </button>
+              </div>
+            ) : (
               <button
                 onClick={handleConnectStripe}
                 disabled={stripeStatus.connecting}
-                className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors"
+                className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
               >
-                {stripeStatus.connecting ? t.settings_stripeRedirecting : t.settings_stripeCompleteVerify}
+                {stripeStatus.connecting ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> {t.settings_stripeConnecting}</>
+                ) : (
+                  <><CreditCard className="w-4 h-4" /> {t.settings_stripeConnect_btn}</>
+                )}
               </button>
-            </div>
-          ) : (
-            <button
-              onClick={handleConnectStripe}
-              disabled={stripeStatus.connecting}
-              className="w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-            >
-              {stripeStatus.connecting ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> {t.settings_stripeConnecting}</>
-              ) : (
-                <><CreditCard className="w-4 h-4" /> {t.settings_stripeConnect_btn}</>
-              )}
-            </button>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Operating hours */}

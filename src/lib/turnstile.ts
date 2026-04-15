@@ -17,6 +17,10 @@
 const VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
 export async function verifyTurnstile(token: string | undefined | null): Promise<boolean> {
+  // In Vercel preview deployments we allow auth flows without Turnstile
+  // to avoid domain-allowlist issues on ephemeral *.vercel.app URLs.
+  if (process.env.VERCEL_ENV === 'preview') return true;
+
   const secret = process.env.TURNSTILE_SECRET_KEY;
 
   // Permissive mode when not configured (dev / staging without keys)

@@ -222,7 +222,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
   };
 
   return (
-    <div>
+    <div className="min-w-0 overflow-x-hidden">
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
         <div className="rounded-2xl border border-amber-500/[0.15] bg-amber-500/[0.06] p-4">
@@ -244,9 +244,9 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
       </div>
 
       {/* Controls bar — row 1: search + utility buttons */}
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center gap-2 mb-2 min-w-0">
         {/* Search */}
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
@@ -423,13 +423,13 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
         </div>
       ) : (
         /* ── Kanban board ── */
-        <div className="flex md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 overflow-x-auto pb-2 md:overflow-x-visible -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-2">
 
           {COLUMNS.map(({ status, icon: Icon }) => {
             const config = ORDER_STATUS_CONFIG[status];
             const columnOrders = activeOrders.filter((o) => o.status === status);
             return (
-              <div key={status} className="space-y-3 min-w-[280px] md:min-w-0 flex-shrink-0 md:flex-shrink">
+              <div key={status} className="space-y-3 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
                   <Icon className={`w-4 h-4 ${config.color}`} />
                   <span className="text-sm font-semibold text-gray-900">{statusLabel(t, status)}</span>

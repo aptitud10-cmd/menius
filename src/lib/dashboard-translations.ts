@@ -699,6 +699,15 @@ export interface DashboardTranslations {
   onboarding_configurePrinterDesc: string;
   onboarding_installPWA: string;
   onboarding_installPWADesc: string;
+  onboarding_next: string;
+  onboarding_optional: string;
+  onboarding_firstSteps: string;
+  onboarding_setupTitle: string;
+  onboarding_setupSubtitle: string;
+  onboarding_progressLabel: string;
+  onboarding_improveOps: string;
+  onboarding_close: string;
+  onboarding_hide: string;
 
   // General
   general_delete: string;
@@ -1160,6 +1169,43 @@ export interface DashboardTranslations {
   verify_resend: string;
   verify_resending: string;
   verify_logout: string;
+
+  // Orders page extras
+  orders_tabletMode: string;
+
+  // Drivers section (Staff page)
+  drivers_title: string;
+  drivers_add: string;
+  drivers_noDrivers: string;
+  drivers_name: string;
+  drivers_phone: string;
+  drivers_save: string;
+  drivers_cancel: string;
+  drivers_deleteConfirm: string;
+  drivers_active: string;
+  drivers_inactive: string;
+
+  // Settings page extras
+  settings_kds: string;
+  settings_installTitle: string;
+  settings_installDesc: string;
+  settings_installStep1: string;
+  settings_installStep2: string;
+  settings_installStep3: string;
+  settings_widgetTitle: string;
+  settings_cfdiTitle: string;
+
+  // API error code translations
+  error_duplicateEmail: string;
+  error_domainInvalid: string;
+  error_noChanges: string;
+  error_taxRateInvalid: string;
+  error_emailInvalid: string;
+  error_memberNotFound: string;
+  error_idRequired: string;
+  error_idInvalid: string;
+  error_invalidRole: string;
+  error_invalidStatus: string;
 }
 
 const es: DashboardTranslations = {
@@ -1861,6 +1907,15 @@ const es: DashboardTranslations = {
   onboarding_configurePrinterDesc: 'Imprime automáticamente cada nuevo pedido en tu cocina',
   onboarding_installPWA: 'Instala MENIUS en tu tablet o celular',
   onboarding_installPWADesc: 'Accede rápido sin abrir el navegador cada vez',
+  onboarding_next: 'Siguiente',
+  onboarding_optional: 'Opcional',
+  onboarding_firstSteps: 'Primeros pasos',
+  onboarding_setupTitle: '¡Configura tu restaurante!',
+  onboarding_setupSubtitle: 'Sigue estos pasos para recibir tu primer pedido',
+  onboarding_progressLabel: 'pasos completados · ¡Empieza ahora!',
+  onboarding_improveOps: 'Mejora tu operación',
+  onboarding_close: 'Cerrar',
+  onboarding_hide: 'Ocultar',
 
   // General
   general_delete: 'Eliminar',
@@ -2322,6 +2377,43 @@ const es: DashboardTranslations = {
   verify_resend: 'Reenviar correo de verificación',
   verify_resending: 'Enviando...',
   verify_logout: 'Cerrar sesión',
+
+  // Orders page extras
+  orders_tabletMode: 'Modo Tablet',
+
+  // Drivers section
+  drivers_title: 'Repartidores',
+  drivers_add: 'Agregar repartidor',
+  drivers_noDrivers: 'No hay repartidores. Agrega el primero.',
+  drivers_name: 'Nombre',
+  drivers_phone: 'Teléfono',
+  drivers_save: 'Guardar',
+  drivers_cancel: 'Cancelar',
+  drivers_deleteConfirm: '¿Eliminar este repartidor?',
+  drivers_active: 'Activo',
+  drivers_inactive: 'Inactivo',
+
+  // Settings page extras
+  settings_kds: 'Display de Cocina',
+  settings_installTitle: 'Instala MENIUS como App',
+  settings_installDesc: 'Agrega MENIUS a tu pantalla de inicio para acceso rápido — funciona en iPhone, Android y navegadores de escritorio.',
+  settings_installStep1: 'Abre esta página en Safari (iPhone) o Chrome (Android / Escritorio).',
+  settings_installStep2: 'Toca el botón Compartir (iPhone), el menú ⋮ (Android) o el ícono ⊕ en la barra de direcciones (Escritorio).',
+  settings_installStep3: 'Selecciona "Agregar a pantalla de inicio" y confirma.',
+  settings_widgetTitle: 'Widget embebible',
+  settings_cfdiTitle: 'Facturación CFDI',
+
+  // API error code translations
+  error_duplicateEmail: 'Este email ya está invitado',
+  error_domainInvalid: 'Formato de dominio inválido',
+  error_noChanges: 'No hay cambios que guardar',
+  error_taxRateInvalid: 'La tasa de impuesto debe estar entre 0 y 100',
+  error_emailInvalid: 'El email de notificaciones no es válido',
+  error_memberNotFound: 'Miembro no encontrado',
+  error_idRequired: 'ID requerido',
+  error_idInvalid: 'ID inválido',
+  error_invalidRole: 'Rol inválido',
+  error_invalidStatus: 'Estado inválido',
 };
 
 const en: DashboardTranslations = {
@@ -3023,6 +3115,15 @@ const en: DashboardTranslations = {
   onboarding_configurePrinterDesc: 'Connect a thermal printer to print tickets automatically',
   onboarding_installPWA: 'Install MENIUS on your tablet',
   onboarding_installPWADesc: 'Add the app to your home screen for the best experience',
+  onboarding_next: 'Next',
+  onboarding_optional: 'Optional',
+  onboarding_firstSteps: 'First steps',
+  onboarding_setupTitle: 'Set up your restaurant!',
+  onboarding_setupSubtitle: 'Follow these steps to receive your first order',
+  onboarding_progressLabel: 'steps completed · Get started!',
+  onboarding_improveOps: 'Improve your operations',
+  onboarding_close: 'Close',
+  onboarding_hide: 'Hide',
 
   // General
   general_delete: 'Delete',
@@ -3484,6 +3585,43 @@ const en: DashboardTranslations = {
   verify_resend: 'Resend verification email',
   verify_resending: 'Sending...',
   verify_logout: 'Log out',
+
+  // Orders page extras
+  orders_tabletMode: 'Tablet Mode',
+
+  // Drivers section
+  drivers_title: 'Delivery Drivers',
+  drivers_add: 'Add driver',
+  drivers_noDrivers: 'No drivers yet. Add your first driver.',
+  drivers_name: 'Name',
+  drivers_phone: 'Phone',
+  drivers_save: 'Save',
+  drivers_cancel: 'Cancel',
+  drivers_deleteConfirm: 'Delete this driver?',
+  drivers_active: 'Active',
+  drivers_inactive: 'Inactive',
+
+  // Settings page extras
+  settings_kds: 'Kitchen Display',
+  settings_installTitle: 'Install MENIUS as App',
+  settings_installDesc: 'Add MENIUS to your home screen for quick access — works on iPhone, Android, and desktop browsers.',
+  settings_installStep1: 'Open this page in Safari (iPhone) or Chrome (Android / Desktop).',
+  settings_installStep2: 'Tap the Share button (iPhone) or the menu ⋮ (Android) or the ⊕ icon in the address bar (Desktop).',
+  settings_installStep3: 'Select "Add to Home Screen" and confirm.',
+  settings_widgetTitle: 'Embeddable Widget',
+  settings_cfdiTitle: 'CFDI Invoicing',
+
+  // API error code translations
+  error_duplicateEmail: 'This email is already invited',
+  error_domainInvalid: 'Invalid domain format',
+  error_noChanges: 'No changes to save',
+  error_taxRateInvalid: 'Tax rate must be between 0 and 100',
+  error_emailInvalid: 'Notification email is not valid',
+  error_memberNotFound: 'Member not found',
+  error_idRequired: 'ID required',
+  error_idInvalid: 'Invalid ID',
+  error_invalidRole: 'Invalid role',
+  error_invalidStatus: 'Invalid status',
 };
 
 const dashboardTranslations: Record<DashboardLocale, DashboardTranslations> = { es, en };

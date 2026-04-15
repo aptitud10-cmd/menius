@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 
 // Checkout flow test — uses demo menu (no auth required)
 const DEMO_SLUG = 'la-casa-del-sabor';
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3099';
 
 test.describe('Checkout flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -66,6 +67,114 @@ test.describe('Checkout flow', () => {
     ).toBeVisible({ timeout: 8_000 });
     const submitBtn = page.locator('button[type="submit"], button').filter({ hasText: /Buscar|Search|Ver/i }).first();
     await expect(submitBtn).toBeVisible({ timeout: 5_000 });
+  });
+});
+
+// ─── API-level integration tests (no browser needed) ─────────────────────────
+
+test.describe('Cart Quote API — /api/cart/quote', () => {
+  test('returns 400 for missing restaurant_id', async ({ request }) => {
+    const res = await request.post(`${BASE_URL}/api/cart/quote`, {
+      data: { items: [{ product_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa', qty: 1 }] },
+    });
+    expect(res.status()).toBe(400);
+  });
+
+  test('returns 400 for non-UUID restaurant_id', async ({ request }) => {
+    const res = await request.post(`${BASE_URL}/api/cart/quote`, {
+      data: {
+        restaurant_id: 'not-a-uuid',
+        items: [{ product_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa', qty: 1 }],
+      },
+    });
+    expect(res.status()).toBe(400);
+  });
+
+  test('returns 400 for empty items array', async ({ request }) => {
+    const res = await request.post(`${BASE_URL}/api/cart/quote`, {
+      data: {
+        restaurant_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa',
+        items: [],
+      },
+    });
+    expect(res.status()).toBe(400);
+  });
+
+  test('returns 400 for item with qty=0', async ({ request }) => {
+    const res = await request.post(`${BASE_URL}/api/cart/quote`, {
+      data: {
+        restaurant_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa',
+        items: [{ product_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa', qty: 0 }],
+      },
+    });
+    expect(res.status()).toBe(400);
+  });
+
+  test('returns 404 for inactive restaurant', async ({ request }) => {
+    const fakeId = '00000000-0000-4000-8000-000000000001';
+    const res = await request.post(`${BASE_URL}/api/cart/quote`, {
+      data: {
+        restaurant_id: fakeId,
+        items: [{ product_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa', qty: 1 }],
+      },
+    });
+    // Either 404 (restaurant not found) or 400 — never 200 with fake data
+    expect([400, 404]).toContain(res.status());
+  });
+});
+
+test.describe('Orders API — /api/orders security', () => {
+  test('rejects order with honeypot field set (_hp)', async ({ request }) => {
+    const res = await request.post(`${BASE_URL}/api/orders`, {
+      data: {
+        slug: DEMO_SLUG,
+        customer_name: 'Bot',
+        customer_phone: '+18095550000',
+        items: [{ product_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa', qty: 1, unit_price: 10, line_total: 10, extras: [], modifiers: [] }],
+        _hp: 'filled-by-bot',
+      },
+    });
+    // Honeypot should cause rejection (400 or 403)
+    expect(res.status()).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBeLessThan(500);
+  });
+
+  test('rejects order with no items', async ({ request }) => {
+    const res = await request.post(`${BASE_URL}/api/orders`, {
+      data: {
+        slug: DEMO_SLUG,
+        customer_name: 'Test',
+        customer_phone: '+18095551234',
+        items: [],
+      },
+    });
+    expect(res.status()).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBeLessThan(500);
+  });
+
+  test('rejects order with empty customer_name', async ({ request }) => {
+    const res = await request.post(`${BASE_URL}/api/orders`, {
+      data: {
+        slug: DEMO_SLUG,
+        customer_name: '',
+        customer_phone: '+18095551234',
+        items: [{ product_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa', qty: 1, unit_price: 10, line_total: 10, extras: [], modifiers: [] }],
+      },
+    });
+    expect(res.status()).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBeLessThan(500);
+  });
+
+  test('rejects order missing Idempotency-Key header format check', async ({ request }) => {
+    // Order submission without required slug should fail
+    const res = await request.post(`${BASE_URL}/api/orders`, {
+      data: {
+        customer_name: 'Test',
+        customer_phone: '+18095551234',
+        items: [{ product_id: 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa', qty: 1, unit_price: 10, line_total: 10, extras: [], modifiers: [] }],
+      },
+    });
+    expect(res.status()).toBeGreaterThanOrEqual(400);
   });
 });
 

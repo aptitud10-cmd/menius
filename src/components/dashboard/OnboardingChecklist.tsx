@@ -126,8 +126,8 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
   const optionalSteps: OnboardingStep[] = [
     {
       id: 'counter',
-      title: t.onboarding_openCounter ?? 'Abre tu Counter',
-      description: t.onboarding_openCounterDesc ?? 'Gestiona tus órdenes en tiempo real desde cualquier dispositivo',
+      title: t.onboarding_openCounter,
+      description: t.onboarding_openCounterDesc,
       completed: hasOpenedCounter,
       href: '/counter',
       icon: <Monitor className="w-4 h-4" />,
@@ -135,16 +135,16 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
     },
     {
       id: 'printer',
-      title: t.onboarding_configurePrinter ?? 'Conecta una impresora',
-      description: t.onboarding_configurePrinterDesc ?? 'Imprime tickets automáticamente con una impresora térmica',
+      title: t.onboarding_configurePrinter,
+      description: t.onboarding_configurePrinterDesc,
       completed: hasPrinterConfigured,
       href: '/app/settings#printer',
       icon: <Printer className="w-4 h-4" />,
     },
     {
       id: 'pwa',
-      title: t.onboarding_installPWA ?? 'Instala MENIUS como app',
-      description: t.onboarding_installPWADesc ?? 'Agrega la app a tu pantalla de inicio para acceso rápido',
+      title: t.onboarding_installPWA,
+      description: t.onboarding_installPWADesc,
       completed: hasInstalledPWA,
       href: '/app/settings#install',
       icon: <Smartphone className="w-4 h-4" />,
@@ -171,7 +171,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
         <button
           onClick={handleDismiss}
           className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-600 hover:text-gray-500 hover:bg-gray-50 transition-colors"
-          aria-label="Cerrar"
+          aria-label={t.onboarding_close}
         >
           <X className="w-4 h-4" />
         </button>
@@ -251,12 +251,12 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
                   ? 'text-violet-700 bg-violet-100'
                   : 'text-emerald-700 bg-emerald-100'
               )}>
-                Siguiente
+                {t.onboarding_next}
               </span>
             )}
             {isOptional && (
               <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
-                Opcional
+                {t.onboarding_optional}
               </span>
             )}
           </div>
@@ -292,7 +292,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
         {isNewUser && (
           <div className="flex items-center gap-2 mb-3">
             <span className="inline-flex items-center gap-1.5 bg-violet-100 text-violet-700 text-[11px] font-bold px-2.5 py-1 rounded-full tracking-wide uppercase">
-              <Sparkles className="w-3 h-3" /> Primeros pasos
+              <Sparkles className="w-3 h-3" /> {t.onboarding_firstSteps}
             </span>
           </div>
         )}
@@ -306,11 +306,11 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
             </div>
             <div>
               <h3 className="font-semibold text-sm text-gray-900">
-                {isNewUser ? '¡Configura tu restaurante!' : t.onboarding_title}
+                {isNewUser ? t.onboarding_setupTitle : t.onboarding_title}
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
                 {isNewUser
-                  ? 'Sigue estos pasos para recibir tu primer pedido'
+                  ? t.onboarding_setupSubtitle
                   : `${completedCount} ${t.onboarding_stepsOf} ${totalSteps}`}
               </p>
             </div>
@@ -319,7 +319,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
             <button
               onClick={handleDismiss}
               className="p-1.5 rounded-lg text-gray-600 hover:text-gray-500 hover:bg-gray-50 transition-colors"
-              aria-label="Ocultar"
+              aria-label={t.onboarding_hide}
             >
               <X className="w-4 h-4" />
             </button>
@@ -338,7 +338,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
         </div>
         {isNewUser && (
           <p className="text-[11px] text-gray-400 mt-1.5">
-            0 de {totalSteps} pasos completados · ¡Empieza ahora!
+            0 {t.onboarding_stepsOf} {totalSteps} {t.onboarding_progressLabel}
           </p>
         )}
       </div>
@@ -351,7 +351,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
       {/* Optional steps */}
       <div className="border-t border-gray-200 bg-gray-50/50">
         <p className="px-5 pt-3 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-          Mejora tu operación
+          {t.onboarding_improveOps}
         </p>
         {optionalSteps.map((step, i) => renderStep(step, i, optionalSteps, true))}
       </div>

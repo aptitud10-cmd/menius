@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { ArrowLeft, CheckCircle, ShoppingCart, Lock, UtensilsCrossed } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCartStore } from '@/store/cartStore';
+import { useCheckoutStore } from '@/lib/store/checkoutStore';
 import { cn, formatPrice } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, OrderType, PaymentMethod } from '@/types';
@@ -67,19 +68,34 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const tableName = useCartStore((s) => s.tableName);
   const welcomeOrderType = useCartStore((s) => s.selectedOrderType);
 
+  const savedCustomer = useCheckoutStore((s) => s.customer);
+  const saveCustomer = useCheckoutStore((s) => s.saveCustomer);
+  const isReturningCustomer = useCheckoutStore((s) => s.isReturningCustomer);
+
   const [hasMounted, setHasMounted] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
-  // Pre-fill customer info from localStorage on mount
+  // Pre-fill customer info from stored data on mount
   useEffect(() => {
     setHasMounted(true);
     try {
-      const saved = localStorage.getItem('menius_guest_info');
-      if (saved) {
-        const { name, phone, email } = JSON.parse(saved);
-        if (name) setCustomerName(name);
-        if (phone) setCustomerPhone(phone);
-        if (email) setCustomerEmail(email);
+      // Prefer Zustand persisted store (has returning-customer check + more fields)
+      const stored = useCheckoutStore.getState();
+      if (stored.isReturningCustomer() && stored.customer) {
+        const c = stored.customer;
+        if (c.name) setCustomerName(c.name);
+        if (c.phone) setCustomerPhone(c.phone);
+        if (c.email) setCustomerEmail(c.email);
+        if (c.deliveryAddress) setDeliveryAddress(c.deliveryAddress);
+      } else {
+        // Fallback: legacy menius_guest_info for users who ordered before this change
+        const saved = localStorage.getItem('menius_guest_info');
+        if (saved) {
+          const { name, phone, email } = JSON.parse(saved);
+          if (name) setCustomerName(name);
+          if (phone) setCustomerPhone(phone);
+          if (email) setCustomerEmail(email);
+        }
       }
     } catch {}
     // Fire begin_checkout once — tracks how many users enter the checkout page
@@ -476,13 +492,17 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       // Save customer info for next visit
       try {
         if (rememberMe) {
-          localStorage.setItem('menius_guest_info', JSON.stringify({
+          saveCustomer({
             name: customerName.trim(),
             phone: customerPhone.trim(),
             email: customerEmail.trim(),
-          }));
+            lastOrderType: orderType,
+            lastPaymentMethod: paymentMethod,
+            deliveryAddress: deliveryAddress.trim() || undefined,
+          });
           localStorage.setItem('menius_customer_phone', customerPhone.trim());
         } else {
+          useCheckoutStore.getState().clearCustomer();
           localStorage.removeItem('menius_guest_info');
           localStorage.removeItem('menius_customer_phone');
         }
@@ -523,13 +543,17 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     setConfirmedTotal(displayTotal);
     try {
       if (rememberMe) {
-        localStorage.setItem('menius_guest_info', JSON.stringify({
+        saveCustomer({
           name: customerName.trim(),
           phone: customerPhone.trim(),
           email: customerEmail.trim(),
-        }));
+          lastOrderType: orderType,
+          lastPaymentMethod: paymentMethod,
+          deliveryAddress: deliveryAddress.trim() || undefined,
+        });
         localStorage.setItem('menius_customer_phone', customerPhone.trim());
       } else {
+        useCheckoutStore.getState().clearCustomer();
         localStorage.removeItem('menius_guest_info');
         localStorage.removeItem('menius_customer_phone');
       }
@@ -1091,11 +1115,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   }
 
   return (
-    <motion.div
+    <div
       className="h-[100dvh] bg-[#f5f5f5] flex flex-col overflow-hidden"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
     >
       {/* Sticky header */}
       <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between">
@@ -1329,9 +1350,16 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           </div>
 
           {/* Section: Tus datos */}
-          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 px-1 pt-2">
-            {locale === 'es' ? '2 · Tus datos' : '2 · Your info'}
-          </p>
+          <div className="flex items-center justify-between px-1 pt-2">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
+              {locale === 'es' ? '2 · Tus datos' : '2 · Your info'}
+            </p>
+            {hasMounted && isReturningCustomer() && savedCustomer && (
+              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                {locale === 'es' ? '👋 Datos guardados' : '👋 Info saved'}
+              </span>
+            )}
+          </div>
 
           {/* Customer details */}
           <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm space-y-5">
@@ -1614,6 +1642,6 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           </button>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
