@@ -394,8 +394,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       return;
     }
     if (!customerPhone.trim() || !/^\+?[\d\s()-]{7,}$/.test(customerPhone.trim())) {
-      document.getElementById('checkout-phone')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      document.getElementById('checkout-phone')?.focus();
+      const wrapper = document.getElementById('checkout-phone-wrapper');
+      const phoneInput = wrapper?.querySelector('input') as HTMLInputElement | null;
+      phoneInput?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      phoneInput?.focus();
       return;
     }
     if (!customerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
@@ -638,7 +640,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     setStep('confirmation');
     playSuccessChime();
     confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
-  }, [saveLastOrder, rememberMe, customerName, customerPhone, customerEmail, restaurant, orderNumber, orderType, items, cartTotal, displayTotal, clearCart, confettiTimer]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saveLastOrder, rememberMe, saveCustomer, customerName, customerPhone, customerEmail, deliveryAddress, paymentMethod, restaurant, orderNumber, orderType, items, cartTotal, displayTotal, clearCart, confettiTimer]);
 
   const isColombianRestaurant = restaurant.currency?.toUpperCase() === 'COP';
 
@@ -1506,18 +1509,20 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   <CheckCircle className="w-4 h-4 text-green-500 ml-auto" aria-hidden="true" />
                 )}
               </div>
-              <PhoneField
-                id="checkout-phone"
-                label=""
-                value={customerPhone}
-                onChange={(v) => { setCustomerPhone(v); touch('customer_phone'); }}
-                onBlur={() => validateField('customer_phone', customerPhone)}
-                placeholder={t.yourPhonePlaceholder}
-                required
-                dark={false}
-                error={!!fieldErrors.customer_phone}
-                valid={fieldTouched.customer_phone && !fieldErrors.customer_phone && /^\+?[\d\s()-]{7,}$/.test(customerPhone.trim())}
-              />
+              {/* Wrapper id used by scrollToFirstInvalidField to locate the phone input */}
+              <div id="checkout-phone-wrapper">
+                <PhoneField
+                  label=""
+                  value={customerPhone}
+                  onChange={(v) => { setCustomerPhone(v); touch('customer_phone'); }}
+                  onBlur={() => validateField('customer_phone', customerPhone)}
+                  placeholder={t.yourPhonePlaceholder}
+                  required
+                  dark={false}
+                  error={!!fieldErrors.customer_phone}
+                  valid={fieldTouched.customer_phone && !fieldErrors.customer_phone && /^\+?[\d\s()-]{7,}$/.test(customerPhone.trim())}
+                />
+              </div>
               {fieldErrors.customer_phone && (
                 <p className="text-xs text-red-500 mt-1">{fieldErrors.customer_phone}</p>
               )}
