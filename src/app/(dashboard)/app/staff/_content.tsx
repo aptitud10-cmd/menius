@@ -342,27 +342,28 @@ export default function StaffContent() {
             const roleInfo = ROLE_LABELS[m.role] || ROLE_LABELS.staff;
             const statusInfo = STATUS_LABELS[m.status] || STATUS_LABELS.pending;
             return (
-              <div key={m.id} className="flex items-center justify-between bg-white border border-gray-200 rounded-xl p-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-sm">
+              <div key={m.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white border border-gray-200 rounded-xl p-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold text-sm flex-shrink-0">
                     {m.full_name.charAt(0).toUpperCase()}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-gray-900 font-medium">{m.full_name}</h3>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${roleInfo.color}`}>{roleInfo.label}</span>
-                      <span className={`text-xs font-medium ${statusInfo.color}`}>{statusInfo.label}</span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-gray-900 font-medium truncate">{m.full_name}</h3>
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0 ${roleInfo.color}`}>{roleInfo.label}</span>
+                      <span className={`text-xs font-medium flex-shrink-0 ${statusInfo.color}`}>{statusInfo.label}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-gray-500 text-sm mt-0.5">
-                      <Mail className="w-3.5 h-3.5" /> {m.email}
+                    <div className="flex items-center gap-1.5 text-gray-500 text-sm mt-0.5 truncate">
+                      <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="truncate">{m.email}</span>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 sm:flex-shrink-0">
                   <select
                     value={m.role}
                     onChange={e => handleChangeRole(m.id, e.target.value)}
-                    className="text-xs bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700"
+                    className="flex-1 sm:flex-none text-xs bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700"
                   >
                     <option value="admin">{t.staff_roleAdmin}</option>
                     <option value="manager">{t.staff_roleManager}</option>
@@ -372,11 +373,11 @@ export default function StaffContent() {
                   <button
                     onClick={() => handleToggleStatus(m)}
                     title={m.status === 'active' ? t.staff_toggleDeactivate : t.staff_toggleActivate}
-                    className={`p-1.5 rounded-lg transition ${m.status === 'active' ? 'text-emerald-600 hover:bg-emerald-50' : 'text-gray-500 hover:bg-gray-100'}`}
+                    className={`p-1.5 rounded-lg transition flex-shrink-0 ${m.status === 'active' ? 'text-emerald-600 hover:bg-emerald-50' : 'text-gray-500 hover:bg-gray-100'}`}
                   >
                     {m.status === 'active' ? <UserCheck className="w-4 h-4" /> : <UserX className="w-4 h-4" />}
                   </button>
-                  <button onClick={() => handleDelete(m.id)} className="text-gray-500 hover:text-red-400 p-1.5 rounded-lg transition">
+                  <button onClick={() => handleDelete(m.id)} className="text-gray-500 hover:text-red-400 p-1.5 rounded-lg transition flex-shrink-0">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
