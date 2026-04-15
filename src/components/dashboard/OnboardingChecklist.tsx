@@ -42,8 +42,9 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
 
   useEffect(() => {
     const stored = localStorage.getItem(storageKey);
-    // If previously dismissed but not all steps complete, reset so checklist shows again
-    if (stored === 'true' && !Object.values(steps).every(Boolean)) {
+    // Reset dismissed state only if fewer than 4 steps are complete (matches canDismiss threshold)
+    const completedInProps = Object.values(steps).filter(Boolean).length;
+    if (stored === 'true' && completedInProps < 4) {
       localStorage.removeItem(storageKey);
       setDismissed(false);
     } else {
@@ -204,6 +205,27 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
   const nextStep = coreSteps.find((s) => !s.completed);
   const accentColor = isNewUser ? 'violet' : 'emerald';
 
+  // CTA button that points to the next uncompleted step
+  const NextStepLink = nextStep?.external ? 'a' : Link;
+  const nextStepLinkProps = nextStep?.external
+    ? { href: nextStep.href, target: '_blank', rel: 'noopener noreferrer' }
+    : { href: nextStep?.href ?? '#' };
+  const nextStepCTA = nextStep && !allComplete ? (
+    <NextStepLink
+      {...nextStepLinkProps as any}
+      className={cn(
+        'mt-4 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold transition-colors',
+        accentColor === 'violet'
+          ? 'bg-violet-600 hover:bg-violet-700 text-white'
+          : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+      )}
+    >
+      {nextStep.icon}
+      {nextStep.title}
+      <ChevronRight className="w-4 h-4 ml-auto" />
+    </NextStepLink>
+  ) : null;
+
   const renderStep = (step: OnboardingStep, i: number, list: OnboardingStep[], isOptional = false) => {
     const isNext = !isOptional && nextStep?.id === step.id;
     const LinkComponent = step.external ? 'a' : Link;
@@ -358,29 +380,7 @@ export function OnboardingChecklist({ restaurantSlug, steps }: OnboardingCheckli
         )}
 
         {/* Quick-start CTA — always visible, points to the next uncompleted step */}
-        {nextStep && !allComplete && (
-          (() => {
-            const NextLink = nextStep.external ? 'a' : Link;
-            const nextLinkProps = nextStep.external
-              ? { href: nextStep.href, target: '_blank', rel: 'noopener noreferrer' }
-              : { href: nextStep.href };
-            return (
-              <NextLink
-                {...nextLinkProps as any}
-                className={cn(
-                  'mt-4 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold transition-colors',
-                  accentColor === 'violet'
-                    ? 'bg-violet-600 hover:bg-violet-700 text-white'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                )}
-              >
-                {nextStep.icon}
-                {nextStep.title}
-                <ChevronRight className="w-4 h-4 ml-auto" />
-              </NextLink>
-            );
-          })()
-        )}
+        {nextStepCTA}
       </div>
 
       {/* Core steps */}

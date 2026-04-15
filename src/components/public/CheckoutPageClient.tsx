@@ -1083,27 +1083,34 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </button>
             )}
             {!restaurant.id.startsWith('demo') && orderNumber && (
-              <button
-                onClick={() => router.push(`/${slug}/orden/${orderNumber}`)}
-                className={cn(
-                  'relative w-full py-3.5 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2 overflow-hidden',
-                  paymentMethod === 'cash'
-                    ? 'bg-[#05c8a7] text-white hover:bg-[#04b096]'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                )}
-              >
-                {/* Pulsing ring — only for cash orders to draw attention */}
+              <div className="relative">
+                {/* Pulsing ring outside the button — only for cash orders */}
                 {paymentMethod === 'cash' && (
-                  <span className="absolute inset-0 rounded-xl animate-ping bg-[#05c8a7]/20 pointer-events-none" />
+                  <span className="absolute -inset-1 rounded-2xl animate-ping bg-[#05c8a7]/25 pointer-events-none" />
                 )}
-                <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                {locale === 'es' ? 'Seguir mi pedido en vivo' : 'Track my order live'}
-              </button>
+                <button
+                  onClick={() => router.push(`/${slug}/orden/${orderNumber}`)}
+                  className={cn(
+                    'relative w-full py-3.5 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2',
+                    paymentMethod === 'cash'
+                      ? 'bg-[#05c8a7] text-white hover:bg-[#04b096]'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  )}
+                >
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  {locale === 'es' ? 'Seguir mi pedido en vivo' : 'Track my order live'}
+                </button>
+              </div>
             )}
             {paymentMethod !== 'cash' && (
               <button onClick={goBack} className="w-full py-3.5 rounded-xl bg-gray-100 text-gray-700 font-semibold text-sm hover:bg-gray-200 transition-colors">
+                {t.backToMenu}
+              </button>
+            )}
+            {paymentMethod === 'cash' && (
+              <button onClick={goBack} className="w-full py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors">
                 {t.backToMenu}
               </button>
             )}
