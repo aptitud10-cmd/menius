@@ -156,6 +156,65 @@ Pedido *#${orderNumber}* en *${restaurantName}* — pago recibido.
 Sigue tu pedido aquí: ${trackingUrl}`;
 }
 
+export function formatDailySummaryWhatsApp({
+  restaurantName,
+  totalOrders,
+  totalRevenue,
+  currency,
+  ordersByType,
+  topProducts,
+  vsYesterdayOrders,
+  dashUrl,
+}: {
+  restaurantName: string;
+  totalOrders: number;
+  totalRevenue: number;
+  currency: string;
+  ordersByType: { dine_in: number; pickup: number; delivery: number };
+  topProducts: { name: string; qty: number }[];
+  vsYesterdayOrders: number | null;
+  dashUrl: string;
+}): string {
+  const fmt = (n: number) => {
+    const symbol = currency.toUpperCase() === 'USD' ? '$' : currency.toUpperCase() === 'COP' ? '$' : '$';
+    return `${symbol}${n.toLocaleString('es', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} ${currency.toUpperCase()}`;
+  };
+
+  const trendLine = (() => {
+    if (vsYesterdayOrders === null) return '';
+    const diff = totalOrders - vsYesterdayOrders;
+    if (diff === 0) return '\n➡️ Igual que ayer';
+    const sign = diff > 0 ? '+' : '';
+    const pct = vsYesterdayOrders > 0 ? ` (${sign}${Math.round((diff / vsYesterdayOrders) * 100)}%)` : '';
+    const arrow = diff > 0 ? '📈' : '📉';
+    return `\n${arrow} vs ayer: ${sign}${diff} pedidos${pct}`;
+  })();
+
+  const typeLines = [
+    ordersByType.dine_in > 0 ? `🪑 Mesa: ${ordersByType.dine_in}` : '',
+    ordersByType.pickup > 0 ? `🥡 Para llevar: ${ordersByType.pickup}` : '',
+    ordersByType.delivery > 0 ? `🛵 Delivery: ${ordersByType.delivery}` : '',
+  ].filter(Boolean).join('  •  ');
+
+  const topLines = topProducts.slice(0, 3)
+    .map((p, i) => `${i + 1}. ${p.name} ×${p.qty}`)
+    .join('\n');
+
+  const closingEmoji = totalOrders >= 20 ? '🔥' : totalOrders >= 10 ? '🎉' : '💪';
+
+  return `📊 *Resumen de hoy — ${restaurantName}*
+
+🛍️ Pedidos: ${totalOrders}
+💰 Ventas: ${fmt(totalRevenue)}${trendLine}
+
+${typeLines}
+
+🏆 Top productos:
+${topLines || '—'}
+
+${closingEmoji} Ver dashboard: ${dashUrl}`;
+}
+
 export function formatStatusUpdateWhatsApp(
   orderNumber: string,
   status: string,
