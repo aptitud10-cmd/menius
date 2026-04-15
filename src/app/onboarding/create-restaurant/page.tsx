@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createRestaurant, createProduct } from '@/lib/actions/restaurant';
-import { createBrowserClient } from '@/lib/supabase/browser';
+import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { createRestaurantSchema } from '@/lib/validations';
 import { slugify } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
@@ -124,7 +124,7 @@ export default function CreateRestaurantPage() {
     // Fetch the first seeded category so products can be assigned to it in Step 3
     if (result.restaurantId) {
       try {
-        const supabase = createBrowserClient();
+        const supabase = getSupabaseBrowser();
         const { data: cats } = await supabase
           .from('categories')
           .select('id')
