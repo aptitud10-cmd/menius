@@ -67,7 +67,7 @@ export function checkBusinessHours(
 export async function checkFreeTierLimit(
   restaurantId: string,
   adminDb: ReturnType<typeof import('@/lib/supabase/admin').createAdminClient>,
-  supabase: ReturnType<typeof import('@/lib/supabase/server').createServerClient>,
+  supabase: ReturnType<typeof import('@/lib/supabase/server').createClient>,
   en: boolean,
 ): Promise<string | null> {
   try {
