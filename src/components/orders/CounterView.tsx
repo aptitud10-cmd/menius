@@ -50,6 +50,14 @@ function getT(locale?: string) {
         ? (en ? 'Ready to serve'  : 'Listo para servir')
         : (en ? 'Ready for pickup' : 'Listo para recoger'),
     deliveredBtn: en ? 'Delivered'       : 'Entregado',
+    deliveredBtnFor: (type?: string) => type === 'pickup'
+      ? (en ? 'Picked up ✓' : 'Recogido ✓')
+      : type === 'dine_in'
+        ? (en ? 'Served ✓'   : 'Servido ✓')
+        : (en ? 'Delivered ✓': 'Entregado ✓'),
+    deliveryGuardTitle: en ? "Driver hasn't confirmed pickup yet" : 'El repartidor no ha confirmado que recogió',
+    deliveryGuardBody:  en ? "The driver hasn't scanned the QR link yet. Mark as delivered anyway?" : '¿El repartidor aún no confirmó que recogió el pedido. Marcar como entregado de todas formas?',
+    deliveryGuardConfirm: en ? 'Yes, mark delivered' : 'Sí, marcar entregado',
     // Order detail
     eta:         en ? 'Prep time'        : 'Tiempo estimado',
     adjustEta:   en ? 'Adjust'           : 'Ajustar',
@@ -419,6 +427,7 @@ export function CounterView({
   const [splitPayModal, setSplitPayModal] = useState<{ order: Order } | null>(null);
   const [splitCash, setSplitCash] = useState('');
   const [splitCard, setSplitCard] = useState('');
+  const [deliveryGuardModal, setDeliveryGuardModal] = useState<{ order: Order } | null>(null);
   const [savingSplit, setSavingSplit] = useState(false);
 
   // ── Shift management ──
@@ -825,7 +834,12 @@ export function CounterView({
     setEditSaving(false);
   }, [t.en, orders, updateOrderLocally]);
 
-  const handleDeliver = useCallback(async (order: Order) => {
+  const handleDeliver = useCallback(async (order: Order, bypassGuard = false) => {
+    // For delivery orders: warn if driver hasn't confirmed pickup yet
+    if (!bypassGuard && order.order_type === 'delivery' && !(order as any).driver_picked_up_at) {
+      setDeliveryGuardModal({ order });
+      return;
+    }
     // For cash or unset payment, offer split/mixed payment before marking delivered
     if (order.payment_method === 'cash' || !order.payment_method) {
       setSplitCash('');
@@ -1895,7 +1909,38 @@ export function CounterView({
               >
                 {savingSplit || updatingId
                   ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
-                  : <>{t.deliveredBtn} ✓</>}
+                  : <>{t.deliveredBtnFor(splitPayModal.order.order_type)}</>}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ══ DELIVERY GUARD MODAL ══ */}
+      {deliveryGuardModal && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setDeliveryGuardModal(null)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#F0F0F0]">
+              <p className="text-base font-black text-[#111]">⚠️ {t.deliveryGuardTitle}</p>
+              <p className="text-xs text-[#888] mt-0.5 leading-relaxed">{t.deliveryGuardBody}</p>
+            </div>
+            <div className="px-5 py-4 flex gap-2">
+              <button
+                onClick={() => setDeliveryGuardModal(null)}
+                className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]"
+              >
+                {t.no}
+              </button>
+              <button
+                onClick={() => {
+                  const order = deliveryGuardModal.order;
+                  setDeliveryGuardModal(null);
+                  handleDeliver(order, true);
+                }}
+                className="flex-1 py-3 rounded-xl text-white text-sm font-black bg-amber-500 hover:bg-amber-600 transition-colors"
+              >
+                {t.deliveryGuardConfirm}
               </button>
             </div>
           </div>
@@ -2287,9 +2332,17 @@ function OrderRow({
               {mins}m
             </div>
           )}
-          {tab === 'ready' && (
+          {tab === 'ready' && order.order_type === 'delivery' ? (
+            (order as any).driver_at_door_at ? (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 mt-0.5 block">🚪 {t.en ? 'At door' : 'En puerta'}</span>
+            ) : (order as any).driver_picked_up_at ? (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 mt-0.5 block animate-pulse">🛵 {t.en ? 'On the way' : 'En camino'}</span>
+            ) : (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-500 mt-0.5 block">⏳ {t.en ? 'Awaiting driver' : 'Espera driver'}</span>
+            )
+          ) : tab === 'ready' ? (
             <div className="text-[10px] text-[#06C167] font-bold mt-0.5">✓</div>
-          )}
+          ) : null}
         </div>
       </div>
     </button>
@@ -2961,7 +3014,7 @@ function OrderDetail({
             >
               {isUpdating
                 ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : <><Check className="w-5 h-5" /> {order.order_type === 'pickup' ? (t.en ? 'Picked up ✓' : 'Recogido ✓') : t.deliveredBtn}</>}
+                : <><Check className="w-5 h-5" /> {t.deliveredBtnFor(order.order_type)}</>}
             </button>
           </>
         )}

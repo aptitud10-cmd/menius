@@ -333,6 +333,17 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         .tracker-card:nth-child(2) { animation-delay: 0.05s; }
         .tracker-card:nth-child(3) { animation-delay: 0.1s; }
         .tracker-card:nth-child(4) { animation-delay: 0.15s; }
+        @keyframes deliveredPop {
+          0%   { transform: scale(0.6) rotate(-8deg); opacity: 0; }
+          60%  { transform: scale(1.15) rotate(4deg); opacity: 1; }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        .delivered-icon { animation: deliveredPop 0.55s cubic-bezier(0.34,1.56,0.64,1) both; }
+        @keyframes shimmer {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+        .delivered-glow { animation: shimmer 2.5s ease-in-out infinite; }
       `}</style>
 
       {/* Sticky nav bar */}
@@ -415,11 +426,25 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               <div className="px-6 pt-8 pb-6 text-center">
                 {isComplete ? (
                   <>
-                    <div className="w-20 h-20 rounded-2xl bg-[#d0f7f1] flex items-center justify-center mx-auto mb-5">
-                      <Package className="w-10 h-10 text-[#05c8a7]" />
-                    </div>
-                    <h2 className="text-2xl font-black text-gray-900 mb-1">{t.orderDelivered}</h2>
-                    <p className="text-sm text-gray-500">{t.orderDeliveredDesc}</p>
+                    {(() => {
+                      const typeConfig = {
+                        pickup:   { icon: ShoppingBag, bg: 'bg-orange-100', color: 'text-orange-500', emoji: '🛍️', tagline: tWithType.en ? 'Enjoy it!' : '¡Buen provecho!' },
+                        dine_in:  { icon: Utensils,    bg: 'bg-violet-100', color: 'text-violet-600', emoji: '🍽️', tagline: tWithType.en ? 'Bon appétit!' : '¡Que lo disfrutes!' },
+                        delivery: { icon: CheckCircle2, bg: 'bg-[#d0f7f1]', color: 'text-[#05c8a7]', emoji: '✅', tagline: tWithType.en ? 'Enjoy your meal!' : '¡Buen provecho!' },
+                      };
+                      const cfg = typeConfig[order.order_type as keyof typeof typeConfig] ?? typeConfig.delivery;
+                      const IconCmp = cfg.icon;
+                      return (
+                        <>
+                          <div className={cn('w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 delivered-icon', cfg.bg)}>
+                            <IconCmp className={cn('w-10 h-10', cfg.color)} />
+                          </div>
+                          <div className="text-3xl mb-2 delivered-glow">{cfg.emoji}</div>
+                          <h2 className="text-2xl font-black text-gray-900 mb-1">{t.orderDelivered}</h2>
+                          <p className="text-sm text-gray-400 mb-1">{cfg.tagline}</p>
+                        </>
+                      );
+                    })()}
                   </>
                 ) : currentStepStyle && currentStepText ? (
                   <>
@@ -464,7 +489,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                             'text-[9px] font-semibold text-center leading-tight w-14',
                             isDone || isActive ? 'text-brand-600' : 'text-gray-300'
                           )}>
-                            {tWithType.customerSteps[key]}
+                            {key === 'ready' && order.order_type === 'delivery'
+                              ? ((order as any).driver_picked_up_at
+                                  ? (tWithType.en ? 'On the way' : 'En camino')
+                                  : (tWithType.en ? 'Ready'      : 'Listo'))
+                              : tWithType.customerSteps[key]}
                           </span>
                         </div>
 
@@ -617,6 +646,36 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {/* Push notification prompt */}
         {!isCancelled && !isComplete && (
           <PushSubscriptionPrompt orderId={order.id} locale={locale} />
+        )}
+
+        {/* ── ITEMS SUMMARY CARD — visible immediately, no accordion ── */}
+        {!isCancelled && order.order_items?.length > 0 && (
+          <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-900">{t.en ? 'Your order' : 'Tu pedido'}</h3>
+              <span className="text-xs font-semibold text-gray-400">{order.order_items.length} {order.order_items.length === 1 ? (t.en ? 'item' : 'producto') : (t.en ? 'items' : 'productos')}</span>
+            </div>
+            <div className="px-5 py-3 space-y-2.5">
+              {order.order_items.map((item: any) => {
+                const productName = item.product_name ?? item.products?.name ?? (t.en ? 'Item' : 'Producto');
+                const variantName = item.variant_name ?? item.product_variants?.name;
+                return (
+                  <div key={item.id} className="flex items-baseline justify-between gap-2">
+                    <p className="text-sm text-gray-700 min-w-0 truncate">
+                      <span className="font-bold text-brand-600">{item.qty}×</span>{' '}
+                      {productName}
+                      {variantName && <span className="text-gray-400 text-xs ml-1">({variantName})</span>}
+                    </p>
+                    <span className="text-sm font-semibold text-gray-800 flex-shrink-0">{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="px-5 py-3 border-t border-gray-50 flex items-center justify-between">
+              <span className="text-sm font-bold text-gray-900">Total</span>
+              <span className="text-base font-black text-gray-900">{formatPrice(Number(order.total), currency)}</span>
+            </div>
+          </div>
         )}
 
         {/* ── ORDER DETAILS CARD ── */}
