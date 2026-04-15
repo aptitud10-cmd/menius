@@ -317,7 +317,15 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        const API_ERROR_MAP: Record<string, string> = {
+          DOMAIN_INVALID: t.error_domainInvalid,
+          NO_CHANGES: t.error_noChanges,
+          TAX_RATE_INVALID: t.error_taxRateInvalid,
+          EMAIL_INVALID: t.error_emailInvalid,
+        };
+        throw new Error(API_ERROR_MAP[data.error] ?? data.error ?? t.settings_errorSaving);
+      }
       setSaved(true);
     } catch (err: any) {
       setError(err.message ?? t.settings_errorSaving);

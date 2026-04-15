@@ -12,7 +12,7 @@ export async function GET() {
   try {
     const supabase = createClient();
     const tenant = await getTenant();
-    if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { data: restaurant, error } = await supabase
       .from('restaurants')
@@ -25,7 +25,7 @@ export async function GET() {
   } catch (err) {
     logger.error('GET failed', { error: err instanceof Error ? err.message : String(err) });
     captureError(err, { route: '/api/tenant/restaurant' });
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
 
@@ -33,7 +33,7 @@ export async function PATCH(request: NextRequest) {
   try {
     const supabase = createClient();
     const tenant = await getTenant();
-    if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
 
@@ -50,19 +50,19 @@ export async function PATCH(request: NextRequest) {
       const d = (updates.custom_domain as string).trim().toLowerCase();
       updates.custom_domain = d || null;
       if (d && !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(d)) {
-        return NextResponse.json({ error: 'Formato de dominio inválido' }, { status: 400 });
+        return NextResponse.json({ error: 'DOMAIN_INVALID' }, { status: 400 });
       }
     }
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json({ error: 'No hay cambios' }, { status: 400 });
+      return NextResponse.json({ error: 'NO_CHANGES' }, { status: 400 });
     }
 
     // Validate tax_rate — clamp to 0-100 to prevent nonsensical values
     if (updates.tax_rate !== undefined) {
       const rate = Number(updates.tax_rate);
       if (isNaN(rate) || rate < 0 || rate > 100) {
-        return NextResponse.json({ error: 'La tasa de impuesto debe estar entre 0 y 100' }, { status: 400 });
+        return NextResponse.json({ error: 'TAX_RATE_INVALID' }, { status: 400 });
       }
       updates.tax_rate = Math.round(rate * 1000) / 1000; // keep up to 3 decimal places
     }
@@ -71,7 +71,7 @@ export async function PATCH(request: NextRequest) {
     if (updates.notification_email !== undefined && updates.notification_email !== '') {
       const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRe.test(String(updates.notification_email))) {
-        return NextResponse.json({ error: 'El email de notificaciones no es válido' }, { status: 400 });
+        return NextResponse.json({ error: 'EMAIL_INVALID' }, { status: 400 });
       }
     }
 
@@ -87,6 +87,6 @@ export async function PATCH(request: NextRequest) {
   } catch (err) {
     logger.error('PATCH failed', { error: err instanceof Error ? err.message : String(err) });
     captureError(err, { route: '/api/tenant/restaurant' });
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

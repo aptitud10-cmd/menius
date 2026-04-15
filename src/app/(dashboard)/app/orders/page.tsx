@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Maximize2 } from 'lucide-react';
 import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { OrdersBoard } from '@/components/orders/OrdersBoard';
+import { getDashboardTranslations } from '@/lib/dashboard-translations';
 
 export default async function OrdersPage() {
   const { supabase, restaurantId } = await getDashboardContext();
@@ -36,18 +37,19 @@ export default async function OrdersPage() {
     items: o.order_items ?? [],
   }));
 
-  const isEn = restaurant?.locale === 'en';
+  const locale = (restaurant?.locale === 'en' ? 'en' : 'es') as 'es' | 'en';
+  const t = getDashboardTranslations(locale);
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="dash-heading">{isEn ? 'Orders' : 'Órdenes'}</h1>
+        <h1 className="dash-heading">{t.orders_title}</h1>
         <Link
           href="/kds"
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-500/20"
         >
           <Maximize2 className="w-4 h-4" />
-          {isEn ? 'Tablet Mode' : 'Modo Tablet'}
+          {t.orders_tabletMode}
         </Link>
       </div>
       <OrdersBoard

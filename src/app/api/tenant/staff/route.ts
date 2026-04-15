@@ -13,7 +13,7 @@ export async function GET() {
   try {
     const supabase = createClient();
     const tenant = await getTenant();
-    if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { data, error } = await supabase
       .from('staff_members')
@@ -26,7 +26,7 @@ export async function GET() {
   } catch (err) {
     logger.error('GET failed', { error: err instanceof Error ? err.message : String(err) });
     captureError(err, { route: '/api/tenant/staff' });
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
 
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = createClient();
     const tenant = await getTenant();
-    if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
     const parsed = staffSchema.safeParse(body);
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       if (error.code === '23505') {
-        return NextResponse.json({ error: 'Este email ya está invitado' }, { status: 409 });
+        return NextResponse.json({ error: 'DUPLICATE_EMAIL' }, { status: 409 });
       }
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     logger.error('POST failed', { error: err instanceof Error ? err.message : String(err) });
     captureError(err, { route: '/api/tenant/staff' });
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
 
@@ -73,22 +73,22 @@ export async function PATCH(request: NextRequest) {
   try {
     const supabase = createClient();
     const tenant = await getTenant();
-    if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id, role, status } = await request.json();
-    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+    if (!id) return NextResponse.json({ error: 'ID_REQUIRED' }, { status: 400 });
 
     const { UUID_RE } = await import('@/lib/constants');
-    if (!UUID_RE.test(String(id))) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+    if (!UUID_RE.test(String(id))) return NextResponse.json({ error: 'ID_INVALID' }, { status: 400 });
 
     const validRoles = ['admin', 'manager', 'staff', 'kitchen'];
     const validStatuses = ['pending', 'active', 'inactive'];
 
     if (role && !validRoles.includes(role)) {
-      return NextResponse.json({ error: 'Rol inválido' }, { status: 400 });
+      return NextResponse.json({ error: 'INVALID_ROLE' }, { status: 400 });
     }
     if (status && !validStatuses.includes(status)) {
-      return NextResponse.json({ error: 'Estado inválido' }, { status: 400 });
+      return NextResponse.json({ error: 'INVALID_STATUS' }, { status: 400 });
     }
 
     const updates: Record<string, string> = {};
@@ -102,12 +102,12 @@ export async function PATCH(request: NextRequest) {
       .eq('restaurant_id', tenant.restaurantId);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    if ((count ?? 0) === 0) return NextResponse.json({ error: 'Miembro no encontrado' }, { status: 404 });
+    if ((count ?? 0) === 0) return NextResponse.json({ error: 'MEMBER_NOT_FOUND' }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (err) {
     logger.error('PATCH failed', { error: err instanceof Error ? err.message : String(err) });
     captureError(err, { route: '/api/tenant/staff' });
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
 
@@ -115,12 +115,12 @@ export async function DELETE(request: NextRequest) {
   try {
     const supabase = createClient();
     const tenant = await getTenant();
-    if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    if (!tenant) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await request.json();
-    if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
+    if (!id) return NextResponse.json({ error: 'ID_REQUIRED' }, { status: 400 });
     const { UUID_RE } = await import('@/lib/constants');
-    if (!UUID_RE.test(String(id))) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+    if (!UUID_RE.test(String(id))) return NextResponse.json({ error: 'ID_INVALID' }, { status: 400 });
 
     const { error, count } = await supabase
       .from('staff_members')
@@ -129,11 +129,11 @@ export async function DELETE(request: NextRequest) {
       .eq('restaurant_id', tenant.restaurantId);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    if ((count ?? 0) === 0) return NextResponse.json({ error: 'Miembro no encontrado' }, { status: 404 });
+    if ((count ?? 0) === 0) return NextResponse.json({ error: 'MEMBER_NOT_FOUND' }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (err) {
     logger.error('DELETE failed', { error: err instanceof Error ? err.message : String(err) });
     captureError(err, { route: '/api/tenant/staff' });
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
