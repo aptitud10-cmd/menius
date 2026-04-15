@@ -2,22 +2,68 @@ import { redirect } from 'next/navigation';
 import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { DashboardHome } from '@/components/dashboard/DashboardHome';
 
+/**
+ * Returns the UTC timestamp that corresponds to midnight in the given timezone
+ * for the current day (or daysAgo days before), so DB queries filter correctly.
+ */
+function getStartOfDayUTC(timezone: string, daysAgo = 0): Date {
+  const now = new Date();
+  // Get the local date string (YYYY-MM-DD) in the target timezone
+  const localDateStr = now.toLocaleDateString('en-CA', { timeZone: timezone });
+  const [year, month, day] = localDateStr.split('-').map(Number);
+
+  // Build the target date (going back daysAgo days)
+  const targetDate = new Date(Date.UTC(year, month - 1, day - daysAgo));
+  const targetDateStr = targetDate.toISOString().slice(0, 10);
+
+  // Find the UTC offset at noon UTC on that day (noon avoids DST edge cases at midnight)
+  const noonUTC = new Date(`${targetDateStr}T12:00:00Z`);
+  const hourAtNoon = parseInt(
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: 'numeric', hour12: false }).format(noonUTC),
+    10,
+  );
+  const normalizedHour = hourAtNoon === 24 ? 0 : hourAtNoon;
+  const offsetHours = normalizedHour - 12; // positive = east (UTC+), negative = west (UTC-)
+
+  // Midnight in the target timezone = midnight UTC minus the offset
+  const midnightUTC = new Date(`${targetDateStr}T00:00:00Z`);
+  return new Date(midnightUTC.getTime() - offsetHours * 3600 * 1000);
+}
+
+/** Returns the hour (0-23) for a given Date in the specified timezone. */
+function getHourInTimezone(date: Date, timezone: string): number {
+  const h = parseInt(
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: 'numeric', hour12: false }).format(date),
+    10,
+  );
+  return h === 24 ? 0 : h;
+}
+
+/** Returns a YYYY-MM-DD string for a Date in the specified timezone. */
+function getDateStrInTimezone(date: Date, timezone: string): string {
+  return date.toLocaleDateString('en-CA', { timeZone: timezone });
+}
+
 export default async function DashboardPage() {
   const { supabase, restaurantId } = await getDashboardContext();
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  // Fetch restaurant first to get its timezone for correct date calculations
+  const restaurantRes = await supabase
+    .from('restaurants')
+    .select('*')
+    .eq('id', restaurantId)
+    .maybeSingle();
 
-  const weekAgo = new Date();
-  weekAgo.setDate(weekAgo.getDate() - 6);
-  weekAgo.setHours(0, 0, 0, 0);
+  const restaurant = restaurantRes.data;
+  if (!restaurant) redirect('/onboarding/create-restaurant');
 
-  const [restaurantRes, ordersRes, productsRes, tablesRes, recentOrdersRes, subRes, totalOrdersRes, weekOrdersRes, topProductsRes, lowStockRes] = await Promise.all([
-    supabase
-      .from('restaurants')
-      .select('*')
-      .eq('id', restaurantId)
-      .maybeSingle(),
+  const timezone = (restaurant.timezone as string | null) ?? 'America/Mexico_City';
+
+  // Compute today/weekAgo boundaries in the restaurant's local timezone
+  const todayStart = getStartOfDayUTC(timezone);
+  const weekAgo = getStartOfDayUTC(timezone, 6);
+
+  const [ordersRes, productsRes, tablesRes, recentOrdersRes, subRes, totalOrdersRes, weekOrdersRes, topProductsRes, lowStockRes] = await Promise.all([
     supabase
       .from('orders')
       .select('id, total, status, created_at, order_type')
@@ -73,9 +119,6 @@ export default async function DashboardPage() {
       .limit(10),
   ]);
 
-  const restaurant = restaurantRes.data;
-  if (!restaurant) redirect('/onboarding/create-restaurant');
-
   const todaysOrders = ordersRes.data ?? [];
   const validToday = todaysOrders.filter((o) => o.status !== 'cancelled');
   const salesToday = validToday.reduce((sum, o) => sum + Number(o.total), 0);
@@ -86,9 +129,8 @@ export default async function DashboardPage() {
   const activeProducts = productsRes.data?.length ?? 0;
   const activeTables = tablesRes.data?.length ?? 0;
 
-  // Yesterday comparison
-  const yesterdayStart = new Date(todayStart);
-  yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+  // Yesterday comparison — boundaries computed in restaurant timezone
+  const yesterdayStart = getStartOfDayUTC(timezone, 1);
   const weekOrders = weekOrdersRes.data ?? [];
   const yesterdayOrders = weekOrders.filter((o) => {
     const d = new Date(o.created_at);
@@ -116,42 +158,41 @@ export default async function DashboardPage() {
     revenueByType,
   };
 
-  // Build 7-day chart data
+  // Build 7-day chart data — dates computed in restaurant's local timezone
   const weekOrdersAll = weekOrdersRes.data ?? [];
   const dailyMap = new Map<string, { orders: number; revenue: number }>();
   for (let i = 0; i < 7; i++) {
-    const d = new Date(weekAgo);
-    d.setDate(d.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
-    dailyMap.set(key, { orders: 0, revenue: 0 });
+    const d = new Date(weekAgo.getTime() + i * 24 * 3600 * 1000);
+    // Use the date as seen in the restaurant's timezone
+    const key = getDateStrInTimezone(d, timezone);
+    if (!dailyMap.has(key)) dailyMap.set(key, { orders: 0, revenue: 0 });
   }
   for (const o of weekOrdersAll) {
     if (o.status === 'cancelled') continue;
-    const key = new Date(o.created_at).toISOString().slice(0, 10);
+    // Group each order into the restaurant's local calendar day
+    const key = getDateStrInTimezone(new Date(o.created_at), timezone);
     const entry = dailyMap.get(key);
     if (entry) {
       entry.orders += 1;
       entry.revenue += Number(o.total);
     }
   }
-  const chartLocale = restaurantRes.data?.locale === 'en' ? 'en-US' : 'es';
+  const chartLocale = restaurant.locale === 'en' ? 'en-US' : 'es';
   const chartData = Array.from(dailyMap.entries()).map(([date, data]) => ({
     date,
-    label: new Date(date + 'T12:00:00').toLocaleDateString(chartLocale, { weekday: 'short', day: 'numeric' }),
+    label: new Date(date + 'T12:00:00Z').toLocaleDateString(chartLocale, { timeZone: timezone, weekday: 'short', day: 'numeric' }),
     ...data,
   }));
 
-  // Hourly distribution (today)
+  // Hourly distribution (today) — hours in restaurant's local timezone
   const hourlyMap = new Map<number, number>();
   for (let h = 0; h < 24; h++) hourlyMap.set(h, 0);
   for (const o of todaysOrders) {
     if (o.status === 'cancelled') continue;
-    const h = new Date(o.created_at).getHours();
+    const h = getHourInTimezone(new Date(o.created_at), timezone);
     hourlyMap.set(h, (hourlyMap.get(h) ?? 0) + 1);
   }
-  const hourlyData = Array.from(hourlyMap.entries())
-    .filter(([, count]) => count > 0 || true)
-    .map(([hour, count]) => ({ hour: `${hour}:00`, count }));
+  const hourlyData = Array.from(hourlyMap.entries()).map(([hour, count]) => ({ hour: `${hour}:00`, count }));
 
   // Top products
   const productCounts = new Map<string, number>();

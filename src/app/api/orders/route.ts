@@ -454,6 +454,7 @@ export async function POST(request: NextRequest) {
       include_utensils: body.include_utensils !== false,
       driver_tracking_token: preToken,
       driver_token_expires_at: preTokenExpiresAt,
+      customer_locale: bodyLocale,
     };
     if (tipAmt > 0) orderInsert.tip_amount = tipAmt;
     if (deliveryFeeAmt > 0) orderInsert.delivery_fee = deliveryFeeAmt;
@@ -803,6 +804,7 @@ export async function POST(request: NextRequest) {
         customerName: parsed.data.customer_name,
         customerEmail: customer_email || undefined,
         customerPhone: parsed.data.customer_phone || undefined,
+        customerLocale: bodyLocale,
         orderType: order_type || 'dine_in',
         deliveryAddress: delivery_address || null,
         paymentMethod: parsed.data.payment_method || undefined,
