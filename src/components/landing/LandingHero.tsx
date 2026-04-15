@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getLandingT, type LandingLocale } from '@/lib/landing-translations';
-import { PhoneDemo } from './PhoneDemo';
+import { PhoneMockup } from './PhoneMockup';
 
 function formatCount(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1).replace('.0', '')}k+`;
@@ -70,7 +70,7 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
           </div>
 
           <div className="hidden lg:flex justify-center items-center d-scale-in d-delay-3">
-            <PhoneDemo />
+            <PhoneMockup locale={locale} />
           </div>
 
         </div>
