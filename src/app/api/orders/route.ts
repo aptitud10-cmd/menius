@@ -368,12 +368,14 @@ export async function POST(request: NextRequest) {
     // Validate and apply loyalty points redemption
     let loyaltyDiscountAmt = 0;
     let validatedLoyaltyPoints = 0;
+    let loyaltyPesoPerPoint = 0;
     if (loyalty_points_redeemed > 0 && loyalty_account_id) {
       const { data: loyaltyConfig } = await adminDb
         .from('loyalty_config')
         .select('enabled, min_redeem_points, peso_per_point')
         .eq('restaurant_id', restaurant_id)
         .maybeSingle();
+      loyaltyPesoPerPoint = loyaltyConfig?.peso_per_point ?? 0;
 
       if (loyaltyConfig?.enabled) {
         const normalizedOrderPhone = parsed.data.customer_phone?.replace(/\D/g, '') ?? '';
@@ -512,39 +514,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Error guardando items' }, { status: 500 });
     }
 
-    // Deduct loyalty points synchronously after successful order creation.
-    // The .gte('points', validatedLoyaltyPoints) guard provides best-effort
-    // atomicity — PostgREST translates this to a single SQL UPDATE with WHERE
-    // points >= X, so concurrent redemptions that drain the balance won't apply.
+    // Deduct loyalty points atomically using PostgreSQL RPC with FOR UPDATE lock.
+    // This prevents the double-spend race condition where two concurrent orders
+    // could both read the same balance and both succeed in spending the same points.
     if (validatedLoyaltyPoints > 0 && loyalty_account_id) {
       try {
-        const { data: freshAccount } = await adminDb
-          .from('loyalty_accounts')
-          .select('points')
-          .eq('id', loyalty_account_id)
-          .eq('restaurant_id', restaurant_id)
-          .maybeSingle();
+        const { data: redemptionResult, error: rpcError } = await adminDb.rpc('redeem_loyalty_points', {
+          p_account_id: loyalty_account_id,
+          p_restaurant_id: restaurant_id,
+          p_order_id: order.id,
+          p_order_number: order.order_number,
+          p_points_to_redeem: validatedLoyaltyPoints,
+          p_peso_per_point: loyaltyPesoPerPoint,
+        });
 
-        if (freshAccount && freshAccount.points >= validatedLoyaltyPoints) {
-          const newPoints = Math.max(0, freshAccount.points - validatedLoyaltyPoints);
-          await Promise.all([
-            adminDb
-              .from('loyalty_accounts')
-              .update({ points: newPoints, updated_at: new Date().toISOString() })
-              .eq('id', loyalty_account_id)
-              .eq('restaurant_id', restaurant_id)
-              .gte('points', validatedLoyaltyPoints),
-            adminDb.from('loyalty_transactions').insert({
-              restaurant_id,
-              account_id: loyalty_account_id,
-              order_id: order.id,
-              type: 'redeem',
-              points: -validatedLoyaltyPoints,
-              description: `Redeemed at checkout — order #${order.order_number}`,
-            }),
-          ]);
+        if (rpcError) {
+          logger.error('Loyalty redemption RPC failed', {
+            error: rpcError.message,
+            account_id: loyalty_account_id,
+            order_id: order.id,
+          });
+        } else if (redemptionResult?.[0]?.redeemed_points === 0) {
+          logger.warn('Loyalty redemption returned 0 — insufficient points or account not found', {
+            account_id: loyalty_account_id,
+            requested: validatedLoyaltyPoints,
+          });
         }
-      } catch { /* non-critical — order already saved */ }
+      } catch (err) {
+        // Non-critical — order already saved, points just weren't deducted
+        logger.error('Loyalty redemption RPC exception', {
+          error: err instanceof Error ? err.message : String(err),
+          account_id: loyalty_account_id,
+          order_id: order.id,
+        });
+      }
     }
 
     const orderedItems = insertedItems ?? [];
