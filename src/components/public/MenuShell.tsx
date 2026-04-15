@@ -23,6 +23,7 @@ import { ProductCard } from './ProductCard';
 import { CartPanel } from './CartPanel';
 import { CustomizationSheet } from './CustomizationSheet';
 import { InstallBanner } from './InstallBanner';
+import { MenuErrorBoundary } from './MenuErrorBoundary';
 import { ReservationWidget } from './ReservationWidget';
 import { MenuUpdateBanner } from './MenuUpdateBanner';
 import { CartFlyParticles } from './CartFlyParticles';
@@ -1485,6 +1486,7 @@ export function MenuShell({
               <button onClick={() => setActiveDiet(null)} className="mt-1 text-sm text-[#05c8a7] font-semibold hover:text-[#047a65] transition-colors">{t.viewFullMenu}</button>
             </motion.div>
           ) : (
+            <MenuErrorBoundary section="products">
             <div
               key={activeCatFilter ?? 'all'}
               className="space-y-8 menu-cat-fade"
@@ -1616,6 +1618,7 @@ export function MenuShell({
               });
               })()}
             </div>
+            </MenuErrorBoundary>
           )}
           {/* Recent reviews */}
           {recentReviews && recentReviews.length > 0 && (
@@ -1823,6 +1826,7 @@ export function MenuShell({
 
         {/* Right: Cart — sticky, stays in place while content scrolls */}
         <aside ref={cartColRef} className="hidden lg:flex flex-col w-[340px] flex-shrink-0 border-l border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
+          <MenuErrorBoundary section="cart" inline>
           <CartPanel
             fmtPrice={fmtPrice}
             t={t}
@@ -1834,6 +1838,7 @@ export function MenuShell({
             lastOrder={lastOrder?.restaurantId === restaurant.id ? lastOrder : null}
             onReorder={handleReorder}
           />
+          </MenuErrorBoundary>
         </aside>
         </div>{/* end 3-column row */}
       </div>{/* end outer scroll */}
@@ -1940,6 +1945,7 @@ export function MenuShell({
       </AnimatePresence>
 
       {/* ── Customization Sheet ── */}
+      <MenuErrorBoundary section="customization" inline>
       <AnimatePresence>
         {customization && (
           <CustomizationSheet
@@ -1961,7 +1967,7 @@ export function MenuShell({
           />
         )}
       </AnimatePresence>
-
+      </MenuErrorBoundary>
 
       {/* ── Mobile Full-screen Search Overlay ── */}
       <AnimatePresence>
