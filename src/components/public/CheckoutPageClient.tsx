@@ -19,6 +19,7 @@ import {
   formatPaymentStartError,
   safeParseJson,
 } from '@/lib/checkout-errors';
+import { supabaseLoader } from '@/lib/image-loader';
 
 const fieldSkeleton = <div className="w-full h-[52px] rounded-2xl skeleton" />;
 
@@ -109,6 +110,17 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         currency: restaurant.currency,
       });
     }
+    // Auto-focus first empty required field after data is pre-filled
+    setTimeout(() => {
+      const stored = useCheckoutStore.getState();
+      const hasName = stored.isReturningCustomer() && stored.customer?.name;
+      const hasEmail = stored.isReturningCustomer() && stored.customer?.email;
+      if (!hasName) {
+        document.getElementById('checkout-name')?.focus();
+      } else if (!hasEmail) {
+        document.getElementById('checkout-email')?.focus();
+      }
+    }, 350);
     return () => { clearTimeout(confettiTimer.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -193,6 +205,17 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   useEffect(() => { return () => { if (confirmRemoveTimer.current) clearTimeout(confirmRemoveTimer.current); }; }, []);
   const [tipPercent, setTipPercent] = useState<number | null>(null);
 
+  // Inline validation: tracks which fields the user has interacted with
+  const [fieldTouched, setFieldTouched] = useState<Record<string, boolean>>({});
+  const touch = (name: string) => setFieldTouched(prev => ({ ...prev, [name]: true }));
+
+  // Promo code section collapsed by default
+  const [promoOpen, setPromoOpen] = useState(false);
+
+  // CTA shake animation when form not ready
+  const [ctaShake, setCtaShake] = useState(false);
+  const ctaShakeTimer = useRef<ReturnType<typeof setTimeout>>();
+
   // Snapshot of items captured before clearCart() — shown on confirmation screen
   const [confirmedItems, setConfirmedItems] = useState<{ name: string; qty: number; variant?: string; lineTotal: number }[]>([]);
   const [confirmedTotal, setConfirmedTotal] = useState(0);
@@ -258,6 +281,17 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMounted, items, orderType, promoResult, promoCode, loyaltyApplied, loyaltyBalance, tipPercent, restaurant.id, tipAmount]);
+
+  // Auto-redirect to order tracking 2.5s after successful cash/dine-in order
+  useEffect(() => {
+    if (step !== 'confirmation' || !orderNumber || !orderId) return;
+    if (orderId === 'demo-order-id') return;
+    if (paymentMethod === 'online') return;
+    const timer = setTimeout(() => {
+      router.push(`/${slug}/orden/${orderNumber}`);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [step, orderNumber, orderId, paymentMethod, router, slug]);
 
   // Reactive form validation — drives CTA disabled state
   const isFormReady = Boolean(
@@ -352,22 +386,52 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     }
   };
 
+  const scrollToFirstInvalidField = () => {
+    if (!customerName.trim() || customerName.trim().length < 2) {
+      document.getElementById('checkout-name')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      document.getElementById('checkout-name')?.focus();
+      return;
+    }
+    if (!customerPhone.trim() || !/^\+?[\d\s()-]{7,}$/.test(customerPhone.trim())) {
+      document.getElementById('checkout-phone')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      document.getElementById('checkout-phone')?.focus();
+      return;
+    }
+    if (!customerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
+      document.getElementById('checkout-email')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      document.getElementById('checkout-email')?.focus();
+      return;
+    }
+  };
+
   const handleSubmitOrder = async () => {
     if (submittingRef.current) return;
     if (!customerName.trim() || !customerPhone.trim()) {
       setOrderError(locale === 'es' ? 'Nombre y teléfono son requeridos' : 'Name and phone required');
       trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'name_or_phone', order_type: orderType });
+      // Trigger shake + scroll to first invalid field
+      setCtaShake(true);
+      clearTimeout(ctaShakeTimer.current);
+      ctaShakeTimer.current = setTimeout(() => setCtaShake(false), 600);
+      scrollToFirstInvalidField();
       return;
     }
     if (!customerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
       setOrderError(locale === 'es' ? 'Email requerido para recibir tu confirmación de pedido' : 'Email required to receive your order confirmation');
       validateField('customer_email', customerEmail);
       trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'email', order_type: orderType });
+      setCtaShake(true);
+      clearTimeout(ctaShakeTimer.current);
+      ctaShakeTimer.current = setTimeout(() => setCtaShake(false), 600);
+      scrollToFirstInvalidField();
       return;
     }
     if (orderType === 'delivery' && !deliveryAddress.trim()) {
       setOrderError(locale === 'es' ? 'Dirección de entrega requerida' : 'Delivery address required');
       trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'delivery_address', order_type: orderType });
+      setCtaShake(true);
+      clearTimeout(ctaShakeTimer.current);
+      ctaShakeTimer.current = setTimeout(() => setCtaShake(false), 600);
       return;
     }
     submittingRef.current = true;
@@ -1036,6 +1100,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             </div>
           )}
 
+          {/* Auto-redirect hint — shown for non-online, non-demo orders */}
+          {orderId && orderId !== 'demo-order-id' && paymentMethod !== 'online' && (
+            <p className="text-xs text-gray-400 mb-2 animate-pulse">
+              {locale === 'es' ? 'Redirigiendo al seguimiento…' : 'Redirecting to tracking…'}
+            </p>
+          )}
+
           {/* Estimated time badge — shown for delivery and pickup */}
           {restaurant.estimated_delivery_minutes && (orderType === 'delivery' || orderType === 'pickup') && (
             <div className="flex items-center gap-2 mb-5 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-100">
@@ -1188,6 +1259,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                       alt={item.product.name}
                       fill
                       sizes="48px"
+                      loader={item.product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
                       className="object-cover opacity-0 transition-opacity duration-300"
                       onLoad={(e) => e.currentTarget.classList.replace('opacity-0', 'opacity-100')}
                     />
@@ -1397,7 +1469,12 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 <label>Website</label>
                 <input type="text" name="website" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
               </div>
-              <label htmlFor="checkout-name" className="block text-sm font-semibold text-gray-900 mb-2">{t.yourName} <span className="text-red-500" aria-hidden="true">*</span></label>
+              <div className="flex items-center gap-1.5 mb-2">
+                <label htmlFor="checkout-name" className="text-sm font-semibold text-gray-900">{t.yourName} <span className="text-red-500" aria-hidden="true">*</span></label>
+                {fieldTouched.customer_name && !fieldErrors.customer_name && customerName.trim().length >= 2 && (
+                  <CheckCircle className="w-4 h-4 text-green-500 ml-auto" aria-hidden="true" />
+                )}
+              </div>
               <input
                 id="checkout-name"
                 type="text"
@@ -1407,36 +1484,52 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 aria-invalid={!!fieldErrors.customer_name}
                 aria-describedby={fieldErrors.customer_name ? 'checkout-name-error' : undefined}
                 value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
+                onChange={(e) => { setCustomerName(e.target.value); touch('customer_name'); }}
                 onBlur={(e) => validateField('customer_name', e.target.value)}
                 onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 320); }}
                 placeholder={t.yourNamePlaceholder}
-                className={cn(inputClass, fieldErrors.customer_name ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : '')}
+                className={cn(
+                  inputClass,
+                  fieldErrors.customer_name ? 'border-red-400 focus:border-red-400' : '',
+                  fieldTouched.customer_name && !fieldErrors.customer_name && customerName.trim().length >= 2 ? 'border-green-400 focus:border-green-500' : '',
+                )}
               />
               {fieldErrors.customer_name && (
                 <p id="checkout-name-error" role="alert" className="text-xs text-red-500 mt-1">{fieldErrors.customer_name}</p>
               )}
             </div>
             <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="text-sm font-semibold text-gray-900">{t.yourPhone} <span className="text-red-500" aria-hidden="true">*</span></span>
+                {fieldTouched.customer_phone && !fieldErrors.customer_phone && /^\+?[\d\s()-]{7,}$/.test(customerPhone.trim()) && (
+                  <CheckCircle className="w-4 h-4 text-green-500 ml-auto" aria-hidden="true" />
+                )}
+              </div>
               <PhoneField
-                label={t.yourPhone}
+                id="checkout-phone"
+                label=""
                 value={customerPhone}
-                onChange={setCustomerPhone}
+                onChange={(v) => { setCustomerPhone(v); touch('customer_phone'); }}
                 onBlur={() => validateField('customer_phone', customerPhone)}
                 placeholder={t.yourPhonePlaceholder}
                 required
                 dark={false}
                 error={!!fieldErrors.customer_phone}
+                valid={fieldTouched.customer_phone && !fieldErrors.customer_phone && /^\+?[\d\s()-]{7,}$/.test(customerPhone.trim())}
               />
               {fieldErrors.customer_phone && (
                 <p className="text-xs text-red-500 mt-1">{fieldErrors.customer_phone}</p>
               )}
             </div>
             <div>
-              <label htmlFor="checkout-email" className="block text-sm font-semibold text-gray-900 mb-2">
-                {t.yourEmail}
-                <span className="text-red-500 ml-0.5" aria-hidden="true">*</span>
-              </label>
+              <div className="flex items-center gap-1.5 mb-2">
+                <label htmlFor="checkout-email" className="text-sm font-semibold text-gray-900">
+                  {t.yourEmail}<span className="text-red-500 ml-0.5" aria-hidden="true">*</span>
+                </label>
+                {fieldTouched.customer_email && !fieldErrors.customer_email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim()) && (
+                  <CheckCircle className="w-4 h-4 text-green-500 ml-auto" aria-hidden="true" />
+                )}
+              </div>
               <input
                 id="checkout-email"
                 type="email"
@@ -1446,11 +1539,15 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 aria-invalid={!!fieldErrors.customer_email}
                 aria-describedby={fieldErrors.customer_email ? 'checkout-email-error' : 'checkout-email-hint'}
                 value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
+                onChange={(e) => { setCustomerEmail(e.target.value); touch('customer_email'); }}
                 onBlur={(e) => validateField('customer_email', e.target.value)}
                 onFocus={(e) => { setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 320); }}
                 placeholder={t.yourEmailPlaceholder}
-                className={cn(inputClass, fieldErrors.customer_email ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : '')}
+                className={cn(
+                  inputClass,
+                  fieldErrors.customer_email ? 'border-red-400 focus:border-red-400' : '',
+                  fieldTouched.customer_email && !fieldErrors.customer_email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim()) ? 'border-green-400 focus:border-green-500' : '',
+                )}
                 required
               />
               {fieldErrors.customer_email ? (
@@ -1585,18 +1682,39 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             </div>
           )}
 
-          {/* Promo code */}
-          <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
-            <label className="block text-sm font-semibold text-gray-900 mb-2">{t.promoCode}</label>
-            <div className="flex gap-2">
-              <input type="text" value={promoCode} onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); setPromoResult(null); }} placeholder={t.promoCodePlaceholder} className={cn(inputClass, 'flex-1 uppercase')} />
-              <button onClick={validatePromo} disabled={promoLoading || !promoCode.trim()} className="px-5 py-3.5 rounded-xl bg-gray-900 text-white text-[15px] font-semibold disabled:opacity-30 transition-colors">
-                {promoLoading ? (locale === 'es' ? 'Aplicando…' : 'Applying…') : t.apply}
-              </button>
-            </div>
-            {promoError && <p className="text-sm text-red-500 mt-2">{promoError}</p>}
-            {promoResult?.valid && (
-              <p className="text-sm text-[#05c8a7] mt-2 font-medium">{t.discount}: -{fmtPrice(promoResult.discount)}{promoResult.description && ` — ${promoResult.description}`}</p>
+          {/* Promo code — collapsed by default */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setPromoOpen(v => !v)}
+              aria-expanded={promoOpen}
+              className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                </svg>
+                {promoResult?.valid
+                  ? <span className="text-[#05c8a7]">✓ {t.promoCode}: -{fmtPrice(promoResult.discount)}</span>
+                  : (locale === 'es' ? '¿Tienes un código de descuento?' : 'Have a promo code?')}
+              </span>
+              <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${promoOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {promoOpen && (
+              <div className="px-5 pb-5 border-t border-gray-100 pt-4 space-y-2">
+                <div className="flex gap-2">
+                  <input type="text" value={promoCode} onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); setPromoResult(null); }} placeholder={t.promoCodePlaceholder} className={cn(inputClass, 'flex-1 uppercase')} />
+                  <button onClick={validatePromo} disabled={promoLoading || !promoCode.trim()} className="px-5 py-3.5 rounded-xl bg-gray-900 text-white text-[15px] font-semibold disabled:opacity-30 transition-colors">
+                    {promoLoading ? (locale === 'es' ? 'Aplicando…' : 'Applying…') : t.apply}
+                  </button>
+                </div>
+                {promoError && <p className="text-sm text-red-500">{promoError}</p>}
+                {promoResult?.valid && (
+                  <p className="text-sm text-[#05c8a7] font-medium">{t.discount}: -{fmtPrice(promoResult.discount)}{promoResult.description && ` — ${promoResult.description}`}</p>
+                )}
+              </div>
             )}
           </div>
 
@@ -1653,11 +1771,16 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 : 'Enter your name, phone and email to continue'}
             </p>
           )}
-          <button
+          <motion.button
             onClick={handleSubmitOrder}
-            disabled={submitting || items.length === 0 || !isFormReady}
+            disabled={submitting || items.length === 0}
             aria-label={locale === 'es' ? 'Confirmar orden' : 'Place order'}
-            className="w-full py-5 rounded-2xl bg-[#05c8a7] text-white font-extrabold text-[17px] active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_20px_rgba(5,200,167,0.35)]"
+            animate={ctaShake ? { x: [0, -8, 8, -6, 6, -4, 4, 0] } : { x: 0 }}
+            transition={{ duration: 0.5 }}
+            className={cn(
+              'w-full py-5 rounded-2xl text-white font-extrabold text-[17px] active:scale-[0.98] transition-all duration-150 shadow-[0_4px_20px_rgba(5,200,167,0.35)]',
+              submitting || items.length === 0 ? 'opacity-40 cursor-not-allowed bg-[#05c8a7]' : 'bg-[#05c8a7]',
+            )}
           >
             {submitting ? (
               <span className="flex items-center justify-center gap-2">
@@ -1667,7 +1790,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             ) : (
               `${t.confirmOrder} · ${fmtPrice(displayTotal)}`
             )}
-          </button>
+          </motion.button>
         </div>
       </div>
     </div>
