@@ -15,6 +15,7 @@ import { getLocaleFlag, SUPPORTED_LOCALES, tName, tDesc } from '@/lib/i18n';
 import { trackEvent } from '@/lib/analytics';
 
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { supabaseLoader } from '@/lib/image-loader';
 import { StoreConfigProvider } from '@/lib/store-config-context';
 import { getStoreOverrides } from '@/lib/store-overrides';
 import { MenuHeader, HEADER_HEIGHT } from './MenuHeader';
@@ -1120,7 +1121,7 @@ export function MenuShell({
                 alt={restaurant.name}
                 width={28}
                 height={28}
-                unoptimized
+                loader={restaurant.logo_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
                 className="w-7 h-7 rounded-lg object-cover flex-shrink-0"
               />
             )}
@@ -2038,7 +2039,7 @@ export function MenuShell({
                             alt={product.name}
                             fill
                             sizes="48px"
-                            unoptimized={product.image_url.includes('.supabase.co/storage/')}
+                            loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
                             className="object-cover"
                           />
                         </div>
