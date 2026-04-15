@@ -151,10 +151,9 @@ export async function POST(req: NextRequest) {
 
     if (updateErr) return NextResponse.json({ error: updateErr.message }, { status: 500 });
 
-    // Broadcast driver milestone to customer tracking page immediately.
-    // We reuse the status field for driver events (ready/picked_up/at_door) so
-    // the client knows what changed without a full refetch.
-    broadcastOrderUpdate(order.id, updateData.status as string ?? order.status).catch(() => {});
+    // Broadcast to customer tracking page so they see driver milestones
+    // (picked_up, at_door) in real-time. Client does a full refetch on receipt.
+    broadcastOrderUpdate(order.id, order.status).catch(() => {});
   }
 
   // Send customer notification (fire-and-forget, don't block the response)

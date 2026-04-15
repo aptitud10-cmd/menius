@@ -214,6 +214,18 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   //
   // The server sends a broadcast via HTTP Broadcast API from every route
   // that changes order state: updateOrderStatus, driver/status, cron jobs.
+  // Immediate refetch when the tab becomes visible again (mobile switches app,
+  // or phone wakes from standby). Prevents the customer from seeing a stale
+  // status after returning to the tracking page.
+  useEffect(() => {
+    if (!order?.id || order.status === 'delivered' || order.status === 'cancelled') return;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fetchOrder();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [order?.id, order?.status, fetchOrder]);
+
   useEffect(() => {
     if (!order?.id) return;
 
