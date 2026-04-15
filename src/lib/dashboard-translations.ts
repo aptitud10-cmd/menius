@@ -699,6 +699,13 @@ export interface DashboardTranslations {
   onboarding_configurePrinterDesc: string;
   onboarding_installPWA: string;
   onboarding_installPWADesc: string;
+  onboarding_next: string;
+  onboarding_optional: string;
+  onboarding_firstSteps: string;
+  onboarding_setupTitle: string;
+  onboarding_setupSubtitle: string;
+  onboarding_progressLabel: string;
+  onboarding_improveOps: string;
 
   // General
   general_delete: string;
@@ -1898,6 +1905,13 @@ const es: DashboardTranslations = {
   onboarding_configurePrinterDesc: 'Imprime automáticamente cada nuevo pedido en tu cocina',
   onboarding_installPWA: 'Instala MENIUS en tu tablet o celular',
   onboarding_installPWADesc: 'Accede rápido sin abrir el navegador cada vez',
+  onboarding_next: 'Siguiente',
+  onboarding_optional: 'Opcional',
+  onboarding_firstSteps: 'Primeros pasos',
+  onboarding_setupTitle: '¡Configura tu restaurante!',
+  onboarding_setupSubtitle: 'Sigue estos pasos para recibir tu primer pedido',
+  onboarding_progressLabel: 'pasos completados · ¡Empieza ahora!',
+  onboarding_improveOps: 'Mejora tu operación',
 
   // General
   general_delete: 'Eliminar',
@@ -3097,6 +3111,13 @@ const en: DashboardTranslations = {
   onboarding_configurePrinterDesc: 'Connect a thermal printer to print tickets automatically',
   onboarding_installPWA: 'Install MENIUS on your tablet',
   onboarding_installPWADesc: 'Add the app to your home screen for the best experience',
+  onboarding_next: 'Next',
+  onboarding_optional: 'Optional',
+  onboarding_firstSteps: 'First steps',
+  onboarding_setupTitle: 'Set up your restaurant!',
+  onboarding_setupSubtitle: 'Follow these steps to receive your first order',
+  onboarding_progressLabel: 'steps completed · Get started!',
+  onboarding_improveOps: 'Improve your operations',
 
   // General
   general_delete: 'Delete',
