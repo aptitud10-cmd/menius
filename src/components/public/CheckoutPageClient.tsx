@@ -549,7 +549,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     setStep('confirmation');
     playSuccessChime();
     confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
-  }, [saveLastOrder, rememberMe, customerName, customerPhone, customerEmail, restaurant, orderNumber, orderType, items, cartTotal, finalTotal, displayTotal, clearCart, confettiTimer]);
+  }, [saveLastOrder, rememberMe, customerName, customerPhone, customerEmail, restaurant, orderNumber, orderType, items, cartTotal, displayTotal, clearCart, confettiTimer]);
 
   const isColombianRestaurant = restaurant.currency?.toUpperCase() === 'COP';
 

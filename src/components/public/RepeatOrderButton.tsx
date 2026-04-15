@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { RotateCcw, Loader2, AlertCircle } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 
@@ -137,9 +138,11 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
               {data.items.map((item, i) => (
                 <div key={i} className="flex items-center gap-3" data-testid={`repeat-item-${i}`}>
                   {item.image_url && (
-                    <img
+                    <Image
                       src={item.image_url}
                       alt={item.product_name}
+                      width={48}
+                      height={48}
                       className="w-12 h-12 rounded-lg object-cover"
                     />
                   )}

@@ -73,7 +73,6 @@ export async function checkFreeTierLimit(
   try {
     const { data: sub } = await (supabase as unknown as { from: (t: string) => unknown })
       .from('subscriptions')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .select('status, trial_end, current_period_end, plan_id').eq('restaurant_id', restaurantId).maybeSingle() as any;
 
     const now = new Date();
@@ -96,7 +95,6 @@ export async function checkFreeTierLimit(
     if (isFreeTier) {
       const { FREE_MONTHLY_ORDER_LIMIT } = await import('@/lib/plans');
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { count } = await (adminDb as any)
         .from('orders')
         .select('id', { count: 'exact', head: true })
