@@ -20,9 +20,23 @@ export async function GET() {
     const { restaurantId } = tenant;
     const db = createAdminClient();
 
-    // Effective plan determines current commission rate
-    const planId = await getEffectivePlanId(restaurantId);
-    const commissionBps = COMMISSION_BPS[planId] ?? 0;
+    // Fetch plan, subscription status, and restaurant currency in parallel
+    const [planId, subRes, restaurantRes] = await Promise.all([
+      getEffectivePlanId(restaurantId),
+      db.from('subscriptions').select('status, trial_end').eq('restaurant_id', restaurantId).maybeSingle(),
+      db.from('restaurants').select('currency').eq('id', restaurantId).maybeSingle(),
+    ]);
+
+    const currency = (restaurantRes.data?.currency as string | null | undefined) ?? 'USD';
+
+    // Trial → 0% commission (matches order creation logic)
+    const sub = subRes.data;
+    const isTrialing =
+      sub?.status === 'trialing' &&
+      sub.trial_end != null &&
+      new Date(sub.trial_end) > new Date();
+
+    const commissionBps = isTrialing ? 0 : (COMMISSION_BPS[planId] ?? 0);
     const commissionRate = commissionBps / 10000; // e.g. 200 bps → 0.02
 
     // Current month boundaries (UTC)
@@ -67,6 +81,8 @@ export async function GET() {
 
     return NextResponse.json({
       planId,
+      isTrial: isTrialing,
+      currency,
       commissionBps,
       commissionRate,
       thisMonth: {
@@ -82,6 +98,6 @@ export async function GET() {
     });
   } catch (err) {
     console.error('[billing/commissions]', err);
-    return NextResponse.json({ commissionBps: 0, commissionRate: 0, thisMonth: { onlineRevenue: 0, orderCount: 0, commissionAmount: 0 }, prevMonth: { onlineRevenue: 0, orderCount: 0, commissionAmount: 0 } });
+    return NextResponse.json({ currency: 'USD', commissionBps: 0, commissionRate: 0, thisMonth: { onlineRevenue: 0, orderCount: 0, commissionAmount: 0 }, prevMonth: { onlineRevenue: 0, orderCount: 0, commissionAmount: 0 } });
   }
 }

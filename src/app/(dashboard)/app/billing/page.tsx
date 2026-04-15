@@ -151,6 +151,8 @@ export default function BillingPage() {
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [commissions, setCommissions] = useState<{
     planId: string;
+    isTrial: boolean;
+    currency: string;
     commissionBps: number;
     commissionRate: number;
     thisMonth: { onlineRevenue: number; orderCount: number; commissionAmount: number };
@@ -495,9 +497,11 @@ export default function BillingPage() {
                   ? 'bg-amber-50 text-amber-700 border-amber-200'
                   : 'bg-red-50 text-red-700 border-red-200'
             )}>
-              {commissions.commissionBps === 0
-                ? (locale === 'en' ? '0% — no commission' : '0% — sin comisión')
-                : `${commissions.commissionBps / 100}% ${locale === 'en' ? 'per online order' : 'por orden online'}`}
+              {commissions.isTrial
+                ? (locale === 'en' ? '0% — trial period' : '0% — período de prueba')
+                : commissions.commissionBps === 0
+                  ? (locale === 'en' ? '0% — no commission' : '0% — sin comisión')
+                  : `${commissions.commissionBps / 100}% ${locale === 'en' ? 'per online order' : 'por orden online'}`}
             </span>
           </div>
 
@@ -509,9 +513,11 @@ export default function BillingPage() {
               </p>
               <p className="text-2xl font-bold text-gray-900 tabular-nums">
                 {commissions.commissionBps === 0
-                  ? '$0'
+                  ? new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-MX', {
+                      style: 'currency', currency: commissions.currency || 'USD', minimumFractionDigits: 0,
+                    }).format(0)
                   : new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-MX', {
-                      style: 'currency', currency: 'USD', minimumFractionDigits: 2,
+                      style: 'currency', currency: commissions.currency || 'USD', minimumFractionDigits: 2,
                     }).format(commissions.thisMonth.commissionAmount)}
               </p>
               <p className="text-xs text-gray-400 mt-1">
@@ -527,7 +533,7 @@ export default function BillingPage() {
               </p>
               <p className="text-2xl font-bold text-gray-900 tabular-nums">
                 {new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-MX', {
-                  style: 'currency', currency: 'USD', minimumFractionDigits: 0,
+                  style: 'currency', currency: commissions.currency || 'USD', minimumFractionDigits: 0,
                 }).format(commissions.thisMonth.onlineRevenue)}
               </p>
               <p className="text-xs text-gray-400 mt-1">

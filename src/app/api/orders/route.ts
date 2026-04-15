@@ -167,8 +167,9 @@ export async function POST(request: NextRequest) {
 
     // Commission rate in basis points (bps). Applied as Stripe application_fee_amount
     // on online payments where the restaurant uses Stripe Connect.
-    // free: 2% | starter/trialing: 1% | pro/business: 0%
+    // starter: 1% | trial: 0% | pro/business: 0% | free: no online payments allowed
     let commissionBps = 0;
+    let isFreeTier = false; // hoisted so it's accessible in the Stripe Connect block below
 
     // Check subscription — enforce monthly limit for FREE-tier restaurants
     try {
@@ -179,12 +180,10 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
 
       const now = new Date();
-      let isFreeTier = false;
 
       if (!sub) {
-        // No subscription row → FREE tier
+        // No subscription row → FREE tier (no online payments)
         isFreeTier = true;
-        commissionBps = 200; // 2%
       } else {
         const { status, plan_id } = sub;
         const trialStillValid = sub.trial_end && new Date(sub.trial_end) > now;
@@ -194,13 +193,12 @@ export async function POST(request: NextRequest) {
           // Pro/Business pay no platform fee; Starter pays 1%
           commissionBps = (plan_id === 'pro' || plan_id === 'business') ? 0 : 100;
         } else if (trialStillValid) {
-          // Trial period → same as starter (1%)
+          // Trial period → 0% commission (full trial experience)
           isFreeTier = false;
-          commissionBps = 100;
+          commissionBps = 0;
         } else {
-          // canceled, expired trial, or explicitly free plan → FREE limits apply
+          // canceled, expired trial → back to FREE (no online payments)
           isFreeTier = true;
-          commissionBps = 200; // 2%
         }
       }
 
@@ -222,8 +220,9 @@ export async function POST(request: NextRequest) {
         }
       }
     } catch (subErr) {
-      logger.warn('Subscription check failed during order creation — proceeding', { error: subErr });
-      // Default to 0% on subscription check failure to avoid blocking the order
+      logger.warn('Subscription check failed during order creation — proceeding without plan enforcement', { error: subErr });
+      // On subscription check failure: treat as non-free (don't block), 0% commission
+      isFreeTier = false;
       commissionBps = 0;
     }
 
@@ -717,6 +716,18 @@ export async function POST(request: NextRequest) {
                 ? 'Online payment is not available for this restaurant yet. Please pay in person.'
                 : 'El pago en línea no está disponible para este restaurante aún. Por favor paga en persona.' },
             { status: 400 }
+          );
+        }
+
+        // Online payments require at least Starter plan. Free-tier restaurants
+        // cannot accept card payments even if they have a connected account.
+        if (isFreeTier) {
+          await adminDb.from('orders').delete().eq('id', order.id);
+          return NextResponse.json(
+            { error: en
+                ? 'Online payment requires a paid plan. Please pay in person or ask the restaurant to upgrade.'
+                : 'El pago en línea requiere un plan de pago. Por favor paga en persona o pide al restaurante que actualice su plan.' },
+            { status: 403 }
           );
         }
 

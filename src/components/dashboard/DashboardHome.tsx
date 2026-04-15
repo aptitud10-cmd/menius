@@ -848,7 +848,7 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
     }
   };
 
-  const channels = [
+  const channels: { label: string; icon: React.ReactNode; onClick: () => void; accent: string; sub: string; closesModal: boolean }[] = [
     {
       label: copied ? (t.home_copied ?? '¡Copiado!') : (t.home_copyLink ?? 'Copiar link'),
       icon: copied
@@ -857,6 +857,7 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
       onClick: copyLink,
       accent: copied ? 'bg-emerald-50 border-emerald-200' : 'hover:bg-gray-50',
       sub: menuUrl.replace('https://', ''),
+      closesModal: false, // stays open to show "¡Copiado!" feedback
     },
     {
       label: 'WhatsApp',
@@ -869,6 +870,7 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
       onClick: shareWhatsApp,
       accent: 'hover:bg-[#25D366]/5',
       sub: 'Compartir con contactos',
+      closesModal: true,
     },
     {
       label: 'Facebook',
@@ -880,6 +882,7 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
       onClick: shareFacebook,
       accent: 'hover:bg-[#1877F2]/5',
       sub: 'Publicar en tu página',
+      closesModal: true,
     },
     {
       label: 'X / Twitter',
@@ -891,6 +894,7 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
       onClick: shareX,
       accent: 'hover:bg-gray-50',
       sub: 'Tuitear tu menú',
+      closesModal: true,
     },
     {
       label: t.home_moreOptions ?? 'Más opciones',
@@ -898,6 +902,7 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
       onClick: shareNative,
       accent: 'hover:bg-gray-50',
       sub: 'Email, SMS, AirDrop…',
+      closesModal: true,
     },
   ];
 
@@ -939,10 +944,10 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
               {channels.map((ch) => (
                 <button
                   key={ch.label}
-                  onClick={() => { ch.onClick(); if (ch.label !== (copied ? (t.home_copied ?? '¡Copiado!') : (t.home_copyLink ?? 'Copiar link'))) setOpen(false); }}
+                  onClick={() => { ch.onClick(); if (ch.closesModal) setOpen(false); }}
                   className={cn(
                     'w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-colors text-left border',
-                    copied && ch.label === (t.home_copied ?? '¡Copiado!') ? 'bg-emerald-50 border-emerald-200' : `border-transparent ${ch.accent}`
+                    copied && !ch.closesModal ? 'bg-emerald-50 border-emerald-200' : `border-transparent ${ch.accent}`
                   )}
                 >
                   <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-gray-50 border border-gray-100">

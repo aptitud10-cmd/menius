@@ -258,7 +258,7 @@ const es = {
     annualYearSuffix: '/año',
     freeBannerPrefix: 'O empieza con el',
     freeBannerPlan: 'Plan Gratis',
-    freeBannerDesc: '50 pedidos/mes · Menú digital + QR · Hasta 5 mesas · 2% comisión en pagos online · Sin tarjeta',
+    freeBannerDesc: '50 pedidos/mes · Menú digital + QR · Hasta 5 mesas · Solo efectivo · Sin tarjeta',
     freeBannerCta: 'Crear cuenta gratis →',
     plans: [
       {
@@ -266,7 +266,7 @@ const es = {
         price: 39,
         desc: 'Para restaurantes que inician su digitalización.',
         cta: 'Elegir Starter',
-        features: ['Menú digital con fotos', 'QR para hasta 15 mesas', 'Pedidos (dine-in + pickup)', 'Sin marca MENIUS en el menú', 'MENIUS AI (asistente IA)', 'Importar menú desde foto (IA)', 'Analytics básico (30 días)', '2 usuarios administradores', '1% comisión en pagos online', 'Soporte por chat'],
+        features: ['Menú digital con fotos', 'QR para hasta 15 mesas', 'Pedidos (dine-in + pickup)', 'Sin marca MENIUS en el menú', 'MENIUS AI (asistente IA)', 'Importar menú desde foto (IA)', 'Analytics básico (30 días)', '2 usuarios administradores', 'Pagos online (1% comisión)', 'Soporte por chat'],
       },
       {
         name: 'Pro',
@@ -610,7 +610,7 @@ const en: LandingT = {
     annualYearSuffix: '/yr',
     freeBannerPrefix: 'Or start with the',
     freeBannerPlan: 'Free Plan',
-    freeBannerDesc: '50 orders/mo · Digital menu + QR · Up to 5 tables · 2% commission on online payments · No credit card',
+    freeBannerDesc: '50 orders/mo · Digital menu + QR · Up to 5 tables · Cash only · No credit card',
     freeBannerCta: 'Create free account →',
     plans: [
       {
@@ -618,7 +618,7 @@ const en: LandingT = {
         price: 39,
         desc: 'For restaurants starting their digital journey.',
         cta: 'Get Starter',
-        features: ['Digital menu with photos', 'QR codes up to 15 tables', 'Orders (dine-in + pickup)', 'No MENIUS branding', 'MENIUS AI assistant', 'Import menu from photo (AI)', 'Basic analytics (30 days)', '2 admin users', '1% commission on online payments', 'Chat support'],
+        features: ['Digital menu with photos', 'QR codes up to 15 tables', 'Orders (dine-in + pickup)', 'No MENIUS branding', 'MENIUS AI assistant', 'Import menu from photo (AI)', 'Basic analytics (30 days)', '2 admin users', 'Online payments (1% fee)', 'Chat support'],
       },
       {
         name: 'Pro',
