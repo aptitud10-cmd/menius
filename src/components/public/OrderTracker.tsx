@@ -334,16 +334,16 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         .tracker-card:nth-child(3) { animation-delay: 0.1s; }
         .tracker-card:nth-child(4) { animation-delay: 0.15s; }
         @keyframes deliveredPop {
-          0%   { transform: scale(0.6) rotate(-8deg); opacity: 0; }
-          60%  { transform: scale(1.15) rotate(4deg); opacity: 1; }
-          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+          0%   { transform: scale(0.5); opacity: 0; }
+          70%  { transform: scale(1.08); opacity: 1; }
+          100% { transform: scale(1);   opacity: 1; }
         }
-        .delivered-icon { animation: deliveredPop 0.55s cubic-bezier(0.34,1.56,0.64,1) both; }
-        @keyframes shimmer {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.6; }
+        .delivered-icon { animation: deliveredPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+        @keyframes ringExpand {
+          0%   { transform: scale(0.7); opacity: 0.6; }
+          100% { transform: scale(1.45); opacity: 0; }
         }
-        .delivered-glow { animation: shimmer 2.5s ease-in-out infinite; }
+        .delivered-ring { animation: ringExpand 1.1s ease-out 0.2s both; }
       `}</style>
 
       {/* Sticky nav bar */}
@@ -428,20 +428,29 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                   <>
                     {(() => {
                       const typeConfig = {
-                        pickup:   { icon: ShoppingBag, bg: 'bg-orange-100', color: 'text-orange-500', emoji: '🛍️', tagline: tWithType.en ? 'Enjoy it!' : '¡Buen provecho!' },
-                        dine_in:  { icon: Utensils,    bg: 'bg-violet-100', color: 'text-violet-600', emoji: '🍽️', tagline: tWithType.en ? 'Bon appétit!' : '¡Que lo disfrutes!' },
-                        delivery: { icon: CheckCircle2, bg: 'bg-[#d0f7f1]', color: 'text-[#05c8a7]', emoji: '✅', tagline: tWithType.en ? 'Enjoy your meal!' : '¡Buen provecho!' },
+                        pickup:   { icon: ShoppingBag,  solid: '#f97316', tagline: tWithType.en ? 'Enjoy your meal!'  : '¡Buen provecho!' },
+                        dine_in:  { icon: Utensils,     solid: '#7c3aed', tagline: tWithType.en ? 'Enjoy your meal!'  : '¡Que lo disfrutes!' },
+                        delivery: { icon: CheckCircle2, solid: '#059669', tagline: tWithType.en ? 'Enjoy your meal!'  : '¡Buen provecho!' },
                       };
                       const cfg = typeConfig[order.order_type as keyof typeof typeConfig] ?? typeConfig.delivery;
                       const IconCmp = cfg.icon;
                       return (
                         <>
-                          <div className={cn('w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4 delivered-icon', cfg.bg)}>
-                            <IconCmp className={cn('w-10 h-10', cfg.color)} />
+                          {/* Icon with expanding ring — single element, no emoji */}
+                          <div className="relative w-20 h-20 mx-auto mb-6">
+                            <div
+                              className="delivered-ring absolute inset-0 rounded-full"
+                              style={{ background: cfg.solid, opacity: 0 }}
+                            />
+                            <div
+                              className="delivered-icon relative w-20 h-20 rounded-full flex items-center justify-center"
+                              style={{ background: cfg.solid }}
+                            >
+                              <IconCmp className="w-9 h-9 text-white" strokeWidth={1.75} />
+                            </div>
                           </div>
-                          <div className="text-3xl mb-2 delivered-glow">{cfg.emoji}</div>
-                          <h2 className="text-2xl font-black text-gray-900 mb-1">{t.orderDelivered}</h2>
-                          <p className="text-sm text-gray-400 mb-1">{cfg.tagline}</p>
+                          <h2 className="text-2xl font-black text-gray-900 mb-1.5">{t.orderDelivered}</h2>
+                          <p className="text-sm text-gray-400">{cfg.tagline}</p>
                         </>
                       );
                     })()}
