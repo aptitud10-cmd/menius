@@ -71,9 +71,11 @@ export async function checkFreeTierLimit(
   en: boolean,
 ): Promise<string | null> {
   try {
-    const { data: sub } = await (supabase as unknown as { from: (t: string) => unknown })
+    const { data: sub } = await (supabase as any)
       .from('subscriptions')
-      .select('status, trial_end, current_period_end, plan_id').eq('restaurant_id', restaurantId).maybeSingle() as any;
+      .select('status, trial_end, current_period_end, plan_id')
+      .eq('restaurant_id', restaurantId)
+      .maybeSingle();
 
     const now = new Date();
     let isFreeTier = false;
