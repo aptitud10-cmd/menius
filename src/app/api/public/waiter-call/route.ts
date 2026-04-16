@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
   const { createDashboardNotification } = await import('@/lib/notifications/dashboard-notifications');
   createDashboardNotification({
     restaurantId: order.restaurant_id,
-    type: 'waiter_call',
+    type: 'system',
     title: en
       ? `🙋 Waiter requested — ${tablePart}`
       : `🙋 Mesero solicitado — ${tablePart}`,
