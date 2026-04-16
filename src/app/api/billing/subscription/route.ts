@@ -41,18 +41,11 @@ export async function GET() {
       return NextResponse.json({ subscription: null });
     }
 
-    const createdAt = new Date(restaurant.created_at);
-    const trialEnd = new Date(createdAt.getTime() + 14 * 24 * 60 * 60 * 1000);
-    const now = new Date();
-
     const payload = {
       restaurant_id: tenant.restaurantId,
       plan_id: 'starter',
-      status: now > trialEnd ? 'canceled' : 'trialing',
-      trial_start: createdAt.toISOString(),
-      trial_end: trialEnd.toISOString(),
-      current_period_start: createdAt.toISOString(),
-      current_period_end: trialEnd.toISOString(),
+      status: 'canceled',
+      current_period_end: new Date().toISOString(),
     };
 
     const { data: repaired, error: upsertError } = await db

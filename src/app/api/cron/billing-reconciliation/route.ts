@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   };
 
   try {
-    // Step 1: Find restaurants without subscription records and create trial
+    // Step 1: Find restaurants without subscription records and create a canceled row (free tier, no trial)
     // Limit to 2000 to prevent unbounded memory usage; run more often if needed
     const { data: allRestaurants } = await supabase
       .from('restaurants')
@@ -46,22 +46,16 @@ export async function GET(request: NextRequest) {
       const subSet = new Set((allSubs ?? []).map(s => s.restaurant_id));
       for (const r of allRestaurants) {
         if (!subSet.has(r.id)) {
-          const trialEnd = new Date(r.created_at);
-          trialEnd.setDate(trialEnd.getDate() + 14);
-          const isExpired = trialEnd < now;
-
           const { error } = await supabase.from('subscriptions').insert({
             restaurant_id: r.id,
             plan_id: 'starter',
-            status: isExpired ? 'canceled' : 'trialing',
-            trial_start: r.created_at,
-            trial_end: trialEnd.toISOString(),
-            current_period_end: trialEnd.toISOString(),
+            status: 'canceled',
+            current_period_end: now.toISOString(),
           });
 
           if (!error) {
             results.orphaned_fixed++;
-            logger.warn('Repaired orphaned restaurant', { restaurantId: r.id, status: isExpired ? 'canceled' : 'trialing' });
+            logger.warn('Repaired orphaned restaurant', { restaurantId: r.id, status: 'canceled' });
           } else {
             results.errors++;
             logger.error('Failed to repair orphan', { restaurantId: r.id, error: error.message });

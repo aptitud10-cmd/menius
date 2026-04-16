@@ -205,23 +205,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      if (isFreeTier) {
-        const { FREE_MONTHLY_ORDER_LIMIT } = await import('@/lib/plans');
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const { count } = await adminDb
-          .from('orders')
-          .select('id', { count: 'exact', head: true })
-          .eq('restaurant_id', restaurant_id)
-          .gte('created_at', monthStart.toISOString());
-        if ((count ?? 0) >= FREE_MONTHLY_ORDER_LIMIT) {
-          return NextResponse.json(
-            { error: en
-                ? `This restaurant has reached its free plan limit of ${FREE_MONTHLY_ORDER_LIMIT} orders per month. Please try again next month or contact the restaurant.`
-                : `Este restaurante alcanzó el límite del plan gratuito (${FREE_MONTHLY_ORDER_LIMIT} pedidos/mes). Vuelve el próximo mes o contacta al restaurante.` },
-            { status: 429 }
-          );
-        }
-      }
     } catch (subErr) {
       logger.warn('Subscription check failed during order creation — proceeding without plan enforcement', { error: subErr });
       // On subscription check failure: treat as non-free (don't block), 0% commission

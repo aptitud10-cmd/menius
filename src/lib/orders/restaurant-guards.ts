@@ -94,21 +94,6 @@ export async function checkFreeTierLimit(
       }
     }
 
-    if (isFreeTier) {
-      const { FREE_MONTHLY_ORDER_LIMIT } = await import('@/lib/plans');
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const { count } = await (adminDb as any)
-        .from('orders')
-        .select('id', { count: 'exact', head: true })
-        .eq('restaurant_id', restaurantId)
-        .gte('created_at', monthStart.toISOString());
-
-      if ((count ?? 0) >= FREE_MONTHLY_ORDER_LIMIT) {
-        return en
-          ? `This restaurant has reached its free plan limit of ${FREE_MONTHLY_ORDER_LIMIT} orders per month.`
-          : `Este restaurante alcanzó el límite del plan gratuito (${FREE_MONTHLY_ORDER_LIMIT} pedidos/mes).`;
-      }
-    }
   } catch (err) {
     logger.warn('Subscription check failed — proceeding', { error: err });
   }

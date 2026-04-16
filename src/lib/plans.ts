@@ -31,11 +31,11 @@ export interface PlanConfig {
   isFree?: boolean;
 }
 
-/** Kept for backward compat with existing 'trialing' subscriptions in DB */
-export const TRIAL_DAYS = 14;
+/** Trial disabled — kept for backward compat with existing 'trialing' subscriptions in DB */
+export const TRIAL_DAYS = 0;
 
-/** Monthly order limit enforced for the FREE plan */
-export const FREE_MONTHLY_ORDER_LIMIT = 50;
+/** No longer enforced — Free plan has unlimited orders */
+export const FREE_MONTHLY_ORDER_LIMIT = -1;
 
 export const PLANS: Record<PlanId, PlanConfig> = {
   free: {
@@ -50,19 +50,19 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       maxTables: 5,
       maxUsers: 1,
       maxCategories: -1,
-      maxOrdersPerMonth: FREE_MONTHLY_ORDER_LIMIT,
+      maxOrdersPerMonth: -1,
     },
     features: [
       'Menú digital + QR (hasta 5 mesas)',
       'Solo dine-in',
-      '50 pedidos / mes',
+      'Pedidos ilimitados',
       'Importar menú desde foto con IA',
       'Soporte por email',
     ],
     features_en: [
       'Digital menu + QR (up to 5 tables)',
       'Dine-in only',
-      '50 orders / month',
+      'Unlimited orders',
       'Import menu from photo with AI',
       'Email support',
     ],
