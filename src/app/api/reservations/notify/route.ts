@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { sendEmail } from '@/lib/notifications/email';
-import { sendWhatsApp } from '@/lib/notifications/whatsapp';
 
 function escHtml(s: string): string {
   return String(s)
@@ -114,15 +113,6 @@ export async function POST(req: NextRequest) {
         subject,
         html,
       }).catch(() => {});
-    }
-
-    // Send WhatsApp confirmation if customer phone is available
-    if (customerPhone) {
-      const waText = isEn
-        ? `✅ *Reservation confirmed at ${restaurant.name}*\n\nHi ${safeName}!\n📅 ${formattedDate}\n⏰ ${formattedTime}\n👥 ${safePartySize} ${safePartySize === 1 ? 'guest' : 'guests'}\n\nIf you need to cancel, please contact us directly.`
-        : `✅ *Reservación confirmada en ${restaurant.name}*\n\n¡Hola ${safeName}!\n📅 ${formattedDate}\n⏰ ${formattedTime}\n👥 ${safePartySize} ${safePartySize === 1 ? 'persona' : 'personas'}\n\nSi necesitas cancelar, por favor contáctanos directamente.`;
-
-      sendWhatsApp({ to: customerPhone, text: waText }).catch(() => {});
     }
 
     return NextResponse.json({ success: true });

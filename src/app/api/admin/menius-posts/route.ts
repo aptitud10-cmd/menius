@@ -73,9 +73,9 @@ ABOUT MENIUS:
 - All-in-one SaaS for restaurants: digital QR menu, real-time orders, kitchen display (KDS), AI assistant, CRM, analytics, marketing tools
 - Pricing: Starter $39/mo, Pro $66/mo, Business $124/mo — ALL with 0% commission per order
 - Key differentiator: Unlike Rappi/UberEats/DoorDash that charge 15-30% per order, MENIUS charges a flat monthly fee
-- 14-day free trial, no credit card required
+- Free plan forever, no credit card required. All paid plans: 0% commission.
 - Built with cutting-edge tech: Next.js, Supabase, Stripe, Google Gemini AI
-- Features: AI image generation for products, OCR menu import from photo, WhatsApp notifications, email campaigns, promotions, customer CRM
+- Features: AI image generation for products, OCR menu import from photo, email & push notifications, email campaigns, promotions, customer CRM
 - Website: https://menius.app
 - Target: Restaurant owners worldwide (primary markets: USA, Latin America, Spain)
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect, useRef, useCallback } from 'react';
-import { Plus, Trash2, QrCode, Download, Share2, Copy, Check, ExternalLink, Printer, Globe, MessageCircle, Pencil, X, Users } from 'lucide-react';
+import { Plus, Trash2, QrCode, Download, Share2, Copy, Check, ExternalLink, Printer, Globe, Pencil, X, Users } from 'lucide-react';
 import { createTable, updateTable, updateTableMeta, deleteTable } from '@/lib/actions/restaurant';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
@@ -537,11 +537,6 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
     }
   };
 
-  const shareWhatsApp = () => {
-    const text = encodeURIComponent(`¡Mira el menú de ${name}! Pide directo desde tu celular:\n${menuUrl}`);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-  };
-
   const printQR = () => {
     if (!brandedCanvasRef.current) return;
     const dataUrl = brandedCanvasRef.current.toDataURL('image/png');
@@ -586,14 +581,6 @@ function GeneralQRCard({ slug, name }: { slug: string; name: string }) {
               >
                 <Download className="w-4 h-4" />
                 {t.tables_downloadQR}
-              </button>
-
-              <button
-                onClick={shareWhatsApp}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors"
-              >
-                <MessageCircle className="w-4 h-4" />
-                {t.tables_shareWhatsApp}
               </button>
 
               <div className="grid grid-cols-3 gap-2">

@@ -2113,7 +2113,7 @@ export function CounterView({
               <input
                 value={driverPhone}
                 onChange={e => setDriverPhone(e.target.value)}
-                placeholder="WhatsApp"
+                placeholder={t.en ? 'Phone' : 'Teléfono'}
                 type="tel"
                 className="w-full px-4 py-3 rounded-xl border border-[#E8E8E8] text-sm focus:outline-none focus:border-[#06C167]"
               />
@@ -2543,7 +2543,6 @@ function OrderDetail({
               title="Print">
               <Printer className="w-4 h-4 text-white" />
             </button>
-            {/* More actions (call / WhatsApp manual override) */}
             {order.customer_phone && (
               <div className="relative">
                 <button
@@ -2563,14 +2562,6 @@ function OrderDetail({
                         className="flex items-center gap-3 px-4 py-3 text-sm text-[#111] hover:bg-[#F5F5F5] transition-colors"
                       >
                         <Phone className="w-4 h-4 text-[#888]" /> {t.callCustomer}
-                      </a>
-                      <a
-                        href={`https://wa.me/${order.customer_phone.replace(/\D/g, '')}`}
-                        target="_blank" rel="noopener noreferrer"
-                        onClick={() => setMoreActionsOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-sm text-[#111] hover:bg-[#F5F5F5] transition-colors border-t border-[#F5F5F5]"
-                      >
-                        <MessageCircle className="w-4 h-4 text-[#25D366]" /> WhatsApp
                       </a>
                     </div>
                   </>

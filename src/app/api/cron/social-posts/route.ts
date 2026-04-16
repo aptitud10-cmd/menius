@@ -32,8 +32,8 @@ const POST_TYPE_DESCRIPTIONS: Record<string, string> = {
   testimonial: 'Write a realistic testimonial from a fictional but believable restaurant owner. Include their name, restaurant type, city, and specific results (e.g. "saved $2,400/month", "orders increased 40%"). Make it feel genuine, not scripted.',
   educational: 'Teach restaurant owners something valuable: how QR menus increase average ticket by 20%, why 73% of diners check menus online before visiting, how to reduce food waste with real-time stock, digital marketing tips for restaurants.',
   stat: 'Lead with a compelling industry statistic and connect it to MENIUS. Use real data points: "67% of restaurants fail in the first year", "Restaurant profit margins average 3-5%", "Digital menus reduce order errors by 95%".',
-  promotion: 'Promote MENIUS free trial. Emphasize: 14 days free, no credit card, 0% commission forever, setup in 2 minutes, AI generates product images. Create urgency without being pushy.',
-  product_launch: 'Spotlight a specific MENIUS feature as if it just launched. Pick from: AI image generation, WhatsApp order notifications, QR code generator, customer CRM, marketing automation, analytics dashboard, OCR menu import.',
+  promotion: 'Promote MENIUS free plan. Emphasize: free forever, no credit card, 0% commission on all plans, setup in 2 minutes, AI generates product images. Create urgency without being pushy.',
+  product_launch: 'Spotlight a specific MENIUS feature as if it just launched. Pick from: AI image generation, email & push notifications, QR code generator, customer CRM, marketing automation, analytics dashboard, OCR menu import.',
   behind_scenes: 'Share a behind-the-scenes moment of building MENIUS. Topics: why we built it (founder frustrated with restaurant tech), the tech stack (Next.js, Supabase, Stripe, Gemini AI), a user story, a milestone, or a lesson learned.',
 };
 

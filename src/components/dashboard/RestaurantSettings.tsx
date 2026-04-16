@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Save, ExternalLink, CheckCircle2, Bell, MessageCircle, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2, Languages, Plus, X, Sparkles, Receipt } from 'lucide-react';
+import { Save, ExternalLink, CheckCircle2, Bell, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2, Languages, Plus, X, Sparkles, Receipt } from 'lucide-react';
 import { COUNTRY_LIST, US_STATE_LIST, COUNTRY_TAX_PRESETS, US_STATE_TAX_RATES, US_CITY_TAX_RATES, computeTaxAmount } from '@/lib/tax-presets';
 import { SUPPORTED_LOCALES, getLocaleFlag } from '@/lib/i18n';
 import Image from 'next/image';
@@ -45,7 +45,6 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     locale: initialData.locale ?? 'es',
     available_locales: initialData.available_locales ?? [initialData.locale ?? 'es'],
     custom_domain: initialData.custom_domain ?? '',
-    notification_whatsapp: initialData.notification_whatsapp ?? '',
     notification_email: initialData.notification_email ?? '',
     notifications_enabled: initialData.notifications_enabled !== false,
     order_types_enabled: initialData.order_types_enabled ?? ['dine_in', 'pickup'],
@@ -1236,20 +1235,6 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
         {form.notifications_enabled && (
           <div className="space-y-4">
-            <div>
-              <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
-                <MessageCircle className="w-3.5 h-3.5" />
-                {t.settings_whatsappOrdersLabel}
-              </div>
-              <PhoneField
-                value={form.notification_whatsapp}
-                onChange={(v) => { setForm((prev) => ({ ...prev, notification_whatsapp: v })); setSaved(false); }}
-                dark={false}
-              />
-              <p className="text-[11px] text-gray-500 mt-1">
-                {t.settings_whatsappOrdersDesc}
-              </p>
-            </div>
             <div>
               <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
                 <Mail className="w-3.5 h-3.5" />

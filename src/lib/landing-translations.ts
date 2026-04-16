@@ -149,8 +149,8 @@ const es = {
       {
         tab: 'Dashboard',
         title: 'Gestiona todo desde un solo lugar',
-        desc: 'Pedidos en tiempo real, cocina KDS en pantalla dedicada, analytics de ventas, notificaciones WhatsApp, editor de menú y gestión de equipo.',
-        details: ['Pedidos en tiempo real + Cocina KDS', 'Analytics y reportes avanzados', 'Notificaciones WhatsApp y email', 'CRM de clientes integrado'],
+        desc: 'Pedidos en tiempo real, cocina KDS en pantalla dedicada, analytics de ventas, notificaciones por email y push, editor de menú y gestión de equipo.',
+        details: ['Pedidos en tiempo real + Cocina KDS', 'Analytics y reportes avanzados', 'Notificaciones email y push', 'CRM de clientes integrado'],
         visualItems: [
           { label: 'Órdenes hoy', value: '47' },
           { label: 'Ventas hoy', value: '$1,240' },
@@ -190,7 +190,7 @@ const es = {
     sectionDesc: 'Las herramientas que ya usas, integradas en un solo lugar.',
     items: [
       { desc: 'Pagos con tarjeta' },
-      { desc: 'Notificaciones WhatsApp' },
+      { desc: 'Notificaciones push' },
       { desc: 'Acepta Visa y Mastercard' },
       { desc: 'Aparece en Maps' },
       { desc: 'Comparte en redes' },
@@ -200,7 +200,7 @@ const es = {
   comparison: {
     sectionLabel: 'Sin intermediarios',
     sectionTitle: 'MENIUS vs Apps de Delivery',
-    sectionDesc: 'Las apps cobran hasta 30% de comisión por cada pedido que te mandan. Con MENIUS pagas una tarifa mensual fija — no un porcentaje de tus ventas. Pagos online con tarjeta: Starter 1%, Pro/Business 0%. Pedidos en efectivo siempre 0%.',
+    sectionDesc: 'Las apps cobran hasta 30% de comisión por cada pedido que te mandan. Con MENIUS pagas una tarifa mensual fija — no un porcentaje de tus ventas. Todos los planes: 0% comisión en pagos online. Pedidos en efectivo siempre 0%.',
     meniusHeader: 'MENIUS',
     otherHeader: 'Apps de delivery',
     mobileOtherHeader: 'Apps de delivery',
@@ -209,7 +209,7 @@ const es = {
       { feature: 'Control de clientes', menius: 'Tus datos', other: 'La app se los queda' },
       { feature: 'Tu marca', menius: 'Dominio propio', other: 'Junto a la competencia' },
       { feature: 'Asistente IA', menius: 'MENIUS AI — consultor 24/7', other: 'No disponible' },
-      { feature: 'WhatsApp + email', menius: 'Integrado', other: 'No disponible' },
+      { feature: 'Email + Push', menius: 'Integrado', other: 'No disponible' },
       { feature: 'CRM de clientes', menius: 'Integrado', other: 'No disponible' },
       { feature: 'Costo mensual', menius: 'Desde $39/mes', other: 'Gratis (pero 30% por pedido)' },
     ],
@@ -247,7 +247,7 @@ const es = {
   pricing: {
     sectionLabel: 'Precios',
     sectionTitle: 'Sin comisiones. Sin sorpresas.',
-    sectionDesc: 'Plan gratis para siempre. Sin tarjeta. Cancela cuando quieras. Trial 14 días: 0% comisión en pagos online.',
+    sectionDesc: 'Plan gratis para siempre. Sin tarjeta. Cancela cuando quieras.',
     popularBadge: 'Popular',
     perMonth: '/mes',
     billingMonthly: 'Mensual',
@@ -258,7 +258,7 @@ const es = {
     annualYearSuffix: '/año',
     freeBannerPrefix: 'O empieza con el',
     freeBannerPlan: 'Plan Gratis',
-    freeBannerDesc: '50 pedidos/mes · Menú digital + QR · Hasta 5 mesas · Solo efectivo · Sin tarjeta',
+    freeBannerDesc: 'Pedidos ilimitados · Menú digital + QR · Hasta 5 mesas · Solo efectivo · Sin tarjeta',
     freeBannerCta: 'Crear cuenta gratis →',
     plans: [
       {
@@ -266,21 +266,21 @@ const es = {
         price: 39,
         desc: 'Para restaurantes que inician su digitalización.',
         cta: 'Elegir Starter',
-        features: ['Menú digital con fotos', 'QR para hasta 15 mesas', 'Pedidos (dine-in + pickup)', 'Sin marca MENIUS en el menú', 'MENIUS AI (asistente IA)', 'Importar menú desde foto (IA)', 'Analytics básico (30 días)', '2 usuarios administradores', 'Pagos online (1% comisión)', 'Soporte por chat'],
+        features: ['Menú digital con fotos', 'QR para hasta 15 mesas', 'Pedidos (dine-in + pickup)', 'Sin marca MENIUS en el menú', 'MENIUS AI (asistente IA)', 'Importar menú desde foto (IA)', 'Analytics básico (30 días)', '2 usuarios administradores', 'Pagos online (0% comisión)', 'Soporte por chat'],
       },
       {
         name: 'Pro',
         price: 79,
         desc: 'Para restaurantes que quieren crecer y vender más.',
         cta: 'Elegir Pro',
-        features: ['Todo de Starter', '0% comisión por transacción', 'Hasta 50 mesas', 'Delivery + dirección de entrega', 'WhatsApp (500 msgs/mes)', 'Notificaciones por email', 'Cocina KDS en tiempo real', 'Analytics avanzado (histórico)', 'Promociones y cupones', 'Reseñas de clientes', '5 usuarios', 'Pagos online con tarjeta', 'Exportar reportes PDF / CSV', 'Chat prioritario 24h'],
+        features: ['Todo de Starter', '0% comisión por transacción', 'Hasta 50 mesas', 'Delivery + dirección de entrega', 'Notificaciones por email y push', 'Cocina KDS en tiempo real', 'Analytics avanzado (histórico)', 'Promociones y cupones', 'Reseñas de clientes', '5 usuarios', 'Pagos online con tarjeta', 'Exportar reportes PDF / CSV', 'Chat prioritario 24h'],
       },
       {
         name: 'Business',
         price: 149,
         desc: 'Para cadenas y franquicias con múltiples ubicaciones.',
         cta: 'Elegir Business',
-        features: ['Todo de Pro', '0% comisión por transacción', 'Mesas y usuarios ilimitados', 'Hasta 3 sucursales incluidas', 'WhatsApp (2,000 msgs/mes)', 'Dominio personalizado', 'Exportar datos CSV / Excel', 'Acceso API', 'Account manager (chat)', 'Tickets SLA < 1h'],
+        features: ['Todo de Pro', '0% comisión por transacción', 'Mesas y usuarios ilimitados', 'Hasta 3 sucursales incluidas', 'Dominio personalizado', 'Exportar datos CSV / Excel', 'Acceso API', 'Account manager (chat)', 'Tickets SLA < 1h'],
       },
     ],
     setupCtaPrefix: '¿No tienes tiempo?',
@@ -294,7 +294,7 @@ const es = {
       { step: '1', title: 'Regístrate en 2 minutos', desc: 'Sin tarjeta. Sin contratos. Tu cuenta lista al instante.' },
       { step: '2', title: 'Tu menú en línea hoy', desc: 'Agrega tus productos o importa tu menú completo desde una foto con IA.' },
       { step: '3', title: 'QR en cada mesa', desc: 'Genera e imprime QRs únicos por mesa en segundos. Listos para poner hoy.' },
-      { step: '4', title: 'Cobras directo, sin intermediarios.', desc: 'Cada pedido llega a tu dashboard en tiempo real. El dinero va directo a ti. Pro y Business: 0% por transacción. Starter: 1% en pagos online con tarjeta. Efectivo: siempre 0%.' },
+      { step: '4', title: 'Cobras directo, sin intermediarios.', desc: 'Cada pedido llega a tu dashboard en tiempo real. El dinero va directo a ti. Todos los planes: 0% comisión en pagos online. Efectivo: siempre 0%.' },
     ],
   },
   testimonials: {
@@ -501,8 +501,8 @@ const en: LandingT = {
       {
         tab: 'Dashboard',
         title: 'Manage everything from one place',
-        desc: 'Real-time orders, dedicated KDS screen, sales analytics, WhatsApp notifications, menu editor & team management.',
-        details: ['Real-time orders + Kitchen KDS', 'Advanced analytics & reports', 'WhatsApp & email notifications', 'Built-in customer CRM'],
+        desc: 'Real-time orders, dedicated KDS screen, sales analytics, email & push notifications, menu editor & team management.',
+        details: ['Real-time orders + Kitchen KDS', 'Advanced analytics & reports', 'Email & push notifications', 'Built-in customer CRM'],
         visualItems: [
           { label: 'Orders today', value: '47' },
           { label: 'Sales today', value: '$1,240' },
@@ -542,7 +542,7 @@ const en: LandingT = {
     sectionDesc: 'The tools you already use, integrated in one place.',
     items: [
       { desc: 'Card payments' },
-      { desc: 'WhatsApp notifications' },
+      { desc: 'Push notifications' },
       { desc: 'Accepts Visa & Mastercard' },
       { desc: 'Show up on Maps' },
       { desc: 'Share on social' },
@@ -552,7 +552,7 @@ const en: LandingT = {
   comparison: {
     sectionLabel: 'No middlemen',
     sectionTitle: 'MENIUS vs Delivery Apps',
-    sectionDesc: 'Delivery apps charge up to 30% as a sales commission on every order they send you. With MENIUS, you pay a fixed monthly fee — not a cut of your revenue. Online card payments: Starter 1%, Pro/Business 0%. Cash orders always 0%.',
+    sectionDesc: 'Delivery apps charge up to 30% as a sales commission on every order they send you. With MENIUS, you pay a fixed monthly fee — not a cut of your revenue. All plans: 0% commission on online payments. Cash orders always 0%.',
     meniusHeader: 'MENIUS',
     otherHeader: 'Delivery apps',
     mobileOtherHeader: 'Delivery apps',
@@ -561,7 +561,7 @@ const en: LandingT = {
       { feature: 'Customer control', menius: 'Your data', other: 'The app keeps it' },
       { feature: 'Your brand', menius: 'Own domain', other: 'Next to competitors' },
       { feature: 'AI assistant', menius: 'MENIUS AI — consultant 24/7', other: 'Not available' },
-      { feature: 'WhatsApp + email', menius: 'Integrated', other: 'Not available' },
+      { feature: 'Email + Push', menius: 'Integrated', other: 'Not available' },
       { feature: 'Customer CRM', menius: 'Integrated', other: 'Not available' },
       { feature: 'Monthly cost', menius: 'From $39/mo', other: 'Free (but 30% per order)' },
     ],
@@ -599,7 +599,7 @@ const en: LandingT = {
   pricing: {
     sectionLabel: 'Pricing',
     sectionTitle: 'No commissions. No surprises.',
-    sectionDesc: 'Free forever plan. No credit card. Cancel anytime. 14-day trial: 0% commission on online payments.',
+    sectionDesc: 'Free forever plan. No credit card. Cancel anytime.',
     popularBadge: 'Popular',
     perMonth: '/mo',
     billingMonthly: 'Monthly',
@@ -610,7 +610,7 @@ const en: LandingT = {
     annualYearSuffix: '/yr',
     freeBannerPrefix: 'Or start with the',
     freeBannerPlan: 'Free Plan',
-    freeBannerDesc: '50 orders/mo · Digital menu + QR · Up to 5 tables · Cash only · No credit card',
+    freeBannerDesc: 'Unlimited orders · Digital menu + QR · Up to 5 tables · Cash only · No credit card',
     freeBannerCta: 'Create free account →',
     plans: [
       {
@@ -618,21 +618,21 @@ const en: LandingT = {
         price: 39,
         desc: 'For restaurants starting their digital journey.',
         cta: 'Get Starter',
-        features: ['Digital menu with photos', 'QR codes up to 15 tables', 'Orders (dine-in + pickup)', 'No MENIUS branding', 'MENIUS AI assistant', 'Import menu from photo (AI)', 'Basic analytics (30 days)', '2 admin users', 'Online payments (1% fee)', 'Chat support'],
+        features: ['Digital menu with photos', 'QR codes up to 15 tables', 'Orders (dine-in + pickup)', 'No MENIUS branding', 'MENIUS AI assistant', 'Import menu from photo (AI)', 'Basic analytics (30 days)', '2 admin users', 'Online payments (0% commission)', 'Chat support'],
       },
       {
         name: 'Pro',
         price: 79,
         desc: 'For restaurants looking to grow and sell more.',
         cta: 'Get Pro',
-        features: ['Everything in Starter', '0% transaction commission', 'Up to 50 tables', 'Delivery + delivery address', 'WhatsApp (500 msgs/mo)', 'Email notifications', 'Real-time kitchen KDS', 'Advanced analytics (full history)', 'Promotions & coupons', 'Customer reviews', '5 users', 'Online card payments', 'Export reports PDF / CSV', 'Priority chat 24h'],
+        features: ['Everything in Starter', '0% transaction commission', 'Up to 50 tables', 'Delivery + delivery address', 'Email & push notifications', 'Real-time kitchen KDS', 'Advanced analytics (full history)', 'Promotions & coupons', 'Customer reviews', '5 users', 'Online card payments', 'Export reports PDF / CSV', 'Priority chat 24h'],
       },
       {
         name: 'Business',
         price: 149,
         desc: 'For chains and franchises with multiple locations.',
         cta: 'Get Business',
-        features: ['Everything in Pro', '0% transaction commission', 'Unlimited tables & users', 'Up to 3 locations included', 'WhatsApp (2,000 msgs/mo)', 'Custom domain', 'Full data export (CSV / Excel)', 'API access', 'Dedicated account manager (chat)', 'Tickets SLA < 1h'],
+        features: ['Everything in Pro', '0% transaction commission', 'Unlimited tables & users', 'Up to 3 locations included', 'Custom domain', 'Full data export (CSV / Excel)', 'API access', 'Dedicated account manager (chat)', 'Tickets SLA < 1h'],
       },
     ],
     setupCtaPrefix: "Don't have time?",
@@ -646,7 +646,7 @@ const en: LandingT = {
       { step: '1', title: 'Sign up in 2 minutes', desc: 'No card. No contracts. Your account ready instantly.' },
       { step: '2', title: 'Your menu live today', desc: 'Add your products or import your full menu from a photo with AI.' },
       { step: '3', title: 'QR on every table', desc: 'Generate and print unique QR codes per table in seconds. Ready to place today.' },
-      { step: '4', title: 'You collect. No middlemen.', desc: 'Every order hits your dashboard in real time. The money goes straight to you. Pro & Business: 0% per transaction. Starter: 1% on online card payments. Cash: always 0%.' },
+      { step: '4', title: 'You collect. No middlemen.', desc: 'Every order hits your dashboard in real time. The money goes straight to you. All plans: 0% commission on online payments. Cash: always 0%.' },
     ],
   },
   testimonials: {

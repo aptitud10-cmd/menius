@@ -27,7 +27,7 @@ function ContentEs() {
         <li>Recepción y gestión de pedidos en línea en tiempo real.</li>
         <li>Dashboard de administración con analytics, gestión de equipo, promociones y configuración.</li>
         <li>Generación de imágenes de productos mediante inteligencia artificial.</li>
-        <li>Notificaciones por WhatsApp y email.</li>
+        <li>Notificaciones por email y push.</li>
         <li>Procesamiento de pagos a través de Stripe.</li>
       </ul>
 
@@ -43,19 +43,15 @@ function ContentEs() {
       <h3>4.1 Planes de Suscripción</h3>
       <p>MENIUS ofrece un plan gratuito permanente y planes de suscripción mensual y anual (Starter, Pro, Business). Los detalles de cada plan, incluyendo funciones y límites, están disponibles en nuestra <a href="/#precios">página de precios</a>. Nos reservamos el derecho de modificar los precios con un aviso previo de 30 días.</p>
       <h3>4.2 Plan Gratuito</h3>
-      <p>MENIUS ofrece un plan gratuito permanente sin límite de tiempo. El plan Free incluye menú digital con QR para hasta 5 mesas, pedidos dine-in, hasta 50 pedidos por mes e importación de menú con IA. No se requiere tarjeta de crédito. El plan Free es permanente: si cancelas un plan de pago, tu cuenta retorna automáticamente al plan Free con todos tus datos intactos.</p>
+      <p>MENIUS ofrece un plan gratuito permanente sin límite de tiempo. El plan Free incluye menú digital con QR para hasta 5 mesas, pedidos ilimitados (dine-in y pickup), solo efectivo e importación de menú con IA. No se requiere tarjeta de crédito. El plan Free es permanente: si cancelas un plan de pago, tu cuenta retorna automáticamente al plan Free con todos tus datos intactos.</p>
       <h3>4.3 Facturación</h3>
       <p>Los pagos se procesan de forma segura a través de Stripe. La suscripción se renueva automáticamente al final de cada periodo (mensual o anual). Recibirás un recibo por correo electrónico con cada cobro.</p>
       <h3>4.4 Cancelación</h3>
       <p>Puedes cancelar tu suscripción en cualquier momento desde el dashboard de facturación. La cancelación será efectiva al final del periodo de facturación actual. No se otorgan reembolsos por periodos parciales, excepto donde la ley lo requiera.</p>
       <h3>4.5 Pagos Online y Comisión por Transacción</h3>
       <p>Los pagos en línea a través de Stripe Connect están disponibles a partir del plan <strong>Starter</strong>. El plan Free no incluye esta funcionalidad — los clientes del restaurante solo pueden pagar en efectivo.</p>
-      <p>MENIUS cobra una comisión sobre los pagos en línea procesados a través de Stripe Connect. La comisión varía según el plan activo:</p>
-      <ul>
-        <li><strong>Plan Starter:</strong> 1% del total de cada orden pagada en línea.</li>
-        <li><strong>Plan Pro y Business:</strong> 0% — sin comisión por transacción.</li>
-        <li><strong>Durante el período de prueba (trial, 14 días):</strong> 0% — sin comisión.</li>
-      </ul>
+      <p>MENIUS no cobra comisión sobre los pagos en línea procesados a través de Stripe Connect en ninguno de sus planes de suscripción (Starter, Pro, Business). Todos los planes tienen 0% de comisión por transacción.</p>
+      <p>Alternativamente, MENIUS ofrece un Plan por Comisión ($0/mes) donde el restaurante paga 4% del total de cada orden pagada en línea, en lugar de una cuota mensual fija.</p>
       <p>Esta comisión no aplica a pedidos pagados en efectivo ni a pagos procesados por métodos distintos a Stripe Connect (por ejemplo, Wompi en Colombia). La comisión se deduce automáticamente del monto recibido por el restaurante en el momento del cobro y es gestionada directamente por Stripe.</p>
       <p>Si cancelas un plan de pago y regresas al plan Free, los pagos online dejarán de estar disponibles para tu restaurante.</p>
 
@@ -148,7 +144,7 @@ function ContentEn() {
         <li>Real-time online order reception and management.</li>
         <li>Administration dashboard with analytics, team management, promotions, and settings.</li>
         <li>Product image generation using artificial intelligence.</li>
-        <li>WhatsApp and email notifications.</li>
+        <li>Email and push notifications.</li>
         <li>Payment processing through Stripe.</li>
       </ul>
 
@@ -164,19 +160,15 @@ function ContentEn() {
       <h3>4.1 Subscription Plans</h3>
       <p>MENIUS offers monthly and annual subscription plans. Details of each plan, including features and limits, are available on our <a href="/#precios">pricing page</a>. We reserve the right to modify prices with 30 days&apos; prior notice.</p>
       <h3>4.2 Free Plan</h3>
-      <p>MENIUS offers a permanent free plan with no time limit. The Free plan includes a digital menu with QR codes for up to 5 tables, dine-in orders, up to 50 orders per month, and AI menu import from photo. No credit card is required. The Free plan is permanent: if you cancel a paid plan, your account automatically returns to the Free plan with all your data intact.</p>
+      <p>MENIUS offers a permanent free plan with no time limit. The Free plan includes a digital menu with QR codes for up to 5 tables, unlimited orders (dine-in and pickup), cash only, and AI menu import from photo. No credit card is required. The Free plan is permanent: if you cancel a paid plan, your account automatically returns to the Free plan with all your data intact.</p>
       <h3>4.3 Billing</h3>
       <p>Payments are processed securely through Stripe. The subscription automatically renews at the end of each period (monthly or annual). You will receive a receipt by email with each charge.</p>
       <h3>4.4 Cancellation</h3>
       <p>You can cancel your subscription at any time from the billing dashboard. Cancellation will be effective at the end of the current billing period. No refunds are given for partial periods, except where required by law.</p>
       <h3>4.5 Online Payments and Transaction Commission</h3>
       <p>Online payments via Stripe Connect are available starting with the <strong>Starter</strong> plan. The Free plan does not include this feature — the restaurant's customers can only pay in cash.</p>
-      <p>MENIUS charges a commission on online payments processed through Stripe Connect. The commission varies by active plan:</p>
-      <ul>
-        <li><strong>Starter Plan:</strong> 1% of the total of each online order.</li>
-        <li><strong>Pro and Business Plans:</strong> 0% — no transaction commission.</li>
-        <li><strong>During the trial period (14 days):</strong> 0% — no commission.</li>
-      </ul>
+      <p>MENIUS does not charge any commission on online payments processed through Stripe Connect on any of its subscription plans (Starter, Pro, Business). All plans have 0% transaction commission.</p>
+      <p>Alternatively, MENIUS offers a Commission Plan ($0/month) where the restaurant pays 4% of the total of each online order, instead of a fixed monthly fee.</p>
       <p>This commission does not apply to cash orders or payments processed through methods other than Stripe Connect (e.g., Wompi in Colombia). The commission is automatically deducted from the amount received by the restaurant at the time of payment and is managed directly by Stripe.</p>
       <p>If you cancel a paid plan and return to the Free plan, online payments will no longer be available for your restaurant.</p>
 
@@ -256,8 +248,8 @@ function ContentEn() {
 }
 
 function getHero(locale: LandingLocale) {
-  if (locale === 'en') return { badge: 'Legal', title: 'Terms & Conditions', date: 'Last updated: March 18, 2026' };
-  return { badge: 'Legal', title: 'Términos y Condiciones', date: 'Última actualización: 18 de marzo de 2026' };
+  if (locale === 'en') return { badge: 'Legal', title: 'Terms & Conditions', date: 'Last updated: April 16, 2026' };
+  return { badge: 'Legal', title: 'Términos y Condiciones', date: 'Última actualización: 16 de abril de 2026' };
 }
 
 export default function TermsPage() {

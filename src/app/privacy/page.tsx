@@ -56,7 +56,6 @@ function ContentEs() {
         <li><strong>Stripe:</strong> para procesar pagos y suscripciones de forma segura. <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer">Política de Stripe</a>.</li>
         <li><strong>Supabase:</strong> nuestra infraestructura de base de datos y autenticación, alojada en servidores seguros. <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Política de Supabase</a>.</li>
         <li><strong>Resend:</strong> para el envío de correos electrónicos transaccionales. <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Política de Resend</a>.</li>
-        <li><strong>WhatsApp Business API (Meta):</strong> para enviar notificaciones a restaurantes que habiliten esta función.</li>
         <li><strong>Google (Gemini AI):</strong> para la generación de imágenes de productos. Las descripciones de texto se envían a la API; no se envían datos personales de usuarios.</li>
         <li><strong>Autoridades legales:</strong> cuando sea requerido por ley, orden judicial o proceso legal.</li>
       </ul>
@@ -159,7 +158,6 @@ function ContentEn() {
         <li><strong>Stripe:</strong> to process payments and subscriptions securely. <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer">Stripe Policy</a>.</li>
         <li><strong>Supabase:</strong> our database and authentication infrastructure, hosted on secure servers. <a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Supabase Policy</a>.</li>
         <li><strong>Resend:</strong> for sending transactional emails. <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Resend Policy</a>.</li>
-        <li><strong>WhatsApp Business API (Meta):</strong> to send notifications to restaurants that enable this feature.</li>
         <li><strong>Google (Gemini AI):</strong> for product image generation. Text descriptions are sent to the API; no personal user data is transmitted.</li>
         <li><strong>Legal authorities:</strong> when required by law, court order, or legal process.</li>
       </ul>
@@ -220,8 +218,8 @@ function ContentEn() {
 }
 
 function getHero(locale: LandingLocale) {
-  if (locale === 'en') return { badge: 'Legal', title: 'Privacy Policy', date: 'Last updated: March 18, 2026' };
-  return { badge: 'Legal', title: 'Política de Privacidad', date: 'Última actualización: 18 de marzo de 2026' };
+  if (locale === 'en') return { badge: 'Legal', title: 'Privacy Policy', date: 'Last updated: April 16, 2026' };
+  return { badge: 'Legal', title: 'Política de Privacidad', date: 'Última actualización: 16 de abril de 2026' };
 }
 
 export default function PrivacyPage() {

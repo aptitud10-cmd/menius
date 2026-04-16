@@ -2201,7 +2201,7 @@ const es: DashboardTranslations = {
   trial_endsToday: 'Tu prueba termina hoy',
   trial_daysOfTrial: 'días de prueba',
   trial_dayOfTrial: 'día de prueba',
-  free_planBanner: 'Plan gratuito · 50 pedidos/mes',
+  free_planBanner: 'Plan gratuito · Pedidos ilimitados',
   free_planUpgrade: 'Mejorar',
 
   // Command Palette
@@ -3415,7 +3415,7 @@ const en: DashboardTranslations = {
   trial_endsToday: 'Your trial ends today',
   trial_daysOfTrial: 'days of trial',
   trial_dayOfTrial: 'day of trial',
-  free_planBanner: 'Free plan · 50 orders/mo',
+  free_planBanner: 'Free plan · Unlimited orders',
   free_planUpgrade: 'Upgrade',
 
   // Command Palette

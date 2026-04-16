@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Sparkles, Copy, CheckCircle2, Loader2, Clock, Lightbulb, ImageIcon, Instagram, Facebook, Twitter, MessageCircle, Download, Wand2 } from 'lucide-react';
+import { Sparkles, Copy, CheckCircle2, Loader2, Clock, Lightbulb, ImageIcon, Instagram, Facebook, Twitter, Download, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
@@ -16,7 +16,6 @@ const PLATFORMS = [
   { value: 'instagram', label: 'Instagram', icon: Instagram, color: 'bg-gradient-to-r from-purple-500 to-pink-500' },
   { value: 'facebook', label: 'Facebook', icon: Facebook, color: 'bg-blue-600' },
   { value: 'twitter', label: 'X / Twitter', icon: Twitter, color: 'bg-black' },
-  { value: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, color: 'bg-green-500' },
 ];
 
 /* POST_TYPES moved inside component for translation */
@@ -63,7 +62,6 @@ export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale 
         instagram: 'vibrant',
         facebook: 'professional',
         twitter: 'professional',
-        whatsapp: 'vibrant',
         tiktok: 'vibrant',
       };
       const res = await fetch('/api/ai/generate-image', {

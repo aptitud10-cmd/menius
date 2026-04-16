@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   ClipboardList, ShoppingBag, QrCode, TrendingUp, ExternalLink,
   ArrowRight, Sparkles, AlertTriangle, CreditCard, Clock,
-  Copy, Check, Share2, MessageCircle, BarChart3, PieChart, Flame,
+  Copy, Check, Share2, BarChart3, PieChart, Flame,
   ArrowUpRight, ArrowDownRight, XCircle, DollarSign, Target,
 } from 'lucide-react';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
@@ -179,8 +179,8 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
                   {isLimit
                     ? (isEn ? 'Upgrade to receive unlimited orders.' : 'Mejora tu plan para recibir pedidos ilimitados.')
                     : isEn
-                      ? `${remaining} orders remaining · Upgrade for unlimited orders, delivery & WhatsApp`
-                      : `${remaining} pedidos restantes · Mejora para pedidos ilimitados, delivery y WhatsApp`
+                      ? `${remaining} orders remaining · Upgrade for unlimited orders & delivery`
+                      : `${remaining} pedidos restantes · Mejora para pedidos ilimitados y delivery`
                   }
                 </p>
               </div>
@@ -825,11 +825,6 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
     }
   };
 
-  const shareWhatsApp = () => {
-    const text = encodeURIComponent(`¡Haz tu pedido en ${name}! 🍽️\n${menuUrl}`);
-    window.open(`https://wa.me/?text=${text}`, '_blank');
-  };
-
   const shareFacebook = () => {
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(menuUrl)}`, '_blank');
   };
@@ -858,19 +853,6 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
       accent: copied ? 'bg-emerald-50 border-emerald-200' : 'hover:bg-gray-50',
       sub: menuUrl.replace('https://', ''),
       closesModal: false, // stays open to show "¡Copiado!" feedback
-    },
-    {
-      label: 'WhatsApp',
-      icon: (
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" style={{ color: '#25D366' }}>
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-          <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.116 1.527 5.845L0 24l6.335-1.513A11.946 11.946 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.914a9.893 9.893 0 01-5.035-1.371l-.361-.214-3.761.898.944-3.668-.235-.376A9.865 9.865 0 012.086 12C2.086 6.58 6.58 2.086 12 2.086S21.914 6.58 21.914 12 17.42 21.914 12 21.914z" />
-        </svg>
-      ),
-      onClick: shareWhatsApp,
-      accent: 'hover:bg-[#25D366]/5',
-      sub: 'Compartir con contactos',
-      closesModal: true,
     },
     {
       label: 'Facebook',

@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { cn } from '@/lib/utils';
-import { CalendarDays, Clock, Users, Phone, Mail, Check, X, AlertCircle, ChevronLeft, ChevronRight, Settings, List, Grid3X3, MessageCircle } from 'lucide-react';
+import { CalendarDays, Clock, Users, Phone, Mail, Check, X, AlertCircle, ChevronLeft, ChevronRight, Settings, List, Grid3X3, Bell } from 'lucide-react';
 
 type ReservationStatus = 'pending' | 'confirmed' | 'cancelled' | 'no_show';
 
@@ -325,16 +325,30 @@ export function ReservationsManager({ restaurantId, initialReservations, setting
                   )}
                   {r.status === 'confirmed' && (
                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                      {r.customer_phone && (
-                        <a
-                          href={`https://wa.me/${r.customer_phone.replace(/\D/g, '')}?text=${encodeURIComponent(isEs ? `Hola ${r.customer_name}, te recordamos que tienes una reservación hoy a las ${formatTime(r.reserved_time)} para ${r.party_size} personas. ¡Te esperamos!` : `Hi ${r.customer_name}, reminder: your reservation is today at ${formatTime(r.reserved_time)} for ${r.party_size} guest(s). See you then!`)}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 px-2.5 py-1.5 bg-green-50 text-green-700 border border-green-200 text-xs font-semibold rounded-lg hover:bg-green-100 transition-colors"
-                          title={isEs ? 'Enviar recordatorio WhatsApp' : 'Send WhatsApp reminder'}
+                      {(r.customer_email || r.customer_phone) && (
+                        <button
+                          onClick={() => {
+                            fetch('/api/reservations/notify', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                reservationId: r.id,
+                                status: 'reminder',
+                                restaurantId,
+                                customerName: r.customer_name,
+                                customerEmail: r.customer_email,
+                                customerPhone: r.customer_phone,
+                                date: r.reserved_date,
+                                time: r.reserved_time,
+                                partySize: r.party_size,
+                              }),
+                            }).catch(() => {});
+                          }}
+                          className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold rounded-lg hover:bg-blue-100 transition-colors"
+                          title={isEs ? 'Enviar recordatorio' : 'Send reminder'}
                         >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                        </a>
+                          <Bell className="w-3.5 h-3.5" />
+                        </button>
                       )}
                       <button
                         onClick={() => updateStatus(r.id, 'no_show')}

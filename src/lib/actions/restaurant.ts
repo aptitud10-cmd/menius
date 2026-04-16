@@ -10,8 +10,6 @@ import { createLogger } from '@/lib/logger';
 import type { CreateRestaurantInput, CategoryInput, ProductInput, TableInput } from '@/lib/validations';
 
 const logger = createLogger('action-restaurant');
-import { sendWhatsApp } from '@/lib/notifications/whatsapp';
-import { sendSMS, resolveChannel } from '@/lib/notifications/sms';
 import { VALID_TRANSITIONS, ALL_STATUSES, canTransition } from '@/lib/order-state';
 import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
 
@@ -905,7 +903,7 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
     } catch { /* table may not exist yet — safe to ignore */ }
   })();
 
-  // Send transactional notification to customer (WhatsApp primary, email fallback).
+  // Send transactional notification to customer via email.
   // notifyStatusChange internally fires the push notification — no duplicate call needed here.
   let notificationResult: { channel: string; success: boolean; error?: string } = { channel: 'none', success: false };
   if (['confirmed', 'preparing', 'ready', 'cancelled', 'delivered'].includes(status)) {
@@ -1081,34 +1079,6 @@ export async function assignDriver(
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app').replace(/\/$/, '');
   // Base URL without lang param — overridden with ?lang=en once locale is known
   const baseTrackingUrl = token ? `${appUrl}/driver/track/${token}` : null;
-
-  // Auto-send WhatsApp/SMS to the driver with their tracking link
-  if (token && driverPhone.trim() && baseTrackingUrl) {
-    // Fetch order + restaurant for context (delivery address, locale, restaurant name)
-    const { data: orderRow } = await supabase
-      .from('orders')
-      .select('delivery_address, order_number, restaurants(name, locale)')
-      .eq('id', orderId)
-      .maybeSingle();
-
-    const restaurant = (orderRow as any)?.restaurants as { name: string; locale: string | null } | null;
-    const locale = restaurant?.locale ?? 'es';
-    const en = locale === 'en';
-    const restaurantName = restaurant?.name ?? '';
-    const address = (orderRow as any)?.delivery_address ?? '';
-    const driverTrackingUrl = en ? `${baseTrackingUrl}?lang=en` : baseTrackingUrl;
-
-    const driverMsg = en
-      ? `${restaurantName ? `[${restaurantName}] ` : ''}New delivery assignment!\n📍 Address: ${address}\n\nOpen your driver page to start tracking:\n${driverTrackingUrl}`
-      : `${restaurantName ? `[${restaurantName}] ` : ''}¡Tienes un nuevo envío!\n📍 Dirección: ${address}\n\nAbre tu página de repartidor para iniciar:\n${driverTrackingUrl}`;
-
-    const channel = resolveChannel(driverPhone.trim());
-    if (channel === 'sms') {
-      sendSMS({ to: driverPhone.trim(), text: driverMsg }).catch(() => {});
-    } else {
-      sendWhatsApp({ to: driverPhone.trim(), text: driverMsg }).catch(() => {});
-    }
-  }
 
   return {
     success: true,
