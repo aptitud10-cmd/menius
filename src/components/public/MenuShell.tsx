@@ -1792,7 +1792,7 @@ export function MenuShell({
               href="https://menius.app?ref=menu-footer"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 opacity-50 hover:opacity-80 transition-opacity duration-200"
+              className="inline-flex items-center gap-1.5 hover:opacity-70 transition-opacity duration-200"
             >
               <span className="flex items-center justify-center w-4 h-4 rounded-[4px] bg-gray-400 text-white text-[9px] font-black select-none">M</span>
               <span className="text-[11px] text-gray-400 font-normal">{t.poweredBy}</span>
@@ -1802,7 +1802,7 @@ export function MenuShell({
               href="https://menius.app?ref=menu-footer-cta"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] text-gray-300 hover:text-gray-400 transition-colors"
+              className="text-[10px] text-gray-400 hover:text-gray-500 transition-colors"
             >
               {t.createYourMenu} →
             </a>
