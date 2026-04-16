@@ -603,7 +603,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         setNetworkRetrying(true);
         retryTimerRef.current = setTimeout(async () => {
           setNetworkRetrying(false);
-          await handlePlaceOrder();
+          await handleSubmitOrder();
         }, 2000);
       } else {
         // Second failure — give up and let user retry manually
