@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       .from('orders')
       .select(`
         id, order_number, total, customer_name, restaurant_id, payment_status,
-        restaurants ( currency, stripe_account_id, stripe_onboarding_complete, name )
+        restaurants ( currency, stripe_account_id, stripe_onboarding_complete, name, commission_plan )
       `)
       .eq('id', order_id)
       .maybeSingle();
@@ -87,6 +87,12 @@ export async function POST(request: NextRequest) {
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
+    // Commission-plan restaurants pay 4% per order; all others pay 0% from this route.
+    const commissionBps = (rest as any)?.commission_plan === true ? 400 : 0;
+    const applicationFeeAmount = commissionBps > 0
+      ? Math.round(Number(order.total) * 100 * commissionBps / 10000)
+      : undefined;
+
     // Use destination charge (same model as /api/orders) so the webhook fires
     // on the platform account and the order gets marked as paid correctly.
     const sessionParams: import('stripe').Stripe.Checkout.SessionCreateParams = {
@@ -101,6 +107,9 @@ export async function POST(request: NextRequest) {
       },
       payment_intent_data: {
         transfer_data: { destination: connectedAccount },
+        ...(applicationFeeAmount && applicationFeeAmount > 0 && {
+          application_fee_amount: applicationFeeAmount,
+        }),
       },
     };
 

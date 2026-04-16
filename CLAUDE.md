@@ -174,16 +174,18 @@ Aunque está bajo `/admin/`, usa `getTenant()` (tenant-only), no `verifyAdmin()`
 type PlanId = 'free' | 'starter' | 'pro' | 'business';
 ```
 
-| Plan | Precio | Órdenes/mes | Mesas | Usuarios | Delivery | WhatsApp | Comisión pagos online |
-|------|--------|------------|-------|----------|----------|----------|-----------------------|
-| free | $0 | 50 | 5 | 1 | ❌ | ❌ | ❌ (solo efectivo) |
-| starter | $39/mes | ilimitado | 15 | 2 | ❌ | ❌ | 1% (Stripe Connect) |
-| pro | $79/mes | ilimitado | 50 | 5 | ✅ | 500/mes | 0% |
-| business | $149/mes | ilimitado | ilimitado | ilimitado | ✅ | 2000/mes | 0% |
+| Plan | Precio | Órdenes/mes | Mesas | Usuarios | Delivery | Comisión pagos online |
+|------|--------|------------|-------|----------|----------|-----------------------|
+| free | $0 | 50 | 5 | 1 | ❌ | ❌ (solo efectivo) |
+| starter | $39/mes | ilimitado | 15 | 2 | ❌ | 0% (Stripe Connect) |
+| pro | $79/mes | ilimitado | 50 | 5 | ✅ | 0% |
+| business | $149/mes | ilimitado | ilimitado | ilimitado | ✅ | 0% |
+
+> **Nota**: WhatsApp y SMS fueron eliminados del producto. Las notificaciones a dueños se envían únicamente por email.
 
 **Modelo de comisiones (CRÍTICO):**
 - **Efectivo**: siempre 0% en todos los planes.
-- **Pagos online con tarjeta (Stripe Connect)**: Starter 1%, Pro 0%, Business 0%.
+- **Pagos online con tarjeta (Stripe Connect)**: Starter 0%, Pro 0%, Business 0%.
 - **Trial (14 días)**: 0% comisión en pagos online sin importar el plan.
 - **Wompi (Colombia/COP)**: 0% comisión MENIUS — Wompi cobra sus propias tarifas al restaurante.
 - **Free**: no admite pagos online con tarjeta.
@@ -202,6 +204,33 @@ const hasAccess = await hasPlanAccess(restaurantId, 'pro');
 
 **Trial**: 14 días gratis al crear cuenta (plan `starter` en estado `trialing`).
 El cron `billing-reconciliation` crea la row de subscripción automáticamente.
+
+### Plan por Comisión (`commission_plan`)
+
+Alternativa a la suscripción mensual: el restaurante paga **4% por cada orden online** en lugar de cuota fija.
+
+- **Column**: `restaurants.commission_plan boolean DEFAULT false`
+- **Feature access**: equivalente a `business` (ver `getEffectivePlanId()`)
+- **Comisión Stripe**: `application_fee_amount = 4%` del total en cada pago online
+- **Activación**: manual vía admin SQL — `UPDATE restaurants SET commission_plan = true WHERE slug = '...'`
+- **Sin subscripción**: `getEffectivePlanId()` retorna `'business'` directamente, sin consultar `subscriptions`
+
+**Rutas que aplican el 4%:** `/api/orders`, `/api/payments/checkout`, `/api/payments/intent`
+
+| Modelo | Comisión online |
+|--------|-----------------|
+| `free` (sin sub) | ❌ no permite |
+| `starter` activo | 1% |
+| `pro` / `business` activo | 0% |
+| `commission_plan = true` | **4%** |
+| Trial activo | 0% |
+
+**Country gating (política de activación, no runtime check):**
+- ✅ Disponible: MX, CL, PE, EC, US, CA, GB, AU (Stripe Connect con splits automáticos)
+- ❌ Colombia (CO): solo suscripciones — Wompi no soporta `application_fee_amount`
+- ⏳ Argentina (AR): suspendido — controles de cambio (no activar)
+
+La activación es manual (admin SQL). El código no necesita verificar país en runtime.
 
 ---
 

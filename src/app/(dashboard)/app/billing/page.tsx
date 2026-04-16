@@ -152,6 +152,7 @@ export default function BillingPage() {
   const [commissions, setCommissions] = useState<{
     planId: string;
     isTrial: boolean;
+    isCommissionPlan: boolean;
     currency: string;
     commissionBps: number;
     commissionRate: number;
@@ -474,8 +475,204 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* ─── Commission card ─── */}
-      {commissions && (
+      {/* ─── Commission-plan upsell calculator ─── */}
+      {commissions?.isCommissionPlan && (() => {
+        const paid = commissions.thisMonth.commissionAmount;
+        const currency = (commissions.currency || 'USD').toUpperCase();
+        const isUSD = currency === 'USD';
+
+        const fmtLocal = (n: number) =>
+          new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-MX', {
+            style: 'currency',
+            currency,
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          }).format(n);
+
+        const fmtUSD = (n: number) =>
+          new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          }).format(n);
+
+        // Plan prices are always in USD (Stripe billing). Savings math is only
+        // valid when the restaurant's commission currency is also USD. For all
+        // other currencies we show the plan price in USD and skip the arithmetic.
+        const PLAN_PRICES = { starter: 39, pro: 79, business: 149 } as const;
+        type UpsellPlan = keyof typeof PLAN_PRICES;
+        const upsellPlans: UpsellPlan[] = ['starter', 'pro', 'business'];
+
+        // Breakeven = plan_price_USD / 0.04 — how much USD online revenue needed
+        // for the plan to pay itself. Only shown for USD restaurants.
+        const bestPlan = isUSD
+          ? upsellPlans.find((p) => PLAN_PRICES[p] < paid) ?? null
+          : null;
+
+        return (
+          <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-teal-50 mb-6">
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
+            <div className="p-6 sm:p-8">
+              {/* Header */}
+              <div className="flex items-start gap-4 mb-6">
+                <div className="flex-shrink-0 w-11 h-11 rounded-xl bg-emerald-100 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-lg font-bold text-gray-900">
+                      {locale === 'en' ? 'Commission Plan' : 'Plan por Comisión'}
+                    </h3>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                      4% {locale === 'en' ? 'per online order' : 'por orden online'}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    {locale === 'en'
+                      ? 'Business-tier features · No monthly fee · Pay only when you sell online'
+                      : 'Acceso Business · Sin cuota mensual · Solo pagas cuando vendes online'}
+                  </p>
+                </div>
+              </div>
+
+              {/* This month summary */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                <div className="bg-white/70 rounded-xl border border-white p-4">
+                  <p className="text-xs text-gray-400 mb-1">
+                    {locale === 'en' ? 'Commission paid this month' : 'Comisión pagada este mes'}
+                  </p>
+                  <p className="text-2xl font-extrabold text-gray-900 tabular-nums">
+                    {fmtLocal(paid)}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {commissions.thisMonth.orderCount}{' '}
+                    {locale === 'en' ? 'online orders' : 'órdenes online'}
+                  </p>
+                </div>
+                <div className="bg-white/70 rounded-xl border border-white p-4">
+                  <p className="text-xs text-gray-400 mb-1">
+                    {locale === 'en' ? 'Online revenue' : 'Ingresos online'}
+                  </p>
+                  <p className="text-2xl font-extrabold text-gray-900 tabular-nums">
+                    {fmtLocal(commissions.thisMonth.onlineRevenue)}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {locale === 'en' ? 'this month' : 'este mes'}
+                  </p>
+                </div>
+                <div className="col-span-2 sm:col-span-1 bg-white/70 rounded-xl border border-white p-4">
+                  <p className="text-xs text-gray-400 mb-1">
+                    {locale === 'en' ? 'Effective rate' : 'Tasa efectiva'}
+                  </p>
+                  <p className="text-2xl font-extrabold text-emerald-600 tabular-nums">4%</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {locale === 'en' ? 'on online payments only' : 'solo en pagos online'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Savings calculator */}
+              <div className="bg-white/60 rounded-xl border border-emerald-100 p-4 mb-4">
+                <p className="text-sm font-semibold text-gray-700 mb-3">
+                  {locale === 'en' ? '💡 Compare with a subscription' : '💡 Comparar con una suscripción'}
+                </p>
+                <div className="space-y-2">
+                  {upsellPlans.map((planKey) => {
+                    const priceUSD = PLAN_PRICES[planKey];
+                    // Savings math is only valid when both amounts are in USD
+                    const savings = isUSD ? paid - priceUSD : null;
+                    const wouldSave = savings !== null && savings > 0;
+                    return (
+                      <div
+                        key={planKey}
+                        className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm ${
+                          wouldSave
+                            ? 'bg-emerald-50 border border-emerald-200'
+                            : 'bg-gray-50 border border-gray-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`font-semibold capitalize ${wouldSave ? 'text-emerald-800' : 'text-gray-600'}`}>
+                            {planKey.charAt(0).toUpperCase() + planKey.slice(1)}
+                          </span>
+                          <span className={`text-xs ${wouldSave ? 'text-emerald-600' : 'text-gray-400'}`}>
+                            {fmtUSD(priceUSD)}/{locale === 'en' ? 'mo' : 'mes'} · 0%
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {wouldSave && savings !== null ? (
+                            <>
+                              <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                                {locale === 'en'
+                                  ? `Save ${fmtUSD(savings)}/mo`
+                                  : `Ahorras ${fmtUSD(savings)}/mes`}
+                              </span>
+                              <button
+                                onClick={() => handlePlanSelect(planKey as Parameters<typeof handlePlanSelect>[0], 'monthly')}
+                                disabled={actionLoading !== null}
+                                className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline underline-offset-2 disabled:opacity-50"
+                              >
+                                {locale === 'en' ? 'Switch' : 'Cambiar'}
+                              </button>
+                            </>
+                          ) : isUSD ? (
+                            <span className="text-xs text-gray-400">
+                              {locale === 'en'
+                                ? `Breakeven at ${fmtUSD(priceUSD * 25)}/mo revenue`
+                                : `Se paga con ${fmtUSD(priceUSD * 25)}/mes en ventas`}
+                            </span>
+                          ) : (
+                            // Non-USD: show switch button without savings arithmetic
+                            <button
+                              onClick={() => handlePlanSelect(planKey as Parameters<typeof handlePlanSelect>[0], 'monthly')}
+                              disabled={actionLoading !== null}
+                              className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 underline underline-offset-2 disabled:opacity-50"
+                            >
+                              {locale === 'en' ? 'Switch → 0%' : 'Cambiar → 0%'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {bestPlan && paid > 0 && isUSD && (
+                  <p className="text-xs text-emerald-700 font-medium mt-3 px-1">
+                    {locale === 'en'
+                      ? `✓ At your current volume, ${bestPlan.charAt(0).toUpperCase() + bestPlan.slice(1)} already pays for itself.`
+                      : `✓ Con tu volumen actual, el plan ${bestPlan.charAt(0).toUpperCase() + bestPlan.slice(1)} ya se paga solo.`}
+                  </p>
+                )}
+                {!isUSD && (
+                  <p className="text-xs text-gray-400 mt-3 px-1">
+                    {locale === 'en'
+                      ? `Plans are billed in USD via Stripe. Your commissions are in ${currency}.`
+                      : `Los planes se cobran en USD vía Stripe. Tus comisiones están en ${currency}.`}
+                  </p>
+                )}
+                {paid === 0 && (
+                  <p className="text-xs text-gray-400 mt-3 px-1">
+                    {locale === 'en'
+                      ? 'No online orders this month yet — commissions will show here as you process payments.'
+                      : 'Aún no hay órdenes online este mes — las comisiones aparecerán aquí conforme proceses pagos.'}
+                  </p>
+                )}
+              </div>
+
+              <p className="text-xs text-gray-400 leading-relaxed">
+                {locale === 'en'
+                  ? 'Commission is only charged on online card payments via Stripe Connect. Cash and Wompi orders are always free.'
+                  : 'La comisión solo aplica a pagos online con tarjeta vía Stripe Connect. Efectivo y Wompi siempre son gratuitos.'}
+              </p>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ─── Commission card (subscription plans) ─── */}
+      {commissions && !commissions.isCommissionPlan && (
         <div className="rounded-2xl border border-gray-200 bg-white p-6 mb-6">
           <div className="flex items-start justify-between gap-4 mb-5">
             <div>

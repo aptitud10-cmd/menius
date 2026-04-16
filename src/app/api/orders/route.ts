@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label')
+      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label, commission_plan')
       .eq('id', restaurant_id)
       .eq('is_active', true)
       .maybeSingle();
@@ -167,38 +167,41 @@ export async function POST(request: NextRequest) {
 
     // Commission rate in basis points (bps). Applied as Stripe application_fee_amount
     // on online payments where the restaurant uses Stripe Connect.
-    // starter: 1% | trial: 0% | pro/business: 0% | free: no online payments allowed
+    // commission_plan: 4% | all subscription plans: 0% | trial: 0% | free: no online payments
     let commissionBps = 0;
     let isFreeTier = false; // hoisted so it's accessible in the Stripe Connect block below
 
     // Check subscription — enforce monthly limit for FREE-tier restaurants
     try {
-      const { data: sub } = await supabase
-        .from('subscriptions')
-        .select('status, trial_end, current_period_end, plan_id')
-        .eq('restaurant_id', restaurant_id)
-        .maybeSingle();
-
+      // Commission-plan restaurants bypass subscription checks entirely.
+      // They pay 4% per order via Stripe application_fee_amount instead.
       const now = new Date();
 
-      if (!sub) {
-        // No subscription row → FREE tier (no online payments)
-        isFreeTier = true;
+      if ((restaurant as any).commission_plan === true) {
+        isFreeTier = false;
+        commissionBps = 400; // 4%
       } else {
-        const { status, plan_id } = sub;
-        const trialStillValid = sub.trial_end && new Date(sub.trial_end) > now;
+        const { data: sub } = await supabase
+          .from('subscriptions')
+          .select('status, trial_end, current_period_end, plan_id')
+          .eq('restaurant_id', restaurant_id)
+          .maybeSingle();
 
-        if (status === 'active' || status === 'past_due') {
-          isFreeTier = false;
-          // Pro/Business pay no platform fee; Starter pays 1%
-          commissionBps = (plan_id === 'pro' || plan_id === 'business') ? 0 : 100;
-        } else if (trialStillValid) {
-          // Trial period → 0% commission (full trial experience)
-          isFreeTier = false;
-          commissionBps = 0;
-        } else {
-          // canceled, expired trial → back to FREE (no online payments)
+        if (!sub) {
           isFreeTier = true;
+        } else {
+          const { status, plan_id } = sub;
+          const trialStillValid = sub.trial_end && new Date(sub.trial_end) > now;
+
+          if (status === 'active' || status === 'past_due') {
+            isFreeTier = false;
+            commissionBps = 0; // All subscription plans (starter/pro/business) = 0%
+          } else if (trialStillValid) {
+            isFreeTier = false;
+            commissionBps = 0;
+          } else {
+            isFreeTier = true;
+          }
         }
       }
 
