@@ -200,12 +200,12 @@ const es = {
   comparison: {
     sectionLabel: 'Sin intermediarios',
     sectionTitle: 'MENIUS vs Apps de Delivery',
-    sectionDesc: 'Las apps cobran hasta 30% por pedido. Con MENIUS, tarifa fija y tus ventas son tuyas.',
+    sectionDesc: 'Las apps cobran hasta 30% de comisión por cada pedido que te mandan. Con MENIUS pagas una tarifa mensual fija — no un porcentaje de tus ventas. Pagos online con tarjeta: Starter 1%, Pro/Business 0%. Pedidos en efectivo siempre 0%.',
     meniusHeader: 'MENIUS',
     otherHeader: 'Apps de delivery',
     mobileOtherHeader: 'Apps de delivery',
     rows: [
-      { feature: 'Comisión por pedido', menius: '0%', other: '15% – 30%' },
+      { feature: 'Comisión de intermediario', menius: '0%', other: '15% – 30%' },
       { feature: 'Control de clientes', menius: 'Tus datos', other: 'La app se los queda' },
       { feature: 'Tu marca', menius: 'Dominio propio', other: 'Junto a la competencia' },
       { feature: 'Asistente IA', menius: 'MENIUS AI — consultor 24/7', other: 'No disponible' },
@@ -214,7 +214,7 @@ const es = {
       { feature: 'Costo mensual', menius: 'Desde $39/mes', other: 'Gratis (pero 30% por pedido)' },
     ],
     mobileRows: [
-      { feature: 'Comisión por pedido', menius: '0%', other: '15% – 30%' },
+      { feature: 'Comisión de intermediario', menius: '0%', other: '15% – 30%' },
       { feature: 'Control de clientes', menius: 'Tus datos', other: 'La app se los queda' },
       { feature: 'Tu marca', menius: 'Dominio propio', other: 'Junto a la competencia' },
       { feature: 'Costo mensual', menius: 'Desde $39/mes', other: '"Gratis" (pero 30% por pedido)' },
@@ -247,7 +247,7 @@ const es = {
   pricing: {
     sectionLabel: 'Precios',
     sectionTitle: 'Sin comisiones. Sin sorpresas.',
-    sectionDesc: 'Plan gratis para siempre. Sin tarjeta. Cancela cuando quieras.',
+    sectionDesc: 'Plan gratis para siempre. Sin tarjeta. Cancela cuando quieras. Trial 14 días: 0% comisión en pagos online.',
     popularBadge: 'Popular',
     perMonth: '/mes',
     billingMonthly: 'Mensual',
@@ -294,7 +294,7 @@ const es = {
       { step: '1', title: 'Regístrate en 2 minutos', desc: 'Sin tarjeta. Sin contratos. Tu cuenta lista al instante.' },
       { step: '2', title: 'Tu menú en línea hoy', desc: 'Agrega tus productos o importa tu menú completo desde una foto con IA.' },
       { step: '3', title: 'QR en cada mesa', desc: 'Genera e imprime QRs únicos por mesa en segundos. Listos para poner hoy.' },
-      { step: '4', title: 'Cobras directo. Pro y Business sin comisiones.', desc: 'Cada pedido llega a tu dashboard en tiempo real. El dinero va directo a ti, sin intermediarios.' },
+      { step: '4', title: 'Cobras directo, sin intermediarios.', desc: 'Cada pedido llega a tu dashboard en tiempo real. El dinero va directo a ti. Pro y Business: 0% por transacción. Starter: 1% en pagos online con tarjeta. Efectivo: siempre 0%.' },
     ],
   },
   testimonials: {
@@ -552,12 +552,12 @@ const en: LandingT = {
   comparison: {
     sectionLabel: 'No middlemen',
     sectionTitle: 'MENIUS vs Delivery Apps',
-    sectionDesc: 'Delivery apps charge up to 30% per order. With MENIUS, flat fee and your sales are yours.',
+    sectionDesc: 'Delivery apps charge up to 30% as a sales commission on every order they send you. With MENIUS, you pay a fixed monthly fee — not a cut of your revenue. Online card payments: Starter 1%, Pro/Business 0%. Cash orders always 0%.',
     meniusHeader: 'MENIUS',
     otherHeader: 'Delivery apps',
     mobileOtherHeader: 'Delivery apps',
     rows: [
-      { feature: 'Commission per order', menius: '0%', other: '15% – 30%' },
+      { feature: 'Intermediary commission', menius: '0%', other: '15% – 30%' },
       { feature: 'Customer control', menius: 'Your data', other: 'The app keeps it' },
       { feature: 'Your brand', menius: 'Own domain', other: 'Next to competitors' },
       { feature: 'AI assistant', menius: 'MENIUS AI — consultant 24/7', other: 'Not available' },
@@ -566,7 +566,7 @@ const en: LandingT = {
       { feature: 'Monthly cost', menius: 'From $39/mo', other: 'Free (but 30% per order)' },
     ],
     mobileRows: [
-      { feature: 'Commission per order', menius: '0%', other: '15% – 30%' },
+      { feature: 'Intermediary commission', menius: '0%', other: '15% – 30%' },
       { feature: 'Customer control', menius: 'Your data', other: 'The app keeps it' },
       { feature: 'Your brand', menius: 'Own domain', other: 'Next to competitors' },
       { feature: 'Monthly cost', menius: 'From $39/mo', other: '"Free" (but 30% per order)' },
@@ -599,7 +599,7 @@ const en: LandingT = {
   pricing: {
     sectionLabel: 'Pricing',
     sectionTitle: 'No commissions. No surprises.',
-    sectionDesc: 'Free forever plan. No credit card. Cancel anytime.',
+    sectionDesc: 'Free forever plan. No credit card. Cancel anytime. 14-day trial: 0% commission on online payments.',
     popularBadge: 'Popular',
     perMonth: '/mo',
     billingMonthly: 'Monthly',
@@ -646,7 +646,7 @@ const en: LandingT = {
       { step: '1', title: 'Sign up in 2 minutes', desc: 'No card. No contracts. Your account ready instantly.' },
       { step: '2', title: 'Your menu live today', desc: 'Add your products or import your full menu from a photo with AI.' },
       { step: '3', title: 'QR on every table', desc: 'Generate and print unique QR codes per table in seconds. Ready to place today.' },
-      { step: '4', title: 'You collect. Pro & Business: zero commissions.', desc: 'Every order hits your dashboard in real time. The money goes straight to you, no middlemen.' },
+      { step: '4', title: 'You collect. No middlemen.', desc: 'Every order hits your dashboard in real time. The money goes straight to you. Pro & Business: 0% per transaction. Starter: 1% on online card payments. Cash: always 0%.' },
     ],
   },
   testimonials: {
