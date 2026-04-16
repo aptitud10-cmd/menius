@@ -12,6 +12,7 @@ import { IdentifyUser } from '@/components/dashboard/IdentifyUser';
 import { TrialBanner } from '@/components/dashboard/TrialBanner';
 import { StripeConnectBanner } from '@/components/dashboard/StripeConnectBanner';
 import { WelcomeQRModal } from '@/components/dashboard/WelcomeQRModal';
+import { NotificationBell } from '@/components/dashboard/NotificationBell';
 import { MobileBottomNav } from '@/components/dashboard/MobileBottomNav';
 import { DashToastProvider } from '@/components/dashboard/DashToast';
 import { RestaurantSwitcher } from '@/components/dashboard/RestaurantSwitcher';
@@ -85,16 +86,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
           <TrialBanner />
 
-          {/* User profile + sound toggle */}
+          {/* User profile + sound toggle + notification bell */}
           <div className="px-4 py-4 border-t border-gray-100 space-y-3">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
                 {initials}
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-semibold text-gray-800 truncate">{profile?.full_name || 'Sin nombre'}</p>
                 <p className="text-[11px] text-gray-400 truncate">{user?.email}</p>
               </div>
+              <NotificationBell restaurantId={restaurantId} />
             </div>
             <SidebarSoundButton />
           </div>
@@ -115,6 +117,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               />
             </div>
             <div className="flex items-center gap-2">
+              <NotificationBell restaurantId={restaurantId} />
               <SidebarSoundButton mobile />
               <DashboardNav slug={restaurant?.slug ?? ''} mobile planId={resolvedPlanId} />
             </div>

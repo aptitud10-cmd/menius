@@ -203,6 +203,13 @@ export interface DashboardTranslations {
   notif_unmute: string;
   notif_newOrder: string;
   notif_viewOrders: string;
+  // Notification Bell
+  notif_bell_title: string;
+  notif_bell_empty: string;
+  notif_bell_markRead: string;
+  notif_bell_justNow: string;
+  notif_bell_minutesAgo: string;
+  notif_bell_hoursAgo: string;
 
   // Orders
   orders_title: string;
@@ -1411,6 +1418,12 @@ const es: DashboardTranslations = {
   notif_unmute: 'Activar sonido',
   notif_newOrder: 'Nueva orden',
   notif_viewOrders: 'Ver pedidos',
+  notif_bell_title: 'Notificaciones',
+  notif_bell_empty: 'Sin notificaciones nuevas',
+  notif_bell_markRead: 'Marcar todo como leído',
+  notif_bell_justNow: 'Ahora mismo',
+  notif_bell_minutesAgo: 'min',
+  notif_bell_hoursAgo: 'h',
 
   // Orders
   orders_title: 'Órdenes',
@@ -2619,6 +2632,12 @@ const en: DashboardTranslations = {
   notif_unmute: 'Enable sound',
   notif_newOrder: 'New order',
   notif_viewOrders: 'View orders',
+  notif_bell_title: 'Notifications',
+  notif_bell_empty: 'No new notifications',
+  notif_bell_markRead: 'Mark all as read',
+  notif_bell_justNow: 'Just now',
+  notif_bell_minutesAgo: 'min',
+  notif_bell_hoursAgo: 'h',
 
   // Orders
   orders_title: 'Orders',
