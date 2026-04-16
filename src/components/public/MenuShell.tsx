@@ -15,6 +15,7 @@ import { getLocaleFlag, SUPPORTED_LOCALES, tName, tDesc } from '@/lib/i18n';
 import { trackEvent } from '@/lib/analytics';
 
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { supabaseLoader } from '@/lib/image-loader';
 import { StoreConfigProvider } from '@/lib/store-config-context';
 import { getStoreOverrides } from '@/lib/store-overrides';
 import { MenuHeader, HEADER_HEIGHT } from './MenuHeader';
@@ -23,10 +24,10 @@ import { ProductCard } from './ProductCard';
 import { CartPanel } from './CartPanel';
 import { CustomizationSheet } from './CustomizationSheet';
 import { InstallBanner } from './InstallBanner';
+import { MenuErrorBoundary } from './MenuErrorBoundary';
 import { ReservationWidget } from './ReservationWidget';
 import { MenuUpdateBanner } from './MenuUpdateBanner';
 import { CartFlyParticles } from './CartFlyParticles';
-import RepeatOrderButton from './RepeatOrderButton';
 interface ReviewStats {
   average: number;
   total: number;
@@ -1119,7 +1120,7 @@ export function MenuShell({
                 alt={restaurant.name}
                 width={28}
                 height={28}
-                unoptimized
+                loader={restaurant.logo_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
                 className="w-7 h-7 rounded-lg object-cover flex-shrink-0"
               />
             )}
@@ -1485,7 +1486,11 @@ export function MenuShell({
               <button onClick={() => setActiveDiet(null)} className="mt-1 text-sm text-[#05c8a7] font-semibold hover:text-[#047a65] transition-colors">{t.viewFullMenu}</button>
             </motion.div>
           ) : (
-            <div className="space-y-8">
+            <MenuErrorBoundary section="products">
+            <div
+              key={activeCatFilter ?? 'all'}
+              className="space-y-8 menu-cat-fade"
+            >
               {(() => {
                 let globalProductIdx = 0;
                 return displayedGroups.map(({ category, items, available }) => {
@@ -1613,6 +1618,7 @@ export function MenuShell({
               });
               })()}
             </div>
+            </MenuErrorBoundary>
           )}
           {/* Recent reviews */}
           {recentReviews && recentReviews.length > 0 && (
@@ -1780,29 +1786,27 @@ export function MenuShell({
             </section>
           )}
 
-          {/* Powered by MENIUS — solo plan free */}
-          {isFreePlan && (
-            <div className="mt-8 mb-4 pt-5 border-t border-gray-100 flex flex-col items-center gap-2">
-              <a
-                href="https://menius.app?ref=menu"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group/pw inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-50 hover:bg-[#e6faf7] border border-gray-100 hover:border-[#b3efe6] text-xs text-gray-400 hover:text-[#05c8a7] transition-all duration-300"
-              >
-                <svg className="w-4 h-4 text-[#05c8a7] group-hover/pw:text-[#04b096] transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" /></svg>
-                <span>{t.poweredBy}</span>
-                <span className="font-bold text-gray-600 group-hover/pw:text-[#047a65] tracking-tight transition-colors">MENIUS</span>
-              </a>
-              <a
-                href="https://menius.app?ref=menu-cta"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[10px] text-gray-300 hover:text-[#05c8a7] transition-colors"
-              >
-                {t.createYourMenu} →
-              </a>
-            </div>
-          )}
+          {/* Powered by MENIUS — todas las tiendas */}
+          <div className="mt-8 mb-4 flex flex-col items-center gap-1.5">
+            <a
+              href="https://menius.app?ref=menu-footer"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 hover:opacity-70 transition-opacity duration-200"
+            >
+              <span className="flex items-center justify-center w-4 h-4 rounded-[4px] bg-gray-400 text-white text-[9px] font-black select-none">M</span>
+              <span className="text-[11px] text-gray-400 font-normal">{t.poweredBy}</span>
+              <span className="text-[11px] text-gray-500 font-semibold">MENIUS</span>
+            </a>
+            <a
+              href="https://menius.app?ref=menu-footer-cta"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] text-gray-400 hover:text-gray-500 transition-colors"
+            >
+              {t.createYourMenu} →
+            </a>
+          </div>
 
           </div>{/* end px wrapper */}
         </main>
@@ -1810,6 +1814,7 @@ export function MenuShell({
 
         {/* Right: Cart — sticky, stays in place while content scrolls */}
         <aside ref={cartColRef} className="hidden lg:flex flex-col w-[340px] flex-shrink-0 border-l border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
+          <MenuErrorBoundary section="cart" inline>
           <CartPanel
             fmtPrice={fmtPrice}
             t={t}
@@ -1821,6 +1826,7 @@ export function MenuShell({
             lastOrder={lastOrder?.restaurantId === restaurant.id ? lastOrder : null}
             onReorder={handleReorder}
           />
+          </MenuErrorBoundary>
         </aside>
         </div>{/* end 3-column row */}
       </div>{/* end outer scroll */}
@@ -1927,6 +1933,7 @@ export function MenuShell({
       </AnimatePresence>
 
       {/* ── Customization Sheet ── */}
+      <MenuErrorBoundary section="customization" inline>
       <AnimatePresence>
         {customization && (
           <CustomizationSheet
@@ -1948,7 +1955,7 @@ export function MenuShell({
           />
         )}
       </AnimatePresence>
-
+      </MenuErrorBoundary>
 
       {/* ── Mobile Full-screen Search Overlay ── */}
       <AnimatePresence>
@@ -2019,7 +2026,7 @@ export function MenuShell({
                             alt={product.name}
                             fill
                             sizes="48px"
-                            unoptimized={product.image_url.includes('.supabase.co/storage/')}
+                            loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
                             className="object-cover"
                           />
                         </div>
@@ -2123,9 +2130,6 @@ export function MenuShell({
 
       {/* ── Menu Update Banner ── */}
       <MenuUpdateBanner restaurantId={restaurant.id} locale={locale} />
-
-      {/* ── Repeat Last Order (floating pill for returning customers) ── */}
-      <RepeatOrderButton restaurantId={restaurant.id} locale={locale === 'en' ? 'en' : 'es'} />
 
       {/* ── PWA Install Banner ── */}
       <InstallBanner

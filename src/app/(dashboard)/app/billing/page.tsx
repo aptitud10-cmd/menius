@@ -149,6 +149,15 @@ export default function BillingPage() {
   const [sub, setSub] = useState<SubscriptionData | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [usage, setUsage] = useState<UsageData | null>(null);
+  const [commissions, setCommissions] = useState<{
+    planId: string;
+    isTrial: boolean;
+    currency: string;
+    commissionBps: number;
+    commissionRate: number;
+    thisMonth: { onlineRevenue: number; orderCount: number; commissionAmount: number };
+    prevMonth: { onlineRevenue: number; orderCount: number; commissionAmount: number };
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -170,11 +179,13 @@ export default function BillingPage() {
       fetch('/api/billing/subscription').then((r) => r.json()),
       fetch('/api/billing/invoices').then((r) => r.json()),
       fetch('/api/billing/usage').then((r) => r.json()),
+      fetch('/api/billing/commissions').then((r) => r.json()),
     ])
-      .then(([subData, invData, usageData]) => {
+      .then(([subData, invData, usageData, commData]) => {
         setSub(subData.subscription ?? null);
         setInvoices(invData.invoices ?? []);
         setUsage(usageData);
+        setCommissions(commData ?? null);
         setLoading(false);
       })
       .catch(() => {
@@ -459,6 +470,112 @@ export default function BillingPage() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Commission card ─── */}
+      {commissions && (
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 mb-6">
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                {locale === 'en' ? 'Platform commissions' : 'Comisiones de plataforma'}
+              </h3>
+              <p className="text-xs text-gray-400 mt-1">
+                {locale === 'en'
+                  ? 'Applied to online payments via Stripe Connect only'
+                  : 'Solo aplica a pagos online con Stripe Connect'}
+              </p>
+            </div>
+            {/* Current rate badge */}
+            <span className={cn(
+              'flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-full border',
+              commissions.commissionBps === 0
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : commissions.commissionBps <= 100
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-red-50 text-red-700 border-red-200'
+            )}>
+              {commissions.isTrial
+                ? (locale === 'en' ? '0% — trial period' : '0% — período de prueba')
+                : commissions.commissionBps === 0
+                  ? (locale === 'en' ? '0% — no commission' : '0% — sin comisión')
+                  : `${commissions.commissionBps / 100}% ${locale === 'en' ? 'per online order' : 'por orden online'}`}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* This month commissions */}
+            <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
+              <p className="text-xs text-gray-400 mb-1">
+                {locale === 'en' ? 'Commission this month' : 'Comisión este mes'}
+              </p>
+              <p className="text-2xl font-bold text-gray-900 tabular-nums">
+                {commissions.commissionBps === 0
+                  ? new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-MX', {
+                      style: 'currency', currency: commissions.currency || 'USD', minimumFractionDigits: 0,
+                    }).format(0)
+                  : new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-MX', {
+                      style: 'currency', currency: commissions.currency || 'USD', minimumFractionDigits: 2,
+                    }).format(commissions.thisMonth.commissionAmount)}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                {commissions.thisMonth.orderCount}{' '}
+                {locale === 'en' ? 'online orders' : 'órdenes online'}
+              </p>
+            </div>
+
+            {/* Online revenue this month */}
+            <div className="rounded-xl bg-gray-50 border border-gray-100 p-4">
+              <p className="text-xs text-gray-400 mb-1">
+                {locale === 'en' ? 'Online revenue (this month)' : 'Ingresos online (este mes)'}
+              </p>
+              <p className="text-2xl font-bold text-gray-900 tabular-nums">
+                {new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'es-MX', {
+                  style: 'currency', currency: commissions.currency || 'USD', minimumFractionDigits: 0,
+                }).format(commissions.thisMonth.onlineRevenue)}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                {locale === 'en' ? 'via Stripe Connect' : 'vía Stripe Connect'}
+              </p>
+            </div>
+
+            {/* Upgrade CTA if paying commission */}
+            {commissions.commissionBps > 0 ? (
+              <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex flex-col justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-emerald-700 mb-1">
+                    {locale === 'en' ? 'Upgrade to Pro → 0%' : 'Sube a Pro → 0%'}
+                  </p>
+                  <p className="text-xs text-emerald-600 leading-relaxed">
+                    {locale === 'en'
+                      ? 'Pro plan eliminates commissions. At current volume, it pays for itself.'
+                      : 'El plan Pro elimina las comisiones. Con tu volumen actual, se paga solo.'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => document.getElementById('pricing-table')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="mt-3 text-xs font-semibold text-emerald-700 hover:text-emerald-900 transition-colors flex items-center gap-1"
+                >
+                  {locale === 'en' ? 'See plans →' : 'Ver planes →'}
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-4 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-emerald-800">
+                    {locale === 'en' ? '0% commission' : '0% comisión'}
+                  </p>
+                  <p className="text-xs text-emerald-600">
+                    {locale === 'en' ? 'Your plan has no transaction fees' : 'Tu plan no tiene comisiones por transacción'}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

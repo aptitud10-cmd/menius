@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
+import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
 
 export async function POST(req: NextRequest) {
   const ip = getClientIP(req);
@@ -49,5 +50,11 @@ export async function POST(req: NextRequest) {
     .eq('id', order.id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Broadcast GPS update to the customer tracking page so the map moves
+  // in real-time without waiting for the 5-second polling cycle.
+  // Fire-and-forget — response is returned immediately.
+  void broadcastOrderUpdate(order.id, 'location_update');
+
   return NextResponse.json({ ok: true });
 }

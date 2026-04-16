@@ -35,14 +35,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const db = createAdminClient();
     const { data: restaurants } = await db
       .from('restaurants')
-      .select('slug, created_at')
+      .select('slug, created_at, updated_at')
       .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(5000);
 
     const restaurantPages: MetadataRoute.Sitemap = (restaurants ?? []).map((r) => ({
       url: `${APP_URL}/${r.slug}`,
-      lastModified: new Date(r.created_at),
+      // Use updated_at so Google re-crawls after menu changes
+      lastModified: new Date(r.updated_at ?? r.created_at),
       changeFrequency: 'daily' as const,
       priority: 0.9,
     }));

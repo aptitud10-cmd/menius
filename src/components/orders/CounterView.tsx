@@ -50,6 +50,14 @@ function getT(locale?: string) {
         ? (en ? 'Ready to serve'  : 'Listo para servir')
         : (en ? 'Ready for pickup' : 'Listo para recoger'),
     deliveredBtn: en ? 'Delivered'       : 'Entregado',
+    deliveredBtnFor: (type?: string) => type === 'pickup'
+      ? (en ? 'Picked up' : 'Recogido')
+      : type === 'dine_in'
+        ? (en ? 'Served'   : 'Servido')
+        : (en ? 'Delivered': 'Entregado'),
+    deliveryGuardTitle: en ? "Driver hasn't confirmed pickup yet" : 'El repartidor no ha confirmado que recogió',
+    deliveryGuardBody:  en ? "The driver hasn't scanned the QR link yet. Mark as delivered anyway?" : 'El repartidor aún no confirmó que recogió el pedido. ¿Marcar como entregado de todas formas?',
+    deliveryGuardConfirm: en ? 'Yes, mark delivered' : 'Sí, marcar entregado',
     // Order detail
     eta:         en ? 'Prep time'        : 'Tiempo estimado',
     adjustEta:   en ? 'Adjust'           : 'Ajustar',
@@ -419,6 +427,7 @@ export function CounterView({
   const [splitPayModal, setSplitPayModal] = useState<{ order: Order } | null>(null);
   const [splitCash, setSplitCash] = useState('');
   const [splitCard, setSplitCard] = useState('');
+  const [deliveryGuardModal, setDeliveryGuardModal] = useState<{ order: Order } | null>(null);
   const [savingSplit, setSavingSplit] = useState(false);
 
   // ── Shift management ──
@@ -825,7 +834,12 @@ export function CounterView({
     setEditSaving(false);
   }, [t.en, orders, updateOrderLocally]);
 
-  const handleDeliver = useCallback(async (order: Order) => {
+  const handleDeliver = useCallback(async (order: Order, bypassGuard = false) => {
+    // For delivery orders: warn if driver hasn't confirmed pickup yet
+    if (!bypassGuard && order.order_type === 'delivery' && !order.driver_picked_up_at) {
+      setDeliveryGuardModal({ order });
+      return;
+    }
     // For cash or unset payment, offer split/mixed payment before marking delivered
     if (order.payment_method === 'cash' || !order.payment_method) {
       setSplitCash('');
@@ -1895,7 +1909,38 @@ export function CounterView({
               >
                 {savingSplit || updatingId
                   ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
-                  : <>{t.deliveredBtn} ✓</>}
+                  : <>{t.deliveredBtnFor(splitPayModal.order.order_type)}</>}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ══ DELIVERY GUARD MODAL ══ */}
+      {deliveryGuardModal && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setDeliveryGuardModal(null)} />
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto bg-white rounded-2xl z-50 shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#F0F0F0]">
+              <p className="text-base font-black text-[#111]">⚠️ {t.deliveryGuardTitle}</p>
+              <p className="text-xs text-[#888] mt-0.5 leading-relaxed">{t.deliveryGuardBody}</p>
+            </div>
+            <div className="px-5 py-4 flex gap-2">
+              <button
+                onClick={() => setDeliveryGuardModal(null)}
+                className="flex-1 py-3 rounded-xl text-sm text-[#888] border border-[#EEEEEE]"
+              >
+                {t.no}
+              </button>
+              <button
+                onClick={() => {
+                  const order = deliveryGuardModal.order;
+                  setDeliveryGuardModal(null);
+                  handleDeliver(order, true);
+                }}
+                className="flex-1 py-3 rounded-xl text-white text-sm font-black bg-amber-500 hover:bg-amber-600 transition-colors"
+              >
+                {t.deliveryGuardConfirm}
               </button>
             </div>
           </div>
@@ -2287,9 +2332,17 @@ function OrderRow({
               {mins}m
             </div>
           )}
-          {tab === 'ready' && (
+          {tab === 'ready' && order.order_type === 'delivery' ? (
+            order.driver_at_door_at ? (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 mt-0.5 block">🚪 {t.en ? 'At door' : 'En puerta'}</span>
+            ) : order.driver_picked_up_at ? (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 mt-0.5 block animate-pulse">🛵 {t.en ? 'On the way' : 'En camino'}</span>
+            ) : (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-500 mt-0.5 block">⏳ {t.en ? 'Awaiting driver' : 'Espera driver'}</span>
+            )
+          ) : tab === 'ready' ? (
             <div className="text-[10px] text-[#06C167] font-bold mt-0.5">✓</div>
-          )}
+          ) : null}
         </div>
       </div>
     </button>
@@ -2754,39 +2807,39 @@ function OrderDetail({
                   </div>
                 )}
                 {/* Driver live status — shown whenever driver has interacted via QR link */}
-                {((order as any).driver_picked_up_at || (order as any).driver_at_door_at || order.status === 'delivered' || (order as any).driver_name) && (
+                {(order.driver_picked_up_at || order.driver_at_door_at || order.status === 'delivered' || order.driver_name) && (
                   <div className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-[#06C167]/30 bg-[#06C167]/5">
                     <span className="text-base">🛵</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-[#06C167]">{t.driver}</p>
-                      {(order as any).driver_name && (
+                      {order.driver_name && (
                         <p className="text-xs text-[#555] truncate">
-                          {(order as any).driver_name}
-                          {(order as any).driver_phone ? ` · ${(order as any).driver_phone}` : ''}
+                          {order.driver_name}
+                          {order.driver_phone ? ` · ${order.driver_phone}` : ''}
                         </p>
                       )}
                     </div>
                     {order.status === 'delivered' ? (
                       <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex-shrink-0">✓ {t.en ? 'Delivered' : 'Entregado'}</span>
-                    ) : (order as any).driver_at_door_at ? (
+                    ) : order.driver_at_door_at ? (
                       <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex-shrink-0">🚪 {t.en ? 'At door' : 'En la puerta'}</span>
-                    ) : (order as any).driver_picked_up_at ? (
+                    ) : order.driver_picked_up_at ? (
                       <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0 animate-pulse">🛵 {t.en ? 'On the way' : 'En camino'}</span>
                     ) : null}
                   </div>
                 )}
-                {(order as any).delivery_photo_url && (
+                {order.delivery_photo_url && (
                   <div className="mt-2 flex items-center gap-3">
                     <button
-                      onClick={() => onPhotoClick?.((order as any).delivery_photo_url)}
+                      onClick={() => onPhotoClick?.(order.delivery_photo_url!)}
                       className="relative w-14 h-14 rounded-xl overflow-hidden border-2 border-[#E8E8E8] hover:border-[#06C167] transition-colors flex-shrink-0 group"
                       title={t.en ? 'View delivery proof' : 'Ver foto de entrega'}
                     >
-                      <Image src={(order as any).delivery_photo_url} alt="Delivery proof" fill className="object-cover group-hover:scale-105 transition-transform" sizes="56px" />
+                      <Image src={order.delivery_photo_url!} alt="Delivery proof" fill className="object-cover group-hover:scale-105 transition-transform" sizes="56px" />
                     </button>
                     <div className="min-w-0">
                       <p className="text-[10px] font-bold text-[#888] uppercase tracking-wider">📷 {t.en ? 'Delivery proof' : 'Foto de entrega'}</p>
-                      <button onClick={() => onPhotoClick?.((order as any).delivery_photo_url)} className="text-xs text-[#06C167] font-semibold mt-0.5">
+                      <button onClick={() => onPhotoClick?.(order.delivery_photo_url!)} className="text-xs text-[#06C167] font-semibold mt-0.5">
                         {t.en ? 'View full photo →' : 'Ver foto completa →'}
                       </button>
                     </div>
@@ -2961,7 +3014,7 @@ function OrderDetail({
             >
               {isUpdating
                 ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : <><Check className="w-5 h-5" /> {order.order_type === 'pickup' ? (t.en ? 'Picked up ✓' : 'Recogido ✓') : t.deliveredBtn}</>}
+                : <><Check className="w-5 h-5" /> {t.deliveredBtnFor(order.order_type)}</>}
             </button>
           </>
         )}

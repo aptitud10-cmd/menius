@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { getStripe } from '@/lib/stripe';
+import { hasPlanAccess } from '@/lib/auth/check-plan';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,6 +31,15 @@ export async function POST(request: NextRequest) {
 
     if (!restaurant) {
       return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
+    }
+
+    // Online payments require at least the Starter plan.
+    const hasOnlinePayments = await hasPlanAccess(restaurant.id, 'starter');
+    if (!hasOnlinePayments) {
+      return NextResponse.json(
+        { error: 'Los pagos online requieren el plan Starter o superior. Suscríbete en Ajustes → Suscripción.' },
+        { status: 403 }
+      );
     }
 
     const countryCode = (restaurant.country_code ?? '').toUpperCase();

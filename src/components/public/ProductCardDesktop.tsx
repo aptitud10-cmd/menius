@@ -10,7 +10,7 @@ import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { useCartStore } from '@/store/cartStore';
 import { tName, tDesc } from '@/lib/i18n';
-import { getBlurUrl } from '@/lib/image-loader';
+import { getBlurUrl, supabaseLoader } from '@/lib/image-loader';
 import type { ProductCardProps } from './ProductCard';
 
 export const ProductCardDesktop = memo(function ProductCardDesktop({
@@ -100,7 +100,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             fill
             sizes="(max-width: 1280px) 40vw, 28vw"
             priority={priority}
-            unoptimized={product.image_url.includes('.supabase.co/storage/')}
+            loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
             placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
             blurDataURL={getBlurUrl(product.image_url)}
             className={cn(

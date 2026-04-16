@@ -165,6 +165,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Commission rate in basis points (bps). Applied as Stripe application_fee_amount
+    // on online payments where the restaurant uses Stripe Connect.
+    // starter: 1% | trial: 0% | pro/business: 0% | free: no online payments allowed
+    let commissionBps = 0;
+    let isFreeTier = false; // hoisted so it's accessible in the Stripe Connect block below
+
     // Check subscription — enforce monthly limit for FREE-tier restaurants
     try {
       const { data: sub } = await supabase
@@ -174,22 +180,24 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
 
       const now = new Date();
-      let isFreeTier = false;
 
       if (!sub) {
-        // No subscription row → FREE tier
+        // No subscription row → FREE tier (no online payments)
         isFreeTier = true;
       } else {
-        const { status } = sub;
+        const { status, plan_id } = sub;
         const trialStillValid = sub.trial_end && new Date(sub.trial_end) > now;
 
         if (status === 'active' || status === 'past_due') {
           isFreeTier = false;
+          // Pro/Business pay no platform fee; Starter pays 1%
+          commissionBps = (plan_id === 'pro' || plan_id === 'business') ? 0 : 100;
         } else if (trialStillValid) {
-          // Legacy trial still running → full access
+          // Trial period → 0% commission (full trial experience)
           isFreeTier = false;
+          commissionBps = 0;
         } else {
-          // canceled, expired trial, or explicitly free plan → FREE limits apply
+          // canceled, expired trial → back to FREE (no online payments)
           isFreeTier = true;
         }
       }
@@ -212,7 +220,10 @@ export async function POST(request: NextRequest) {
         }
       }
     } catch (subErr) {
-      logger.warn('Subscription check failed during order creation — proceeding', { error: subErr });
+      logger.warn('Subscription check failed during order creation — proceeding without plan enforcement', { error: subErr });
+      // On subscription check failure: treat as non-free (don't block), 0% commission
+      isFreeTier = false;
+      commissionBps = 0;
     }
 
     const productIds = parsed.data.items.map((i) => i.product_id);
@@ -708,6 +719,18 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // Online payments require at least Starter plan. Free-tier restaurants
+        // cannot accept card payments even if they have a connected account.
+        if (isFreeTier) {
+          await adminDb.from('orders').delete().eq('id', order.id);
+          return NextResponse.json(
+            { error: en
+                ? 'Online payment requires a paid plan. Please pay in person or ask the restaurant to upgrade.'
+                : 'El pago en línea requiere un plan de pago. Por favor paga en persona o pide al restaurante que actualice su plan.' },
+            { status: 403 }
+          );
+        }
+
         const stripeProductIds = parsed.data.items.map((i) => i.product_id);
         const { data: stripeProducts } = await adminDb
           .from('products')
@@ -734,13 +757,25 @@ export async function POST(request: NextRequest) {
           };
         });
 
+        // Menius platform commission: collected as a Stripe application fee on the payment.
+        // Calculated on the gross order total (after discounts, before Stripe fees).
+        // Only applied when commissionBps > 0 — Pro/Business restaurants pay 0%.
+        const applicationFeeAmount = commissionBps > 0
+          ? Math.round(total * 100 * commissionBps / 10000) // total is in currency units
+          : undefined;
+
         const sessionParams: import('stripe').Stripe.Checkout.SessionCreateParams = {
           line_items: lineItems,
           mode: 'payment',
           success_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=true`,
           cancel_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=false`,
           metadata: { order_id: order.id, order_number: order.order_number },
-          payment_intent_data: { transfer_data: { destination: connectedAccount } },
+          payment_intent_data: {
+            transfer_data: { destination: connectedAccount },
+            ...(applicationFeeAmount !== undefined && applicationFeeAmount > 0 && {
+              application_fee_amount: applicationFeeAmount,
+            }),
+          },
         };
         const session = await stripe.checkout.sessions.create(sessionParams);
         stripeUrl = session.url;

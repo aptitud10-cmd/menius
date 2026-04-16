@@ -813,39 +813,103 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
   const { t } = useDashboardLocale();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const menuUrl = typeof window !== 'undefined' ? `${window.location.origin}/${slug}` : `/${slug}`;
+  const menuUrl = typeof window !== 'undefined' ? `${window.location.origin}/${slug}` : `https://menius.app/${slug}`;
 
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(menuUrl);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('[DashboardHome] copyLink failed:', err);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // fallback
     }
   };
 
   const shareWhatsApp = () => {
-    const text = encodeURIComponent(`${name} — ${menuUrl}`);
+    const text = encodeURIComponent(`¡Haz tu pedido en ${name}! 🍽️\n${menuUrl}`);
     window.open(`https://wa.me/?text=${text}`, '_blank');
   };
 
+  const shareFacebook = () => {
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(menuUrl)}`, '_blank');
+  };
+
+  const shareX = () => {
+    const text = encodeURIComponent(`Ordena en línea en ${name} 🍽️`);
+    window.open(`https://x.com/intent/tweet?text=${text}&url=${encodeURIComponent(menuUrl)}`, '_blank');
+  };
+
   const shareNative = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: name, url: menuUrl });
-      } catch (err) {
-        console.error('[DashboardHome] shareNative failed:', err);
-      }
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try { await navigator.share({ title: name, text: `¡Ordena en línea en ${name}!`, url: menuUrl }); }
+      catch { /* user cancelled */ }
     } else {
       copyLink();
     }
   };
 
+  const channels: { label: string; icon: React.ReactNode; onClick: () => void; accent: string; sub: string; closesModal: boolean }[] = [
+    {
+      label: copied ? (t.home_copied ?? '¡Copiado!') : (t.home_copyLink ?? 'Copiar link'),
+      icon: copied
+        ? <Check className="w-4 h-4 text-emerald-500" />
+        : <Copy className="w-4 h-4 text-gray-500" />,
+      onClick: copyLink,
+      accent: copied ? 'bg-emerald-50 border-emerald-200' : 'hover:bg-gray-50',
+      sub: menuUrl.replace('https://', ''),
+      closesModal: false, // stays open to show "¡Copiado!" feedback
+    },
+    {
+      label: 'WhatsApp',
+      icon: (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" style={{ color: '#25D366' }}>
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.116 1.527 5.845L0 24l6.335-1.513A11.946 11.946 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.914a9.893 9.893 0 01-5.035-1.371l-.361-.214-3.761.898.944-3.668-.235-.376A9.865 9.865 0 012.086 12C2.086 6.58 6.58 2.086 12 2.086S21.914 6.58 21.914 12 17.42 21.914 12 21.914z" />
+        </svg>
+      ),
+      onClick: shareWhatsApp,
+      accent: 'hover:bg-[#25D366]/5',
+      sub: 'Compartir con contactos',
+      closesModal: true,
+    },
+    {
+      label: 'Facebook',
+      icon: (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" style={{ color: '#1877F2' }}>
+          <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z" />
+        </svg>
+      ),
+      onClick: shareFacebook,
+      accent: 'hover:bg-[#1877F2]/5',
+      sub: 'Publicar en tu página',
+      closesModal: true,
+    },
+    {
+      label: 'X / Twitter',
+      icon: (
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" style={{ color: '#000' }}>
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.713 5.809 5.45-5.809zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+      ),
+      onClick: shareX,
+      accent: 'hover:bg-gray-50',
+      sub: 'Tuitear tu menú',
+      closesModal: true,
+    },
+    {
+      label: t.home_moreOptions ?? 'Más opciones',
+      icon: <Share2 className="w-4 h-4 text-gray-400" />,
+      onClick: shareNative,
+      accent: 'hover:bg-gray-50',
+      sub: 'Email, SMS, AirDrop…',
+      closesModal: true,
+    },
+  ];
+
   return (
-    <div className="relative">
+    <>
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => setOpen(true)}
         className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 hover:text-gray-700 transition-colors"
       >
         <Share2 className="w-4 h-4" />
@@ -853,33 +917,59 @@ function ShareMenuButton({ slug, name }: { slug: string; name: string }) {
       </button>
 
       {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 z-50 w-52 rounded-xl bg-white border border-gray-200 shadow-xl overflow-hidden">
-            <button
-              onClick={() => { copyLink(); setOpen(false); }}
-              className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-gray-500" />}
-              {copied ? t.home_copied : t.home_copyLink}
-            </button>
-            <button
-              onClick={() => { shareWhatsApp(); setOpen(false); }}
-              className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <MessageCircle className="w-4 h-4 text-emerald-500" />
-              WhatsApp
-            </button>
-            <button
-              onClick={() => { shareNative(); setOpen(false); }}
-              className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <Share2 className="w-4 h-4 text-gray-500" />
-              {t.home_moreOptions}
-            </button>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
+
+          {/* Modal */}
+          <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
+            {/* Header */}
+            <div className="px-5 pt-5 pb-4 border-b border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-0.5">Comparte tu menú</p>
+                  <p className="text-base font-semibold text-gray-900 leading-snug">{name}</p>
+                </div>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-gray-500"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Channels */}
+            <div className="p-2">
+              {channels.map((ch) => (
+                <button
+                  key={ch.label}
+                  onClick={() => { ch.onClick(); if (ch.closesModal) setOpen(false); }}
+                  className={cn(
+                    'w-full flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-colors text-left border',
+                    copied && !ch.closesModal ? 'bg-emerald-50 border-emerald-200' : `border-transparent ${ch.accent}`
+                  )}
+                >
+                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-xl bg-gray-50 border border-gray-100">
+                    {ch.icon}
+                  </span>
+                  <span className="flex flex-col min-w-0">
+                    <span className="text-sm font-medium text-gray-800 leading-tight">{ch.label}</span>
+                    <span className="text-xs text-gray-400 truncate leading-tight mt-0.5">{ch.sub}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Footer hint */}
+            <div className="px-5 pb-5 pt-1">
+              <p className="text-[11px] text-gray-300 text-center leading-relaxed">
+                Tu menú es público · cualquiera con el link puede ordenar
+              </p>
+            </div>
           </div>
-        </>
+        </div>
       )}
-    </div>
+    </>
   );
 }

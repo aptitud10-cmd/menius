@@ -191,12 +191,39 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Polling fallback — refreshes order every 15 s so status updates even if
-  // realtime websocket is unavailable (e.g. anon key has no realtime perms).
+  // Polling fallback — refreshes every 5 s for active orders.
+  // Fires even when the WebSocket is up, so GPS coordinates and ETA
+  // countdown stay fresh without extra subscriptions.
   useEffect(() => {
     if (!order?.id || order.status === 'delivered' || order.status === 'cancelled') return;
-    const interval = setInterval(fetchOrder, 15_000);
+    const interval = setInterval(fetchOrder, 5_000);
     return () => clearInterval(interval);
+  }, [order?.id, order?.status, fetchOrder]);
+
+  // Supabase Realtime Broadcast subscription.
+  //
+  // We deliberately use BROADCAST instead of postgres_changes.
+  // postgres_changes requires the connected user to have RLS SELECT access
+  // on the row being watched. Customers are anonymous (anon key, no session)
+  // so their RLS policy blocks the events — they arrive at the server but
+  // are silently dropped before reaching the client.
+  //
+  // Broadcast channels are NOT gated by RLS: any client that knows the
+  // channel name can subscribe. We use the order UUID as the channel name
+  // (opaque, server-issued, only the tracking page URL holder knows it).
+  //
+  // The server sends a broadcast via HTTP Broadcast API from every route
+  // that changes order state: updateOrderStatus, driver/status, cron jobs.
+  // Immediate refetch when the tab becomes visible again (mobile switches app,
+  // or phone wakes from standby). Prevents the customer from seeing a stale
+  // status after returning to the tracking page.
+  useEffect(() => {
+    if (!order?.id || order.status === 'delivered' || order.status === 'cancelled') return;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fetchOrder();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [order?.id, order?.status, fetchOrder]);
 
   useEffect(() => {
@@ -205,20 +232,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     const supabase = getSupabaseBrowser();
     const channel = supabase
       .channel(`order-track:${order.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
-          filter: `id=eq.${order.id}`,
-        },
-        () => {
-          // Full refetch instead of partial merge: ensures joined fields
-          // (driver timestamps, payment_status, etc.) are always up-to-date.
-          fetchOrder();
-        }
-      )
+      .on('broadcast', { event: 'status_change' }, () => {
+        // Full refetch: ensures driver timestamps, ETA, and all joined fields
+        // are always up-to-date rather than relying on the partial payload.
+        fetchOrder();
+      })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           setRtStatus('connected');
@@ -333,6 +351,17 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         .tracker-card:nth-child(2) { animation-delay: 0.05s; }
         .tracker-card:nth-child(3) { animation-delay: 0.1s; }
         .tracker-card:nth-child(4) { animation-delay: 0.15s; }
+        @keyframes deliveredPop {
+          0%   { transform: scale(0.5); opacity: 0; }
+          70%  { transform: scale(1.08); opacity: 1; }
+          100% { transform: scale(1);   opacity: 1; }
+        }
+        .delivered-icon { animation: deliveredPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+        @keyframes ringExpand {
+          0%   { transform: scale(0.7); opacity: 0.6; }
+          100% { transform: scale(1.45); opacity: 0; }
+        }
+        .delivered-ring { animation: ringExpand 1.1s ease-out 0.2s both; }
       `}</style>
 
       {/* Sticky nav bar */}
@@ -415,11 +444,34 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               <div className="px-6 pt-8 pb-6 text-center">
                 {isComplete ? (
                   <>
-                    <div className="w-20 h-20 rounded-2xl bg-[#d0f7f1] flex items-center justify-center mx-auto mb-5">
-                      <Package className="w-10 h-10 text-[#05c8a7]" />
-                    </div>
-                    <h2 className="text-2xl font-black text-gray-900 mb-1">{t.orderDelivered}</h2>
-                    <p className="text-sm text-gray-500">{t.orderDeliveredDesc}</p>
+                    {(() => {
+                      const typeConfig = {
+                        pickup:   { icon: ShoppingBag,  solid: '#f97316', tagline: tWithType.en ? 'Enjoy your meal!'  : '¡Buen provecho!' },
+                        dine_in:  { icon: Utensils,     solid: '#7c3aed', tagline: tWithType.en ? 'Enjoy your meal!'  : '¡Que lo disfrutes!' },
+                        delivery: { icon: CheckCircle2, solid: '#059669', tagline: tWithType.en ? 'Enjoy your meal!'  : '¡Buen provecho!' },
+                      };
+                      const cfg = typeConfig[order.order_type as keyof typeof typeConfig] ?? typeConfig.delivery;
+                      const IconCmp = cfg.icon;
+                      return (
+                        <>
+                          {/* Icon with expanding ring — single element, no emoji */}
+                          <div className="relative w-20 h-20 mx-auto mb-6">
+                            <div
+                              className="delivered-ring absolute inset-0 rounded-full"
+                              style={{ background: cfg.solid }}
+                            />
+                            <div
+                              className="delivered-icon relative w-20 h-20 rounded-full flex items-center justify-center"
+                              style={{ background: cfg.solid }}
+                            >
+                              <IconCmp className="w-9 h-9 text-white" strokeWidth={1.75} />
+                            </div>
+                          </div>
+                          <h2 className="text-2xl font-black text-gray-900 mb-1.5">{t.orderDelivered}</h2>
+                          <p className="text-sm text-gray-400">{cfg.tagline}</p>
+                        </>
+                      );
+                    })()}
                   </>
                 ) : currentStepStyle && currentStepText ? (
                   <>
@@ -464,7 +516,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                             'text-[9px] font-semibold text-center leading-tight w-14',
                             isDone || isActive ? 'text-brand-600' : 'text-gray-300'
                           )}>
-                            {tWithType.customerSteps[key]}
+                            {key === 'ready' && order.order_type === 'delivery'
+                              ? ((order as any).driver_picked_up_at
+                                  ? (tWithType.en ? 'On the way' : 'En camino')
+                                  : (tWithType.en ? 'Ready'      : 'Listo'))
+                              : tWithType.customerSteps[key]}
                           </span>
                         </div>
 
@@ -619,6 +675,36 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           <PushSubscriptionPrompt orderId={order.id} locale={locale} />
         )}
 
+        {/* ── ITEMS SUMMARY CARD — visible immediately, no accordion ── */}
+        {!isCancelled && order.order_items?.length > 0 && (
+          <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-900">{t.en ? 'Your order' : 'Tu pedido'}</h3>
+              <span className="text-xs font-semibold text-gray-400">{order.order_items.length} {order.order_items.length === 1 ? (t.en ? 'item' : 'producto') : (t.en ? 'items' : 'productos')}</span>
+            </div>
+            <div className="px-5 py-3 space-y-2.5">
+              {order.order_items.map((item: any) => {
+                const productName = item.product_name ?? item.products?.name ?? (t.en ? 'Item' : 'Producto');
+                const variantName = item.variant_name ?? item.product_variants?.name;
+                return (
+                  <div key={item.id} className="flex items-baseline justify-between gap-2">
+                    <p className="text-sm text-gray-700 min-w-0 truncate">
+                      <span className="font-bold text-brand-600">{item.qty}×</span>{' '}
+                      {productName}
+                      {variantName && <span className="text-gray-400 text-xs ml-1">({variantName})</span>}
+                    </p>
+                    <span className="text-sm font-semibold text-gray-800 flex-shrink-0">{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="px-5 py-3 border-t border-gray-50 flex items-center justify-between">
+              <span className="text-sm font-bold text-gray-900">Total</span>
+              <span className="text-base font-black text-gray-900">{formatPrice(Number(order.total), currency)}</span>
+            </div>
+          </div>
+        )}
+
         {/* ── ORDER DETAILS CARD ── */}
         <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
           {/* Section header */}
@@ -710,38 +796,6 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 <span className="text-sm text-gray-600 text-right max-w-[60%] italic">&quot;{order.notes}&quot;</span>
               </div>
             )}
-          </div>
-
-          {/* Items list */}
-          <div className="px-5 py-4 border-t border-gray-50 space-y-3">
-            {order.order_items?.map((item: any) => {
-              // Support both RPC flat format (product_name) and nested format (products?.name)
-              const productName = item.product_name ?? item.products?.name ?? (t.en ? 'Item' : 'Producto');
-              const variantName = item.variant_name ?? item.product_variants?.name;
-              return (
-                <div key={item.id} className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-800">
-                      <span className="text-brand-600 font-bold">{item.qty}×</span>{' '}
-                      {productName}
-                      {variantName && (
-                        <span className="text-gray-400 font-normal text-xs ml-1">({variantName})</span>
-                      )}
-                    </p>
-                    {(item.order_item_extras ?? []).length > 0 && (
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        + {(item.order_item_extras ?? []).map((ex: any) => ex.product_extras?.name).filter(Boolean).join(', ')}
-                      </p>
-                    )}
-                    {(item.order_item_modifiers ?? []).map((mod: any, i: number) => (
-                      <p key={i} className="text-xs text-gray-400">{mod.group_name}: {mod.option_name}</p>
-                    ))}
-                    {item.notes && <p className="text-xs text-amber-600 italic mt-0.5">&quot;{item.notes}&quot;</p>}
-                  </div>
-                  <span className="text-sm font-semibold text-gray-800 flex-shrink-0">{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
-                </div>
-              );
-            })}
           </div>
 
           {/* Price breakdown */}

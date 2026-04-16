@@ -88,6 +88,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
   const [search, setSearch] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  const [mobileTab, setMobileTab] = useState<OrderStatus>('pending');
   const [filterType, setFilterType] = useState<string>('all');
   const [dateRange, setDateRange] = useState<'today' | '7' | '30' | 'all'>('all');
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
@@ -127,6 +128,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
       const total = formatPrice(Number(order.total), currency);
       notifyNewOrder(order.order_number, total);
       setNewOrderIds((prev) => new Set(Array.from(prev).concat(order.id)));
+      setMobileTab('pending');
       setTimeout(() => {
         setNewOrderIds((prev) => { const next = new Set(prev); next.delete(order.id); return next; });
       }, 12000);
@@ -305,9 +307,9 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
       </div>
 
       {/* Controls bar — row 2: filters + export */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
+      <div className="flex items-center gap-2 mb-4 overflow-x-auto scrollbar-hide">
         {/* Date filter */}
-        <div className="flex gap-1 rounded-lg border border-gray-200 bg-white p-1">
+        <div className="flex gap-1 rounded-lg border border-gray-200 bg-white p-1 flex-shrink-0">
           {(['today', '7', '30', 'all'] as const).map((key) => (
             <button
               key={key}
@@ -329,7 +331,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
         <select
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
-          className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+          className="flex-shrink-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-sm bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
         >
           <option value="all">{t.orders_allTypes}</option>
           <option value="dine_in">{t.orders_dineIn}</option>
@@ -423,44 +425,103 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
         </div>
       ) : (
         /* ── Kanban board ── */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-2">
-
-          {COLUMNS.map(({ status, icon: Icon }) => {
-            const config = ORDER_STATUS_CONFIG[status];
-            const columnOrders = activeOrders.filter((o) => o.status === status);
-            return (
-              <div key={status} className="space-y-3 min-w-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <Icon className={`w-4 h-4 ${config.color}`} />
-                  <span className="text-sm font-semibold text-gray-900">{statusLabel(t, status)}</span>
-                  <span className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-full ${config.bg} ${config.color}`}>
-                    {columnOrders.length}
-                  </span>
+        <>
+          {/* ── Mobile: tab selector + single column ── */}
+          <div className="md:hidden">
+            {/* Status pills row */}
+            <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-hide">
+              {COLUMNS.map(({ status, icon: Icon }) => {
+                const config = ORDER_STATUS_CONFIG[status];
+                const count = activeOrders.filter((o) => o.status === status).length;
+                const isActive = mobileTab === status;
+                const hasNew = newOrderIds.size > 0 && Array.from(newOrderIds).some((id) => orders.find((o) => o.id === id)?.status === status);
+                return (
+                  <button
+                    key={status}
+                    onClick={() => setMobileTab(status)}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold flex-shrink-0 transition-all',
+                      isActive
+                        ? `${config.bg} ${config.color} shadow-sm`
+                        : 'bg-gray-100 text-gray-500'
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {statusLabel(t, status)}
+                    <span className={cn(
+                      'text-xs font-bold px-1.5 py-0.5 rounded-full',
+                      isActive ? 'bg-white/60' : 'bg-gray-200 text-gray-600',
+                      hasNew && 'animate-pulse'
+                    )}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {/* Active column orders */}
+            <div className="space-y-3">
+              {activeOrders.filter((o) => o.status === mobileTab).length === 0 ? (
+                <div className="text-center py-10 text-sm text-gray-400">
+                  {statusLabel(t, mobileTab)} · {t.orders_noOrders ?? 'Sin órdenes'}
                 </div>
-                {columnOrders.map((order) => (
-                  <OrderCard
-                    key={order.id}
-                    order={order}
-                    isNew={newOrderIds.has(order.id)}
-                    status={status}
-                    currency={currency}
-                    onAdvance={() => handleStatusChange(order.id, NEXT_STATUS[status])}
-                    onCancel={() => handleStatusChange(order.id, 'cancelled')}
-                    onPrint={() => setPrintOrder(order)}
-                    onDetail={() => setDetailOrder(order)}
-                    isBulkSelected={bulkSelected.has(order.id)}
-                    onBulkToggle={() => toggleBulk(order.id)}
-                  />
-                ))}
-              </div>
-            );
-          })}
-        </div>
+              ) : activeOrders.filter((o) => o.status === mobileTab).map((order) => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  isNew={newOrderIds.has(order.id)}
+                  status={mobileTab}
+                  currency={currency}
+                  onAdvance={() => handleStatusChange(order.id, NEXT_STATUS[mobileTab])}
+                  onCancel={() => handleStatusChange(order.id, 'cancelled')}
+                  onPrint={() => setPrintOrder(order)}
+                  onDetail={() => setDetailOrder(order)}
+                  isBulkSelected={bulkSelected.has(order.id)}
+                  onBulkToggle={() => toggleBulk(order.id)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* ── Desktop: full 4-column kanban ── */}
+          <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-4 pb-2">
+            {COLUMNS.map(({ status, icon: Icon }) => {
+              const config = ORDER_STATUS_CONFIG[status];
+              const columnOrders = activeOrders.filter((o) => o.status === status);
+              return (
+                <div key={status} className="space-y-3 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Icon className={`w-4 h-4 ${config.color}`} />
+                    <span className="text-sm font-semibold text-gray-900">{statusLabel(t, status)}</span>
+                    <span className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-full ${config.bg} ${config.color}`}>
+                      {columnOrders.length}
+                    </span>
+                  </div>
+                  {columnOrders.map((order) => (
+                    <OrderCard
+                      key={order.id}
+                      order={order}
+                      isNew={newOrderIds.has(order.id)}
+                      status={status}
+                      currency={currency}
+                      onAdvance={() => handleStatusChange(order.id, NEXT_STATUS[status])}
+                      onCancel={() => handleStatusChange(order.id, 'cancelled')}
+                      onPrint={() => setPrintOrder(order)}
+                      onDetail={() => setDetailOrder(order)}
+                      isBulkSelected={bulkSelected.has(order.id)}
+                      onBulkToggle={() => toggleBulk(order.id)}
+                    />
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {/* Bulk action bar */}
       {bulkSelected.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-5 py-3 rounded-2xl bg-gray-900 text-white shadow-2xl">
+        <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-5 py-3 rounded-2xl bg-gray-900 text-white shadow-2xl">
           <span className="text-sm font-medium">{bulkSelected.size} {t.orders_selected}</span>
           <button onClick={handleBulkAdvance} className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-emerald-500 text-sm font-semibold hover:bg-emerald-600 transition-colors">
             <ArrowRight className="w-3.5 h-3.5" /> {t.orders_advanceStatus}
@@ -499,7 +560,7 @@ export function OrdersBoard({ initialOrders, restaurantId, restaurantSlug, curre
 
       {/* Status update error toast */}
       {statusError && (
-        <div className="fixed bottom-6 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl bg-red-600 text-white text-sm font-medium shadow-xl animate-in slide-in-from-bottom-2">
+        <div className="fixed bottom-20 md:bottom-6 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-xl bg-red-600 text-white text-sm font-medium shadow-xl animate-in slide-in-from-bottom-2">
           <XCircle className="w-4 h-4 flex-shrink-0" />
           {statusError}
         </div>

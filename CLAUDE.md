@@ -174,12 +174,19 @@ Aunque está bajo `/admin/`, usa `getTenant()` (tenant-only), no `verifyAdmin()`
 type PlanId = 'free' | 'starter' | 'pro' | 'business';
 ```
 
-| Plan | Precio | Órdenes/mes | Mesas | Usuarios | Delivery | WhatsApp |
-|------|--------|------------|-------|----------|----------|----------|
-| free | $0 | 50 | 5 | 1 | ❌ | ❌ |
-| starter | $39/mes | ilimitado | 15 | 2 | ❌ | ❌ |
-| pro | $79/mes | ilimitado | 50 | 5 | ✅ | 500/mes |
-| business | $149/mes | ilimitado | ilimitado | ilimitado | ✅ | 2000/mes |
+| Plan | Precio | Órdenes/mes | Mesas | Usuarios | Delivery | WhatsApp | Comisión pagos online |
+|------|--------|------------|-------|----------|----------|----------|-----------------------|
+| free | $0 | 50 | 5 | 1 | ❌ | ❌ | ❌ (solo efectivo) |
+| starter | $39/mes | ilimitado | 15 | 2 | ❌ | ❌ | 1% (Stripe Connect) |
+| pro | $79/mes | ilimitado | 50 | 5 | ✅ | 500/mes | 0% |
+| business | $149/mes | ilimitado | ilimitado | ilimitado | ✅ | 2000/mes | 0% |
+
+**Modelo de comisiones (CRÍTICO):**
+- **Efectivo**: siempre 0% en todos los planes.
+- **Pagos online con tarjeta (Stripe Connect)**: Starter 1%, Pro 0%, Business 0%.
+- **Trial (14 días)**: 0% comisión en pagos online sin importar el plan.
+- **Wompi (Colombia/COP)**: 0% comisión MENIUS — Wompi cobra sus propias tarifas al restaurante.
+- **Free**: no admite pagos online con tarjeta.
 
 **CRÍTICO**: `free` NUNCA se guarda en `subscriptions.plan_id`. La DB solo acepta `starter|pro|business`.
 `free` es inferido por `getEffectivePlanId()` cuando no hay subscripción activa.

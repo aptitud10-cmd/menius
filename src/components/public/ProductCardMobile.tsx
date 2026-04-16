@@ -9,8 +9,7 @@ import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { useCartStore } from '@/store/cartStore';
 import { tName } from '@/lib/i18n';
-import { getBlurUrl } from '@/lib/image-loader';
-import { useStoreConfig } from '@/lib/store-config-context';
+import { getBlurUrl, supabaseLoader } from '@/lib/image-loader';
 import type { ProductCardProps } from './ProductCard';
 
 export const ProductCardMobile = memo(function ProductCardMobile({
@@ -25,7 +24,6 @@ export const ProductCardMobile = memo(function ProductCardMobile({
   defaultLocale = 'es',
   priority = false,
 }: ProductCardProps) {
-  const { optimizeImages } = useStoreConfig();
   const isEn = locale === 'en';
   const labelSoldOut = soldOutLabel ?? (isEn ? 'Sold out' : 'Agotado');
   const labelAdded = addedShortLabel ?? (isEn ? 'Added' : 'Listo');
@@ -91,9 +89,9 @@ export const ProductCardMobile = memo(function ProductCardMobile({
               src={product.image_url}
               alt={imgAlt}
               fill
-              sizes="(max-width: 1024px) 45vw, 33vw"
+              sizes="(max-width: 640px) 46vw, (max-width: 1024px) 33vw, 25vw"
               priority={priority}
-              unoptimized={!optimizeImages && product.image_url.includes('.supabase.co/storage/')}
+              loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
               className={cn('object-cover transition-opacity duration-150', imgLoaded ? 'opacity-100' : 'opacity-0', outOfStock && 'grayscale')}

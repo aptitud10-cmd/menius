@@ -13,6 +13,7 @@ const logger = createLogger('action-restaurant');
 import { sendWhatsApp } from '@/lib/notifications/whatsapp';
 import { sendSMS, resolveChannel } from '@/lib/notifications/sms';
 import { VALID_TRANSITIONS, ALL_STATUSES, canTransition } from '@/lib/order-state';
+import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
 
 const EN_CURRENCIES = new Set(['USD', 'GBP', 'CAD', 'AUD', 'NZD']);
 function inferLocale(currency: string): string {
@@ -888,6 +889,12 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
     .eq('restaurant_id', restaurantId);
 
   if (error) return { error: error.message };
+
+  // Broadcast to customer tracking page.
+  // Static import ensures the module is ready — fire-and-forget so status
+  // changes feel instant in the Counter without waiting for the HTTP call.
+  // The 5-second polling in OrderTracker is the safety net if this fails.
+  void broadcastOrderUpdate(orderId, status);
 
   // Log the transition to order_status_history (non-blocking, graceful)
   void (async () => {

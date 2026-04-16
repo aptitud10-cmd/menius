@@ -48,8 +48,16 @@ function ContentEs() {
       <p>Los pagos se procesan de forma segura a través de Stripe. La suscripción se renueva automáticamente al final de cada periodo (mensual o anual). Recibirás un recibo por correo electrónico con cada cobro.</p>
       <h3>4.4 Cancelación</h3>
       <p>Puedes cancelar tu suscripción en cualquier momento desde el dashboard de facturación. La cancelación será efectiva al final del periodo de facturación actual. No se otorgan reembolsos por periodos parciales, excepto donde la ley lo requiera.</p>
-      <h3>4.5 Sin Comisiones por Pedido</h3>
-      <p>MENIUS no cobra comisiones por pedido ni porcentaje sobre las ventas del restaurante. Los únicos costos son la tarifa de suscripción mensual o anual y las tarifas estándar de procesamiento de pago de Stripe (si se utilizan pagos en línea).</p>
+      <h3>4.5 Pagos Online y Comisión por Transacción</h3>
+      <p>Los pagos en línea a través de Stripe Connect están disponibles a partir del plan <strong>Starter</strong>. El plan Free no incluye esta funcionalidad — los clientes del restaurante solo pueden pagar en efectivo.</p>
+      <p>MENIUS cobra una comisión sobre los pagos en línea procesados a través de Stripe Connect. La comisión varía según el plan activo:</p>
+      <ul>
+        <li><strong>Plan Starter:</strong> 1% del total de cada orden pagada en línea.</li>
+        <li><strong>Plan Pro y Business:</strong> 0% — sin comisión por transacción.</li>
+        <li><strong>Durante el período de prueba (trial, 14 días):</strong> 0% — sin comisión.</li>
+      </ul>
+      <p>Esta comisión no aplica a pedidos pagados en efectivo ni a pagos procesados por métodos distintos a Stripe Connect (por ejemplo, Wompi en Colombia). La comisión se deduce automáticamente del monto recibido por el restaurante en el momento del cobro y es gestionada directamente por Stripe.</p>
+      <p>Si cancelas un plan de pago y regresas al plan Free, los pagos online dejarán de estar disponibles para tu restaurante.</p>
 
       <h2>5. Uso Aceptable</h2>
       <p>Al utilizar MENIUS, te comprometes a:</p>
@@ -161,8 +169,16 @@ function ContentEn() {
       <p>Payments are processed securely through Stripe. The subscription automatically renews at the end of each period (monthly or annual). You will receive a receipt by email with each charge.</p>
       <h3>4.4 Cancellation</h3>
       <p>You can cancel your subscription at any time from the billing dashboard. Cancellation will be effective at the end of the current billing period. No refunds are given for partial periods, except where required by law.</p>
-      <h3>4.5 No Per-Order Commissions</h3>
-      <p>MENIUS does not charge per-order commissions or a percentage on restaurant sales. The only costs are the monthly or annual subscription fee and standard Stripe payment processing fees (if online payments are used).</p>
+      <h3>4.5 Online Payments and Transaction Commission</h3>
+      <p>Online payments via Stripe Connect are available starting with the <strong>Starter</strong> plan. The Free plan does not include this feature — the restaurant's customers can only pay in cash.</p>
+      <p>MENIUS charges a commission on online payments processed through Stripe Connect. The commission varies by active plan:</p>
+      <ul>
+        <li><strong>Starter Plan:</strong> 1% of the total of each online order.</li>
+        <li><strong>Pro and Business Plans:</strong> 0% — no transaction commission.</li>
+        <li><strong>During the trial period (14 days):</strong> 0% — no commission.</li>
+      </ul>
+      <p>This commission does not apply to cash orders or payments processed through methods other than Stripe Connect (e.g., Wompi in Colombia). The commission is automatically deducted from the amount received by the restaurant at the time of payment and is managed directly by Stripe.</p>
+      <p>If you cancel a paid plan and return to the Free plan, online payments will no longer be available for your restaurant.</p>
 
       <h2>5. Acceptable Use</h2>
       <p>By using MENIUS, you agree to:</p>

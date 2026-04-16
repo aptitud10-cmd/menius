@@ -17,6 +17,7 @@ export const maxDuration = 30;
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
+import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
 
 const logger = createLogger('auto-complete-pickup');
 
@@ -63,6 +64,7 @@ export async function GET(req: Request) {
       if (!readyErr) {
         markedReady = ids.length;
         for (const o of toMarkReady) {
+          broadcastOrderUpdate(o.id, 'ready').catch(() => {});
           notifyStatusChange({
             orderId: o.id,
             orderNumber: o.order_number,
@@ -104,6 +106,7 @@ export async function GET(req: Request) {
       if (!deliverErr) {
         markedDelivered = ids.length;
         for (const o of toDeliver) {
+          broadcastOrderUpdate(o.id, 'delivered').catch(() => {});
           notifyStatusChange({
             orderId: o.id,
             orderNumber: o.order_number,

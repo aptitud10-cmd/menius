@@ -150,101 +150,124 @@ export function InventoryManager({ initialProducts, restaurantId, currency }: In
               const status = getStatus(p);
               const isSaving = saving.has(p.id);
               return (
-                <div key={p.id} className={cn('grid sm:grid-cols-[auto_80px_120px_100px_100px_80px] gap-4 px-5 py-3.5 items-center transition-colors', isSaving && 'opacity-60')}>
-                  {/* Product */}
-                  <div className="flex items-center gap-3">
+                <div key={p.id} className={cn('transition-colors', isSaving && 'opacity-60')}>
+                  {/* ── Mobile card ── */}
+                  <div className="sm:hidden flex items-start gap-3 px-4 py-3.5 border-b border-gray-50 last:border-0">
                     {p.image_url ? (
-                      <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                        <Image src={p.image_url} alt={p.name} fill sizes="36px" className="object-cover" />
+                      <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 mt-0.5">
+                        <Image src={p.image_url} alt={p.name} fill sizes="40px" className="object-cover" />
                       </div>
                     ) : (
-                      <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                        <span className="text-base opacity-30">🍽️</span>
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Package className="w-4 h-4 text-gray-300" />
                       </div>
                     )}
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{p.name}</p>
-                      <span className={cn('inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full', {
-                        'bg-red-100 text-red-600': status === 'out',
-                        'bg-amber-100 text-amber-600': status === 'low',
-                        'bg-emerald-100 text-emerald-600': status === 'ok',
-                        'bg-gray-100 text-gray-500': status === 'manual',
-                      })}>
-                        {status === 'out' && <><AlertTriangle className="w-2.5 h-2.5" /> Sin stock</>}
-                        {status === 'low' && <><TrendingDown className="w-2.5 h-2.5" /> Stock bajo</>}
-                        {status === 'ok' && <><CheckCircle className="w-2.5 h-2.5" /> En stock</>}
-                        {status === 'manual' && <>Manual</>}
-                      </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{p.name}</p>
+                        <span className={cn('inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0', {
+                          'bg-red-100 text-red-600': status === 'out',
+                          'bg-amber-100 text-amber-600': status === 'low',
+                          'bg-emerald-100 text-emerald-600': status === 'ok',
+                          'bg-gray-100 text-gray-500': status === 'manual',
+                        })}>
+                          {status === 'out' && <><AlertTriangle className="w-2.5 h-2.5" />Sin stock</>}
+                          {status === 'low' && <><TrendingDown className="w-2.5 h-2.5" />Stock bajo</>}
+                          {status === 'ok' && <><CheckCircle className="w-2.5 h-2.5" />En stock</>}
+                          {status === 'manual' && <>Manual</>}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5">{fmt(Number(p.price))}</p>
+                      <div className="flex items-center gap-3 mt-2 flex-wrap">
+                        {/* Qty stepper */}
+                        {p.track_inventory ? (
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => updateQty(p, (p.stock_qty ?? 0) - 1)} className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors text-sm font-bold">−</button>
+                            <input
+                              type="number" min="0"
+                              value={p.stock_qty ?? ''}
+                              onChange={e => updateQty(p, parseInt(e.target.value) || 0)}
+                              className="w-12 text-center text-sm font-bold text-gray-900 border border-gray-200 rounded-lg py-1 focus:outline-none focus:border-gray-900"
+                            />
+                            <button onClick={() => updateQty(p, (p.stock_qty ?? 0) + 1)} className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors text-sm font-bold">+</button>
+                          </div>
+                        ) : null}
+                        {/* Track toggle */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] text-gray-400">Rastrear</span>
+                          <button onClick={() => toggleTracking(p)} className={cn('transition-colors', p.track_inventory ? 'text-emerald-500' : 'text-gray-300')}>
+                            {p.track_inventory ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
+                          </button>
+                        </div>
+                        {/* Available toggle */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] text-gray-400">Disponible</span>
+                          <button onClick={() => toggleStock(p)} className={cn('transition-colors', p.in_stock ? 'text-emerald-500' : 'text-gray-300')}>
+                            {p.in_stock ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Price */}
-                  <p className="text-sm font-medium text-gray-600 tabular-nums text-center">{fmt(Number(p.price))}</p>
-
-                  {/* Quantity */}
-                  <div className="flex items-center justify-center">
-                    {p.track_inventory ? (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => updateQty(p, (p.stock_qty ?? 0) - 1)}
-                          className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors text-sm font-bold"
-                        >−</button>
-                        <input
-                          type="number"
-                          min="0"
-                          value={p.stock_qty ?? ''}
-                          onChange={e => updateQty(p, parseInt(e.target.value) || 0)}
-                          className="w-14 text-center text-sm font-bold text-gray-900 border border-gray-200 rounded-lg py-1 focus:outline-none focus:border-gray-900"
-                        />
-                        <button
-                          onClick={() => updateQty(p, (p.stock_qty ?? 0) + 1)}
-                          className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors text-sm font-bold"
-                        >+</button>
+                  {/* ── Desktop row ── */}
+                  <div className="hidden sm:grid sm:grid-cols-[auto_80px_120px_100px_100px_80px] gap-4 px-5 py-3.5 items-center">
+                    {/* Product */}
+                    <div className="flex items-center gap-3">
+                      {p.image_url ? (
+                        <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                          <Image src={p.image_url} alt={p.name} fill sizes="36px" className="object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                          <span className="text-base opacity-30">🍽️</span>
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{p.name}</p>
+                        <span className={cn('inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full', {
+                          'bg-red-100 text-red-600': status === 'out',
+                          'bg-amber-100 text-amber-600': status === 'low',
+                          'bg-emerald-100 text-emerald-600': status === 'ok',
+                          'bg-gray-100 text-gray-500': status === 'manual',
+                        })}>
+                          {status === 'out' && <><AlertTriangle className="w-2.5 h-2.5" /> Sin stock</>}
+                          {status === 'low' && <><TrendingDown className="w-2.5 h-2.5" /> Stock bajo</>}
+                          {status === 'ok' && <><CheckCircle className="w-2.5 h-2.5" /> En stock</>}
+                          {status === 'manual' && <>Manual</>}
+                        </span>
                       </div>
-                    ) : (
-                      <span className="text-xs text-gray-400">—</span>
-                    )}
-                  </div>
-
-                  {/* Threshold */}
-                  <div className="flex items-center justify-center">
-                    {p.track_inventory ? (
-                      <input
-                        type="number"
-                        min="1"
-                        value={p.low_stock_threshold ?? 5}
-                        onChange={e => updateThreshold(p, parseInt(e.target.value) || 5)}
-                        className="w-16 text-center text-sm font-medium text-gray-900 border border-gray-200 rounded-lg py-1.5 focus:outline-none focus:border-gray-900"
-                      />
-                    ) : (
-                      <span className="text-xs text-gray-400">—</span>
-                    )}
-                  </div>
-
-                  {/* Track toggle */}
-                  <div className="flex items-center justify-center">
-                    <button
-                      onClick={() => toggleTracking(p)}
-                      className={cn('transition-colors', p.track_inventory ? 'text-emerald-500' : 'text-gray-300 hover:text-gray-400')}
-                    >
-                      {p.track_inventory
-                        ? <ToggleRight className="w-7 h-7" />
-                        : <ToggleLeft className="w-7 h-7" />
-                      }
-                    </button>
-                  </div>
-
-                  {/* In stock toggle */}
-                  <div className="flex items-center justify-center">
-                    <button
-                      onClick={() => toggleStock(p)}
-                      className={cn('transition-colors', p.in_stock ? 'text-emerald-500' : 'text-gray-300 hover:text-gray-400')}
-                    >
-                      {p.in_stock
-                        ? <ToggleRight className="w-7 h-7" />
-                        : <ToggleLeft className="w-7 h-7" />
-                      }
-                    </button>
+                    </div>
+                    {/* Price */}
+                    <p className="text-sm font-medium text-gray-600 tabular-nums text-center">{fmt(Number(p.price))}</p>
+                    {/* Quantity */}
+                    <div className="flex items-center justify-center">
+                      {p.track_inventory ? (
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => updateQty(p, (p.stock_qty ?? 0) - 1)} className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors text-sm font-bold">−</button>
+                          <input type="number" min="0" value={p.stock_qty ?? ''} onChange={e => updateQty(p, parseInt(e.target.value) || 0)} className="w-14 text-center text-sm font-bold text-gray-900 border border-gray-200 rounded-lg py-1 focus:outline-none focus:border-gray-900" />
+                          <button onClick={() => updateQty(p, (p.stock_qty ?? 0) + 1)} className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors text-sm font-bold">+</button>
+                        </div>
+                      ) : <span className="text-xs text-gray-400">—</span>}
+                    </div>
+                    {/* Threshold */}
+                    <div className="flex items-center justify-center">
+                      {p.track_inventory ? (
+                        <input type="number" min="1" value={p.low_stock_threshold ?? 5} onChange={e => updateThreshold(p, parseInt(e.target.value) || 5)} className="w-16 text-center text-sm font-medium text-gray-900 border border-gray-200 rounded-lg py-1.5 focus:outline-none focus:border-gray-900" />
+                      ) : <span className="text-xs text-gray-400">—</span>}
+                    </div>
+                    {/* Track toggle */}
+                    <div className="flex items-center justify-center">
+                      <button onClick={() => toggleTracking(p)} className={cn('transition-colors', p.track_inventory ? 'text-emerald-500' : 'text-gray-300 hover:text-gray-400')}>
+                        {p.track_inventory ? <ToggleRight className="w-7 h-7" /> : <ToggleLeft className="w-7 h-7" />}
+                      </button>
+                    </div>
+                    {/* In stock toggle */}
+                    <div className="flex items-center justify-center">
+                      <button onClick={() => toggleStock(p)} className={cn('transition-colors', p.in_stock ? 'text-emerald-500' : 'text-gray-300 hover:text-gray-400')}>
+                        {p.in_stock ? <ToggleRight className="w-7 h-7" /> : <ToggleLeft className="w-7 h-7" />}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

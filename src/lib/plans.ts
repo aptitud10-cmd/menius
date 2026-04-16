@@ -113,6 +113,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Analytics básico (últimos 30 días)',
       'Notificaciones sonoras',
       '2 usuarios administradores',
+      'Pagos online con tarjeta (1% por transacción)',
       'Soporte por chat',
     ],
     features_en: [
@@ -127,6 +128,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Basic analytics (last 30 days)',
       'Sound notifications',
       '2 admin users',
+      'Online card payments (1% per transaction)',
       'Chat support',
     ],
     excluded: [
@@ -177,7 +179,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Reseñas de clientes',
       'Gestión de equipo (5 usuarios)',
       'Exportar reportes PDF / CSV',
-      'Pagos online con tarjeta (Stripe)',
+      'Pagos online 0% comisión (Stripe Connect)',
       'Chat prioritario 24h',
     ],
     features_en: [
@@ -192,7 +194,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Customer reviews',
       'Team management (5 users)',
       'Export PDF / CSV reports',
-      'Online card payments (Stripe)',
+      'Online payments 0% commission (Stripe Connect)',
       'Priority chat 24h',
     ],
     excluded: [],

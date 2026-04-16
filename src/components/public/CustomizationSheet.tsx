@@ -10,7 +10,7 @@ import type { Product, ModifierGroup, ModifierOption, ModifierSelection, Product
 import type { Translations, Locale } from '@/lib/translations';
 import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { tName, tDesc } from '@/lib/i18n';
-import { getBlurUrl } from '@/lib/image-loader';
+import { supabaseLoader, getBlurUrl } from '@/lib/image-loader';
 
 const DIETARY_TAGS_MAP = Object.fromEntries(DIETARY_TAGS.map((t) => [t.id, t]));
 
@@ -330,7 +330,7 @@ export function CustomizationSheet({
               alt={displayName}
               fill
               sizes="(max-width: 640px) 100vw, 600px"
-              unoptimized={product.image_url.includes('.supabase.co/storage/')}
+              loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}
               className="object-cover opacity-0 transition-opacity duration-150"
