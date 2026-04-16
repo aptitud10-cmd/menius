@@ -530,8 +530,8 @@ export default function BillingPage() {
                   </div>
                   <p className="text-sm text-gray-500 mt-0.5">
                     {locale === 'en'
-                      ? 'Business-tier features · No monthly fee · Pay only when you sell online'
-                      : 'Acceso Business · Sin cuota mensual · Solo pagas cuando vendes online'}
+                      ? 'Starter-tier features · No monthly fee · Pay only when you sell online'
+                      : 'Acceso Starter · Sin cuota mensual · Solo pagas cuando vendes online'}
                   </p>
                 </div>
               </div>

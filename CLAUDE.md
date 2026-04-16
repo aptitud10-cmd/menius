@@ -210,10 +210,10 @@ El cron `billing-reconciliation` crea la row de subscripción automáticamente.
 Alternativa a la suscripción mensual: el restaurante paga **4% por cada orden online** en lugar de cuota fija.
 
 - **Column**: `restaurants.commission_plan boolean DEFAULT false`
-- **Feature access**: equivalente a `business` (ver `getEffectivePlanId()`)
+- **Feature access**: equivalente a `starter` (ver `getEffectivePlanId()`)
 - **Comisión Stripe**: `application_fee_amount = 4%` del total en cada pago online
 - **Activación**: manual vía admin SQL — `UPDATE restaurants SET commission_plan = true WHERE slug = '...'`
-- **Sin subscripción**: `getEffectivePlanId()` retorna `'business'` directamente, sin consultar `subscriptions`
+- **Sin subscripción**: `getEffectivePlanId()` retorna `'starter'` directamente, sin consultar `subscriptions`
 
 **Rutas que aplican el 4%:** `/api/orders`, `/api/payments/checkout`, `/api/payments/intent`
 

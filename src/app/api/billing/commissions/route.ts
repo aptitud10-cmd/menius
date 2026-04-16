@@ -43,7 +43,7 @@ export async function GET() {
     let commissionBps: number;
 
     if (isCommissionPlan) {
-      planId = 'business';
+      planId = 'starter';
       commissionBps = 400; // 4%
     } else if (isTrialing) {
       planId = sub?.plan_id ?? 'starter';

@@ -15,7 +15,7 @@ function rank(planId: string): number {
  * Resolves the effective plan ID for a restaurant.
  *
  * Priority:
- *  1. commission_plan = true  → 'business' (pay-per-order model, no subscription needed)
+ *  1. commission_plan = true  → 'starter' (pay-per-order model, no subscription needed)
  *  2. Active/past_due subscription → subscription.plan_id
  *  3. Valid trial → plan_id (usually 'starter')
  *  4. Otherwise → 'free'
@@ -23,14 +23,14 @@ function rank(planId: string): number {
 export async function getEffectivePlanId(restaurantId: string): Promise<string> {
   const supabase = createClient();
 
-  // Commission-plan restaurants get full business access without a subscription.
+  // Commission-plan restaurants get starter-level access without a subscription.
   const { data: rest } = await supabase
     .from('restaurants')
     .select('commission_plan')
     .eq('id', restaurantId)
     .maybeSingle();
 
-  if ((rest as any)?.commission_plan === true) return 'business';
+  if ((rest as any)?.commission_plan === true) return 'starter';
 
   const { data: sub } = await supabase
     .from('subscriptions')
