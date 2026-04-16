@@ -16,9 +16,10 @@
  *
  * Channel pattern: `order-track:{orderId}` (UUID — never exposed in URL)
  *
- * Call this after EVERY order state change:
+ * Call this after EVERY order state change or GPS update:
  *   - updateOrderStatus() in restaurant.ts
  *   - driver/status route (picked_up, at_door, delivered)
+ *   - driver/location route (GPS coordinates — triggers map refresh)
  *   - cron/auto-complete-pickup
  */
 export async function broadcastOrderUpdate(
