@@ -1787,34 +1787,22 @@ export function MenuShell({
           )}
 
           {/* Powered by MENIUS — todas las tiendas */}
-          <div className="mt-10 mb-6 flex flex-col items-center gap-3">
-            <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+          <div className="mt-8 mb-4 flex flex-col items-center gap-1.5">
             <a
               href="https://menius.app?ref=menu-footer"
               target="_blank"
               rel="noopener noreferrer"
-              className="group/pw mt-2 inline-flex items-center gap-2.5 px-5 py-2.5 rounded-2xl bg-white border border-gray-100 shadow-[0_1px_6px_0_rgba(0,0,0,0.06)] hover:shadow-[0_2px_12px_0_rgba(5,200,167,0.15)] hover:border-[#c2f0e8] transition-all duration-300"
+              className="inline-flex items-center gap-1.5 opacity-50 hover:opacity-80 transition-opacity duration-200"
             >
-              {/* M wordmark */}
-              <span
-                className="flex items-center justify-center w-6 h-6 rounded-lg text-white text-[11px] font-black tracking-tighter select-none"
-                style={{ background: 'linear-gradient(135deg, #05c8a7 0%, #047a65 100%)' }}
-              >
-                M
-              </span>
-              <span className="text-[11px] text-gray-400 font-medium">{t.poweredBy}</span>
-              <span
-                className="text-[13px] font-black tracking-[-0.04em] bg-clip-text text-transparent"
-                style={{ backgroundImage: 'linear-gradient(135deg, #05c8a7 0%, #047a65 100%)' }}
-              >
-                MENIUS
-              </span>
+              <span className="flex items-center justify-center w-4 h-4 rounded-[4px] bg-gray-400 text-white text-[9px] font-black select-none">M</span>
+              <span className="text-[11px] text-gray-400 font-normal">{t.poweredBy}</span>
+              <span className="text-[11px] text-gray-500 font-semibold">MENIUS</span>
             </a>
             <a
               href="https://menius.app?ref=menu-footer-cta"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] text-gray-300 hover:text-[#05c8a7] transition-colors tracking-wide"
+              className="text-[10px] text-gray-300 hover:text-gray-400 transition-colors"
             >
               {t.createYourMenu} →
             </a>
