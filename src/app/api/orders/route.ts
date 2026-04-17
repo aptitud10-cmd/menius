@@ -139,8 +139,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate required fields per order type
-    if (order_type === 'delivery') {
-      const addr = (body.delivery_address ?? '').trim();
+    // Use the already-sanitized variable, not body.delivery_address
+    if (parsed.data.order_type === 'delivery') {
+      const addr = (delivery_address ?? '').trim();
       if (!addr || addr.length < 5) {
         return NextResponse.json(
           { error: en ? 'A delivery address is required.' : 'Se requiere una dirección de entrega.' },
