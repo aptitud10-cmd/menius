@@ -16,7 +16,7 @@ import { canTransition } from '@/lib/order-state';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
 import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
-import { evictTokenCache } from '@/app/api/driver/location/route';
+import { evictTokenCache } from '@/lib/tracking/token-cache';
 
 const logger = createLogger('driver-status');
 
