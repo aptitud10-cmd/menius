@@ -30,7 +30,7 @@ export interface DeliveryMapProps {
   locale?: string;
 }
 
-// ── Mapbox Directions — ETA + route geometry ─────────────────────────────────
+// ── Directions — proxied through backend to protect Mapbox quota + Redis cache ─
 
 interface DirectionsResult {
   etaMinutes: number | null;
@@ -38,24 +38,22 @@ interface DirectionsResult {
 }
 
 async function fetchDirections(from: Coords, to: Coords): Promise<DirectionsResult> {
-  if (!MAPBOX_TOKEN) return { etaMinutes: null, routeCoords: null };
   try {
-    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${from.lng},${from.lat};${to.lng},${to.lat}?access_token=${MAPBOX_TOKEN}&overview=full&geometries=geojson`;
-    const res = await fetch(url);
+    const params = new URLSearchParams({
+      fromLat: String(from.lat),
+      fromLng: String(from.lng),
+      toLat:   String(to.lat),
+      toLng:   String(to.lng),
+    });
+    const res = await fetch(`/api/public/directions?${params}`);
     if (!res.ok) return { etaMinutes: null, routeCoords: null };
-    const data = await res.json();
-    const route = data?.routes?.[0];
-    if (!route) return { etaMinutes: null, routeCoords: null };
-    const seconds = route.duration;
-    const etaMinutes = typeof seconds === 'number' ? Math.max(1, Math.ceil(seconds / 60)) : null;
-    const routeCoords: [number, number][] | null = route.geometry?.coordinates ?? null;
-    return { etaMinutes, routeCoords };
+    return await res.json();
   } catch {
     return { etaMinutes: null, routeCoords: null };
   }
 }
 
-// Legacy wrapper used when driver coords are unavailable (ETA-only path)
+// Used when driver is not yet active — ETA from restaurant to delivery address
 async function fetchEtaMinutes(from: Coords, to: Coords): Promise<number | null> {
   const { etaMinutes } = await fetchDirections(from, to);
   return etaMinutes;

@@ -16,6 +16,7 @@ import { canTransition } from '@/lib/order-state';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
 import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
+import { evictTokenCache } from '@/app/api/driver/location/route';
 
 const logger = createLogger('driver-status');
 
@@ -92,6 +93,9 @@ export async function POST(req: NextRequest) {
 
     // Broadcast to customer tracking page immediately (no-RLS broadcast channel).
     broadcastOrderUpdate(order.id, 'delivered').catch(() => {});
+
+    // Evict Redis token cache — driver can no longer send location pings
+    evictTokenCache(token.slice(0, 16)).catch(() => {});
 
     // Full notification stack (email + push + log) via notifyStatusChange
     try {
