@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     if (!order) return NextResponse.json({ error: 'Invalid token' }, { status: 404 });
 
-    orderId = order.id;
+    orderId = order.id as string;
     tokenExpiresAt = (order as any).driver_token_expires_at ?? null;
     await setCachedToken(tokenPrefix, { orderId, expiresAt: tokenExpiresAt });
   }
