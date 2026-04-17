@@ -66,6 +66,10 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   const [orderCancelled, setOrderCancelled] = useState(false);
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  // watchPosition ID — replaces setInterval approach for continuous GPS
+  const watchIdRef = useRef<number | null>(null);
+  // Throttle: skip sends if last send was < 4 seconds ago AND moved < 15m
+  const lastSendRef = useRef<{ lat: number; lng: number; ts: number } | null>(null);
 
   const fetchOrderInfo = useCallback(async () => {
     try {
@@ -96,21 +100,22 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
 
   // Realtime subscription — notifies the driver immediately if the restaurant cancels the order.
   // Only subscribes once we have the order's UUID from the initial REST fetch.
+  //
+  // Uses Broadcast (same channel as the customer tracking page) instead of
+  // postgres_changes because the driver page has no Supabase session — the anon
+  // key has no RLS SELECT on orders, so postgres_changes events are silently dropped.
+  // Broadcast is not gated by RLS, so cancellation arrives reliably.
   useEffect(() => {
     if (!orderId) return;
     const supabase = getSupabaseBrowser();
     const channel = supabase
-      .channel(`driver-order:${orderId}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
-        (payload) => {
-          if ((payload.new as any)?.status === 'cancelled') {
-            setOrderCancelled(true);
-            stopGps();
-          }
+      .channel(`order-track:${orderId}`)
+      .on('broadcast', { event: 'status_change' }, ({ payload }) => {
+        if (payload?.status === 'cancelled') {
+          setOrderCancelled(true);
+          stopGps();
         }
-      )
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -119,6 +124,17 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   }, [orderId]);
 
   const sendLocation = async (lat: number, lng: number) => {
+    // Throttle: skip if < 4 s since last send AND moved < 15 m (~0.000135 deg)
+    const now = Date.now();
+    const last = lastSendRef.current;
+    if (last) {
+      const dt = now - last.ts;
+      const dlat = Math.abs(lat - last.lat);
+      const dlng = Math.abs(lng - last.lng);
+      if (dt < 4_000 && dlat < 0.000135 && dlng < 0.000135) return;
+    }
+    lastSendRef.current = { lat, lng, ts: now };
+
     try {
       const res = await fetch('/api/driver/location', {
         method: 'POST',
@@ -153,32 +169,46 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
 
   const startGps = () => {
     if (!navigator.geolocation) { setGpsStatus('unsupported'); return; }
+    // Stop any existing watch before starting a new one
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
     setGpsStatus('sharing');
     setGpsError('');
     acquireWakeLock();
-    navigator.geolocation.getCurrentPosition(
-      pos => sendLocation(pos.coords.latitude, pos.coords.longitude),
-      err => { setGpsStatus('error'); setGpsError(err.message); },
+    lastSendRef.current = null;
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      pos => {
+        setGpsStatus('sharing');
+        setGpsError('');
+        sendLocation(pos.coords.latitude, pos.coords.longitude);
+      },
+      err => {
+        setGpsError(err.message);
+        // PERMISSION_DENIED = 1, set unsupported. Others are transient — keep trying.
+        if (err.code === 1) setGpsStatus('unsupported');
+        else setGpsStatus('error');
+      },
+      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 5_000 },
     );
-    intervalRef.current = setInterval(() => {
-      navigator.geolocation.getCurrentPosition(
-        pos => {
-          setGpsStatus('sharing');
-          setGpsError('');
-          sendLocation(pos.coords.latitude, pos.coords.longitude);
-        },
-        err => setGpsError(err.message),
-      );
-    }, 10_000);
   };
 
   const stopGps = () => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     releaseWakeLock();
     setGpsStatus('idle');
   };
 
-  useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
+  useEffect(() => () => {
+    if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  }, []);
 
   // Re-acquire WakeLock when the page becomes visible again (browser releases it on hide)
   useEffect(() => {

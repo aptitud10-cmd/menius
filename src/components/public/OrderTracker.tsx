@@ -158,6 +158,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const [error, setError] = useState('');
   const [paidBannerVisible, setPaidBannerVisible] = useState(showPaidBanner);
   const [rtStatus, setRtStatus] = useState<'connected' | 'reconnecting' | 'disconnected'>('reconnecting');
+  // Live GPS coords pushed directly from the broadcast 'location_update' event.
+  // Updated without HTTP refetch so the map marker moves in real-time.
+  const [liveDriverCoords, setLiveDriverCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const hasInitialOrder = !!initialOrder;
 
@@ -236,6 +239,13 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         // Full refetch: ensures driver timestamps, ETA, and all joined fields
         // are always up-to-date rather than relying on the partial payload.
         fetchOrder();
+      })
+      .on('broadcast', { event: 'location_update' }, ({ payload }) => {
+        // Move the map marker directly from the broadcast payload.
+        // No HTTP refetch needed — coords arrive in the payload itself.
+        if (typeof payload?.lat === 'number' && typeof payload?.lng === 'number') {
+          setLiveDriverCoords({ lat: payload.lat, lng: payload.lng });
+        }
       })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
@@ -547,8 +557,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               restaurantAddress={restaurantAddress}
               deliveryAddress={order.delivery_address}
               restaurantName={restaurantName}
-              driverLat={(order as any).driver_lat ?? null}
-              driverLng={(order as any).driver_lng ?? null}
+              driverLat={liveDriverCoords?.lat ?? (order as any).driver_lat ?? null}
+              driverLng={liveDriverCoords?.lng ?? (order as any).driver_lng ?? null}
               locale={locale}
             />
           </div>
@@ -858,8 +868,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               restaurantAddress={restaurantAddress}
               deliveryAddress={order.delivery_address}
               restaurantName={restaurantName}
-              driverLat={(order as any).driver_lat ?? null}
-              driverLng={(order as any).driver_lng ?? null}
+              driverLat={liveDriverCoords?.lat ?? (order as any).driver_lat ?? null}
+              driverLng={liveDriverCoords?.lng ?? (order as any).driver_lng ?? null}
               locale={locale}
             />
           </div>
