@@ -36,6 +36,8 @@ export interface Restaurant {
   longitude?: number | null;
   stripe_account_id?: string | null;
   stripe_onboarding_complete?: boolean;
+  mp_enabled?: boolean;
+  mp_access_token?: string | null;
   is_active?: boolean;
   created_at: string;
   // CFDI / fiscal data (Mexico)

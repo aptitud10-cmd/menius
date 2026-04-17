@@ -780,6 +780,36 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     }
   };
 
+  const handlePayMercadoPago = async () => {
+    setPayLoading(true);
+    try {
+      const res = await fetch('/api/payments/mercadopago', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId, slug: restaurant.slug }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) {
+        setOrderError(formatPaymentStartError(res.status, data.error, locale));
+        setPayLoading(false);
+        return;
+      }
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
+        return;
+      }
+      setOrderError(formatPaymentStartError(res.status, undefined, locale));
+      setPayLoading(false);
+    } catch {
+      setOrderError(
+        locale === 'es'
+          ? 'Sin conexión al iniciar el pago. Revisa tu red e inténtalo.'
+          : 'Could not reach the server to start payment. Check your connection.'
+      );
+      setPayLoading(false);
+    }
+  };
+
   const inputClass = 'w-full px-4 py-3.5 rounded-xl border border-gray-300 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white';
 
   if (!hasMounted) {
@@ -1176,6 +1206,27 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     {locale === 'es' ? 'Pagar con Wompi' : 'Pay with Wompi'}
                   </>
                 ) : t.payNow}
+              </button>
+            )}
+
+            {/* MercadoPago button — shown when restaurant has MP enabled and not COP (Wompi handles COP) */}
+            {paymentMethod === 'online' && orderId && !restaurant.id.startsWith('demo') && restaurant.mp_enabled && !isColombianRestaurant && (
+              <button
+                onClick={handlePayMercadoPago}
+                disabled={payLoading}
+                className="w-full py-3.5 rounded-xl font-semibold text-sm disabled:opacity-50 transition-colors flex items-center justify-center gap-2 bg-[#009EE3] hover:bg-[#008ccc] text-white"
+              >
+                {payLoading ? (
+                  locale === 'es' ? 'Redirigiendo...' : 'Redirecting...'
+                ) : (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="40" height="40" rx="8" fill="#009EE3"/>
+                      <text x="7" y="27" fontSize="18" fontWeight="bold" fill="white">MP</text>
+                    </svg>
+                    {locale === 'es' ? 'Pagar con MercadoPago' : 'Pay with MercadoPago'}
+                  </>
+                )}
               </button>
             )}
             {!restaurant.id.startsWith('demo') && orderNumber && (

@@ -39,6 +39,7 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.294.0",
     "mapbox-gl": "^3.20.0",
+    "mercadopago": "^2.12.0",
     "next": "^14.2.25",
     "posthog-js": "^1.352.1",
     "qr-code-styling": "^1.9.2",
