@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label, commission_plan')
+      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label, commission_plan, order_types_enabled, payment_methods_enabled')
       .eq('id', restaurant_id)
       .eq('is_active', true)
       .maybeSingle();
@@ -126,6 +126,28 @@ export async function POST(request: NextRequest) {
     }
 
     const en = restaurant.locale === 'en';
+
+    // Validate order_type is enabled for this restaurant
+    const orderTypesEnabled = (restaurant as any).order_types_enabled as string[] | null;
+    if (orderTypesEnabled && orderTypesEnabled.length > 0 && !orderTypesEnabled.includes(order_type)) {
+      return NextResponse.json(
+        { error: en
+            ? 'This order type is not available at this restaurant.'
+            : 'Este tipo de pedido no está disponible en este restaurante.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate required fields per order type
+    if (order_type === 'delivery') {
+      const addr = (body.delivery_address ?? '').trim();
+      if (!addr || addr.length < 5) {
+        return NextResponse.json(
+          { error: en ? 'A delivery address is required.' : 'Se requiere una dirección de entrega.' },
+          { status: 400 }
+        );
+      }
+    }
 
     // Pause guard — if the restaurant paused orders, reject new ones
     const pausedUntil = (restaurant as any).orders_paused_until;

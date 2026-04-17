@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
   const { data: order, error } = await supabase
     .from('orders')
-    .select('id, status')
+    .select('id, status, order_type')
     .eq('id', orderId)
     .maybeSingle();
 
@@ -57,7 +57,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Order not found' }, { status: 404 });
   }
 
-  if (action === 'coming_out' && !['delivering', 'out_for_delivery', 'ready'].includes(order.status ?? '')) {
+  // 'coming_out' is only meaningful for delivery orders (driver at the door)
+  if (action === 'coming_out' && (order as any).order_type !== 'delivery') {
+    return NextResponse.json({ ok: true, notified: false, reason: 'not_delivery' });
+  }
+
+  // Only valid when the order is in 'ready' state (driver arrived)
+  if (action === 'coming_out' && order.status !== 'ready') {
     return NextResponse.json({ ok: true, notified: false, reason: 'wrong_status' });
   }
 

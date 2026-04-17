@@ -344,7 +344,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                               : (order as any).driver_picked_up_at
                                 ? (en ? 'Your order is on its way!' : '¡Tu pedido está en camino!')
                                 : (en ? 'Your order is ready for dispatch' : 'Tu pedido está listo para envío'))
-                          : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!');
+                          : order.order_type === 'dine_in'
+                            ? (en ? 'Your order is on its way to your table!' : '¡Tu pedido va en camino a tu mesa!')
+                            : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!');
       case 'delivered': return en ? 'Enjoy your meal!' : '¡Buen provecho!';
       default:          return '';
     }

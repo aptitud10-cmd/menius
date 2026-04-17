@@ -879,6 +879,11 @@ export async function updateOrderStatus(orderId: string, status: string, cancell
   if (status === 'cancelled' && cancellationReason) {
     updatePayload.cancellation_reason = cancellationReason;
   }
+  // Record when the order entered 'preparing' so cron/auto-complete-pickup
+  // measures elapsed time independently of other row updates (ETA edits, etc.)
+  if (status === 'preparing') {
+    updatePayload.prepared_at = new Date().toISOString();
+  }
 
   const { error } = await supabase
     .from('orders')

@@ -34,12 +34,22 @@ export async function POST(req: NextRequest) {
   const supabase = createAdminClient();
   const { data: order, error } = await supabase
     .from('orders')
-    .select('id, order_number, customer_name, table_name, restaurant_id, restaurants(name, locale)')
+    .select('id, order_number, order_type, status, customer_name, table_name, restaurant_id, restaurants(name, locale)')
     .eq('id', orderId)
     .maybeSingle();
 
   if (error || !order) {
     return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+  }
+
+  // Only dine-in orders can call a waiter
+  if ((order as any).order_type !== 'dine_in') {
+    return NextResponse.json({ error: 'Waiter call only available for dine-in orders' }, { status: 400 });
+  }
+
+  // Silently ignore calls on completed or cancelled orders
+  if (['delivered', 'cancelled'].includes((order as any).status)) {
+    return NextResponse.json({ ok: true, throttled: true });
   }
 
   const restaurant = (order as any).restaurants;
