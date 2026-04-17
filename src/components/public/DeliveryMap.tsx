@@ -30,21 +30,35 @@ export interface DeliveryMapProps {
   locale?: string;
 }
 
-// ── ETA via Mapbox Directions ─────────────────────────────────────────────────
+// ── Mapbox Directions — ETA + route geometry ─────────────────────────────────
 
-async function fetchEtaMinutes(from: Coords, to: Coords): Promise<number | null> {
-  if (!MAPBOX_TOKEN) return null;
+interface DirectionsResult {
+  etaMinutes: number | null;
+  routeCoords: [number, number][] | null; // [lng, lat] pairs for GeoJSON LineString
+}
+
+async function fetchDirections(from: Coords, to: Coords): Promise<DirectionsResult> {
+  if (!MAPBOX_TOKEN) return { etaMinutes: null, routeCoords: null };
   try {
-    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${from.lng},${from.lat};${to.lng},${to.lat}?access_token=${MAPBOX_TOKEN}&overview=false`;
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${from.lng},${from.lat};${to.lng},${to.lat}?access_token=${MAPBOX_TOKEN}&overview=full&geometries=geojson`;
     const res = await fetch(url);
-    if (!res.ok) return null;
+    if (!res.ok) return { etaMinutes: null, routeCoords: null };
     const data = await res.json();
-    const seconds = data?.routes?.[0]?.duration;
-    if (typeof seconds !== 'number') return null;
-    return Math.max(1, Math.ceil(seconds / 60));
+    const route = data?.routes?.[0];
+    if (!route) return { etaMinutes: null, routeCoords: null };
+    const seconds = route.duration;
+    const etaMinutes = typeof seconds === 'number' ? Math.max(1, Math.ceil(seconds / 60)) : null;
+    const routeCoords: [number, number][] | null = route.geometry?.coordinates ?? null;
+    return { etaMinutes, routeCoords };
   } catch {
-    return null;
+    return { etaMinutes: null, routeCoords: null };
   }
+}
+
+// Legacy wrapper used when driver coords are unavailable (ETA-only path)
+async function fetchEtaMinutes(from: Coords, to: Coords): Promise<number | null> {
+  const { etaMinutes } = await fetchDirections(from, to);
+  return etaMinutes;
 }
 
 // ── Mapbox Geocoding v6 ──────────────────────────────────────────────────────
@@ -101,7 +115,7 @@ interface LiveMapProps {
   locale?: string;
 }
 
-function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoords, etaMinutes, locale }: LiveMapProps) {
+function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoords, etaMinutes: etaMinutesProp, locale }: LiveMapProps) {
   const en = locale === 'en';
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -109,7 +123,11 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
   const driverElRef = useRef<HTMLDivElement | null>(null);
   const currentDriverPos = useRef<Coords | null>(null);
   const animFrameRef = useRef<number | null>(null);
+  const lastRoutePosRef = useRef<Coords | null>(null);
   const [ready, setReady] = useState(false);
+  // Local ETA updated from Directions API alongside route geometry (single call)
+  const [liveEta, setLiveEta] = useState<number | null>(etaMinutesProp);
+  const etaMinutes = liveEta ?? etaMinutesProp;
 
   // Smooth linear interpolation between two positions
   const animateMarkerTo = useCallback((target: Coords) => {
@@ -209,22 +227,35 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
           .setPopup(new mapboxgl.Popup({ offset: 20 }).setText('Dirección de entrega'))
           .addTo(map);
 
-        // Dashed route line between restaurant and delivery
+        // Route line — starts as dashed placeholder, upgraded to real road
+        // geometry from Mapbox Directions once the driver is active.
         map.on('load', () => {
+          const placeholderCoords: [number, number][] = [
+            [restaurantCoords.lng, restaurantCoords.lat],
+            [deliveryCoords.lng, deliveryCoords.lat],
+          ];
+
           map.addSource('route', {
             type: 'geojson',
             data: {
               type: 'Feature',
               properties: {},
-              geometry: {
-                type: 'LineString',
-                coordinates: [
-                  [restaurantCoords.lng, restaurantCoords.lat],
-                  [deliveryCoords.lng, deliveryCoords.lat],
-                ],
-              },
+              geometry: { type: 'LineString', coordinates: placeholderCoords },
             },
           });
+          // Solid underline (road casing)
+          map.addLayer({
+            id: 'route-casing',
+            type: 'line',
+            source: 'route',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: {
+              'line-color': '#047a65',
+              'line-width': 6,
+              'line-opacity': 0.25,
+            },
+          });
+          // Main route line — dashed until real geometry arrives
           map.addLayer({
             id: 'route',
             type: 'line',
@@ -232,9 +263,9 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
             layout: { 'line-join': 'round', 'line-cap': 'round' },
             paint: {
               'line-color': '#10b981',
-              'line-width': 3,
+              'line-width': 4,
               'line-dasharray': [2, 2],
-              'line-opacity': 0.7,
+              'line-opacity': 0.85,
             },
           });
         });
@@ -284,6 +315,42 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
       center: [driverCoords.lng, driverCoords.lat],
       duration: 1000,
       easing: (t: number) => t * (2 - t), // ease out quad
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, driverCoords?.lat, driverCoords?.lng]);
+
+  // Update route geometry from Mapbox Directions when driver moves >~50m.
+  // Replaces the dashed placeholder with the real road path driver→destination.
+  useEffect(() => {
+    if (!ready || !mapRef.current || !driverCoords || !deliveryCoords) return;
+
+    const map = mapRef.current;
+    if (!map.getSource('route')) return;
+
+    const last = lastRoutePosRef.current;
+    const moved = !last
+      || Math.abs(driverCoords.lat - last.lat) > ETA_MIN_DELTA
+      || Math.abs(driverCoords.lng - last.lng) > ETA_MIN_DELTA;
+    if (!moved) return;
+
+    lastRoutePosRef.current = driverCoords;
+
+    fetchDirections(driverCoords, deliveryCoords).then(({ etaMinutes: eta, routeCoords }) => {
+      // Update ETA chip from the same API call — no extra request
+      if (eta !== null) setLiveEta(eta);
+
+      if (!routeCoords || !map.getSource('route')) return;
+      // Update GeoJSON source with real road geometry
+      (map.getSource('route') as any).setData({
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'LineString', coordinates: routeCoords },
+      });
+      // Switch from dashed to solid once we have real route data
+      if (map.getLayer('route')) {
+        map.setPaintProperty('route', 'line-dasharray', [1, 0]);
+        map.setPaintProperty('route', 'line-width', 4);
+      }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, driverCoords?.lat, driverCoords?.lng]);
@@ -345,22 +412,16 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
     });
   }, [restaurantAddress, deliveryAddress]);
 
-  // Recalculate ETA when driver position changes meaningfully (>~50 m)
+  // ETA is now computed inside LiveMap alongside the route update (single API call).
+  // This effect only runs when there is no driver yet — static ETA from restaurant
+  // to delivery address as a rough estimate before dispatch.
   useEffect(() => {
-    if (!driverCoords || !deliveryCoords) return;
-
-    const last = lastEtaPos.current;
-    const moved = !last
-      || Math.abs(driverCoords.lat - last.lat) > ETA_MIN_DELTA
-      || Math.abs(driverCoords.lng - last.lng) > ETA_MIN_DELTA;
-
-    if (!moved) return;
-
-    lastEtaPos.current = driverCoords;
-    fetchEtaMinutes(driverCoords, deliveryCoords).then((mins) => {
+    if (driverCoords || !restaurantCoords || !deliveryCoords) return;
+    fetchEtaMinutes(restaurantCoords, deliveryCoords).then((mins) => {
       if (mins !== null) setEtaMinutes(mins);
     });
-  }, [driverCoords, deliveryCoords]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!driverCoords, restaurantCoords, deliveryCoords]);
 
   if (!geocodingDone) {
     return <div className="w-full h-60 rounded-2xl bg-gray-100 animate-pulse" />;
