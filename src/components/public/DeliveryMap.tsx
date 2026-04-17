@@ -393,7 +393,6 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
   const [deliveryCoords, setDeliveryCoords] = useState<Coords | null>(null);
   const [geocodingDone, setGeocodingDone] = useState(false);
   const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
-  const lastEtaPos = useRef<Coords | null>(null);
 
   const driverCoords = useMemo<Coords | null>(
     () => (driverLat != null && driverLng != null) ? { lat: driverLat, lng: driverLng } : null,

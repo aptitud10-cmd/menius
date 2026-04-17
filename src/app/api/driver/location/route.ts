@@ -11,14 +11,17 @@ import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { broadcastDriverLocation } from '@/lib/realtime/broadcast-order';
 
 export async function POST(req: NextRequest) {
-  const ip = getClientIP(req);
-  const rl = await checkRateLimitAsync(`driver-location:${ip}`, { limit: 120, windowSec: 60 });
+  const body = await req.json().catch(() => ({}));
+  const { token, lat, lng } = body as { token?: string; lat?: number; lng?: number };
+
+  // Rate limit per token (driver identity) — not per IP.
+  // IP-based limiting breaks when multiple drivers share a carrier NAT or office network.
+  // Token is validated below; use a prefix to avoid leaking raw token into Redis keys.
+  const rlKey = token ? `driver-location:${token.slice(0, 16)}` : `driver-location:ip:${getClientIP(req)}`;
+  const rl = await checkRateLimitAsync(rlKey, { limit: 30, windowSec: 60 });
   if (!rl.allowed) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
-
-  const body = await req.json().catch(() => ({}));
-  const { token, lat, lng } = body as { token?: string; lat?: number; lng?: number };
 
   if (!token || lat == null || lng == null) {
     return NextResponse.json({ error: 'token, lat and lng are required' }, { status: 400 });
@@ -32,7 +35,10 @@ export async function POST(req: NextRequest) {
 
   const supabase = createAdminClient();
 
-  // Verify token exists and has not expired
+  // Verify token exists and has not expired.
+  // Index: orders_driver_tracking_token_idx (partial, WHERE NOT NULL) — O(log n).
+  // At high scale (1000s concurrent deliveries), replace this SELECT with a
+  // Redis cache: token_prefix → {orderId, expiresAt}, invalidated on delivery/cancel.
   const { data: order } = await supabase
     .from('orders')
     .select('id, driver_token_expires_at')
