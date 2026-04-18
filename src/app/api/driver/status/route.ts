@@ -71,9 +71,10 @@ export async function POST(req: NextRequest) {
   let shouldNotify = false;
 
   if (action === 'picked_up') {
-    // Advance status to 'ready' only if the transition is valid from the current state.
-    // Guards against a driver tapping "picked up" on a pending/cancelled order.
-    const nextStatus = canTransition(order.status, 'ready') ? 'ready' : undefined;
+    // Force status to 'ready' when driver physically picks up the order.
+    // In-house restaurant drivers may scan before the counter has confirmed/prepared,
+    // so we skip intermediate states. Only guard against already-terminal states.
+    const nextStatus = !['delivered', 'cancelled'].includes(order.status) ? 'ready' : undefined;
     updateData = { driver_picked_up_at: now, ...(nextStatus ? { status: nextStatus } : {}) };
     // Only notify if this is the first time (prevents duplicate WhatsApp if two drivers tap the same link)
     shouldNotify = !(order as any).driver_picked_up_at;
