@@ -194,13 +194,18 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Polling fallback — refreshes order every 15 s so status updates even if
-  // realtime websocket is unavailable (e.g. anon key has no realtime perms).
+  // Polling — primary real-time mechanism for anon customers.
+  // Supabase postgres_changes is unreliable for anon users (events silently dropped).
+  // Poll every 3s during active delivery so the customer sees driver updates fast.
+  // Drop back to 15s once delivered/cancelled or for non-delivery orders.
   useEffect(() => {
     if (!order?.id || order.status === 'delivered' || order.status === 'cancelled') return;
-    const interval = setInterval(fetchOrder, 15_000);
+    const isActiveDelivery =
+      order.order_type === 'delivery' &&
+      ['pending', 'confirmed', 'preparing', 'ready'].includes(order.status);
+    const interval = setInterval(fetchOrder, isActiveDelivery ? 3_000 : 15_000);
     return () => clearInterval(interval);
-  }, [order?.id, order?.status, fetchOrder]);
+  }, [order?.id, order?.status, order?.order_type, fetchOrder]);
 
   useEffect(() => {
     if (!order?.id) return;
