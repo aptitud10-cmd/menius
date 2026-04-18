@@ -7,6 +7,7 @@ import {
   Truck, ShoppingBag, Utensils, MessageCircle, Phone,
   MapPin, Pause, Flame, Printer, History, AlertTriangle,
   Wifi, WifiOff, ChevronRight, User, Settings2, Calendar, Plus,
+  TrendingUp, Brain, ChevronUp, Star,
 } from 'lucide-react';
 import { useRealtimeOrders, type RealtimeConnectionStatus } from '@/hooks/use-realtime-orders';
 import {
@@ -706,8 +707,66 @@ export function CounterView({
   const isPaused = !!pausedUntil && Date.now() < pausedUntil;
   const pauseLeftMins = pausedUntil ? Math.max(0, Math.ceil((pausedUntil - Date.now()) / 60_000)) : 0;
   const effectiveEta = eta + busyExtra;
-  const todayOrders = orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString());
-  const todayRevenue = todayOrders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total), 0);
+  const todayOrders = useMemo(() =>
+    orders.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString()),
+    [orders]);
+  const todayRevenue = useMemo(() =>
+    todayOrders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total), 0),
+    [todayOrders]);
+  const todayCompleted = useMemo(() =>
+    todayOrders.filter(o => o.status === 'delivered').length,
+    [todayOrders]);
+  const avgTicket = useMemo(() =>
+    todayCompleted > 0 ? todayRevenue / todayCompleted : 0,
+    [todayRevenue, todayCompleted]);
+  const topProducts = useMemo(() => {
+    const freq: Record<string, { name: string; qty: number }> = {};
+    todayOrders.filter(o => o.status !== 'cancelled').forEach(o => {
+      (o.items ?? []).forEach(item => {
+        const name = item.product?.name ?? 'Unknown';
+        if (!freq[name]) freq[name] = { name, qty: 0 };
+        freq[name].qty += item.qty;
+      });
+    });
+    return Object.values(freq).sort((a, b) => b.qty - a.qty).slice(0, 3);
+  }, [todayOrders]);
+
+  // ── AI insights (computed from live data, no external API) ──
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const aiInsights = useMemo(() => {
+    const insights: { icon: string; text: string; type: 'info' | 'warn' | 'tip' }[] = [];
+    // Delayed orders warning
+    const delayed = newOrders.filter(o => elapsedMins(o.created_at) >= SLA_WARN_MINS);
+    if (delayed.length > 0) {
+      insights.push({ icon: '🔴', text: t.en ? `${delayed.length} order${delayed.length > 1 ? 's' : ''} waiting over 5 min — respond now!` : `${delayed.length} orden${delayed.length > 1 ? 'es' : ''} esperando +5 min — ¡responde!`, type: 'warn' });
+    }
+    // Kitchen load
+    if (prepOrders.length >= 5) {
+      insights.push({ icon: '🔥', text: t.en ? `${prepOrders.length} orders preparing — kitchen under heavy load` : `${prepOrders.length} órdenes en preparación — cocina sobrecargada`, type: 'warn' });
+    }
+    // Top seller today
+    if (topProducts[0] && topProducts[0].qty >= 3) {
+      insights.push({ icon: '⭐', text: t.en ? `"${topProducts[0].name}" is selling fast today (×${topProducts[0].qty})` : `"${topProducts[0].name}" vende muy bien hoy (×${topProducts[0].qty})`, type: 'tip' });
+    }
+    // Revenue milestone
+    if (todayRevenue > 0 && todayCompleted > 0 && todayCompleted % 10 === 0) {
+      insights.push({ icon: '🎯', text: t.en ? `${todayCompleted} orders completed today — great pace!` : `${todayCompleted} órdenes completadas hoy — ¡excelente ritmo!`, type: 'info' });
+    }
+    // High-value order in queue
+    const highValue = newOrders.find(o => Number(o.total) > avgTicket * 2 && avgTicket > 0);
+    if (highValue) {
+      insights.push({ icon: '💰', text: t.en ? `High-value order #${highValue.order_number} (${fmt(Number(highValue.total), currency)}) — prioritize it!` : `Orden de alto valor #${highValue.order_number} (${fmt(Number(highValue.total), currency)}) — ¡priorízala!`, type: 'tip' });
+    }
+    // Ready orders waiting too long
+    const staleReady = readyOrders.filter(o => elapsedMins(o.updated_at ?? o.created_at) >= 10);
+    if (staleReady.length > 0) {
+      insights.push({ icon: '⏰', text: t.en ? `${staleReady.length} ready order${staleReady.length > 1 ? 's' : ''} waiting for pickup over 10 min` : `${staleReady.length} orden${staleReady.length > 1 ? 'es' : ''} lista${staleReady.length > 1 ? 's' : ''} esperando +10 min`, type: 'warn' });
+    }
+    if (insights.length === 0 && todayCompleted > 0) {
+      insights.push({ icon: '✅', text: t.en ? `All good — ${todayCompleted} orders completed, ${fmt(todayRevenue, currency)} revenue` : `Todo bien — ${todayCompleted} órdenes, ${fmt(todayRevenue, currency)} en ventas`, type: 'info' });
+    }
+    return insights;
+  }, [newOrders, prepOrders, readyOrders, topProducts, todayRevenue, todayCompleted, avgTicket, currency, t.en]);
 
   // ── Actions ──
   const handleAccept = useCallback(async (order: Order) => {
@@ -1154,82 +1213,171 @@ export function CounterView({
       )}
 
       {/* ══ TOP BAR ══ */}
-      <header className="flex-none h-14 bg-white border-b border-[#E8E8E8] flex items-center px-3 gap-2 z-10 shadow-sm">
-        {/* Hamburger */}
-        <button
-          onClick={() => setSidebarOpen(true)}
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-[#555] hover:bg-[#F5F5F5] transition-colors flex-shrink-0"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-
-        {/* Restaurant name */}
-        <span className="text-sm font-bold text-[#111] truncate max-w-[120px] flex-shrink-0 hidden sm:block">
-          {restaurantName}
-        </span>
-
-        {/* Tabs */}
-        <nav className="flex items-center gap-1 flex-1 overflow-x-auto px-1">
-          <TabBtn
-            label={t.tabNew} count={newOrders.length}
-            active={activeTab === 'new'} urgent={newOrders.length > 0}
-            badgeColor="#EF4444" onClick={() => changeTab('new')}
-          />
-          <TabBtn
-            label={t.tabPrep} count={prepOrders.length}
-            active={activeTab === 'prep'} urgent={false}
-            badgeColor="#F59E0B" onClick={() => changeTab('prep')}
-          />
-          <TabBtn
-            label={t.tabReady} count={readyOrders.length}
-            active={activeTab === 'ready'} urgent={false}
-            badgeColor={GREEN} onClick={() => changeTab('ready')}
-          />
-          <TabBtn
-            label={t.en ? 'Sched.' : 'Program.'} count={scheduledOrders.length || null}
-            active={activeTab === 'scheduled'} urgent={false}
-            badgeColor="#8B5CF6" onClick={() => changeTab('scheduled')}
-            icon={<Clock className="w-3.5 h-3.5" />}
-          />
-          <TabBtn
-            label={t.tabHistory} count={null}
-            active={activeTab === 'history'} urgent={false}
-            badgeColor="#9CA3AF" onClick={() => changeTab('history')}
-            icon={<History className="w-3.5 h-3.5" />}
-          />
-        </nav>
-
-        {/* Online indicator — tap to manually refresh orders */}
-        <button
-          onClick={refetch}
-          title={t.en ? 'Tap to refresh orders' : 'Toca para actualizar órdenes'}
-          className="flex items-center gap-1.5 flex-shrink-0 rounded-lg px-2 py-1 hover:bg-[#F5F5F5] active:scale-95 transition-all"
-        >
-          <div className={cn('w-2 h-2 rounded-full', !isOnline || rtStatus === 'disconnected' ? 'bg-red-400' : rtStatus === 'reconnecting' ? 'bg-amber-400 animate-pulse' : 'bg-[#06C167] animate-pulse')} />
-          <span className="text-[11px] font-semibold text-[#888] hidden md:block">
-            {!isOnline || rtStatus === 'disconnected' ? 'Offline' : rtStatus === 'reconnecting' ? (t.en ? 'Reconnecting…' : 'Reconectando…') : t.online_status}
-          </span>
-        </button>
-
-        {/* Tablet mode link (only in normal mode) */}
-        {!tabletMode && (
-          <a
-            href="/app/counter/tablet"
-            title={t.en ? 'Tablet mode' : 'Modo tablet'}
-            className="w-9 h-9 rounded-xl items-center justify-center text-[#555] hover:bg-[#F5F5F5] transition-colors flex-shrink-0 hidden lg:flex"
+      <header className="flex-none bg-white border-b border-[#E8E8E8] z-10 shadow-sm">
+        {/* ── Main row ── */}
+        <div className="h-14 flex items-center px-3 gap-2">
+          {/* Hamburger */}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-[#555] hover:bg-[#F5F5F5] transition-colors flex-shrink-0"
           >
-            <Settings2 className="w-4 h-4" />
-          </a>
-        )}
+            <Menu className="w-5 h-5" />
+          </button>
 
-        {/* Printer settings button */}
-        <button
-          onClick={() => setPrinterModalOpen(true)}
-          title={t.en ? 'Printer settings' : 'Configurar impresora'}
-          className="w-9 h-9 rounded-xl flex items-center justify-center text-[#555] hover:bg-[#F5F5F5] transition-colors flex-shrink-0"
-        >
-          <Printer className="w-4 h-4" />
-        </button>
+          {/* Restaurant name */}
+          <span className="text-sm font-bold text-[#111] truncate max-w-[110px] flex-shrink-0 hidden sm:block">
+            {restaurantName}
+          </span>
+
+          {/* Divider */}
+          <div className="w-px h-6 bg-[#E8E8E8] flex-shrink-0 hidden sm:block" />
+
+          {/* Live stats — compact chips */}
+          <div className="hidden lg:flex items-center gap-2 flex-shrink-0">
+            <StatChip
+              label={t.en ? 'Revenue' : 'Ventas'}
+              value={fmt(todayRevenue, currency)}
+              icon={<TrendingUp className="w-3 h-3" />}
+              color="green"
+            />
+            <StatChip
+              label={t.en ? 'Orders' : 'Órdenes'}
+              value={String(todayCompleted)}
+              icon={<Check className="w-3 h-3" />}
+              color="blue"
+            />
+            {avgTicket > 0 && (
+              <StatChip
+                label={t.en ? 'Avg ticket' : 'Ticket prom.'}
+                value={fmt(avgTicket, currency)}
+                icon={<Star className="w-3 h-3" />}
+                color="purple"
+              />
+            )}
+            {topProducts[0] && (
+              <StatChip
+                label={t.en ? '#1 today' : '#1 hoy'}
+                value={topProducts[0].name.length > 14 ? topProducts[0].name.slice(0, 12) + '…' : topProducts[0].name}
+                icon={<Flame className="w-3 h-3" />}
+                color="orange"
+              />
+            )}
+          </div>
+
+          {/* Tabs */}
+          <nav className="flex items-center gap-1 flex-1 overflow-x-auto px-1">
+            <TabBtn
+              label={t.tabNew} count={newOrders.length}
+              active={activeTab === 'new'} urgent={newOrders.length > 0}
+              badgeColor="#EF4444" onClick={() => changeTab('new')}
+            />
+            <TabBtn
+              label={t.tabPrep} count={prepOrders.length}
+              active={activeTab === 'prep'} urgent={false}
+              badgeColor="#F59E0B" onClick={() => changeTab('prep')}
+            />
+            <TabBtn
+              label={t.tabReady} count={readyOrders.length}
+              active={activeTab === 'ready'} urgent={false}
+              badgeColor={GREEN} onClick={() => changeTab('ready')}
+            />
+            <TabBtn
+              label={t.en ? 'Sched.' : 'Program.'} count={scheduledOrders.length || null}
+              active={activeTab === 'scheduled'} urgent={false}
+              badgeColor="#8B5CF6" onClick={() => changeTab('scheduled')}
+              icon={<Clock className="w-3.5 h-3.5" />}
+            />
+            <TabBtn
+              label={t.tabHistory} count={null}
+              active={activeTab === 'history'} urgent={false}
+              badgeColor="#9CA3AF" onClick={() => changeTab('history')}
+              icon={<History className="w-3.5 h-3.5" />}
+            />
+          </nav>
+
+          {/* AI assistant button */}
+          <button
+            onClick={() => setAiPanelOpen(v => !v)}
+            title={t.en ? 'AI Insights' : 'Insights de IA'}
+            className={cn(
+              'flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex-shrink-0',
+              aiPanelOpen
+                ? 'bg-violet-600 text-white shadow-md'
+                : aiInsights.some(i => i.type === 'warn')
+                  ? 'bg-red-50 text-red-600 border border-red-200 animate-pulse'
+                  : 'bg-[#F5F5F5] text-[#555] hover:bg-violet-50 hover:text-violet-600'
+            )}
+          >
+            <Brain className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">AI</span>
+            {aiInsights.some(i => i.type === 'warn') && !aiPanelOpen && (
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+            )}
+          </button>
+
+          {/* Online indicator */}
+          <button
+            onClick={refetch}
+            title={t.en ? 'Tap to refresh orders' : 'Toca para actualizar órdenes'}
+            className="flex items-center gap-1.5 flex-shrink-0 rounded-lg px-2 py-1 hover:bg-[#F5F5F5] active:scale-95 transition-all"
+          >
+            <div className={cn('w-2 h-2 rounded-full', !isOnline || rtStatus === 'disconnected' ? 'bg-red-400' : rtStatus === 'reconnecting' ? 'bg-amber-400 animate-pulse' : 'bg-[#06C167] animate-pulse')} />
+            <span className="text-[11px] font-semibold text-[#888] hidden md:block">
+              {!isOnline || rtStatus === 'disconnected' ? 'Offline' : rtStatus === 'reconnecting' ? (t.en ? 'Reconnecting…' : 'Reconectando…') : t.online_status}
+            </span>
+          </button>
+
+          {/* Tablet mode link (only in normal mode) */}
+          {!tabletMode && (
+            <a
+              href="/app/counter/tablet"
+              title={t.en ? 'Tablet mode' : 'Modo tablet'}
+              className="w-9 h-9 rounded-xl items-center justify-center text-[#555] hover:bg-[#F5F5F5] transition-colors flex-shrink-0 hidden lg:flex"
+            >
+              <Settings2 className="w-4 h-4" />
+            </a>
+          )}
+
+          {/* Printer settings button */}
+          <button
+            onClick={() => setPrinterModalOpen(true)}
+            title={t.en ? 'Printer settings' : 'Configurar impresora'}
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-[#555] hover:bg-[#F5F5F5] transition-colors flex-shrink-0"
+          >
+            <Printer className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* ── AI Insights panel (collapsible) ── */}
+        {aiPanelOpen && (
+          <div className="border-t border-[#F0F0F0] bg-gradient-to-r from-violet-50 to-white px-3 py-2.5 flex items-start gap-3 animate-in slide-in-from-top-1 duration-150">
+            <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
+              <Brain className="w-4 h-4 text-violet-500" />
+              <span className="text-xs font-bold text-violet-600 uppercase tracking-wide hidden sm:inline">AI</span>
+            </div>
+            <div className="flex flex-wrap gap-2 flex-1">
+              {aiInsights.length === 0 ? (
+                <span className="text-xs text-[#888]">{t.en ? 'Analyzing orders…' : 'Analizando órdenes…'}</span>
+              ) : aiInsights.map((insight, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium',
+                    insight.type === 'warn' ? 'bg-red-100 text-red-700 border border-red-200' :
+                    insight.type === 'tip' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                    'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  )}
+                >
+                  <span>{insight.icon}</span>
+                  <span>{insight.text}</span>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setAiPanelOpen(false)} className="flex-shrink-0 text-[#BBBBBB] hover:text-[#555] mt-0.5">
+              <ChevronUp className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </header>
 
       {/* ══ MAIN LAYOUT ══ */}
@@ -1554,16 +1702,34 @@ export function CounterView({
               </SidebarSection>
 
               {/* Today summary */}
-              <SidebarSection title={t.todaySummary} icon={<History className="w-4 h-4" />}>
-                <div className="px-3 py-3 rounded-xl bg-[#F5F5F5] space-y-1">
+              <SidebarSection title={t.todaySummary} icon={<TrendingUp className="w-4 h-4" />}>
+                <div className="px-3 py-3 rounded-xl bg-[#F5F5F5] space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-[#888]">{t.todayOrders}</span>
-                    <span className="font-bold text-[#111]">{todayOrders.length}</span>
+                    <span className="text-[#888]">{t.en ? 'Completed' : 'Completadas'}</span>
+                    <span className="font-bold text-[#111]">{todayCompleted}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-[#888]">Revenue</span>
-                    <span className="font-bold text-[#111]">{fmt(todayRevenue, currency)}</span>
+                    <span className="text-[#888]">{t.en ? 'Revenue' : 'Ventas'}</span>
+                    <span className="font-bold text-emerald-600">{fmt(todayRevenue, currency)}</span>
                   </div>
+                  {avgTicket > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#888]">{t.en ? 'Avg ticket' : 'Ticket prom.'}</span>
+                      <span className="font-bold text-[#111]">{fmt(avgTicket, currency)}</span>
+                    </div>
+                  )}
+                  {topProducts.length > 0 && (
+                    <div className="pt-1 border-t border-[#E8E8E8]">
+                      <p className="text-[10px] font-bold text-[#AAAAAA] uppercase tracking-wide mb-1.5">{t.en ? 'Top today' : 'Top hoy'}</p>
+                      {topProducts.map((p, i) => (
+                        <div key={p.name} className="flex items-center gap-2 text-xs mb-1">
+                          <span className="text-[#BBBBBB] font-bold w-3">{i + 1}</span>
+                          <span className="flex-1 truncate text-[#555]">{p.name}</span>
+                          <span className="font-bold text-[#111]">×{p.qty}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </SidebarSection>
 
@@ -2232,6 +2398,29 @@ export function CounterView({
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// StatChip — compact live stat in top bar
+// ══════════════════════════════════════════════════════════════════════════════
+
+function StatChip({ label, value, icon, color }: {
+  label: string; value: string; icon: React.ReactNode;
+  color: 'green' | 'blue' | 'purple' | 'orange';
+}) {
+  const colors = {
+    green:  'bg-emerald-50 text-emerald-700 border-emerald-200',
+    blue:   'bg-blue-50 text-blue-700 border-blue-200',
+    purple: 'bg-violet-50 text-violet-700 border-violet-200',
+    orange: 'bg-orange-50 text-orange-700 border-orange-200',
+  };
+  return (
+    <div className={cn('flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-semibold whitespace-nowrap', colors[color])}>
+      {icon}
+      <span className="text-[10px] opacity-60">{label}</span>
+      <span className="font-black">{value}</span>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // TabBtn
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -2286,13 +2475,37 @@ function OrderRow({
   const countdownSecs = etaMins != null ? etaMins * 60 - secs : null;
   const isLate = countdownSecs !== null && countdownSecs < 0;
 
+  // Urgency tier for 'new' tab: green (0-4m) → yellow (5-9m) → red (10m+)
+  const urgencyTier: 'green' | 'yellow' | 'red' = tab === 'new'
+    ? mins >= 10 ? 'red' : mins >= 5 ? 'yellow' : 'green'
+    : tab === 'prep' && isLate ? 'red'
+    : 'green';
+
+  const urgencyLabel = tab === 'new'
+    ? mins >= 10 ? (t.en ? 'LATE' : 'TARDE')
+    : mins >= 5 ? `${mins}m`
+    : `${mins}m`
+    : null;
+
+  const borderColor = selected
+    ? 'border-l-[#06C167]'
+    : urgencyTier === 'red' ? 'border-l-red-500'
+    : urgencyTier === 'yellow' ? 'border-l-amber-400'
+    : 'border-l-transparent';
+
+  const rowBg = selected
+    ? 'bg-[#F0FDF4]'
+    : urgencyTier === 'red' && !selected ? 'bg-red-50 hover:bg-red-100'
+    : urgencyTier === 'yellow' && !selected ? 'bg-amber-50 hover:bg-amber-100'
+    : 'hover:bg-[#FAFAFA]';
+
   return (
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-4 py-4 border-b border-[#F5F5F5] transition-all border-l-4',
-        selected ? 'bg-[#F0FDF4] border-l-[#06C167]' : 'hover:bg-[#FAFAFA] border-l-transparent',
-        isUrgent && !selected ? 'bg-red-50 border-l-red-400' : ''
+        'w-full text-left px-4 py-3.5 border-b border-[#F5F5F5] transition-all border-l-4',
+        borderColor,
+        rowBg,
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -2308,18 +2521,20 @@ function OrderRow({
             )}>
               {getTypeLabel(order.order_type, t).toUpperCase()}
             </span>
-            {isUrgent && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-red-500">
-                {t.urgent}
-              </span>
-            )}
           </div>
           <p className="text-xs text-[#888] truncate">{order.customer_name || 'Cliente'}</p>
           <p className="text-xs font-bold text-[#111] mt-1">{fmt(Number(order.total), currency)}</p>
         </div>
-        <div className="flex-shrink-0 text-right">
+        <div className="flex-shrink-0 text-right flex flex-col items-end gap-0.5">
           {tab === 'prep' && countdownSecs !== null ? (
-            <div className={cn('text-xs font-black tabular-nums', isLate ? 'text-red-500' : 'text-[#06C167]')}>
+            <div className={cn(
+              'text-xs font-black tabular-nums px-2 py-0.5 rounded-lg',
+              isLate
+                ? 'bg-red-100 text-red-600'
+                : countdownSecs < 120
+                  ? 'bg-amber-100 text-amber-600'
+                  : 'bg-emerald-100 text-emerald-700'
+            )}>
               {isLate ? '−' : ''}{fmtCountdown(countdownSecs)}
             </div>
           ) : tab === 'scheduled' && order.scheduled_for ? (
@@ -2327,21 +2542,28 @@ function OrderRow({
               {new Date(order.scheduled_for).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               <div className="text-[9px] text-purple-300">{new Date(order.scheduled_for).toLocaleDateString([], { month: 'short', day: 'numeric' })}</div>
             </div>
-          ) : (
-            <div className={cn('text-xs font-semibold tabular-nums', isUrgent ? 'text-red-500' : 'text-[#AAAAAA]')}>
-              {mins}m
+          ) : urgencyLabel ? (
+            <div className={cn(
+              'text-[10px] font-black px-2 py-0.5 rounded-lg tabular-nums',
+              urgencyTier === 'red' ? 'bg-red-100 text-red-600 animate-pulse' :
+              urgencyTier === 'yellow' ? 'bg-amber-100 text-amber-600' :
+              'bg-[#F5F5F5] text-[#999]'
+            )}>
+              {urgencyLabel}
             </div>
+          ) : (
+            <div className="text-xs font-semibold tabular-nums text-[#AAAAAA]">{mins}m</div>
           )}
           {tab === 'ready' && order.order_type === 'delivery' ? (
             order.driver_at_door_at ? (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 mt-0.5 block">🚪 {t.en ? 'At door' : 'En puerta'}</span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-600 block">🚪 {t.en ? 'At door' : 'En puerta'}</span>
             ) : order.driver_picked_up_at ? (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 mt-0.5 block animate-pulse">🛵 {t.en ? 'On the way' : 'En camino'}</span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-600 block animate-pulse">🛵 {t.en ? 'On the way' : 'En camino'}</span>
             ) : (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-500 mt-0.5 block">⏳ {t.en ? 'Awaiting driver' : 'Espera driver'}</span>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-500 block">⏳ {t.en ? 'Awaiting driver' : 'Espera driver'}</span>
             )
           ) : tab === 'ready' ? (
-            <div className="text-[10px] text-[#06C167] font-bold mt-0.5">✓</div>
+            <div className="text-[10px] text-[#06C167] font-bold">✓ {t.en ? 'Ready' : 'Lista'}</div>
           ) : null}
         </div>
       </div>
