@@ -8,9 +8,21 @@ import {
 } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { haversineKm } from '@/lib/utils/eta';
+import { OrderChat } from '@/components/shared/OrderChat';
 
 type GpsStatus = 'idle' | 'sharing' | 'error' | 'unsupported';
 type DeliveryStep = 'start' | 'picked_up' | 'at_door' | 'delivered';
+
+const DRIVER_IDENTITY_KEY = 'menius-driver-identity';
+
+function getDriverIdentity(): { name: string; phone: string } | null {
+  try {
+    const raw = localStorage.getItem(DRIVER_IDENTITY_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.name ? { name: parsed.name, phone: parsed.phone ?? '' } : null;
+  } catch { return null; }
+}
 
 function getT(lang: string) {
   const en = lang === 'en';
@@ -62,6 +74,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState<string | null>(null);
+  const [deliveryInstructions, setDeliveryInstructions] = useState<string | null>(null);
   const [customerPhone, setCustomerPhone] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderCancelled, setOrderCancelled] = useState(false);
@@ -71,15 +84,28 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   const deliveryStepRef = useRef<DeliveryStep>('start');
   const geofenceTriggeredRef = useRef(false);
 
+  // Driver identity — auto-assign from localStorage
+  const [driverIdentity, setDriverIdentity] = useState<{ name: string; phone: string } | null>(null);
+  const [driverAssigned, setDriverAssigned] = useState(false);
+  const [showRegistration, setShowRegistration] = useState(false);
+  const [regName, setRegName] = useState('');
+  const [regPhone, setRegPhone] = useState('');
+  const selfAssignCalledRef = useRef(false);
+  const [customerComingOut, setCustomerComingOut] = useState(false);
+
   const fetchOrderInfo = useCallback(async () => {
     try {
       const res = await fetch(`/api/driver/order?token=${encodeURIComponent(token)}`);
       if (res.ok) {
         const data = await res.json();
         setDeliveryAddress(data.deliveryAddress ?? null);
+        setDeliveryInstructions(data.deliveryInstructions ?? null);
         setCustomerPhone(data.customerPhone ?? null);
         if (data.orderId) setOrderId(data.orderId);
         if (data.orderStatus === 'cancelled') setOrderCancelled(true);
+
+        // Track if a driver is already assigned
+        if (data.driverName) setDriverAssigned(true);
 
         // Restore step from server timestamps so a page reload doesn't reset progress
         if (data.driverDeliveredAt) {
@@ -90,13 +116,47 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           setDeliveryStep('picked_up');
           startGps();
         }
+
+        return data;
       }
     } catch { /* silent */ }
+    return null;
   // startGps is stable (no deps), safe to include
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  useEffect(() => { fetchOrderInfo(); }, [fetchOrderInfo]);
+  // On mount: fetch order info, then auto-assign driver from localStorage if unassigned
+  useEffect(() => {
+    (async () => {
+      const data = await fetchOrderInfo();
+      if (!data || selfAssignCalledRef.current) return;
+
+      // Check localStorage for registered driver identity
+      const identity = getDriverIdentity();
+      if (identity) {
+        setDriverIdentity(identity);
+        setRegName(identity.name);
+        setRegPhone(identity.phone);
+      }
+
+      // Auto-assign if no driver assigned yet and we have identity
+      if (!data.driverName && identity) {
+        selfAssignCalledRef.current = true;
+        try {
+          const res = await fetch('/api/driver/self-assign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, driverName: identity.name, driverPhone: identity.phone }),
+          });
+          if (res.ok) setDriverAssigned(true);
+        } catch { /* silent */ }
+      } else if (!data.driverName && !identity) {
+        // No identity — show registration prompt
+        setShowRegistration(true);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
   useEffect(() => { deliveryStepRef.current = deliveryStep; }, [deliveryStep]);
 
   // Geocode delivery address once — used for geofencing (auto "at door" within 100 m)
@@ -128,7 +188,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
-        (payload) => {
+        (payload: Record<string, unknown>) => {
           if ((payload.new as any)?.status === 'cancelled') {
             setOrderCancelled(true);
             stopGps();
@@ -137,7 +197,37 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    // Listen for customer "coming out" broadcast
+    const commsChannel = supabase
+      .channel(`order-comms:${orderId}`)
+      .on('broadcast', { event: 'customer_coming_out' }, () => {
+        setCustomerComingOut(true);
+        // Sound alert — urgent doorbell tone
+        try {
+          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const now = ctx.currentTime;
+          [784, 988, 784, 1175].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.35, now + i * 0.18);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.18 + 0.16);
+            osc.connect(gain).connect(ctx.destination);
+            osc.start(now + i * 0.18);
+            osc.stop(now + i * 0.18 + 0.2);
+          });
+        } catch { /* no audio */ }
+        if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 500]);
+        // Auto-dismiss after 30s
+        setTimeout(() => setCustomerComingOut(false), 30_000);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(commsChannel);
+    };
   // stopGps is stable — defined below with no reactive deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
@@ -345,6 +435,24 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           </div>
         )}
 
+        {/* Customer "coming out" alert — triggered via Realtime broadcast */}
+        {customerComingOut && (
+          <div className="flex items-start gap-3 bg-emerald-950/80 border-2 border-emerald-400 rounded-2xl p-4 animate-pulse">
+            <span className="text-2xl flex-shrink-0">🚶</span>
+            <div className="flex-1">
+              <p className="text-sm font-black text-emerald-300">
+                {t.en ? 'Customer is coming out!' : '¡El cliente ya sale!'}
+              </p>
+              <p className="text-xs text-emerald-400 mt-0.5">
+                {t.en ? 'Please wait a moment.' : 'Por favor espera un momento.'}
+              </p>
+            </div>
+            <button onClick={() => setCustomerComingOut(false)} className="text-emerald-600 hover:text-emerald-400 p-1 flex-shrink-0">
+              <span className="text-lg">✕</span>
+            </button>
+          </div>
+        )}
+
         <div className="text-center space-y-1">
           <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-3">
             <Bike className="w-8 h-8 text-emerald-400" />
@@ -398,6 +506,20 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
               </div>
             </div>
 
+            {deliveryInstructions && (
+              <div className="bg-amber-950/40 border border-amber-800/60 rounded-xl px-3 py-2.5 flex items-start gap-2">
+                <span className="text-base flex-shrink-0 mt-0.5">📝</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                    {t.en ? 'Customer instructions' : 'Instrucciones del cliente'}
+                  </p>
+                  <p className="text-sm text-amber-100 mt-0.5 whitespace-pre-line break-words">
+                    {deliveryInstructions}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Navigation deeplinks — tap to open in maps app */}
             <div className="grid grid-cols-2 gap-2">
               <a
@@ -434,8 +556,71 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           </div>
         )}
 
+        {/* Inline registration — shown when driver has no saved identity */}
+        {showRegistration && !driverAssigned && deliveryStep === 'start' && (
+          <div className="bg-gray-900 rounded-2xl p-4 space-y-3">
+            <p className="text-sm font-bold text-white">
+              {t.en ? 'Identify yourself' : 'Identifícate'}
+            </p>
+            <p className="text-xs text-gray-500">
+              {t.en
+                ? 'Enter your name so the restaurant knows who picked up the order.'
+                : 'Ingresa tu nombre para que el restaurante sepa quién recogió el pedido.'}
+            </p>
+            <input
+              type="text"
+              value={regName}
+              onChange={e => setRegName(e.target.value)}
+              placeholder={t.en ? 'Your name' : 'Tu nombre'}
+              className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-emerald-500"
+            />
+            <input
+              type="tel"
+              value={regPhone}
+              onChange={e => setRegPhone(e.target.value)}
+              placeholder={t.en ? 'Phone (optional)' : 'Teléfono (opcional)'}
+              className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-emerald-500"
+            />
+            <button
+              onClick={async () => {
+                if (!regName.trim()) return;
+                const identity = { name: regName.trim(), phone: regPhone.trim() };
+                localStorage.setItem(DRIVER_IDENTITY_KEY, JSON.stringify(identity));
+                setDriverIdentity(identity);
+                try {
+                  const res = await fetch('/api/driver/self-assign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, driverName: identity.name, driverPhone: identity.phone }),
+                  });
+                  if (res.ok) setDriverAssigned(true);
+                } catch { /* silent */ }
+                setShowRegistration(false);
+              }}
+              disabled={!regName.trim()}
+              className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm active:scale-[0.98] transition-all disabled:opacity-40"
+            >
+              {t.en ? 'Continue' : 'Continuar'}
+            </button>
+          </div>
+        )}
+
+        {/* Driver identity badge — shown after registration/auto-assign */}
+        {driverAssigned && (driverIdentity || regName) && deliveryStep === 'start' && (
+          <div className="bg-gray-900 rounded-2xl p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0 text-emerald-400 font-bold text-sm">
+              {(driverIdentity?.name ?? regName).charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-gray-500">{t.en ? 'Assigned driver' : 'Repartidor asignado'}</p>
+              <p className="text-sm font-semibold text-white truncate">{driverIdentity?.name ?? regName}</p>
+            </div>
+            <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+          </div>
+        )}
+
         <div className="space-y-3">
-          {deliveryStep === 'start' && (
+          {deliveryStep === 'start' && (!showRegistration || driverAssigned) && (
             <BigButton loading={actionLoading} onClick={handlePickedUp} color="emerald">
               {t.step1Btn}
             </BigButton>
@@ -461,6 +646,11 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           Powered by MENIUS · {token.slice(0, 8)}…
         </p>
       </div>
+
+      {/* Real-time chat with customer — hidden once delivered */}
+      {orderId && !orderCancelled && (
+        <OrderChat orderId={orderId} role="driver" locale={lang} theme="dark" />
+      )}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic';
 import { formatPrice, cn } from '@/lib/utils';
 import { haversineKm } from '@/lib/utils/eta';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { OrderChat } from '@/components/shared/OrderChat';
 const DeliveryMap = dynamic(
   () => import('./DeliveryMap').then((m) => m.DeliveryMap),
   { ssr: false, loading: () => <div className="w-full h-48 rounded-2xl bg-gray-100 animate-pulse" /> }
@@ -119,6 +120,53 @@ function getT(locale?: string, orderType?: string) {
   };
 }
 
+// Web Audio API alert tones — no external files needed
+function playAlertTone(type: 'soft' | 'urgent' | 'success') {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const now = ctx.currentTime;
+
+    if (type === 'urgent') {
+      // Two-tone doorbell — attention-grabbing
+      [523, 659, 523, 784].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.3, now + i * 0.2);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.2 + 0.18);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + i * 0.2);
+        osc.stop(now + i * 0.2 + 0.2);
+      });
+    } else if (type === 'success') {
+      // Rising chime — completion
+      [523, 659, 784].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.2, now + i * 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.3);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + i * 0.15);
+        osc.stop(now + i * 0.15 + 0.35);
+      });
+    } else {
+      // Soft ping — subtle notification
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    }
+  } catch { /* AudioContext not available */ }
+}
+
 const STEP_STYLES: Record<string, { icon: typeof Clock; color: string; bg: string }> = {
   pending:   { icon: Clock,        color: 'text-amber-600',   bg: 'bg-amber-100' },
   confirmed: { icon: ChefHat,      color: 'text-violet-600',  bg: 'bg-violet-100' },
@@ -161,13 +209,14 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const [customerCoords, setCustomerCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [dynamicEta, setDynamicEta] = useState<number | null>(null);
   const orderRef = useRef<any>(null);
+  const lastAlertedStatusRef = useRef<string | null>(initialOrder?.status ?? null);
 
   const hasInitialOrder = !!initialOrder;
 
   const fetchOrder = useCallback(async () => {
     try {
       const res = await fetch(
-        `/api/public/order-track?order=${encodeURIComponent(orderNumber)}&restaurant=${encodeURIComponent(restaurantId)}`,
+        `/api/public/order-track?order=${encodeURIComponent(orderNumber)}&restaurant=${encodeURIComponent(restaurantId)}&_t=${Date.now()}`,
         { cache: 'no-store' }
       );
       if (!res.ok) {
@@ -196,16 +245,12 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
   // Polling — primary real-time mechanism for anon customers.
   // Supabase postgres_changes is unreliable for anon users (events silently dropped).
-  // Poll every 3s during active delivery so the customer sees driver updates fast.
-  // Drop back to 15s once delivered/cancelled or for non-delivery orders.
+  // Poll every 3s for any active order so status changes appear without a page refresh.
   useEffect(() => {
     if (!order?.id || order.status === 'delivered' || order.status === 'cancelled') return;
-    const isActiveDelivery =
-      order.order_type === 'delivery' &&
-      ['pending', 'confirmed', 'preparing', 'ready'].includes(order.status);
-    const interval = setInterval(fetchOrder, isActiveDelivery ? 3_000 : 15_000);
+    const interval = setInterval(fetchOrder, 3_000);
     return () => clearInterval(interval);
-  }, [order?.id, order?.status, order?.order_type, fetchOrder]);
+  }, [order?.id, order?.status, fetchOrder]);
 
   useEffect(() => {
     if (!order?.id) return;
@@ -247,7 +292,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
           setRtStatus('connected');
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
@@ -295,6 +340,44 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
   // Keep ref in sync so the WebSocket callback always reads the latest order state
   useEffect(() => { orderRef.current = order; }, [order]);
+
+  // Sound + vibration alerts when delivery milestones change
+  useEffect(() => {
+    if (!order) return;
+    // Build a composite key from status + driver milestones
+    const key = [
+      order.status,
+      (order as any).driver_picked_up_at ? 'picked' : '',
+      (order as any).driver_at_door_at ? 'door' : '',
+    ].join('|');
+    if (key === lastAlertedStatusRef.current) return;
+    const prevKey = lastAlertedStatusRef.current;
+    lastAlertedStatusRef.current = key;
+    if (!prevKey) return; // first render, don't alert
+
+    // Determine which milestone just happened
+    const hadPickedUp = prevKey?.includes('picked');
+    const hadAtDoor = prevKey?.includes('door');
+    const nowPickedUp = !hadPickedUp && (order as any).driver_picked_up_at;
+    const nowAtDoor = !hadAtDoor && (order as any).driver_at_door_at;
+    const nowDelivered = !prevKey?.startsWith('delivered') && order.status === 'delivered';
+
+    if (nowAtDoor) {
+      // Urgent — driver is at the door
+      playAlertTone('urgent');
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
+    } else if (nowDelivered) {
+      playAlertTone('success');
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    } else if (nowPickedUp) {
+      playAlertTone('soft');
+      if (navigator.vibrate) navigator.vibrate([80]);
+    } else if (order.status !== prevKey?.split('|')[0]) {
+      // Any other status change (confirmed, preparing, ready)
+      playAlertTone('soft');
+      if (navigator.vibrate) navigator.vibrate([60]);
+    }
+  }, [order?.status, (order as any)?.driver_picked_up_at, (order as any)?.driver_at_door_at]);
 
   if (loading) {
     return (
@@ -613,7 +696,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                         {t.en ? 'Your driver' : 'Tu repartidor'}
                       </p>
                       <p className="text-lg font-black text-white leading-tight">
-                        {t.en ? 'On the way!' : '¡En camino!'}
+                        {(order as any).driver_name || (t.en ? 'On the way!' : '¡En camino!')}
                       </p>
                       <p className="text-sm text-blue-200 mt-0.5">
                         {dynamicEta != null
@@ -733,6 +816,21 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 <div>
                   <p className="text-[11px] font-bold text-violet-500 uppercase tracking-wide mb-0.5">{t.address}</p>
                   <p className="text-sm font-semibold text-violet-900">{order.delivery_address}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Driver instructions — shown to customer for reference */}
+            {order.order_type === 'delivery' && (order as any).delivery_instructions && (
+              <div className="mt-1 rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-2">
+                <span className="text-sm flex-shrink-0 mt-0.5">📝</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wide mb-0.5">
+                    {t.en ? 'Driver instructions' : 'Instrucciones al repartidor'}
+                  </p>
+                  <p className="text-sm font-semibold text-amber-900 whitespace-pre-line break-words">
+                    {(order as any).delivery_instructions}
+                  </p>
                 </div>
               </div>
             )}
@@ -963,6 +1061,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {/* Save order to local history */}
         <OrderHistorySaver order={order} restaurantSlug={restaurantSlug} restaurantName={restaurantName} locale={locale} currency={currency} />
       </div>
+
+      {/* Real-time chat with driver — only during active delivery */}
+      {order.order_type === 'delivery' && (order as any).driver_name && !isComplete && !isCancelled && (
+        <OrderChat orderId={order.id} role="customer" locale={locale} theme="light" />
+      )}
     </div>
   );
 }
@@ -981,6 +1084,17 @@ function ComingOutButton({ orderId, locale }: { orderId: string; locale?: string
         body: JSON.stringify({ orderId, action: 'coming_out' }),
       });
       const data = await res.json().catch(() => ({}));
+
+      // Broadcast to driver page via Supabase Realtime (works even without WhatsApp)
+      try {
+        const supabase = getSupabaseBrowser();
+        supabase.channel(`order-comms:${orderId}`).send({
+          type: 'broadcast',
+          event: 'customer_coming_out',
+          payload: { orderId, timestamp: Date.now() },
+        });
+      } catch { /* silent */ }
+
       setState(data.notified === false ? 'sent_no_driver' : 'sent');
     } catch {
       setState('sent');

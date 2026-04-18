@@ -13,6 +13,7 @@ import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 import { getStripe } from '@/lib/stripe';
 import { computeTaxAmount } from '@/lib/tax-presets';
+import { haversineKm } from '@/lib/utils/eta';
 
 const logger = createLogger('orders');
 
@@ -84,6 +85,12 @@ export async function POST(request: NextRequest) {
     const order_type = sanitizeText(body.order_type, 20);
     const payment_method = sanitizeText(body.payment_method, 20);
     const delivery_address = sanitizeMultiline(body.delivery_address, 300);
+    const delivery_instructions = sanitizeMultiline(body.delivery_instructions, 500);
+    // Coordinates from Google Places autocomplete — validated as finite numbers within the earth's bounds.
+    const rawLat = Number(body.delivery_lat);
+    const rawLng = Number(body.delivery_lng);
+    const delivery_lat = Number.isFinite(rawLat) && rawLat >= -90 && rawLat <= 90 ? rawLat : null;
+    const delivery_lng = Number.isFinite(rawLng) && rawLng >= -180 && rawLng <= 180 ? rawLng : null;
     const table_name = sanitizeText(body.table_name, 50);
 
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -112,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label')
+      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label, latitude, longitude, delivery_radius_km')
       .eq('id', restaurant_id)
       .eq('is_active', true)
       .maybeSingle();
@@ -132,6 +139,35 @@ export async function POST(request: NextRequest) {
             : 'El restaurante no está aceptando órdenes en este momento. Intenta más tarde.' },
         { status: 503 }
       );
+    }
+
+    // Delivery zone guard — reject orders outside the restaurant's delivery radius.
+    // Only enforced when: (a) order is delivery, (b) restaurant has set a radius,
+    // (c) customer picked a Google Places suggestion so we have verified coordinates.
+    // Manual free-text addresses pass through (we don't have coords to verify).
+    const deliveryRadiusKm = Number((restaurant as any).delivery_radius_km);
+    const restLat = Number((restaurant as any).latitude);
+    const restLng = Number((restaurant as any).longitude);
+    if (
+      body.order_type === 'delivery' &&
+      Number.isFinite(deliveryRadiusKm) && deliveryRadiusKm > 0 &&
+      Number.isFinite(restLat) && Number.isFinite(restLng) &&
+      delivery_lat != null && delivery_lng != null
+    ) {
+      const distKm = haversineKm(restLat, restLng, delivery_lat, delivery_lng);
+      if (distKm > deliveryRadiusKm) {
+        return NextResponse.json(
+          {
+            error: en
+              ? `This address is outside our delivery zone (${distKm.toFixed(1)} km away, we deliver up to ${deliveryRadiusKm} km).`
+              : `Esta dirección está fuera de nuestra zona de entrega (a ${distKm.toFixed(1)} km, entregamos hasta ${deliveryRadiusKm} km).`,
+            out_of_zone: true,
+            distance_km: Number(distKm.toFixed(2)),
+            radius_km: deliveryRadiusKm,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Business hours check — reject orders outside opening hours
@@ -427,6 +463,11 @@ export async function POST(request: NextRequest) {
       order_type: parsed.data.order_type,
       payment_method: parsed.data.payment_method,
       delivery_address: delivery_address || null,
+      // Only include new columns if they have a value — avoids insert failures
+      // when the DB migration hasn't been applied yet.
+      ...(delivery_instructions ? { delivery_instructions } : {}),
+      ...(delivery_lat != null ? { delivery_lat } : {}),
+      ...(delivery_lng != null ? { delivery_lng } : {}),
       table_name: table_name || null,
       promo_code: promo_code || '',
       discount_amount: totalDiscountAmt,

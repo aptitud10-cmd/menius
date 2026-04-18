@@ -90,6 +90,31 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryCoords, setDeliveryCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [deliveryInstructions, setDeliveryInstructions] = useState('');
+
+  // Client-side delivery zone check — instant feedback as the user types.
+  // Server re-validates on submit as the source of truth.
+  const deliveryZoneCheck = (() => {
+    const radius = Number(restaurant.delivery_radius_km);
+    const restLat = Number(restaurant.latitude);
+    const restLng = Number(restaurant.longitude);
+    if (
+      !deliveryCoords ||
+      !Number.isFinite(radius) || radius <= 0 ||
+      !Number.isFinite(restLat) || !Number.isFinite(restLng)
+    ) {
+      return null;
+    }
+    const R = 6371;
+    const toRad = (d: number) => (d * Math.PI) / 180;
+    const dLat = toRad(deliveryCoords.lat - restLat);
+    const dLng = toRad(deliveryCoords.lng - restLng);
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(restLat)) * Math.cos(toRad(deliveryCoords.lat)) * Math.sin(dLng / 2) ** 2;
+    const distKm = 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return { distKm, radiusKm: radius, outOfZone: distKm > radius };
+  })();
   const [manualTableName, setManualTableName] = useState('');
   const [arrivalTime, setArrivalTime] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
@@ -238,6 +263,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       setOrderError(locale === 'es' ? 'Dirección de entrega requerida' : 'Delivery address required');
       return;
     }
+    if (orderType === 'delivery' && deliveryZoneCheck?.outOfZone) {
+      setOrderError(
+        locale === 'es'
+          ? `La dirección está fuera de la zona de entrega (a ${deliveryZoneCheck.distKm.toFixed(1)} km, entregamos hasta ${deliveryZoneCheck.radiusKm} km).`
+          : `Address is outside the delivery zone (${deliveryZoneCheck.distKm.toFixed(1)} km away, we deliver up to ${deliveryZoneCheck.radiusKm} km).`
+      );
+      return;
+    }
     submittingRef.current = true;
     setSubmitting(true);
     setOrderError('');
@@ -262,6 +295,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           order_type: orderType,
           payment_method: paymentMethod,
           delivery_address: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
+          delivery_instructions: orderType === 'delivery' && deliveryInstructions.trim() ? deliveryInstructions.trim() : undefined,
+          delivery_lat: orderType === 'delivery' && deliveryCoords ? deliveryCoords.lat : undefined,
+          delivery_lng: orderType === 'delivery' && deliveryCoords ? deliveryCoords.lng : undefined,
           table_name: orderType === 'dine_in' ? (tableName || manualTableName.trim() || undefined) : undefined,
           promo_code: promoResult?.valid ? promoCode.trim() : undefined,
           discount_amount: discount,
@@ -1021,20 +1057,110 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               ))}
             </div>
             {orderType === 'delivery' && (
-              <div className="mt-4">
-                <AddressAutocomplete
-                  label={t.deliveryAddress}
-                  value={deliveryAddress}
-                  onChange={setDeliveryAddress}
-                  onBlur={() => validateField('delivery_address', deliveryAddress)}
-                  placeholder={t.deliveryAddressPlaceholder}
-                  dark={false}
-                  required
-                  error={!!fieldErrors.delivery_address}
-                />
-                {fieldErrors.delivery_address && (
-                  <p className="text-xs text-red-500 mt-1">{fieldErrors.delivery_address}</p>
-                )}
+              <div className="mt-4 space-y-3">
+                <div>
+                  <AddressAutocomplete
+                    label={t.deliveryAddress}
+                    value={deliveryAddress}
+                    onChange={v => {
+                      setDeliveryAddress(v);
+                      // Clear coords if user manually edits the text (they'll no longer match)
+                      setDeliveryCoords(null);
+                    }}
+                    onPlaceSelect={place => {
+                      setDeliveryAddress(place.address);
+                      if (place.lat != null && place.lng != null) {
+                        setDeliveryCoords({ lat: place.lat, lng: place.lng });
+                      }
+                    }}
+                    onBlur={() => validateField('delivery_address', deliveryAddress)}
+                    placeholder={t.deliveryAddressPlaceholder}
+                    dark={false}
+                    required
+                    error={!!fieldErrors.delivery_address}
+                  />
+                  {fieldErrors.delivery_address && (
+                    <p className="text-xs text-red-500 mt-1">{fieldErrors.delivery_address}</p>
+                  )}
+                  {deliveryZoneCheck && (
+                    <div className={`mt-2 rounded-xl px-3.5 py-2.5 flex items-start gap-2 text-xs ${
+                      deliveryZoneCheck.outOfZone
+                        ? 'bg-red-50 border border-red-200 text-red-700'
+                        : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                    }`}>
+                      <span className="flex-shrink-0">{deliveryZoneCheck.outOfZone ? '⚠️' : '✓'}</span>
+                      <div className="flex-1">
+                        {deliveryZoneCheck.outOfZone ? (
+                          <p className="font-semibold">
+                            {locale === 'es'
+                              ? `Fuera de la zona de entrega — a ${deliveryZoneCheck.distKm.toFixed(1)} km del restaurante (entregamos hasta ${deliveryZoneCheck.radiusKm} km).`
+                              : `Outside delivery zone — ${deliveryZoneCheck.distKm.toFixed(1)} km from the restaurant (we deliver up to ${deliveryZoneCheck.radiusKm} km).`}
+                          </p>
+                        ) : (
+                          <p className="font-semibold">
+                            {locale === 'es'
+                              ? `Dentro de la zona de entrega (a ${deliveryZoneCheck.distKm.toFixed(1)} km)`
+                              : `Within delivery zone (${deliveryZoneCheck.distKm.toFixed(1)} km away)`}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    {locale === 'es' ? 'Instrucciones para el repartidor' : 'Instructions for the driver'}
+                    <span className="ml-1 text-gray-400 font-normal">({locale === 'es' ? 'opcional' : 'optional'})</span>
+                  </label>
+                  {/* Quick-reply chips — Uber Eats style */}
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {(locale === 'es'
+                      ? ['Dejar en la puerta', 'Tocar timbre', 'Llamar al llegar']
+                      : ['Leave at door', 'Ring the bell', 'Call on arrival']
+                    ).map(preset => {
+                      const active = deliveryInstructions.includes(preset);
+                      return (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => {
+                            if (active) {
+                              setDeliveryInstructions(prev =>
+                                prev.split('\n').filter(line => line.trim() !== preset).join('\n').trim()
+                              );
+                            } else {
+                              setDeliveryInstructions(prev => (prev ? `${prev}\n${preset}` : preset));
+                            }
+                          }}
+                          className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                            active
+                              ? 'bg-brand-500 text-white border-brand-500'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                          }`}
+                        >
+                          {preset}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <textarea
+                    value={deliveryInstructions}
+                    onChange={e => setDeliveryInstructions(e.target.value.slice(0, 500))}
+                    placeholder={
+                      locale === 'es'
+                        ? 'Ej: código de portón, apartamento, o cualquier detalle…'
+                        : 'e.g. gate code, apartment number, any details…'
+                    }
+                    rows={2}
+                    maxLength={500}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 resize-none"
+                  />
+                  {deliveryInstructions.length > 400 && (
+                    <p className="text-[10px] text-gray-400 mt-1 text-right">
+                      {deliveryInstructions.length} / 500
+                    </p>
+                  )}
+                </div>
               </div>
             )}
             {orderType === 'dine_in' && !tableName && (

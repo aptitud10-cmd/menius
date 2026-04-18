@@ -1021,33 +1021,48 @@ export async function assignDriver(
   const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
-  // Generate a unique tracking token for this delivery
-  const token = driverName.trim() ? crypto.randomUUID() : null;
+  // Check if the order already has a tracking token (pre-generated at order creation).
+  // If so, reuse it so the QR on the printed receipt stays valid.
+  const { data: existingOrder } = await supabase
+    .from('orders')
+    .select('driver_tracking_token')
+    .eq('id', orderId)
+    .eq('restaurant_id', restaurantId)
+    .maybeSingle();
+
+  const existingToken = (existingOrder as any)?.driver_tracking_token ?? null;
+  const token = driverName.trim()
+    ? (existingToken || crypto.randomUUID())
+    : null;
 
   const tokenExpiresAt = token
     ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     : null;
 
+  const updateData: Record<string, unknown> = {
+    driver_name: driverName.trim() || null,
+    driver_phone: driverPhone.trim() || null,
+    driver_assigned_at: driverName.trim() ? new Date().toISOString() : null,
+    driver_tracking_token: token,
+    driver_token_expires_at: tokenExpiresAt,
+  };
+
+  // Only reset GPS if we're assigning a DIFFERENT driver (new token)
+  if (!existingToken) {
+    updateData.driver_lat = null;
+    updateData.driver_lng = null;
+    updateData.driver_updated_at = null;
+  }
+
   const { error } = await supabase
     .from('orders')
-    .update({
-      driver_name: driverName.trim() || null,
-      driver_phone: driverPhone.trim() || null,
-      driver_assigned_at: driverName.trim() ? new Date().toISOString() : null,
-      driver_tracking_token: token,
-      driver_token_expires_at: tokenExpiresAt,
-      // Reset GPS on new assignment
-      driver_lat: null,
-      driver_lng: null,
-      driver_updated_at: null,
-    })
+    .update(updateData)
     .eq('id', orderId)
     .eq('restaurant_id', restaurantId);
 
   if (error) return { error: error.message };
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app').replace(/\/$/, '');
-  // Base URL without lang param — overridden with ?lang=en once locale is known
   const baseTrackingUrl = token ? `${appUrl}/driver/track/${token}` : null;
 
   // Auto-send WhatsApp/SMS to the driver with their tracking link
