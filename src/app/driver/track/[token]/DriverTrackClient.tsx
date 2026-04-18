@@ -7,6 +7,7 @@ import {
   Loader2, Package, DoorOpen, MapPin, Bike, AlertTriangle, Navigation,
 } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { haversineKm } from '@/lib/utils/eta';
 
 type GpsStatus = 'idle' | 'sharing' | 'error' | 'unsupported';
 type DeliveryStep = 'start' | 'picked_up' | 'at_door' | 'delivered';
@@ -66,6 +67,9 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   const [orderCancelled, setOrderCancelled] = useState(false);
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const customerGeocoordsRef = useRef<{ lat: number; lng: number } | null>(null);
+  const deliveryStepRef = useRef<DeliveryStep>('start');
+  const geofenceTriggeredRef = useRef(false);
 
   const fetchOrderInfo = useCallback(async () => {
     try {
@@ -93,6 +97,26 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   }, [token]);
 
   useEffect(() => { fetchOrderInfo(); }, [fetchOrderInfo]);
+  useEffect(() => { deliveryStepRef.current = deliveryStep; }, [deliveryStep]);
+
+  // Geocode delivery address once — used for geofencing (auto "at door" within 100 m)
+  useEffect(() => {
+    if (!deliveryAddress || customerGeocoordsRef.current) return;
+    fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(deliveryAddress)}`,
+      { headers: { 'Accept-Language': 'en' } }
+    )
+      .then(r => r.json())
+      .then((results: { lat: string; lon: string }[]) => {
+        if (results.length) {
+          customerGeocoordsRef.current = {
+            lat: parseFloat(results[0].lat),
+            lng: parseFloat(results[0].lon),
+          };
+        }
+      })
+      .catch(() => {});
+  }, [deliveryAddress]);
 
   // Realtime subscription — notifies the driver immediately if the restaurant cancels the order.
   // Only subscribes once we have the order's UUID from the initial REST fetch.
@@ -153,20 +177,41 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
     setGpsStatus('sharing');
     setGpsError('');
     acquireWakeLock();
+    const gpsOpts: PositionOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 };
     navigator.geolocation.getCurrentPosition(
       pos => sendLocation(pos.coords.latitude, pos.coords.longitude),
       err => { setGpsStatus('error'); setGpsError(err.message); },
+      gpsOpts,
     );
     intervalRef.current = setInterval(() => {
       navigator.geolocation.getCurrentPosition(
         pos => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
           setGpsStatus('sharing');
           setGpsError('');
-          sendLocation(pos.coords.latitude, pos.coords.longitude);
+          sendLocation(lat, lng);
+
+          // Geofencing — auto-trigger "at door" when within 100 m of delivery address
+          const destCoords = customerGeocoordsRef.current;
+          if (
+            deliveryStepRef.current === 'picked_up' &&
+            destCoords &&
+            !geofenceTriggeredRef.current
+          ) {
+            const distKm = haversineKm(lat, lng, destCoords.lat, destCoords.lng);
+            if (distKm <= 0.1) {
+              geofenceTriggeredRef.current = true;
+              callDriverStatus('at_door').then(ok => {
+                if (ok) setDeliveryStep('at_door');
+              });
+            }
+          }
         },
         err => setGpsError(err.message),
+        gpsOpts,
       );
-    }, 10_000);
+    }, 5_000);
   };
 
   const stopGps = () => {

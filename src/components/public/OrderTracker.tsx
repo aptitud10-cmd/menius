@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { formatPrice, cn } from '@/lib/utils';
+import { haversineKm } from '@/lib/utils/eta';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 const DeliveryMap = dynamic(
   () => import('./DeliveryMap').then((m) => m.DeliveryMap),
@@ -157,6 +158,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const [error, setError] = useState('');
   const [paidBannerVisible, setPaidBannerVisible] = useState(showPaidBanner);
   const [rtStatus, setRtStatus] = useState<'connected' | 'reconnecting' | 'disconnected'>('reconnecting');
+  const [customerCoords, setCustomerCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [dynamicEta, setDynamicEta] = useState<number | null>(null);
+  const orderRef = useRef<any>(null);
 
   const hasInitialOrder = !!initialOrder;
 
@@ -212,10 +216,30 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           table: 'orders',
           filter: `id=eq.${order.id}`,
         },
-        () => {
-          // Full refetch instead of partial merge: ensures joined fields
-          // (driver timestamps, payment_status, etc.) are always up-to-date.
-          fetchOrder();
+        (payload: Record<string, unknown>) => {
+          const newRow = (payload.new as Record<string, unknown>) ?? {};
+          const prev = orderRef.current;
+          // Fast path: only GPS coordinates changed — update map pin in state
+          // without a round-trip to the API. Keeps the map smooth at 5s intervals.
+          // Any other change (status, driver timestamps) triggers a full refetch
+          // to keep joined fields (items, table, etc.) current.
+          if (
+            prev &&
+            prev.status === newRow.status &&
+            prev.driver_picked_up_at === newRow.driver_picked_up_at &&
+            prev.driver_at_door_at === newRow.driver_at_door_at &&
+            prev.driver_delivered_at === newRow.driver_delivered_at &&
+            (newRow.driver_lat !== prev.driver_lat || newRow.driver_lng !== prev.driver_lng)
+          ) {
+            setOrder((o: any) => o ? {
+              ...o,
+              driver_lat: newRow.driver_lat,
+              driver_lng: newRow.driver_lng,
+              driver_updated_at: newRow.driver_updated_at,
+            } : o);
+          } else {
+            fetchOrder();
+          }
         }
       )
       .subscribe((status) => {
@@ -233,6 +257,39 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     };
   // fetchOrder is stable (useCallback with fixed deps)
   }, [order?.id, fetchOrder]);
+
+  // Geocode delivery address once when driver picks up — used for dynamic ETA
+  useEffect(() => {
+    if (
+      order?.order_type !== 'delivery' ||
+      !order?.driver_picked_up_at ||
+      !order?.delivery_address ||
+      customerCoords
+    ) return;
+    fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(order.delivery_address)}`,
+      { headers: { 'Accept-Language': 'en' } }
+    )
+      .then(r => r.json())
+      .then((results: { lat: string; lon: string }[]) => {
+        if (results.length) {
+          setCustomerCoords({ lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) });
+        }
+      })
+      .catch(() => {});
+  }, [order?.order_type, order?.driver_picked_up_at, order?.delivery_address, customerCoords]);
+
+  // Recalculate ETA whenever driver coordinates update
+  useEffect(() => {
+    if (!customerCoords || order?.driver_lat == null || order?.driver_lng == null) return;
+    if (order?.status === 'delivered') { setDynamicEta(null); return; }
+    const distKm = haversineKm(order.driver_lat, order.driver_lng, customerCoords.lat, customerCoords.lng) * 1.35;
+    const mins = Math.max(1, Math.round((distKm / 25) * 60));
+    setDynamicEta(mins);
+  }, [order?.driver_lat, order?.driver_lng, customerCoords, order?.status]);
+
+  // Keep ref in sync so the WebSocket callback always reads the latest order state
+  useEffect(() => { orderRef.current = order; }, [order]);
 
   if (loading) {
     return (
@@ -554,7 +611,16 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                         {t.en ? 'On the way!' : '¡En camino!'}
                       </p>
                       <p className="text-sm text-blue-200 mt-0.5">
-                        {t.en ? 'Heading to your address' : 'Dirigiéndose a tu dirección'}
+                        {dynamicEta != null
+                          ? (tWithType.en ? `~${dynamicEta} min away` : `~${dynamicEta} min restantes`)
+                          : (() => {
+                              const pickedUp = new Date((order as any).driver_picked_up_at);
+                              const elapsedMins = Math.max(1, Math.round((Date.now() - pickedUp.getTime()) / 60_000));
+                              return tWithType.en
+                                ? `On the way · ${elapsedMins} min ago`
+                                : `En camino · hace ${elapsedMins} min`;
+                            })()
+                        }
                       </p>
                     </div>
                     {/* Live GPS indicator */}

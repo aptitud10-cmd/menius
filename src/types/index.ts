@@ -200,6 +200,19 @@ export interface Order {
   scheduled_for?: string | null;
   include_utensils?: boolean;
   payment_breakdown?: { cash?: number; card?: number; [key: string]: number | undefined } | null;
+  // driver & delivery tracking
+  driver_name?: string | null;
+  driver_phone?: string | null;
+  driver_assigned_at?: string | null;
+  driver_tracking_token?: string | null;
+  driver_token_expires_at?: string | null;
+  driver_picked_up_at?: string | null;
+  driver_at_door_at?: string | null;
+  driver_delivered_at?: string | null;
+  driver_lat?: number | null;
+  driver_lng?: number | null;
+  driver_updated_at?: string | null;
+  delivery_photo_url?: string | null;
   // joined
   items?: OrderItem[];
   table?: Table;

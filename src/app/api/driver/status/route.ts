@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
   if (action === 'delivered') {
     // Only update if the transition is valid (guards delivered/cancelled orders)
     if (!canTransition(order.status, 'delivered')) {
-      return NextResponse.json({ ok: true, skipped: true, action });
+      return NextResponse.json({ error: `Transición inválida: el pedido ya está en estado '${order.status}'` }, { status: 409 });
     }
     // Single update: status + timestamp together
     const { error: statusErr } = await supabase

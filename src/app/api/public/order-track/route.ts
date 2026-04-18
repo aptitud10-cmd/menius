@@ -33,7 +33,9 @@ export async function GET(req: NextRequest) {
       .select(`
         id, order_number, status, order_type, total, subtotal, tax_amount, tip_amount,
         delivery_fee, discount_amount, payment_method, notes, created_at, updated_at,
-        customer_name, delivery_address, estimated_delivery_minutes,
+        customer_name, customer_phone, delivery_address, estimated_delivery_minutes,
+        driver_name, driver_phone, driver_picked_up_at, driver_at_door_at, driver_delivered_at,
+        driver_lat, driver_lng, driver_updated_at, delivery_photo_url,
         table:table_id(name),
         order_items(
           id, qty, unit_price, line_total, notes,
