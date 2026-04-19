@@ -81,22 +81,30 @@ async function geocodeMapbox(address: string): Promise<Coords | null> {
 
 function MapFallback({ deliveryAddress, restaurantAddress }: DeliveryMapProps) {
   const address = deliveryAddress ?? restaurantAddress;
+  if (!address) return null;
+  const gmapsEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed&z=15`;
   const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
   return (
-    <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200">
-      <div className="flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-          <MapPin className="w-4 h-4 text-blue-600" />
-        </div>
-        <p className="text-xs font-semibold text-gray-700 break-words">{address}</p>
+    <div className="space-y-2">
+      <div className="w-full h-52 rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+        <iframe
+          src={gmapsEmbedUrl}
+          width="100%"
+          height="100%"
+          style={{ border: 0 }}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          title="Mapa de entrega"
+        />
       </div>
       <a
         href={gmapsUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium flex-shrink-0 ml-2"
+        className="flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-blue-600 transition-colors py-1"
       >
-        Ver mapa <ExternalLink className="w-3 h-3" />
+        <ExternalLink className="w-3 h-3" />
+        Abrir en Google Maps
       </a>
     </div>
   );

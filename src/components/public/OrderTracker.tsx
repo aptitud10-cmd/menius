@@ -553,8 +553,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         </div>
 
         {/* ── MAP HERO — promoted to top when driver is on the road ── */}
-        {order.order_type === 'delivery' && restaurantAddress && (order as any).driver_picked_up_at && order.status !== 'delivered' && (
-          <div className="tracker-card rounded-3xl overflow-hidden shadow-md">
+        {order.order_type === 'delivery' && (order as any).driver_picked_up_at && order.status !== 'delivered' && (
+          <div className="tracker-card rounded-3xl shadow-md">
             <DeliveryMap
               restaurantAddress={restaurantAddress}
               deliveryAddress={order.delivery_address}
@@ -863,7 +863,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         </div>
 
         {/* Delivery map — static position (shown when driver not yet active or order complete) */}
-        {order.order_type === 'delivery' && restaurantAddress && (!(order as any).driver_picked_up_at || order.status === 'delivered') && (
+        {order.order_type === 'delivery' && (order.delivery_address || restaurantAddress) && (!(order as any).driver_picked_up_at || order.status === 'delivered') && (
           <div className="tracker-card">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">{t.en ? 'Location' : 'Ubicación'}</p>
             <DeliveryMap
