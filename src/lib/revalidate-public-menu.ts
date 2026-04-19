@@ -9,10 +9,13 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  */
 export function revalidatePublicMenu(slug: string | null | undefined): void {
   if (!slug) return;
-  revalidatePath(`/${slug}`);
+  // Explicit 'page' type ensures Vercel purges the ISR HTML for this exact slug
+  revalidatePath(`/${slug}`, 'page');
+  revalidatePath(`/${slug}/checkout`, 'page');
   revalidatePath(`/${slug}/[table]`, 'layout');
   // Per-restaurant tag — invalidates only this slug's unstable_cache entry
   revalidateTag(`menu-data:${slug}`);
+  revalidateTag(`menu-data`);
 }
 
 /**
