@@ -184,23 +184,25 @@ export async function POST(request: NextRequest) {
       : 'clean dark matte restaurant table surface. Background: deep charcoal, smooth and out-of-focus.';
 
     // ─── CATEGORY → LIGHTING (Rembrandt / Chiaroscuro by category) ───────────
+    // IMPORTANT: Describe only the LIGHT EFFECT — never mention physical equipment
+    // (reflector cards, softboxes, flash units, etc.) so the AI does not render them.
     const getLighting = (): string => {
       if (isDrink) {
         if (['Cocktails'].includes(category ?? '')) {
-          return 'Single backlight source positioned behind and slightly left of the glass at 30 degrees, creating a luminous translucency glow through the liquid — the liquid appears lit from within. A very soft silver reflector card on the right provides minimal fill, barely lifting the deepest shadow. The background remains in near-darkness. This is the standard lighting for Hendricks, Belvedere, and Patrón advertising campaigns.';
+          return 'The liquid glows translucently from a single clean backlight positioned behind and slightly left at 30 degrees — the drink appears lit from within, deep jewel tones fully revealed. The shadow side carries only minimal warm ambient fill — shadow detail is visible but not lit. Background fades to near-darkness in a natural gradient. The signature luminous quality of Hendricks, Belvedere, and Patrón campaign photography. All light sources are invisible, outside the frame, and no studio equipment is visible anywhere in the image.';
         }
-        return 'Backlight at 30 degrees behind the glass creating a natural translucency glow through the liquid. Soft reflector fill from the right, about 3 stops underexposed relative to the key. This makes the liquid appear to glow from within — the definitive technique for premium beverage photography.';
+        return 'A single clean backlight behind the glass at 30 degrees creates inner luminosity — the liquid appears to generate its own light. The shadow side has only faint ambient fill, retaining richness and depth. Background is dark and undefined. The definitive technique for premium beverage photography. All light sources are invisible and outside the frame.';
       }
       if (['Burgers', 'Chicken', 'Dinner'].includes(category ?? '') || /steak|ribeye|filete/.test(lowerName)) {
-        return 'Single hard key light from the left at 45 degrees — no softbox, just a focused directional light that creates dramatic shadows revealing every texture: the Maillard crust, the crispy skin, the glossy sauce. A black negative fill card on the right deepens shadows for maximum tonal contrast. This is the lighting signature of Lyan van Furth and the standard for Michelin-starred food photography.';
+        return 'Hard directional key light from the left at 45 degrees, no diffusion — every surface texture is revealed in sharp, dramatic relief: the Maillard crust, the crispy skin glistening, the glossy sauce catching light at sharp angles. The right side falls into deep rich shadow, maximizing tonal contrast and three-dimensionality. The aesthetic signature of Lyan van Furth and Michelin-starred editorial food photography. All light sources are invisible and outside the frame — no visible equipment anywhere.';
       }
       if (['Desserts', 'Breakfast'].includes(category ?? '')) {
-        return 'Soft diffused north-facing window light — large and even, no harsh shadows, mimicking overcast natural daylight. The light wraps gently around the subject, creating a luminous and inviting mood. A white reflector card on the shadow side fills gently to lift detail without flattening the image. Warm golden cast from the slight golden-hour color temperature.';
+        return 'Soft, even, naturally diffused light wrapping gently around the subject from above-left — the luminous quality of large north-facing window light on an overcast morning. No harsh shadows, no hot spots. Shadow areas are open and airy with full visible detail. A warm golden-hour color temperature (3800K) gives the scene an inviting, homey intimacy. All light is entirely natural-looking, no equipment visible anywhere in the image.';
       }
       if (['Pizza', 'Tacos', 'Pasta', 'Soups'].includes(category ?? '')) {
-        return 'Low-angle side light raking across the surface at 20 degrees — this grazing light technique creates micro-shadows in every texture: the crust bubbles, the cheese pulls, the herb leaves, the sauce glistening. A soft fill from the opposite side at 2.5 stops below key preserves shadow detail. This is the lighting that makes textures jump off the page in food editorial.';
+        return 'Low raking side light at 20 degrees grazes across every surface — micro-shadows erupt in the bubbled crust, the cheese pull, the herb edges, the glistening sauce. The opposite side has gentle ambient fill keeping shadow detail intact. This grazing light makes textures leap three-dimensionally off the image surface — the technique that defines food editorial photography. All light is invisible outside the frame, no equipment visible.';
       }
-      return 'Large octabox key light positioned left at 45 degrees, diffused and soft. A silver reflector card on the right at 2 stops below key provides gentle fill. Subtle warm rim backlight separates the subject from the background naturally. Professional three-point setup refined for commercial restaurant photography.';
+      return 'Large soft key light from the left at 45 degrees creates even, flattering illumination with depth. The right side has natural open shadow with full detail — no harsh contrast, no hot spots, no bright patches. A very subtle warm separation light from behind gently lifts the subject from the background without creating any glare or bright artifacts. All lighting is balanced, professional, and completely invisible — no studio equipment, no modifiers, no reflectors visible anywhere in the image.';
     };
 
     // ─── FOOD STYLING ─────────────────────────────────────────────────────────
@@ -304,10 +306,12 @@ COLOR SCIENCE: Rich warm tonal depth. Deep shadows with warm amber undertones �
     const prompt = bannerPrompt ?? `CRITICAL RULES — strictly enforce, no exceptions:
 - NOT CGI, NOT 3D render, NOT illustration, NOT AI-generated look
 - NO text of any kind, NO logos, NO watermarks, NO stamps, NO labels, NO captions
-- NO white patches, NO white spots, NO bright artifacts, NO digital noise in any corner
+- NO white patches, NO white spots, NO glare spots, NO blown highlights anywhere in the image
 - NO dark patches, NO dark shadows, NO dark blobs, NO vignette in corners — corners must be visible and filled
 - NO human hands, NO cooking equipment, NO utensils in frame
+- NO visible photography equipment — no reflectors, no light modifiers, no softboxes, no flash units, no light stands, no tripods, no studio gear of any kind
 - Every corner filled with natural background — NO blank areas, NO darkness, NO undefined shapes
+- The scene must look like it was photographed in a real restaurant or a fully dressed studio set — never a bare photo studio with equipment visible
 
 This is an award-winning commercial food photograph in the style of Lyan van Furth or Eric Wolfinger — the world's finest food photographers. Every pixel is intentional, every corner covered with rich background texture.
 
