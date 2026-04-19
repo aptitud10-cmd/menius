@@ -2,6 +2,12 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
+
+const DeliveryMap = dynamic(
+  () => import('@/components/public/DeliveryMap').then((m) => m.DeliveryMap),
+  { ssr: false, loading: () => <div className="w-full h-40 rounded-xl bg-gray-100 animate-pulse" /> }
+);
 import {
   Menu, X, Bell, Check, CheckCircle, Clock, ChevronLeft,
   Truck, ShoppingBag, Utensils, MessageCircle, Phone,
@@ -324,6 +330,7 @@ interface CounterViewProps {
   locale?: Locale;
   restaurantLat?: number | null;
   restaurantLng?: number | null;
+  restaurantAddress?: string | null;
   taxLabel?: string;
   taxIncluded?: boolean;
   tabletMode?: boolean;
@@ -335,7 +342,7 @@ interface CounterViewProps {
 
 export function CounterView({
   initialOrders, restaurantId, restaurantName, currency, locale = 'es',
-  restaurantLat, restaurantLng, taxLabel, taxIncluded, tabletMode = false,
+  restaurantLat, restaurantLng, restaurantAddress, taxLabel, taxIncluded, tabletMode = false,
 }: CounterViewProps) {
   const t = getT(locale);
 
@@ -1352,6 +1359,7 @@ export function CounterView({
               order={selectedOrder}
               currency={currency}
               restaurantName={restaurantName}
+              restaurantAddress={restaurantAddress ?? undefined}
               tab={activeTab}
               eta={eta}
               busyExtra={busyExtra}
@@ -2424,12 +2432,12 @@ function EmptyState({ tab, t, rtStatus }: { tab: Tab; t: ReturnType<typeof getT>
 // ══════════════════════════════════════════════════════════════════════════════
 
 function OrderDetail({
-  order, currency, restaurantName, tab, eta, busyExtra, suggestedEta, isUpdating, t,
+  order, currency, restaurantName, restaurantAddress, tab, eta, busyExtra, suggestedEta, isUpdating, t,
   onBack, onSetEta, onAdjustEta, onAccept, onMarkReady, onMarkServed, onDeliver,
   onCancelRequest, onPrint, onAssignDriver, onTipSaved, onNotify, lastNotif,
   taxLabel, onEditItems, onRemoveItem, editSaving, onPhotoClick,
 }: {
-  order: Order; currency: string; restaurantName: string; tab: Tab;
+  order: Order; currency: string; restaurantName: string; restaurantAddress?: string; tab: Tab;
   eta: number; busyExtra: number; suggestedEta?: number | null; isUpdating: boolean;
   t: ReturnType<typeof getT>;
   onBack: () => void;
@@ -2797,26 +2805,87 @@ function OrderDetail({
                     </div>
                   </div>
                 )}
-                {/* Driver live status — shown whenever driver has interacted via QR link */}
-                {(order.driver_picked_up_at || order.driver_at_door_at || order.status === 'delivered' || order.driver_name) && (
-                  <div className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-[#06C167]/30 bg-[#06C167]/5">
-                    <span className="text-base">🛵</span>
+                {(order as any).delivery_instructions && (
+                  <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                    <span className="text-sm flex-shrink-0 mt-0.5">📝</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[#06C167]">{t.driver}</p>
-                      {order.driver_name && (
-                        <p className="text-xs text-[#555] truncate">
-                          {order.driver_name}
-                          {order.driver_phone ? ` · ${order.driver_phone}` : ''}
-                        </p>
-                      )}
+                      <p className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                        {t.en ? 'Driver instructions' : 'Instrucciones al repartidor'}
+                      </p>
+                      <p className="text-xs text-amber-900 mt-0.5 whitespace-pre-line break-words">
+                        {(order as any).delivery_instructions}
+                      </p>
                     </div>
-                    {order.status === 'delivered' ? (
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex-shrink-0">✓ {t.en ? 'Delivered' : 'Entregado'}</span>
-                    ) : order.driver_at_door_at ? (
-                      <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex-shrink-0">🚪 {t.en ? 'At door' : 'En la puerta'}</span>
-                    ) : order.driver_picked_up_at ? (
-                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0 animate-pulse">🛵 {t.en ? 'On the way' : 'En camino'}</span>
-                    ) : null}
+                  </div>
+                )}
+                {/* Driver delivery timeline — shown when driver is assigned or has interacted */}
+                {(order.driver_picked_up_at || order.driver_at_door_at || order.status === 'delivered' || order.driver_name) && (
+                  <div className="w-full rounded-xl border-2 border-[#06C167]/30 bg-[#06C167]/5 overflow-hidden">
+                    <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[#06C167]/15">
+                      <span className="text-base">🛵</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-[#06C167]">{t.driver}</p>
+                        {order.driver_name && (
+                          <p className="text-xs text-[#555] truncate">
+                            {order.driver_name}
+                            {order.driver_phone ? ` · ${order.driver_phone}` : ''}
+                          </p>
+                        )}
+                      </div>
+                      {order.status === 'delivered' ? (
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex-shrink-0">✓ {t.en ? 'Delivered' : 'Entregado'}</span>
+                      ) : order.driver_at_door_at ? (
+                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex-shrink-0">🚪 {t.en ? 'At door' : 'En la puerta'}</span>
+                      ) : order.driver_picked_up_at ? (
+                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full flex-shrink-0 animate-pulse">📡 {t.en ? 'GPS live' : 'GPS activo'}</span>
+                      ) : (order as any).driver_assigned_at ? (
+                        <span className="text-[10px] font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full flex-shrink-0">{t.en ? 'Assigned' : 'Asignado'}</span>
+                      ) : null}
+                    </div>
+                    <div className="px-3 py-2.5 space-y-1.5">
+                      {[
+                        { key: 'assigned', ts: (order as any).driver_assigned_at, emoji: '👤', en: 'Assigned', es: 'Asignado' },
+                        { key: 'picked_up', ts: order.driver_picked_up_at, emoji: '📦', en: 'Picked up', es: 'Recogido' },
+                        { key: 'on_way', ts: order.driver_picked_up_at && !order.driver_at_door_at && order.status !== 'delivered' ? 'active' : null, emoji: '🛵', en: 'On the way', es: 'En camino' },
+                        { key: 'at_door', ts: order.driver_at_door_at, emoji: '🚪', en: 'At the door', es: 'En la puerta' },
+                        { key: 'delivered', ts: (order as any).driver_delivered_at, emoji: '✅', en: 'Delivered', es: 'Entregado' },
+                      ].map(step => {
+                        if (!step.ts) return null;
+                        const isActive = step.ts === 'active';
+                        const time = !isActive && step.ts ? new Date(step.ts as string).toLocaleTimeString(t.en ? 'en-US' : 'es-MX', { hour: '2-digit', minute: '2-digit' }) : null;
+                        return (
+                          <div key={step.key} className="flex items-center gap-2">
+                            <span className="text-xs w-5 text-center">{step.emoji}</span>
+                            <span className={`text-[11px] font-semibold flex-1 ${isActive ? 'text-blue-600 animate-pulse' : 'text-[#333]'}`}>
+                              {t.en ? step.en : step.es}
+                            </span>
+                            {time && <span className="text-[10px] text-[#999] tabular-nums">{time}</span>}
+                            {isActive && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {/* Live driver map — shown only when driver has picked up and is en route */}
+                {restaurantAddress && order.delivery_address && order.driver_picked_up_at && order.status !== 'delivered' && (
+                  <div className="mt-2 rounded-xl overflow-hidden border border-[#E8E8E8]">
+                    <div className="px-3 py-2 bg-[#F5F5F5] border-b border-[#E8E8E8] flex items-center gap-2">
+                      <span className="text-xs font-bold text-[#06C167] flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#06C167] animate-pulse" />
+                        {t.en ? 'Live driver location' : 'Ubicación del driver en vivo'}
+                      </span>
+                    </div>
+                    <div className="h-48">
+                      <DeliveryMap
+                        restaurantAddress={restaurantAddress}
+                        deliveryAddress={order.delivery_address}
+                        restaurantName={restaurantName}
+                        driverLat={(order as any).driver_lat ?? null}
+                        driverLng={(order as any).driver_lng ?? null}
+                        locale={t.en ? 'en' : 'es'}
+                      />
+                    </div>
                   </div>
                 )}
                 {order.delivery_photo_url && (

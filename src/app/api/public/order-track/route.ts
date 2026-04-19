@@ -4,6 +4,7 @@ import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { UUID_RE } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 export async function GET(req: NextRequest) {
   const ip = getClientIP(req);
@@ -27,16 +28,12 @@ export async function GET(req: NextRequest) {
   try {
     const db = createAdminClient();
 
-    // Only select fields needed for the tracking UI — never expose payment tokens or internal tokens
+    // Use select('*') so we never break when a column is renamed/dropped in the DB.
+    // The column list also matches what the SSR page fetches, keeping shape consistent.
     const { data: order, error } = await db
       .from('orders')
       .select(`
-        id, order_number, status, order_type, total, subtotal, tax_amount, tip_amount,
-        delivery_fee, discount_amount, payment_method, notes, created_at, updated_at,
-        customer_name, customer_phone, customer_email, delivery_address,
-        estimated_ready_minutes,
-        driver_lat, driver_lng, driver_picked_up_at, driver_at_door_at, driver_delivered_at,
-        delivery_photo_url,
+        *,
         table:table_id(name),
         order_items(
           id, qty, unit_price, line_total, notes,
@@ -66,7 +63,9 @@ export async function GET(req: NextRequest) {
       })),
     };
 
-    return NextResponse.json(shaped);
+    return NextResponse.json(shaped, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate' },
+    });
   } catch {
     return NextResponse.json({ error: 'server_error' }, { status: 500 });
   }

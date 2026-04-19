@@ -7,9 +7,22 @@ import {
   Loader2, Package, DoorOpen, MapPin, Bike, AlertTriangle, Navigation,
 } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { haversineKm } from '@/lib/utils/eta';
+import { OrderChat } from '@/components/shared/OrderChat';
 
 type GpsStatus = 'idle' | 'sharing' | 'error' | 'unsupported';
 type DeliveryStep = 'start' | 'picked_up' | 'at_door' | 'delivered';
+
+const DRIVER_IDENTITY_KEY = 'menius-driver-identity';
+
+function getDriverIdentity(): { name: string; phone: string } | null {
+  try {
+    const raw = localStorage.getItem(DRIVER_IDENTITY_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.name ? { name: parsed.name, phone: parsed.phone ?? '' } : null;
+  } catch { return null; }
+}
 
 function getT(lang: string) {
   const en = lang === 'en';
@@ -61,15 +74,24 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState<string | null>(null);
+  const [deliveryInstructions, setDeliveryInstructions] = useState<string | null>(null);
   const [customerPhone, setCustomerPhone] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderCancelled, setOrderCancelled] = useState(false);
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
-  // watchPosition ID — replaces setInterval approach for continuous GPS
-  const watchIdRef = useRef<number | null>(null);
-  // Throttle: skip sends if last send was < 4 seconds ago AND moved < 15m
-  const lastSendRef = useRef<{ lat: number; lng: number; ts: number } | null>(null);
+  const customerGeocoordsRef = useRef<{ lat: number; lng: number } | null>(null);
+  const deliveryStepRef = useRef<DeliveryStep>('start');
+  const geofenceTriggeredRef = useRef(false);
+
+  // Driver identity — auto-assign from localStorage
+  const [driverIdentity, setDriverIdentity] = useState<{ name: string; phone: string } | null>(null);
+  const [driverAssigned, setDriverAssigned] = useState(false);
+  const [showRegistration, setShowRegistration] = useState(false);
+  const [regName, setRegName] = useState('');
+  const [regPhone, setRegPhone] = useState('');
+  const selfAssignCalledRef = useRef(false);
+  const [customerComingOut, setCustomerComingOut] = useState(false);
 
   const fetchOrderInfo = useCallback(async () => {
     try {
@@ -77,9 +99,13 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
       if (res.ok) {
         const data = await res.json();
         setDeliveryAddress(data.deliveryAddress ?? null);
+        setDeliveryInstructions(data.deliveryInstructions ?? null);
         setCustomerPhone(data.customerPhone ?? null);
         if (data.orderId) setOrderId(data.orderId);
         if (data.orderStatus === 'cancelled') setOrderCancelled(true);
+
+        // Track if a driver is already assigned
+        if (data.driverName) setDriverAssigned(true);
 
         // Restore step from server timestamps so a page reload doesn't reset progress
         if (data.driverDeliveredAt) {
@@ -90,51 +116,123 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           setDeliveryStep('picked_up');
           startGps();
         }
+
+        return data;
       }
     } catch { /* silent */ }
+    return null;
   // startGps is stable (no deps), safe to include
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  useEffect(() => { fetchOrderInfo(); }, [fetchOrderInfo]);
+  // On mount: fetch order info, then auto-assign driver from localStorage if unassigned
+  useEffect(() => {
+    (async () => {
+      const data = await fetchOrderInfo();
+      if (!data || selfAssignCalledRef.current) return;
+
+      // Check localStorage for registered driver identity
+      const identity = getDriverIdentity();
+      if (identity) {
+        setDriverIdentity(identity);
+        setRegName(identity.name);
+        setRegPhone(identity.phone);
+      }
+
+      // Auto-assign if no driver assigned yet and we have identity
+      if (!data.driverName && identity) {
+        selfAssignCalledRef.current = true;
+        try {
+          const res = await fetch('/api/driver/self-assign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, driverName: identity.name, driverPhone: identity.phone }),
+          });
+          if (res.ok) setDriverAssigned(true);
+        } catch { /* silent */ }
+      } else if (!data.driverName && !identity) {
+        // No identity — show registration prompt
+        setShowRegistration(true);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+  useEffect(() => { deliveryStepRef.current = deliveryStep; }, [deliveryStep]);
+
+  // Geocode delivery address once — used for geofencing (auto "at door" within 100 m)
+  useEffect(() => {
+    if (!deliveryAddress || customerGeocoordsRef.current) return;
+    fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(deliveryAddress)}`,
+      { headers: { 'Accept-Language': 'en' } }
+    )
+      .then(r => r.json())
+      .then((results: { lat: string; lon: string }[]) => {
+        if (results.length) {
+          customerGeocoordsRef.current = {
+            lat: parseFloat(results[0].lat),
+            lng: parseFloat(results[0].lon),
+          };
+        }
+      })
+      .catch(() => {});
+  }, [deliveryAddress]);
 
   // Realtime subscription — notifies the driver immediately if the restaurant cancels the order.
   // Only subscribes once we have the order's UUID from the initial REST fetch.
-  //
-  // Uses Broadcast (same channel as the customer tracking page) instead of
-  // postgres_changes because the driver page has no Supabase session — the anon
-  // key has no RLS SELECT on orders, so postgres_changes events are silently dropped.
-  // Broadcast is not gated by RLS, so cancellation arrives reliably.
   useEffect(() => {
     if (!orderId) return;
     const supabase = getSupabaseBrowser();
     const channel = supabase
-      .channel(`order-track:${orderId}`)
-      .on('broadcast', { event: 'status_change' }, ({ payload }) => {
-        if (payload?.status === 'cancelled') {
-          setOrderCancelled(true);
-          stopGps();
+      .channel(`driver-order:${orderId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
+        (payload: Record<string, unknown>) => {
+          if ((payload.new as any)?.status === 'cancelled') {
+            setOrderCancelled(true);
+            stopGps();
+          }
         }
+      )
+      .subscribe();
+
+    // Listen for customer "coming out" broadcast
+    const commsChannel = supabase
+      .channel(`order-comms:${orderId}`)
+      .on('broadcast', { event: 'customer_coming_out' }, () => {
+        setCustomerComingOut(true);
+        // Sound alert — urgent doorbell tone
+        try {
+          const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const now = ctx.currentTime;
+          [784, 988, 784, 1175].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.35, now + i * 0.18);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.18 + 0.16);
+            osc.connect(gain).connect(ctx.destination);
+            osc.start(now + i * 0.18);
+            osc.stop(now + i * 0.18 + 0.2);
+          });
+        } catch { /* no audio */ }
+        if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 500]);
+        // Auto-dismiss after 30s
+        setTimeout(() => setCustomerComingOut(false), 30_000);
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(commsChannel);
+    };
   // stopGps is stable — defined below with no reactive deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
   const sendLocation = async (lat: number, lng: number) => {
-    // Throttle: skip if < 4 s since last send AND moved < 15 m (~0.000135 deg)
-    const now = Date.now();
-    const last = lastSendRef.current;
-    if (last) {
-      const dt = now - last.ts;
-      const dlat = Math.abs(lat - last.lat);
-      const dlng = Math.abs(lng - last.lng);
-      if (dt < 4_000 && dlat < 0.000135 && dlng < 0.000135) return;
-    }
-    lastSendRef.current = { lat, lng, ts: now };
-
     try {
       const res = await fetch('/api/driver/location', {
         method: 'POST',
@@ -151,10 +249,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
       const lock: WakeLockSentinel = await (navigator as any).wakeLock.request('screen');
       wakeLockRef.current = lock;
       setWakeLockActive(true);
-      lock.addEventListener('release', () => {
-        setWakeLockActive(false);
-        wakeLockRef.current = null;
-      });
+      lock.addEventListener('release', () => setWakeLockActive(false));
     } catch { /* permission denied or not supported */ }
   };
 
@@ -169,59 +264,53 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
 
   const startGps = () => {
     if (!navigator.geolocation) { setGpsStatus('unsupported'); return; }
-    // Stop any existing watch before starting a new one
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
     setGpsStatus('sharing');
     setGpsError('');
     acquireWakeLock();
-    lastSendRef.current = null;
-
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      pos => {
-        setGpsStatus('sharing');
-        setGpsError('');
-        sendLocation(pos.coords.latitude, pos.coords.longitude);
-      },
-      err => {
-        setGpsError(err.message);
-        // PERMISSION_DENIED = 1, set unsupported. Others are transient — keep trying.
-        if (err.code === 1) setGpsStatus('unsupported');
-        else setGpsStatus('error');
-      },
-      { enableHighAccuracy: true, timeout: 15_000, maximumAge: 5_000 },
+    const gpsOpts: PositionOptions = { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 };
+    navigator.geolocation.getCurrentPosition(
+      pos => sendLocation(pos.coords.latitude, pos.coords.longitude),
+      err => { setGpsStatus('error'); setGpsError(err.message); },
+      gpsOpts,
     );
+    intervalRef.current = setInterval(() => {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setGpsStatus('sharing');
+          setGpsError('');
+          sendLocation(lat, lng);
+
+          // Geofencing — auto-trigger "at door" when within 100 m of delivery address
+          const destCoords = customerGeocoordsRef.current;
+          if (
+            deliveryStepRef.current === 'picked_up' &&
+            destCoords &&
+            !geofenceTriggeredRef.current
+          ) {
+            const distKm = haversineKm(lat, lng, destCoords.lat, destCoords.lng);
+            if (distKm <= 0.1) {
+              geofenceTriggeredRef.current = true;
+              callDriverStatus('at_door').then(ok => {
+                if (ok) setDeliveryStep('at_door');
+              });
+            }
+          }
+        },
+        err => setGpsError(err.message),
+        gpsOpts,
+      );
+    }, 5_000);
   };
 
   const stopGps = () => {
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     releaseWakeLock();
     setGpsStatus('idle');
   };
 
-  useEffect(() => () => {
-    if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
-    if (intervalRef.current) clearInterval(intervalRef.current);
-  }, []);
-
-  // Re-acquire WakeLock when the page becomes visible again (browser releases it on hide)
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === 'visible' && gpsStatus === 'sharing' && !wakeLockRef.current) {
-        acquireWakeLock();
-      }
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  // acquireWakeLock only uses refs — stable reference, safe to omit
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gpsStatus]);
+  useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
 
   const callDriverStatus = async (action: 'picked_up' | 'at_door' | 'delivered'): Promise<boolean> => {
     setActionLoading(true);
@@ -346,6 +435,24 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           </div>
         )}
 
+        {/* Customer "coming out" alert — triggered via Realtime broadcast */}
+        {customerComingOut && (
+          <div className="flex items-start gap-3 bg-emerald-950/80 border-2 border-emerald-400 rounded-2xl p-4 animate-pulse">
+            <span className="text-2xl flex-shrink-0">🚶</span>
+            <div className="flex-1">
+              <p className="text-sm font-black text-emerald-300">
+                {t.en ? 'Customer is coming out!' : '¡El cliente ya sale!'}
+              </p>
+              <p className="text-xs text-emerald-400 mt-0.5">
+                {t.en ? 'Please wait a moment.' : 'Por favor espera un momento.'}
+              </p>
+            </div>
+            <button onClick={() => setCustomerComingOut(false)} className="text-emerald-600 hover:text-emerald-400 p-1 flex-shrink-0">
+              <span className="text-lg">✕</span>
+            </button>
+          </div>
+        )}
+
         <div className="text-center space-y-1">
           <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-3">
             <Bike className="w-8 h-8 text-emerald-400" />
@@ -399,6 +506,20 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
               </div>
             </div>
 
+            {deliveryInstructions && (
+              <div className="bg-amber-950/40 border border-amber-800/60 rounded-xl px-3 py-2.5 flex items-start gap-2">
+                <span className="text-base flex-shrink-0 mt-0.5">📝</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                    {t.en ? 'Customer instructions' : 'Instrucciones del cliente'}
+                  </p>
+                  <p className="text-sm text-amber-100 mt-0.5 whitespace-pre-line break-words">
+                    {deliveryInstructions}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Navigation deeplinks — tap to open in maps app */}
             <div className="grid grid-cols-2 gap-2">
               <a
@@ -435,8 +556,71 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           </div>
         )}
 
+        {/* Inline registration — shown when driver has no saved identity */}
+        {showRegistration && !driverAssigned && deliveryStep === 'start' && (
+          <div className="bg-gray-900 rounded-2xl p-4 space-y-3">
+            <p className="text-sm font-bold text-white">
+              {t.en ? 'Identify yourself' : 'Identifícate'}
+            </p>
+            <p className="text-xs text-gray-500">
+              {t.en
+                ? 'Enter your name so the restaurant knows who picked up the order.'
+                : 'Ingresa tu nombre para que el restaurante sepa quién recogió el pedido.'}
+            </p>
+            <input
+              type="text"
+              value={regName}
+              onChange={e => setRegName(e.target.value)}
+              placeholder={t.en ? 'Your name' : 'Tu nombre'}
+              className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-emerald-500"
+            />
+            <input
+              type="tel"
+              value={regPhone}
+              onChange={e => setRegPhone(e.target.value)}
+              placeholder={t.en ? 'Phone (optional)' : 'Teléfono (opcional)'}
+              className="w-full px-4 py-3 rounded-xl bg-gray-800 border border-gray-700 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-emerald-500"
+            />
+            <button
+              onClick={async () => {
+                if (!regName.trim()) return;
+                const identity = { name: regName.trim(), phone: regPhone.trim() };
+                localStorage.setItem(DRIVER_IDENTITY_KEY, JSON.stringify(identity));
+                setDriverIdentity(identity);
+                try {
+                  const res = await fetch('/api/driver/self-assign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token, driverName: identity.name, driverPhone: identity.phone }),
+                  });
+                  if (res.ok) setDriverAssigned(true);
+                } catch { /* silent */ }
+                setShowRegistration(false);
+              }}
+              disabled={!regName.trim()}
+              className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-sm active:scale-[0.98] transition-all disabled:opacity-40"
+            >
+              {t.en ? 'Continue' : 'Continuar'}
+            </button>
+          </div>
+        )}
+
+        {/* Driver identity badge — shown after registration/auto-assign */}
+        {driverAssigned && (driverIdentity || regName) && deliveryStep === 'start' && (
+          <div className="bg-gray-900 rounded-2xl p-3 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0 text-emerald-400 font-bold text-sm">
+              {(driverIdentity?.name ?? regName).charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-gray-500">{t.en ? 'Assigned driver' : 'Repartidor asignado'}</p>
+              <p className="text-sm font-semibold text-white truncate">{driverIdentity?.name ?? regName}</p>
+            </div>
+            <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+          </div>
+        )}
+
         <div className="space-y-3">
-          {deliveryStep === 'start' && (
+          {deliveryStep === 'start' && (!showRegistration || driverAssigned) && (
             <BigButton loading={actionLoading} onClick={handlePickedUp} color="emerald">
               {t.step1Btn}
             </BigButton>
@@ -462,6 +646,11 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           Powered by MENIUS · {token.slice(0, 8)}…
         </p>
       </div>
+
+      {/* Real-time chat with customer — hidden once delivered */}
+      {orderId && !orderCancelled && (
+        <OrderChat orderId={orderId} role="driver" locale={lang} theme="dark" />
+      )}
     </div>
   );
 }

@@ -7,7 +7,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { formatPrice, cn } from '@/lib/utils';
+import { haversineKm } from '@/lib/utils/eta';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { OrderChat } from '@/components/shared/OrderChat';
 import ShareReceiptButton from './ShareReceiptButton';
 const DeliveryMap = dynamic(
   () => import('./DeliveryMap').then((m) => m.DeliveryMap),
@@ -119,6 +121,53 @@ function getT(locale?: string, orderType?: string) {
   };
 }
 
+// Web Audio API alert tones — no external files needed
+function playAlertTone(type: 'soft' | 'urgent' | 'success') {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const now = ctx.currentTime;
+
+    if (type === 'urgent') {
+      // Two-tone doorbell — attention-grabbing
+      [523, 659, 523, 784].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.3, now + i * 0.2);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.2 + 0.18);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + i * 0.2);
+        osc.stop(now + i * 0.2 + 0.2);
+      });
+    } else if (type === 'success') {
+      // Rising chime — completion
+      [523, 659, 784].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.2, now + i * 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.3);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(now + i * 0.15);
+        osc.stop(now + i * 0.15 + 0.35);
+      });
+    } else {
+      // Soft ping — subtle notification
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.35);
+    }
+  } catch { /* AudioContext not available */ }
+}
+
 const STEP_STYLES: Record<string, { icon: typeof Clock; color: string; bg: string }> = {
   pending:   { icon: Clock,        color: 'text-amber-600',   bg: 'bg-amber-100' },
   confirmed: { icon: ChefHat,      color: 'text-violet-600',  bg: 'bg-violet-100' },
@@ -158,16 +207,17 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const [error, setError] = useState('');
   const [paidBannerVisible, setPaidBannerVisible] = useState(showPaidBanner);
   const [rtStatus, setRtStatus] = useState<'connected' | 'reconnecting' | 'disconnected'>('reconnecting');
-  // Live GPS coords pushed directly from the broadcast 'location_update' event.
-  // Updated without HTTP refetch so the map marker moves in real-time.
-  const [liveDriverCoords, setLiveDriverCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [customerCoords, setCustomerCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [dynamicEta, setDynamicEta] = useState<number | null>(null);
+  const orderRef = useRef<any>(null);
+  const lastAlertedStatusRef = useRef<string | null>(initialOrder?.status ?? null);
 
   const hasInitialOrder = !!initialOrder;
 
   const fetchOrder = useCallback(async () => {
     try {
       const res = await fetch(
-        `/api/public/order-track?order=${encodeURIComponent(orderNumber)}&restaurant=${encodeURIComponent(restaurantId)}`,
+        `/api/public/order-track?order=${encodeURIComponent(orderNumber)}&restaurant=${encodeURIComponent(restaurantId)}&_t=${Date.now()}`,
         { cache: 'no-store' }
       );
       if (!res.ok) {
@@ -194,39 +244,13 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Polling fallback — refreshes every 5 s for active orders.
-  // Fires even when the WebSocket is up, so GPS coordinates and ETA
-  // countdown stay fresh without extra subscriptions.
+  // Polling — primary real-time mechanism for anon customers.
+  // Supabase postgres_changes is unreliable for anon users (events silently dropped).
+  // Poll every 3s for any active order so status changes appear without a page refresh.
   useEffect(() => {
     if (!order?.id || order.status === 'delivered' || order.status === 'cancelled') return;
-    const interval = setInterval(fetchOrder, 5_000);
+    const interval = setInterval(fetchOrder, 3_000);
     return () => clearInterval(interval);
-  }, [order?.id, order?.status, fetchOrder]);
-
-  // Supabase Realtime Broadcast subscription.
-  //
-  // We deliberately use BROADCAST instead of postgres_changes.
-  // postgres_changes requires the connected user to have RLS SELECT access
-  // on the row being watched. Customers are anonymous (anon key, no session)
-  // so their RLS policy blocks the events — they arrive at the server but
-  // are silently dropped before reaching the client.
-  //
-  // Broadcast channels are NOT gated by RLS: any client that knows the
-  // channel name can subscribe. We use the order UUID as the channel name
-  // (opaque, server-issued, only the tracking page URL holder knows it).
-  //
-  // The server sends a broadcast via HTTP Broadcast API from every route
-  // that changes order state: updateOrderStatus, driver/status, cron jobs.
-  // Immediate refetch when the tab becomes visible again (mobile switches app,
-  // or phone wakes from standby). Prevents the customer from seeing a stale
-  // status after returning to the tracking page.
-  useEffect(() => {
-    if (!order?.id || order.status === 'delivered' || order.status === 'cancelled') return;
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') fetchOrder();
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
   }, [order?.id, order?.status, fetchOrder]);
 
   useEffect(() => {
@@ -235,19 +259,41 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     const supabase = getSupabaseBrowser();
     const channel = supabase
       .channel(`order-track:${order.id}`)
-      .on('broadcast', { event: 'status_change' }, () => {
-        // Full refetch: ensures driver timestamps, ETA, and all joined fields
-        // are always up-to-date rather than relying on the partial payload.
-        fetchOrder();
-      })
-      .on('broadcast', { event: 'location_update' }, ({ payload }) => {
-        // Move the map marker directly from the broadcast payload.
-        // No HTTP refetch needed — coords arrive in the payload itself.
-        if (typeof payload?.lat === 'number' && typeof payload?.lng === 'number') {
-          setLiveDriverCoords({ lat: payload.lat, lng: payload.lng });
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'orders',
+          filter: `id=eq.${order.id}`,
+        },
+        (payload: Record<string, unknown>) => {
+          const newRow = (payload.new as Record<string, unknown>) ?? {};
+          const prev = orderRef.current;
+          // Fast path: only GPS coordinates changed — update map pin in state
+          // without a round-trip to the API. Keeps the map smooth at 5s intervals.
+          // Any other change (status, driver timestamps) triggers a full refetch
+          // to keep joined fields (items, table, etc.) current.
+          if (
+            prev &&
+            prev.status === newRow.status &&
+            prev.driver_picked_up_at === newRow.driver_picked_up_at &&
+            prev.driver_at_door_at === newRow.driver_at_door_at &&
+            prev.driver_delivered_at === newRow.driver_delivered_at &&
+            (newRow.driver_lat !== prev.driver_lat || newRow.driver_lng !== prev.driver_lng)
+          ) {
+            setOrder((o: any) => o ? {
+              ...o,
+              driver_lat: newRow.driver_lat,
+              driver_lng: newRow.driver_lng,
+              driver_updated_at: newRow.driver_updated_at,
+            } : o);
+          } else {
+            fetchOrder();
+          }
         }
-      })
-      .subscribe((status) => {
+      )
+      .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
           setRtStatus('connected');
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
@@ -262,6 +308,77 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     };
   // fetchOrder is stable (useCallback with fixed deps)
   }, [order?.id, fetchOrder]);
+
+  // Geocode delivery address once when driver picks up — used for dynamic ETA
+  useEffect(() => {
+    if (
+      order?.order_type !== 'delivery' ||
+      !order?.driver_picked_up_at ||
+      !order?.delivery_address ||
+      customerCoords
+    ) return;
+    fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(order.delivery_address)}`,
+      { headers: { 'Accept-Language': 'en' } }
+    )
+      .then(r => r.json())
+      .then((results: { lat: string; lon: string }[]) => {
+        if (results.length) {
+          setCustomerCoords({ lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) });
+        }
+      })
+      .catch(() => {});
+  }, [order?.order_type, order?.driver_picked_up_at, order?.delivery_address, customerCoords]);
+
+  // Recalculate ETA whenever driver coordinates update
+  useEffect(() => {
+    if (!customerCoords || order?.driver_lat == null || order?.driver_lng == null) return;
+    if (order?.status === 'delivered') { setDynamicEta(null); return; }
+    const distKm = haversineKm(order.driver_lat, order.driver_lng, customerCoords.lat, customerCoords.lng) * 1.35;
+    const mins = Math.max(1, Math.round((distKm / 25) * 60));
+    setDynamicEta(mins);
+  }, [order?.driver_lat, order?.driver_lng, customerCoords, order?.status]);
+
+  // Keep ref in sync so the WebSocket callback always reads the latest order state
+  useEffect(() => { orderRef.current = order; }, [order]);
+
+  // Sound + vibration alerts when delivery milestones change
+  useEffect(() => {
+    if (!order) return;
+    // Build a composite key from status + driver milestones
+    const key = [
+      order.status,
+      (order as any).driver_picked_up_at ? 'picked' : '',
+      (order as any).driver_at_door_at ? 'door' : '',
+    ].join('|');
+    if (key === lastAlertedStatusRef.current) return;
+    const prevKey = lastAlertedStatusRef.current;
+    lastAlertedStatusRef.current = key;
+    if (!prevKey) return; // first render, don't alert
+
+    // Determine which milestone just happened
+    const hadPickedUp = prevKey?.includes('picked');
+    const hadAtDoor = prevKey?.includes('door');
+    const nowPickedUp = !hadPickedUp && (order as any).driver_picked_up_at;
+    const nowAtDoor = !hadAtDoor && (order as any).driver_at_door_at;
+    const nowDelivered = !prevKey?.startsWith('delivered') && order.status === 'delivered';
+
+    if (nowAtDoor) {
+      // Urgent — driver is at the door
+      playAlertTone('urgent');
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
+    } else if (nowDelivered) {
+      playAlertTone('success');
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+    } else if (nowPickedUp) {
+      playAlertTone('soft');
+      if (navigator.vibrate) navigator.vibrate([80]);
+    } else if (order.status !== prevKey?.split('|')[0]) {
+      // Any other status change (confirmed, preparing, ready)
+      playAlertTone('soft');
+      if (navigator.vibrate) navigator.vibrate([60]);
+    }
+  }, [order?.status, (order as any)?.driver_picked_up_at, (order as any)?.driver_at_door_at]);
 
   if (loading) {
     return (
@@ -344,9 +461,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                               : (order as any).driver_picked_up_at
                                 ? (en ? 'Your order is on its way!' : '¡Tu pedido está en camino!')
                                 : (en ? 'Your order is ready for dispatch' : 'Tu pedido está listo para envío'))
-                          : order.order_type === 'dine_in'
-                            ? (en ? 'Your order is on its way to your table!' : '¡Tu pedido va en camino a tu mesa!')
-                            : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!');
+                          : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!');
       case 'delivered': return en ? 'Enjoy your meal!' : '¡Buen provecho!';
       default:          return '';
     }
@@ -363,17 +478,6 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         .tracker-card:nth-child(2) { animation-delay: 0.05s; }
         .tracker-card:nth-child(3) { animation-delay: 0.1s; }
         .tracker-card:nth-child(4) { animation-delay: 0.15s; }
-        @keyframes deliveredPop {
-          0%   { transform: scale(0.5); opacity: 0; }
-          70%  { transform: scale(1.08); opacity: 1; }
-          100% { transform: scale(1);   opacity: 1; }
-        }
-        .delivered-icon { animation: deliveredPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
-        @keyframes ringExpand {
-          0%   { transform: scale(0.7); opacity: 0.6; }
-          100% { transform: scale(1.45); opacity: 0; }
-        }
-        .delivered-ring { animation: ringExpand 1.1s ease-out 0.2s both; }
       `}</style>
 
       {/* Sticky nav bar */}
@@ -456,34 +560,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               <div className="px-6 pt-8 pb-6 text-center">
                 {isComplete ? (
                   <>
-                    {(() => {
-                      const typeConfig = {
-                        pickup:   { icon: ShoppingBag,  solid: '#f97316', tagline: tWithType.en ? 'Enjoy your meal!'  : '¡Buen provecho!' },
-                        dine_in:  { icon: Utensils,     solid: '#7c3aed', tagline: tWithType.en ? 'Enjoy your meal!'  : '¡Que lo disfrutes!' },
-                        delivery: { icon: CheckCircle2, solid: '#059669', tagline: tWithType.en ? 'Enjoy your meal!'  : '¡Buen provecho!' },
-                      };
-                      const cfg = typeConfig[order.order_type as keyof typeof typeConfig] ?? typeConfig.delivery;
-                      const IconCmp = cfg.icon;
-                      return (
-                        <>
-                          {/* Icon with expanding ring — single element, no emoji */}
-                          <div className="relative w-20 h-20 mx-auto mb-6">
-                            <div
-                              className="delivered-ring absolute inset-0 rounded-full"
-                              style={{ background: cfg.solid }}
-                            />
-                            <div
-                              className="delivered-icon relative w-20 h-20 rounded-full flex items-center justify-center"
-                              style={{ background: cfg.solid }}
-                            >
-                              <IconCmp className="w-9 h-9 text-white" strokeWidth={1.75} />
-                            </div>
-                          </div>
-                          <h2 className="text-2xl font-black text-gray-900 mb-1.5">{t.orderDelivered}</h2>
-                          <p className="text-sm text-gray-400">{cfg.tagline}</p>
-                        </>
-                      );
-                    })()}
+                    <div className="w-20 h-20 rounded-2xl bg-[#d0f7f1] flex items-center justify-center mx-auto mb-5">
+                      <Package className="w-10 h-10 text-[#05c8a7]" />
+                    </div>
+                    <h2 className="text-2xl font-black text-gray-900 mb-1">{t.orderDelivered}</h2>
+                    <p className="text-sm text-gray-500">{t.orderDeliveredDesc}</p>
                   </>
                 ) : currentStepStyle && currentStepText ? (
                   <>
@@ -528,11 +609,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                             'text-[9px] font-semibold text-center leading-tight w-14',
                             isDone || isActive ? 'text-brand-600' : 'text-gray-300'
                           )}>
-                            {key === 'ready' && order.order_type === 'delivery'
-                              ? ((order as any).driver_picked_up_at
-                                  ? (tWithType.en ? 'On the way' : 'En camino')
-                                  : (tWithType.en ? 'Ready'      : 'Listo'))
-                              : tWithType.customerSteps[key]}
+                            {tWithType.customerSteps[key]}
                           </span>
                         </div>
 
@@ -559,8 +636,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               restaurantAddress={restaurantAddress}
               deliveryAddress={order.delivery_address}
               restaurantName={restaurantName}
-              driverLat={liveDriverCoords?.lat ?? (order as any).driver_lat ?? null}
-              driverLng={liveDriverCoords?.lng ?? (order as any).driver_lng ?? null}
+              driverLat={(order as any).driver_lat ?? null}
+              driverLng={(order as any).driver_lng ?? null}
               locale={locale}
             />
           </div>
@@ -620,10 +697,19 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                         {t.en ? 'Your driver' : 'Tu repartidor'}
                       </p>
                       <p className="text-lg font-black text-white leading-tight">
-                        {t.en ? 'On the way!' : '¡En camino!'}
+                        {(order as any).driver_name || (t.en ? 'On the way!' : '¡En camino!')}
                       </p>
                       <p className="text-sm text-blue-200 mt-0.5">
-                        {t.en ? 'Heading to your address' : 'Dirigiéndose a tu dirección'}
+                        {dynamicEta != null
+                          ? (tWithType.en ? `~${dynamicEta} min away` : `~${dynamicEta} min restantes`)
+                          : (() => {
+                              const pickedUp = new Date((order as any).driver_picked_up_at);
+                              const elapsedMins = Math.max(1, Math.round((Date.now() - pickedUp.getTime()) / 60_000));
+                              return tWithType.en
+                                ? `On the way · ${elapsedMins} min ago`
+                                : `En camino · hace ${elapsedMins} min`;
+                            })()
+                        }
                       </p>
                     </div>
                     {/* Live GPS indicator */}
@@ -687,36 +773,6 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           <PushSubscriptionPrompt orderId={order.id} locale={locale} />
         )}
 
-        {/* ── ITEMS SUMMARY CARD — visible immediately, no accordion ── */}
-        {!isCancelled && order.order_items?.length > 0 && (
-          <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-gray-900">{t.en ? 'Your order' : 'Tu pedido'}</h3>
-              <span className="text-xs font-semibold text-gray-400">{order.order_items.length} {order.order_items.length === 1 ? (t.en ? 'item' : 'producto') : (t.en ? 'items' : 'productos')}</span>
-            </div>
-            <div className="px-5 py-3 space-y-2.5">
-              {order.order_items.map((item: any) => {
-                const productName = item.product_name ?? item.products?.name ?? (t.en ? 'Item' : 'Producto');
-                const variantName = item.variant_name ?? item.product_variants?.name;
-                return (
-                  <div key={item.id} className="flex items-baseline justify-between gap-2">
-                    <p className="text-sm text-gray-700 min-w-0 truncate">
-                      <span className="font-bold text-brand-600">{item.qty}×</span>{' '}
-                      {productName}
-                      {variantName && <span className="text-gray-400 text-xs ml-1">({variantName})</span>}
-                    </p>
-                    <span className="text-sm font-semibold text-gray-800 flex-shrink-0">{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="px-5 py-3 border-t border-gray-50 flex items-center justify-between">
-              <span className="text-sm font-bold text-gray-900">Total</span>
-              <span className="text-base font-black text-gray-900">{formatPrice(Number(order.total), currency)}</span>
-            </div>
-          </div>
-        )}
-
         {/* ── ORDER DETAILS CARD ── */}
         <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
           {/* Section header */}
@@ -765,6 +821,21 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               </div>
             )}
 
+            {/* Driver instructions — shown to customer for reference */}
+            {order.order_type === 'delivery' && (order as any).delivery_instructions && (
+              <div className="mt-1 rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-2">
+                <span className="text-sm flex-shrink-0 mt-0.5">📝</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wide mb-0.5">
+                    {t.en ? 'Driver instructions' : 'Instrucciones al repartidor'}
+                  </p>
+                  <p className="text-sm font-semibold text-amber-900 whitespace-pre-line break-words">
+                    {(order as any).delivery_instructions}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Table name — dine-in */}
             {order.order_type === 'dine_in' && order.table_name && (
               <div className="flex items-center justify-between">
@@ -808,6 +879,38 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 <span className="text-sm text-gray-600 text-right max-w-[60%] italic">&quot;{order.notes}&quot;</span>
               </div>
             )}
+          </div>
+
+          {/* Items list */}
+          <div className="px-5 py-4 border-t border-gray-50 space-y-3">
+            {order.order_items?.map((item: any) => {
+              // Support both RPC flat format (product_name) and nested format (products?.name)
+              const productName = item.product_name ?? item.products?.name ?? (t.en ? 'Item' : 'Producto');
+              const variantName = item.variant_name ?? item.product_variants?.name;
+              return (
+                <div key={item.id} className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800">
+                      <span className="text-brand-600 font-bold">{item.qty}×</span>{' '}
+                      {productName}
+                      {variantName && (
+                        <span className="text-gray-400 font-normal text-xs ml-1">({variantName})</span>
+                      )}
+                    </p>
+                    {(item.order_item_extras ?? []).length > 0 && (
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        + {(item.order_item_extras ?? []).map((ex: any) => ex.product_extras?.name).filter(Boolean).join(', ')}
+                      </p>
+                    )}
+                    {(item.order_item_modifiers ?? []).map((mod: any, i: number) => (
+                      <p key={i} className="text-xs text-gray-400">{mod.group_name}: {mod.option_name}</p>
+                    ))}
+                    {item.notes && <p className="text-xs text-amber-600 italic mt-0.5">&quot;{item.notes}&quot;</p>}
+                  </div>
+                  <span className="text-sm font-semibold text-gray-800 flex-shrink-0">{formatPrice(Number(item.line_total ?? item.unit_price), currency)}</span>
+                </div>
+              );
+            })}
           </div>
 
           {/* Price breakdown */}
@@ -870,8 +973,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               restaurantAddress={restaurantAddress}
               deliveryAddress={order.delivery_address}
               restaurantName={restaurantName}
-              driverLat={liveDriverCoords?.lat ?? (order as any).driver_lat ?? null}
-              driverLng={liveDriverCoords?.lng ?? (order as any).driver_lng ?? null}
+              driverLat={(order as any).driver_lat ?? null}
+              driverLng={(order as any).driver_lng ?? null}
               locale={locale}
             />
           </div>
@@ -973,6 +1076,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {/* Save order to local history */}
         <OrderHistorySaver order={order} restaurantSlug={restaurantSlug} restaurantName={restaurantName} locale={locale} currency={currency} />
       </div>
+
+      {/* Real-time chat with driver — only during active delivery */}
+      {order.order_type === 'delivery' && (order as any).driver_name && !isComplete && !isCancelled && (
+        <OrderChat orderId={order.id} role="customer" locale={locale} theme="light" />
+      )}
     </div>
   );
 }
@@ -991,6 +1099,17 @@ function ComingOutButton({ orderId, locale }: { orderId: string; locale?: string
         body: JSON.stringify({ orderId, action: 'coming_out' }),
       });
       const data = await res.json().catch(() => ({}));
+
+      // Broadcast to driver page via Supabase Realtime (works even without WhatsApp)
+      try {
+        const supabase = getSupabaseBrowser();
+        supabase.channel(`order-comms:${orderId}`).send({
+          type: 'broadcast',
+          event: 'customer_coming_out',
+          payload: { orderId, timestamp: Date.now() },
+        });
+      } catch { /* silent */ }
+
       setState(data.notified === false ? 'sent_no_driver' : 'sent');
     } catch {
       setState('sent');
@@ -1177,12 +1296,12 @@ function ReviewPrompt({ restaurantId, orderId, customerName, locale }: { restaur
       const res = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ restaurant_id: restaurantId, order_id: orderId, customer_name: customerName, rating, comment, _hp: '' }),
+        body: JSON.stringify({ restaurant_id: restaurantId, order_id: orderId, customer_name: customerName, rating, comment }),
       });
-      // 409 = already reviewed; treat as success
-      if (res.ok || res.status === 409) setSubmitted(true);
-    } catch { /* silent — inline prompt, no critical path */ }
-    finally { setSubmitting(false); }
+      if (res.ok) setSubmitted(true);
+    } catch (err) {
+      console.error('[OrderTracker] submit review failed:', err);
+    } finally { setSubmitting(false); }
   };
 
   if (submitted) {
@@ -1206,7 +1325,7 @@ function ReviewPrompt({ restaurantId, orderId, customerName, locale }: { restaur
       </div>
       <textarea
         value={comment} onChange={e => setComment(e.target.value)}
-        placeholder={t.reviewPlaceholder} rows={2} maxLength={500}
+        placeholder={t.reviewPlaceholder} rows={2}
         className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 resize-none mb-3"
       />
       <button

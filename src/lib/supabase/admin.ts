@@ -17,5 +17,12 @@ export function createAdminClient() {
 
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
+    // Disable Next.js fetch caching for all Supabase queries.
+    // `export const dynamic = 'force-dynamic'` alone does NOT prevent fetch-level
+    // caching inside route handlers — only disabling cache on the underlying fetch
+    // ensures database reads always hit the DB fresh.
+    global: {
+      fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }),
+    },
   });
 }
