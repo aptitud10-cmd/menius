@@ -173,21 +173,29 @@ export async function POST(request: NextRequest) {
     // (c) customer picked a Google Places suggestion so we have verified coordinates.
     // Manual free-text addresses pass through (we don't have coords to verify).
     const deliveryRadiusKm = Number((restaurant as any).delivery_radius_km);
-    const restLat = Number((restaurant as any).latitude);
-    const restLng = Number((restaurant as any).longitude);
+    const rawRestLat = (restaurant as any).latitude;
+    const rawRestLng = (restaurant as any).longitude;
+    // Explicit null check BEFORE Number() — Number(null) === 0 which gives bogus distances
+    const restLat = rawRestLat != null ? Number(rawRestLat) : null;
+    const restLng = rawRestLng != null ? Number(rawRestLng) : null;
     if (
       parsed.data.order_type === 'delivery' &&
       Number.isFinite(deliveryRadiusKm) && deliveryRadiusKm > 0 &&
+      restLat != null && restLng != null &&
       Number.isFinite(restLat) && Number.isFinite(restLng) &&
       delivery_lat != null && delivery_lng != null
     ) {
       const distKm = haversineKm(restLat, restLng, delivery_lat, delivery_lng);
       if (distKm > deliveryRadiusKm) {
+        const KM_TO_MI = 0.621371;
+        const distDisplay = en ? (distKm * KM_TO_MI).toFixed(1) : distKm.toFixed(1);
+        const radiusDisplay = en ? (deliveryRadiusKm * KM_TO_MI).toFixed(1) : deliveryRadiusKm.toFixed(1);
+        const unit = en ? 'mi' : 'km';
         return NextResponse.json(
           {
             error: en
-              ? `This address is outside our delivery zone (${distKm.toFixed(1)} km away, we deliver up to ${deliveryRadiusKm} km).`
-              : `Esta dirección está fuera de nuestra zona de entrega (a ${distKm.toFixed(1)} km, entregamos hasta ${deliveryRadiusKm} km).`,
+              ? `This address is outside our delivery zone (${distDisplay} ${unit} away, we deliver up to ${radiusDisplay} ${unit}).`
+              : `Esta dirección está fuera de nuestra zona de entrega (a ${distDisplay} ${unit}, entregamos hasta ${radiusDisplay} ${unit}).`,
             out_of_zone: true,
             distance_km: Number(distKm.toFixed(2)),
             radius_km: deliveryRadiusKm,

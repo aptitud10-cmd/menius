@@ -157,15 +157,19 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   // Server re-validates on submit as the source of truth.
   const deliveryZoneCheck = (() => {
     const radius = Number((restaurant as any).delivery_radius_km);
-    const restLat = Number((restaurant as any).latitude);
-    const restLng = Number((restaurant as any).longitude);
+    const rawLat = (restaurant as any).latitude;
+    const rawLng = (restaurant as any).longitude;
+    // Explicit null/undefined check BEFORE Number() — Number(null) === 0 which is wrong
     if (
       !deliveryCoords ||
       !Number.isFinite(radius) || radius <= 0 ||
-      !Number.isFinite(restLat) || !Number.isFinite(restLng)
+      rawLat == null || rawLng == null
     ) {
       return null;
     }
+    const restLat = Number(rawLat);
+    const restLng = Number(rawLng);
+    if (!Number.isFinite(restLat) || !Number.isFinite(restLng)) return null;
     const R = 6371;
     const toRad = (d: number) => (d * Math.PI) / 180;
     const dLat = toRad(deliveryCoords.lat - restLat);
@@ -173,7 +177,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     const a = Math.sin(dLat / 2) ** 2 +
       Math.cos(toRad(restLat)) * Math.cos(toRad(deliveryCoords.lat)) * Math.sin(dLng / 2) ** 2;
     const distKm = 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return { distKm, radiusKm: radius, outOfZone: distKm > radius };
+    const useMiles = locale === 'en';
+    const KM_TO_MI = 0.621371;
+    const dist = useMiles ? distKm * KM_TO_MI : distKm;
+    const radiusDisplay = useMiles ? radius * KM_TO_MI : radius;
+    return { distKm, dist, radiusKm: radius, radiusDisplay, unit: useMiles ? 'mi' : 'km', outOfZone: distKm > radius };
   })();
   const [arrivalTime, setArrivalTime] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
@@ -472,8 +480,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     if (orderType === 'delivery' && deliveryZoneCheck?.outOfZone) {
       setOrderError(
         locale === 'es'
-          ? `La dirección está fuera de la zona de entrega (a ${deliveryZoneCheck.distKm.toFixed(1)} km, entregamos hasta ${deliveryZoneCheck.radiusKm} km).`
-          : `Address is outside the delivery zone (${deliveryZoneCheck.distKm.toFixed(1)} km away, we deliver up to ${deliveryZoneCheck.radiusKm} km).`
+          ? `La dirección está fuera de la zona de entrega (a ${deliveryZoneCheck.dist.toFixed(1)} ${deliveryZoneCheck.unit}, entregamos hasta ${deliveryZoneCheck.radiusDisplay.toFixed(1)} ${deliveryZoneCheck.unit}).`
+          : `Address is outside the delivery zone (${deliveryZoneCheck.dist.toFixed(1)} ${deliveryZoneCheck.unit} away, we deliver up to ${deliveryZoneCheck.radiusDisplay.toFixed(1)} ${deliveryZoneCheck.unit}).`
       );
       trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'delivery_zone', order_type: orderType });
       setCtaShake(true);
@@ -1550,11 +1558,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                         <p className="font-semibold">
                           {deliveryZoneCheck.outOfZone
                             ? (locale === 'es'
-                              ? `Fuera de la zona de entrega — a ${deliveryZoneCheck.distKm.toFixed(1)} km (entregamos hasta ${deliveryZoneCheck.radiusKm} km).`
-                              : `Outside delivery zone — ${deliveryZoneCheck.distKm.toFixed(1)} km away (we deliver up to ${deliveryZoneCheck.radiusKm} km).`)
+                              ? `Fuera de la zona de entrega — a ${deliveryZoneCheck.dist.toFixed(1)} ${deliveryZoneCheck.unit} (entregamos hasta ${deliveryZoneCheck.radiusDisplay.toFixed(1)} ${deliveryZoneCheck.unit}).`
+                              : `Outside delivery zone — ${deliveryZoneCheck.dist.toFixed(1)} ${deliveryZoneCheck.unit} away (we deliver up to ${deliveryZoneCheck.radiusDisplay.toFixed(1)} ${deliveryZoneCheck.unit}).`)
                             : (locale === 'es'
-                              ? `Dentro de la zona de entrega (a ${deliveryZoneCheck.distKm.toFixed(1)} km)`
-                              : `Within delivery zone (${deliveryZoneCheck.distKm.toFixed(1)} km away)`)}
+                              ? `Dentro de la zona de entrega (a ${deliveryZoneCheck.dist.toFixed(1)} ${deliveryZoneCheck.unit})`
+                              : `Within delivery zone (${deliveryZoneCheck.dist.toFixed(1)} ${deliveryZoneCheck.unit} away)`)}
                         </p>
                       </div>
                     </div>

@@ -959,33 +959,51 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             </div>
             <p className="text-[11px] text-gray-400 mb-3">
               {locale === 'en'
-                ? 'Set the maximum km from your restaurant where you accept delivery orders.'
+                ? 'Set the maximum miles from your restaurant where you accept delivery orders.'
                 : 'Define el radio máximo desde tu restaurante donde aceptas órdenes de entrega.'}
             </p>
-            <div className="flex items-center gap-4">
-              <input
-                type="range"
-                min="0.5"
-                max="50"
-                step="0.5"
-                value={form.delivery_radius_km || 5}
-                onChange={e => { setForm(prev => ({ ...prev, delivery_radius_km: e.target.value })); setSaved(false); }}
-                className="flex-1 accent-emerald-500"
-              />
-              <div className="flex items-center gap-1 min-w-[70px]">
-                <input
-                  type="number"
-                  min="0.5"
-                  max="50"
-                  step="0.5"
-                  value={form.delivery_radius_km || ''}
-                  onChange={e => { setForm(prev => ({ ...prev, delivery_radius_km: e.target.value })); setSaved(false); }}
-                  placeholder="—"
-                  className="w-16 px-2 py-1.5 rounded-lg border border-gray-200 text-sm text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                />
-                <span className="text-xs text-gray-500">km</span>
-              </div>
-            </div>
+            {(() => {
+              const KM_TO_MI = 0.621371;
+              const MI_TO_KM = 1 / KM_TO_MI;
+              const useMiles = locale === 'en';
+              const displayVal = form.delivery_radius_km
+                ? useMiles
+                  ? Number((Number(form.delivery_radius_km) * KM_TO_MI).toFixed(1))
+                  : Number(form.delivery_radius_km)
+                : '';
+              const handleChange = (val: string) => {
+                const num = Number(val);
+                const km = useMiles ? (num * MI_TO_KM).toFixed(2) : val;
+                setForm(prev => ({ ...prev, delivery_radius_km: km }));
+                setSaved(false);
+              };
+              return (
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min={useMiles ? '0.3' : '0.5'}
+                    max={useMiles ? '31' : '50'}
+                    step={useMiles ? '0.1' : '0.5'}
+                    value={displayVal || (useMiles ? 3 : 5)}
+                    onChange={e => handleChange(e.target.value)}
+                    className="flex-1 accent-emerald-500"
+                  />
+                  <div className="flex items-center gap-1 min-w-[70px]">
+                    <input
+                      type="number"
+                      min={useMiles ? '0.3' : '0.5'}
+                      max={useMiles ? '31' : '50'}
+                      step={useMiles ? '0.1' : '0.5'}
+                      value={displayVal}
+                      onChange={e => handleChange(e.target.value)}
+                      placeholder="—"
+                      className="w-16 px-2 py-1.5 rounded-lg border border-gray-200 text-sm text-center text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                    />
+                    <span className="text-xs text-gray-500">{useMiles ? 'mi' : 'km'}</span>
+                  </div>
+                </div>
+              );
+            })()}
             {/* Visual zone indicator */}
             <div className="mt-3 rounded-xl bg-emerald-50 border border-emerald-200 p-3 flex items-center gap-3">
               <div className="relative flex-shrink-0" style={{ width: 56, height: 56 }}>
@@ -998,7 +1016,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                 <p className="text-xs font-semibold text-emerald-800">
                   {form.delivery_radius_km
                     ? (locale === 'en'
-                      ? `Coverage: ${form.delivery_radius_km} km radius`
+                      ? `Coverage: ${(Number(form.delivery_radius_km) * 0.621371).toFixed(1)} mi radius`
                       : `Cobertura: radio de ${form.delivery_radius_km} km`)
                     : (locale === 'en' ? 'No radius defined (unlimited)' : 'Sin radio definido (ilimitado)')
                   }
