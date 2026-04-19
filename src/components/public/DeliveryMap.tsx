@@ -22,7 +22,7 @@ interface Coords {
 }
 
 export interface DeliveryMapProps {
-  restaurantAddress: string;
+  restaurantAddress?: string | null;
   deliveryAddress?: string | null;
   restaurantName: string;
   driverLat?: number | null;
@@ -297,6 +297,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
       if (driverCoords) currentDriverPos.current = driverCoords;
 
       mapRef.current = map;
+      map.resize();
       setReady(true);
     })();
 
@@ -362,12 +363,10 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
   }, [ready, driverCoords?.lat, driverCoords?.lng]);
 
   return (
-    <div className="relative w-full">
-      <div
-        ref={containerRef}
-        className="w-full h-60 rounded-2xl overflow-hidden border border-gray-200 shadow-sm"
-        style={{ minHeight: 240 }}
-      />
+    <div className="relative w-full" style={{ minHeight: 240 }}>
+      <div className="w-full h-60 rounded-2xl overflow-hidden border border-gray-200 shadow-sm" style={{ minHeight: 240 }}>
+        <div ref={containerRef} className="w-full h-full" />
+      </div>
       {/* ETA chip — overlaid bottom-left on the map, only when driver is active */}
       {driverCoords && etaMinutes !== null && (
         <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm border border-orange-200 shadow-md rounded-full px-3 py-1.5 pointer-events-none">
