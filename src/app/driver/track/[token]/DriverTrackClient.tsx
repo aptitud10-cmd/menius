@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { haversineKm } from '@/lib/utils/eta';
-import { OrderChat } from '@/components/shared/OrderChat';
 
 type GpsStatus = 'idle' | 'sharing' | 'error' | 'unsupported';
 type DeliveryStep = 'start' | 'picked_up' | 'at_door' | 'delivered';
@@ -60,7 +59,8 @@ function getT(lang: string) {
 
 const STEPS: DeliveryStep[] = ['start', 'picked_up', 'at_door', 'delivered'];
 
-export function DriverTrackClient({ token, lang }: { token: string; lang: string }) {
+export function DriverTrackClient({ token, lang: initialLang }: { token: string; lang: string }) {
+  const [lang, setLang] = useState(initialLang);
   const t = getT(lang);
 
   const [gpsStatus, setGpsStatus] = useState<GpsStatus>('idle');
@@ -103,6 +103,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
         setCustomerPhone(data.customerPhone ?? null);
         if (data.orderId) setOrderId(data.orderId);
         if (data.orderStatus === 'cancelled') setOrderCancelled(true);
+        if (data.locale) setLang(data.locale);
 
         // Track if a driver is already assigned
         if (data.driverName) setDriverAssigned(true);
@@ -647,10 +648,6 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
         </p>
       </div>
 
-      {/* Real-time chat with customer — hidden once delivered */}
-      {orderId && !orderCancelled && (
-        <OrderChat orderId={orderId} role="driver" locale={lang} theme="dark" />
-      )}
     </div>
   );
 }

@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('orders')
-    .select('*')
+    .select('*, restaurant:restaurants(locale)')
     .eq('driver_tracking_token', token)
     .maybeSingle();
 
@@ -45,5 +45,6 @@ export async function GET(req: NextRequest) {
     driverPickedUpAt: (data as any).driver_picked_up_at ?? null,
     driverAtDoorAt: (data as any).driver_at_door_at ?? null,
     driverDeliveredAt: (data as any).driver_delivered_at ?? null,
+    locale: (data as any).restaurant?.locale ?? 'es',
   });
 }

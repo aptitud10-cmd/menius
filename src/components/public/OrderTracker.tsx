@@ -9,7 +9,6 @@ import dynamic from 'next/dynamic';
 import { formatPrice, cn } from '@/lib/utils';
 import { haversineKm } from '@/lib/utils/eta';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
-import { OrderChat } from '@/components/shared/OrderChat';
 import ShareReceiptButton from './ShareReceiptButton';
 const DeliveryMap = dynamic(
   () => import('./DeliveryMap').then((m) => m.DeliveryMap),
@@ -1077,10 +1076,6 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         <OrderHistorySaver order={order} restaurantSlug={restaurantSlug} restaurantName={restaurantName} locale={locale} currency={currency} />
       </div>
 
-      {/* Real-time chat with driver — only during active delivery */}
-      {order.order_type === 'delivery' && (order as any).driver_name && !isComplete && !isCancelled && (
-        <OrderChat orderId={order.id} role="customer" locale={locale} theme="light" />
-      )}
     </div>
   );
 }
