@@ -287,7 +287,7 @@ function makeMenuDataFetcher(slug: string) {
   return unstable_cache(
     () => fetchMenuDataFromDB(slug),
     ['menu-data', slug],
-    { tags: ['menu-data', `menu-data:${slug}`], revalidate: 3600 },
+    { tags: ['menu-data', `menu-data:${slug}`], revalidate: 60 },
   );
 }
 

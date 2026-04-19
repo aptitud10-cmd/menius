@@ -162,22 +162,22 @@ export async function POST(request: NextRequest) {
 
     // ─── CATEGORY → SURFACE & BACKGROUND ─────────────────────────────────────
     const surfaceMap: Record<string, string> = {
-      Beverages:    'polished dark basalt stone bar counter, surface has subtle dark grain texture. Background: deep out-of-focus dark charcoal, smooth and featureless. No props, no food, no plates around.',
-      Drinks:       'polished dark basalt stone bar counter, surface has subtle dark grain texture. Background: deep out-of-focus dark charcoal, smooth and featureless.',
-      'Hot drinks': 'warm light oak wood table surface with visible wood grain. A thin ceramic saucer underneath the cup. Background: soft warm cream out-of-focus.',
-      Cocktails:    'sleek dark honed marble bar counter with subtle veining. One carefully folded linen cocktail napkin to the side. Background: deep out-of-focus black.',
-      Burgers:      'matte dark slate stone surface, rough texture. Background: deep matte charcoal. No extra props.',
-      Chicken:      'matte black ceramic tile surface. Background: deep charcoal. No extra props.',
-      Pizza:        'worn rustic wood board on a rough dark stone surface. Background: warm dark wood tones.',
-      Tacos:        'warm terracotta ceramic surface with a small natural woven cloth underneath. Background: warm earth tones.',
-      Desserts:     'white Carrara marble surface with soft gray veining. Background: elegant soft gray, barely perceptible.',
-      Salads:       'clean white marble surface. Background: bright soft natural light, airy white.',
-      Soups:        'dark slate or matte ceramic tile surface. Background: deep warm moody charcoal.',
-      Pasta:        'white linen cloth draped over a wooden restaurant table. Background: warm ambient restaurant.',
-      Breakfast:    'light oak wood breakfast table with fine wood grain. Background: soft warm morning light.',
-      Dinner:       'polished dark slate restaurant surface. Background: deep charcoal.',
-      Appetizers:   'rustic wooden serving board or dark ceramic tile. Background: warm dark tones.',
-      Sandwiches:   'rustic weathered wooden board. Background: warm natural ambient.',
+      Beverages:    'polished dark honed basalt stone bar counter of an upscale restaurant. Background: deep out-of-focus dark charcoal with subtle warm ambient restaurant glow. No props around.',
+      Drinks:       'polished dark honed basalt stone bar counter of an upscale restaurant. Background: deep out-of-focus dark charcoal with subtle warm ambient glow.',
+      'Hot drinks': 'dark espresso-stained hardwood restaurant table. A fine ceramic saucer beneath the cup. Background: warm amber out-of-focus restaurant interior with soft candlelight bokeh.',
+      Cocktails:    'sleek dark honed marble bar counter with subtle gray veining — upscale cocktail bar. One precisely folded dark linen napkin beside the glass. Background: deep moody out-of-focus black with ambient bar glow.',
+      Burgers:      'matte dark slate stone restaurant surface with worn industrial texture. Background: deep matte charcoal restaurant ambiance.',
+      Chicken:      'matte black ceramic restaurant tile surface. Background: deep charcoal with warm restaurant ambient glow.',
+      Pizza:        'worn dark reclaimed wood restaurant table surface. Background: warm dark restaurant interior tones.',
+      Tacos:        'dark matte slate restaurant surface with a folded dark cloth napkin. Background: warm restaurant earth tones, moody and inviting.',
+      Desserts:     'cool white Carrara marble pastry surface in a professional restaurant setting. Background: elegant soft gray restaurant interior, barely perceptible depth.',
+      Salads:       'cool dark slate restaurant surface. Background: soft deep restaurant interior with warm ambient bokeh — NOT bright, NOT white, NOT home kitchen.',
+      Soups:        'dark textured slate or matte ceramic restaurant surface. Background: deep warm moody restaurant charcoal.',
+      Pasta:        'dark polished wood restaurant table with fine grain. A white linen napkin folded to the side. Background: warm soft out-of-focus restaurant interior.',
+      Breakfast:    'dark espresso-stained restaurant wood table. Background: soft warm restaurant morning ambiance — NOT a home kitchen.',
+      Dinner:       'polished dark slate restaurant surface. Background: deep charcoal restaurant interior with ambient warmth.',
+      Appetizers:   'dark slate restaurant surface or refined dark ceramic tile. Background: warm moody restaurant tones.',
+      Sandwiches:   'dark reclaimed wood restaurant table surface. Background: warm moody restaurant ambient.',
     };
     const surfaceInstruction = (category && surfaceMap[category])
       ? surfaceMap[category]
@@ -313,7 +313,7 @@ COLOR SCIENCE: Rich warm tonal depth. Deep shadows with warm amber undertones �
 - Every corner filled with natural background — NO blank areas, NO darkness, NO undefined shapes
 - The scene must look like it was photographed in a real restaurant or a fully dressed studio set — never a bare photo studio with equipment visible
 
-This is an award-winning commercial food photograph in the style of Lyan van Furth or Eric Wolfinger — the world's finest food photographers. Every pixel is intentional, every corner covered with rich background texture.
+This is an award-winning commercial restaurant food photograph in the style of Lyan van Furth or Eric Wolfinger — the world's finest food photographers. The setting is always a professional restaurant or upscale dining environment — never a home kitchen, never a domestic setting. Every pixel is intentional, every corner covered with rich background texture.
 
 SUBJECT: "${productName}"${description ? ` — ${description}` : ''}.
 SERVED IN/ON: ${container}.
