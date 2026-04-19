@@ -121,12 +121,16 @@ export async function POST(request: NextRequest) {
     const supabase = createClient();
     const adminDb = createAdminClient();
 
-    const { data: restaurant } = await adminDb
+    const { data: restaurant, error: restaurantError } = await adminDb
       .from('restaurants')
-      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label, commission_plan, order_types_enabled, payment_methods_enabled, latitude, longitude, delivery_radius_km')
+      .select('*')
       .eq('id', restaurant_id)
       .eq('is_active', true)
       .maybeSingle();
+
+    if (restaurantError) {
+      logger.error('restaurant lookup failed', { restaurant_id, error: restaurantError.message });
+    }
 
     if (!restaurant) {
       return NextResponse.json({ error: bodyEn ? 'Restaurant not found' : 'Restaurante no encontrado' }, { status: 404 });
