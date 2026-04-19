@@ -1,5 +1,4 @@
 import { cache } from 'react';
-import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { Restaurant, Category, Product } from '@/types';
 
@@ -273,25 +272,9 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
 }
 
 /**
- * Load public menu data with two-level caching:
- *  1. unstable_cache  — persists the Supabase result in Next.js's data cache for 1 hour.
- *                       Invalidated on-demand by revalidateTag(`menu-data:${slug}`) whenever the
- *                       restaurant edits products, categories, or settings.
- *                       Also tagged with the global 'menu-data' tag for admin-level purges.
- *  2. React.cache()   — deduplicates calls within the same render pass (page + metadata).
- *
- * Result: Supabase is only hit once per real menu change, not on every ISR regeneration.
- * Per-restaurant tags ensure invalidating one restaurant does NOT flush all others.
+ * Load public menu data. React.cache() deduplicates within the same render pass.
+ * ISR (export const dynamic = 'force-dynamic' on the page) ensures always-fresh data.
  */
-function makeMenuDataFetcher(slug: string) {
-  return unstable_cache(
-    () => fetchMenuDataFromDB(slug),
-    ['menu-data', slug],
-    { tags: ['menu-data', `menu-data:${slug}`], revalidate: 3600 },
-  );
-}
-
-// React.cache deduplicates within a single render pass
 export const fetchMenuData = cache(async function fetchMenuData(slug: string) {
-  return makeMenuDataFetcher(slug)();
+  return fetchMenuDataFromDB(slug);
 });
