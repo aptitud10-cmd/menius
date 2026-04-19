@@ -9,7 +9,7 @@ import { JsonLdScript } from '@/components/public/JsonLdScript';
 import { getStoreOverrides } from '@/lib/store-overrides'; // Nuevo import
 import { Product, Restaurant } from '@/types'; // Asumiendo estos tipos
 
-export const revalidate = 300;
+export const revalidate = 60;
 // Allow slugs not in generateStaticParams (new restaurants created after build) to work via ISR
 export const dynamicParams = true;
 
