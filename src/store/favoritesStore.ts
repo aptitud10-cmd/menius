@@ -2,22 +2,31 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface FavoritesState {
-  ids: string[];
-  toggle: (productId: string) => void;
-  isFav: (productId: string) => boolean;
+  byRestaurant: Record<string, string[]>;
+  toggle: (restaurantId: string, productId: string) => void;
+  isFav: (restaurantId: string, productId: string) => boolean;
+  getIds: (restaurantId: string) => string[];
 }
 
 export const useFavoritesStore = create<FavoritesState>()(
   persist(
     (set, get) => ({
-      ids: [],
-      toggle: (productId) =>
-        set((s) => ({
-          ids: s.ids.includes(productId)
-            ? s.ids.filter((id) => id !== productId)
-            : [...s.ids, productId],
-        })),
-      isFav: (productId) => get().ids.includes(productId),
+      byRestaurant: {},
+      toggle: (restaurantId, productId) =>
+        set((s) => {
+          const current = s.byRestaurant[restaurantId] ?? [];
+          return {
+            byRestaurant: {
+              ...s.byRestaurant,
+              [restaurantId]: current.includes(productId)
+                ? current.filter((id) => id !== productId)
+                : [...current, productId],
+            },
+          };
+        }),
+      isFav: (restaurantId, productId) =>
+        (get().byRestaurant[restaurantId] ?? []).includes(productId),
+      getIds: (restaurantId) => get().byRestaurant[restaurantId] ?? [],
     }),
     {
       name: 'menius-favs',
@@ -27,7 +36,7 @@ export const useFavoritesStore = create<FavoritesState>()(
         }
         return localStorage;
       }),
-      partialize: (s) => ({ ids: s.ids }),
+      partialize: (s) => ({ byRestaurant: s.byRestaurant }),
     }
   )
 );

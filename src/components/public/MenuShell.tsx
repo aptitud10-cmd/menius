@@ -160,7 +160,7 @@ export function MenuShell({
   const showScrollTopPill = Boolean(storeConfig.showScrollTop);
   const [activeCatFilter, setActiveCatFilter] = useState<string | null>(null);
   const [showFavs, setShowFavs] = useState(false);
-  const favIds = useFavoritesStore((s) => s.ids);
+  const favIds = useFavoritesStore((s) => s.getIds(restaurant.id));
   const [activeDiet, setActiveDiet] = useState<DietaryTag | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -1377,6 +1377,7 @@ export function MenuShell({
                     >
                       <ProductCard
                         product={product}
+                        restaurantId={restaurant.id}
                         onSelect={handleProductSelect}
                         onQuickAdd={handleQuickAdd}
                         fmtPrice={fmtPrice}
@@ -1418,6 +1419,7 @@ export function MenuShell({
                     <ProductCard
                       key={product.id}
                       product={product}
+                      restaurantId={restaurant.id}
                       onSelect={handleProductSelect}
                       onQuickAdd={handleQuickAdd}
                       fmtPrice={fmtPrice}
@@ -1536,6 +1538,7 @@ export function MenuShell({
                               <div key={product.id} className="rounded-2xl overflow-hidden">
                                 <ProductCard
                                   product={product}
+                                  restaurantId={restaurant.id}
                                   onSelect={handleProductSelect}
                                   onQuickAdd={handleQuickAdd}
                                   fmtPrice={fmtPrice}
@@ -1579,6 +1582,7 @@ export function MenuShell({
                               >
                                 <ProductCard
                                   product={product}
+                                  restaurantId={restaurant.id}
                                   onSelect={handleProductSelect}
                                   onQuickAdd={handleQuickAdd}
                                   fmtPrice={fmtPrice}

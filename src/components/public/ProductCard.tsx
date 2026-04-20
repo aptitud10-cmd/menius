@@ -18,6 +18,7 @@ import { ProductCardDesktop } from './ProductCardDesktop';
 
 export interface ProductCardProps {
   product: Product;
+  restaurantId: string;
   onSelect: (p: Product) => void;
   onQuickAdd: (p: Product) => void;
   fmtPrice: (n: number) => string;

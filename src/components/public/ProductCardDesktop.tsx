@@ -15,6 +15,7 @@ import type { ProductCardProps } from './ProductCard';
 
 export const ProductCardDesktop = memo(function ProductCardDesktop({
   product,
+  restaurantId,
   onSelect,
   onQuickAdd,
   fmtPrice,
@@ -49,7 +50,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
   const imgAlt = displayDesc ? `${displayName} - ${displayDesc.slice(0, 80)}` : displayName;
   const showImage = product.image_url && !imgError;
 
-  const isFav = useFavoritesStore((s) => s.ids.includes(product.id));
+  const isFav = useFavoritesStore((s) => s.isFav(restaurantId, product.id));
   const toggleFav = useFavoritesStore((s) => s.toggle);
 
   const cartItems = useCartStore((s) => s.items);
@@ -140,7 +141,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             </motion.span>
           )}
           <button
-            onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
+            onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(restaurantId, product.id); }}
             className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
             aria-label={isFav ? (isEn ? 'Remove from favorites' : 'Quitar de favoritos') : (isEn ? 'Add to favorites' : 'Agregar a favoritos')}
             aria-pressed={isFav}
@@ -177,7 +178,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             </motion.span>
           )}
           <button
-            onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
+            onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(restaurantId, product.id); }}
             className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
             aria-label={isFav ? (isEn ? 'Remove from favorites' : 'Quitar de favoritos') : (isEn ? 'Add to favorites' : 'Agregar a favoritos')}
             aria-pressed={isFav}

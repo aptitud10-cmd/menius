@@ -14,6 +14,7 @@ import type { ProductCardProps } from './ProductCard';
 
 export const ProductCardMobile = memo(function ProductCardMobile({
   product,
+  restaurantId,
   onSelect,
   onQuickAdd,
   fmtPrice,
@@ -43,7 +44,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
   const showImage = product.image_url && !imgError;
   const imgAlt = displayName;
 
-  const isFav = useFavoritesStore((s) => s.ids.includes(product.id));
+  const isFav = useFavoritesStore((s) => s.isFav(restaurantId, product.id));
   const toggleFav = useFavoritesStore((s) => s.toggle);
 
   const cartQty = useCartStore((s) =>
@@ -127,7 +128,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
 
         {/* 44px touch target wrapping the visible 28px circle */}
         <button
-          onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(product.id); }}
+          onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(restaurantId, product.id); }}
           className="absolute top-1 right-1 w-11 h-11 flex items-center justify-center z-10"
           aria-label={isFav ? (isEn ? 'Remove from favorites' : 'Quitar de favoritos') : (isEn ? 'Add to favorites' : 'Agregar a favoritos')}
           aria-pressed={isFav}
