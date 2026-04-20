@@ -1001,7 +1001,7 @@ export function MenuShell({
       <div className="w-px h-5 bg-gray-200 mx-1 flex-shrink-0" aria-hidden />
       <div
         ref={mobilePillsRef}
-        className="py-2 px-2 flex gap-1.5 overflow-x-auto scrollbar-hide flex-1 overscroll-x-contain"
+        className="py-1 px-2 flex gap-1.5 overflow-x-auto scrollbar-hide flex-1 overscroll-x-contain"
         style={{ touchAction: 'pan-x', WebkitOverflowScrolling: 'touch' }}
         onPointerDown={() => {
           clearTimeout(pillsUpTimerRef.current);
