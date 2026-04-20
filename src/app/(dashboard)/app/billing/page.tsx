@@ -338,10 +338,9 @@ export default function BillingPage() {
         </div>
       )}
 
-      {/* ─── Current plan card ─── */}
-      {sub && planInfo && statusInfo && (
+      {/* ─── Current plan card ─── always shown, even on free ─── */}
+      {planInfo && statusInfo && (
         <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white mb-6">
-          {/* Decorative gradient strip */}
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
 
           <div className="p-6 sm:p-8">
@@ -353,7 +352,10 @@ export default function BillingPage() {
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">{t.billing_planLabel} {planInfo.name}</h2>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
+                      {locale === 'en' ? 'Current plan' : 'Plan actual'}
+                    </p>
+                    <h2 className="text-xl font-bold text-gray-900">{planInfo.name}</h2>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className={cn(
                         'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold border',
@@ -362,6 +364,11 @@ export default function BillingPage() {
                         <span className={cn('w-1.5 h-1.5 rounded-full', statusInfo.dot)} />
                         {statusInfo.label}
                       </span>
+                      {commissions?.isCommissionPlan && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                          4% {locale === 'en' ? 'commission' : 'comisión'}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -369,9 +376,16 @@ export default function BillingPage() {
                 {/* Price */}
                 <div className="mb-4">
                   {isFreePlan ? (
-                    <span className="text-4xl font-extrabold text-gray-900 tracking-tight">
-                      {t.billing_freePrice}
-                    </span>
+                    <div>
+                      <span className="text-4xl font-extrabold text-gray-900 tracking-tight">
+                        {t.billing_freePrice}
+                      </span>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {locale === 'en'
+                          ? 'No subscription required. Limited to basic features.'
+                          : 'Sin suscripción. Funciones básicas incluidas.'}
+                      </p>
+                    </div>
                   ) : (
                     <>
                       <span className="text-4xl font-extrabold text-gray-900 tracking-tight">
@@ -388,6 +402,20 @@ export default function BillingPage() {
                     </>
                   )}
                 </div>
+
+                {/* Commission plan explanation */}
+                {commissions?.isCommissionPlan && (
+                  <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200">
+                    <p className="text-xs font-semibold text-amber-800 mb-1">
+                      {locale === 'en' ? 'Commission Plan — how it works' : 'Plan por Comisión — cómo funciona'}
+                    </p>
+                    <p className="text-xs text-amber-700 leading-relaxed">
+                      {locale === 'en'
+                        ? 'You pay $0/month. Instead, Menius charges 4% on each online card payment processed via Stripe Connect. Cash and Wompi orders are always free. You get Starter-tier features.'
+                        : 'Pagas $0/mes. En cambio, Menius cobra el 4% de cada pago online con tarjeta procesado por Stripe Connect. Efectivo y Wompi siempre son gratuitos. Accedes a funciones del plan Starter.'}
+                    </p>
+                  </div>
+                )}
 
                 {/* Trial bar */}
                 {isTrialing && (
@@ -420,21 +448,21 @@ export default function BillingPage() {
                 )}
 
                 {/* Billing date */}
-                {!isTrialing && periodEnd && (
+                {!isTrialing && periodEnd && sub && (
                   <p className="text-sm text-gray-500">
                     {sub.canceled_at ? t.billing_cancelsAt : t.billing_nextBilling}{' '}
                     <span className="font-medium text-gray-700">{periodEnd}</span>
                   </p>
                 )}
 
-                {sub.canceled_at && sub.status !== 'canceled' && (
+                {sub?.canceled_at && sub.status !== 'canceled' && (
                   <p className="text-sm text-amber-600 font-medium flex items-center gap-1.5 mt-2">
                     <AlertTriangle className="w-3.5 h-3.5" />
                     {t.billing_cancelEnd}
                   </p>
                 )}
 
-                {/* Top 4 features */}
+                {/* Top features */}
                 <div className="mt-5 pt-5 border-t border-gray-100">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {(locale === 'en' ? (planInfo.features_en ?? planInfo.features) : planInfo.features).slice(0, 6).map((f) => (
@@ -449,7 +477,7 @@ export default function BillingPage() {
 
               {/* Right: actions */}
               <div className="flex flex-col gap-3 lg:min-w-[200px]">
-                {sub.stripe_subscription_id && (
+                {sub?.stripe_subscription_id && (
                   <button
                     onClick={handlePortal}
                     disabled={actionLoading !== null}
@@ -457,6 +485,16 @@ export default function BillingPage() {
                   >
                     <ExternalLink className="w-4 h-4" />
                     {actionLoading === 'portal' ? t.billing_redirecting : t.billing_manageSubscription}
+                  </button>
+                )}
+                {isFreePlan && !commissions?.isCommissionPlan && (
+                  <button
+                    onClick={() => handlePlanSelect('starter', 'monthly')}
+                    disabled={actionLoading !== null}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    {actionLoading === 'starter' ? t.billing_redirecting : (locale === 'en' ? 'Upgrade to Starter' : 'Subir a Starter')}
                   </button>
                 )}
                 {isTrialing && (
