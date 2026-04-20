@@ -32,7 +32,11 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
               <span className="text-gradient-premium">{h.titleHighlight}</span>
             </h1>
 
-            <p className="d-fade-up d-delay-2 mt-6 md:mt-7 text-lg sm:text-xl text-gray-300 max-w-[480px] mx-auto lg:mx-0 leading-relaxed font-light">
+            <p className="d-fade-up d-delay-2 mt-5 md:mt-6 text-base sm:text-lg text-[#05c8a7] font-medium max-w-[480px] mx-auto lg:mx-0">
+              {h.productLine}
+            </p>
+
+            <p className="d-fade-up d-delay-2 mt-3 text-lg sm:text-xl text-gray-300 max-w-[480px] mx-auto lg:mx-0 leading-relaxed font-light">
               {h.subtitle}
             </p>
 
@@ -50,6 +54,12 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
               >
                 {h.ctaSecondary}
               </Link>
+            </div>
+
+            <div className="d-fade-up d-delay-3 mt-4 flex items-center justify-center lg:justify-start gap-2.5 flex-wrap">
+              {['SSL', 'Stripe', 'CCPA'].map((b) => (
+                <span key={b} className="text-xs text-gray-400 border border-gray-700 rounded-full px-2.5 py-0.5">{b}</span>
+              ))}
             </div>
 
             <div className="d-fade-up d-delay-4 mt-12 md:mt-14 w-full flex items-start justify-center lg:justify-start gap-4 sm:gap-8">

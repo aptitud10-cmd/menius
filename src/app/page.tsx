@@ -99,11 +99,6 @@ export default async function LandingPage() {
       description: isEs ? 'Plan gratuito disponible' : 'Free plan available',
     },
     author: { '@type': 'Organization', name: 'MENIUS' },
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.9',
-      ratingCount: '120',
-    },
   };
 
   const webSiteSchema = {

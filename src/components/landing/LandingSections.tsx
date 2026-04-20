@@ -434,6 +434,72 @@ function TestimonialsSection({ t }: { t: LandingT['testimonials'] }) {
   );
 }
 
+/* ─── FAQ SECTION ─── */
+
+const FAQ_ES = [
+  { q: '¿Qué es MENIUS?', a: 'MENIUS es una plataforma todo-en-uno para restaurantes: menú digital con QR, pedidos en tiempo real, cocina KDS, asistente IA, analytics, CRM y pagos integrados. Todos los planes de suscripción tienen 0% de comisión.' },
+  { q: '¿Mis clientes necesitan descargar una app?', a: 'No. El menú funciona directo en el navegador del celular. El cliente escanea el QR y ve tu menú al instante, sin descargar nada ni registrarse.' },
+  { q: '¿Cuánto tiempo toma configurar el menú?', a: 'La configuración básica toma entre 15 y 30 minutos. Al crear tu restaurante se genera un menú de ejemplo que solo tienes que editar con tus datos.' },
+  { q: '¿MENIUS cobra comisión por pedido?', a: 'Los pedidos en efectivo no tienen comisión en ningún plan. Los pagos online con Stripe tienen 0% de comisión en todos los planes de suscripción. El plan Free no incluye pagos online. Wompi (Colombia) tampoco tiene comisión de MENIUS.' },
+  { q: '¿Puedo cancelar en cualquier momento?', a: 'Sí. Sin contratos ni penalidades. Cancelas cuando quieras desde tu dashboard y vuelves automáticamente al plan Free — tu cuenta y menú permanecen intactos.' },
+  { q: '¿Es seguro?', a: 'Sí. Todos los pagos se procesan a través de Stripe o Wompi (PCI DSS Level 1). Tu menú usa HTTPS con certificado SSL. No almacenamos datos de tarjetas de crédito.' },
+];
+
+const FAQ_EN = [
+  { q: 'What is MENIUS?', a: 'MENIUS is an all-in-one platform for restaurants: digital menu with QR, real-time orders, kitchen KDS, AI assistant, analytics, CRM, and integrated payments. All subscription plans have 0% commission.' },
+  { q: 'Do my customers need to download an app?', a: 'No. The menu works directly in the phone browser. Customers scan the QR code and see your menu instantly — no downloads, no sign-up required.' },
+  { q: 'How long does it take to set up the menu?', a: 'Basic setup takes 15–30 minutes. When you create your restaurant, a sample menu is generated automatically. Just replace the example data with yours.' },
+  { q: 'Does MENIUS charge a commission per order?', a: 'Cash orders have zero commission on any plan. Online payments via Stripe have 0% commission on all subscription plans. The Free plan does not include online payments. Wompi (Colombia) also has no MENIUS commission.' },
+  { q: 'Can I cancel anytime?', a: 'Yes. No contracts or penalties. Cancel anytime from your dashboard and you automatically return to the Free plan — your account, menu, and data stay intact.' },
+  { q: 'Is it secure?', a: 'Yes. All payments are processed through Stripe or Wompi (PCI DSS Level 1). Your menu uses HTTPS with SSL. We never store credit card data.' },
+];
+
+function FaqSection({ locale }: { locale: LandingLocale }) {
+  const [open, setOpen] = useState<number | null>(null);
+  const faqs = locale === 'es' ? FAQ_ES : FAQ_EN;
+  const isEs = locale === 'es';
+
+  return (
+    <section id="faq" className="relative py-24 md:py-32 overflow-clip">
+      <div className="relative z-10 max-w-3xl mx-auto px-6">
+        <div className="text-center mb-12">
+          <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white tracking-[-0.02em]">
+            {isEs ? 'Preguntas frecuentes' : 'Frequently asked questions'}
+          </h2>
+          <p className="mt-3 text-gray-400 text-base">
+            {isEs ? '¿Tienes más dudas?' : 'More questions?'}{' '}
+            <a href="/faq" className="text-[#05c8a7] hover:underline">
+              {isEs ? 'Ver todas las respuestas →' : 'See all answers →'}
+            </a>
+          </p>
+        </div>
+        <div className="space-y-2">
+          {faqs.map((item, i) => (
+            <div key={i} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
+              <button
+                onClick={() => setOpen(open === i ? null : i)}
+                className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
+              >
+                <span className="text-sm sm:text-base font-semibold text-white">{item.q}</span>
+                <span className={`flex-shrink-0 text-gray-400 transition-transform duration-200 ${open === i ? 'rotate-45' : ''}`}>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                </span>
+              </button>
+              {open === i && (
+                <p className="px-5 pb-5 text-sm text-gray-400 leading-relaxed">
+                  {item.a}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── MAIN ─── */
 
 export function LandingSections({ locale, country }: { locale: LandingLocale; country?: string }) {
@@ -646,6 +712,11 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
           <InteractiveSavingsCalculator locale={locale} />
         </div>
       </section>
+
+      <div className="separator-gradient max-w-5xl mx-auto" />
+
+      {/* ── FAQ ── */}
+      <FaqSection locale={locale} />
 
       <div className="separator-gradient max-w-5xl mx-auto" />
 
