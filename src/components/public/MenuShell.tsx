@@ -1111,21 +1111,11 @@ export function MenuShell({
         className={`flex-1 overflow-y-auto overscroll-contain max-w-[1440px] w-full mx-auto ${cartCount > 0 ? 'pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0' : 'pb-[env(safe-area-inset-bottom)]'}`}
       >
 
-        {/* Demo: back-to-demos bar */}
-        {isDemo && (
-          <div className="bg-gray-900 text-white px-4 py-2 flex items-center gap-2 text-sm">
-            <a href="/demo" className="flex items-center gap-1.5 hover:text-orange-400 transition-colors font-medium">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-              Ver todos los demos
-            </a>
-          </div>
-        )}
-
         {/* Cover banner — full width, scrolls away naturally with content */}
         {restaurant.cover_image_url && (
           <div ref={bannerRef} className="relative w-full h-48 sm:h-56 lg:h-72 bg-gray-100 overflow-hidden">
             {isDemo && (
-              <a href="/demo" className="absolute top-3 left-3 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 transition-colors">
+              <a href="/demo" className="absolute top-3 left-3 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-orange-500/80 backdrop-blur-sm hover:bg-orange-500 transition-colors shadow-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
               </a>
             )}
