@@ -1124,6 +1124,11 @@ export function MenuShell({
         {/* Cover banner — full width, scrolls away naturally with content */}
         {restaurant.cover_image_url && (
           <div ref={bannerRef} className="relative w-full h-48 sm:h-56 lg:h-72 bg-gray-100 overflow-hidden">
+            {isDemo && (
+              <a href="/demo" className="absolute top-3 left-3 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm hover:bg-black/60 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              </a>
+            )}
             <Image
               src={restaurant.cover_image_url}
               alt={restaurant.name}
