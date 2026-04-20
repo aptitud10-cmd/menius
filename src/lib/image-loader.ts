@@ -24,10 +24,12 @@ export function supabaseLoader({ src, width, quality }: LoaderParams): string {
   const isSupabaseUrl = src.includes('.supabase.co/storage/');
   if (!isSupabaseUrl) return src;
 
+  // AI-generated and admin-regen images are already optimized at upload time.
+  // Supabase's /render/image/ endpoint returns 400 for these files, so serve them directly.
+  if (src.includes('/ai-') || src.includes('/admin-regen/')) return src;
+
   const q = quality ?? 75;
 
-  // Supabase image transform: append /render/image with query params
-  // The URL format is: {storage_url}/render/image/public/{bucket}/{path}?width=X&quality=Y
   const transformUrl = src.replace(
     '/storage/v1/object/public/',
     '/storage/v1/render/image/public/',
@@ -43,6 +45,9 @@ export function supabaseLoader({ src, width, quality }: LoaderParams): string {
  */
 export function getBlurUrl(src: string | null | undefined): string | undefined {
   if (!src || !src.includes('.supabase.co/storage/')) return undefined;
+
+  // AI-generated and admin-regen images bypass /render/image/ (returns 400); no blur placeholder.
+  if (src.includes('/ai-') || src.includes('/admin-regen/')) return undefined;
 
   const transformUrl = src.replace(
     '/storage/v1/object/public/',
