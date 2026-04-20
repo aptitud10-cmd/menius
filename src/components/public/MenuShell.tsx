@@ -1111,25 +1111,8 @@ export function MenuShell({
         className={`flex-1 overflow-y-auto overscroll-contain max-w-[1440px] w-full mx-auto ${cartCount > 0 ? 'pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0' : 'pb-[env(safe-area-inset-bottom)]'}`}
       >
 
-        {/* Demo restaurants: minimal sticky name bar instead of cover image */}
-        {isDemo && (
-          <div className="sticky top-0 z-40 bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-2.5 shadow-sm">
-            {restaurant.logo_url && (
-              <Image
-                src={restaurant.logo_url}
-                alt={restaurant.name}
-                width={28}
-                height={28}
-                loader={restaurant.logo_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
-                className="w-7 h-7 rounded-lg object-cover flex-shrink-0"
-              />
-            )}
-            <p className="font-bold text-gray-900 text-sm truncate">{restaurant.name}</p>
-          </div>
-        )}
-
         {/* Cover banner — full width, scrolls away naturally with content */}
-        {!isDemo && restaurant.cover_image_url && (
+        {restaurant.cover_image_url && (
           <div ref={bannerRef} className="relative w-full h-48 sm:h-56 lg:h-72 bg-gray-100 overflow-hidden">
             <Image
               src={restaurant.cover_image_url}
