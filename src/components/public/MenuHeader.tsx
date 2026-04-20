@@ -11,7 +11,7 @@ import type { Restaurant } from '@/types';
 import { MenuHeaderMobile } from './MenuHeaderMobile';
 import { MenuHeaderDesktop } from './MenuHeaderDesktop';
 
-export const HEADER_HEIGHT = 56;
+export const HEADER_HEIGHT = 48;
 
 export interface MenuHeaderProps {
   restaurant: Restaurant;

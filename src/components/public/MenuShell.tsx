@@ -429,7 +429,7 @@ export function MenuShell({
       const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1024;
       const margin = isDesktop
         ? (desktopPillsRef.current?.offsetHeight ?? 44)
-        : (hasCover ? HEADER_HEIGHT : 0) + (mobilePillsRef.current?.offsetHeight ?? 52);
+        : HEADER_HEIGHT + (mobilePillsRef.current?.offsetHeight ?? 52);
 
       // Manual scrollTo instead of scrollIntoView: scrollIntoView on iOS Safari
       // sometimes scrolls `window` rather than the actual scroll container, causing
@@ -718,7 +718,7 @@ export function MenuShell({
         const pillsH = isDesktopNow
           ? (desktopPillsRef.current?.offsetHeight ?? 44)
           : (mobilePillsRef.current?.offsetHeight ?? 52);
-        const headerH = isDesktopNow ? 0 : (hasCover ? HEADER_HEIGHT : 0);
+        const headerH = isDesktopNow ? 0 : HEADER_HEIGHT;
         const mainTop = main.getBoundingClientRect().top;
         const threshold = mainTop + headerH + pillsH - 8;
 
@@ -986,7 +986,7 @@ export function MenuShell({
   );
 
   const mobileCategoryPills = (
-    <div className="lg:hidden sticky z-40 bg-[#f5f5f3] border-b border-gray-100" style={{ top: hasCover ? HEADER_HEIGHT : 0, willChange: 'transform' }}>
+    <div className="lg:hidden sticky z-40 bg-[#f5f5f3] border-b border-gray-100" style={{ top: HEADER_HEIGHT, willChange: 'transform' }}>
       <div className="flex items-center relative">
       {/* Hamburger — opens category bottom sheet */}
       <button
