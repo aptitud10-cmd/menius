@@ -437,10 +437,10 @@ export function MenuShell({
       // mainRef and scrolls it directly.
       const sectionTop = section.getBoundingClientRect().top;
       const containerTop = mainRef.current.getBoundingClientRect().top;
-      // The scroll-spy uses `threshold = containerTop + margin - 8` to detect active sections.
-      // We overshoot by 8px so the section lands exactly at the threshold after the animation,
-      // preventing the spy from reverting to the previous category (the "bounce-back" effect).
-      const targetScroll = mainRef.current.scrollTop + sectionTop - containerTop - margin + 8;
+      // The scroll-spy uses `threshold = containerTop + margin + 15` to detect active sections.
+      // Section lands at margin + 16 (16px below sticky pills) — visible breathing room.
+      // Threshold is margin + 15 so section is 1px above it → spy activates without bounce-back.
+      const targetScroll = mainRef.current.scrollTop + sectionTop - containerTop - margin - 16;
       mainRef.current.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
 
       requestAnimationFrame(() => {
@@ -720,7 +720,7 @@ export function MenuShell({
           : (mobilePillsRef.current?.offsetHeight ?? 52);
         const headerH = isDesktopNow ? 0 : HEADER_HEIGHT;
         const mainTop = main.getBoundingClientRect().top;
-        const threshold = mainTop + headerH + pillsH - 8;
+        const threshold = mainTop + headerH + pillsH + 15;
 
         let current = itemsByCategory[0].category.id;
 
