@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label')
+      .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label, commission_plan, order_types_enabled, payment_methods_enabled')
       .eq('id', restaurant_id)
       .eq('is_active', true)
       .maybeSingle();
@@ -126,6 +126,29 @@ export async function POST(request: NextRequest) {
     }
 
     const en = restaurant.locale === 'en';
+
+    // Validate order_type is enabled for this restaurant
+    const orderTypesEnabled = (restaurant as any).order_types_enabled as string[] | null;
+    if (orderTypesEnabled && orderTypesEnabled.length > 0 && !orderTypesEnabled.includes(order_type)) {
+      return NextResponse.json(
+        { error: en
+            ? 'This order type is not available at this restaurant.'
+            : 'Este tipo de pedido no está disponible en este restaurante.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate required fields per order type
+    // Use the already-sanitized variable, not body.delivery_address
+    if (parsed.data.order_type === 'delivery') {
+      const addr = (delivery_address ?? '').trim();
+      if (!addr || addr.length < 5) {
+        return NextResponse.json(
+          { error: en ? 'A delivery address is required.' : 'Se requiere una dirección de entrega.' },
+          { status: 400 }
+        );
+      }
+    }
 
     // Pause guard — if the restaurant paused orders, reject new ones
     const pausedUntil = (restaurant as any).orders_paused_until;
@@ -167,58 +190,44 @@ export async function POST(request: NextRequest) {
 
     // Commission rate in basis points (bps). Applied as Stripe application_fee_amount
     // on online payments where the restaurant uses Stripe Connect.
-    // starter: 1% | trial: 0% | pro/business: 0% | free: no online payments allowed
+    // commission_plan: 4% | all subscription plans: 0% | trial: 0% | free: no online payments
     let commissionBps = 0;
     let isFreeTier = false; // hoisted so it's accessible in the Stripe Connect block below
 
     // Check subscription — enforce monthly limit for FREE-tier restaurants
     try {
-      const { data: sub } = await supabase
-        .from('subscriptions')
-        .select('status, trial_end, current_period_end, plan_id')
-        .eq('restaurant_id', restaurant_id)
-        .maybeSingle();
-
+      // Commission-plan restaurants bypass subscription checks entirely.
+      // They pay 4% per order via Stripe application_fee_amount instead.
       const now = new Date();
 
-      if (!sub) {
-        // No subscription row → FREE tier (no online payments)
-        isFreeTier = true;
+      if ((restaurant as any).commission_plan === true) {
+        isFreeTier = false;
+        commissionBps = 400; // 4%
       } else {
-        const { status, plan_id } = sub;
-        const trialStillValid = sub.trial_end && new Date(sub.trial_end) > now;
-
-        if (status === 'active' || status === 'past_due') {
-          isFreeTier = false;
-          // Pro/Business pay no platform fee; Starter pays 1%
-          commissionBps = (plan_id === 'pro' || plan_id === 'business') ? 0 : 100;
-        } else if (trialStillValid) {
-          // Trial period → 0% commission (full trial experience)
-          isFreeTier = false;
-          commissionBps = 0;
-        } else {
-          // canceled, expired trial → back to FREE (no online payments)
-          isFreeTier = true;
-        }
-      }
-
-      if (isFreeTier) {
-        const { FREE_MONTHLY_ORDER_LIMIT } = await import('@/lib/plans');
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const { count } = await adminDb
-          .from('orders')
-          .select('id', { count: 'exact', head: true })
+        const { data: sub } = await supabase
+          .from('subscriptions')
+          .select('status, trial_end, current_period_end, plan_id')
           .eq('restaurant_id', restaurant_id)
-          .gte('created_at', monthStart.toISOString());
-        if ((count ?? 0) >= FREE_MONTHLY_ORDER_LIMIT) {
-          return NextResponse.json(
-            { error: en
-                ? `This restaurant has reached its free plan limit of ${FREE_MONTHLY_ORDER_LIMIT} orders per month. Please try again next month or contact the restaurant.`
-                : `Este restaurante alcanzó el límite del plan gratuito (${FREE_MONTHLY_ORDER_LIMIT} pedidos/mes). Vuelve el próximo mes o contacta al restaurante.` },
-            { status: 429 }
-          );
+          .maybeSingle();
+
+        if (!sub) {
+          isFreeTier = true;
+        } else {
+          const { status, plan_id } = sub;
+          const trialStillValid = sub.trial_end && new Date(sub.trial_end) > now;
+
+          if (status === 'active' || status === 'past_due') {
+            isFreeTier = false;
+            commissionBps = 0; // All subscription plans (starter/pro/business) = 0%
+          } else if (trialStillValid) {
+            isFreeTier = false;
+            commissionBps = 0;
+          } else {
+            isFreeTier = true;
+          }
         }
       }
+
     } catch (subErr) {
       logger.warn('Subscription check failed during order creation — proceeding without plan enforcement', { error: subErr });
       // On subscription check failure: treat as non-free (don't block), 0% commission

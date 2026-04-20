@@ -39,7 +39,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
 
     // Only allow specific fields to be updated
-    const allowed = ['name', 'description', 'address', 'phone', 'email', 'website', 'timezone', 'currency', 'locale', 'available_locales', 'logo_url', 'cover_image_url', 'operating_hours', 'notification_whatsapp', 'notification_email', 'notifications_enabled', 'order_types_enabled', 'payment_methods_enabled', 'custom_domain', 'fiscal_rfc', 'fiscal_razon_social', 'fiscal_regimen_fiscal', 'fiscal_lugar_expedicion', 'delivery_fee', 'estimated_delivery_minutes', 'latitude', 'longitude', 'google_business_url', 'country_code', 'state_code', 'tax_rate', 'tax_included', 'tax_label', 'delivery_radius_km'] as const;
+    const allowed = ['name', 'description', 'address', 'phone', 'email', 'website', 'timezone', 'currency', 'locale', 'available_locales', 'logo_url', 'cover_image_url', 'operating_hours', 'notification_whatsapp', 'notification_email', 'notifications_enabled', 'order_types_enabled', 'payment_methods_enabled', 'custom_domain', 'fiscal_rfc', 'fiscal_razon_social', 'fiscal_regimen_fiscal', 'fiscal_lugar_expedicion', 'delivery_fee', 'estimated_delivery_minutes', 'latitude', 'longitude', 'google_business_url', 'country_code', 'state_code', 'tax_rate', 'tax_included', 'tax_label', 'delivery_radius_km', 'mp_access_token', 'mp_enabled'] as const;
     const updates: Record<string, any> = {};
     for (const key of allowed) {
       if (body[key] !== undefined) {
@@ -84,11 +84,7 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-    if (restaurant?.slug) {
-      await revalidatePublicMenuForRestaurant(supabase, tenant.restaurantId);
-    }
-
+    if (restaurant?.slug) await revalidatePublicMenuForRestaurant(supabase, tenant.restaurantId);
     return NextResponse.json({ restaurant });
   } catch (err) {
     logger.error('PATCH failed', { error: err instanceof Error ? err.message : String(err) });

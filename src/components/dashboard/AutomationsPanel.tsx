@@ -1,13 +1,12 @@
 'use client';
 
-import { Mail, MessageCircle, Star, Clock, ShoppingBag, UserPlus, Zap, CheckCircle2, Info } from 'lucide-react';
+import { Mail, Star, Clock, ShoppingBag, UserPlus, Zap, CheckCircle2, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
 interface Props {
   notificationsEnabled: boolean;
   hasEmail: boolean;
-  hasWhatsApp: boolean;
 }
 
 interface AutomationItem {
@@ -15,20 +14,20 @@ interface AutomationItem {
   title: string;
   description: string;
   trigger: string;
-  channel: 'email' | 'whatsapp' | 'both';
+  channel: 'email';
   icon: typeof Mail;
   category: 'restaurant' | 'platform';
 }
 
-export function AutomationsPanel({ notificationsEnabled, hasEmail, hasWhatsApp }: Props) {
+export function AutomationsPanel({ notificationsEnabled, hasEmail }: Props) {
   const { t } = useDashboardLocale();
 
   const AUTOMATIONS: AutomationItem[] = [
     { id: 'order_confirm', title: t.auto_orderConfirmTitle, description: t.auto_orderConfirmDesc, trigger: t.auto_eachNewOrder, channel: 'email', icon: ShoppingBag, category: 'restaurant' },
-    { id: 'order_status', title: t.auto_orderStatusTitle, description: t.auto_orderStatusDesc, trigger: t.auto_statusChangeTrigger, channel: 'both', icon: Clock, category: 'restaurant' },
-    { id: 'owner_new_order', title: t.auto_ownerAlertTitle, description: t.auto_ownerAlertDesc, trigger: t.auto_eachNewOrder, channel: 'both', icon: Zap, category: 'restaurant' },
+    { id: 'order_status', title: t.auto_orderStatusTitle, description: t.auto_orderStatusDesc, trigger: t.auto_statusChangeTrigger, channel: 'email', icon: Clock, category: 'restaurant' },
+    { id: 'owner_new_order', title: t.auto_ownerAlertTitle, description: t.auto_ownerAlertDesc, trigger: t.auto_eachNewOrder, channel: 'email', icon: Zap, category: 'restaurant' },
     { id: 'welcome', title: t.auto_welcomeTitle, description: t.auto_welcomeDesc, trigger: t.auto_cronTrigger, channel: 'email', icon: UserPlus, category: 'restaurant' },
-    { id: 'reactivation', title: t.auto_reactivationTitle, description: t.auto_reactivationDesc, trigger: t.auto_cronTrigger, channel: 'email', icon: MessageCircle, category: 'restaurant' },
+    { id: 'reactivation', title: t.auto_reactivationTitle, description: t.auto_reactivationDesc, trigger: t.auto_cronTrigger, channel: 'email', icon: Mail, category: 'restaurant' },
     { id: 'review_request', title: t.auto_reviewRequestTitle, description: t.auto_reviewRequestDesc, trigger: t.auto_cronTrigger, channel: 'email', icon: Star, category: 'restaurant' },
     { id: 'trial_expiring', title: t.auto_trialExpiringTitle, description: t.auto_trialExpiringDesc, trigger: t.auto_cronTrigger, channel: 'email', icon: Clock, category: 'platform' },
     { id: 'setup_incomplete', title: t.auto_setupIncompleteTitle, description: t.auto_setupIncompleteDesc, trigger: t.auto_cronTrigger, channel: 'email', icon: Info, category: 'platform' },
@@ -40,8 +39,6 @@ export function AutomationsPanel({ notificationsEnabled, hasEmail, hasWhatsApp }
   const getStatus = (a: AutomationItem): { active: boolean; reason?: string } => {
     if (!notificationsEnabled) return { active: false, reason: t.auto_reasonNotifOff };
     if (a.channel === 'email' && !hasEmail) return { active: false, reason: t.auto_reasonNoEmail };
-    if (a.channel === 'whatsapp' && !hasWhatsApp) return { active: false, reason: t.auto_reasonNoWhatsApp };
-    if (a.channel === 'both' && !hasEmail && !hasWhatsApp) return { active: false, reason: t.auto_reasonNoChannels };
     return { active: true };
   };
 
@@ -66,9 +63,7 @@ export function AutomationsPanel({ notificationsEnabled, hasEmail, hasWhatsApp }
               <Zap className="w-3 h-3" /> {a.trigger}
             </span>
             <span className="inline-flex items-center gap-1 text-[10px] text-gray-400">
-              {a.channel === 'email' && <><Mail className="w-3 h-3" /> Email</>}
-              {a.channel === 'whatsapp' && <><MessageCircle className="w-3 h-3" /> WhatsApp</>}
-              {a.channel === 'both' && <><Mail className="w-3 h-3" /> Email + WhatsApp</>}
+              <Mail className="w-3 h-3" /> Email
             </span>
           </div>
           {!status.active && status.reason && (
@@ -90,7 +85,7 @@ export function AutomationsPanel({ notificationsEnabled, hasEmail, hasWhatsApp }
           </p>
           <p className={cn('text-xs', notificationsEnabled ? 'text-green-600' : 'text-amber-600')}>
             {notificationsEnabled
-              ? `${hasEmail ? 'Email' : ''}${hasEmail && hasWhatsApp ? ' + ' : ''}${hasWhatsApp ? 'WhatsApp' : ''} ${t.auto_configuredMsg}${!hasEmail && !hasWhatsApp ? t.auto_enableMsg : ''}`
+              ? `${hasEmail ? 'Email' : ''} ${t.auto_configuredMsg}${!hasEmail ? t.auto_enableMsg : ''}`
               : t.auto_enableMsg}
           </p>
         </div>

@@ -1,15 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, Share2, Smartphone, Zap, MessageCircle } from 'lucide-react';
+import { Mail, Share2, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import { EmailCampaigns } from './EmailCampaigns';
 import { SocialMediaManager } from './SocialMediaManager';
-import { SMSCampaigns } from './SMSCampaigns';
 import { AutomationsPanel } from './AutomationsPanel';
-import { WhatsAppCampaigns } from './WhatsAppCampaigns';
-
 interface Props {
   restaurantName: string;
   menuSlug: string;
@@ -19,10 +16,9 @@ interface Props {
   customersWithPhone: number;
   notificationsEnabled: boolean;
   hasEmail: boolean;
-  hasWhatsApp: boolean;
 }
 
-type TabId = 'email' | 'whatsapp' | 'social' | 'sms' | 'automations';
+type TabId = 'email' | 'social' | 'automations';
 
 export function MarketingHub(props: Props) {
   const { t } = useDashboardLocale();
@@ -30,9 +26,7 @@ export function MarketingHub(props: Props) {
 
   const TABS: { id: TabId; label: string; icon: typeof Mail }[] = [
     { id: 'email', label: t.marketing_tabEmail, icon: Mail },
-    { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
     { id: 'social', label: t.marketing_tabSocial, icon: Share2 },
-    { id: 'sms', label: t.marketing_tabSms, icon: Smartphone },
     { id: 'automations', label: t.marketing_tabAutomations, icon: Zap },
   ];
 
@@ -74,15 +68,6 @@ export function MarketingHub(props: Props) {
         />
       )}
 
-      {activeTab === 'whatsapp' && (
-        <WhatsAppCampaigns
-          restaurantName={props.restaurantName}
-          menuSlug={props.menuSlug}
-          restaurantLocale={props.restaurantLocale}
-          customersWithPhone={props.customersWithPhone}
-        />
-      )}
-
       {activeTab === 'social' && (
         <SocialMediaManager
           restaurantName={props.restaurantName}
@@ -91,21 +76,10 @@ export function MarketingHub(props: Props) {
         />
       )}
 
-      {activeTab === 'sms' && (
-        <SMSCampaigns
-          restaurantName={props.restaurantName}
-          menuSlug={props.menuSlug}
-          restaurantLocale={props.restaurantLocale}
-          totalCustomers={props.totalCustomers}
-          customersWithPhone={props.customersWithPhone}
-        />
-      )}
-
       {activeTab === 'automations' && (
         <AutomationsPanel
           notificationsEnabled={props.notificationsEnabled}
           hasEmail={props.hasEmail}
-          hasWhatsApp={props.hasWhatsApp}
         />
       )}
     </div>

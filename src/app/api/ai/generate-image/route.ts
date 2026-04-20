@@ -395,15 +395,16 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
           });
           falImageUrl = (kontextResult as any)?.images?.[0]?.url ?? null;
         } else {
-          // flux-pro/v1.1: pure text-to-image, single image for speed
-          const v1Result = await (fal as any).subscribe('fal-ai/flux-pro/v1.1', {
+          // flux-pro/v1.1-ultra: improved architecture with fewer corner artifacts
+          const v1Result = await (fal as any).subscribe('fal-ai/flux-pro/v1.1-ultra', {
             input: {
               prompt,
-              image_size: isBanner ? 'landscape_16_9' : 'portrait_4_3',
+              aspect_ratio: isBanner ? '16:9' : '4:3',
               num_inference_steps: 28,
               guidance_scale: 3.5,
               num_images: 1,
               output_format: 'jpeg',
+              safety_tolerance: '5',
             },
           });
           falImageUrl = (v1Result as any)?.images?.[0]?.url ?? null;

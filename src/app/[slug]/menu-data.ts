@@ -272,10 +272,8 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
 }
 
 /**
- * Load public menu data.
- * React.cache() deduplicates calls within the same render pass (page + metadata).
- * ISR (`export const revalidate` on the page) controls cross-request caching.
- * On-demand: revalidatePath() in revalidatePublicMenu() purges the page cache immediately.
+ * Load public menu data. React.cache() deduplicates within the same render pass.
+ * ISR (export const dynamic = 'force-dynamic' on the page) ensures always-fresh data.
  */
 export const fetchMenuData = cache(async function fetchMenuData(slug: string) {
   return fetchMenuDataFromDB(slug);

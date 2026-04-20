@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { ExternalLink, MapPin } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? '';
 
@@ -22,7 +22,7 @@ interface Coords {
 }
 
 export interface DeliveryMapProps {
-  restaurantAddress: string;
+  restaurantAddress?: string | null;
   deliveryAddress?: string | null;
   restaurantName: string;
   driverLat?: number | null;
@@ -30,21 +30,33 @@ export interface DeliveryMapProps {
   locale?: string;
 }
 
-// ── ETA via Mapbox Directions ─────────────────────────────────────────────────
+// ── Directions — proxied through backend to protect Mapbox quota + Redis cache ─
 
-async function fetchEtaMinutes(from: Coords, to: Coords): Promise<number | null> {
-  if (!MAPBOX_TOKEN) return null;
+interface DirectionsResult {
+  etaMinutes: number | null;
+  routeCoords: [number, number][] | null; // [lng, lat] pairs for GeoJSON LineString
+}
+
+async function fetchDirections(from: Coords, to: Coords): Promise<DirectionsResult> {
   try {
-    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${from.lng},${from.lat};${to.lng},${to.lat}?access_token=${MAPBOX_TOKEN}&overview=false`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const data = await res.json();
-    const seconds = data?.routes?.[0]?.duration;
-    if (typeof seconds !== 'number') return null;
-    return Math.max(1, Math.ceil(seconds / 60));
+    const params = new URLSearchParams({
+      fromLat: String(from.lat),
+      fromLng: String(from.lng),
+      toLat:   String(to.lat),
+      toLng:   String(to.lng),
+    });
+    const res = await fetch(`/api/public/directions?${params}`);
+    if (!res.ok) return { etaMinutes: null, routeCoords: null };
+    return await res.json();
   } catch {
-    return null;
+    return { etaMinutes: null, routeCoords: null };
   }
+}
+
+// Used when driver is not yet active — ETA from restaurant to delivery address
+async function fetchEtaMinutes(from: Coords, to: Coords): Promise<number | null> {
+  const { etaMinutes } = await fetchDirections(from, to);
+  return etaMinutes;
 }
 
 // ── Mapbox Geocoding v6 ──────────────────────────────────────────────────────
@@ -69,22 +81,30 @@ async function geocodeMapbox(address: string): Promise<Coords | null> {
 
 function MapFallback({ deliveryAddress, restaurantAddress }: DeliveryMapProps) {
   const address = deliveryAddress ?? restaurantAddress;
+  if (!address) return null;
+  const gmapsEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(address)}&output=embed&z=15`;
   const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
   return (
-    <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-200">
-      <div className="flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-          <MapPin className="w-4 h-4 text-blue-600" />
-        </div>
-        <p className="text-xs font-semibold text-gray-700 break-words">{address}</p>
+    <div className="space-y-2">
+      <div className="w-full h-52 rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+        <iframe
+          src={gmapsEmbedUrl}
+          width="100%"
+          height="100%"
+          style={{ border: 0 }}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          title="Mapa de entrega"
+        />
       </div>
       <a
         href={gmapsUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium flex-shrink-0 ml-2"
+        className="flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-blue-600 transition-colors py-1"
       >
-        Ver mapa <ExternalLink className="w-3 h-3" />
+        <ExternalLink className="w-3 h-3" />
+        Abrir en Google Maps
       </a>
     </div>
   );
@@ -101,7 +121,7 @@ interface LiveMapProps {
   locale?: string;
 }
 
-function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoords, etaMinutes, locale }: LiveMapProps) {
+function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoords, etaMinutes: etaMinutesProp, locale }: LiveMapProps) {
   const en = locale === 'en';
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -109,7 +129,11 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
   const driverElRef = useRef<HTMLDivElement | null>(null);
   const currentDriverPos = useRef<Coords | null>(null);
   const animFrameRef = useRef<number | null>(null);
+  const lastRoutePosRef = useRef<Coords | null>(null);
   const [ready, setReady] = useState(false);
+  // Local ETA updated from Directions API alongside route geometry (single call)
+  const [liveEta, setLiveEta] = useState<number | null>(etaMinutesProp);
+  const etaMinutes = liveEta ?? etaMinutesProp;
 
   // Smooth linear interpolation between two positions
   const animateMarkerTo = useCallback((target: Coords) => {
@@ -209,22 +233,35 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
           .setPopup(new mapboxgl.Popup({ offset: 20 }).setText('Dirección de entrega'))
           .addTo(map);
 
-        // Dashed route line between restaurant and delivery
+        // Route line — starts as dashed placeholder, upgraded to real road
+        // geometry from Mapbox Directions once the driver is active.
         map.on('load', () => {
+          const placeholderCoords: [number, number][] = [
+            [restaurantCoords.lng, restaurantCoords.lat],
+            [deliveryCoords.lng, deliveryCoords.lat],
+          ];
+
           map.addSource('route', {
             type: 'geojson',
             data: {
               type: 'Feature',
               properties: {},
-              geometry: {
-                type: 'LineString',
-                coordinates: [
-                  [restaurantCoords.lng, restaurantCoords.lat],
-                  [deliveryCoords.lng, deliveryCoords.lat],
-                ],
-              },
+              geometry: { type: 'LineString', coordinates: placeholderCoords },
             },
           });
+          // Solid underline (road casing)
+          map.addLayer({
+            id: 'route-casing',
+            type: 'line',
+            source: 'route',
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint: {
+              'line-color': '#047a65',
+              'line-width': 6,
+              'line-opacity': 0.25,
+            },
+          });
+          // Main route line — dashed until real geometry arrives
           map.addLayer({
             id: 'route',
             type: 'line',
@@ -232,9 +269,9 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
             layout: { 'line-join': 'round', 'line-cap': 'round' },
             paint: {
               'line-color': '#10b981',
-              'line-width': 3,
+              'line-width': 4,
               'line-dasharray': [2, 2],
-              'line-opacity': 0.7,
+              'line-opacity': 0.85,
             },
           });
         });
@@ -260,6 +297,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
       if (driverCoords) currentDriverPos.current = driverCoords;
 
       mapRef.current = map;
+      map.resize();
       setReady(true);
     })();
 
@@ -288,13 +326,47 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, driverCoords?.lat, driverCoords?.lng]);
 
+  // Update route geometry from Mapbox Directions when driver moves >~50m.
+  // Replaces the dashed placeholder with the real road path driver→destination.
+  useEffect(() => {
+    if (!ready || !mapRef.current || !driverCoords || !deliveryCoords) return;
+
+    const map = mapRef.current;
+    if (!map.getSource('route')) return;
+
+    const last = lastRoutePosRef.current;
+    const moved = !last
+      || Math.abs(driverCoords.lat - last.lat) > ETA_MIN_DELTA
+      || Math.abs(driverCoords.lng - last.lng) > ETA_MIN_DELTA;
+    if (!moved) return;
+
+    lastRoutePosRef.current = driverCoords;
+
+    fetchDirections(driverCoords, deliveryCoords).then(({ etaMinutes: eta, routeCoords }) => {
+      // Update ETA chip from the same API call — no extra request
+      if (eta !== null) setLiveEta(eta);
+
+      if (!routeCoords || !map.getSource('route')) return;
+      // Update GeoJSON source with real road geometry
+      (map.getSource('route') as any).setData({
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'LineString', coordinates: routeCoords },
+      });
+      // Switch from dashed to solid once we have real route data
+      if (map.getLayer('route')) {
+        map.setPaintProperty('route', 'line-dasharray', [1, 0]);
+        map.setPaintProperty('route', 'line-width', 4);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, driverCoords?.lat, driverCoords?.lng]);
+
   return (
-    <div className="relative w-full">
-      <div
-        ref={containerRef}
-        className="w-full h-60 rounded-2xl overflow-hidden border border-gray-200 shadow-sm"
-        style={{ minHeight: 240 }}
-      />
+    <div className="relative w-full" style={{ minHeight: 240 }}>
+      <div className="w-full h-60 rounded-2xl overflow-hidden border border-gray-200 shadow-sm" style={{ minHeight: 240 }}>
+        <div ref={containerRef} className="w-full h-full" />
+      </div>
       {/* ETA chip — overlaid bottom-left on the map, only when driver is active */}
       {driverCoords && etaMinutes !== null && (
         <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm border border-orange-200 shadow-md rounded-full px-3 py-1.5 pointer-events-none">
@@ -326,7 +398,6 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
   const [deliveryCoords, setDeliveryCoords] = useState<Coords | null>(null);
   const [geocodingDone, setGeocodingDone] = useState(false);
   const [etaMinutes, setEtaMinutes] = useState<number | null>(null);
-  const lastEtaPos = useRef<Coords | null>(null);
 
   const driverCoords = useMemo<Coords | null>(
     () => (driverLat != null && driverLng != null) ? { lat: driverLat, lng: driverLng } : null,
@@ -345,22 +416,16 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
     });
   }, [restaurantAddress, deliveryAddress]);
 
-  // Recalculate ETA when driver position changes meaningfully (>~50 m)
+  // ETA is now computed inside LiveMap alongside the route update (single API call).
+  // This effect only runs when there is no driver yet — static ETA from restaurant
+  // to delivery address as a rough estimate before dispatch.
   useEffect(() => {
-    if (!driverCoords || !deliveryCoords) return;
-
-    const last = lastEtaPos.current;
-    const moved = !last
-      || Math.abs(driverCoords.lat - last.lat) > ETA_MIN_DELTA
-      || Math.abs(driverCoords.lng - last.lng) > ETA_MIN_DELTA;
-
-    if (!moved) return;
-
-    lastEtaPos.current = driverCoords;
-    fetchEtaMinutes(driverCoords, deliveryCoords).then((mins) => {
+    if (driverCoords || !restaurantCoords || !deliveryCoords) return;
+    fetchEtaMinutes(restaurantCoords, deliveryCoords).then((mins) => {
       if (mins !== null) setEtaMinutes(mins);
     });
-  }, [driverCoords, deliveryCoords]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!driverCoords, restaurantCoords, deliveryCoords]);
 
   if (!geocodingDone) {
     return <div className="w-full h-60 rounded-2xl bg-gray-100 animate-pulse" />;
@@ -397,7 +462,7 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
         </div>
       )}
       <a
-        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(deliveryAddress ?? restaurantAddress)}`}
+        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(deliveryAddress ?? restaurantAddress ?? '')}`}
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-blue-600 transition-colors py-1"

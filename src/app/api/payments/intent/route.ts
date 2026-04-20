@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     const adminDb = createAdminClient();
     const { data: order } = await adminDb
       .from('orders')
-      .select('id, total, order_number, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete )')
+      .select('id, total, order_number, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete, commission_plan )')
       .eq('id', order_id)
       .maybeSingle();
 
@@ -59,6 +59,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const commissionBps = (rest as any)?.commission_plan === true ? 400 : 0;
+    const applicationFeeAmount = commissionBps > 0
+      ? Math.round(amount * commissionBps / 10000)
+      : undefined;
+
     const intentParams: import('stripe').Stripe.PaymentIntentCreateParams = {
       amount,
       currency,
@@ -66,11 +71,13 @@ export async function POST(request: NextRequest) {
         order_id: order.id,
         order_number: order.order_number ?? '',
       },
+      transfer_data: { destination: connectedAccount },
+      ...(applicationFeeAmount && applicationFeeAmount > 0 && {
+        application_fee_amount: applicationFeeAmount,
+      }),
     };
 
-    const paymentIntent = await stripe.paymentIntents.create(intentParams, {
-      stripeAccount: connectedAccount,
-    });
+    const paymentIntent = await stripe.paymentIntents.create(intentParams);
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });
   } catch (err: any) {

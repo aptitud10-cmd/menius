@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Search, Phone, Mail, MapPin, Tag, ChevronDown, MessageCircle, Users, TrendingUp, Clock, FileDown, QrCode } from 'lucide-react';
+import { Search, Phone, Mail, MapPin, Tag, ChevronDown, Users, TrendingUp, Clock, FileDown, QrCode } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
@@ -367,17 +367,7 @@ export function CustomersManager({ currency }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {selected.phone && (
-              <a
-                href={`https://wa.me/${selected.phone.replace(/\D/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm hover:bg-emerald-500/20 transition-colors"
-              >
-                <MessageCircle className="w-4 h-4" /> WhatsApp
-              </a>
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {selected.phone && (
               <a
                 href={`tel:${selected.phone}`}

@@ -31,11 +31,11 @@ export interface PlanConfig {
   isFree?: boolean;
 }
 
-/** Kept for backward compat with existing 'trialing' subscriptions in DB */
-export const TRIAL_DAYS = 14;
+/** Trial disabled — kept for backward compat with existing 'trialing' subscriptions in DB */
+export const TRIAL_DAYS = 0;
 
-/** Monthly order limit enforced for the FREE plan */
-export const FREE_MONTHLY_ORDER_LIMIT = 50;
+/** No longer enforced — Free plan has unlimited orders */
+export const FREE_MONTHLY_ORDER_LIMIT = -1;
 
 export const PLANS: Record<PlanId, PlanConfig> = {
   free: {
@@ -50,19 +50,19 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       maxTables: 5,
       maxUsers: 1,
       maxCategories: -1,
-      maxOrdersPerMonth: FREE_MONTHLY_ORDER_LIMIT,
+      maxOrdersPerMonth: -1,
     },
     features: [
       'Menú digital + QR (hasta 5 mesas)',
       'Solo dine-in',
-      '50 pedidos / mes',
+      'Pedidos ilimitados',
       'Importar menú desde foto con IA',
       'Soporte por email',
     ],
     features_en: [
       'Digital menu + QR (up to 5 tables)',
       'Dine-in only',
-      '50 orders / month',
+      'Unlimited orders',
       'Import menu from photo with AI',
       'Email support',
     ],
@@ -70,7 +70,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Sin marca "Powered by MENIUS"',
       'Pickup y Delivery',
       'MENIUS AI assistant',
-      'Notificaciones WhatsApp / email',
+      'Notificaciones por email',
       'Analytics',
       'Pagos online',
     ],
@@ -78,7 +78,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'No "Powered by MENIUS" branding',
       'Pickup & Delivery',
       'MENIUS AI assistant',
-      'WhatsApp / email notifications',
+      'Email notifications',
       'Analytics',
       'Online payments',
     ],
@@ -113,7 +113,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Analytics básico (últimos 30 días)',
       'Notificaciones sonoras',
       '2 usuarios administradores',
-      'Pagos online con tarjeta (1% por transacción)',
+      'Pagos online con tarjeta (0% comisión)',
       'Soporte por chat',
     ],
     features_en: [
@@ -128,12 +128,12 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Basic analytics (last 30 days)',
       'Sound notifications',
       '2 admin users',
-      'Online card payments (1% per transaction)',
+      'Online card payments (0% commission)',
       'Chat support',
     ],
     excluded: [
       'Delivery',
-      'Notificaciones WhatsApp',
+      'Notificaciones email avanzadas',
       'Analytics avanzado',
       'Promociones y cupones',
       'Reseñas de clientes',
@@ -142,7 +142,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     ],
     excluded_en: [
       'Delivery',
-      'WhatsApp notifications',
+      'Advanced email notifications',
       'Advanced analytics',
       'Promotions & coupons',
       'Customer reviews',
@@ -171,7 +171,6 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Todo lo de Starter',
       'Hasta 50 mesas',
       'Delivery + dirección de entrega',
-      'WhatsApp notifications (500 msgs/mes)',
       'Notificaciones por email',
       'Cocina KDS en tiempo real',
       'Analytics avanzado (histórico completo)',
@@ -186,7 +185,6 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Everything in Starter',
       'Up to 50 tables',
       'Delivery + delivery address',
-      'WhatsApp notifications (500 msgs/mo)',
       'Email notifications',
       'Real-time kitchen KDS',
       'Advanced analytics (full history)',
@@ -222,7 +220,6 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Todo lo de Pro',
       'Mesas y usuarios ilimitados',
       'Hasta 3 sucursales incluidas',
-      'WhatsApp notifications (2,000 msgs/mes)',
       'Dominio personalizado',
       'Exportar datos completos (CSV / Excel)',
       'Acceso API',
@@ -233,7 +230,6 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       'Everything in Pro',
       'Unlimited tables & users',
       'Up to 3 branches included',
-      'WhatsApp notifications (2,000 msgs/mo)',
       'Custom domain',
       'Full data export (CSV / Excel)',
       'API access',

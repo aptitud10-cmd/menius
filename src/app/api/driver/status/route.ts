@@ -12,12 +12,11 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { sendWhatsApp } from '@/lib/notifications/whatsapp';
-import { sendSMS, resolveChannel } from '@/lib/notifications/sms';
 import { canTransition } from '@/lib/order-state';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
 import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
+import { evictTokenCache } from '@/lib/tracking/token-cache';
 
 const logger = createLogger('driver-status');
 
@@ -63,46 +62,20 @@ export async function POST(req: NextRequest) {
   const rawRest = (order as any).restaurants as RestRow[] | RestRow | null;
   const restaurant: RestRow | null = Array.isArray(rawRest) ? (rawRest[0] ?? null) : rawRest;
 
-  const locale = restaurant?.locale ?? 'es';
-  const en = locale === 'en';
-  const restaurantName = restaurant?.name ?? 'Restaurant';
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app').replace(/\/$/, '');
-  const trackingUrl = `${appUrl}/${restaurant?.slug}/orden/${order.order_number}`;
-
   const now = new Date().toISOString();
   let updateData: Record<string, unknown> = {};
-  let notificationText = '';
-  let shouldNotify = false;
 
   if (action === 'picked_up') {
-    // Normal flow: order is already 'ready' (counter marked it) — status stays as-is,
-    // only driver_picked_up_at is set. The status advance to 'ready' only applies to
-    // edge cases where the counter forgot to advance (e.g. still 'preparing').
-    // canTransition('ready', 'ready') === false, so no redundant update happens.
     const advanceToReady = canTransition(order.status, 'ready');
     updateData = { driver_picked_up_at: now, ...(advanceToReady ? { status: 'ready' } : {}) };
-    // Only notify on first tap (prevents duplicate messages if two drivers use the same link)
-    shouldNotify = !(order as any).driver_picked_up_at;
-    notificationText = en
-      ? `${restaurantName}: Your order is on its way! 🛵\nTrack your order: ${trackingUrl}`
-      : `${restaurantName}: ¡Tu pedido está en camino! 🛵\nSigue tu pedido: ${trackingUrl}`;
   }
 
   if (action === 'at_door') {
     updateData = { driver_at_door_at: now };
-    // Only notify if this is the first time (prevents duplicate WhatsApp if two drivers tap the same link)
-    shouldNotify = !(order as any).driver_at_door_at;
-    notificationText = en
-      ? `${restaurantName}: Your delivery driver has arrived! 🚪 Please come to the door.`
-      : `${restaurantName}: ¡Tu repartidor está en la puerta! 🚪 Por favor acércate a la puerta.`;
   }
 
   if (action === 'notify_outside') {
-    // Fire-and-forget message — no DB state change
-    shouldNotify = true;
-    notificationText = en
-      ? `${restaurantName}: Your order is outside! Please come to receive it. 📦`
-      : `${restaurantName}: ¡Tu pedido está afuera! Por favor sal a recibirlo. 📦`;
+    return NextResponse.json({ ok: true, action });
   }
 
   if (action === 'delivered') {
@@ -121,7 +94,10 @@ export async function POST(req: NextRequest) {
     // Broadcast to customer tracking page immediately (no-RLS broadcast channel).
     broadcastOrderUpdate(order.id, 'delivered').catch(() => {});
 
-    // Full notification stack (WhatsApp + email + push + log) via notifyStatusChange
+    // Evict Redis token cache — driver can no longer send location pings
+    evictTokenCache(token.slice(0, 16)).catch(() => {});
+
+    // Full notification stack (email + push + log) via notifyStatusChange
     try {
       const { notifyStatusChange } = await import('@/lib/notifications/order-notifications');
       await notifyStatusChange({
@@ -154,16 +130,6 @@ export async function POST(req: NextRequest) {
     // Broadcast to customer tracking page so they see driver milestones
     // (picked_up, at_door) in real-time. Client does a full refetch on receipt.
     broadcastOrderUpdate(order.id, order.status).catch(() => {});
-  }
-
-  // Send customer notification (fire-and-forget, don't block the response)
-  if (shouldNotify && order.customer_phone && notificationText) {
-    const channel = resolveChannel(order.customer_phone);
-    if (channel === 'sms') {
-      sendSMS({ to: order.customer_phone, text: notificationText }).catch(() => {});
-    } else {
-      sendWhatsApp({ to: order.customer_phone, text: notificationText }).catch(() => {});
-    }
   }
 
   return NextResponse.json({ ok: true, action });

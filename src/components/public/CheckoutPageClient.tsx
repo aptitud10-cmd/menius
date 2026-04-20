@@ -217,6 +217,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const ctaShakeTimer = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => { return () => { clearTimeout(ctaShakeTimer.current); }; }, []);
 
+  // Network-error retry state
+  const [networkRetrying, setNetworkRetrying] = useState(false);
+  const [canManualRetry, setCanManualRetry] = useState(false);
+  const retryAttemptRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => { clearTimeout(retryTimerRef.current); }, []);
+
   // Snapshot of items captured before clearCart() — shown on confirmation screen
   const [confirmedItems, setConfirmedItems] = useState<{ name: string; qty: number; variant?: string; lineTotal: number }[]>([]);
   const [confirmedTotal, setConfirmedTotal] = useState(0);
@@ -440,6 +447,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     submittingRef.current = true;
     setSubmitting(true);
     setOrderError('');
+    setCanManualRetry(false);
     try {
       // Demo restaurants: simulate success without hitting the real orders API
       if (restaurant.id.startsWith('demo')) {
@@ -589,11 +597,24 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       playSuccessChime();
       confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
     } catch {
-      setOrderError(
-        locale === 'es'
-          ? 'No hay conexión. Revisa tu red e inténtalo de nuevo.'
-          : 'No connection. Check your network and try again.'
-      );
+      if (retryAttemptRef.current === 0) {
+        // First network failure — auto-retry silently after 2s
+        retryAttemptRef.current = 1;
+        setNetworkRetrying(true);
+        retryTimerRef.current = setTimeout(async () => {
+          setNetworkRetrying(false);
+          await handleSubmitOrder();
+        }, 2000);
+      } else {
+        // Second failure — give up and let user retry manually
+        retryAttemptRef.current = 0;
+        setCanManualRetry(true);
+        setOrderError(
+          locale === 'es'
+            ? 'Sin conexión. Revisa tu red e inténtalo de nuevo.'
+            : 'No connection. Check your network and try again.'
+        );
+      }
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
@@ -749,6 +770,36 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         params.append('customer-data:phone-number-prefix', prefix);
       }
       window.location.href = `https://checkout.wompi.co/p/?${params.toString()}`;
+    } catch {
+      setOrderError(
+        locale === 'es'
+          ? 'Sin conexión al iniciar el pago. Revisa tu red e inténtalo.'
+          : 'Could not reach the server to start payment. Check your connection.'
+      );
+      setPayLoading(false);
+    }
+  };
+
+  const handlePayMercadoPago = async () => {
+    setPayLoading(true);
+    try {
+      const res = await fetch('/api/payments/mercadopago', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId, slug: restaurant.slug }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) {
+        setOrderError(formatPaymentStartError(res.status, data.error, locale));
+        setPayLoading(false);
+        return;
+      }
+      if (data.checkout_url) {
+        window.location.href = data.checkout_url;
+        return;
+      }
+      setOrderError(formatPaymentStartError(res.status, undefined, locale));
+      setPayLoading(false);
     } catch {
       setOrderError(
         locale === 'es'
@@ -1155,6 +1206,27 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     {locale === 'es' ? 'Pagar con Wompi' : 'Pay with Wompi'}
                   </>
                 ) : t.payNow}
+              </button>
+            )}
+
+            {/* MercadoPago button — shown when restaurant has MP enabled and not COP (Wompi handles COP) */}
+            {paymentMethod === 'online' && orderId && !restaurant.id.startsWith('demo') && restaurant.mp_enabled && !isColombianRestaurant && (
+              <button
+                onClick={handlePayMercadoPago}
+                disabled={payLoading}
+                className="w-full py-3.5 rounded-xl font-semibold text-sm disabled:opacity-50 transition-colors flex items-center justify-center gap-2 bg-[#009EE3] hover:bg-[#008ccc] text-white"
+              >
+                {payLoading ? (
+                  locale === 'es' ? 'Redirigiendo...' : 'Redirecting...'
+                ) : (
+                  <>
+                    <svg width="18" height="18" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="40" height="40" rx="8" fill="#009EE3"/>
+                      <text x="7" y="27" fontSize="18" fontWeight="bold" fill="white">MP</text>
+                    </svg>
+                    {locale === 'es' ? 'Pagar con MercadoPago' : 'Pay with MercadoPago'}
+                  </>
+                )}
               </button>
             )}
             {!restaurant.id.startsWith('demo') && orderNumber && (
@@ -1756,16 +1828,43 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       {/* Sticky footer */}
       <div className="sticky bottom-0 bg-white border-t border-gray-200 px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] space-y-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
         <AnimatePresence>
+          {networkRetrying && (
+            <motion.div
+              key="retrying"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="flex items-center gap-2 px-4 py-3 rounded-xl bg-amber-50 border border-amber-200"
+            >
+              <svg className="animate-spin h-4 w-4 text-amber-600 shrink-0" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+              <span className="text-amber-700 text-sm font-medium">
+                {locale === 'es' ? 'Reintentando…' : 'Retrying…'}
+              </span>
+            </motion.div>
+          )}
           {orderError && (
             <motion.div
+              key="error"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
               role="alert"
               aria-live="assertive"
-              className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200"
+              className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200"
             >
-              <span className="text-red-700 text-sm font-medium">{orderError}</span>
+              <span className="text-red-700 text-sm font-medium flex-1">{orderError}</span>
+              {canManualRetry && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    retryAttemptRef.current = 0;
+                    handleSubmitOrder();
+                  }}
+                  className="shrink-0 text-sm font-bold text-red-700 underline underline-offset-2 hover:text-red-900"
+                >
+                  {locale === 'es' ? 'Reintentar' : 'Retry'}
+                </button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -1779,19 +1878,21 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           )}
           <motion.button
             onClick={handleSubmitOrder}
-            disabled={submitting || items.length === 0}
+            disabled={submitting || networkRetrying || items.length === 0}
             aria-label={locale === 'es' ? 'Confirmar orden' : 'Place order'}
             animate={ctaShake ? { x: [0, -8, 8, -6, 6, -4, 4, 0] } : { x: 0 }}
             transition={{ duration: 0.5 }}
             className={cn(
               'w-full py-5 rounded-2xl text-white font-extrabold text-[17px] active:scale-[0.98] transition-all duration-150 shadow-[0_4px_20px_rgba(5,200,167,0.35)]',
-              submitting || items.length === 0 ? 'opacity-40 cursor-not-allowed bg-[#05c8a7]' : 'bg-[#05c8a7]',
+              submitting || networkRetrying || items.length === 0 ? 'opacity-40 cursor-not-allowed bg-[#05c8a7]' : 'bg-[#05c8a7]',
             )}
           >
-            {submitting ? (
+            {submitting || networkRetrying ? (
               <span className="flex items-center justify-center gap-2">
                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                {t.sending}
+                {networkRetrying
+                  ? (locale === 'es' ? 'Reintentando…' : 'Retrying…')
+                  : t.sending}
               </span>
             ) : (
               `${t.confirmOrder} · ${fmtPrice(displayTotal)}`

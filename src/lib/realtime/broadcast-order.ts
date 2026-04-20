@@ -53,3 +53,43 @@ export async function broadcastOrderUpdate(
     // Non-critical — the 5-second polling fallback in OrderTracker covers it.
   }
 }
+
+/**
+ * broadcastDriverLocation — emite coordenadas GPS del repartidor en tiempo real.
+ *
+ * Usa un evento 'location_update' separado de 'status_change' para que el cliente
+ * pueda actualizar sólo el marcador del mapa sin hacer un refetch HTTP completo.
+ * Llamado desde POST /api/driver/location tras cada update de GPS válido.
+ */
+export async function broadcastDriverLocation(
+  orderId: string,
+  lat: number,
+  lng: number,
+): Promise<void> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) return;
+
+  try {
+    await fetch(`${url}/realtime/v1/api/broadcast`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': key,
+        'Authorization': `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            topic: `order-track:${orderId}`,
+            event: 'location_update',
+            payload: { orderId, lat, lng, ts: Date.now() },
+          },
+        ],
+      }),
+    });
+  } catch {
+    // Non-critical — polling fallback covers missed packets.
+  }
+}

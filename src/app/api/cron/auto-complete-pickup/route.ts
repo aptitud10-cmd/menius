@@ -38,7 +38,7 @@ export async function GET(req: Request) {
     // ── Step 1: preparing → ready when ETA has passed ─────────────────────
     const { data: preparingOrders, error: prepErr } = await adminDb
       .from('orders')
-      .select('id, order_number, restaurant_id, updated_at, estimated_ready_minutes, customer_name, customer_email, customer_phone, order_type, delivery_address')
+      .select('id, order_number, restaurant_id, updated_at, prepared_at, estimated_ready_minutes, customer_name, customer_email, customer_phone, order_type, delivery_address')
       .eq('status', 'preparing')
       .eq('order_type', 'pickup');
 
@@ -48,7 +48,10 @@ export async function GET(req: Request) {
 
     const toMarkReady = (preparingOrders ?? []).filter(o => {
       const etaMins = o.estimated_ready_minutes ?? DEFAULT_ETA_MINS;
-      const preparingAt = new Date(o.updated_at).getTime();
+      // Use prepared_at when available — immune to ETA edits and other row updates
+      // that would reset updated_at and delay the auto-ready transition.
+      // Falls back to updated_at for orders created before this column was added.
+      const preparingAt = new Date((o as any).prepared_at ?? o.updated_at).getTime();
       return now - preparingAt >= etaMins * 60 * 1000;
     });
 

@@ -122,7 +122,7 @@ Imprime los QR en material resistente al agua y colócalos en un lugar visible d
 Con tu menú digital activo, los pedidos llegan a tu dashboard en tiempo real. Puedes:
 
 - Ver pedidos en un tablero Kanban (pendiente → preparando → listo)
-- Recibir alertas por sonido, WhatsApp o email
+- Recibir alertas por sonido, email o push
 - Revisar analytics para optimizar tu menú
 
 ## Conclusión
@@ -193,7 +193,7 @@ Print QR codes on water-resistant material and place them in a visible spot on e
 With your digital menu active, orders arrive at your dashboard in real time. You can:
 
 - View orders on a Kanban board (pending → preparing → ready)
-- Receive alerts by sound, WhatsApp, or email
+- Receive alerts by sound, email, or push
 - Review analytics to optimize your menu
 
 ## Conclusion
@@ -906,7 +906,7 @@ Los clientes esperan poder interactuar con tu restaurante por múltiples canales
 - Menú digital QR en la mesa
 - Pedidos desde tu web para pickup
 - Delivery desde tu enlace directo
-- Notificaciones por WhatsApp
+- Notificaciones por email
 - Reseñas y feedback directo
 
 ## 5. Sostenibilidad y transparencia
@@ -966,7 +966,7 @@ Customers expect to interact with your restaurant through multiple channels:
 - QR digital menu at the table
 - Orders from your website for pickup
 - Delivery from your direct link
-- WhatsApp notifications
+- Email notifications
 - Reviews and direct feedback
 
 ## 5. Sustainability and Transparency
@@ -1578,7 +1578,7 @@ Con MENIUS, el flujo es completamente digital:
 ### ¿Qué muestra la pantalla KDS?
 
 - **Número de orden** y hora del pedido
-- **Nombre y teléfono del cliente** (con link directo a WhatsApp)
+- **Nombre y teléfono del cliente** (con datos de contacto)
 - **Cada producto** con cantidad, variante y extras
 - **Notas especiales** (alergias, preferencias)
 - **Tipo de orden**: mesa, pickup o delivery
@@ -1590,7 +1590,7 @@ Con MENIUS, el flujo es completamente digital:
 2. **Ahorro en papel** — No más rollos de tickets
 3. **Velocidad** — El pedido llega a cocina en 0 segundos
 4. **Seguimiento** — Sabes exactamente en qué estado está cada pedido
-5. **Contacto directo** — Si hay dudas, contactas al cliente por WhatsApp con un clic
+5. **Contacto directo** — Si hay dudas, contactas al cliente por email o teléfono
 
 ## ¿Qué necesito para usar el KDS?
 
@@ -1632,7 +1632,7 @@ With MENIUS, the flow is completely digital:
 ### What Does the KDS Screen Show?
 
 - **Order number** and time of the order
-- **Customer name and phone** (with direct WhatsApp link)
+- **Customer name and phone** (with contact details)
 - **Each product** with quantity, variant, and extras
 - **Special notes** (allergies, preferences)
 - **Order type**: table, pickup, or delivery
@@ -1644,7 +1644,7 @@ With MENIUS, the flow is completely digital:
 2. **Paper savings** — No more ticket rolls
 3. **Speed** — The order reaches the kitchen in 0 seconds
 4. **Tracking** — You know exactly what state each order is in
-5. **Direct contact** — If there are questions, contact the customer via WhatsApp with one click
+5. **Direct contact** — If there are questions, contact the customer via email or phone
 
 ## What Do I Need to Use the KDS?
 
@@ -2077,7 +2077,7 @@ Este checklist cubre todo lo que debes tener listo antes de abrir tus puertas �
 - [ ] Pedido de prueba con pago real realizado
 - [ ] Tablet o pantalla para KDS en cocina configurada
 - [ ] Tablet o dispositivo para el dashboard del encargado
-- [ ] WhatsApp Business configurado (para notificaciones de pedidos)
+- [ ] Email de notificaciones configurado
 - [ ] Router/internet con plan de respaldo (datos móviles si falla)
 - [ ] Impresora de tickets si la necesitas (opcional con KDS digital)
 
@@ -2089,7 +2089,7 @@ Este checklist cubre todo lo que debes tener listo antes de abrir tus puertas �
 - [ ] Google Business Profile creado y verificado (¡GRATIS y esencial!)
 - [ ] Fotos del lugar y menú subidas a Google Maps
 - [ ] Instagram creado (aunque sea básico)
-- [ ] WhatsApp Business configurado con horario y respuestas automáticas
+- [ ] Email y redes sociales configurados
 - [ ] Link del menú digital preparado para compartir
 
 ### Materiales físicos
@@ -2270,15 +2270,15 @@ No necesitas software complejo. Una tarjeta digital con "cada 10 pedidos directo
 
 Con el CRM de MENIUS puedes ver cuántas veces ha ordenado cada cliente e identificar a los que están en el pedido 9 para enviarles un recordatorio.
 
-### Estrategia 5: Notificaciones de WhatsApp con descuentos exclusivos
+### Estrategia 5: Emails con descuentos exclusivos
 
-Para los clientes que te dieron su WhatsApp (a través del checkout), puedes enviar:
+Para los clientes que te dieron su email (a través del checkout), puedes enviar:
 
 - Ofertas del día (martes lentos → descuento martes)
 - Preventa de platillos nuevos ("primeros 20 en ordenar")
 - Cumpleaños (si tienes la fecha) con descuento personalizado
 
-**Importante:** MENIUS te permite ver el número de teléfono de cada cliente que ha ordenado. Puedes crear un grupo de difusión (no grupo) en WhatsApp Business para estas comunicaciones. Máximo 1 mensaje por semana para no molestar.
+**Importante:** MENIUS te permite ver el email de cada cliente que ha ordenado. Puedes usar el módulo de Campañas de Email para estas comunicaciones. Máximo 1 email por semana para no molestar.
 
 ### Estrategia 6: El "siguiente pedido" capturado en el momento
 
@@ -2321,7 +2321,7 @@ Pregúntale a MENIUS AI:
 |---|---|---|
 | Cliente nuevo vía Rappi | 25% comisión = $5-15 por pedido | Cliente de la app, no tuyo |
 | Convertir a cliente directo | $0.50 flyer + 10% descuento | Cliente tuyo, 0% comisión futura |
-| Retener cliente fiel | Email o WhatsApp = $0 | 5-10x más pedidos a largo plazo |
+| Retener cliente fiel | Email + push = $0 | 5-10x más pedidos a largo plazo |
 
 Un cliente que ordena 2 veces al mes durante 1 año, con ticket de $300 pesos, vale $7,200 pesos anuales. Pero solo si ordena directo — si ordena por app, tú recibes $5,400 y la app $1,800.
 
@@ -2339,7 +2339,7 @@ Con el tiempo, el mix ideal es 70-80% pedidos directos, 20-30% apps de delivery 
 
 ## Conclusión
 
-Fidelizar clientes no es complicado — es constante. Un flyer en cada pedido, un QR en cada mesa, un mensaje de WhatsApp al mes. Esas acciones pequeñas, repetidas consistentemente, construyen una base de clientes directos que nadie te puede quitar.
+Fidelizar clientes no es complicado — es constante. Un flyer en cada pedido, un QR en cada mesa, un email al mes. Esas acciones pequeñas, repetidas consistentemente, construyen una base de clientes directos que nadie te puede quitar.
 
 Las apps de delivery son un canal de adquisición, no tu canal principal. Tu menú digital directo es tu activo más valioso.
     `,
@@ -2364,8 +2364,8 @@ Configure Google Maps to link directly to your MENIUS menu, not a delivery app.
 ### Strategy 4: Simple Loyalty Program
 Every 10 direct orders = 20% off the next one. Track this using MENIUS CRM.
 
-### Strategy 5: WhatsApp Promotions
-Send exclusive deals to customers who gave their phone number. Max 1 message/week.
+### Strategy 5: Email Promotions
+Send exclusive deals to customers who gave their email. Max 1 email/week.
 
 ## The Financial Math
 
@@ -2761,7 +2761,7 @@ Al recibir un pedido, el equipo puede:
 - **Cambiar estado** → Preparando, Listo, Entregado
 - **Imprimir ticket** → Automáticamente al aceptar (si tienes impresora)
 - **Ver detalles** → Productos, notas, datos del cliente
-- **Contactar al cliente** → WhatsApp directo
+- **Contactar al cliente** → Email o teléfono
 
 ## Nueva Orden Manual: tu POS integrado
 
@@ -3050,7 +3050,7 @@ Listo. El formulario de reserva aparece automáticamente en tu menú público.
 
 ## Consejos para reducir no-shows
 
-1. **Confirma por WhatsApp** — cuando llegue una reservación, escríbele al cliente confirmando. MENIUS muestra el teléfono directamente en el panel.
+1. **Confirma por email o teléfono** — cuando llegue una reservación, escríbele al cliente confirmando. MENIUS muestra los datos de contacto directamente en el panel.
 
 2. **Envía recordatorio el día anterior** — un mensaje simple: "Te esperamos mañana a las 8pm. ¿Sigue todo bien?" reduce los no-shows hasta un 40%.
 
@@ -3062,7 +3062,7 @@ Listo. El formulario de reserva aparece automáticamente en tu menú público.
 
 El módulo de reservaciones de MENIUS seguirá creciendo con:
 
-- Confirmaciones automáticas por WhatsApp y email
+- Confirmaciones automáticas por email
 - Horarios de disponibilidad configurables por día
 - Límite de mesas simultáneas por franja horaria
 - Vista de mapa/plano del salón
@@ -3097,7 +3097,7 @@ The form appears immediately on your public menu.
 
 ## Tips to reduce no-shows
 
-- Confirm via WhatsApp as soon as the reservation comes in (MENIUS shows the phone number directly)
+- Confirm via email or phone as soon as the reservation comes in (MENIUS shows the contact info directly)
 - Send a reminder the day before
 - Ask for a deposit for large groups (8+ people)
 

@@ -4,6 +4,7 @@ import { RestaurantSettings } from '@/components/dashboard/RestaurantSettings';
 import { PrinterSettingsSection } from '@/components/dashboard/PrinterSettingsSection';
 import { FiscalSettings } from '@/components/dashboard/FiscalSettings';
 import { KDSStationsSettings } from '@/components/dashboard/KDSStationsSettings';
+import { MercadoPagoSettings } from '@/components/dashboard/MercadoPagoSettings';
 import { WidgetCode } from './WidgetCode';
 import { getDashboardTranslations } from '@/lib/dashboard-translations';
 
@@ -51,6 +52,18 @@ export default async function SettingsPage() {
         <h2 className="dash-heading mb-2">{t.settings_widgetTitle}</h2>
         <WidgetCode slug={restaurant.slug} isEn={locale === 'en'} />
       </div>
+
+      {/* MercadoPago — available for all currencies except COP (Wompi handles COP) */}
+      {restaurant.currency !== 'COP' && (
+        <div id="mercadopago">
+          <MercadoPagoSettings
+            restaurantId={restaurantId}
+            mpEnabled={(restaurant as any).mp_enabled ?? false}
+            hasMpToken={!!(restaurant as any).mp_access_token}
+            locale={locale}
+          />
+        </div>
+      )}
 
       {isMxn && (
         <div>
