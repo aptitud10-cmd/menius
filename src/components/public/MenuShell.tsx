@@ -437,10 +437,10 @@ export function MenuShell({
       // mainRef and scrolls it directly.
       const sectionTop = section.getBoundingClientRect().top;
       const containerTop = mainRef.current.getBoundingClientRect().top;
-      // The scroll-spy uses `threshold = containerTop + margin + 15` to detect active sections.
-      // Section lands at margin + 16 (16px below sticky pills) — visible breathing room.
-      // Threshold is margin + 15 so section is 1px above it → spy activates without bounce-back.
-      const targetScroll = mainRef.current.scrollTop + sectionTop - containerTop - margin - 16;
+      // The scroll-spy uses `threshold = containerTop + margin - 8` to detect active sections.
+      // We overshoot by 8px so the section lands exactly at the threshold after the animation,
+      // preventing the spy from reverting to the previous category (the "bounce-back" effect).
+      const targetScroll = mainRef.current.scrollTop + sectionTop - containerTop - margin + 8;
       mainRef.current.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
 
       requestAnimationFrame(() => {
@@ -720,7 +720,7 @@ export function MenuShell({
           : (mobilePillsRef.current?.offsetHeight ?? 52);
         const headerH = isDesktopNow ? 0 : HEADER_HEIGHT;
         const mainTop = main.getBoundingClientRect().top;
-        const threshold = mainTop + headerH + pillsH + 15;
+        const threshold = mainTop + headerH + pillsH - 8;
 
         let current = itemsByCategory[0].category.id;
 
@@ -1112,7 +1112,7 @@ export function MenuShell({
         {restaurant.cover_image_url && (
           <div ref={bannerRef} className="relative w-full h-48 sm:h-56 lg:h-72 bg-gray-100 overflow-hidden">
             {isDemo && (
-              <a href="/demo" className="absolute top-3 left-3 z-10 flex items-center justify-center w-9 h-9 rounded-full bg-orange-500/80 backdrop-blur-sm hover:bg-orange-500 transition-colors shadow-lg">
+              <a href="/demo" className="hidden lg:flex absolute top-3 left-3 z-10 items-center justify-center w-9 h-9 rounded-full bg-orange-500/80 backdrop-blur-sm hover:bg-orange-500 transition-colors shadow-lg">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
               </a>
             )}

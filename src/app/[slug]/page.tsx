@@ -194,6 +194,7 @@ export default async function SlugMenuPage({ params }: PageProps) {
           tableName={null}
           locale={demoConfig.locale}
           reviewStats={{ average: 4.7, total: 128 }}
+          backUrl="/demo"
         />
       </>
     );
