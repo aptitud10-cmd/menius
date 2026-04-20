@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Save, ExternalLink, CheckCircle2, Bell, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2, Languages, Plus, X, Sparkles, Receipt } from 'lucide-react';
 import { COUNTRY_LIST, US_STATE_LIST, COUNTRY_TAX_PRESETS, US_STATE_TAX_RATES, US_CITY_TAX_RATES, computeTaxAmount } from '@/lib/tax-presets';
+import { COUNTRY_CONFIG_LIST, COUNTRY_CONFIGS, UNIQUE_CURRENCIES, formatTimezone } from '@/lib/country-config';
 import { SUPPORTED_LOCALES, getLocaleFlag } from '@/lib/i18n';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -96,6 +97,28 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     JSON.stringify(hours) !== initialHoursSnapshot ||
     logoUrl !== initialLogoSnapshot ||
     coverUrl !== initialCoverSnapshot;
+
+  const handleCountryChange = (code: string) => {
+    const cfg = COUNTRY_CONFIGS[code];
+    const taxPreset = COUNTRY_TAX_PRESETS[code];
+    setForm((prev) => ({
+      ...prev,
+      country_code: code,
+      currency: cfg ? cfg.currency : prev.currency,
+      timezone: cfg ? cfg.timezone : prev.timezone,
+      locale: cfg ? cfg.menuLocale : prev.locale,
+      available_locales: cfg
+        ? prev.available_locales.includes(cfg.menuLocale)
+          ? prev.available_locales
+          : [cfg.menuLocale, ...prev.available_locales]
+        : prev.available_locales,
+      state_code: code !== 'US' ? '' : prev.state_code,
+      tax_rate: taxPreset ? taxPreset.rate : prev.tax_rate,
+      tax_label: taxPreset ? taxPreset.label : prev.tax_label,
+      tax_included: taxPreset ? taxPreset.included : prev.tax_included,
+    }));
+    setSaved(false);
+  };
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -469,7 +492,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         <h2 className="font-semibold text-sm mb-4 text-gray-900">{t.settings_basicInfo}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label={t.settings_restaurantName} value={form.name} onChange={(v) => handleChange('name', v)} />
-          <PhoneField label={t.settings_phone} value={form.phone} onChange={(v) => handleChange('phone', v)} dark={false} />
+          <PhoneField label={t.settings_phone} value={form.phone} onChange={(v) => handleChange('phone', v)} dark={false} country={form.country_code || undefined} />
           <div className="sm:col-span-2">
             <Field label={t.settings_description} value={form.description} onChange={(v) => handleChange('description', v)} placeholder={t.settings_descPlaceholder} textarea />
           </div>
@@ -501,7 +524,31 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       {/* Regional */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
         <h2 className="font-semibold text-sm mb-4 text-gray-900">{t.settings_regional}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-medium text-gray-500 mb-1">
+              {locale === 'en' ? 'Country' : 'País'}
+            </label>
+            <select
+              value={form.country_code}
+              onChange={(e) => handleCountryChange(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            >
+              <option value="">{locale === 'en' ? '— Select country —' : '— Selecciona tu país —'}</option>
+              {COUNTRY_CONFIG_LIST.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.flag} {c.name} — {c.currency}
+                </option>
+              ))}
+            </select>
+            {form.country_code && COUNTRY_CONFIGS[form.country_code] && (
+              <p className="text-[11px] text-gray-400 mt-1.5 ml-0.5">
+                {COUNTRY_CONFIGS[form.country_code].flag}&nbsp;
+                {COUNTRY_CONFIGS[form.country_code].currency} &middot; +{COUNTRY_CONFIGS[form.country_code].phonePrefix} &middot; {formatTimezone(COUNTRY_CONFIGS[form.country_code].timezone)}
+                {locale === 'en' ? ' — auto-filled from country' : ' — autocompletado desde el país'}
+              </p>
+            )}
+          </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">{t.settings_timezone}</label>
             <select
@@ -509,16 +556,11 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               onChange={(e) => handleChange('timezone', e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
             >
-              <option value="America/New_York">New York (EST)</option>
-              <option value="America/Chicago">Chicago (CST)</option>
-              <option value="America/Los_Angeles">Los Angeles (PST)</option>
-              <option value="America/Mexico_City">Ciudad de México (GMT-6)</option>
-              <option value="America/Cancun">Cancún (GMT-5)</option>
-              <option value="America/Bogota">Bogotá (GMT-5)</option>
-              <option value="America/Lima">Lima (GMT-5)</option>
-              <option value="America/Santiago">Santiago (GMT-4)</option>
-              <option value="America/Argentina/Buenos_Aires">Buenos Aires (GMT-3)</option>
-              <option value="Europe/Madrid">Madrid (GMT+1)</option>
+              {COUNTRY_CONFIG_LIST.map((c) => (
+                <option key={c.timezone} value={c.timezone}>
+                  {c.flag} {formatTimezone(c.timezone)} ({c.name})
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -528,16 +570,14 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
               onChange={(e) => handleChange('currency', e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
             >
-              <option value="USD">USD — US Dollar</option>
-              <option value="MXN">MXN — Peso mexicano</option>
-              <option value="COP">COP — Peso colombiano</option>
-              <option value="PEN">PEN — Sol peruano</option>
-              <option value="CLP">CLP — Peso chileno</option>
-              <option value="ARS">ARS — Peso argentino</option>
-              <option value="EUR">EUR — Euro</option>
+              {UNIQUE_CURRENCIES.map((c) => (
+                <option key={c.currency} value={c.currency}>
+                  {c.flag} {c.currency}
+                </option>
+              ))}
             </select>
           </div>
-          <div>
+          <div className="sm:col-span-2">
             <label className="flex items-center gap-1 text-xs font-medium text-gray-500 mb-1">
               <Globe className="w-3.5 h-3.5" />
               {t.settings_mainLanguage}
@@ -589,19 +629,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
             </label>
             <select
               value={form.country_code}
-              onChange={(e) => {
-                const code = e.target.value;
-                const preset = COUNTRY_TAX_PRESETS[code];
-                setForm((prev) => ({
-                  ...prev,
-                  country_code: code,
-                  state_code: code !== 'US' ? '' : prev.state_code,
-                  tax_rate: preset ? preset.rate : prev.tax_rate,
-                  tax_label: preset ? preset.label : prev.tax_label,
-                  tax_included: preset ? preset.included : prev.tax_included,
-                }));
-                setSaved(false);
-              }}
+              onChange={(e) => handleCountryChange(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
             >
               <option value="">{locale === 'en' ? '— No country / custom —' : '— Sin país / personalizado —'}</option>

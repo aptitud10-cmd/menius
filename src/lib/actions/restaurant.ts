@@ -57,6 +57,19 @@ export async function createRestaurant(data: CreateRestaurantInput) {
     timezone: string; currency: string; locale: string; created_at: string;
   };
 
+  if (data.country_code) {
+    const { error: countryUpdateError } = await supabase
+      .from('restaurants')
+      .update({ country_code: data.country_code })
+      .eq('id', restaurant.id);
+    if (countryUpdateError) {
+      logger.error('Failed to set country_code on new restaurant', {
+        restaurantId: restaurant.id,
+        error: countryUpdateError.message,
+      });
+    }
+  }
+
   // Set owner's email as default notification_email so they receive order alerts immediately
   if (user.email) {
     const { error: emailUpdateError } = await supabase

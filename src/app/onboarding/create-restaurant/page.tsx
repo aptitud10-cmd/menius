@@ -8,6 +8,7 @@ import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import { createRestaurantSchema } from '@/lib/validations';
 import { slugify } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
+import { COUNTRY_CONFIG_LIST, COUNTRY_CONFIGS, formatTimezone } from '@/lib/country-config';
 
 const WIZARD_TEXT = {
   es: {
@@ -107,34 +108,6 @@ const LANGUAGES = [
   { code: 'en', label: 'English' },
 ];
 
-const CURRENCIES = [
-  { code: 'USD', label: 'USD — Dólar americano ($)' },
-  { code: 'MXN', label: 'MXN — Peso mexicano ($)' },
-  { code: 'EUR', label: 'EUR — Euro (€)' },
-  { code: 'COP', label: 'COP — Peso colombiano ($)' },
-  { code: 'PEN', label: 'PEN — Sol peruano (S/)' },
-  { code: 'ARS', label: 'ARS — Peso argentino ($)' },
-  { code: 'CLP', label: 'CLP — Peso chileno ($)' },
-  { code: 'DOP', label: 'DOP — Peso dominicano ($)' },
-  { code: 'BRL', label: 'BRL — Real brasileño (R$)' },
-  { code: 'GBP', label: 'GBP — Libra esterlina (£)' },
-];
-
-const TIMEZONES = [
-  { tz: 'America/New_York', label: 'New York (EST/EDT)' },
-  { tz: 'America/Chicago', label: 'Chicago (CST/CDT)' },
-  { tz: 'America/Denver', label: 'Denver (MST/MDT)' },
-  { tz: 'America/Los_Angeles', label: 'Los Angeles (PST/PDT)' },
-  { tz: 'America/Mexico_City', label: 'Ciudad de México (CST)' },
-  { tz: 'America/Bogota', label: 'Bogotá (COT)' },
-  { tz: 'America/Lima', label: 'Lima (PET)' },
-  { tz: 'America/Santiago', label: 'Santiago (CLT)' },
-  { tz: 'America/Argentina/Buenos_Aires', label: 'Buenos Aires (ART)' },
-  { tz: 'America/Sao_Paulo', label: 'São Paulo (BRT)' },
-  { tz: 'America/Santo_Domingo', label: 'Santo Domingo (AST)' },
-  { tz: 'Europe/Madrid', label: 'Madrid (CET)' },
-  { tz: 'Europe/London', label: 'Londres (GMT/BST)' },
-];
 
 
 export default function CreateRestaurantPage() {
@@ -144,25 +117,34 @@ export default function CreateRestaurantPage() {
   const [uiLocale, setUiLocale] = useState<'es' | 'en'>('es');
   const ui = WIZARD_TEXT[uiLocale];
 
-  useEffect(() => {
-    const match = document.cookie.match(/menius_locale=(\w+)/);
-    if (match?.[1] === 'en') {
-      setUiLocale('en');
-      setLocale('en');
-      setCurrency('USD');
-      setTimezone('America/New_York');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // Step 0 (intent) + Step 1–4 state
   const [step, setStep] = useState(0);
   const [businessType, setBusinessType] = useState('');
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
+  const [countryCode, setCountryCode] = useState<string>('MX');
   const [locale, setLocale] = useState<string>('es');
   const [currency, setCurrency] = useState<string>('MXN');
   const [timezone, setTimezone] = useState<string>('America/Mexico_City');
+
+  const handleCountryChange = (code: string) => {
+    const config = COUNTRY_CONFIGS[code];
+    if (!config) return;
+    setCountryCode(code);
+    setCurrency(config.currency);
+    setTimezone(config.timezone);
+    setLocale(config.menuLocale);
+  };
+
+  useEffect(() => {
+    const match = document.cookie.match(/menius_locale=(\w+)/);
+    if (match?.[1] === 'en') {
+      setUiLocale('en');
+      handleCountryChange('US');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
@@ -209,7 +191,7 @@ export default function CreateRestaurantPage() {
     e.preventDefault();
     setError('');
 
-    const parsed = createRestaurantSchema.safeParse({ name, slug, timezone, currency, locale });
+    const parsed = createRestaurantSchema.safeParse({ name, slug, country_code: countryCode, timezone, currency, locale });
     if (!parsed.success) {
       setError(parsed.error.errors[0].message);
       return;
@@ -482,32 +464,27 @@ export default function CreateRestaurantPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">{ui.currency}</label>
-                    <select
-                      value={currency}
-                      onChange={(e) => setCurrency(e.target.value)}
-                      className="w-full px-3.5 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all appearance-none cursor-pointer"
-                    >
-                      {CURRENCIES.map((c) => (
-                        <option key={c.code} value={c.code} className="bg-[#0a0a0a] text-white">{c.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">{ui.timezone}</label>
-                    <select
-                      value={timezone}
-                      onChange={(e) => setTimezone(e.target.value)}
-                      className="w-full px-3.5 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all appearance-none cursor-pointer"
-                    >
-                      {TIMEZONES.map((t) => (
-                        <option key={t.tz} value={t.tz} className="bg-[#0a0a0a] text-white">{t.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                {/* Country — auto-fills currency, timezone and language */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
+                    {uiLocale === 'en' ? 'Country' : 'País'}
+                  </label>
+                  <select
+                    value={countryCode}
+                    onChange={(e) => handleCountryChange(e.target.value)}
+                    className="w-full px-3.5 py-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-[15px] md:text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-all appearance-none cursor-pointer"
+                  >
+                    {COUNTRY_CONFIG_LIST.map((c) => (
+                      <option key={c.code} value={c.code} className="bg-[#0a0a0a] text-white">
+                        {c.flag} {c.name} — {c.currency}
+                      </option>
+                    ))}
+                  </select>
+                  {COUNTRY_CONFIGS[countryCode] && (
+                    <p className="text-[11px] text-gray-600 mt-1.5 ml-1">
+                      {COUNTRY_CONFIGS[countryCode].flag} {COUNTRY_CONFIGS[countryCode].currency} · +{COUNTRY_CONFIGS[countryCode].phonePrefix} · {formatTimezone(COUNTRY_CONFIGS[countryCode].timezone)}
+                    </p>
+                  )}</div>
 
                 <button
                   type="submit"

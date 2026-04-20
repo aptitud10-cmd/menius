@@ -16,6 +16,7 @@ export const createRestaurantSchema = z.object({
     .refine(v => !/@/.test(v), { message: 'Ingresa el nombre del restaurante, no un email' }),
   slug: z.string().min(2, 'Mínimo 2 caracteres')
     .regex(/^[a-z0-9-]+$/, 'Solo letras minúsculas, números y guiones'),
+  country_code: z.string().min(2).max(2).transform(v => v.toUpperCase()).default('MX'),
   timezone: z.string().default('America/Mexico_City'),
   currency: z.string().default('MXN'),
   locale: z.enum(['es', 'en']).default('es'),

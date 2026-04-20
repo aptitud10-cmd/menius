@@ -1,6 +1,6 @@
 'use client';
 
-import PhoneInput from 'react-phone-number-input';
+import PhoneInput, { type Country } from 'react-phone-number-input';
 import flags from 'react-phone-number-input/flags';
 import 'react-phone-number-input/style.css';
 
@@ -15,6 +15,8 @@ interface PhoneFieldProps {
   error?: boolean;
   valid?: boolean;
   id?: string;
+  /** ISO 3166-1 alpha-2 country code — sets the default flag and phone prefix */
+  country?: string;
 }
 
 export function PhoneField({
@@ -22,13 +24,16 @@ export function PhoneField({
   onChange,
   onBlur,
   label,
-  placeholder = '+1 555 123 4567',
+  placeholder,
   required,
   dark = true,
   error = false,
   valid = false,
   id,
+  country,
 }: PhoneFieldProps) {
+  const defaultCountry = (country?.toUpperCase() ?? 'US') as Country;
+  const resolvedPlaceholder = placeholder ?? (country ? undefined : '+1 555 123 4567');
   const baseInput = dark
     ? 'w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] text-base bg-white/[0.04] text-white focus:outline-none focus:ring-2 focus:ring-purple-500/30'
     : 'w-full px-4 py-3.5 rounded-2xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors bg-white';
@@ -52,11 +57,11 @@ export function PhoneField({
       )}
       <PhoneInput
         international
-        defaultCountry="US"
+        defaultCountry={defaultCountry}
         flags={flags}
         value={value}
         onChange={(v) => onChange(v ?? '')}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         className={`phone-field ${dark ? 'phone-field--dark' : 'phone-field--light'}`}
         numberInputProps={{ id, className: baseInput + errorInput + validInput, onBlur, autoComplete: 'tel' }}
       />
