@@ -176,11 +176,11 @@ export async function POST(request: NextRequest) {
               return null;
 
             } else {
-              // ── Flux Pro v1.1: text-to-image, 2 variations → pick best ─
-              const result = await falClient.subscribe('fal-ai/flux-pro/v1.1', {
+              // ── Flux Pro v1.1-ultra: improved architecture, fewer corner artifacts ─
+              const result = await falClient.subscribe('fal-ai/flux-pro/v1.1-ultra', {
                 input: {
                   prompt,
-                  image_size: 'square_hd',
+                  aspect_ratio: '1:1',
                   num_inference_steps: 40,
                   guidance_scale: 3.5,
                   num_images: 2,
