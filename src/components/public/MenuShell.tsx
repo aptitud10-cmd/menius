@@ -1491,7 +1491,7 @@ export function MenuShell({
                       else sectionRefs.current.delete(category.id);
                     }}
                   >
-                    <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-2 mb-4 pt-3">
                       {isPopular && <span className="text-lg leading-none">🔥</span>}
                       <h2 className="text-[17px] font-extrabold text-gray-900 tracking-tight">
                         {isPopular
