@@ -260,7 +260,7 @@ ${effectiveCuisineContext ? `PLATING IDENTITY: ${effectiveCuisineContext}` : ''}
 
 CAMERA: 50mm or 85mm prime lens, ${dofInstruction}, ISO 400 — authentic DSLR photograph with natural film grain.
 ANGLE: ${angleInstruction}.
-COMPOSITION: Square 1:1 frame. Subject positioned at the power point using the rule of thirds — slightly off-center, never dead-center. Subject fills 55-60% of the frame, leaving generous negative space that gives the image breathing room and a high-end editorial feel. SAFE ZONE: all food/drink within the central 80% — outer 10% may be cropped by UI.
+COMPOSITION: Square 1:1 frame. Subject CENTERED in the frame — plate/bowl/glass at the geometric center. Subject fills 60-65% of the frame. Negative space distributed evenly on all four sides. SAFE ZONE: all food/drink within the central 80% — outer 10% may be cropped by UI. DO NOT shift the subject left or right — center is mandatory.
 
 SURFACE & SETTING: ${surfaceInstruction}
 ${styleOverride ? styleOverride : ''}
