@@ -50,7 +50,7 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
           : cn('bg-white border-b', isScrolled ? 'border-gray-200 shadow-[0_1px_8px_rgba(0,0,0,0.08)]' : 'border-gray-200')
       )}
     >
-      <div className="relative flex items-center h-12 px-2">
+      <div className="relative flex items-center h-14 px-2">
         {/* Left: Back */}
         <div className="flex items-center flex-shrink-0">
           {backUrl && (
