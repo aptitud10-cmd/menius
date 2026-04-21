@@ -88,9 +88,9 @@ function ChatPanel({
   input: string;
   showQuick: boolean;
   quickQuestions: string[];
-  inputRef: React.RefObject<HTMLInputElement | null>;
-  messagesEndRef: React.RefObject<HTMLDivElement | null>;
-  lastAiMsgRef: React.RefObject<HTMLDivElement | null>;
+  inputRef: React.RefObject<HTMLInputElement>;
+  messagesEndRef: React.RefObject<HTMLDivElement>;
+  lastAiMsgRef: React.RefObject<HTMLDivElement>;
   onInput: (v: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onQuickSend: (q: string) => void;
@@ -165,7 +165,7 @@ function ChatPanel({
         {visibleMessages.map((msg, idx) => {
           const isLastAI = msg.role === 'assistant' && !visibleMessages.slice(idx + 1).some(m => m.role === 'assistant');
           return (
-            <div key={msg.id} ref={isLastAI ? (lastAiMsgRef as React.Ref<HTMLDivElement>) : undefined}>
+            <div key={msg.id} ref={isLastAI ? lastAiMsgRef : undefined}>
               <MessageItem msg={msg} />
             </div>
           );
@@ -458,7 +458,9 @@ export function AIChatWidget() {
 
   const sharedPanelProps = {
     messages, loading, input, showQuick, quickQuestions,
-    inputRef, messagesEndRef, lastAiMsgRef,
+    inputRef: inputRef as React.RefObject<HTMLInputElement>,
+    messagesEndRef: messagesEndRef as React.RefObject<HTMLDivElement>,
+    lastAiMsgRef: lastAiMsgRef as React.RefObject<HTMLDivElement>,
     onInput: setInput,
     onSubmit: handleSubmit,
     onQuickSend: sendMessage,
