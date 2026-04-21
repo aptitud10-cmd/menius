@@ -24,12 +24,13 @@ export async function GET() {
 
     // Single parallel fetch — avoids the extra sequential queries that getEffectivePlanId would add.
     const [restaurantRes, subRes] = await Promise.all([
-      db.from('restaurants').select('currency, commission_plan').eq('id', restaurantId).maybeSingle(),
+      db.from('restaurants').select('currency, commission_plan, country_code').eq('id', restaurantId).maybeSingle(),
       db.from('subscriptions').select('status, trial_end, plan_id').eq('restaurant_id', restaurantId).maybeSingle(),
     ]);
 
     const currency = (restaurantRes.data?.currency as string | null | undefined) ?? 'USD';
-    const isCommissionPlan = (restaurantRes.data as any)?.commission_plan === true;
+    const countryCode = (restaurantRes.data as { country_code?: string | null } | null)?.country_code ?? null;
+    const isCommissionPlan = (restaurantRes.data as { commission_plan?: boolean } | null)?.commission_plan === true;
 
     const sub = subRes.data;
     const now = new Date();
@@ -101,6 +102,7 @@ export async function GET() {
       isTrial: isTrialing,
       isCommissionPlan,
       currency,
+      countryCode,
       commissionBps,
       commissionRate,
       thisMonth: {

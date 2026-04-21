@@ -261,6 +261,148 @@ function formatCOP(amount: number): string {
   return amount.toLocaleString('es-CO');
 }
 
+function CommissionPlanBanner({ tp }: { tp: LandingT['pricing'] }) {
+  const [sales, setSales] = useState('');
+  const cp = tp.commissionPlan;
+  const numSales = parseFloat(sales.replace(/,/g, '')) || 0;
+  const commission = numSales * 0.04;
+  const showUpsell = numSales >= 975;
+
+  return (
+    <div className="mb-8 rounded-2xl border border-[#05c8a7]/20 bg-white/[0.03] p-6 md:p-7">
+      <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#05c8a7]/15 text-[#05c8a7] uppercase tracking-wider">
+              {cp.badge}
+            </span>
+          </div>
+          <h3 className="text-xl font-bold text-white mb-1.5">{cp.name}</h3>
+          <p className="text-sm text-gray-400 leading-relaxed mb-3">{cp.desc}</p>
+          <p className="text-xs text-[#05c8a7]/80">{cp.note}</p>
+          <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            {cp.features.map((f) => (
+              <li key={f} className="flex items-center gap-2 text-xs text-gray-400">
+                <svg className="w-3.5 h-3.5 text-[#05c8a7]/60 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                {f}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="md:w-64 flex-shrink-0 space-y-3">
+          <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-4">
+            <label className="block text-xs text-gray-400 mb-2">{cp.calcLabel}</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+              <input
+                type="number"
+                min="0"
+                placeholder={cp.calcPlaceholder}
+                value={sales}
+                onChange={(e) => setSales(e.target.value)}
+                className="w-full pl-7 pr-3 py-2 rounded-lg bg-white/[0.06] border border-white/[0.08] text-white text-sm placeholder-gray-600 focus:outline-none focus:border-[#05c8a7]/50"
+              />
+            </div>
+            {numSales > 0 && (
+              <div className="mt-3 space-y-1">
+                <p className="text-xs text-gray-300">
+                  <span className="font-semibold text-white">${commission.toFixed(0)}/mes</span> {cp.calcResult}
+                </p>
+                {showUpsell && (
+                  <p className="text-xs text-[#05c8a7]">
+                    ↑ {cp.calcUpsell}
+                  </p>
+                )}
+                {!showUpsell && (
+                  <p className="text-xs text-gray-500">{cp.breakeven}</p>
+                )}
+              </div>
+            )}
+          </div>
+          <Link
+            href="/signup?plan=commission"
+            className="block text-center py-3 rounded-xl bg-white/[0.06] text-gray-300 border border-white/[0.10] hover:text-white hover:bg-white/[0.1] hover:border-white/[0.18] text-sm font-semibold transition-all duration-150 active:scale-[0.97]"
+          >
+            {cp.cta}
+          </Link>
+          <p className="text-[10px] text-gray-600 text-center leading-relaxed">{cp.notColombia}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type ColKey = 'free' | 'commission' | 'starter' | 'pro' | 'business';
+
+function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boolean }) {
+  const pc = t.pricing.planComparison;
+  const colKeys: ColKey[] = isColombia
+    ? ['free', 'starter', 'pro', 'business']
+    : ['free', 'commission', 'starter', 'pro', 'business'];
+  const colLabels = colKeys.map((k) => ({
+    free: pc.colFree, commission: pc.colCommission, starter: pc.colStarter, pro: pc.colPro, business: pc.colBusiness,
+  }[k]));
+
+  const isCheck = (v: string) => v === '✓';
+  const isDash = (v: string) => v === '—';
+  const starterIdx = isColombia ? 1 : 2;
+
+  return (
+    <div className="d-fade-up">
+      <div className="text-center mb-8">
+        <p className="text-sm text-blue-400 uppercase tracking-[0.2em] font-medium mb-3">{pc.sectionLabel}</p>
+        <h3 className="font-display text-2xl md:text-3xl font-bold text-white tracking-tight">{pc.sectionTitle}</h3>
+        <p className="text-gray-400 mt-2 text-sm">{pc.sectionDesc}</p>
+      </div>
+
+      {/* Mobile: horizontal scroll */}
+      <div className="overflow-x-auto -mx-2 px-2">
+        <div className="min-w-[580px] rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02]">
+          {/* Header */}
+          <div className={`grid`} style={{ gridTemplateColumns: `1fr repeat(${colKeys.length}, minmax(80px, 1fr))` }}>
+            <div className="p-4 border-b border-white/[0.06]" />
+            {colLabels.map((label, i) => (
+              <div
+                key={colKeys[i]}
+                className={`p-4 text-center border-b border-white/[0.06] ${i === starterIdx ? 'bg-[#05c8a7]/[0.06]' : ''}`}
+              >
+                <span className={`text-xs font-semibold ${i === starterIdx ? 'text-[#05c8a7]' : 'text-gray-400'}`}>{label}</span>
+              </div>
+            ))}
+          </div>
+
+          {pc.rows.map((row, ri) => (
+            <div
+              key={row.feature}
+              className={`grid ${ri < pc.rows.length - 1 ? 'border-b border-white/[0.04]' : ''}`}
+              style={{ gridTemplateColumns: `1fr repeat(${colKeys.length}, minmax(80px, 1fr))` }}
+            >
+              <div className="px-5 py-3">
+                <p className="text-xs text-gray-400">{row.feature}</p>
+              </div>
+              {colKeys.map((key, ci) => {
+                const val = row[key];
+                return (
+                  <div key={key} className={`px-3 py-3 text-center ${ci === starterIdx ? 'bg-[#05c8a7]/[0.03]' : ''}`}>
+                    {isCheck(val) ? (
+                      <svg className="w-4 h-4 text-[#05c8a7] mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    ) : isDash(val) ? (
+                      <span className="text-gray-700 text-sm">—</span>
+                    ) : (
+                      <span className="text-xs text-gray-300 font-medium">{val}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean }) {
   const [annual, setAnnual] = useState(false);
   const tp = t.pricing;
@@ -301,6 +443,10 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
       </div>
 
       <div className="d-scale-in d-delay-2">
+        {!isColombia && (
+          <CommissionPlanBanner tp={tp} />
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {tp.plans.map((plan, idx) => {
             const isPopular = idx === 1;
@@ -700,6 +846,9 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
         <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-[#05c8a7]/15 blur-[100px] pointer-events-none" />
         <div className="relative z-10 max-w-5xl mx-auto px-6">
           <PricingSection t={t} isColombia={isColombia} />
+          <div className="mt-16">
+            <PlanComparisonTable t={t} isColombia={isColombia} />
+          </div>
         </div>
       </section>
 
