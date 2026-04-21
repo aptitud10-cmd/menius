@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { UUID_RE } from '@/lib/constants';
+import { log } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
     const { data: order, error } = await db
       .from('orders')
       .select(`
-        id, order_number, status, order_type, total, subtotal, tax_amount, tip_amount,
+        id, order_number, status, order_type, total, tax_amount, tip_amount,
         delivery_fee, discount_amount, payment_method, notes, created_at, updated_at,
         customer_name, customer_phone, customer_email, delivery_address,
         estimated_ready_minutes,
@@ -48,7 +49,11 @@ export async function GET(req: NextRequest) {
       .eq('restaurant_id', restaurantId)
       .maybeSingle();
 
-    if (error || !order) {
+    if (error) {
+      log.error('[order-track] DB query failed', { orderNumber, restaurantId, error: error.message });
+      return NextResponse.json({ error: 'not_found' }, { status: 404 });
+    }
+    if (!order) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
 
