@@ -665,6 +665,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   }, [saveLastOrder, rememberMe, saveCustomer, customerName, customerPhone, customerEmail, deliveryAddress, paymentMethod, restaurant, orderNumber, orderType, items, cartTotal, displayTotal, clearCart, confettiTimer]);
 
   const isColombianRestaurant = restaurant.currency?.toUpperCase() === 'COP';
+  // MP only operates in LatAm — exclude USD/EUR/GBP etc.
+  const MP_CURRENCIES = new Set(['ARS', 'BRL', 'MXN', 'CLP', 'PEN', 'UYU', 'BOB', 'PYG', 'COP']);
+  const isMpSupportedCurrency = MP_CURRENCIES.has(restaurant.currency?.toUpperCase() ?? '');
 
   const handlePayOnline = async () => {
     if (isColombianRestaurant) {
@@ -1209,8 +1212,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </button>
             )}
 
-            {/* MercadoPago button — shown when restaurant has MP enabled and not COP (Wompi handles COP) */}
-            {paymentMethod === 'online' && orderId && !restaurant.id.startsWith('demo') && restaurant.mp_enabled && !isColombianRestaurant && (
+            {/* MercadoPago button — LatAm currencies only; COP goes through Wompi */}
+            {paymentMethod === 'online' && orderId && !restaurant.id.startsWith('demo') && restaurant.mp_enabled && isMpSupportedCurrency && !isColombianRestaurant && (
               <button
                 onClick={handlePayMercadoPago}
                 disabled={payLoading}
