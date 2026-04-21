@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (!restaurant) {
+      logger.error('Restaurant not found after adminDb query', { restaurant_id, restaurant_id_type: typeof restaurant_id });
       return NextResponse.json({ error: bodyEn ? 'Restaurant not found' : 'Restaurante no encontrado' }, { status: 404 });
     }
 
