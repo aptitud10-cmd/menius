@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenant } from '@/lib/auth/get-tenant';
 
 export async function GET() {
@@ -85,35 +86,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Tipo de transacción inválido' }, { status: 400 });
     }
 
-    const supabase = createClient();
-    const { data: account, error: accountErr } = await supabase
-      .from('loyalty_accounts')
-      .select('points, lifetime_points')
-      .eq('id', account_id)
-      .eq('restaurant_id', rid)
-      .maybeSingle();
+    const adminDb = createAdminClient();
+    const { data, error: rpcErr } = await adminDb.rpc('adjust_loyalty_points', {
+      p_account_id: account_id,
+      p_restaurant_id: rid,
+      p_points: Number(points),
+      p_type: type,
+      p_description: description || null,
+    });
 
-    if (accountErr) return NextResponse.json({ error: accountErr.message }, { status: 500 });
-    if (!account) return NextResponse.json({ error: 'Cuenta no encontrada' }, { status: 404 });
+    if (rpcErr) {
+      if (rpcErr.message?.includes('loyalty_account_not_found')) {
+        return NextResponse.json({ error: 'Cuenta no encontrada' }, { status: 404 });
+      }
+      return NextResponse.json({ error: rpcErr.message }, { status: 500 });
+    }
 
-    const newPoints = Math.max(0, account.points + Number(points));
-    const newLifetime = account.lifetime_points + (Number(points) > 0 ? Number(points) : 0);
-
-    const [updateRes, insertRes] = await Promise.all([
-      supabase.from('loyalty_accounts').update({ points: newPoints, lifetime_points: newLifetime }).eq('id', account_id),
-      supabase.from('loyalty_transactions').insert({
-        restaurant_id: rid,
-        account_id,
-        type,
-        points: Number(points),
-        description: description || undefined,
-      }),
-    ]);
-
-    if (updateRes.error) return NextResponse.json({ error: updateRes.error.message }, { status: 500 });
-    if (insertRes.error) return NextResponse.json({ error: insertRes.error.message }, { status: 500 });
-
-    return NextResponse.json({ success: true, new_balance: newPoints });
+    const newBalance = (data as { new_balance: number }[] | null)?.[0]?.new_balance ?? 0;
+    return NextResponse.json({ success: true, new_balance: newBalance });
   } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
