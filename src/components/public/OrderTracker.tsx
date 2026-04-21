@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import Image from 'next/image';
-import { CheckCircle2, Check, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, Wifi, Utensils, ShoppingBag, Truck, CreditCard, Banknote, MapPin, Phone, DoorOpen } from 'lucide-react';
+import { CheckCircle2, Check, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, Wifi, Utensils, ShoppingBag, Truck, CreditCard, Banknote, MapPin, Phone, DoorOpen, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -162,6 +162,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // Updated without HTTP refetch so the map marker moves in real-time.
   const [liveDriverCoords, setLiveDriverCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [liveDeliveryEta, setLiveDeliveryEta] = useState<number | null>(null);
+  const [chefMessageIndex, setChefMessageIndex] = useState(0);
 
   const hasInitialOrder = !!initialOrder;
 
@@ -230,6 +231,13 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [order?.id, order?.status, fetchOrder]);
 
+  // Rotate chef messages every 6s while pickup order is being prepared
+  useEffect(() => {
+    if (order?.order_type !== 'pickup' || !['confirmed', 'preparing'].includes(order?.status)) return;
+    const interval = setInterval(() => setChefMessageIndex(i => (i + 1) % 3), 6000);
+    return () => clearInterval(interval);
+  }, [order?.order_type, order?.status]);
+
   useEffect(() => {
     if (!order?.id) return;
 
@@ -241,14 +249,14 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         // are always up-to-date rather than relying on the partial payload.
         fetchOrder();
       })
-      .on('broadcast', { event: 'location_update' }, ({ payload }) => {
+      .on('broadcast', { event: 'location_update' }, ({ payload }: { payload: Record<string, unknown> }) => {
         // Move the map marker directly from the broadcast payload.
         // No HTTP refetch needed — coords arrive in the payload itself.
         if (typeof payload?.lat === 'number' && typeof payload?.lng === 'number') {
           setLiveDriverCoords({ lat: payload.lat, lng: payload.lng });
         }
       })
-      .subscribe((status) => {
+      .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
           setRtStatus('connected');
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
@@ -379,34 +387,68 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
       {/* Sticky nav bar */}
       <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href={`/${restaurantSlug}`} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors active:scale-95">
+        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <Link href={`/${restaurantSlug}`} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors active:scale-95 flex-shrink-0">
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </Link>
-            <div>
-              <h1 className="text-sm font-bold font-heading leading-tight">{restaurantName}</h1>
-              <p className="text-[11px] text-gray-400">{t.en ? 'Order' : 'Pedido'} #{order.order_number}</p>
+            <div className="min-w-0">
+              {/* Order type pill */}
+              <span className={cn(
+                'inline-flex items-center text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mb-1',
+                order.order_type === 'delivery' ? 'bg-violet-100 text-violet-600' :
+                order.order_type === 'pickup'   ? 'bg-orange-100 text-orange-600' :
+                'bg-teal-100 text-teal-600'
+              )}>
+                {order.order_type === 'delivery' ? (t.en ? 'Delivery' : 'Delivery') :
+                 order.order_type === 'pickup'   ? (t.en ? 'Pickup' : 'Para recoger') :
+                 (t.en ? 'Dine-in' : 'En mesa')}
+              </span>
+              {/* Restaurant name — bold and large */}
+              <h1 className="text-base font-black font-heading tracking-tight text-gray-900 leading-tight truncate">{restaurantName}</h1>
+              {/* Address + phone inline */}
+              {(restaurantAddress || restaurantPhone) && (
+                <p className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5 truncate">
+                  {restaurantAddress && (
+                    <><MapPin className="w-3 h-3 flex-shrink-0" /><span className="truncate">{restaurantAddress}</span></>
+                  )}
+                  {restaurantAddress && restaurantPhone && <span className="text-gray-300">·</span>}
+                  {restaurantPhone && (
+                    <><Phone className="w-3 h-3 flex-shrink-0" /><span>{restaurantPhone}</span></>
+                  )}
+                </p>
+              )}
+              <p className="text-[10px] text-gray-400 mt-0.5">{t.en ? 'Order' : 'Pedido'} #{order.order_number}</p>
             </div>
           </div>
-          {rtStatus === 'connected' ? (
-            <div className="flex items-center gap-1 text-[10px] text-[#047a65] font-semibold bg-[#e6faf7] px-2.5 py-1 rounded-full border border-[#b3efe6]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#05c8a7] animate-pulse" />
-              {t.live}
-            </div>
-          ) : rtStatus === 'reconnecting' ? (
-            <div className="flex items-center gap-1 text-[10px] text-amber-600 font-semibold bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
-              <Wifi className="w-3 h-3 animate-pulse" />
-              {t.en ? 'Connecting…' : 'Conectando…'}
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 text-[10px] text-red-500 font-semibold bg-red-50 px-2.5 py-1 rounded-full border border-red-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-              {t.en ? 'Offline' : 'Sin conexión'}
-            </div>
-          )}
+          <div className="flex-shrink-0">
+            {rtStatus === 'connected' ? (
+              <div className="flex items-center gap-1 text-[10px] text-[#047a65] font-semibold bg-[#e6faf7] px-2.5 py-1 rounded-full border border-[#b3efe6]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#05c8a7] animate-pulse" />
+                {t.live}
+              </div>
+            ) : rtStatus === 'reconnecting' ? (
+              <div className="flex items-center gap-1 text-[10px] text-amber-600 font-semibold bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
+                <Wifi className="w-3 h-3 animate-pulse" />
+                {t.en ? 'Connecting…' : 'Conectando…'}
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-[10px] text-red-500 font-semibold bg-red-50 px-2.5 py-1 rounded-full border border-red-100">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                {t.en ? 'Offline' : 'Sin conexión'}
+              </div>
+            )}
+          </div>
         </div>
       </header>
+
+      {/* MENIUS branding banner */}
+      <div className="bg-gray-50 border-b border-gray-100 py-1.5 px-4 flex items-center justify-center gap-1.5">
+        <Zap className="w-3 h-3 text-[#05c8a7]" />
+        <span className="text-[11px] text-gray-400 font-medium">Powered by <strong className="text-gray-500">MENIUS</strong></span>
+        <span className="text-gray-300 text-[11px]">·</span>
+        <span className="text-[11px] text-gray-400">menius.app</span>
+      </div>
 
       <div className="max-w-lg mx-auto px-4 py-5 space-y-3">
 
@@ -429,6 +471,61 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
+          </div>
+        )}
+
+        {/* ── PICKUP READY BLOCK ── */}
+        {order.order_type === 'pickup' && order.status === 'ready' && (
+          <div className="tracker-card bg-gradient-to-br from-emerald-50 to-green-50 border-2 border-emerald-200 rounded-3xl overflow-hidden">
+            <div className="px-6 pt-7 pb-5 text-center">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                <ShoppingBag className="w-8 h-8 text-emerald-600" />
+              </div>
+              <h2 className="text-2xl font-black text-emerald-700 mb-1">
+                {t.en ? 'Your order is READY!' : '¡Tu pedido está LISTO!'}
+              </h2>
+              <p className="text-sm text-emerald-600 mb-5">
+                {t.en ? 'Head to the restaurant to pick it up' : 'Dirígete al restaurante a recogerlo'}
+              </p>
+              {(restaurantAddress || restaurantPhone) && (
+                <div className="bg-white/70 rounded-2xl px-4 py-3 space-y-2.5 text-left mb-4">
+                  {restaurantAddress && (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm text-emerald-800 font-medium">{restaurantAddress}</span>
+                    </div>
+                  )}
+                  {restaurantPhone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                      <span className="text-sm text-emerald-800 font-medium">{restaurantPhone}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="flex gap-2 justify-center flex-wrap">
+                {restaurantAddress && (
+                  <a
+                    href={`https://maps.google.com/?q=${encodeURIComponent(restaurantAddress)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 rounded-full bg-emerald-500 text-white text-xs font-bold px-4 py-2 hover:bg-emerald-600 active:scale-95 transition-all"
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    {t.en ? 'Open in Maps' : 'Ver en Maps'}
+                  </a>
+                )}
+                {restaurantPhone && (
+                  <a
+                    href={`tel:${restaurantPhone}`}
+                    className="flex items-center gap-1.5 rounded-full bg-white border-2 border-emerald-300 text-emerald-700 text-xs font-bold px-4 py-2 hover:bg-emerald-50 active:scale-95 transition-all"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    {t.en ? 'Call' : 'Llamar'}
+                  </a>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -623,6 +720,38 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             </div>
           );
         })()}
+
+        {/* ── DINE-IN TABLE CONTEXT CARD ── */}
+        {order.order_type === 'dine_in' && !isCancelled && (order as any).table_name && (
+          <div className="tracker-card bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-100 rounded-3xl px-6 py-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-violet-100 flex items-center justify-center flex-shrink-0">
+                <Utensils className="w-7 h-7 text-violet-600" />
+              </div>
+              <div>
+                <p className="text-[11px] font-bold text-violet-400 uppercase tracking-widest mb-0.5">
+                  {t.en ? 'Your table' : 'Tu mesa'}
+                </p>
+                <p className="text-3xl font-black text-violet-700 leading-tight">{(order as any).table_name}</p>
+                <p className="text-sm text-violet-500 mt-1">
+                  {t.en ? 'Your food will be brought to you' : 'Tu pedido será llevado a tu mesa'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── PICKUP CHEF MESSAGES (while preparing) ── */}
+        {order.order_type === 'pickup' && ['confirmed', 'preparing'].includes(order.status) && (
+          <div key={chefMessageIndex} className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm px-5 py-4 transition-opacity duration-500">
+            <p className="text-sm font-semibold text-gray-600 text-center">
+              {(t.en
+                ? ['Chef is preparing your order with care 🍳', 'Almost there — your meal is coming together', 'Hang tight, your order is in good hands']
+                : ['El chef está preparando tu pedido con cariño 🍳', 'Ya casi — tu platillo está tomando forma', 'Tranquilo, tu pedido está en buenas manos']
+              )[chefMessageIndex]}
+            </p>
+          </div>
+        )}
 
         {/* ── DRIVER CARD + STATUS BANNERS (delivery only) ── */}
         {order.order_type === 'delivery' && order.status === 'ready' && (
@@ -952,6 +1081,17 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {/* CFDI invoice */}
         {isComplete && currency === 'MXN' && (
           <CfdiButton orderId={order.id} restaurantId={restaurantId} t={t} />
+        )}
+
+        {/* ── DINE-IN: ADD MORE ITEMS ── */}
+        {order.order_type === 'dine_in' && !isCancelled && !isComplete && (
+          <Link
+            href={`/${restaurantSlug}`}
+            className="tracker-card flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-[#05c8a7] text-white font-bold text-sm hover:bg-[#04b096] active:scale-[0.98] transition-all shadow-lg shadow-[#05c8a7]/20"
+          >
+            <Utensils className="w-4 h-4" />
+            {t.en ? 'Add more items →' : 'Agregar más productos →'}
+          </Link>
         )}
 
         {/* ── CTA BUTTONS ── */}
