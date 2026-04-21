@@ -116,9 +116,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ received: true });
-  } catch (err: any) {
+  } catch (err) {
     captureError(err, { route: '/api/payments/wompi-webhook' });
-    logger.error('Webhook processing failed', { error: err?.message });
+    logger.error('Webhook processing failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }

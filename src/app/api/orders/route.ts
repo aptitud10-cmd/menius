@@ -80,9 +80,9 @@ export async function POST(request: NextRequest) {
     const promo_code = sanitizeText(body.promo_code, 50);
     const discount_amount = body.discount_amount;
     const loyalty_points_redeemed = Number(body.loyalty_points_redeemed) || 0;
-    const UUID_RE_LOCAL = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const loyalty_account_id =
-      typeof body.loyalty_account_id === 'string' && UUID_RE_LOCAL.test(body.loyalty_account_id)
+      typeof body.loyalty_account_id === 'string' && UUID_RE.test(body.loyalty_account_id)
         ? body.loyalty_account_id
         : null;
     const order_type = sanitizeText(body.order_type, 20);
@@ -90,7 +90,6 @@ export async function POST(request: NextRequest) {
     const delivery_address = sanitizeMultiline(body.delivery_address, 300);
     const table_name = sanitizeText(body.table_name, 50);
 
-    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!restaurant_id || (!String(restaurant_id).startsWith('demo') && !UUID_RE.test(String(restaurant_id)))) {
       return NextResponse.json({ error: 'Invalid restaurant_id' }, { status: 400 });
     }
@@ -860,15 +859,8 @@ export async function POST(request: NextRequest) {
 
     // Send notifications — awaited so Vercel doesn't freeze the process before emails are sent
     try {
-      const notifProductIds = parsed.data.items.map((i) => i.product_id);
-      const { data: products } = await adminDb
-        .from('products')
-        .select('id, name')
-        .in('id', notifProductIds);
-
-      const productNameMap = new Map((products ?? []).map((p) => [p.id, p.name]));
       const notifItems = parsed.data.items.map((i) => ({
-        name: productNameMap.get(i.product_id) ?? 'Producto',
+        name: productMap.get(i.product_id)?.name ?? 'Producto',
         qty: i.qty,
         price: i.line_total,
       }));

@@ -155,41 +155,8 @@ export async function GET(request: NextRequest) {
     // PLATFORM → RESTAURANT OWNER automations (MENIUS marketing)
     // ═══════════════════════════════════════════════════════════
 
-    // 4. Trial expiring: restaurants with trial ending in 3 days or less
-    const threeDaysFromNow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
-    const now = new Date().toISOString();
-    const { data: trialRestaurants } = await supabase
-      .from('subscriptions')
-      .select('restaurant_id, trial_end')
-      .eq('status', 'trialing')
-      .lte('trial_end', threeDaysFromNow)
-      .gte('trial_end', now)
-      .limit(50);
-
-    for (const sub of trialRestaurants ?? []) {
-      const { data: restaurant } = await supabase
-        .from('restaurants')
-        .select('name, notification_email, owner_user_id, locale')
-        .eq('id', sub.restaurant_id)
-        .maybeSingle();
-
-      if (!restaurant?.notification_email) continue;
-
-      const en = restaurant.locale === 'en';
-      const daysLeft = Math.ceil((new Date(sub.trial_end!).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-      const dashUrl = `${appUrl}/app/billing`;
-
-      const sent = await sendEmail({
-        to: restaurant.notification_email,
-        subject: en
-          ? `⏰ Your MENIUS trial ends in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}`
-          : `⏰ Tu prueba de MENIUS termina en ${daysLeft} día${daysLeft !== 1 ? 's' : ''}`,
-        html: buildTrialExpiringEmail(restaurant.name, daysLeft, dashUrl, en),
-      });
-
-      if (sent) results.platform_trial++;
-      else results.errors++;
-    }
+    // 4. Trial expiring — handled by dedicated cron at /api/cron/trial-ending-reminders
+    // (removed to avoid duplicate emails to the same restaurant on the same day)
 
     // 5. Setup incomplete: restaurants created 2+ days ago with no products
     const twoDaysAgoSetup = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
