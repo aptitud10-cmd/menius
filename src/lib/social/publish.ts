@@ -242,14 +242,53 @@ async function publishToLinkedIn(
   }
 }
 
+/* ─── n8n Webhook dispatcher ─────────────────────────────────────────────── */
+async function publishViaN8n(
+  platform: string,
+  text: string,
+  imageUrl: string | null,
+  postDbId: string | null,
+): Promise<PublishResult> {
+  const webhookUrl = process.env.N8N_WEBHOOK_URL?.trim();
+  if (!webhookUrl) {
+    return { platform, success: false, skipped: true, error: 'N8N_WEBHOOK_URL not configured' };
+  }
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ platform, text, image_url: imageUrl, post_db_id: postDbId }),
+    });
+
+    if (!res.ok) {
+      const msg = `n8n webhook HTTP ${res.status}`;
+      logger.error('n8n webhook failed', { platform, error: msg });
+      return { platform, success: false, error: msg };
+    }
+
+    logger.info('n8n webhook accepted', { platform });
+    return { platform, success: true };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.error('n8n webhook error', { platform, error: msg });
+    return { platform, success: false, error: msg };
+  }
+}
+
 /* ─── Dispatcher ─────────────────────────────────────────────────────────── */
 export async function publishPost(
   platform: string,
   caption: string,
   hashtags: string,
   imageUrl: string | null,
+  postDbId?: string | null,
 ): Promise<PublishResult> {
   const text = [caption, hashtags].filter(Boolean).join('\n\n');
+
+  if (process.env.N8N_WEBHOOK_URL?.trim()) {
+    return publishViaN8n(platform, text, imageUrl, postDbId ?? null);
+  }
 
   switch (platform) {
     case 'facebook':  return publishToFacebook(text, imageUrl);

@@ -320,8 +320,9 @@ async function generatePost(
         parsed.caption ?? '',
         parsed.hashtags ?? '',
         imageUrl,
+        dbId,
       );
-      if (dbId) {
+      if (dbId && !process.env.N8N_WEBHOOK_URL?.trim()) {
         await updatePostPublishResult(dbId, result.success, result.postId);
       }
       if (!result.success && !result.skipped) {
