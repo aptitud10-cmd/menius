@@ -45,6 +45,7 @@ export async function createRestaurant(data: CreateRestaurantInput) {
     p_currency: data.currency,
     p_locale: locale,
     p_plan_id: 'starter',
+    p_notification_email: user.email ?? null,
   });
 
   if (error) {
@@ -66,20 +67,6 @@ export async function createRestaurant(data: CreateRestaurantInput) {
       logger.error('Failed to set country_code on new restaurant', {
         restaurantId: restaurant.id,
         error: countryUpdateError.message,
-      });
-    }
-  }
-
-  // Set owner's email as default notification_email so they receive order alerts immediately
-  if (user.email) {
-    const { error: emailUpdateError } = await supabase
-      .from('restaurants')
-      .update({ notification_email: user.email, notifications_enabled: true })
-      .eq('id', restaurant.id);
-    if (emailUpdateError) {
-      logger.error('Failed to set notification_email on new restaurant — owner will not receive order alerts', {
-        restaurantId: restaurant.id,
-        error: emailUpdateError.message,
       });
     }
   }

@@ -66,6 +66,20 @@ export async function POST(request: NextRequest) {
 
       const adminDb = createAdminClient();
 
+      // Atomic idempotency guard — ON CONFLICT is a no-op if already processed.
+      // Returns null data when the row already existed, so we skip re-processing.
+      const eventId = `wompi:${transaction.id}`;
+      const { data: inserted } = await adminDb
+        .from('processed_webhook_events')
+        .insert({ event_id: eventId, event_type: event })
+        .select('id')
+        .maybeSingle();
+
+      if (!inserted) {
+        logger.info('Duplicate Wompi webhook — skipping', { eventId });
+        return NextResponse.json({ received: true });
+      }
+
       const { data: order } = await adminDb
         .from('orders')
         .select('id, payment_status')
@@ -78,7 +92,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (order.payment_status === 'paid') {
-        return NextResponse.json({ received: true }); // idempotent
+        return NextResponse.json({ received: true });
       }
 
       const { error } = await adminDb

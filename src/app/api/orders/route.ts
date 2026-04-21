@@ -488,6 +488,33 @@ export async function POST(request: NextRequest) {
       orderInsert.loyalty_points_redeemed = validatedLoyaltyPoints;
     }
 
+    // Reject free-tier online payments BEFORE inserting the order to avoid ghost records.
+    if (parsed.data.payment_method === 'online' && isFreeTier) {
+      return NextResponse.json(
+        { error: en
+            ? 'Online payment requires a paid plan. Please pay in person or ask the restaurant to upgrade.'
+            : 'Los pagos en línea requieren un plan de pago. Paga en persona o pide al restaurante que actualice su plan.' },
+        { status: 403 }
+      );
+    }
+
+    // Atomically increment promo usage BEFORE inserting the order.
+    // The RPC re-checks max_uses with a row-level lock so concurrent orders can't both pass.
+    if (promo_code && discountAmt > 0) {
+      const { data: promoOk } = await adminDb.rpc('increment_promo_usage', {
+        p_code: promo_code.toUpperCase().trim(),
+        p_restaurant_id: restaurant_id,
+      });
+      if (!promoOk) {
+        return NextResponse.json(
+          { error: en
+              ? 'This promo code is no longer valid or has reached its usage limit.'
+              : 'Este código promocional ya no es válido o alcanzó su límite de usos.' },
+          { status: 400 }
+        );
+      }
+    }
+
     const { data: order, error: orderError } = await adminDb
       .from('orders')
       .insert(orderInsert)
@@ -641,14 +668,6 @@ export async function POST(request: NextRequest) {
           { error: en ? 'Error saving order details. Please try again.' : 'Error guardando detalles del pedido. Intenta de nuevo.' },
           { status: 500 }
         );
-      }
-    }
-
-    if (promo_code) {
-      try {
-        await supabase.rpc('increment_promo_usage', { p_code: promo_code.toUpperCase().trim(), p_restaurant_id: restaurant_id });
-      } catch (err) {
-        logger.error('increment_promo_usage failed', { error: err instanceof Error ? err.message : String(err) });
       }
     }
 
