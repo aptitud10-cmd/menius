@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { getLandingT, type LandingLocale, type LandingT } from '@/lib/landing-translations';
 import { PLANS } from '@/lib/plans';
-import { SavingsCalculator as InteractiveSavingsCalculator } from './SavingsCalculator';
 
 /* ─── STATIC DATA ─── */
 
@@ -264,13 +263,15 @@ function formatCOP(amount: number): string {
 function CommissionPlanBanner({ tp }: { tp: LandingT['pricing'] }) {
   const [sales, setSales] = useState('');
   const cp = tp.commissionPlan;
-  const numSales = parseFloat(sales.replace(/,/g, '')) || 0;
+  const numSales = parseFloat(sales.replace(/[^0-9.]/g, '')) || 0;
   const commission = numSales * 0.04;
+  const otherPlatforms = numSales * 0.25;
   const showUpsell = numSales >= 975;
 
   return (
-    <div className="mb-8 rounded-2xl border border-[#05c8a7]/20 bg-white/[0.03] p-6 md:p-7">
-      <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
+    <div className="mb-8 rounded-2xl border border-[#05c8a7]/20 bg-white/[0.03] p-6 md:p-8">
+      <div className="flex flex-col md:flex-row gap-8 md:gap-12">
+        {/* Left: info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#05c8a7]/15 text-[#05c8a7] uppercase tracking-wider">
@@ -290,34 +291,38 @@ function CommissionPlanBanner({ tp }: { tp: LandingT['pricing'] }) {
           </ul>
         </div>
 
-        <div className="md:w-64 flex-shrink-0 space-y-3">
-          <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-4">
-            <label className="block text-xs text-gray-400 mb-2">{cp.calcLabel}</label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-              <input
-                type="number"
-                min="0"
-                placeholder={cp.calcPlaceholder}
-                value={sales}
-                onChange={(e) => setSales(e.target.value)}
-                className="w-full pl-7 pr-3 py-2 rounded-lg bg-white/[0.06] border border-white/[0.08] text-white text-sm placeholder-gray-600 focus:outline-none focus:border-[#05c8a7]/50"
-              />
-            </div>
-            {numSales > 0 && (
-              <div className="mt-3 space-y-1">
-                <p className="text-xs text-gray-300">
-                  <span className="font-semibold text-white">${commission.toFixed(0)}/mes</span> {cp.calcResult}
-                </p>
-                {showUpsell && (
-                  <p className="text-xs text-[#05c8a7]">
-                    ↑ {cp.calcUpsell}
-                  </p>
-                )}
-                {!showUpsell && (
-                  <p className="text-xs text-gray-500">{cp.breakeven}</p>
-                )}
+        {/* Right: calculator */}
+        <div className="md:w-72 flex-shrink-0 flex flex-col gap-4">
+          <div className="rounded-2xl bg-white/[0.05] border border-white/[0.08] p-5">
+            <p className="text-xs text-gray-400 font-medium mb-3">{cp.calcLabel}</p>
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder={cp.calcPlaceholder}
+              value={sales}
+              onChange={(e) => setSales(e.target.value.replace(/[^0-9.]/g, ''))}
+              className="w-full px-4 py-3 rounded-xl bg-white/[0.08] border border-white/[0.10] text-white text-2xl font-bold placeholder-gray-700 focus:outline-none focus:border-[#05c8a7]/50 transition-colors"
+            />
+            {numSales > 0 ? (
+              <div className="mt-4 space-y-2">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-xs text-gray-500">MENIUS (4%)</span>
+                  <span className="text-lg font-bold text-[#05c8a7]">${commission.toFixed(0)}/mes</span>
+                </div>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-xs text-gray-500">{cp.calcComparison.replace('vs ~25% ', '').replace('vs ~25% ', '')}</span>
+                  <span className="text-lg font-bold text-red-400 line-through opacity-70">${otherPlatforms.toFixed(0)}/mes</span>
+                </div>
+                <div className="border-t border-white/[0.06] pt-2 mt-1">
+                  {showUpsell ? (
+                    <p className="text-xs text-[#05c8a7]">↑ {cp.calcUpsell}</p>
+                  ) : (
+                    <p className="text-xs text-gray-600">{cp.breakeven}</p>
+                  )}
+                </div>
               </div>
+            ) : (
+              <p className="mt-3 text-xs text-gray-600">{cp.breakeven}</p>
             )}
           </div>
           <Link
@@ -367,7 +372,7 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
                 key={colKeys[i]}
                 className={`p-4 text-center border-b border-white/[0.06] ${i === starterIdx ? 'bg-[#05c8a7]/[0.06]' : ''}`}
               >
-                <span className={`text-xs font-semibold ${i === starterIdx ? 'text-[#05c8a7]' : 'text-gray-400'}`}>{label}</span>
+                <span className={`text-sm font-semibold ${i === starterIdx ? 'text-[#05c8a7]' : 'text-gray-300'}`}>{label}</span>
               </div>
             ))}
           </div>
@@ -379,7 +384,7 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
               style={{ gridTemplateColumns: `1fr repeat(${colKeys.length}, minmax(80px, 1fr))` }}
             >
               <div className="px-5 py-3">
-                <p className="text-xs text-gray-400">{row.feature}</p>
+                <p className="text-sm text-gray-400">{row.feature}</p>
               </div>
               {colKeys.map((key, ci) => {
                 const val = row[key];
@@ -388,9 +393,9 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
                     {isCheck(val) ? (
                       <svg className="w-4 h-4 text-[#05c8a7] mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                     ) : isDash(val) ? (
-                      <span className="text-gray-700 text-sm">—</span>
+                      <span className="text-gray-600 text-sm">—</span>
                     ) : (
-                      <span className="text-xs text-gray-300 font-medium">{val}</span>
+                      <span className="text-sm text-gray-300 font-medium">{val}</span>
                     )}
                   </div>
                 );
@@ -849,16 +854,6 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
           <div className="mt-16">
             <PlanComparisonTable t={t} isColombia={isColombia} />
           </div>
-        </div>
-      </section>
-
-      <div className="separator-gradient max-w-5xl mx-auto" />
-
-      {/* ── Savings Calculator ── */}
-      <section className="relative py-24 md:py-32 overflow-clip">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-[#05c8a7]/10 blur-[120px] pointer-events-none" />
-        <div className="relative z-10 max-w-5xl mx-auto px-6">
-          <InteractiveSavingsCalculator locale={locale} />
         </div>
       </section>
 
