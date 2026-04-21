@@ -231,7 +231,7 @@ async function updatePostPublishResult(
     await supabase
       .from('menius_posts')
       .update({
-        status: success ? 'published' : 'failed',
+        status: success ? 'published' : 'sent',
         ...(externalPostId ? { external_post_id: externalPostId } : {}),
         published_at: success ? new Date().toISOString() : null,
       })
@@ -310,7 +310,7 @@ async function generatePost(
       image_idea: parsed.imageIdea ?? '',
       best_time: parsed.bestTimeToPost ?? '',
       tip: parsed.tip ?? '',
-      status: autoPublish ? 'pending' : 'draft',
+      status: 'draft',
       source: 'auto',
     });
 

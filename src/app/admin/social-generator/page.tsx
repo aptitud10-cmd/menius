@@ -10,11 +10,11 @@ import {
 } from 'lucide-react';
 
 const PLATFORMS = [
-  { id: 'instagram', label: 'Instagram', icon: Instagram, color: 'bg-pink-500' },
-  { id: 'facebook', label: 'Facebook', icon: Facebook, color: 'bg-blue-600' },
-  { id: 'twitter', label: 'X / Twitter', icon: Twitter, color: 'bg-gray-700' },
-  { id: 'linkedin', label: 'LinkedIn', icon: Linkedin, color: 'bg-blue-500' },
-  { id: 'tiktok', label: 'TikTok', icon: Globe, color: 'bg-purple-600' },
+  { id: 'instagram', label: 'Instagram', icon: Instagram, color: 'bg-pink-500', comingSoon: false },
+  { id: 'facebook', label: 'Facebook', icon: Facebook, color: 'bg-blue-600', comingSoon: false },
+  { id: 'twitter', label: 'X / Twitter', icon: Twitter, color: 'bg-gray-700', comingSoon: true },
+  { id: 'linkedin', label: 'LinkedIn', icon: Linkedin, color: 'bg-blue-500', comingSoon: false },
+  { id: 'tiktok', label: 'TikTok', icon: Globe, color: 'bg-purple-600', comingSoon: true },
 ] as const;
 
 const POST_TYPES = [
@@ -206,15 +206,21 @@ export default function SocialGeneratorPage() {
                     return (
                       <button
                         key={p.id}
-                        onClick={() => setPlatform(p.id)}
-                        className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
-                          platform === p.id
-                            ? 'border-emerald-500/50 bg-emerald-500/10 text-white'
-                            : 'border-white/[0.06] bg-white/[0.02] text-gray-500 hover:text-gray-300 hover:border-white/[0.12]'
+                        onClick={() => !p.comingSoon && setPlatform(p.id)}
+                        disabled={p.comingSoon}
+                        className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all ${
+                          p.comingSoon
+                            ? 'border-white/[0.04] bg-white/[0.01] text-gray-700 cursor-not-allowed opacity-50'
+                            : platform === p.id
+                              ? 'border-emerald-500/50 bg-emerald-500/10 text-white'
+                              : 'border-white/[0.06] bg-white/[0.02] text-gray-500 hover:text-gray-300 hover:border-white/[0.12]'
                         }`}
                       >
                         <Icon className="w-5 h-5" />
                         <span className="text-[10px] font-medium">{p.label}</span>
+                        {p.comingSoon && (
+                          <span className="text-[8px] font-bold text-gray-600 uppercase tracking-wide leading-none -mt-0.5">Soon</span>
+                        )}
                       </button>
                     );
                   })}

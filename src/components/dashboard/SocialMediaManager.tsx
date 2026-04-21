@@ -13,9 +13,9 @@ interface Props {
 }
 
 const PLATFORMS = [
-  { value: 'instagram', label: 'Instagram', icon: Instagram, color: 'bg-gradient-to-r from-purple-500 to-pink-500' },
-  { value: 'facebook', label: 'Facebook', icon: Facebook, color: 'bg-blue-600' },
-  { value: 'twitter', label: 'X / Twitter', icon: Twitter, color: 'bg-black' },
+  { value: 'instagram', label: 'Instagram', icon: Instagram, color: 'bg-gradient-to-r from-purple-500 to-pink-500', comingSoon: false },
+  { value: 'facebook', label: 'Facebook', icon: Facebook, color: 'bg-blue-600', comingSoon: false },
+  { value: 'twitter', label: 'X / Twitter', icon: Twitter, color: 'bg-black', comingSoon: true },
 ];
 
 /* POST_TYPES moved inside component for translation */
@@ -143,18 +143,24 @@ export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale 
             return (
               <button
                 key={p.value}
-                onClick={() => setPlatform(p.value)}
+                onClick={() => !p.comingSoon && setPlatform(p.value)}
+                disabled={p.comingSoon}
                 className={cn(
-                  'flex items-center gap-2.5 p-3.5 rounded-xl border-2 transition-all',
-                  platform === p.value
-                    ? 'border-purple-500 bg-purple-50 shadow-sm'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
+                  'relative flex items-center gap-2.5 p-3.5 rounded-xl border-2 transition-all',
+                  p.comingSoon
+                    ? 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-60'
+                    : platform === p.value
+                      ? 'border-purple-500 bg-purple-50 shadow-sm'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
                 )}
               >
                 <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center text-white', p.color)}>
                   <Icon className="w-4 h-4" />
                 </div>
-                <span className={cn('text-sm font-medium', platform === p.value ? 'text-purple-700' : 'text-gray-700')}>{p.label}</span>
+                <div className="flex flex-col items-start">
+                  <span className={cn('text-sm font-medium', p.comingSoon ? 'text-gray-400' : platform === p.value ? 'text-purple-700' : 'text-gray-700')}>{p.label}</span>
+                  {p.comingSoon && <span className="text-[10px] font-semibold text-gray-400 leading-none">Coming soon</span>}
+                </div>
               </button>
             );
           })}
