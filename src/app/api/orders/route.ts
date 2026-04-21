@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
       tip_amount: body.tip_amount !== undefined ? Number(body.tip_amount) : undefined,
     });
     if (!parsed.success) {
+      logger.warn('Order validation failed', { errors: parsed.error.errors, restaurant_id });
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
 
