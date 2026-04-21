@@ -167,7 +167,7 @@ export function DashboardNav({ slug, mobile, planId = 'free' }: DashboardNavProp
           {t.nav_viewMenu}
         </Link>
         <Link
-          href="/support"
+          href={`/support?lang=${locale}`}
           onClick={() => setOpen(false)}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"
         >
