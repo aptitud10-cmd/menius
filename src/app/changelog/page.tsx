@@ -32,19 +32,33 @@ interface Release {
 
 const releases: Release[] = [
   {
+    version: '2.8',
+    dateEs: 'Abril 2026',
+    dateEn: 'April 2026',
+    badgeEs: 'Nuevo',
+    badgeEn: 'New',
+    badgeColor: 'bg-emerald-500',
+    highlightsEs: ['Cancelar suscripción', 'Desactivar plan comisión', 'Flujos de downgrade completos'],
+    highlightsEn: ['Cancel subscription', 'Deactivate commission plan', 'Full downgrade flows'],
+    changes: [
+      { type: 'new', es: 'Cancelar suscripción desde el dashboard: botón visible en Billing cuando tienes un plan activo. Abre el portal de Stripe donde puedes cancelar — tu plan sigue activo hasta el fin del período ya pagado y luego pasa al plan gratuito automáticamente.', en: 'Cancel subscription from the dashboard: button visible in Billing when you have an active plan. Opens the Stripe portal where you can cancel — your plan stays active until the end of the paid period and then automatically reverts to the free plan.' },
+      { type: 'new', es: 'Desactivar plan comisión 4%: si estás en el plan de comisión por transacción, ahora puedes desactivarlo directamente desde Billing sin contactar soporte. Tu cuenta vuelve al plan gratuito al instante.', en: 'Deactivate 4% commission plan: if you\'re on the per-transaction commission plan, you can now deactivate it directly from Billing without contacting support. Your account reverts to the free plan instantly.' },
+      { type: 'improved', es: 'Billing: modal de confirmación antes de cancelar, con detalle del plan, fecha de vencimiento y lista de funciones que perderás.', en: 'Billing: confirmation modal before cancelling, showing your plan name, expiration date, and a list of features you\'ll lose.' },
+    ],
+  },
+  {
     version: '2.7',
     dateEs: 'Abril 2026',
     dateEn: 'April 2026',
     badgeEs: 'Nuevo',
     badgeEn: 'New',
     badgeColor: 'bg-emerald-500',
-    highlightsEs: ['Comisiones por transacción', 'SEO enriquecido', 'Banner Powered by MENIUS', 'Resumen diario WhatsApp', 'Dashboard mobile'],
-    highlightsEn: ['Transaction commissions', 'Enriched SEO', 'Powered by MENIUS banner', 'Daily WhatsApp summary', 'Mobile dashboard'],
+    highlightsEs: ['Pagos online sin comisión', 'SEO enriquecido', 'Banner Powered by MENIUS', 'Dashboard mobile'],
+    highlightsEn: ['Online payments, zero commission', 'Enriched SEO', 'Powered by MENIUS banner', 'Mobile dashboard'],
     changes: [
-      { type: 'new', es: 'Comisiones por transacción: los pagos online con Stripe Connect están disponibles desde el plan Starter. Comisión: 1% en Starter, 0% en Pro y Business. Durante los 14 días de trial la comisión es 0%. El plan Free solo acepta efectivo. Los pagos por Wompi (Colombia) no tienen comisión.', en: 'Transaction commissions: online payments via Stripe Connect are available from the Starter plan. Fee: 1% on Starter, 0% on Pro and Business. During the 14-day trial the fee is 0%. The Free plan only accepts cash. Wompi (Colombia) payments have no MENIUS fee.' },
-      { type: 'new', es: 'Resumen diario por WhatsApp: los dueños de restaurantes con plan Pro/Business reciben automáticamente a las 10pm un resumen de ventas del día — total de órdenes, ingresos, comparación con el día anterior y top 3 productos.', en: 'Daily WhatsApp summary: Pro/Business restaurant owners automatically receive a daily sales recap at 10pm — total orders, revenue, comparison with the previous day, and top 3 products.' },
+      { type: 'new', es: 'Pagos online con Stripe Connect disponibles desde el plan Starter — 0% de comisión MENIUS en todos los planes de suscripción (Starter, Pro, Business). El plan Free solo acepta efectivo. Wompi (Colombia) tampoco cobra comisión. Existe también un plan alternativo sin cuota mensual con 4% por transacción.', en: 'Online payments via Stripe Connect available from the Starter plan — 0% MENIUS commission on all subscription plans (Starter, Pro, Business). The Free plan only accepts cash. Wompi (Colombia) also has no MENIUS fee. There is also an alternative no-monthly-fee plan with 4% per transaction.' },
       { type: 'new', es: 'Banner "Powered by MENIUS" en todas las tiendas: diseño premium con gradiente, wordmark y efecto hover. Visible en el pie de página del menú público de todos los restaurantes.', en: '"Powered by MENIUS" banner on all stores: premium design with gradient, wordmark, and hover effect. Visible in the footer of every public restaurant menu.' },
-      { type: 'improved', es: 'SEO del menú público: descripciones auto-generadas con categorías del menú cuando el restaurante no ha llenado una, BreadcrumbList JSON-LD para mejores snippets en Google, y sitemap actualizado con fecha de última modificación real del menú.', en: 'Public menu SEO: auto-generated descriptions using menu categories when the restaurant hasn\'t filled one, BreadcrumbList JSON-LD for better Google snippets, and sitemap updated with real last-modified dates.' },
+      { type: 'improved', es: 'SEO del menú público: descripciones auto-generadas con categorías del menú cuando el restaurante no ha llenado una, BreadcrumbList JSON-LD para mejores snippets en Google, y sitemap actualizado con fecha de última modificación real.', en: 'Public menu SEO: auto-generated descriptions using menu categories when the restaurant hasn\'t filled one, BreadcrumbList JSON-LD for better Google snippets, and sitemap updated with real last-modified dates.' },
       { type: 'improved', es: 'Dashboard mobile: barra de navegación inferior fija (Home, Pedidos, Menú, Counter) para acceso rápido en celular. Tablero de pedidos con tabs por estado en móvil. Tablas de productos e inventario convertidas a tarjetas compactas en mobile.', en: 'Mobile dashboard: fixed bottom navigation bar (Home, Orders, Menu, Counter) for quick mobile access. Orders board with status tabs on mobile. Product and inventory tables converted to compact mobile cards.' },
       { type: 'improved', es: 'Onboarding: nuevo checklist interactivo con tiempo estimado por paso, CTA prominente al siguiente paso y posibilidad de descartar al completar 4 de 6 pasos.', en: 'Onboarding: new interactive checklist with estimated time per step, prominent next-step CTA, and ability to dismiss after completing 4 of 6 steps.' },
       { type: 'fixed', es: 'Creación de órdenes: error "No se pudo crear la orden" resuelto — columna customer_locale faltante en la base de datos.', en: 'Order creation: "Could not create order" error resolved — missing customer_locale column in the database.' },
