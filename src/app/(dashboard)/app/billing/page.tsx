@@ -257,52 +257,30 @@ export default function BillingPage() {
     }
   }, [t.billing_connectionError, t.billing_noCheckout]);
 
-  const handleActivateCommission = useCallback(async () => {
-    setActionLoading('commission');
+  const handleCommissionPlan = useCallback(async (deactivate = false) => {
+    setActionLoading(deactivate ? 'deactivate-commission' : 'commission');
     setError(null);
-    setShowCommissionModal(false);
-    try {
-      const activateRes = await fetch('/api/billing/activate-commission-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-      const activateData = await activateRes.json();
-      if (!activateData.success) {
-        setError(activateData.error || (locale === 'en' ? 'Could not activate plan' : 'No se pudo activar el plan'));
-        setActionLoading(null);
-        return;
-      }
-
-      const connectRes = await fetch('/api/connect/onboard', { method: 'POST' });
-      const connectData = await connectRes.json();
-      if (connectData.url) {
-        window.location.href = connectData.url;
-      } else {
-        window.location.reload();
-      }
-    } catch {
-      setError(locale === 'en' ? 'Connection error' : 'Error de conexión');
-      setActionLoading(null);
-    }
-  }, [locale]);
-
-  const handleDeactivateCommission = useCallback(async () => {
-    setActionLoading('deactivate-commission');
-    setError(null);
+    if (!deactivate) setShowCommissionModal(false);
     try {
       const res = await fetch('/api/billing/activate-commission-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deactivate: true }),
+        body: JSON.stringify(deactivate ? { deactivate: true } : {}),
       });
       const data = await res.json();
-      if (data.success) {
-        window.location.reload();
-      } else {
-        setError(data.error || (locale === 'en' ? 'Could not deactivate plan' : 'No se pudo desactivar el plan'));
+      if (!data.success) {
+        setError(data.error || (locale === 'en'
+          ? (deactivate ? 'Could not deactivate plan' : 'Could not activate plan')
+          : (deactivate ? 'No se pudo desactivar el plan' : 'No se pudo activar el plan')));
         setActionLoading(null);
+        return;
       }
+      if (!deactivate) {
+        const connectRes = await fetch('/api/connect/onboard', { method: 'POST' });
+        const connectData = await connectRes.json();
+        if (connectData.url) { window.location.href = connectData.url; return; }
+      }
+      window.location.reload();
     } catch {
       setError(locale === 'en' ? 'Connection error' : 'Error de conexión');
       setActionLoading(null);
@@ -575,7 +553,6 @@ export default function BillingPage() {
                     {actionLoading === resolvedId ? t.billing_redirecting : t.billing_subscribeNow}
                   </button>
                 )}
-                {/* Cancel subscription — paid plans only, not trialing, not already canceled */}
                 {isActive && sub?.stripe_subscription_id && !sub.canceled_at && (
                   <button
                     onClick={() => setShowCancelModal(true)}
@@ -586,10 +563,9 @@ export default function BillingPage() {
                     {locale === 'en' ? 'Cancel subscription' : 'Cancelar suscripción'}
                   </button>
                 )}
-                {/* Deactivate commission plan */}
                 {commissions?.isCommissionPlan && (
                   <button
-                    onClick={handleDeactivateCommission}
+                    onClick={() => handleCommissionPlan(true)}
                     disabled={actionLoading !== null}
                     className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-red-200 text-sm font-medium text-red-600 hover:bg-red-50 hover:border-red-300 disabled:opacity-50 transition-all"
                   >
@@ -1064,8 +1040,8 @@ export default function BillingPage() {
             <div className="space-y-3 mb-6">
               <p className="text-sm text-gray-600 leading-relaxed">
                 {locale === 'en'
-                  ? `Your ${planInfo?.name} plan will remain active until ${periodEnd}. After that, your account will revert to the free plan.`
-                  : `Tu plan ${planInfo?.name} seguirá activo hasta el ${periodEnd}. Después, tu cuenta pasará al plan gratuito.`}
+                  ? `Your ${planInfo?.name} plan will remain active${periodEnd ? ` until ${periodEnd}` : ''}. After that, your account will revert to the free plan.`
+                  : `Tu plan ${planInfo?.name} seguirá activo${periodEnd ? ` hasta el ${periodEnd}` : ''}. Después, tu cuenta pasará al plan gratuito.`}
               </p>
               <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 space-y-1.5 text-xs text-amber-800">
                 <p>⚠ {locale === 'en' ? 'Online payments (Stripe Connect) will be disabled' : 'Los pagos online (Stripe Connect) se desactivarán'}</p>
@@ -1138,7 +1114,7 @@ export default function BillingPage() {
                 {locale === 'en' ? 'Cancel' : 'Cancelar'}
               </button>
               <button
-                onClick={handleActivateCommission}
+                onClick={() => handleCommissionPlan()}
                 className="flex-1 px-4 py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition-colors"
               >
                 {locale === 'en' ? 'Activate 4% plan' : 'Activar plan 4%'}
