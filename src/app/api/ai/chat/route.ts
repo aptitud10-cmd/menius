@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { hasPlanAccess } from '@/lib/auth/check-plan';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
@@ -15,7 +16,7 @@ interface ChatMessage {
   text: string;
 }
 
-async function gatherRestaurantContext(restaurantId: string): Promise<{ context: string; locale: string; restaurantName: string }> {
+async function gatherRestaurantContext(restaurantId: string): Promise<{ context: string; locale: string; restaurantName: string; restaurantSlug: string; atRiskCount: number; zeroSalesNames: string[] }> {
   const supabase = createClient();
 
   const now = new Date();
@@ -243,7 +244,14 @@ ${(atRiskCustomers ?? []).map(c => `- ${c.name || (en ? 'Anonymous' : 'Anónimo'
 ${allToday.slice(0, 10).map(o => `#${o.order_number} — ${o.customer_name || (en ? 'No name' : 'Sin nombre')} — $${Number(o.total).toFixed(2)} — ${o.status} — ${o.order_type ?? 'dine_in'}`).join('\n') || (en ? 'No orders today' : 'Sin ordenes hoy')}
 `.trim();
 
-  return { context, locale, restaurantName: restaurant?.name ?? '' };
+  return {
+    context,
+    locale,
+    restaurantName: restaurant?.name ?? '',
+    restaurantSlug: restaurant?.slug ?? '',
+    atRiskCount: (atRiskCustomers ?? []).length,
+    zeroSalesNames: zeroSalesProducts.map(p => p.name),
+  };
 }
 
 const SHARED_CAPABILITIES_INTRO_ES = `
@@ -605,18 +613,54 @@ async function executeTool(
     const message = String(args.message ?? '').slice(0, 500);
     const cta_label = args.cta_label ? String(args.cta_label).slice(0, 50) : undefined;
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app'}/api/tenant/campaigns`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-restaurant-id': restaurantId },
-      body: JSON.stringify({ segment, subject, message, cta_label, cta_url: menuUrl }),
-    });
+    // Use admin client to bypass cookie auth — restaurantId is already verified by getTenant() upstream
+    const admin = createAdminClient();
 
-    if (!res.ok) {
-      const err = await res.text().catch(() => res.statusText);
-      return `ERROR: Campaign not sent — ${err}`;
+    const { data: restaurant } = await admin
+      .from('restaurants')
+      .select('name, slug, locale')
+      .eq('id', restaurantId)
+      .maybeSingle();
+    if (!restaurant) return 'ERROR: Restaurant not found.';
+
+    const segmentFilter = segment === 'vip' ? 'vip' : segment === 'inactive' ? 'inactive' : segment === 'recent' ? 'recent' : undefined;
+    let query = admin
+      .from('customers')
+      .select('id, name, email, total_orders, last_order_at')
+      .eq('restaurant_id', restaurantId)
+      .not('email', 'is', null)
+      .neq('email', '')
+      .not('tags', 'cs', '{"unsubscribed"}');
+
+    if (segmentFilter === 'vip') {
+      query = query.gte('total_orders', 5);
+    } else if (segmentFilter === 'inactive') {
+      query = query.lt('last_order_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+    } else if (segmentFilter === 'recent') {
+      query = query.gte('last_order_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
     }
-    const data = await res.json().catch(() => ({})) as { sent?: number };
-    return `SUCCESS: Campaign sent to ${data.sent ?? 'your'} ${segment} customers. Subject: "${subject}".`;
+
+    const { data: customers } = await query.limit(500);
+    if (!customers || customers.length === 0) {
+      return `ERROR: No customers with email match the "${segment}" segment.`;
+    }
+
+    const { sendEmail } = await import('@/lib/notifications/email');
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app').replace(/\/$/, '');
+    const ctaUrl = menuUrl || `${appUrl}/${restaurant.slug}`;
+    let sent = 0;
+
+    for (const customer of customers) {
+      if (!customer.email) continue;
+      const success = await sendEmail({
+        to: customer.email,
+        subject: subject.replace('{nombre}', customer.name || 'Cliente'),
+        html: `<p>${message.replace(/\n/g, '<br>')}</p>${cta_label ? `<a href="${ctaUrl}" style="display:block;margin-top:16px;padding:12px;background:#7c3aed;color:#fff;text-align:center;border-radius:8px;text-decoration:none;">${cta_label}</a>` : ''}`,
+      });
+      if (success) sent++;
+    }
+
+    return `SUCCESS: Campaign sent to ${sent} of ${customers.length} ${segment} customers. Subject: "${subject}".`;
   }
 
   if (name === 'adjust_loyalty_points') {
@@ -726,17 +770,11 @@ export async function POST(request: NextRequest) {
     conversationHistory = [];
   }
 
-  const { context, locale: restaurantLocale, restaurantName } = await gatherRestaurantContext(tenant.restaurantId);
+  const { context, locale: restaurantLocale, restaurantName, restaurantSlug, atRiskCount, zeroSalesNames } = await gatherRestaurantContext(tenant.restaurantId);
 
-  // Extract counts for proactive tips (avoid re-querying)
-  const atRiskMatch = context.match(/AT-RISK CUSTOMERS[\s\S]*?(?====|$)/);
-  const atRiskLines = atRiskMatch ? atRiskMatch[0].split('\n').filter(l => l.startsWith('-')).length : 0;
-  const zeroSalesMatch = context.match(/(?:Active products with 0 sales this month|Productos activos sin ventas este mes): (.+)/);
-  const zeroSalesNames = zeroSalesMatch ? zeroSalesMatch[1].split(', ').filter(Boolean) : [];
-
-  const proactiveTips = buildProactiveTips(context, atRiskLines, zeroSalesNames);
+  const proactiveTips = buildProactiveTips(context, atRiskCount, zeroSalesNames);
   const systemPrompt = getSystemPrompt(restaurantLocale, restaurantName);
-  const menuUrl = `${(process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app').replace(/\/$/, '')}/${restaurantName}`;
+  const menuUrl = `${(process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app').replace(/\/$/, '')}/${restaurantSlug}`;
 
   const stream = new ReadableStream({
     async start(controller) {

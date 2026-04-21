@@ -55,6 +55,9 @@ interface CheckoutPageClientProps {
 
 type CheckoutStep = 'form' | 'payment' | 'confirmation';
 
+// MP only operates in LatAm — excludes USD/EUR/GBP etc.
+const MP_CURRENCIES = new Set(['ARS', 'BRL', 'MXN', 'CLP', 'PEN', 'UYU', 'BOB', 'PYG', 'COP']);
+
 export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }: CheckoutPageClientProps) {
   const router = useRouter();
   const t = getTranslations(locale);
@@ -664,10 +667,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveLastOrder, rememberMe, saveCustomer, customerName, customerPhone, customerEmail, deliveryAddress, paymentMethod, restaurant, orderNumber, orderType, items, cartTotal, displayTotal, clearCart, confettiTimer]);
 
-  const isColombianRestaurant = restaurant.currency?.toUpperCase() === 'COP';
-  // MP only operates in LatAm — exclude USD/EUR/GBP etc.
-  const MP_CURRENCIES = new Set(['ARS', 'BRL', 'MXN', 'CLP', 'PEN', 'UYU', 'BOB', 'PYG', 'COP']);
-  const isMpSupportedCurrency = MP_CURRENCIES.has(restaurant.currency?.toUpperCase() ?? '');
+  const currencyUpper = restaurant.currency?.toUpperCase() ?? '';
+  const isColombianRestaurant = currencyUpper === 'COP';
+  const isMpSupportedCurrency = MP_CURRENCIES.has(currencyUpper);
 
   const handlePayOnline = async () => {
     if (isColombianRestaurant) {
