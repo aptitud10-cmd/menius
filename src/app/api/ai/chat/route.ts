@@ -22,6 +22,7 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{ context:
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const riskThreshold = new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000).toISOString();
 
   const [
     { data: restaurant },
@@ -36,6 +37,9 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{ context:
     { data: promotions },
     { data: staff },
     { data: crmCustomers },
+    { data: atRiskCustomers },
+    { data: topProductsRaw },
+    { data: hourlyRaw },
   ] = await Promise.all([
     supabase.from('restaurants').select('*').eq('id', restaurantId).maybeSingle(),
     supabase.from('categories').select('id, name, is_active, sort_order').eq('restaurant_id', restaurantId).order('sort_order'),
@@ -49,6 +53,12 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{ context:
     supabase.from('promotions').select('id, code, discount_type, discount_value, is_active, usage_count, max_uses, expires_at').eq('restaurant_id', restaurantId),
     supabase.from('staff_members').select('id, name, role, is_active').eq('restaurant_id', restaurantId),
     supabase.from('customers').select('id, name, phone, email, total_orders, total_spent, last_order_at, tags').eq('restaurant_id', restaurantId).order('total_spent', { ascending: false }).limit(20),
+    // Customers at churn risk: haven't ordered in 21+ days but have 2+ orders
+    supabase.from('customers').select('name, phone, total_orders, last_order_at').eq('restaurant_id', restaurantId).lt('last_order_at', riskThreshold).gte('total_orders', 2).order('last_order_at', { ascending: false }).limit(10),
+    // Top products by revenue in last 30 days via order_items join
+    supabase.from('order_items').select('product_id, line_total, products!inner(name, is_active)').eq('products.restaurant_id', restaurantId).gte('created_at', monthAgo).limit(500),
+    // Orders with hour info for peak hour calculation (last 30 days)
+    supabase.from('orders').select('created_at').eq('restaurant_id', restaurantId).gte('created_at', monthAgo).in('status', ['completed', 'delivered', 'ready']),
   ]);
 
   const completedStatuses = ['completed', 'delivered', 'ready'];
@@ -68,19 +78,49 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{ context:
   const cancelledMonth = allMonth.filter(o => o.status === 'cancelled').length;
   const pendingToday = allToday.filter(o => o.status === 'pending').length;
 
-  const customerMap: Record<string, { name: string; phone: string; orders: number; total: number; lastOrder: string }> = {};
-  for (const o of allMonth) {
-    const key = o.customer_phone || o.customer_name || 'anon';
-    if (!customerMap[key]) {
-      customerMap[key] = { name: o.customer_name, phone: o.customer_phone || '', orders: 0, total: 0, lastOrder: o.created_at };
-    }
-    customerMap[key].orders++;
-    customerMap[key].total += Number(o.total);
-    if (o.created_at > customerMap[key].lastOrder) customerMap[key].lastOrder = o.created_at;
+  // Peak hour from last 30 days of completed orders
+  const hourCounts: number[] = new Array(24).fill(0);
+  for (const o of hourlyRaw ?? []) {
+    const h = new Date(o.created_at).getHours();
+    hourCounts[h]++;
   }
-  const topCustomers = Object.values(customerMap)
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 10);
+  const peakHour = hourCounts.indexOf(Math.max(...hourCounts));
+  const peakHourStr = hourCounts[peakHour] > 0
+    ? `${peakHour}:00–${peakHour + 1}:00 (${hourCounts[peakHour]} orders)`
+    : null;
+
+  // Top products by revenue (last 30 days)
+  const productRevMap: Record<string, { name: string; revenue: number; qty: number }> = {};
+  for (const item of topProductsRaw ?? []) {
+    const prod = (item as unknown as { product_id: string; line_total: number; products: { name: string; is_active: boolean } });
+    if (!prod.product_id) continue;
+    if (!productRevMap[prod.product_id]) {
+      productRevMap[prod.product_id] = { name: prod.products?.name ?? prod.product_id, revenue: 0, qty: 0 };
+    }
+    productRevMap[prod.product_id].revenue += Number(prod.line_total);
+    productRevMap[prod.product_id].qty++;
+  }
+  const sortedProducts = Object.values(productRevMap).sort((a, b) => b.revenue - a.revenue);
+  const topProducts5 = sortedProducts.slice(0, 5);
+
+  // Active products with zero sales last 30 days
+  const soldProductIds = new Set(Object.keys(productRevMap));
+  const activeProducts = (products ?? []).filter(p => p.is_active);
+  const zeroSalesProducts = activeProducts.filter(p => !soldProductIds.has(p.id)).slice(0, 3);
+
+  const topCustomers = (() => {
+    const customerMap: Record<string, { name: string; phone: string; orders: number; total: number; lastOrder: string }> = {};
+    for (const o of allMonth) {
+      const key = o.customer_phone || o.customer_name || 'anon';
+      if (!customerMap[key]) {
+        customerMap[key] = { name: o.customer_name, phone: o.customer_phone || '', orders: 0, total: 0, lastOrder: o.created_at };
+      }
+      customerMap[key].orders++;
+      customerMap[key].total += Number(o.total);
+      if (o.created_at > customerMap[key].lastOrder) customerMap[key].lastOrder = o.created_at;
+    }
+    return Object.values(customerMap).sort((a, b) => b.total - a.total).slice(0, 10);
+  })();
 
   const deliveryOrders = allMonth.filter(o => o.order_type === 'delivery').length;
   const pickupOrders = allMonth.filter(o => o.order_type === 'pickup').length;
@@ -97,13 +137,21 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{ context:
   const trialEnd = subscription?.trial_end ? new Date(subscription.trial_end) : null;
   const trialDaysLeft = trialEnd ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : null;
 
-  const activeProducts = (products ?? []).filter(p => p.is_active);
   const inactiveProducts = (products ?? []).filter(p => !p.is_active);
   const productsWithoutImage = activeProducts.filter(p => !p.image_url);
   const activeTables = (tables ?? []).filter(t => t.is_active);
   const activePromos = (promotions ?? []).filter(p => p.is_active);
 
   const na = en ? 'Not set' : 'No configurado';
+
+  // CRM customers with segment tag
+  const crmWithSegment = (crmCustomers ?? []).map(c => {
+    const daysSinceLast = c.last_order_at
+      ? Math.floor((now.getTime() - new Date(c.last_order_at).getTime()) / (1000 * 60 * 60 * 24))
+      : 999;
+    const segment = daysSinceLast > 21 ? (en ? 'at-risk' : 'en riesgo') : c.total_orders >= 5 ? 'VIP' : (en ? 'regular' : 'regular');
+    return { ...c, segment };
+  });
 
   const context = `
 === ${en ? 'RESTAURANT' : 'RESTAURANTE'} ===
@@ -120,8 +168,8 @@ ${en ? 'Active order types' : 'Tipos de orden activos'}: ${(restaurant?.order_ty
 ${en ? 'Payment methods' : 'Métodos de pago'}: ${(restaurant?.payment_methods_enabled as string[] ?? ['cash']).join(', ')}
 ${en ? 'Schedule' : 'Horario'}: ${restaurant?.operating_hours ? JSON.stringify(restaurant.operating_hours) : na}
 ${en ? 'Tax configuration' : 'Configuración de impuesto'}: ${
-  (restaurant as any)?.tax_rate
-    ? `${(restaurant as any).tax_rate}% (${(restaurant as any).tax_label ?? 'Tax'}) — ${(restaurant as any).tax_included ? (en ? 'included in price' : 'incluido en el precio') : (en ? 'added on top' : 'agregado al total')}${(restaurant as any).country_code ? ` — ${(restaurant as any).country_code}${(restaurant as any).state_code ? `/${(restaurant as any).state_code}` : ''}` : ''}`
+  (restaurant as Record<string, unknown>)?.tax_rate
+    ? `${(restaurant as Record<string, unknown>).tax_rate}% (${(restaurant as Record<string, unknown>).tax_label ?? 'Tax'}) — ${(restaurant as Record<string, unknown>).tax_included ? (en ? 'included in price' : 'incluido en el precio') : (en ? 'added on top' : 'agregado al total')}${(restaurant as Record<string, unknown>).country_code ? ` — ${(restaurant as Record<string, unknown>).country_code}${(restaurant as Record<string, unknown>).state_code ? `/${(restaurant as Record<string, unknown>).state_code}` : ''}` : ''}`
     : (en ? 'No tax configured' : 'Sin impuesto configurado')
 }
 
@@ -151,6 +199,7 @@ ${en ? 'Orders' : 'Ordenes'}: ${allWeek.length}
 ${en ? 'Completed' : 'Completadas'}: ${completedWeek.length}
 ${en ? 'Revenue' : 'Ingresos'}: $${weekRevenue.toFixed(2)}
 ${en ? 'Avg ticket' : 'Ticket promedio'}: $${completedWeek.length > 0 ? (weekRevenue / completedWeek.length).toFixed(2) : '0.00'}
+${peakHourStr ? `${en ? 'Peak hour (30d)' : 'Hora pico (30d)'}: ${peakHourStr}` : ''}
 
 === ${en ? 'THIS MONTH\'S SALES (30 days)' : 'VENTAS ESTE MES (30 días)'} ===
 ${en ? 'Total orders' : 'Ordenes totales'}: ${allMonth.length}
@@ -160,6 +209,10 @@ ${en ? 'Revenue' : 'Ingresos'}: $${monthRevenue.toFixed(2)}
 ${en ? 'Discounts given' : 'Descuentos otorgados'}: $${monthDiscount.toFixed(2)}
 ${en ? 'Avg ticket' : 'Ticket promedio'}: $${completedMonth.length > 0 ? (monthRevenue / completedMonth.length).toFixed(2) : '0.00'}
 ${en ? 'By type' : 'Por tipo'}: Dine-in: ${dineInOrders}, Pickup: ${pickupOrders}, Delivery: ${deliveryOrders}
+
+=== ${en ? 'TOP PRODUCTS (30 days)' : 'PRODUCTOS TOP (30 días)'} ===
+${topProducts5.length > 0 ? topProducts5.map((p, i) => `${i + 1}. ${p.name} — $${p.revenue.toFixed(2)} revenue, ${p.qty} ${en ? 'orders' : 'pedidos'}`).join('\n') : (en ? 'No sales data yet' : 'Sin datos de ventas aún')}
+${zeroSalesProducts.length > 0 ? `\n${en ? 'Active products with 0 sales this month' : 'Productos activos sin ventas este mes'}: ${zeroSalesProducts.map(p => p.name).join(', ')}` : ''}
 
 === ${en ? 'TOP CUSTOMERS (30 days)' : 'CLIENTES TOP (30 días)'} ===
 ${topCustomers.length > 0 ? topCustomers.map((c, i) => `${i + 1}. ${c.name || (en ? 'Anonymous' : 'Anónimo')}${c.phone ? ` (${c.phone})` : ''} — ${c.orders} ${en ? 'orders' : 'ordenes'}, $${c.total.toFixed(2)} total`).join('\n') : (en ? 'No customer data yet' : 'Sin datos de clientes aún')}
@@ -181,7 +234,10 @@ ${(staff ?? []).length > 0 ? (staff ?? []).map(s => `- ${s.name} (${s.role})${s.
 
 === ${en ? 'CUSTOMER DATABASE (CRM)' : 'BASE DE DATOS DE CLIENTES (CRM)'} ===
 ${en ? 'Total in database' : 'Total en base de datos'}: ${(crmCustomers ?? []).length >= 20 ? '20+' : (crmCustomers ?? []).length}
-${(crmCustomers ?? []).length > 0 ? (crmCustomers ?? []).slice(0, 15).map((c, i) => `${i + 1}. ${c.name || (en ? 'Anonymous' : 'Anónimo')}${c.phone ? ` (${c.phone})` : ''}${c.email ? ` — ${c.email}` : ''} — ${c.total_orders} ${en ? 'orders' : 'ordenes'}, $${Number(c.total_spent).toFixed(2)} total${c.tags?.length > 0 ? ` [${c.tags.join(', ')}]` : ''}${c.last_order_at ? ` — ${en ? 'last' : 'última'}: ${new Date(c.last_order_at).toLocaleDateString()}` : ''}`).join('\n') : (en ? 'No customers yet' : 'Sin clientes registrados aún')}
+${crmWithSegment.length > 0 ? crmWithSegment.slice(0, 15).map((c, i) => `${i + 1}. ${c.name || (en ? 'Anonymous' : 'Anónimo')}${c.phone ? ` (${c.phone})` : ''}${c.email ? ` — ${c.email}` : ''} — ${c.total_orders} ${en ? 'orders' : 'ordenes'}, $${Number(c.total_spent).toFixed(2)} total [${c.segment}]${c.tags?.length > 0 ? ` [${c.tags.join(', ')}]` : ''}${c.last_order_at ? ` — ${en ? 'last' : 'última'}: ${new Date(c.last_order_at).toLocaleDateString()}` : ''}`).join('\n') : (en ? 'No customers yet' : 'Sin clientes registrados aún')}
+
+${(atRiskCustomers ?? []).length > 0 ? `=== ${en ? 'AT-RISK CUSTOMERS (no order in 21+ days)' : 'CLIENTES EN RIESGO (sin orden en 21+ días)'} ===
+${(atRiskCustomers ?? []).map(c => `- ${c.name || (en ? 'Anonymous' : 'Anónimo')}${c.phone ? ` (${c.phone})` : ''} — ${c.total_orders} ${en ? 'orders total' : 'órdenes total'}, ${en ? 'last order' : 'última orden'}: ${new Date(c.last_order_at).toLocaleDateString()}`).join('\n')}` : ''}
 
 === ${en ? 'RECENT ORDERS TODAY' : 'ORDENES RECIENTES HOY'} ===
 ${allToday.slice(0, 10).map(o => `#${o.order_number} — ${o.customer_name || (en ? 'No name' : 'Sin nombre')} — $${Number(o.total).toFixed(2)} — ${o.status} — ${o.order_type ?? 'dine_in'}`).join('\n') || (en ? 'No orders today' : 'Sin ordenes hoy')}
@@ -206,12 +262,17 @@ Puedes:
 6. Generar ideas de marketing — campañas, promociones, redes sociales, retención de clientes
 7. Explicar errores o problemas del sistema con soluciones concretas
 8. Escalar a soporte humano cuando el problema lo requiere
+9. Ejecutar acciones directas — crear promociones, activar/desactivar productos, enviar campañas de email, ajustar puntos de lealtad
+
+=== ACCIONES DISPONIBLES ===
+Cuando el dueño te pida realizar algo, EJECUTA la acción directamente usando las herramientas disponibles.
+No pidas confirmación para acciones simples como crear una promo o desactivar un producto — el dueño ya lo pidió.
+Sí pide confirmación antes de enviar campañas de email masivas (confirma segmento y mensaje).
 
 === RESTRICCIONES ===
 NO puedes:
 - Inventar datos que no estén en el contexto del restaurante (si no tienes el dato, dilo)
 - Prometer funciones que no existen en MENIUS
-- Hacer cambios directos en la cuenta (solo guías — el dueño ejecuta)
 - Dar consejos médicos, legales o fiscales específicos
 - Compartir datos o información de otros restaurantes
 - Procesar pagos, reembolsos ni cancelar suscripciones directamente
@@ -219,14 +280,14 @@ NO puedes:
 
 === PROCESO ===
 Para cada mensaje recibido, sigue este orden internamente:
-1. CLASIFICAR — tipo de consulta: analytics / menú / pedidos / técnico / estrategia / chef / facturación
+1. CLASIFICAR — tipo de consulta: analytics / menú / pedidos / técnico / estrategia / chef / facturación / acción
 2. REVISAR DATOS — consulta el contexto real del restaurante antes de responder
-3. RESPONDER — directo, máx 350 palabras, con pasos exactos si implica acción en el dashboard
+3. ACTUAR O RESPONDER — si pide acción, usa la herramienta; si pide info, responde directo
 4. VERIFICAR — si es el 3er intercambio sin resolver, o el dueño está frustrado → escala a soporte
 
 === CRITERIO DE ÉXITO ===
 Una respuesta es exitosa cuando:
-- El dueño sabe exactamente a dónde ir en el dashboard (si aplica)
+- El dueño sabe exactamente qué pasó o qué hacer
 - Usas datos reales del restaurante, no ejemplos genéricos
 - Tono de socio experto, no de chatbot genérico
 - Si no puedes resolver → escalas correctamente con el email de soporte`;
@@ -247,12 +308,17 @@ You can:
 6. Generate marketing ideas — campaigns, promotions, social media, customer retention
 7. Explain system errors or issues with concrete solutions
 8. Escalate to human support when the problem requires it
+9. Execute direct actions — create promotions, toggle products, send email campaigns, adjust loyalty points
+
+=== AVAILABLE ACTIONS ===
+When the owner asks you to do something, EXECUTE the action directly using available tools.
+Don't ask for confirmation on simple actions like creating a promo or toggling a product — the owner already asked.
+Do confirm before sending mass email campaigns (confirm segment and message).
 
 === RESTRICTIONS ===
 You CANNOT:
 - Invent data not present in the restaurant context (if you don't have it, say so)
 - Promise features that don't exist in MENIUS
-- Make direct changes to the account (guide only — the owner executes)
 - Give specific medical, legal, or tax advice
 - Share data or information from other restaurants
 - Process payments, refunds, or cancel subscriptions directly
@@ -260,14 +326,14 @@ You CANNOT:
 
 === PROCESS ===
 For each incoming message, follow this order internally:
-1. CLASSIFY — type of query: analytics / menu / orders / technical / strategy / chef / billing
+1. CLASSIFY — type of query: analytics / menu / orders / technical / strategy / chef / billing / action
 2. REVIEW DATA — check the real restaurant context before responding
-3. RESPOND — direct, max 350 words, with exact steps if action in the dashboard is needed
+3. ACT OR RESPOND — if action requested, use the tool; if info requested, respond directly
 4. VERIFY — if this is the 3rd exchange without resolution, or the owner is frustrated → escalate to support
 
 === SUCCESS CRITERIA ===
 A response is successful when:
-- The owner knows exactly where to go in the dashboard (if applicable)
+- The owner knows exactly what happened or what to do
 - You use real restaurant data, not generic examples
 - Tone of an expert partner, not a generic chatbot
 - If you can't resolve it → escalate correctly with the support email`;
@@ -357,7 +423,7 @@ ${SHARED_CAPABILITIES_INTRO_ES}
 ${SHARED_CAPABILITIES_BODY}`;
 }
 
-function buildProactiveTips(context: string): string {
+function buildProactiveTips(context: string, atRiskCount: number, zeroSalesNames: string[]): string {
   const tips: string[] = [];
 
   const noImageMatch = context.match(/(?:Products without image|Productos sin imagen): (\d+)/);
@@ -397,8 +463,191 @@ function buildProactiveTips(context: string): string {
     tips.push(`NOTICE: Only ${trialMatch[1]} trial days left.`);
   }
 
+  if (atRiskCount > 0) {
+    tips.push(`RETENTION: ${atRiskCount} customers haven't ordered in 21+ days — a targeted promo could bring them back.`);
+  }
+
+  if (zeroSalesNames.length > 0) {
+    tips.push(`MENU: ${zeroSalesNames.join(', ')} — active but 0 sales this month. Consider featuring, discounting, or removing.`);
+  }
+
   if (tips.length === 0) return '';
   return `\n\n=== ALERTS & OPPORTUNITIES ===\n${tips.join('\n')}`;
+}
+
+// Gemini function declarations for direct actions
+const TOOL_DECLARATIONS = [
+  {
+    name: 'create_promotion',
+    description: 'Create a discount promotion/coupon for the restaurant. Use when the owner asks to create a promo, coupon, or discount code.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        code: { type: 'STRING', description: 'Promotion code (uppercase, no spaces). E.g. LUNES20' },
+        discount_type: { type: 'STRING', enum: ['percentage', 'fixed'], description: 'percentage = % off, fixed = fixed amount off' },
+        discount_value: { type: 'NUMBER', description: 'Discount amount. For percentage: 0-100. For fixed: amount in restaurant currency.' },
+        min_order: { type: 'NUMBER', description: 'Minimum order total to apply the promo. Optional, default 0.' },
+        expires_in_days: { type: 'NUMBER', description: 'Days until expiration from today. Default 30.' },
+        max_uses: { type: 'NUMBER', description: 'Maximum number of times the code can be used. Omit for unlimited.' },
+      },
+      required: ['code', 'discount_type', 'discount_value'],
+    },
+  },
+  {
+    name: 'toggle_product',
+    description: 'Activate or deactivate a product by name. Use when owner asks to enable/disable/hide/show a product.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        product_name: { type: 'STRING', description: 'Product name to search for (partial match is OK).' },
+        active: { type: 'BOOLEAN', description: 'true = activate the product, false = deactivate it.' },
+      },
+      required: ['product_name', 'active'],
+    },
+  },
+  {
+    name: 'send_campaign',
+    description: 'Send an email marketing campaign to a customer segment. Use when owner asks to send email/campaign to customers.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        segment: { type: 'STRING', enum: ['all', 'vip', 'inactive', 'recent'], description: 'all=everyone, vip=5+ orders, inactive=30+ days no order, recent=last 7 days' },
+        subject: { type: 'STRING', description: 'Email subject line.' },
+        message: { type: 'STRING', description: 'Email body message (plain text, max 500 chars).' },
+        cta_label: { type: 'STRING', description: 'Call-to-action button text. E.g. "Ver menú".' },
+      },
+      required: ['segment', 'subject', 'message'],
+    },
+  },
+  {
+    name: 'adjust_loyalty_points',
+    description: 'Add or remove loyalty points for a customer by phone number.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        customer_phone: { type: 'STRING', description: 'Customer phone number.' },
+        points: { type: 'NUMBER', description: 'Points to add (positive) or remove (negative).' },
+        reason: { type: 'STRING', description: 'Reason for the adjustment.' },
+      },
+      required: ['customer_phone', 'points', 'reason'],
+    },
+  },
+];
+
+// Execute a function call from Gemini and return a human-readable result
+async function executeTool(
+  name: string,
+  args: Record<string, unknown>,
+  restaurantId: string,
+  menuUrl: string,
+): Promise<string> {
+  const supabase = createClient();
+
+  if (name === 'create_promotion') {
+    const code = String(args.code ?? '').toUpperCase().replace(/\s+/g, '');
+    const discount_type = args.discount_type as 'percentage' | 'fixed';
+    const discount_value = Number(args.discount_value);
+    const min_order = args.min_order ? Number(args.min_order) : 0;
+    const expires_in_days = args.expires_in_days ? Number(args.expires_in_days) : 30;
+    const max_uses = args.max_uses ? Number(args.max_uses) : null;
+    const expires_at = new Date(Date.now() + expires_in_days * 24 * 60 * 60 * 1000).toISOString();
+
+    const { error } = await supabase.from('promotions').insert({
+      restaurant_id: restaurantId,
+      code,
+      discount_type,
+      discount_value,
+      min_order,
+      expires_at,
+      max_uses,
+      is_active: true,
+      usage_count: 0,
+    });
+
+    if (error) {
+      if (error.code === '23505') return `ERROR: The code "${code}" already exists. Try a different code.`;
+      return `ERROR: Could not create promotion — ${error.message}`;
+    }
+    return `SUCCESS: Promotion "${code}" created — ${discount_type === 'percentage' ? `${discount_value}%` : `$${discount_value}`} off${min_order > 0 ? `, min order $${min_order}` : ''}, expires in ${expires_in_days} days${max_uses ? `, max ${max_uses} uses` : ''}.`;
+  }
+
+  if (name === 'toggle_product') {
+    const product_name = String(args.product_name ?? '');
+    const active = Boolean(args.active);
+
+    const { data: matches } = await supabase
+      .from('products')
+      .select('id, name, is_active')
+      .eq('restaurant_id', restaurantId)
+      .ilike('name', `%${product_name}%`)
+      .limit(3);
+
+    if (!matches || matches.length === 0) {
+      return `ERROR: No product found matching "${product_name}". Check the exact name in Menu > Products.`;
+    }
+    if (matches.length > 1) {
+      return `CLARIFY: Multiple products match "${product_name}": ${matches.map(p => p.name).join(', ')}. Be more specific.`;
+    }
+
+    const product = matches[0];
+    if (product.is_active === active) {
+      return `INFO: "${product.name}" is already ${active ? 'active' : 'inactive'}.`;
+    }
+
+    const { error } = await supabase.from('products').update({ is_active: active }).eq('id', product.id);
+    if (error) return `ERROR: Could not update product — ${error.message}`;
+    return `SUCCESS: "${product.name}" is now ${active ? 'active and visible on your menu' : 'hidden from your menu'}.`;
+  }
+
+  if (name === 'send_campaign') {
+    const segment = String(args.segment ?? 'all') as 'all' | 'vip' | 'inactive' | 'recent';
+    const subject = String(args.subject ?? '').slice(0, 200);
+    const message = String(args.message ?? '').slice(0, 500);
+    const cta_label = args.cta_label ? String(args.cta_label).slice(0, 50) : undefined;
+
+    const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app'}/api/tenant/campaigns`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-restaurant-id': restaurantId },
+      body: JSON.stringify({ segment, subject, message, cta_label, cta_url: menuUrl }),
+    });
+
+    if (!res.ok) {
+      const err = await res.text().catch(() => res.statusText);
+      return `ERROR: Campaign not sent — ${err}`;
+    }
+    const data = await res.json().catch(() => ({})) as { sent?: number };
+    return `SUCCESS: Campaign sent to ${data.sent ?? 'your'} ${segment} customers. Subject: "${subject}".`;
+  }
+
+  if (name === 'adjust_loyalty_points') {
+    const customer_phone = String(args.customer_phone ?? '');
+    const points = Number(args.points);
+    const reason = String(args.reason ?? 'Manual adjustment by owner');
+
+    const { data: account } = await supabase
+      .from('loyalty_accounts')
+      .select('id, points')
+      .eq('restaurant_id', restaurantId)
+      .eq('customer_phone', customer_phone)
+      .maybeSingle();
+
+    if (!account) {
+      return `ERROR: No loyalty account found for ${customer_phone}. The customer needs to have at least one order with loyalty enabled.`;
+    }
+
+    const { error } = await supabase.rpc('adjust_loyalty_points', {
+      p_account_id: account.id,
+      p_points: points,
+      p_description: reason,
+      p_order_id: null,
+    });
+
+    if (error) return `ERROR: Could not adjust points — ${error.message}`;
+    const newBalance = account.points + points;
+    return `SUCCESS: ${points > 0 ? 'Added' : 'Removed'} ${Math.abs(points)} points for ${customer_phone}. New balance: ${newBalance} points.`;
+  }
+
+  return `ERROR: Unknown tool "${name}".`;
 }
 
 function sse(data: unknown): Uint8Array {
@@ -478,38 +727,95 @@ export async function POST(request: NextRequest) {
   }
 
   const { context, locale: restaurantLocale, restaurantName } = await gatherRestaurantContext(tenant.restaurantId);
-  const proactiveTips = buildProactiveTips(context);
+
+  // Extract counts for proactive tips (avoid re-querying)
+  const atRiskMatch = context.match(/AT-RISK CUSTOMERS[\s\S]*?(?====|$)/);
+  const atRiskLines = atRiskMatch ? atRiskMatch[0].split('\n').filter(l => l.startsWith('-')).length : 0;
+  const zeroSalesMatch = context.match(/(?:Active products with 0 sales this month|Productos activos sin ventas este mes): (.+)/);
+  const zeroSalesNames = zeroSalesMatch ? zeroSalesMatch[1].split(', ').filter(Boolean) : [];
+
+  const proactiveTips = buildProactiveTips(context, atRiskLines, zeroSalesNames);
   const systemPrompt = getSystemPrompt(restaurantLocale, restaurantName);
+  const menuUrl = `${(process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app').replace(/\/$/, '')}/${restaurantName}`;
 
   const stream = new ReadableStream({
     async start(controller) {
       let fullReply = '';
 
       try {
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              systemInstruction: {
-                parts: [{ text: `${systemPrompt}\n\n${restaurantLocale === 'en' ? 'CURRENT RESTAURANT DATA' : 'DATOS ACTUALES DEL RESTAURANTE'}:\n${context}${proactiveTips}` }],
-              },
-              contents: [
-                ...conversationHistory,
-                { role: 'user', parts: [{ text: userMessage }] },
-              ],
-              generationConfig: {
-                maxOutputTokens: 2500,
-                temperature: 0.55,
-                topP: 0.92,
-                thinkingConfig: { thinkingBudget: 1024 },
-              },
-            }),
-            signal: AbortSignal.timeout(30000),
-          }
-        );
+        const makeGeminiRequest = (contents: unknown[]) =>
+          fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                systemInstruction: {
+                  parts: [{ text: `${systemPrompt}\n\n${restaurantLocale === 'en' ? 'CURRENT RESTAURANT DATA' : 'DATOS ACTUALES DEL RESTAURANTE'}:\n${context}${proactiveTips}` }],
+                },
+                contents,
+                tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
+                generationConfig: {
+                  maxOutputTokens: 2500,
+                  temperature: 0.55,
+                  topP: 0.92,
+                  thinkingConfig: { thinkingBudget: 1024 },
+                },
+              }),
+              signal: AbortSignal.timeout(30000),
+            }
+          );
 
+        // Stream and collect all parts (text + possible functionCall)
+        const streamAndCollect = async (geminiRes: Response) => {
+          const reader = geminiRes.body?.getReader();
+          if (!reader) throw new Error('No reader');
+
+          const decoder = new TextDecoder();
+          let buffer = '';
+          const textChunks: string[] = [];
+          let functionCall: { name: string; args: Record<string, unknown> } | null = null;
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() ?? '';
+
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              const raw = line.slice(6).trim();
+              if (raw === '[DONE]') continue;
+              try {
+                const parsed = JSON.parse(raw);
+                const parts: { text?: string; thought?: boolean; functionCall?: { name: string; args: Record<string, unknown> } }[] =
+                  parsed?.candidates?.[0]?.content?.parts ?? [];
+                for (const part of parts) {
+                  if (part.thought) continue;
+                  if (part.functionCall) {
+                    functionCall = part.functionCall;
+                  } else if (part.text) {
+                    textChunks.push(part.text);
+                    fullReply += part.text;
+                    controller.enqueue(sse({ chunk: part.text }));
+                  }
+                }
+              } catch {
+                // malformed SSE line — skip
+              }
+            }
+          }
+          return { textChunks, functionCall };
+        };
+
+        const initialContents = [
+          ...conversationHistory,
+          { role: 'user', parts: [{ text: userMessage }] },
+        ];
+
+        const geminiRes = await makeGeminiRequest(initialContents);
         if (!geminiRes.ok) {
           const errText = await geminiRes.text();
           logger.error('Gemini stream error', { error: errText });
@@ -518,42 +824,23 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        const reader = geminiRes.body?.getReader();
-        if (!reader) {
-          controller.enqueue(sse({ error: 'Sin respuesta del modelo.' }));
-          controller.close();
-          return;
-        }
+        const { functionCall } = await streamAndCollect(geminiRes);
 
-        const decoder = new TextDecoder();
-        let buffer = '';
+        // Handle function call: execute tool, then send result back to Gemini for final reply
+        if (functionCall) {
+          const toolResult = await executeTool(functionCall.name, functionCall.args, tenant.restaurantId, menuUrl);
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+          // Second round: send tool result and get final text response
+          const contentsWithTool = [
+            ...initialContents,
+            { role: 'model', parts: [{ functionCall }] },
+            { role: 'user', parts: [{ functionResponse: { name: functionCall.name, response: { result: toolResult } } }] },
+          ];
 
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          buffer = lines.pop() ?? '';
-
-          for (const line of lines) {
-            if (!line.startsWith('data: ')) continue;
-            const raw = line.slice(6).trim();
-            if (raw === '[DONE]') continue;
-            try {
-              const parsed = JSON.parse(raw);
-              const parts: { text?: string; thought?: boolean }[] = parsed?.candidates?.[0]?.content?.parts ?? [];
-              for (const part of parts) {
-                if (part.thought) continue;
-                const chunk = part.text ?? '';
-                if (chunk) {
-                  fullReply += chunk;
-                  controller.enqueue(sse({ chunk }));
-                }
-              }
-            } catch {
-              // malformed SSE line — skip
-            }
+          const geminiRes2 = await makeGeminiRequest(contentsWithTool);
+          if (geminiRes2.ok) {
+            fullReply = ''; // reset — only save the final reply
+            await streamAndCollect(geminiRes2);
           }
         }
 
