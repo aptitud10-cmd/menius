@@ -1591,6 +1591,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   placeholder={t.yourPhonePlaceholder}
                   required
                   dark={false}
+                  country={restaurant.country_code ?? undefined}
                   error={!!fieldErrors.customer_phone}
                   valid={fieldTouched.customer_phone && !fieldErrors.customer_phone && /^\+?[\d\s()-]{7,}$/.test(customerPhone.trim())}
                 />

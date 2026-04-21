@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { captureError } from '@/lib/error-reporting';
 import { createHash } from 'crypto';
+import { COUNTRY_CONFIGS } from '@/lib/country-config';
 
 /**
  * POST /api/payments/wompi
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
     const adminDb = createAdminClient();
     const { data: order, error } = await adminDb
       .from('orders')
-      .select('id, order_number, total, customer_name, customer_email, customer_phone, restaurant_id, payment_status, restaurants ( currency )')
+      .select('id, order_number, total, customer_name, customer_email, customer_phone, restaurant_id, payment_status, restaurants ( currency, country_code )')
       .eq('id', order_id)
       .maybeSingle();
 
@@ -56,7 +57,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Esta orden ya fue pagada' }, { status: 409 });
     }
 
-    const currency = ((order as any).restaurants?.currency || 'COP').toUpperCase();
+    const restaurantData = (order as unknown as { restaurants?: { currency: string; country_code?: string | null } }).restaurants;
+    const currency = (restaurantData?.currency || 'COP').toUpperCase();
+    const countryCode = restaurantData?.country_code ?? null;
+    const phonePrefix = countryCode && COUNTRY_CONFIGS[countryCode]
+      ? `+${COUNTRY_CONFIGS[countryCode].phonePrefix}`
+      : '+57';
     if (currency !== 'COP') {
       return NextResponse.json({ error: 'Wompi only supports COP' }, { status: 400 });
     }
@@ -81,11 +87,11 @@ export async function POST(request: NextRequest) {
         email: order.customer_email || undefined,
         fullName: order.customer_name || undefined,
         phoneNumber: order.customer_phone?.replace(/[^0-9]/g, '') || undefined,
-        phoneNumberPrefix: '+57',
+        phoneNumberPrefix: phonePrefix,
       },
     });
-  } catch (err: any) {
+  } catch (err) {
     captureError(err, { route: '/api/payments/wompi' });
-    return NextResponse.json({ error: err.message ?? 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error interno' }, { status: 500 });
   }
 }
