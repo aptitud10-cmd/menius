@@ -86,19 +86,20 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createClient();
-    const { data: account } = await supabase
+    const { data: account, error: accountErr } = await supabase
       .from('loyalty_accounts')
       .select('points, lifetime_points')
       .eq('id', account_id)
       .eq('restaurant_id', rid)
-      .single();
+      .maybeSingle();
 
+    if (accountErr) return NextResponse.json({ error: accountErr.message }, { status: 500 });
     if (!account) return NextResponse.json({ error: 'Cuenta no encontrada' }, { status: 404 });
 
     const newPoints = Math.max(0, account.points + Number(points));
     const newLifetime = account.lifetime_points + (Number(points) > 0 ? Number(points) : 0);
 
-    await Promise.all([
+    const [updateRes, insertRes] = await Promise.all([
       supabase.from('loyalty_accounts').update({ points: newPoints, lifetime_points: newLifetime }).eq('id', account_id),
       supabase.from('loyalty_transactions').insert({
         restaurant_id: rid,
@@ -108,6 +109,9 @@ export async function POST(req: NextRequest) {
         description: description || undefined,
       }),
     ]);
+
+    if (updateRes.error) return NextResponse.json({ error: updateRes.error.message }, { status: 500 });
+    if (insertRes.error) return NextResponse.json({ error: insertRes.error.message }, { status: 500 });
 
     return NextResponse.json({ success: true, new_balance: newPoints });
   } catch {

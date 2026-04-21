@@ -1,5 +1,10 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getDashboardContext } from '@/lib/get-dashboard-context';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('api:kds-stations');
 
 export async function GET() {
   try {
@@ -11,7 +16,8 @@ export async function GET() {
       .order('position');
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ stations: data ?? [] });
-  } catch {
+  } catch (err) {
+    logger.error('kds-stations GET failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 }
@@ -30,7 +36,8 @@ export async function POST(req: NextRequest) {
       .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ station: data });
-  } catch {
+  } catch (err) {
+    logger.error('kds-stations POST failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 }
@@ -50,7 +57,8 @@ export async function PATCH(req: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
-  } catch {
+  } catch (err) {
+    logger.error('kds-stations PATCH failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 }
@@ -69,7 +77,8 @@ export async function DELETE(req: NextRequest) {
       .eq('restaurant_id', restaurantId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (err) {
+    logger.error('kds-stations DELETE failed', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 }
