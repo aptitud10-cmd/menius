@@ -310,6 +310,8 @@ const es = {
       colStarter: 'Starter',
       colPro: 'Pro',
       colBusiness: 'Business',
+      perOrder: '/orden',
+      perMonth: '/mes',
       rows: [
         { feature: 'Mesas', free: '5', commission: '15', starter: '15', pro: '50', business: 'Ilimitadas' },
         { feature: 'Dine-in', free: '✓', commission: '✓', starter: '✓', pro: '✓', business: '✓' },
@@ -706,6 +708,8 @@ const en: LandingT = {
       colStarter: 'Starter',
       colPro: 'Pro',
       colBusiness: 'Business',
+      perOrder: '/order',
+      perMonth: '/mo',
       rows: [
         { feature: 'Tables', free: '5', commission: '15', starter: '15', pro: '50', business: 'Unlimited' },
         { feature: 'Dine-in', free: '✓', commission: '✓', starter: '✓', pro: '✓', business: '✓' },

@@ -340,6 +340,40 @@ function CommissionPlanBanner({ tp }: { tp: LandingT['pricing'] }) {
 
 type ColKey = 'free' | 'commission' | 'starter' | 'pro' | 'business';
 
+const COL_PRICES: Record<ColKey, string> = {
+  free: '$0',
+  commission: '4%',
+  starter: '$39',
+  pro: '$79',
+  business: '$149',
+};
+
+const COL_PRICE_SUFFIX_KEYS: Record<ColKey, 'perOrder' | 'perMonth' | ''> = {
+  free: '',
+  commission: 'perOrder',
+  starter: 'perMonth',
+  pro: 'perMonth',
+  business: 'perMonth',
+};
+
+function CheckIcon() {
+  return (
+    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#05c8a7]/15">
+      <svg className="w-3 h-3 text-[#05c8a7]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+    </span>
+  );
+}
+
+function DashIcon() {
+  return (
+    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/[0.04]">
+      <span className="w-2 h-px bg-gray-600 block" />
+    </span>
+  );
+}
+
 function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boolean }) {
   const pc = t.pricing.planComparison;
   const colKeys: ColKey[] = isColombia
@@ -352,50 +386,72 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
   const isCheck = (v: string) => v === '✓';
   const isDash = (v: string) => v === '—';
   const starterIdx = isColombia ? 1 : 2;
+  const getSuffix = (key: ColKey) => {
+    const suffixKey = COL_PRICE_SUFFIX_KEYS[key];
+    if (!suffixKey) return '';
+    if (isColombia && key !== 'commission') return pc.perMonth;
+    return pc[suffixKey];
+  };
 
   return (
     <div className="d-fade-up">
-      <div className="text-center mb-8">
+      <div className="text-center mb-10">
         <p className="text-sm text-blue-400 uppercase tracking-[0.2em] font-medium mb-3">{pc.sectionLabel}</p>
-        <h3 className="font-display text-2xl md:text-3xl font-bold text-white tracking-tight">{pc.sectionTitle}</h3>
-        <p className="text-gray-400 mt-2 text-sm">{pc.sectionDesc}</p>
+        <h3 className="font-display text-3xl md:text-4xl font-extrabold text-white tracking-tight">{pc.sectionTitle}</h3>
+        <p className="text-gray-400 mt-2 text-sm max-w-md mx-auto">{pc.sectionDesc}</p>
       </div>
 
       {/* Mobile: horizontal scroll */}
       <div className="overflow-x-auto -mx-2 px-2">
-        <div className="min-w-[580px] rounded-2xl border border-white/[0.06] overflow-hidden bg-white/[0.02]">
+        <div className="min-w-[600px] rounded-2xl border border-white/[0.08] overflow-hidden bg-white/[0.02]">
           {/* Header */}
-          <div className={`grid`} style={{ gridTemplateColumns: `1fr repeat(${colKeys.length}, minmax(80px, 1fr))` }}>
-            <div className="p-4 border-b border-white/[0.06]" />
-            {colLabels.map((label, i) => (
-              <div
-                key={colKeys[i]}
-                className={`p-4 text-center border-b border-white/[0.06] ${i === starterIdx ? 'bg-[#05c8a7]/[0.06]' : ''}`}
-              >
-                <span className={`text-sm font-semibold ${i === starterIdx ? 'text-[#05c8a7]' : 'text-gray-300'}`}>{label}</span>
-              </div>
-            ))}
+          <div className="grid border-b border-white/[0.08]" style={{ gridTemplateColumns: `1.4fr repeat(${colKeys.length}, minmax(90px, 1fr))` }}>
+            <div className="px-5 py-5" />
+            {colLabels.map((label, i) => {
+              const key = colKeys[i];
+              const isStarter = i === starterIdx;
+              const price = isColombia
+                ? ({ starter: '$89K', pro: '$179K', business: '$349K', free: '$0', commission: '4%' } as Record<ColKey, string>)[key]
+                : COL_PRICES[key];
+              const suffix = getSuffix(key);
+              return (
+                <div
+                  key={key}
+                  className={`px-3 py-5 text-center flex flex-col items-center gap-1 ${isStarter ? 'bg-[#05c8a7]/[0.08]' : ''}`}
+                >
+                  {isStarter && (
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#05c8a7] bg-[#05c8a7]/10 px-2 py-0.5 rounded-full mb-0.5">Popular</span>
+                  )}
+                  <span className={`text-sm font-bold ${isStarter ? 'text-[#05c8a7]' : 'text-gray-200'}`}>{label}</span>
+                  <span className="text-xs text-gray-500">
+                    <span className={`font-semibold ${isStarter ? 'text-[#05c8a7]/80' : 'text-gray-400'}`}>{price}</span>
+                    {suffix && <span className="text-gray-600">{suffix}</span>}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
           {pc.rows.map((row, ri) => (
             <div
               key={row.feature}
-              className={`grid ${ri < pc.rows.length - 1 ? 'border-b border-white/[0.04]' : ''}`}
-              style={{ gridTemplateColumns: `1fr repeat(${colKeys.length}, minmax(80px, 1fr))` }}
+              className={`grid items-center ${ri < pc.rows.length - 1 ? 'border-b border-white/[0.04]' : ''} ${ri % 2 === 0 ? '' : 'bg-white/[0.01]'}`}
+              style={{ gridTemplateColumns: `1.4fr repeat(${colKeys.length}, minmax(90px, 1fr))` }}
             >
-              <div className="px-5 py-3">
-                <p className="text-sm text-gray-400">{row.feature}</p>
+              <div className="px-5 py-3.5">
+                <p className="text-sm font-medium text-gray-300">{row.feature}</p>
               </div>
               {colKeys.map((key, ci) => {
                 const val = row[key];
+                const isStarter = ci === starterIdx;
                 return (
-                  <div key={key} className={`px-3 py-3 text-center ${ci === starterIdx ? 'bg-[#05c8a7]/[0.03]' : ''}`}>
+                  <div key={key} className={`px-3 py-3.5 flex items-center justify-center ${isStarter ? 'bg-[#05c8a7]/[0.04]' : ''}`}>
                     {isCheck(val) ? (
-                      <svg className="w-4 h-4 text-[#05c8a7] mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      <CheckIcon />
                     ) : isDash(val) ? (
-                      <span className="text-gray-600 text-sm">—</span>
+                      <DashIcon />
                     ) : (
-                      <span className="text-sm text-gray-300 font-medium">{val}</span>
+                      <span className={`text-sm font-medium ${isStarter ? 'text-[#05c8a7]' : 'text-gray-300'}`}>{val}</span>
                     )}
                   </div>
                 );
@@ -448,10 +504,6 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
       </div>
 
       <div className="d-scale-in d-delay-2">
-        {!isColombia && (
-          <CommissionPlanBanner tp={tp} />
-        )}
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {tp.plans.map((plan, idx) => {
             const isPopular = idx === 1;
@@ -523,6 +575,12 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
             );
           })}
         </div>
+
+        {!isColombia && (
+          <div className="mt-6">
+            <CommissionPlanBanner tp={tp} />
+          </div>
+        )}
 
         <Link
           href="/signup"
