@@ -66,18 +66,18 @@ export async function POST(request: NextRequest) {
 
       const adminDb = createAdminClient();
 
-      // Atomic idempotency guard — ON CONFLICT is a no-op if already processed.
-      // Returns null data when the row already existed, so we skip re-processing.
+      // Idempotency guard — duplicate event_id raises a 23505 unique violation, not a null row.
       const eventId = `wompi:${transaction.id}`;
-      const { data: inserted } = await adminDb
+      const { error: insertErr } = await adminDb
         .from('processed_webhook_events')
-        .insert({ event_id: eventId, event_type: event })
-        .select('id')
-        .maybeSingle();
+        .insert({ event_id: eventId, event_type: event });
 
-      if (!inserted) {
-        logger.info('Duplicate Wompi webhook — skipping', { eventId });
-        return NextResponse.json({ received: true });
+      if (insertErr) {
+        if (insertErr.code === '23505') {
+          logger.info('Duplicate Wompi webhook — skipping', { eventId });
+          return NextResponse.json({ received: true });
+        }
+        throw insertErr;
       }
 
       const { data: order } = await adminDb

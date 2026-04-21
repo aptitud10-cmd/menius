@@ -500,6 +500,7 @@ export async function POST(request: NextRequest) {
 
     // Atomically increment promo usage BEFORE inserting the order.
     // The RPC re-checks max_uses with a row-level lock so concurrent orders can't both pass.
+    let promoIncremented = false;
     if (promo_code && discountAmt > 0) {
       const { data: promoOk } = await adminDb.rpc('increment_promo_usage', {
         p_code: promo_code.toUpperCase().trim(),
@@ -513,6 +514,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+      promoIncremented = true;
     }
 
     const { data: order, error: orderError } = await adminDb
@@ -523,6 +525,15 @@ export async function POST(request: NextRequest) {
 
     if (orderError) {
       logger.error('Failed to insert order', { error: orderError.message, restaurantId: restaurant.id });
+      if (promoIncremented) {
+        // Roll back the promo usage counter — the order never completed.
+        adminDb.rpc('decrement_promo_usage', {
+          p_code: promo_code!.toUpperCase().trim(),
+          p_restaurant_id: restaurant_id,
+        }).then(({ error: e }) => {
+          if (e) logger.error('Failed to rollback promo usage', { error: e.message });
+        });
+      }
       return NextResponse.json({ error: 'No se pudo crear la orden. Intenta de nuevo.' }, { status: 500 });
     }
 
