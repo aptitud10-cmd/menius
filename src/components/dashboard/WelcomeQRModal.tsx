@@ -116,7 +116,7 @@ export function WelcomeQRModal({ slug, restaurantName, locale = 'es' }: WelcomeQ
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[9999] hidden md:flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-label={s.headline}
