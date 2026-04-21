@@ -5,6 +5,9 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { randomBytes, createHash } from 'crypto';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('api:api-keys');
 
 function generateKey(): { raw: string; hash: string; prefix: string } {
   const raw = `mk_live_${randomBytes(24).toString('hex')}`;
@@ -32,7 +35,8 @@ export async function GET() {
     }
 
     return NextResponse.json({ keys: keys ?? [] });
-  } catch {
+  } catch (err) {
+    logger.error('api-keys error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
@@ -65,7 +69,8 @@ export async function POST(req: NextRequest) {
 
     // Return raw key ONCE — user must copy it
     return NextResponse.json({ key: { ...data, raw } });
-  } catch {
+  } catch (err) {
+    logger.error('api-keys error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
@@ -89,7 +94,8 @@ export async function DELETE(req: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (err) {
+    logger.error('api-keys error', { error: err instanceof Error ? err.message : String(err) });
     return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }
