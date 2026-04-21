@@ -154,6 +154,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (parsed.data.order_type === 'dine_in' && !(table_name ?? '').trim()) {
+      return NextResponse.json(
+        { error: en ? 'A table number is required for dine-in orders.' : 'Se requiere el número de mesa para órdenes en mesa.' },
+        { status: 400 }
+      );
+    }
+
     // Pause guard — if the restaurant paused orders, reject new ones
     const pausedUntil = (restaurant as any).orders_paused_until;
     if (pausedUntil && new Date(pausedUntil) > new Date()) {
