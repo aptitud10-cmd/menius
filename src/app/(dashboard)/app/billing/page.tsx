@@ -165,6 +165,7 @@ export default function BillingPage() {
   const [error, setError] = useState<string | null>(null);
   const [banner, setBanner] = useState<'success' | 'cancel' | null>(null);
   const [showCommissionModal, setShowCommissionModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     const checkout = searchParams.get('checkout');
@@ -279,6 +280,28 @@ export default function BillingPage() {
         window.location.href = connectData.url;
       } else {
         window.location.reload();
+      }
+    } catch {
+      setError(locale === 'en' ? 'Connection error' : 'Error de conexión');
+      setActionLoading(null);
+    }
+  }, [locale]);
+
+  const handleDeactivateCommission = useCallback(async () => {
+    setActionLoading('deactivate-commission');
+    setError(null);
+    try {
+      const res = await fetch('/api/billing/activate-commission-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deactivate: true }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.location.reload();
+      } else {
+        setError(data.error || (locale === 'en' ? 'Could not deactivate plan' : 'No se pudo desactivar el plan'));
+        setActionLoading(null);
       }
     } catch {
       setError(locale === 'en' ? 'Connection error' : 'Error de conexión');
@@ -550,6 +573,30 @@ export default function BillingPage() {
                   >
                     <CreditCard className="w-4 h-4" />
                     {actionLoading === resolvedId ? t.billing_redirecting : t.billing_subscribeNow}
+                  </button>
+                )}
+                {/* Cancel subscription — paid plans only, not trialing, not already canceled */}
+                {isActive && sub?.stripe_subscription_id && !sub.canceled_at && (
+                  <button
+                    onClick={() => setShowCancelModal(true)}
+                    disabled={actionLoading !== null}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-red-200 text-sm font-medium text-red-600 hover:bg-red-50 hover:border-red-300 disabled:opacity-50 transition-all"
+                  >
+                    <X className="w-4 h-4" />
+                    {locale === 'en' ? 'Cancel subscription' : 'Cancelar suscripción'}
+                  </button>
+                )}
+                {/* Deactivate commission plan */}
+                {commissions?.isCommissionPlan && (
+                  <button
+                    onClick={handleDeactivateCommission}
+                    disabled={actionLoading !== null}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-red-200 text-sm font-medium text-red-600 hover:bg-red-50 hover:border-red-300 disabled:opacity-50 transition-all"
+                  >
+                    <X className="w-4 h-4" />
+                    {actionLoading === 'deactivate-commission'
+                      ? (locale === 'en' ? 'Deactivating...' : 'Desactivando...')
+                      : (locale === 'en' ? 'Deactivate commission plan' : 'Desactivar plan comisión')}
                   </button>
                 )}
               </div>
@@ -992,6 +1039,56 @@ export default function BillingPage() {
             </p>
           </div>
           <PricingTable onSelect={handlePlanSelect} loading={actionLoading} />
+        </div>
+      )}
+
+      {/* ─── Cancel subscription confirmation modal ─── */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowCancelModal(false)}>
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setShowCancelModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-red-50 mb-4">
+              <AlertTriangle className="w-6 h-6 text-red-500" />
+            </div>
+
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              {locale === 'en' ? 'Cancel subscription?' : '¿Cancelar suscripción?'}
+            </h3>
+
+            <div className="space-y-3 mb-6">
+              <p className="text-sm text-gray-600 leading-relaxed">
+                {locale === 'en'
+                  ? `Your ${planInfo?.name} plan will remain active until ${periodEnd}. After that, your account will revert to the free plan.`
+                  : `Tu plan ${planInfo?.name} seguirá activo hasta el ${periodEnd}. Después, tu cuenta pasará al plan gratuito.`}
+              </p>
+              <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 space-y-1.5 text-xs text-amber-800">
+                <p>⚠ {locale === 'en' ? 'Online payments (Stripe Connect) will be disabled' : 'Los pagos online (Stripe Connect) se desactivarán'}</p>
+                <p>⚠ {locale === 'en' ? 'Access to advanced features will be removed' : 'El acceso a funciones avanzadas se eliminará'}</p>
+                <p>⚠ {locale === 'en' ? 'You can reactivate any time' : 'Puedes reactivar en cualquier momento'}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                {locale === 'en' ? 'Keep plan' : 'Mantener plan'}
+              </button>
+              <button
+                onClick={() => { setShowCancelModal(false); handlePortal(); }}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors"
+              >
+                {locale === 'en' ? 'Yes, cancel' : 'Sí, cancelar'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
