@@ -165,7 +165,7 @@ function ChatPanel({
         {visibleMessages.map((msg, idx) => {
           const isLastAI = msg.role === 'assistant' && !visibleMessages.slice(idx + 1).some(m => m.role === 'assistant');
           return (
-            <div key={msg.id} ref={isLastAI ? lastAiMsgRef : undefined}>
+            <div key={msg.id} ref={isLastAI ? (lastAiMsgRef as React.Ref<HTMLDivElement>) : undefined}>
               <MessageItem msg={msg} />
             </div>
           );
