@@ -93,10 +93,10 @@ const es = {
   },
   hero: {
     badge: 'Sin tarjeta · Sin contrato · Cancela cuando quieras',
-    titleLine1: 'Deja de pagar comisiones. ',
-    titleHighlight: 'Vende directo.',
+    titleLine1: 'Tu restaurante. Tu dinero. ',
+    titleHighlight: 'Sin intermediarios.',
     productLine: 'Menú digital + pedidos online para tu restaurante.',
-    subtitle: 'Tus clientes ordenan desde el celular. Tú cobras directo. Sin intermediarios. Sin comisiones. Listo en 2 minutos.',
+    subtitle: 'Menú con QR, pedidos en tiempo real y pagos directos. Listo en minutos, sin comisiones.',
     ctaPrimary: 'Empezar gratis — sin tarjeta',
     ctaSecondary: 'Calcula tu ahorro',
     stats: [
@@ -119,8 +119,8 @@ const es = {
     },
   },
   socialProof: {
-    headline: 'Restaurantes en México, Colombia, Perú y EE.UU. ya venden sin comisiones',
-    logos: ['Ciudad de México', 'Bogotá', 'Lima', 'Miami', 'Guadalajara'],
+    headline: 'Con tecnología de los mejores del mundo',
+    logos: ['Stripe', 'Google Gemini', 'Supabase', 'Vercel', 'Cloudflare'],
     stats: [
       { value: '0%', label: 'Comisión por pedido' },
       { value: '2 min', label: 'Menú listo' },
@@ -274,7 +274,7 @@ const es = {
       calcComparison: 'vs ~25% con otras plataformas',
       calcComparisonLabel: 'Otras plataformas (~25%)',
       calcUpsell: 'Considera Starter $39/mes y ahorra',
-      cta: 'Activar plan 4% — sin cuota mensual →',
+      cta: 'Empieza hoy, paga solo cuando vendas →',
       notColombia: 'Disponible en México, Chile, Perú y más. Colombia: solo planes mensuales.',
       features: ['Menú digital con fotos', 'QR para hasta 15 mesas', 'Pedidos (dine-in + pickup + delivery)', 'Sin marca MENIUS', 'MENIUS AI', 'Analytics completo', '2 usuarios administradores', 'Soporte por chat (8h)'],
     },
@@ -370,7 +370,7 @@ const es = {
   finalCta: {
     line1: 'Tu menú digital.',
     line2: 'Disponible hoy.',
-    subtitle: 'Plan gratis para siempre. Sin tarjeta. Configura tu menú en minutos.',
+    subtitle: 'Configura tu primer menú en 15 minutos. Gratis para siempre, sin tarjeta.',
     ctaPrimary: 'Empezar gratis',
     ctaSecondary: 'Ver demo en vivo',
   },
@@ -491,10 +491,10 @@ const en: LandingT = {
   },
   hero: {
     badge: 'No card · No contract · Cancel anytime',
-    titleLine1: 'Stop paying commissions. ',
-    titleHighlight: 'Sell direct.',
+    titleLine1: 'Your restaurant. Your money. ',
+    titleHighlight: 'No middlemen.',
     productLine: 'Digital menu + online orders for your restaurant.',
-    subtitle: 'Your customers order from their phone. You collect directly. No middlemen. No commissions. Ready in 2 minutes.',
+    subtitle: 'QR menu, real-time orders, and direct payments. Ready in minutes, no commissions.',
     ctaPrimary: 'Start free — no card needed',
     ctaSecondary: 'Calculate your savings',
     stats: [
@@ -517,8 +517,8 @@ const en: LandingT = {
     },
   },
   socialProof: {
-    headline: 'Restaurants in Mexico, Colombia, Peru and the U.S. already sell without commissions',
-    logos: ['Mexico City', 'Bogotá', 'Lima', 'Miami', 'Guadalajara'],
+    headline: 'Built with the best technology in the world',
+    logos: ['Stripe', 'Google Gemini', 'Supabase', 'Vercel', 'Cloudflare'],
     stats: [
       { value: '0%', label: 'Commission per order' },
       { value: '2 min', label: 'Menu ready' },
@@ -672,7 +672,7 @@ const en: LandingT = {
       calcComparison: 'vs ~25% with other platforms',
       calcComparisonLabel: 'Other platforms (~25%)',
       calcUpsell: 'Consider Starter $39/mo and save',
-      cta: 'Activate 4% plan — no monthly fee →',
+      cta: 'Start today, pay only when you sell →',
       notColombia: 'Available in Mexico, Chile, Peru and more. Colombia: monthly plans only.',
       features: ['Digital menu with photos', 'QR codes up to 15 tables', 'Orders (dine-in + pickup + delivery)', 'No MENIUS branding', 'MENIUS AI', 'Full analytics', '2 admin users', 'Chat support (8h)'],
     },
@@ -768,7 +768,7 @@ const en: LandingT = {
   finalCta: {
     line1: 'Your digital menu.',
     line2: 'Available today.',
-    subtitle: 'Forever free plan. No credit card. Set up your menu in minutes.',
+    subtitle: 'Set up your first menu in 15 minutes. Free forever, no credit card.',
     ctaPrimary: 'Start free',
     ctaSecondary: 'View live demo',
   },

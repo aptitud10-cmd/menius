@@ -385,7 +385,7 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
 
   const isCheck = (v: string) => v === '✓';
   const isDash = (v: string) => v === '—';
-  const starterIdx = isColombia ? 1 : 2;
+  const proIdx = isColombia ? 2 : 3;
   const getSuffix = (key: ColKey) => {
     const suffixKey = COL_PRICE_SUFFIX_KEYS[key];
     if (!suffixKey) return '';
@@ -409,7 +409,7 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
             <div className="px-5 py-5" />
             {colLabels.map((label, i) => {
               const key = colKeys[i];
-              const isStarter = i === starterIdx;
+              const isPro = i === proIdx;
               const price = isColombia
                 ? ({ starter: '$89K', pro: '$179K', business: '$349K', free: '$0', commission: '4%' } as Record<ColKey, string>)[key]
                 : COL_PRICES[key];
@@ -417,14 +417,14 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
               return (
                 <div
                   key={key}
-                  className={`px-3 py-5 text-center flex flex-col items-center gap-1 ${isStarter ? 'bg-[#05c8a7]/[0.08]' : ''}`}
+                  className={`px-3 py-5 text-center flex flex-col items-center gap-1 ${isPro ? 'bg-[#05c8a7]/[0.08]' : ''}`}
                 >
-                  {isStarter && (
+                  {isPro && (
                     <span className="text-[9px] font-bold uppercase tracking-widest text-[#05c8a7] bg-[#05c8a7]/10 px-2 py-0.5 rounded-full mb-0.5">Popular</span>
                   )}
-                  <span className={`text-sm font-bold ${isStarter ? 'text-[#05c8a7]' : 'text-gray-200'}`}>{label}</span>
-                  <span className="text-xs text-gray-500">
-                    <span className={`font-semibold ${isStarter ? 'text-[#05c8a7]/80' : 'text-gray-400'}`}>{price}</span>
+                  <span className={`text-sm font-bold whitespace-nowrap ${isPro ? 'text-[#05c8a7]' : 'text-gray-200'}`}>{label}</span>
+                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                    <span className={`font-semibold ${isPro ? 'text-[#05c8a7]/80' : 'text-gray-400'}`}>{price}</span>
                     {suffix && <span className="text-gray-600">{suffix}</span>}
                   </span>
                 </div>
@@ -443,15 +443,15 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
               </div>
               {colKeys.map((key, ci) => {
                 const val = row[key];
-                const isStarter = ci === starterIdx;
+                const isPro = ci === proIdx;
                 return (
-                  <div key={key} className={`px-3 py-3.5 flex items-center justify-center ${isStarter ? 'bg-[#05c8a7]/[0.04]' : ''}`}>
+                  <div key={key} className={`px-3 py-3.5 flex items-center justify-center ${isPro ? 'bg-[#05c8a7]/[0.04]' : ''}`}>
                     {isCheck(val) ? (
                       <CheckIcon />
                     ) : isDash(val) ? (
                       <DashIcon />
                     ) : (
-                      <span className={`text-sm font-medium ${isStarter ? 'text-[#05c8a7]' : 'text-gray-300'}`}>{val}</span>
+                      <span className={`text-sm font-medium ${isPro ? 'text-[#05c8a7]' : 'text-gray-300'}`}>{val}</span>
                     )}
                   </div>
                 );
@@ -652,6 +652,7 @@ const FAQ_ES = [
   { q: '¿MENIUS cobra comisión por pedido?', a: 'Los pedidos en efectivo no tienen comisión en ningún plan. Los pagos online con Stripe tienen 0% de comisión en todos los planes de suscripción. El plan Free no incluye pagos online. Wompi (Colombia) tampoco tiene comisión de MENIUS.' },
   { q: '¿Puedo cancelar en cualquier momento?', a: 'Sí. Sin contratos ni penalidades. Cancelas cuando quieras desde tu dashboard y vuelves automáticamente al plan Free — tu cuenta y menú permanecen intactos.' },
   { q: '¿Es seguro?', a: 'Sí. Todos los pagos se procesan a través de Stripe o Wompi (PCI DSS Level 1). Tu menú usa HTTPS con certificado SSL. No almacenamos datos de tarjetas de crédito.' },
+  { q: '¿Funciona con mi tipo de restaurante?', a: 'Sí. MENIUS funciona para restaurantes de mesa, comida para llevar (pickup), delivery propio, food trucks, dark kitchens, cafeterías, bares, heladerías y cualquier negocio de alimentos. Si vendes comida, MENIUS funciona.' },
 ];
 
 const FAQ_EN = [
@@ -661,6 +662,7 @@ const FAQ_EN = [
   { q: 'Does MENIUS charge a commission per order?', a: 'Cash orders have zero commission on any plan. Online payments via Stripe have 0% commission on all subscription plans. The Free plan does not include online payments. Wompi (Colombia) also has no MENIUS commission.' },
   { q: 'Can I cancel anytime?', a: 'Yes. No contracts or penalties. Cancel anytime from your dashboard and you automatically return to the Free plan — your account, menu, and data stay intact.' },
   { q: 'Is it secure?', a: 'Yes. All payments are processed through Stripe or Wompi (PCI DSS Level 1). Your menu uses HTTPS with SSL. We never store credit card data.' },
+  { q: 'Does it work for my type of restaurant?', a: 'Yes. MENIUS works for dine-in restaurants, takeout (pickup), in-house delivery, food trucks, dark kitchens, cafés, bars, ice cream shops, and any food business. If you sell food, MENIUS works.' },
 ];
 
 function FaqSection({ locale }: { locale: LandingLocale }) {
@@ -722,6 +724,20 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
 
       <div className="separator-gradient max-w-5xl mx-auto" />
 
+      {/* ── Pricing ── */}
+      <section id="precios" className="relative py-24 md:py-40 overflow-clip">
+        <div className="section-glow section-glow-blue" />
+        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-[#05c8a7]/15 blur-[100px] pointer-events-none" />
+        <div className="relative z-10 max-w-5xl mx-auto px-6">
+          <PricingSection t={t} isColombia={isColombia} />
+          <div className="mt-16">
+            <PlanComparisonTable t={t} isColombia={isColombia} />
+          </div>
+        </div>
+      </section>
+
+      <div className="separator-gradient max-w-5xl mx-auto" />
+
       {/* ── Savings Calculator ── */}
       <section id="calculadora" className="relative py-24 md:py-40 overflow-clip">
         <div className="section-glow section-glow-purple" />
@@ -742,15 +758,6 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
           </div>
         </div>
       </section>
-
-      {/* ── Mid CTA: after Savings Calculator ── */}
-      <div className="max-w-4xl mx-auto px-6 -mt-10 mb-6">
-        <MidCta
-          text={t.savings.midCta.text}
-          highlight={t.savings.midCta.highlight}
-          cta={t.savings.midCta.cta}
-        />
-      </div>
 
       <div className="separator-gradient max-w-5xl mx-auto" />
 
@@ -839,7 +846,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
         </div>
       </section>
 
-      {/* ── Mid CTA: after Comparison ── */}
+      {/* ── Single Mid CTA: after Comparison ── */}
       <div className="max-w-4xl mx-auto px-6 -mt-10 mb-6">
         <MidCta
           text={t.comparison.midCta.text}
@@ -898,20 +905,6 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
             <TestimonialsSection t={t.testimonials} />
           </div>
 
-        </div>
-      </section>
-
-      <div className="separator-gradient max-w-5xl mx-auto" />
-
-      {/* ── Pricing ── */}
-      <section id="precios" className="relative py-24 md:py-40 overflow-clip">
-        <div className="section-glow section-glow-blue" />
-        <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-[#05c8a7]/15 blur-[100px] pointer-events-none" />
-        <div className="relative z-10 max-w-5xl mx-auto px-6">
-          <PricingSection t={t} isColombia={isColombia} />
-          <div className="mt-16">
-            <PlanComparisonTable t={t} isColombia={isColombia} />
-          </div>
         </div>
       </section>
 

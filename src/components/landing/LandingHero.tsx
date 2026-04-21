@@ -19,11 +19,6 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
 
           <div className="text-center lg:text-left">
-            <div className="d-fade-up inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.04] mb-6 md:mb-8">
-              <span className="w-2 h-2 rounded-full bg-[#05c8a7]" />
-              <span className="text-sm text-gray-300 tracking-wide">{h.badge}</span>
-            </div>
-
             <h1
               className="d-fade-up d-delay-1 font-display font-extrabold leading-[1.06] tracking-[-0.03em] text-white"
               style={{ fontSize: 'clamp(2.5rem, 5.5vw, 4.5rem)' }}
@@ -55,6 +50,8 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
                 {h.ctaSecondary}
               </Link>
             </div>
+
+            <p className="d-fade-up d-delay-3 mt-3 text-xs text-gray-500 text-center lg:text-left">{h.badge}</p>
 
             <div className="d-fade-up d-delay-3 mt-4 flex items-center justify-center lg:justify-start gap-2.5 flex-wrap">
               {['SSL', 'Stripe', 'CCPA'].map((b) => (
