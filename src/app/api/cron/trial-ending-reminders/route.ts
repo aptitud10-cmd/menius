@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       subs
         .filter((sub) => !!(sub.restaurants as any)?.notification_email)
         .map((sub) => {
-          const rest = sub.restaurants as { name: string; slug: string; locale: string; notification_email: string };
+          const rest = sub.restaurants as unknown as { name: string; slug: string; locale: string; notification_email: string };
           const en = rest.locale === 'en';
           return sendEmail({
             to: rest.notification_email,
