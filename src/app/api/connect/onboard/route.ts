@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('id, name, stripe_account_id, country_code, currency')
+      .select('id, name, stripe_account_id, country_code, currency, commission_plan')
       .eq('owner_user_id', user.id)
       .maybeSingle();
 
@@ -33,13 +33,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
     }
 
-    // Online payments require at least the Starter plan.
-    const hasOnlinePayments = await hasPlanAccess(restaurant.id, 'starter');
-    if (!hasOnlinePayments) {
-      return NextResponse.json(
-        { error: 'Los pagos online requieren el plan Starter o superior. Suscríbete en Ajustes → Suscripción.' },
-        { status: 403 }
-      );
+    // Commission plan users get Stripe Connect access without a paid subscription.
+    // For all others, require Starter or above.
+    const isCommissionPlan = (restaurant as any).commission_plan === true;
+    if (!isCommissionPlan) {
+      const hasOnlinePayments = await hasPlanAccess(restaurant.id, 'starter');
+      if (!hasOnlinePayments) {
+        return NextResponse.json(
+          { error: 'Los pagos online requieren el plan Starter o superior, o el plan 4% comisión.' },
+          { status: 403 }
+        );
+      }
     }
 
     const countryCode = (restaurant.country_code ?? '').toUpperCase();

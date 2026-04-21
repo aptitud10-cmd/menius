@@ -261,17 +261,27 @@ export default function BillingPage() {
     setError(null);
     setShowCommissionModal(false);
     try {
-      const res = await fetch('/api/billing/activate-commission-plan', {
+      // Step 1: activate commission_plan flag in DB
+      const activateRes = await fetch('/api/billing/activate-commission-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
       });
-      const data = await res.json();
-      if (data.success) {
-        window.location.reload();
-      } else {
-        setError(data.error || (locale === 'en' ? 'Could not activate plan' : 'No se pudo activar el plan'));
+      const activateData = await activateRes.json();
+      if (!activateData.success) {
+        setError(activateData.error || (locale === 'en' ? 'Could not activate plan' : 'No se pudo activar el plan'));
         setActionLoading(null);
+        return;
+      }
+
+      // Step 2: redirect to Stripe Connect onboarding so the restaurant can accept card payments
+      const connectRes = await fetch('/api/connect/onboard', { method: 'POST' });
+      const connectData = await connectRes.json();
+      if (connectData.url) {
+        window.location.href = connectData.url;
+      } else {
+        // Commission plan is active even if Stripe Connect is skipped — user can set it up later in Settings
+        window.location.reload();
       }
     } catch {
       setError(locale === 'en' ? 'Connection error' : 'Error de conexión');
