@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
 
     if (!restaurant) {
       logger.error('Restaurant not found after adminDb query', { restaurant_id, restaurant_id_type: typeof restaurant_id });
-      return NextResponse.json({ error: bodyEn ? 'Restaurant not found' : 'Restaurante no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: bodyEn ? 'Restaurant not found' : 'Restaurante no encontrado', _debug_id: String(restaurant_id) }, { status: 404 });
     }
 
     const en = restaurant.locale === 'en';
