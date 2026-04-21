@@ -28,6 +28,7 @@ export interface DeliveryMapProps {
   driverLat?: number | null;
   driverLng?: number | null;
   locale?: string;
+  onEtaUpdate?: (minutes: number | null) => void;
 }
 
 // ── Directions — proxied through backend to protect Mapbox quota + Redis cache ─
@@ -119,9 +120,10 @@ interface LiveMapProps {
   driverCoords: Coords | null;
   etaMinutes: number | null;
   locale?: string;
+  onEtaUpdate?: (minutes: number | null) => void;
 }
 
-function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoords, etaMinutes: etaMinutesProp, locale }: LiveMapProps) {
+function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoords, etaMinutes: etaMinutesProp, locale, onEtaUpdate }: LiveMapProps) {
   const en = locale === 'en';
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
@@ -343,8 +345,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
     lastRoutePosRef.current = driverCoords;
 
     fetchDirections(driverCoords, deliveryCoords).then(({ etaMinutes: eta, routeCoords }) => {
-      // Update ETA chip from the same API call — no extra request
-      if (eta !== null) setLiveEta(eta);
+      if (eta !== null) { setLiveEta(eta); onEtaUpdate?.(eta); }
 
       if (!routeCoords || !map.getSource('route')) return;
       // Update GeoJSON source with real road geometry
@@ -392,7 +393,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName, driverLat, driverLng, locale }: DeliveryMapProps) {
+export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName, driverLat, driverLng, locale, onEtaUpdate }: DeliveryMapProps) {
   const en = locale === 'en';
   const [restaurantCoords, setRestaurantCoords] = useState<Coords | null>(null);
   const [deliveryCoords, setDeliveryCoords] = useState<Coords | null>(null);
@@ -450,6 +451,7 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
         driverCoords={driverCoords}
         etaMinutes={etaMinutes}
         locale={locale}
+        onEtaUpdate={onEtaUpdate}
       />
       {driverCoords && (
         <div className="flex items-center gap-1.5 justify-center">

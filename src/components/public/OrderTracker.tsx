@@ -161,6 +161,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // Live GPS coords pushed directly from the broadcast 'location_update' event.
   // Updated without HTTP refetch so the map marker moves in real-time.
   const [liveDriverCoords, setLiveDriverCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [liveDeliveryEta, setLiveDeliveryEta] = useState<number | null>(null);
 
   const hasInitialOrder = !!initialOrder;
 
@@ -554,16 +555,40 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
         {/* ── MAP HERO — promoted to top when driver is on the road ── */}
         {order.order_type === 'delivery' && (order as any).driver_picked_up_at && order.status !== 'delivered' && (
-          <div className="tracker-card rounded-3xl shadow-md">
-            <DeliveryMap
-              restaurantAddress={restaurantAddress}
-              deliveryAddress={order.delivery_address}
-              restaurantName={restaurantName}
-              driverLat={liveDriverCoords?.lat ?? (order as any).driver_lat ?? null}
-              driverLng={liveDriverCoords?.lng ?? (order as any).driver_lng ?? null}
-              locale={locale}
-            />
-          </div>
+          <>
+            {/* Live ETA hero — updates every ~50m of driver movement via Mapbox Directions */}
+            <div className="tracker-card rounded-3xl bg-gradient-to-br from-[#fff7ed] to-[#ffedd5] border border-orange-200 shadow-sm overflow-hidden">
+              <div className="px-6 py-7 text-center">
+                <p className="text-[11px] font-bold text-orange-500 uppercase tracking-widest mb-3">
+                  {t.en ? 'Driver on the way' : 'Repartidor en camino'}
+                </p>
+                {liveDeliveryEta !== null ? (
+                  <>
+                    <div className="flex items-end justify-center gap-1 mb-1">
+                      <span className="text-[72px] font-black text-orange-600 leading-none tabular-nums">~{liveDeliveryEta}</span>
+                      <span className="text-2xl font-bold text-orange-400 mb-3">min</span>
+                    </div>
+                    <p className="text-sm text-orange-500 font-medium">
+                      {t.en ? 'estimated arrival' : 'tiempo estimado de llegada'}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-3xl font-black text-orange-600 mb-1">🛵</p>
+                )}
+              </div>
+            </div>
+            <div className="tracker-card rounded-3xl shadow-md">
+              <DeliveryMap
+                restaurantAddress={restaurantAddress}
+                deliveryAddress={order.delivery_address}
+                restaurantName={restaurantName}
+                driverLat={liveDriverCoords?.lat ?? (order as any).driver_lat ?? null}
+                driverLng={liveDriverCoords?.lng ?? (order as any).driver_lng ?? null}
+                locale={locale}
+                onEtaUpdate={setLiveDeliveryEta}
+              />
+            </div>
+          </>
         )}
 
         {/* ── ETA HERO (Uber-style large display) ── */}
