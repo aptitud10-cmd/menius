@@ -1,19 +1,22 @@
-// SW v15 — MENIUS PWA
+// SW v16 — MENIUS PWA
 // Strategy:
 //   - Static assets (JS/CSS/fonts/icons): Cache-first, very long TTL
 //   - HTML pages: Network-first with cache fallback (keeps menus fresh)
 //   - API calls: Network-only (always fresh data)
-//   - Offline: serve /offline fallback page
+//   - Offline: serve /offline fallback page (driver pages → /driver/offline)
+//   - Background Sync: replay queued driver status actions on reconnect
 
-const CACHE_NAME = 'menius-v15';
+const CACHE_NAME = 'menius-v16';
 const OFFLINE_URL = '/offline';
+const DRIVER_OFFLINE_URL = '/driver/offline';
 
 // Assets to pre-cache on install (shell of the app)
 const PRECACHE_URLS = [
   OFFLINE_URL,
+  DRIVER_OFFLINE_URL,
 ];
 
-// Install: pre-cache the offline page
+// Install: pre-cache the offline pages
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
@@ -80,7 +83,13 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(async () => {
           const cache = await caches.open(CACHE_NAME);
-          return (await cache.match(request)) || (await cache.match(OFFLINE_URL)) || new Response('Offline', { status: 503 });
+          const cached = await cache.match(request);
+          if (cached) return cached;
+          // Driver pages get a driver-specific offline screen
+          if (url.pathname.startsWith('/driver/track/')) {
+            return (await cache.match(DRIVER_OFFLINE_URL)) || new Response('Offline', { status: 503 });
+          }
+          return (await cache.match(OFFLINE_URL)) || new Response('Offline', { status: 503 });
         })
     );
     return;
@@ -117,3 +126,63 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+
+// ── Background Sync — replay queued driver status actions ─────────────────────
+
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'driver-status-sync') {
+    event.waitUntil(replayStatusQueue());
+  }
+});
+
+async function replayStatusQueue() {
+  let db;
+  try { db = await openDriverDB(); } catch { return; }
+  const pending = await getAllPending(db);
+  for (const item of pending) {
+    try {
+      const res = await fetch('/api/driver/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: item.token, action: item.action }),
+      });
+      // Remove on success or permanent client error (4xx) — not on 5xx/network error
+      if (res.ok || (res.status >= 400 && res.status < 500)) {
+        await deleteItem(db, item.id);
+      }
+    } catch {
+      break; // Still offline — stop; sync event will fire again on reconnect
+    }
+  }
+}
+
+// ── IndexedDB helpers (raw API, no external deps) ─────────────────────────────
+
+function openDriverDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('menius-driver', 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore('status_queue', { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function getAllPending(db) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('status_queue', 'readonly');
+    const req = tx.objectStore('status_queue').getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function deleteItem(db, id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('status_queue', 'readwrite');
+    const req = tx.objectStore('status_queue').delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}

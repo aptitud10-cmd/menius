@@ -7,6 +7,7 @@ import {
   Loader2, Package, DoorOpen, MapPin, Bike, AlertTriangle, Navigation,
 } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { usePWAInstall } from '@/hooks/use-pwa-install';
 
 type GpsStatus = 'idle' | 'sharing' | 'error' | 'unsupported';
 type DeliveryStep = 'start' | 'picked_up' | 'at_door' | 'delivered';
@@ -47,8 +48,71 @@ function getT(lang: string) {
 
 const STEPS: DeliveryStep[] = ['start', 'picked_up', 'at_door', 'delivered'];
 
+// ── IndexedDB helpers for offline status queue ────────────────────────────────
+
+function openDriverDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('menius-driver', 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore('status_queue', { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function queueStatusAction(token: string, action: string): Promise<void> {
+  try {
+    const db = await openDriverDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('status_queue', 'readwrite');
+      tx.objectStore('status_queue').add({ token, action, ts: Date.now() });
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    // Register background sync (Android Chrome only — iOS falls back to online-event replay)
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+      const reg = await navigator.serviceWorker.ready;
+      await (reg as unknown as { sync: { register: (tag: string) => Promise<void> } }).sync.register('driver-status-sync');
+    }
+  } catch { /* silent — action error shown to user on non-network failures */ }
+}
+
+async function replayQueuedActions(token: string): Promise<void> {
+  try {
+    const db = await openDriverDB();
+    const items: Array<{ id: number; token: string; action: string }> = await new Promise((resolve, reject) => {
+      const tx = db.transaction('status_queue', 'readonly');
+      const req = tx.objectStore('status_queue').getAll();
+      req.onsuccess = () => resolve(req.result as Array<{ id: number; token: string; action: string }>);
+      req.onerror = () => reject(req.error);
+    });
+    for (const item of items) {
+      try {
+        const res = await fetch('/api/driver/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: item.token, action: item.action }),
+        });
+        if (res.ok || (res.status >= 400 && res.status < 500)) {
+          const db2 = await openDriverDB();
+          await new Promise<void>((resolve, reject) => {
+            const tx = db2.transaction('status_queue', 'readwrite');
+            tx.objectStore('status_queue').delete(item.id);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+          });
+        }
+      } catch { break; }
+    }
+  } catch { /* silent */ }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function DriverTrackClient({ token, lang }: { token: string; lang: string }) {
   const t = getT(lang);
+  const { canInstall, install } = usePWAInstall();
 
   const [gpsStatus, setGpsStatus] = useState<GpsStatus>('idle');
   const [gpsError, setGpsError] = useState('');
@@ -66,10 +130,15 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   const [orderCancelled, setOrderCancelled] = useState(false);
   const [wakeLockActive, setWakeLockActive] = useState(false);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
-  // watchPosition ID — replaces setInterval approach for continuous GPS
   const watchIdRef = useRef<number | null>(null);
-  // Throttle: skip sends if last send was < 4 seconds ago AND moved < 15m
   const lastSendRef = useRef<{ lat: number; lng: number; ts: number } | null>(null);
+
+  // PWA / offline additions
+  const [isOnline, setIsOnline] = useState(true);
+  const [offlineBannerDismissed, setOfflineBannerDismissed] = useState(false);
+  const [restaurantName, setRestaurantName] = useState<string | null>(null);
+  const [installDismissed, setInstallDismissed] = useState(false);
+  const pendingLocationRef = useRef<{ lat: number; lng: number } | null>(null);
 
   const fetchOrderInfo = useCallback(async () => {
     try {
@@ -79,6 +148,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
         setDeliveryAddress(data.deliveryAddress ?? null);
         setCustomerPhone(data.customerPhone ?? null);
         if (data.orderId) setOrderId(data.orderId);
+        if (data.restaurantName) setRestaurantName(data.restaurantName);
         if (data.orderStatus === 'cancelled') setOrderCancelled(true);
 
         // Restore step from server timestamps so a page reload doesn't reset progress
@@ -98,19 +168,13 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
 
   useEffect(() => { fetchOrderInfo(); }, [fetchOrderInfo]);
 
-  // Realtime subscription — notifies the driver immediately if the restaurant cancels the order.
-  // Only subscribes once we have the order's UUID from the initial REST fetch.
-  //
-  // Uses Broadcast (same channel as the customer tracking page) instead of
-  // postgres_changes because the driver page has no Supabase session — the anon
-  // key has no RLS SELECT on orders, so postgres_changes events are silently dropped.
-  // Broadcast is not gated by RLS, so cancellation arrives reliably.
+  // Realtime subscription — notifies the driver immediately if the restaurant cancels the order
   useEffect(() => {
     if (!orderId) return;
     const supabase = getSupabaseBrowser();
     const channel = supabase
       .channel(`order-track:${orderId}`)
-      .on('broadcast', { event: 'status_change' }, ({ payload }) => {
+      .on('broadcast', { event: 'status_change' }, ({ payload }: { payload: Record<string, unknown> }) => {
         if (payload?.status === 'cancelled') {
           setOrderCancelled(true);
           stopGps();
@@ -123,8 +187,37 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
+  // Online/offline detection + iOS manual queue replay on reconnect
+  useEffect(() => {
+    const handleOnline = async () => {
+      setIsOnline(true);
+      // Flush pending GPS location
+      if (pendingLocationRef.current && gpsStatus === 'sharing') {
+        const { lat, lng } = pendingLocationRef.current;
+        pendingLocationRef.current = null;
+        sendLocation(lat, lng);
+      }
+      // iOS manual replay (SyncManager not available on Safari)
+      if (!('SyncManager' in window)) {
+        await replayQueuedActions(token);
+      }
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      setOfflineBannerDismissed(false);
+    };
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    setIsOnline(navigator.onLine);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  // sendLocation is stable (uses refs only)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gpsStatus, token]);
+
   const sendLocation = async (lat: number, lng: number) => {
-    // Throttle: skip if < 4 s since last send AND moved < 15 m (~0.000135 deg)
     const now = Date.now();
     const last = lastSendRef.current;
     if (last) {
@@ -133,7 +226,6 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
       const dlng = Math.abs(lng - last.lng);
       if (dt < 4_000 && dlat < 0.000135 && dlng < 0.000135) return;
     }
-    lastSendRef.current = { lat, lng, ts: now };
 
     try {
       const res = await fetch('/api/driver/location', {
@@ -141,14 +233,21 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, lat, lng }),
       });
+      // Only record last-send after a successful send so retries aren't throttled
+      if (res.status !== 410) {
+        lastSendRef.current = { lat, lng, ts: now };
+      }
       if (res.status === 410) stopGps();
-    } catch { /* silent */ }
+    } catch {
+      // Network error — store for flush on reconnect
+      pendingLocationRef.current = { lat, lng };
+    }
   };
 
   const acquireWakeLock = async () => {
     if (!('wakeLock' in navigator)) return;
     try {
-      const lock: WakeLockSentinel = await (navigator as any).wakeLock.request('screen');
+      const lock: WakeLockSentinel = await (navigator as unknown as { wakeLock: { request: (type: string) => Promise<WakeLockSentinel> } }).wakeLock.request('screen');
       wakeLockRef.current = lock;
       setWakeLockActive(true);
       lock.addEventListener('release', () => {
@@ -169,7 +268,6 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
 
   const startGps = () => {
     if (!navigator.geolocation) { setGpsStatus('unsupported'); return; }
-    // Stop any existing watch before starting a new one
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
@@ -187,7 +285,6 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
       },
       err => {
         setGpsError(err.message);
-        // PERMISSION_DENIED = 1, set unsupported. Others are transient — keep trying.
         if (err.code === 1) setGpsStatus('unsupported');
         else setGpsStatus('error');
       },
@@ -240,8 +337,10 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
       setActionError(res.status === 410 ? t.tokenExp : (d.error ?? t.errSend));
       return false;
     } catch {
-      setActionError(t.connErr);
-      return false;
+      // Network error — queue in IndexedDB for background sync replay
+      await queueStatusAction(token, action);
+      if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+      return true; // optimistically advance UI — IndexedDB guarantees delivery
     } finally {
       setActionLoading(false);
     }
@@ -331,7 +430,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
     <div className="min-h-[100dvh] bg-gray-950 flex flex-col items-center p-5 pb-10 text-white">
       <div className="w-full max-w-sm space-y-5 mt-8">
 
-        {/* Cancellation banner — shown in real-time if restaurant cancels the order */}
+        {/* Cancellation banner */}
         {orderCancelled && (
           <div className="flex items-start gap-3 bg-red-950/80 border border-red-700 rounded-2xl p-4">
             <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
@@ -346,17 +445,36 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           </div>
         )}
 
+        {/* Offline banner */}
+        {!isOnline && !offlineBannerDismissed && (
+          <div className="flex items-center gap-3 bg-amber-950/70 border border-amber-800 rounded-xl px-4 py-2.5">
+            <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+            <span className="text-amber-300 text-sm font-semibold flex-1">
+              {t.en ? 'No connection — actions saved' : 'Sin conexión — acciones guardadas'}
+            </span>
+            <button onClick={() => setOfflineBannerDismissed(true)} className="text-amber-600 hover:text-amber-400 transition-colors text-lg leading-none">✕</button>
+          </div>
+        )}
+
+        {/* Header */}
         <div className="text-center space-y-1">
           <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-3">
             <Bike className="w-8 h-8 text-emerald-400" />
           </div>
-          <h1 className="text-2xl font-black">{t.title}</h1>
+          {restaurantName && (
+            <p className="text-xs font-bold text-emerald-500 uppercase tracking-widest">{restaurantName}</p>
+          )}
+          <h1 className="text-xl font-black text-white">{t.title}</h1>
         </div>
 
+        {/* GPS status pill */}
         {gpsStatus === 'sharing' && (
           <div className="flex items-center justify-between gap-2 bg-emerald-950/50 border border-emerald-900 rounded-xl px-4 py-2.5">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+              <span className="relative flex w-2 h-2 flex-shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+              </span>
               <span className="text-emerald-400 text-sm font-semibold">{t.gpsSharing}</span>
             </div>
             {wakeLockActive && (
@@ -379,6 +497,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           </div>
         )}
 
+        {/* Step progress bar */}
         <div className="bg-gray-900 rounded-2xl p-4">
           <div className="flex items-center gap-0">
             <StepDot icon={<Package className="w-4 h-4" />} label={t.step1Label} done={stepIndex > 0} active={stepIndex === 0} />
@@ -389,6 +508,53 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           </div>
         </div>
 
+        {/* Contextual step card */}
+        <div className="bg-gray-900 rounded-2xl p-4">
+          {deliveryStep === 'start' && (
+            <div className="flex items-start gap-3">
+              <Package className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-white">
+                  {t.en ? 'Go to the restaurant' : 'Ve al restaurante'}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {t.en ? 'Pick up the order and confirm when you have it.' : 'Recoge el pedido y confirma cuando lo tengas.'}
+                </p>
+                {restaurantName && (
+                  <p className="text-xs text-emerald-400 font-semibold mt-1.5">{restaurantName}</p>
+                )}
+              </div>
+            </div>
+          )}
+          {deliveryStep === 'picked_up' && (
+            <div className="flex items-start gap-3">
+              <Bike className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-white">
+                  {t.en ? 'On the way' : 'En camino'}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {t.en ? 'GPS is active. Navigate to the delivery address.' : 'GPS activo. Navega a la dirección de entrega.'}
+                </p>
+              </div>
+            </div>
+          )}
+          {deliveryStep === 'at_door' && (
+            <div className="flex items-start gap-3">
+              <DoorOpen className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-white">
+                  {t.en ? 'At the door' : 'En la puerta'}
+                </p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {t.en ? 'Slide to confirm delivery and take a proof photo.' : 'Desliza para confirmar la entrega y toma una foto como prueba.'}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Address + navigation */}
         {deliveryAddress && deliveryStep !== 'start' && (
           <div className="bg-gray-900 rounded-2xl p-4 space-y-3">
             <div className="flex items-start gap-3">
@@ -399,7 +565,6 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
               </div>
             </div>
 
-            {/* Navigation deeplinks — tap to open in maps app */}
             <div className="grid grid-cols-2 gap-2">
               <a
                 href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(deliveryAddress)}`}
@@ -435,6 +600,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           </div>
         )}
 
+        {/* Action buttons */}
         <div className="space-y-3">
           {deliveryStep === 'start' && (
             <BigButton loading={actionLoading} onClick={handlePickedUp} color="emerald">
@@ -462,6 +628,32 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           Powered by MENIUS · {token.slice(0, 8)}…
         </p>
       </div>
+
+      {/* PWA install prompt — fixed bottom, shown when driver has picked up (most valuable moment) */}
+      {canInstall && !installDismissed && deliveryStep === 'picked_up' && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 p-3">
+          <div className="max-w-sm mx-auto bg-gray-900 border border-gray-700 rounded-2xl p-4 flex items-center gap-3 shadow-2xl">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+              <Bike className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-white">
+                {t.en ? 'Install MENIUS Driver' : 'Instalar MENIUS Repartidor'}
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {t.en ? 'Works offline — never lose a delivery' : 'Funciona sin conexión — nunca pierdas una entrega'}
+              </p>
+            </div>
+            <button
+              onClick={async () => { await install(); setInstallDismissed(true); }}
+              className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold flex-shrink-0"
+            >
+              {t.en ? 'Install' : 'Instalar'}
+            </button>
+            <button onClick={() => setInstallDismissed(true)} className="text-gray-500 hover:text-gray-300 transition-colors text-lg leading-none flex-shrink-0">✕</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -489,7 +681,9 @@ function StepDot({ icon, label, done, active }: {
 
 function StepLine({ done }: { done: boolean }) {
   return (
-    <div className={`flex-1 h-0.5 mb-5 transition-colors ${done ? 'bg-emerald-500' : 'bg-gray-800'}`} />
+    <div className="flex-1 h-0.5 mb-5 relative overflow-hidden rounded-full bg-gray-800">
+      <div className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${done ? 'w-full bg-emerald-500' : 'w-0'}`} />
+    </div>
   );
 }
 

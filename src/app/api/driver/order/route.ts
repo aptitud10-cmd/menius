@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('orders')
-    .select('id, status, delivery_address, customer_name, customer_phone, order_number, driver_token_expires_at, driver_picked_up_at, driver_at_door_at, driver_delivered_at')
+    .select('id, status, delivery_address, customer_name, customer_phone, order_number, driver_token_expires_at, driver_picked_up_at, driver_at_door_at, driver_delivered_at, restaurants(name)')
     .eq('driver_tracking_token', token)
     .maybeSingle();
 
@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
     customerName: data.customer_name ?? null,
     customerPhone: data.customer_phone ?? null,
     orderNumber: data.order_number ?? null,
+    restaurantName: (data as any).restaurants?.name ?? null,
     driverPickedUpAt: (data as any).driver_picked_up_at ?? null,
     driverAtDoorAt: (data as any).driver_at_door_at ?? null,
     driverDeliveredAt: (data as any).driver_delivered_at ?? null,
