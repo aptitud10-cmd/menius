@@ -310,7 +310,7 @@ function CommissionPlanBanner({ tp }: { tp: LandingT['pricing'] }) {
                   <span className="text-lg font-bold text-[#05c8a7]">${commission.toFixed(0)}/mes</span>
                 </div>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-xs text-gray-500">{cp.calcComparison.replace('vs ~25% ', '').replace('vs ~25% ', '')}</span>
+                  <span className="text-xs text-gray-500">{cp.calcComparisonLabel}</span>
                   <span className="text-lg font-bold text-red-400 line-through opacity-70">${otherPlatforms.toFixed(0)}/mes</span>
                 </div>
                 <div className="border-t border-white/[0.06] pt-2 mt-1">

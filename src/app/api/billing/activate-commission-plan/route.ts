@@ -18,10 +18,13 @@ export async function POST(req: NextRequest) {
   const query = db
     .from('restaurants')
     .update({ commission_plan: !deactivate, updated_at: new Date().toISOString() })
-    .eq('id', tenant.restaurantId);
+    .eq('id', tenant.restaurantId)
+    .select('id');
 
-  const { error } = await (deactivate ? query : query.neq('country_code', 'CO'));
+  const { data, error } = await (deactivate ? query : query.neq('country_code', 'CO'));
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // 0 rows updated means Colombia blocked activation (neq filter matched nothing)
+  if (!data?.length) return NextResponse.json({ error: 'Commission plan not available in your country.' }, { status: 400 });
   return NextResponse.json({ success: true });
 }

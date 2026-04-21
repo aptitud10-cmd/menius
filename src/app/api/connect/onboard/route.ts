@@ -33,9 +33,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
     }
 
-    // Commission plan users get Stripe Connect access without a paid subscription.
+    // Commission plan users get Stripe Connect without a paid subscription.
     // For all others, require Starter or above.
-    const isCommissionPlan = (restaurant as any).commission_plan === true;
+    const isCommissionPlan = (restaurant as { commission_plan: boolean | null }).commission_plan === true;
     if (!isCommissionPlan) {
       const hasOnlinePayments = await hasPlanAccess(restaurant.id, 'starter');
       if (!hasOnlinePayments) {

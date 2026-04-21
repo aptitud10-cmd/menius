@@ -261,7 +261,6 @@ export default function BillingPage() {
     setError(null);
     setShowCommissionModal(false);
     try {
-      // Step 1: activate commission_plan flag in DB
       const activateRes = await fetch('/api/billing/activate-commission-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -274,13 +273,11 @@ export default function BillingPage() {
         return;
       }
 
-      // Step 2: redirect to Stripe Connect onboarding so the restaurant can accept card payments
       const connectRes = await fetch('/api/connect/onboard', { method: 'POST' });
       const connectData = await connectRes.json();
       if (connectData.url) {
         window.location.href = connectData.url;
       } else {
-        // Commission plan is active even if Stripe Connect is skipped — user can set it up later in Settings
         window.location.reload();
       }
     } catch {
@@ -1000,8 +997,8 @@ export default function BillingPage() {
 
       {/* ─── Commission plan activation modal ─── */}
       {showCommissionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowCommissionModal(false)}>
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setShowCommissionModal(false)}
               className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
