@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     const supabase = createClient();
     const adminDb = createAdminClient();
 
-    const { data: restaurant, error: restaurantDbError } = await adminDb
+    const { data: restaurant } = await adminDb
       .from('restaurants')
       .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label, commission_plan, order_types_enabled, payment_methods_enabled')
       .eq('id', restaurant_id)
@@ -123,8 +123,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (!restaurant) {
-      logger.error('Restaurant not found after adminDb query', { restaurant_id, db_error: restaurantDbError?.message, db_code: restaurantDbError?.code });
-      return NextResponse.json({ error: bodyEn ? 'Restaurant not found' : 'Restaurante no encontrado', _debug_id: String(restaurant_id), _debug_db_error: restaurantDbError?.message ?? null }, { status: 404 });
+      return NextResponse.json({ error: bodyEn ? 'Restaurant not found' : 'Restaurante no encontrado' }, { status: 404 });
     }
 
     const en = restaurant.locale === 'en';

@@ -25,7 +25,6 @@ export default async function CheckoutPage({ params }: PageProps) {
   const data = await fetchMenuData(params.slug);
   if (!data) notFound();
 
-  console.log('[checkout] restaurant.id from fetchMenuData:', data.restaurant.id, 'slug:', params.slug);
   const orderToken = generateOrderToken(data.restaurant.id);
 
   return <CheckoutPageClient restaurant={data.restaurant} locale={data.locale} slug={params.slug} orderToken={orderToken} />;
