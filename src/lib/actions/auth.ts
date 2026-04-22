@@ -78,20 +78,22 @@ export async function login(data: LoginInput & { turnstileToken?: string }) {
   redirect('/onboarding/create-restaurant');
 }
 
-export async function requestPasswordReset(email: string) {
+export async function requestPasswordReset(email: string, turnstileToken?: string) {
   const ip = getIPFromHeaders();
   const { allowed } = await checkRateLimitAsync(`reset:${ip}`, { limit: 3, windowSec: 300 });
   if (!allowed) return { error: 'Demasiados intentos. Espera unos minutos.' };
 
-  const supabase = createClient();
+  const humanVerified = await verifyTurnstile(turnstileToken);
+  if (!humanVerified) return { error: 'Verificación de seguridad fallida. Intenta de nuevo.' };
 
+  const supabase = createClient();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  // Always succeed — never reveal whether an email is registered.
+  await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${appUrl}/auth/callback?next=/reset-password`,
   });
 
-  if (error) return { error: error.message };
   return { success: true };
 }
 

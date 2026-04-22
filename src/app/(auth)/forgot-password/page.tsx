@@ -2,9 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { requestPasswordReset } from '@/lib/actions/auth';
 import { useLocale } from '@/providers/locale-provider';
 import { getLandingT } from '@/lib/landing-translations';
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
+const IS_VERCEL_PREVIEW = process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview';
 
 export default function ForgotPasswordPage() {
   const locale = useLocale();
@@ -15,6 +19,9 @@ export default function ForgotPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
+
+  const requiresTurnstile = TURNSTILE_SITE_KEY.length > 0 && !IS_VERCEL_PREVIEW;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +33,7 @@ export default function ForgotPasswordPage() {
     }
 
     setLoading(true);
-    const result = await requestPasswordReset(email);
+    const result = await requestPasswordReset(email, turnstileToken || undefined);
     if (result?.error) {
       setError(result.error);
       setLoading(false);
@@ -126,6 +133,16 @@ export default function ForgotPasswordPage() {
                 />
               </div>
             </div>
+
+            {requiresTurnstile && (
+              <Turnstile
+                siteKey={TURNSTILE_SITE_KEY}
+                onSuccess={(token) => setTurnstileToken(token)}
+                onExpire={() => setTurnstileToken('')}
+                onError={() => setTurnstileToken('')}
+                options={{ theme: 'dark', size: 'flexible' }}
+              />
+            )}
 
             <button
               type="submit"

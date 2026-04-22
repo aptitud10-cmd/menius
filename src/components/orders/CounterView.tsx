@@ -884,7 +884,8 @@ export function CounterView({
     }
     setUpdatingId(order.id);
     try {
-      const res = await updateOrderStatus(order.id, 'delivered');
+      const finalStatus = order.order_type === 'dine_in' ? 'completed' : 'delivered';
+      const res = await updateOrderStatus(order.id, finalStatus);
       if (res?.error) { showError(res.error); return; }
       setActiveTab('history');
       setSelectedId(null);
@@ -897,7 +898,8 @@ export function CounterView({
   const doDeliver = useCallback(async (order: Order) => {
     setUpdatingId(order.id);
     try {
-      const res = await updateOrderStatus(order.id, 'delivered');
+      const finalStatus = order.order_type === 'dine_in' ? 'completed' : 'delivered';
+      const res = await updateOrderStatus(order.id, finalStatus);
       if (res?.error) { showError(res.error); return; }
       setActiveTab('history');
       setSelectedId(null);
@@ -3067,15 +3069,17 @@ function OrderDetail({
         {/* PREP tab: dine-in → serve directly; pickup/delivery → mark ready */}
         {tab === 'prep' && (
           <div className="space-y-2">
-            {/* Secondary: almost ready — notify customer to get ready */}
-            <button
-              disabled={isUpdating}
-              onClick={() => onMarkAlmostReady(order)}
-              className="w-full h-10 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border-2 transition-all active:scale-[0.98] disabled:opacity-40"
-              style={{ borderColor: '#E0E0E0', color: '#555', background: '#FAFAFA' }}
-            >
-              {t.almostReadyBtn} <span className="text-amber-400">⏱</span>
-            </button>
+            {/* Secondary: almost ready — only show when not already almost_ready */}
+            {order.status !== 'almost_ready' && (
+              <button
+                disabled={isUpdating}
+                onClick={() => onMarkAlmostReady(order)}
+                className="w-full h-10 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border-2 transition-all active:scale-[0.98] disabled:opacity-40"
+                style={{ borderColor: '#E0E0E0', color: '#555', background: '#FAFAFA' }}
+              >
+                {t.almostReadyBtn} <span className="text-amber-400">⏱</span>
+              </button>
+            )}
 
             {/* Primary action */}
             {order.order_type === 'dine_in' ? (
