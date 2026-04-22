@@ -9,7 +9,7 @@ import { JsonLdScript } from '@/components/public/JsonLdScript';
 import { getStoreOverrides } from '@/lib/store-overrides'; // Nuevo import
 import { Product } from '@/types';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 export const dynamicParams = true;
 
 /**
