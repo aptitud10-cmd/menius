@@ -8,6 +8,9 @@ async function resolveRedirect(supabase: any, origin: string, next: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(new URL(next, origin));
 
+  // Always honour an explicit next (e.g. /reset-password after recovery)
+  if (next !== '/app') return NextResponse.redirect(new URL(next, origin));
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('default_restaurant_id')
