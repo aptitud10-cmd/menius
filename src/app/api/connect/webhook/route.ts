@@ -56,12 +56,13 @@ export async function POST(request: NextRequest) {
     ];
 
     if (accountEvents.includes(thinEvent.type)) {
-      // The related object id is the Stripe account id (acct_xxx)
       const accountId: string | undefined =
         thinEvent.related_object?.id ?? thinEvent.data?.object?.id;
 
       if (accountId) {
         await syncAccountStatus(accountId, stripe);
+      } else {
+        logger.warn('No accountId in thin event', { type: thinEvent.type });
       }
     }
 

@@ -32,6 +32,11 @@ export default function ForgotPasswordPage() {
       return;
     }
 
+    if (requiresTurnstile && !turnstileToken) {
+      setError('Completa la verificación de seguridad');
+      return;
+    }
+
     setLoading(true);
     const result = await requestPasswordReset(email, turnstileToken || undefined);
     if (result?.error) {

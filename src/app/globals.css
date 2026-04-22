@@ -48,6 +48,7 @@ html {
   height: 100%;
   overscroll-behavior: none;
   background-color: #050505; /* prevents white rubber-band flash on iOS Safari */
+  padding-top: env(safe-area-inset-top);
 }
 body {
   -webkit-font-smoothing: antialiased;

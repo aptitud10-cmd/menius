@@ -868,6 +868,9 @@ export function CounterView({
     setEditSaving(false);
   }, [t.en, orders, updateOrderLocally]);
 
+  const getFinalDeliveryStatus = (order: Order) =>
+    order.order_type === 'dine_in' ? 'completed' : 'delivered';
+
   const handleDeliver = useCallback(async (order: Order, bypassGuard = false) => {
     // For delivery orders: warn if driver hasn't confirmed pickup yet
     if (!bypassGuard && order.order_type === 'delivery' && !order.driver_picked_up_at) {
@@ -884,8 +887,7 @@ export function CounterView({
     }
     setUpdatingId(order.id);
     try {
-      const finalStatus = order.order_type === 'dine_in' ? 'completed' : 'delivered';
-      const res = await updateOrderStatus(order.id, finalStatus);
+      const res = await updateOrderStatus(order.id, getFinalDeliveryStatus(order));
       if (res?.error) { showError(res.error); return; }
       setActiveTab('history');
       setSelectedId(null);
@@ -898,8 +900,7 @@ export function CounterView({
   const doDeliver = useCallback(async (order: Order) => {
     setUpdatingId(order.id);
     try {
-      const finalStatus = order.order_type === 'dine_in' ? 'completed' : 'delivered';
-      const res = await updateOrderStatus(order.id, finalStatus);
+      const res = await updateOrderStatus(order.id, getFinalDeliveryStatus(order));
       if (res?.error) { showError(res.error); return; }
       setActiveTab('history');
       setSelectedId(null);
