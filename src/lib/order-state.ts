@@ -21,8 +21,8 @@ export type OrderStatus =
 export const VALID_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending:          ['confirmed', 'preparing', 'cancelled'],
   confirmed:        ['preparing', 'almost_ready', 'ready', 'cancelled'],
-  preparing:        ['almost_ready', 'ready', 'delivered', 'cancelled'],
-  almost_ready:     ['ready', 'cancelled'],
+  preparing:        ['almost_ready', 'served', 'ready', 'delivered', 'cancelled'],
+  almost_ready:     ['served', 'ready', 'cancelled'],
   ready:            ['out_for_delivery', 'served', 'delivered', 'completed', 'cancelled'],
   out_for_delivery: ['delivered', 'cancelled'],
   served:           ['delivered', 'completed'],
