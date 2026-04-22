@@ -302,12 +302,15 @@ export default function BillingPage() {
     );
   }
 
-  const resolvedId = sub ? resolvePlanId(sub.plan_id) : 'free';
+  const isCommissionPlanActive = commissions?.isCommissionPlan === true;
+  const resolvedId = isCommissionPlanActive ? 'starter' : (sub ? resolvePlanId(sub.plan_id) : 'free');
   const planInfo = resolvedId ? (PLANS[resolvedId] ?? PLANS.free) : PLANS.free;
-  const isFreePlan = !sub || sub.plan_id === 'free' || sub.status === 'free' || sub.status === 'canceled';
-  const statusInfo = isFreePlan
-    ? { label: t.billing_freePlanLabel, color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', dot: 'bg-gray-400' }
-    : sub ? (STATUS_MAP[sub.status] ?? STATUS_MAP.incomplete) : null;
+  const isFreePlan = !isCommissionPlanActive && (!sub || sub.plan_id === 'free' || sub.status === 'free' || sub.status === 'canceled');
+  const statusInfo = isCommissionPlanActive
+    ? { label: locale === 'en' ? 'Commission Plan' : 'Plan Comisión', color: 'text-amber-700', bg: 'bg-amber-50 border-amber-200', dot: 'bg-amber-500' }
+    : isFreePlan
+      ? { label: t.billing_freePlanLabel, color: 'text-gray-600', bg: 'bg-gray-50 border-gray-200', dot: 'bg-gray-400' }
+      : sub ? (STATUS_MAP[sub.status] ?? STATUS_MAP.incomplete) : null;
   const isTrialing = sub?.status === 'trialing';
   const isActive = sub?.status === 'active';
   const billingInterval: BillingInterval = sub?.stripe_price_id
@@ -481,14 +484,14 @@ export default function BillingPage() {
                 )}
 
                 {/* Billing date */}
-                {!isTrialing && periodEnd && sub && (
+                {!isTrialing && !isCommissionPlanActive && periodEnd && sub && (
                   <p className="text-sm text-gray-500">
                     {sub.canceled_at ? t.billing_cancelsAt : t.billing_nextBilling}{' '}
                     <span className="font-medium text-gray-700">{periodEnd}</span>
                   </p>
                 )}
 
-                {sub?.canceled_at && sub.status !== 'canceled' && (
+                {!isCommissionPlanActive && sub?.canceled_at && sub.status !== 'canceled' && (
                   <p className="text-sm text-amber-600 font-medium flex items-center gap-1.5 mt-2">
                     <AlertTriangle className="w-3.5 h-3.5" />
                     {t.billing_cancelEnd}
