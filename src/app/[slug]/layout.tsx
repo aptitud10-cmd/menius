@@ -5,7 +5,7 @@ interface Props {
 
 export default function SlugMenuLayout({ children }: Props) {
   return (
-    <div className="min-h-[100dvh] bg-white text-gray-900 overflow-x-hidden">
+    <div className="bg-white text-gray-900 overflow-x-hidden">
       {children}
     </div>
   );
