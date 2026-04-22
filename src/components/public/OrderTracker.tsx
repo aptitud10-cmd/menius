@@ -281,7 +281,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
       supabase.removeChannel(channel);
     };
   // fetchOrder is stable (useCallback with fixed deps)
-  }, [order?.id, fetchOrder]);
+  }, [order?.id, isTerminal, fetchOrder]);
 
   if (loading) {
     return (

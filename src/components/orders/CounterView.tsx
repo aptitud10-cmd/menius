@@ -599,17 +599,17 @@ export function CounterView({
     [newOrders]);
 
   const prepOrders = useMemo(() =>
-    orders.filter(o => ['confirmed', 'preparing'].includes(o.status))
+    orders.filter(o => ['confirmed', 'preparing', 'almost_ready'].includes(o.status))
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
     [orders]);
 
   const readyOrders = useMemo(() =>
-    orders.filter(o => o.status === 'ready')
+    orders.filter(o => ['ready', 'out_for_delivery', 'served'].includes(o.status))
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
     [orders]);
 
   const historyOrders = useMemo(() => {
-    let r = orders.filter(o => ['delivered', 'cancelled'].includes(o.status))
+    let r = orders.filter(o => ['delivered', 'completed', 'cancelled'].includes(o.status))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     if (historyStatus !== 'all') r = r.filter(o => o.status === historyStatus);
     if (historyType !== 'all') r = r.filter(o => o.order_type === historyType);
