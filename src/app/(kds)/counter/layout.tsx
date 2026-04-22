@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 
 export default function CounterLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="h-screen w-screen overflow-hidden bg-[#F2F2F2] flex flex-col">
+    <div className="h-dvh w-screen overflow-hidden bg-[#F2F2F2] flex flex-col">
       {children}
     </div>
   );

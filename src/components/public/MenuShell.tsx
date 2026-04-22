@@ -1878,7 +1878,7 @@ export function MenuShell({
             />
             <motion.div
               className="relative bg-white rounded-t-3xl shadow-2xl flex flex-col"
-              style={{ maxHeight: '95dvh' }}
+              style={{ maxHeight: 'calc(95dvh - env(safe-area-inset-bottom, 0px))' }}
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
