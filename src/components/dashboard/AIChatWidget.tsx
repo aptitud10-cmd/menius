@@ -493,8 +493,8 @@ export function AIChatWidget() {
           <ChatPanel {...sharedPanelProps} />
         </div>
 
-        {/* Mobile launcher button */}
-        <div className="fixed bottom-4 right-4 z-50">
+        {/* Mobile launcher button — sits above the MobileBottomNav (~56px) */}
+        <div className="fixed bottom-[72px] right-4 z-50">
           {showProactive && !open && (
             <div className="absolute bottom-full right-0 mb-2 pointer-events-none">
               <div className="bg-gray-900 text-white text-xs px-3 py-2 rounded-xl shadow-xl whitespace-nowrap border border-white/10">
