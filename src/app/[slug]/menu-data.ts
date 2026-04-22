@@ -126,11 +126,7 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
         .select(`
           *,
           product_variants ( id, name, price_delta, sort_order ),
-          product_extras   ( id, name, price, sort_order ),
-          modifier_groups  (
-            id, name, selection_type, is_required, min_select, max_select, sort_order, display_type,
-            modifier_options ( id, name, price_delta, is_default, sort_order )
-          )
+          product_extras   ( id, name, price, sort_order )
         `)
         .eq('restaurant_id', restaurant.id)
         .eq('is_active', true)
@@ -150,6 +146,13 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
         .eq('restaurant_id', restaurant.id)
         .eq('is_visible', true),
     ] as const);
+
+    // Lightweight modifier presence check — runs after we have product IDs.
+    // Fetches only product_id (no options payload) so we can set has_modifiers on each product.
+    const productIds = (products ?? []).map((p: any) => p.id);
+    const { data: modGroupRows } = productIds.length > 0
+      ? await db.from('modifier_groups').select('product_id').in('product_id', productIds)
+      : { data: [] as { product_id: string }[] };
 
     const DAILY_FREE_LIMIT = 3;
     let subscriptionExpired = false;
@@ -207,6 +210,8 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       });
     }
 
+    const productsWithModifiers = new Set((modGroupRows ?? []).map((g: any) => g.product_id));
+
     const mappedProducts = ((products ?? []) as any[]).map((p: any) => ({
       ...p,
       variants: ((p.product_variants ?? []) as any[]).sort(
@@ -215,14 +220,10 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       extras: ((p.product_extras ?? []) as any[]).sort(
         (a: any, b: any) => a.sort_order - b.sort_order
       ),
-      modifier_groups: ((p.modifier_groups ?? []) as any[])
-        .map((g: any) => ({
-          ...g,
-          options: ((g.modifier_options ?? []) as any[]).sort(
-            (a: any, b: any) => a.sort_order - b.sort_order
-          ),
-        }))
-        .sort((a: any, b: any) => a.sort_order - b.sort_order),
+      // modifier_groups fetched lazily by /api/product-modifiers when user opens CustomizationSheet.
+      // has_modifiers flag comes from the lightweight modifier_groups presence check above.
+      modifier_groups: [],
+      has_modifiers: productsWithModifiers.has(p.id),
     }));
 
     let reviewStats: ReviewStats | null = null;

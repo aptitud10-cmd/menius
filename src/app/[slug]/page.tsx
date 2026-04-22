@@ -223,17 +223,12 @@ export default async function SlugMenuPage({ params }: PageProps) {
     }
   }
 
-  // Slim products: strip modifier payload before serialising into the RSC client bundle.
-  // The has_modifiers flag preserves "Customize" vs "Add" button behaviour.
-  // Full modifier data is fetched on-demand by CustomizationSheet via /api/product-modifiers.
+  // Slim products: strip variants/extras payload before serialising into the RSC client bundle.
+  // has_modifiers is already set in menu-data.ts from a lightweight modifier_groups presence check.
+  // modifier_groups is already [] from menu-data.ts (fetched lazily by CustomizationSheet).
+  // Full modifier data is fetched on-demand via /api/product-modifiers.
   const slimProducts = data.products.map((p) => ({
     ...p,
-    has_modifiers: !!(
-      (p.modifier_groups?.length ?? 0) > 0 ||
-      (p.variants?.length ?? 0) > 0 ||
-      (p.extras?.length ?? 0) > 0
-    ),
-    modifier_groups: [],
     variants: [],
     extras: [],
   }));

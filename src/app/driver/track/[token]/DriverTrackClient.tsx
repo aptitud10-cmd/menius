@@ -95,9 +95,8 @@ async function replayQueuedActions(token: string): Promise<void> {
           body: JSON.stringify({ token: item.token, action: item.action }),
         });
         if (res.ok || (res.status >= 400 && res.status < 500)) {
-          const db2 = await openDriverDB();
           await new Promise<void>((resolve, reject) => {
-            const tx = db2.transaction('status_queue', 'readwrite');
+            const tx = db.transaction('status_queue', 'readwrite');
             tx.objectStore('status_queue').delete(item.id);
             tx.oncomplete = () => resolve();
             tx.onerror = () => reject(tx.error);
@@ -195,7 +194,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
       if (pendingLocationRef.current && gpsStatus === 'sharing') {
         const { lat, lng } = pendingLocationRef.current;
         pendingLocationRef.current = null;
-        sendLocation(lat, lng);
+        await sendLocation(lat, lng);
       }
       // iOS manual replay (SyncManager not available on Safari)
       if (!('SyncManager' in window)) {

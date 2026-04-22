@@ -70,18 +70,20 @@ export async function POST(request: NextRequest) {
     }
 
     const productIds = items.map((i) => i.product_id);
+    // Only fetch the specific modifier option IDs sent by the client — avoids loading the full
+    // modifier tree (which can be 1000+ rows) when only a handful are actually in the cart.
+    const requestedOptionIds = items
+      .flatMap((i) => i.modifiers.map((m) => m.option_id))
+      .filter((id) => id && !id.startsWith('__legacy'));
 
-    const [{ data: dbProducts }, { data: dbVariants }, { data: dbExtras }, { data: dbModGroups }] = await Promise.all([
+    const [{ data: dbProducts }, { data: dbVariants }, { data: dbExtras }, { data: dbModOptions }] = await Promise.all([
       supabase.from('products').select('id, price, in_stock').in('id', productIds).eq('restaurant_id', restaurant_id),
       supabase.from('product_variants').select('id, product_id, price_delta').in('product_id', productIds),
       supabase.from('product_extras').select('id, product_id, price').in('product_id', productIds),
-      supabase.from('modifier_groups').select('id, product_id').in('product_id', productIds),
+      requestedOptionIds.length > 0
+        ? supabase.from('modifier_options').select('id, price_delta').in('id', requestedOptionIds)
+        : Promise.resolve({ data: [] as { id: string; price_delta: number }[] }),
     ]);
-
-    const modGroupIds = (dbModGroups ?? []).map((g) => g.id);
-    const { data: dbModOptions } = modGroupIds.length > 0
-      ? await supabase.from('modifier_options').select('id, group_id, price_delta').in('group_id', modGroupIds)
-      : { data: [] };
 
     const productMap = new Map((dbProducts ?? []).map((p) => [p.id, p]));
     const variantMap = new Map((dbVariants ?? []).map((v) => [v.id, v]));
