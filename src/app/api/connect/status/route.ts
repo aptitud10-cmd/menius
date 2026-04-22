@@ -27,23 +27,14 @@ export async function GET() {
     }
 
     const stripe = getStripe();
+    const account = await stripe.accounts.retrieve(restaurant.stripe_account_id);
 
-    // V2 API — merchant config: check card_payments capability status.
-    const account = await (stripe as any).v2.core.accounts.retrieve(
-      restaurant.stripe_account_id,
-      { include: ['configuration.merchant', 'requirements'] }
-    );
-
-    // Active = card_payments capability is active on the merchant config.
     const readyToProcessPayments =
-      account?.configuration?.merchant?.capabilities
-        ?.card_payments?.status === 'active';
+      account.capabilities?.card_payments === 'active';
 
-    // Onboarding complete when no currently_due or past_due requirements.
-    const requirementsStatus =
-      account?.requirements?.summary?.minimum_deadline?.status;
     const onboardingComplete =
-      requirementsStatus !== 'currently_due' && requirementsStatus !== 'past_due';
+      !account.requirements?.currently_due?.length &&
+      !account.requirements?.past_due?.length;
 
     const isComplete = onboardingComplete && readyToProcessPayments;
 
@@ -65,10 +56,10 @@ export async function GET() {
       connected: true,
       onboarding_complete: isComplete,
       ready_to_process_payments: readyToProcessPayments,
-      requirements_status: requirementsStatus ?? null,
       account_id: restaurant.stripe_account_id,
     });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message ?? 'Error' }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

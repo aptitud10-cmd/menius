@@ -66,41 +66,21 @@ export async function POST(request: NextRequest) {
       ARS: 'AR',
       EUR: 'ES',
     };
-    const stripeCountry = (countryCode || stripeCountryByCurrency[currency] || 'MX').toLowerCase();
+    const stripeCountry = (countryCode || stripeCountryByCurrency[currency] || 'MX').toUpperCase();
 
     let accountId = restaurant.stripe_account_id;
 
     if (!accountId) {
-      // V2 API: merchant configuration.
-      // - dashboard: 'full' → restaurant gets a full Stripe Express dashboard.
-      // - fees_collector: 'stripe' → Stripe deducts its processing fees directly
-      //   from the restaurant's balance. MENIUS never touches the fee money.
-      // - losses_collector: 'stripe' → Stripe is responsible for chargebacks/fraud.
-      //   This lets MENIUS offer 0% commission with no liability for losses.
-      // - card_payments capability → restaurant can accept card payments directly.
-      const account = await (stripe as any).v2.core.accounts.create({
+      const account = await stripe.accounts.create({
+        type: 'express',
+        country: stripeCountry,
+        email: user.email,
         display_name: restaurant.name,
-        contact_email: user.email,
-        identity: {
-          country: stripeCountry,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
         },
-        dashboard: 'full',
-        defaults: {
-          responsibilities: {
-            fees_collector: 'stripe',
-            losses_collector: 'stripe',
-          },
-        },
-        configuration: {
-          merchant: {
-            capabilities: {
-              card_payments: {
-                requested: true,
-              },
-            },
-          },
-        },
-      });
+      } as any);
 
       accountId = account.id;
 
@@ -110,21 +90,16 @@ export async function POST(request: NextRequest) {
         .eq('id', restaurant.id);
     }
 
-    // V2 account links — merchant configuration onboarding.
-    const accountLink = await (stripe as any).v2.core.accountLinks.create({
+    const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      use_case: {
-        type: 'account_onboarding',
-        account_onboarding: {
-          configurations: ['merchant'],
-          refresh_url: `${appUrl}/app/settings?stripe=refresh`,
-          return_url: `${appUrl}/app/settings?stripe=complete&accountId=${accountId}`,
-        },
-      },
+      refresh_url: `${appUrl}/app/settings?stripe=refresh`,
+      return_url: `${appUrl}/app/settings?stripe=complete&accountId=${accountId}`,
+      type: 'account_onboarding',
     });
 
     return NextResponse.json({ url: accountLink.url });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message ?? 'Error' }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Error';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
