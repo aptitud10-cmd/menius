@@ -12,6 +12,7 @@ import { useRealtimeOrders, type RealtimeConnectionStatus } from '@/hooks/use-re
 import {
   updateOrderStatus, updateOrderETA, setPauseOrders, assignDriver, updateOrderTip,
   sendOrderNotification, updatePaymentBreakdown, openShift, closeShift,
+  fetchOrderStatusHistory,
 } from '@/lib/actions/restaurant';
 import { AutoAcceptService } from '@/lib/counter/AutoAcceptService';
 import { PrinterService } from '@/lib/printing/PrinterService';
@@ -55,6 +56,8 @@ function getT(locale?: string) {
       : type === 'dine_in'
         ? (en ? 'Served'   : 'Servido')
         : (en ? 'Delivered': 'Entregado'),
+    almostReadyBtn: en ? 'Almost ready' : 'Casi listo',
+    outForDeliveryBtn: en ? 'Out for delivery' : 'En camino al cliente',
     deliveryGuardTitle: en ? "Driver hasn't confirmed pickup yet" : 'El repartidor no ha confirmado que recogió',
     deliveryGuardBody:  en ? "The driver hasn't scanned the QR link yet. Mark as delivered anyway?" : 'El repartidor aún no confirmó que recogió el pedido. ¿Marcar como entregado de todas formas?',
     deliveryGuardConfirm: en ? 'Yes, mark delivered' : 'Sí, marcar entregado',
@@ -764,17 +767,48 @@ export function CounterView({
 
   const handleMarkServed = useCallback(async (order: Order) => {
     setUpdatingId(order.id);
-    updateOrderLocally(order.id, { status: 'delivered' }); // optimistic
+    updateOrderLocally(order.id, { status: 'served' }); // optimistic — moves to 'ready' tab
     try {
-      const res = await updateOrderStatus(order.id, 'delivered');
+      const res = await updateOrderStatus(order.id, 'served');
       if (res?.error) {
         updateOrderLocally(order.id, { status: order.status }); // revert
         showError(res.error);
         return;
       }
-      setActiveTab('history');
-      setSelectedId(null);
-      setShowDetailMobile(false);
+      if (res.notification) showNotif(res.notification, order.id);
+    } catch {
+      updateOrderLocally(order.id, { status: order.status }); // revert
+      showError(t.en ? 'Unexpected error' : 'Error inesperado');
+    } finally { setUpdatingId(null); }
+  }, [t, updateOrderLocally, showNotif]);
+
+  const handleMarkAlmostReady = useCallback(async (order: Order) => {
+    setUpdatingId(order.id);
+    updateOrderLocally(order.id, { status: 'almost_ready' }); // optimistic
+    try {
+      const res = await updateOrderStatus(order.id, 'almost_ready');
+      if (res?.error) {
+        updateOrderLocally(order.id, { status: order.status }); // revert
+        showError(res.error);
+        return;
+      }
+      if (res.notification) showNotif(res.notification, order.id);
+    } catch {
+      updateOrderLocally(order.id, { status: order.status }); // revert
+      showError(t.en ? 'Unexpected error' : 'Error inesperado');
+    } finally { setUpdatingId(null); }
+  }, [t, updateOrderLocally, showNotif]);
+
+  const handleMarkOutForDelivery = useCallback(async (order: Order) => {
+    setUpdatingId(order.id);
+    updateOrderLocally(order.id, { status: 'out_for_delivery' }); // optimistic
+    try {
+      const res = await updateOrderStatus(order.id, 'out_for_delivery');
+      if (res?.error) {
+        updateOrderLocally(order.id, { status: order.status }); // revert
+        showError(res.error);
+        return;
+      }
       if (res.notification) showNotif(res.notification, order.id);
     } catch {
       updateOrderLocally(order.id, { status: order.status }); // revert
@@ -1364,6 +1398,8 @@ export function CounterView({
               onAccept={handleAccept}
               onMarkReady={handleMarkReady}
               onMarkServed={handleMarkServed}
+              onMarkAlmostReady={handleMarkAlmostReady}
+              onMarkOutForDelivery={handleMarkOutForDelivery}
               onDeliver={handleDeliver}
               onCancelRequest={(type) => {
                 setCancelModal({ orderId: selectedOrder.id, type });
@@ -2388,6 +2424,79 @@ function HistoryRow({
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// StatusHistory — collapsible audit trail per order
+// ══════════════════════════════════════════════════════════════════════════════
+
+const STATUS_LABEL: Record<string, string> = {
+  pending: 'Pendiente', confirmed: 'Confirmada', preparing: 'En preparación',
+  almost_ready: 'Casi lista', ready: 'Lista', out_for_delivery: 'En camino',
+  served: 'Servida', delivered: 'Entregada', completed: 'Completada', cancelled: 'Cancelada',
+};
+
+function StatusHistory({ orderId, t }: { orderId: string; t: ReturnType<typeof getT> }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [history, setHistory] = useState<Array<{ id: string; from_status: string | null; to_status: string; note: string | null; created_at: string }>>([]);
+
+  const load = async () => {
+    if (history.length > 0) { setOpen(o => !o); return; }
+    setOpen(true);
+    setLoading(true);
+    const res = await fetchOrderStatusHistory(orderId);
+    setLoading(false);
+    if (res.history) setHistory(res.history as typeof history);
+  };
+
+  return (
+    <div className="flex-none border-t border-[#F0F0F0]">
+      <button
+        onClick={load}
+        className="w-full flex items-center justify-between px-5 py-3 text-[11px] font-bold text-[#AAAAAA] uppercase tracking-widest hover:bg-[#FAFAFA] transition-colors"
+      >
+        <span className="flex items-center gap-1.5">
+          <History className="w-3.5 h-3.5" />
+          {t.en ? 'Status history' : 'Historial de estados'}
+        </span>
+        <span className={cn('transition-transform duration-200', open ? 'rotate-180' : '')}>▾</span>
+      </button>
+      {open && (
+        <div className="px-5 pb-3">
+          {loading ? (
+            <div className="flex justify-center py-3">
+              <span className="w-4 h-4 border-2 border-gray-200 border-t-gray-400 rounded-full animate-spin" />
+            </div>
+          ) : history.length === 0 ? (
+            <p className="text-xs text-[#CCCCCC] text-center py-2">{t.en ? 'No history yet' : 'Sin historial aún'}</p>
+          ) : (
+            <ol className="space-y-2">
+              {history.map((row, i) => {
+                const label = t.en
+                  ? row.to_status.replace(/_/g, ' ')
+                  : (STATUS_LABEL[row.to_status] ?? row.to_status);
+                const ts = new Date(row.created_at).toLocaleTimeString(t.en ? 'en' : 'es', { hour: '2-digit', minute: '2-digit' });
+                return (
+                  <li key={row.id} className="flex items-start gap-2.5">
+                    <div className="flex flex-col items-center flex-shrink-0 mt-0.5">
+                      <div className={cn('w-2 h-2 rounded-full', i === history.length - 1 ? 'bg-[#06C167]' : 'bg-gray-300')} />
+                      {i < history.length - 1 && <div className="w-px h-4 bg-gray-200 mt-1" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-bold text-[#333]">{label}</span>
+                      {row.note && <span className="text-xs text-[#888] ml-1.5 italic">· {row.note}</span>}
+                      <span className="block text-[10px] text-[#BBBBBB]">{ts}</span>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // EmptyState
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -2425,7 +2534,8 @@ function EmptyState({ tab, t, rtStatus }: { tab: Tab; t: ReturnType<typeof getT>
 
 function OrderDetail({
   order, currency, restaurantName, tab, eta, busyExtra, suggestedEta, isUpdating, t,
-  onBack, onSetEta, onAdjustEta, onAccept, onMarkReady, onMarkServed, onDeliver,
+  onBack, onSetEta, onAdjustEta, onAccept, onMarkReady, onMarkServed,
+  onMarkAlmostReady, onMarkOutForDelivery, onDeliver,
   onCancelRequest, onPrint, onAssignDriver, onTipSaved, onNotify, lastNotif,
   taxLabel, onEditItems, onRemoveItem, editSaving, onPhotoClick,
 }: {
@@ -2438,6 +2548,8 @@ function OrderDetail({
   onAccept: (o: Order) => void;
   onMarkReady: (o: Order) => void;
   onMarkServed: (o: Order) => void;
+  onMarkAlmostReady: (o: Order) => void;
+  onMarkOutForDelivery: (o: Order) => void;
   onDeliver: (o: Order) => void;
   onCancelRequest: (type: 'reject' | 'cancel') => void;
   onPrint: () => void;
@@ -2921,6 +3033,9 @@ function OrderDetail({
         </div>
       </div>
 
+      {/* ── Status History ── */}
+      <StatusHistory orderId={order.id} t={t} />
+
       {/* ── Action Buttons ── */}
       <div className="flex-none p-4 bg-white border-t border-[#E8E8E8] space-y-2">
 
@@ -2940,47 +3055,58 @@ function OrderDetail({
 
         {/* PREP tab: dine-in → serve directly; pickup/delivery → mark ready */}
         {tab === 'prep' && (
-          order.order_type === 'dine_in' ? (
+          <div className="space-y-2">
+            {/* Secondary: almost ready — notify customer to get ready */}
             <button
               disabled={isUpdating}
-              onClick={() => onMarkServed(order)}
-              className="w-full h-16 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
-              style={{ background: isUpdating ? '#AAA' : '#111' }}
+              onClick={() => onMarkAlmostReady(order)}
+              className="w-full h-10 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border-2 transition-all active:scale-[0.98] disabled:opacity-40"
+              style={{ borderColor: '#E0E0E0', color: '#555', background: '#FAFAFA' }}
             >
-              {isUpdating
-                ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : <><Check className="w-6 h-6" /> {t.en ? 'Serve to table' : 'Servir a la mesa'} <ChevronRight className="w-5 h-5" /></>}
+              {t.almostReadyBtn} <span className="text-amber-400">⏱</span>
             </button>
-          ) : order.order_type === 'pickup' ? (
-            /* Pickup: mark as ready → notifies customer "food is ready" → they come → counter marks picked up */
-            <button
-              disabled={isUpdating}
-              onClick={() => onMarkReady(order)}
-              className="w-full h-16 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
-              style={{ background: isUpdating ? '#AAA' : GREEN }}
-            >
-              {isUpdating
-                ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : <><CheckCircle className="w-6 h-6" /> {t.en ? 'Ready for pickup' : 'Listo para recoger'} <ChevronRight className="w-5 h-5" /></>}
-            </button>
-          ) : (
-            /* Delivery: go to 'ready' so driver can be dispatched */
-            <button
-              disabled={isUpdating}
-              onClick={() => onMarkReady(order)}
-              className="w-full h-16 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
-              style={{ background: isUpdating ? '#AAA' : GREEN }}
-            >
-              {isUpdating
-                ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                : <><CheckCircle className="w-6 h-6" /> {t.readyBtn(order.order_type)} <ChevronRight className="w-5 h-5" /></>}
-            </button>
-          )
+
+            {/* Primary action */}
+            {order.order_type === 'dine_in' ? (
+              <button
+                disabled={isUpdating}
+                onClick={() => onMarkServed(order)}
+                className="w-full h-16 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
+                style={{ background: isUpdating ? '#AAA' : '#111' }}
+              >
+                {isUpdating
+                  ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <><Check className="w-6 h-6" /> {t.en ? 'Serve to table' : 'Servir a la mesa'} <ChevronRight className="w-5 h-5" /></>}
+              </button>
+            ) : order.order_type === 'pickup' ? (
+              <button
+                disabled={isUpdating}
+                onClick={() => onMarkReady(order)}
+                className="w-full h-16 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
+                style={{ background: isUpdating ? '#AAA' : GREEN }}
+              >
+                {isUpdating
+                  ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <><CheckCircle className="w-6 h-6" /> {t.en ? 'Ready for pickup' : 'Listo para recoger'} <ChevronRight className="w-5 h-5" /></>}
+              </button>
+            ) : (
+              <button
+                disabled={isUpdating}
+                onClick={() => onMarkReady(order)}
+                className="w-full h-16 rounded-2xl text-white text-lg font-black flex items-center justify-center gap-3 shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
+                style={{ background: isUpdating ? '#AAA' : GREEN }}
+              >
+                {isUpdating
+                  ? <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <><CheckCircle className="w-6 h-6" /> {t.readyBtn(order.order_type)} <ChevronRight className="w-5 h-5" /></>}
+              </button>
+            )}
+          </div>
         )}
 
-        {/* READY tab: resend notification + delivered/picked-up */}
+        {/* READY tab: resend notification + out-for-delivery / served / delivered */}
         {tab === 'ready' && (
-          <>
+          <div className="space-y-2">
             {order.customer_phone && (
               <button
                 disabled={notifying}
@@ -2997,6 +3123,17 @@ function OrderDetail({
                   : <><MessageCircle className="w-4 h-4" /> {t.notifyCustomer}</>}
               </button>
             )}
+            {/* Delivery: out_for_delivery intermediate step */}
+            {order.order_type === 'delivery' && order.status !== 'out_for_delivery' && (
+              <button
+                disabled={isUpdating}
+                onClick={() => onMarkOutForDelivery(order)}
+                className="w-full h-12 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border-2 transition-all active:scale-[0.97] disabled:opacity-50"
+                style={{ background: '#EDE9FE', borderColor: '#C4B5FD', color: '#6D28D9' }}
+              >
+                <Truck className="w-4 h-4" /> {t.outForDeliveryBtn}
+              </button>
+            )}
             <button
               disabled={isUpdating}
               onClick={() => onDeliver(order)}
@@ -3007,7 +3144,7 @@ function OrderDetail({
                 ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 : <><Check className="w-5 h-5" /> {t.deliveredBtnFor(order.order_type)}</>}
             </button>
-          </>
+          </div>
         )}
       </div>
     </div>

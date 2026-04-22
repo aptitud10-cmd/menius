@@ -1005,6 +1005,29 @@ export async function updateOrderETA(orderId: string, etaMinutes: number) {
   return { success: true };
 }
 
+export async function fetchOrderStatusHistory(orderId: string) {
+  const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  // Verify the order belongs to this restaurant before returning history
+  const { data: order } = await supabase
+    .from('orders')
+    .select('id')
+    .eq('id', orderId)
+    .eq('restaurant_id', restaurantId)
+    .maybeSingle();
+  if (!order) return { error: 'Not found' };
+
+  const { data, error } = await supabase
+    .from('order_status_history')
+    .select('id, from_status, to_status, note, created_at')
+    .eq('order_id', orderId)
+    .order('created_at', { ascending: true });
+
+  if (error) return { error: error.message };
+  return { history: data ?? [] };
+}
+
 export async function updateOrderTip(orderId: string, tipAmount: number) {
   const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };

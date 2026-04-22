@@ -79,10 +79,13 @@ function getT(locale?: string, orderType?: string) {
     callRestaurant: en ? 'Call restaurant' : 'Llamar al restaurante',
     steps: {
       // Header icon/text per DB status (detailed view)
-      pending:   { label: en ? 'Received'    : 'Recibido',       desc: en ? 'Your order was received'           : 'Tu pedido fue recibido' },
-      confirmed: { label: en ? 'Preparing'   : 'En preparación', desc: en ? 'Your order is being prepared'     : 'Tu pedido se está preparando' },
-      preparing: { label: en ? 'Preparing'   : 'En preparación', desc: en ? 'Your order is being prepared'     : 'Tu pedido se está preparando' },
-      ready:     { label: en ? 'Ready'       : 'Listo',          desc: isDelivery ? (en ? 'Your order is on its way!' : '¡Tu pedido está en camino!') : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!') },
+      pending:          { label: en ? 'Received'       : 'Recibido',          desc: en ? 'Your order was received'              : 'Tu pedido fue recibido' },
+      confirmed:        { label: en ? 'Preparing'      : 'En preparación',    desc: en ? 'Your order is being prepared'         : 'Tu pedido se está preparando' },
+      preparing:        { label: en ? 'Preparing'      : 'En preparación',    desc: en ? 'Your order is being prepared'         : 'Tu pedido se está preparando' },
+      almost_ready:     { label: en ? 'Almost ready!'  : '¡Casi listo!',      desc: en ? 'Your order will be ready very soon'   : 'Tu pedido estará listo en unos minutos' },
+      ready:            { label: en ? 'Ready'          : 'Listo',             desc: isDelivery ? (en ? 'Your order is on its way!' : '¡Tu pedido está en camino!') : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!') },
+      out_for_delivery: { label: en ? 'On its way!'    : '¡En camino!',       desc: en ? 'Your order is out for delivery'       : 'Tu pedido está en camino a tu puerta' },
+      served:           { label: en ? 'Served!'        : '¡Servido!',         desc: en ? 'Your order has been served'           : 'Tu pedido fue servido en tu mesa' },
       delivered: {
         label: orderType === 'pickup'
           ? (en ? 'Picked up'  : 'Recogido')
@@ -120,21 +123,28 @@ function getT(locale?: string, orderType?: string) {
 }
 
 const STEP_STYLES: Record<string, { icon: typeof Clock; color: string; bg: string }> = {
-  pending:   { icon: Clock,        color: 'text-amber-600',   bg: 'bg-amber-100' },
-  confirmed: { icon: ChefHat,      color: 'text-violet-600',  bg: 'bg-violet-100' },
-  preparing: { icon: ChefHat,      color: 'text-violet-600',  bg: 'bg-violet-100' },
-  ready:     { icon: Bell,         color: 'text-orange-600',  bg: 'bg-orange-100' },
-  delivered: { icon: Package,      color: 'text-[#05c8a7]', bg: 'bg-[#d0f7f1]' },
+  pending:          { icon: Clock,        color: 'text-amber-600',   bg: 'bg-amber-100' },
+  confirmed:        { icon: ChefHat,      color: 'text-violet-600',  bg: 'bg-violet-100' },
+  preparing:        { icon: ChefHat,      color: 'text-violet-600',  bg: 'bg-violet-100' },
+  almost_ready:     { icon: Zap,          color: 'text-amber-500',   bg: 'bg-amber-50' },
+  ready:            { icon: Bell,         color: 'text-orange-600',  bg: 'bg-orange-100' },
+  out_for_delivery: { icon: Truck,        color: 'text-violet-600',  bg: 'bg-violet-100' },
+  served:           { icon: Utensils,     color: 'text-teal-600',    bg: 'bg-teal-50' },
+  delivered:        { icon: Package,      color: 'text-[#05c8a7]',   bg: 'bg-[#d0f7f1]' },
 };
 
 // Customer-visible progress steps: confirmed and preparing both map to step 1 ("En preparación")
 const CUSTOMER_STEPS = ['pending', 'preparing', 'ready', 'delivered'] as const;
 const STATUS_TO_CUSTOMER_STEP: Record<string, typeof CUSTOMER_STEPS[number]> = {
-  pending:   'pending',
-  confirmed: 'preparing',
-  preparing: 'preparing',
-  ready:     'ready',
-  delivered: 'delivered',
+  pending:          'pending',
+  confirmed:        'preparing',
+  preparing:        'preparing',
+  almost_ready:     'preparing',
+  ready:            'ready',
+  out_for_delivery: 'ready',
+  served:           'ready',
+  delivered:        'delivered',
+  completed:        'delivered',
 };
 
 interface OrderTrackerProps {
@@ -199,11 +209,12 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // Polling fallback — refreshes every 5 s for active orders.
   // Fires even when the WebSocket is up, so GPS coordinates and ETA
   // countdown stay fresh without extra subscriptions.
+  const isTerminal = ['delivered', 'completed', 'served', 'cancelled'].includes(order?.status);
   useEffect(() => {
-    if (!order?.id || order.status === 'delivered' || order.status === 'cancelled') return;
+    if (!order?.id || isTerminal) return;
     const interval = setInterval(fetchOrder, 5_000);
     return () => clearInterval(interval);
-  }, [order?.id, order?.status, fetchOrder]);
+  }, [order?.id, isTerminal, fetchOrder]);
 
   // Supabase Realtime Broadcast subscription.
   //
@@ -223,13 +234,13 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // or phone wakes from standby). Prevents the customer from seeing a stale
   // status after returning to the tracking page.
   useEffect(() => {
-    if (!order?.id || order.status === 'delivered' || order.status === 'cancelled') return;
+    if (!order?.id || isTerminal) return;
     const onVisible = () => {
       if (document.visibilityState === 'visible') fetchOrder();
     };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [order?.id, order?.status, fetchOrder]);
+  }, [order?.id, isTerminal, fetchOrder]);
 
   // Rotate chef messages every 6s while pickup order is being prepared
   useEffect(() => {
@@ -239,7 +250,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   }, [order?.order_type, order?.status]);
 
   useEffect(() => {
-    if (!order?.id) return;
+    if (!order?.id || isTerminal) return;
 
     const supabase = getSupabaseBrowser();
     const channel = supabase
@@ -335,7 +346,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const isCancelled = order.status === 'cancelled';
   const customerStep = STATUS_TO_CUSTOMER_STEP[order.status] ?? 'pending';
   const currentStepIndex = CUSTOMER_STEPS.indexOf(customerStep);
-  const isComplete = order.status === 'delivered';
+  const isComplete = ['delivered', 'completed', 'served'].includes(order.status);
   const currentStepStyle = STEP_STYLES[order.status];
   const tWithType = getT(locale, order.order_type);
   const currentStepText = tWithType.steps[order.status as keyof typeof tWithType.steps];
@@ -344,20 +355,23 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const statusSubtitle = (() => {
     const en = tWithType.en;
     switch (order.status) {
-      case 'pending':   return en ? `${restaurantName} received your order` : `${restaurantName} recibió tu pedido`;
+      case 'pending':          return en ? `${restaurantName} received your order` : `${restaurantName} recibió tu pedido`;
       case 'confirmed':
-      case 'preparing': return en ? `${restaurantName} is preparing your order` : `${restaurantName} está preparando tu pedido`;
-      case 'ready':     return order.order_type === 'delivery'
-                          ? ((order as any).driver_at_door_at
-                              ? (en ? 'Your driver is at the door!' : '¡Tu repartidor está en la puerta!')
-                              : (order as any).driver_picked_up_at
-                                ? (en ? 'Your order is on its way!' : '¡Tu pedido está en camino!')
-                                : (en ? 'Your order is ready for dispatch' : 'Tu pedido está listo para envío'))
-                          : order.order_type === 'dine_in'
-                            ? (en ? 'Your order is on its way to your table!' : '¡Tu pedido va en camino a tu mesa!')
-                            : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!');
-      case 'delivered': return en ? 'Enjoy your meal!' : '¡Buen provecho!';
-      default:          return '';
+      case 'preparing':        return en ? `${restaurantName} is preparing your order` : `${restaurantName} está preparando tu pedido`;
+      case 'almost_ready':     return en ? 'Your order will be ready very soon!' : '¡Tu pedido estará listo en unos minutos!';
+      case 'ready':            return order.order_type === 'delivery'
+                                 ? ((order as any).driver_at_door_at
+                                     ? (en ? 'Your driver is at the door!' : '¡Tu repartidor está en la puerta!')
+                                     : (order as any).driver_picked_up_at
+                                       ? (en ? 'Your order is on its way!' : '¡Tu pedido está en camino!')
+                                       : (en ? 'Your order is ready for dispatch' : 'Tu pedido está listo para envío'))
+                                 : order.order_type === 'dine_in'
+                                   ? (en ? 'Your order is on its way to your table!' : '¡Tu pedido va en camino a tu mesa!')
+                                   : (en ? 'Your order is ready for pickup!' : '¡Tu pedido está listo para recoger!');
+      case 'out_for_delivery': return en ? 'Your driver is on the way!' : '¡Tu repartidor está en camino!';
+      case 'served':           return en ? 'Enjoy your meal!' : '¡Buen provecho!';
+      case 'delivered':        return en ? 'Enjoy your meal!' : '¡Buen provecho!';
+      default:                 return '';
     }
   })();
 
@@ -474,6 +488,32 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           </div>
         )}
 
+        {/* ── ALMOST READY — pickup: head over now ── */}
+        {order.order_type === 'pickup' && order.status === 'almost_ready' && (
+          <div className="tracker-card bg-amber-50 border-2 border-amber-200 rounded-3xl px-5 py-4 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <Zap className="w-6 h-6 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-amber-700">{t.en ? 'Almost ready — head over!' : '¡Casi listo — ve saliendo!'}</p>
+              <p className="text-xs text-amber-600 mt-0.5">{t.en ? 'Your order will be ready by the time you arrive' : 'Tu pedido estará listo cuando llegues'}</p>
+            </div>
+          </div>
+        )}
+
+        {/* ── OUT FOR DELIVERY — driver context ── */}
+        {order.order_type === 'delivery' && order.status === 'out_for_delivery' && (
+          <div className="tracker-card bg-violet-50 border-2 border-violet-200 rounded-3xl px-5 py-4 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
+              <Truck className="w-6 h-6 text-violet-600" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-violet-700">{t.en ? 'Driver is on the way!' : '¡Tu repartidor va en camino!'}</p>
+              <p className="text-xs text-violet-500 mt-0.5">{t.en ? 'Stay close to your delivery address' : 'Mantente cerca de tu dirección de entrega'}</p>
+            </div>
+          </div>
+        )}
+
         {/* ── PICKUP READY BLOCK ── */}
         {order.order_type === 'pickup' && order.status === 'ready' && (
           <div className="tracker-card bg-gradient-to-br from-emerald-50 to-green-50 border-2 border-emerald-200 rounded-3xl overflow-hidden">
@@ -545,7 +585,10 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               <div className={cn(
                 'h-1 w-full',
                 isComplete ? 'bg-[#05c8a7]' :
+                order.status === 'out_for_delivery' ? 'bg-violet-500' :
+                order.status === 'served' ? 'bg-teal-400' :
                 order.status === 'ready' ? 'bg-orange-400' :
+                order.status === 'almost_ready' ? 'bg-amber-400' :
                 ['confirmed', 'preparing'].includes(order.status) ? 'bg-violet-500' :
                 'bg-amber-400'
               )} />

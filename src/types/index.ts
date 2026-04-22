@@ -182,7 +182,7 @@ export interface Table {
   created_at: string;
 }
 
-export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+export type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'almost_ready' | 'ready' | 'out_for_delivery' | 'served' | 'delivered' | 'completed' | 'cancelled';
 
 export interface Order {
   id: string;
