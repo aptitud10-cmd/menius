@@ -79,6 +79,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [hasMounted, setHasMounted] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
+  // Restore table context from URL if cartStore lost it (e.g. cleared cache, new tab)
+  const setCartTableName = useCartStore((s) => s.setTableName);
+  useEffect(() => {
+    const urlTable = new URLSearchParams(window.location.search).get('table');
+    if (urlTable) setCartTableName(urlTable);
+  }, [setCartTableName]);
+
   // Pre-fill customer info from stored data on mount
   useEffect(() => {
     setHasMounted(true);

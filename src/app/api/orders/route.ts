@@ -464,6 +464,19 @@ export async function POST(request: NextRequest) {
       ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       : null;
 
+    // Resolve table_name → table_id FK for dine_in orders
+    let resolvedTableId: string | null = null;
+    if (table_name && parsed.data.order_type === 'dine_in') {
+      const { data: tableRow } = await adminDb
+        .from('tables')
+        .select('id')
+        .eq('restaurant_id', restaurant_id)
+        .eq('name', table_name)
+        .eq('is_active', true)
+        .maybeSingle();
+      resolvedTableId = tableRow?.id ?? null;
+    }
+
     const orderInsert: Record<string, any> = {
       restaurant_id,
       order_number: orderNumber,
@@ -477,6 +490,7 @@ export async function POST(request: NextRequest) {
       payment_method: parsed.data.payment_method,
       delivery_address: delivery_address || null,
       table_name: table_name || null,
+      table_id: resolvedTableId,
       promo_code: promo_code || '',
       discount_amount: totalDiscountAmt,
       idempotency_key: idempotencyKey || null,

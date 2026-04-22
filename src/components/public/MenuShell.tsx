@@ -104,6 +104,8 @@ export function MenuShell({
   const [hasMounted, setHasMounted] = useState(false);
   const [reorderDismissed, setReorderDismissed] = useState(false);
   const [cartResumeShown, setCartResumeShown] = useState(false);
+  const [tableBannerDismissed, setTableBannerDismissed] = useState(false);
+  const [activeTableName, setActiveTableName] = useState<string | null>(null);
 
   const lastOrder = useCartStore((s) => s.lastOrder);
   const reorder = useCartStore((s) => s.reorder);
@@ -134,6 +136,7 @@ export function MenuShell({
     // tableName comes from the server as null (page is static); read ?table= from URL on client
     const resolvedTable = tableName ?? new URLSearchParams(window.location.search).get('table');
     setTableName(resolvedTable);
+    setActiveTableName(resolvedTable);
     router.prefetch(`/${restaurant.slug}/checkout`);
 
     // If returning customer has items in cart, show a brief "resume cart" toast
@@ -548,7 +551,11 @@ export function MenuShell({
     setOpen(false);
 
     requestAnimationFrame(() => {
-      router.push(`/${restaurant.slug}/checkout`);
+      const table = useCartStore.getState().tableName;
+      const checkoutUrl = table
+        ? `/${restaurant.slug}/checkout?table=${encodeURIComponent(table)}`
+        : `/${restaurant.slug}/checkout`;
+      router.push(checkoutUrl);
     });
   }, [router, restaurant.slug, restaurant.id, rawCartCount, rawCartTotal, setOpen]);
 
@@ -1276,6 +1283,24 @@ export function MenuShell({
                 onClick={() => setReorderDismissed(true)}
                 className="flex-shrink-0 p-1.5 text-[#05c8a7] hover:text-[#047a65] transition-colors"
                 aria-label={t.cancel}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Table context banner — shown when customer arrives via table QR */}
+          {hasMounted && activeTableName && !tableBannerDismissed && (
+            <div className="mx-4 lg:mx-8 mt-3 flex items-center gap-3 px-4 py-3 rounded-2xl bg-gray-950 text-white">
+              <span className="text-lg flex-shrink-0">🍽️</span>
+              <p className="flex-1 text-sm font-bold">
+                {locale === 'en' ? `You're at` : 'Estás en'}{' '}
+                <span className="text-[#05c8a7]">{activeTableName}</span>
+              </p>
+              <button
+                onClick={() => setTableBannerDismissed(true)}
+                className="flex-shrink-0 p-1 text-white/50 hover:text-white transition-colors"
+                aria-label={locale === 'en' ? 'Dismiss' : 'Cerrar'}
               >
                 <X className="w-4 h-4" />
               </button>

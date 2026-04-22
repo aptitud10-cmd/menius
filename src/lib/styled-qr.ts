@@ -169,15 +169,27 @@ export async function generateBrandedCard(
 
   ctx.drawImage(qrCanvas, qrX, qrY, qrPixelSize, qrPixelSize);
 
-  const belowQR = qrY + qrPixelSize + 24 * scale;
+  // Pill badge for label (table name or general menu)
+  const pillH = 44 * scale;
+  const pillY = qrY + qrPixelSize + 20 * scale;
+  const pillPadX = 32 * scale;
+  ctx.font = `bold ${18 * scale}px system-ui, -apple-system, sans-serif`;
+  const labelMetrics = ctx.measureText(label);
+  const pillW = Math.max(labelMetrics.width + pillPadX * 2, 120 * scale);
+  const pillX = (w - pillW) / 2;
+
   ctx.fillStyle = '#111827';
-  ctx.font = `bold ${20 * scale}px system-ui, -apple-system, sans-serif`;
+  ctx.beginPath();
+  ctx.roundRect(pillX, pillY, pillW, pillH, pillH / 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
-  ctx.fillText(label, w / 2, belowQR);
+  ctx.fillText(label, w / 2, pillY + pillH * 0.65);
 
   ctx.fillStyle = '#6b7280';
   ctx.font = `${10 * scale}px system-ui, -apple-system, sans-serif`;
-  ctx.fillText(subtitle, w / 2, belowQR + 20 * scale);
+  ctx.fillText(subtitle, w / 2, pillY + pillH + 18 * scale);
 
   return canvas;
 }

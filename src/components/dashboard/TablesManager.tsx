@@ -173,10 +173,12 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
 function buildPrintHtml(cards: Array<{ dataUrl: string; tableName: string; url: string }>, restaurantName: string) {
   const isEn = typeof document !== 'undefined' && document.documentElement.lang === 'en';
   const scanLabel = isEn ? 'Scan to order' : 'Escanea para ordenar';
-  const items = cards.map(({ dataUrl, tableName, url }) => `
+  const items = cards.map(({ dataUrl, tableName }) => `
     <div class="card">
+      <p class="restaurant">${restaurantName}</p>
       <img src="${dataUrl}" alt="${tableName}" />
-      <p class="url">${url}</p>
+      <p class="table-name">${tableName}</p>
+      <p class="scan-label">${scanLabel}</p>
     </div>
   `).join('');
   return `<!DOCTYPE html>
@@ -185,18 +187,20 @@ function buildPrintHtml(cards: Array<{ dataUrl: string; tableName: string; url: 
   <meta charset="utf-8" />
   <title>QR — ${restaurantName}</title>
   <style>
-    @page { size: A4; margin: 12mm; }
+    @page { size: A4; margin: 10mm; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, -apple-system, sans-serif; background: #fff; color: #111827; }
     @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-    .header { text-align: center; padding-bottom: 10mm; border-bottom: 1px solid #e5e7eb; margin-bottom: 8mm; }
-    .header h1 { font-size: 18pt; font-weight: 700; }
-    .header p { font-size: 10pt; color: #6b7280; margin-top: 3mm; }
-    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6mm; }
-    .card { border: 1px solid #e5e7eb; border-radius: 8mm; padding: 5mm; text-align: center; page-break-inside: avoid; }
-    .card img { width: 100%; max-width: 60mm; height: auto; }
-    .url { font-size: 7pt; color: #9ca3af; margin-top: 3mm; word-break: break-all; }
-    .footer { text-align: center; margin-top: 8mm; font-size: 8pt; color: #d1d5db; border-top: 1px solid #f3f4f6; padding-top: 4mm; }
+    .header { text-align: center; padding-bottom: 8mm; border-bottom: 1px solid #e5e7eb; margin-bottom: 6mm; }
+    .header h1 { font-size: 16pt; font-weight: 700; }
+    .header p { font-size: 9pt; color: #6b7280; margin-top: 2mm; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5mm; }
+    .card { border: 1.5px solid #e5e7eb; border-radius: 6mm; padding: 5mm 4mm 4mm; text-align: center; page-break-inside: avoid; }
+    .restaurant { font-size: 7pt; font-weight: 600; color: #10b981; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 2mm; }
+    .card img { width: 100%; max-width: 58mm; height: auto; }
+    .table-name { font-size: 16pt; font-weight: 900; color: #111827; margin-top: 3mm; letter-spacing: -0.01em; }
+    .scan-label { font-size: 7.5pt; color: #9ca3af; margin-top: 1.5mm; }
+    .footer { text-align: center; margin-top: 6mm; font-size: 7pt; color: #d1d5db; border-top: 1px solid #f3f4f6; padding-top: 3mm; }
   </style>
 </head>
 <body>
