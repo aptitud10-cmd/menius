@@ -1,27 +1,26 @@
 export const dynamic = 'force-dynamic';
 
 /**
- * Stripe Connect webhook handler for Express accounts (v1 API).
+ * Stripe Connect webhook handler.
  *
- * Listens for:
- *   - account.updated  (requirements changed, capabilities updated)
+ * Listens for v2 thin events on connected accounts:
+ *   - v2.core.account.updated
+ *   - v2.core.account[requirements].updated
+ *   - v2.core.account[configuration.merchant].capability_status_updated
  *
- * Setup in Stripe Dashboard → Developers → Webhooks → + Add endpoint:
+ * Setup in Stripe Dashboard → Developers → Event destinations → + Add destination:
+ *   • Events from: Connected and v2 accounts
+ *   • Events: v2.core.account.updated (or the ones above)
+ *   • Payload style: Thin
  *   • URL: https://menius.app/api/connect/webhook
- *   • Events from: Connected accounts
- *   • Events: account.updated
  *
  * Set the resulting webhook secret as STRIPE_CONNECT_WEBHOOK_SECRET in .env.
- *
- * Local testing:
- *   stripe listen --forward-to http://localhost:3000/api/connect/webhook
  */
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe, getConnectWebhookSecret } from '@/lib/stripe';
 import { createLogger } from '@/lib/logger';
-import Stripe from 'stripe';
 
 const logger = createLogger('connect-webhook');
 
@@ -36,9 +35,9 @@ export async function POST(request: NextRequest) {
   const stripe = getStripe();
   const webhookSecret = getConnectWebhookSecret();
 
-  let event: Stripe.Event;
+  let thinEvent: any;
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    thinEvent = (stripe as any).parseThinEvent(body, signature, webhookSecret);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Invalid signature';
     logger.warn('Invalid Connect webhook signature', { error: message });
@@ -46,11 +45,24 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    logger.info('Connect event received', { type: event.type });
+    logger.info('Connect event received', { type: thinEvent.type });
 
-    if (event.type === 'account.updated') {
-      const account = event.data.object as Stripe.Account;
-      await syncAccountStatus(account);
+    // All these events mean "something changed on a connected account" —
+    // we just re-read the account status via v1 API and sync it.
+    const accountEvents = [
+      'v2.core.account.updated',
+      'v2.core.account[requirements].updated',
+      'v2.core.account[configuration.merchant].capability_status_updated',
+    ];
+
+    if (accountEvents.includes(thinEvent.type)) {
+      // The related object id is the Stripe account id (acct_xxx)
+      const accountId: string | undefined =
+        thinEvent.related_object?.id ?? thinEvent.data?.object?.id;
+
+      if (accountId) {
+        await syncAccountStatus(accountId, stripe);
+      }
     }
 
     return NextResponse.json({ received: true });
@@ -61,7 +73,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function syncAccountStatus(account: Stripe.Account) {
+async function syncAccountStatus(stripeAccountId: string, stripe: any) {
+  // Read via v1 API — our accounts are Express (v1)
+  const account = await stripe.accounts.retrieve(stripeAccountId);
+
   const readyToReceivePayments = account.capabilities?.card_payments === 'active';
   const onboardingComplete =
     !account.requirements?.currently_due?.length &&
@@ -72,14 +87,14 @@ async function syncAccountStatus(account: Stripe.Account) {
   const { error } = await adminDb
     .from('restaurants')
     .update({ stripe_onboarding_complete: isComplete })
-    .eq('stripe_account_id', account.id);
+    .eq('stripe_account_id', stripeAccountId);
 
   if (error) {
     logger.error('Failed to sync stripe_onboarding_complete', {
-      stripeAccountId: account.id,
+      stripeAccountId,
       error: error.message,
     });
   } else {
-    logger.info('Synced stripe_onboarding_complete', { stripeAccountId: account.id, isComplete });
+    logger.info('Synced stripe_onboarding_complete', { stripeAccountId, isComplete });
   }
 }
