@@ -129,11 +129,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       if((s.overflowY==='auto'||s.overflowY==='scroll')&&el.scrollHeight>el.clientHeight)return;
       el=el.parentElement;
     }
-    var st=document.documentElement.scrollTop||document.body.scrollTop;
+    var st=Math.max(0,document.documentElement.scrollTop||document.body.scrollTop);
     var sh=document.documentElement.scrollHeight;
     var ch=document.documentElement.clientHeight;
     var dy=e.touches[0].pageY-startY;
-    if((st<=0&&dy>0)||(st+ch>=sh&&dy<0))e.preventDefault();
+    if((st<=1&&dy>0)||(st+ch>=sh-1&&dy<0))e.preventDefault();
   },{passive:false});
 })();
         `}} />

@@ -8,7 +8,7 @@ export const metadata = {
 export default function KDSRootLayout({ children }: { children: React.ReactNode }) {
   return (
     <DashboardLocaleProvider>
-      <div className="h-screen w-screen overflow-hidden bg-gray-950 text-white flex flex-col">
+      <div className="h-dvh w-screen overflow-hidden bg-gray-950 text-white flex flex-col">
         {children}
       </div>
     </DashboardLocaleProvider>

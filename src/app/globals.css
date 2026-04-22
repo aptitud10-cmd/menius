@@ -57,7 +57,6 @@ body {
   max-width: 100vw;
   min-height: 100%;
   min-height: 100dvh;
-  padding-top: env(safe-area-inset-top);
 }
 
 /* Eliminate blue tap flash on Android/Chrome and grey highlight on iOS */
