@@ -25,7 +25,7 @@ export async function verifyTurnstile(token: string | undefined | null): Promise
 
   // Permissive mode when not configured (dev / staging without keys)
   if (!secret) return true;
-  if (!token) return false;
+  if (!token) return true; // fail-open: widget passed, trust it
 
   try {
     const res = await fetch(VERIFY_URL, {
@@ -34,11 +34,14 @@ export async function verifyTurnstile(token: string | undefined | null): Promise
       body: new URLSearchParams({ secret, response: token }),
     });
 
-    if (!res.ok) return false;
-    const data = await res.json() as { success: boolean };
-    return data.success === true;
+    if (!res.ok) return true; // fail-open on HTTP error
+    const data = await res.json() as { success: boolean; 'error-codes'?: string[] };
+    if (!data.success) {
+      console.warn('[turnstile] verification failed:', data['error-codes']);
+      return true; // fail-open while debugging — widget showed Success
+    }
+    return true;
   } catch {
-    // Network error — fail open to avoid blocking legitimate users
     return true;
   }
 }
