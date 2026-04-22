@@ -93,6 +93,12 @@ export default function SignupPage() {
       setError(parsed.error.errors[0].message);
       return;
     }
+
+    if (requiresTurnstile && !turnstileToken) {
+      setError('Completa la verificación de seguridad');
+      return;
+    }
+
     setLoading(true);
     const result = await signup({ ...parsed.data, turnstileToken });
     if (result?.error) {

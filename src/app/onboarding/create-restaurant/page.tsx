@@ -488,7 +488,7 @@ export default function CreateRestaurantPage() {
 
                 <button
                   type="submit"
-                  disabled={loading || !name.trim() || slugStatus === 'taken'}
+                  disabled={loading || !name.trim() || slugStatus === 'taken' || slugStatus === 'checking'}
                   className="w-full py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] md:text-sm hover:bg-gray-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {loading ? (

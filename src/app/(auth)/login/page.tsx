@@ -45,6 +45,11 @@ export default function LoginPage() {
       setError(parsed.error.errors[0].message);
       return;
     }
+    if (requiresTurnstile && !turnstileToken) {
+      setError('Completa la verificación de seguridad');
+      return;
+    }
+
     setLoading(true);
     const result = await login({ ...parsed.data, turnstileToken });
     if (result?.error) {

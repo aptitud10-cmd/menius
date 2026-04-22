@@ -544,9 +544,22 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (orderError) {
+      if (orderError.code === '23505' && idempotencyKey) {
+        // Race condition: two concurrent requests with same key — return the winner's order
+        const { data: raceWinner } = await adminDb
+          .from('orders')
+          .select('id, order_number, total')
+          .eq('idempotency_key', idempotencyKey)
+          .maybeSingle();
+        if (raceWinner) {
+          return NextResponse.json(
+            { order_id: raceWinner.id, order_number: raceWinner.order_number, total: raceWinner.total, idempotent: true },
+            { status: 200 }
+          );
+        }
+      }
       logger.error('Failed to insert order', { error: orderError.message, restaurantId: restaurant.id });
       if (promoIncremented) {
-        // Roll back the promo usage counter — the order never completed.
         adminDb.rpc('decrement_promo_usage', {
           p_code: promo_code!.toUpperCase().trim(),
           p_restaurant_id: restaurant_id,
