@@ -42,6 +42,7 @@ interface NotificationBellProps {
 export function NotificationBell({ restaurantId }: NotificationBellProps) {
   const { t } = useDashboardLocale();
   const [open, setOpen] = useState(false);
+  const [panelPos, setPanelPos] = useState<{ top: number; right: number }>({ top: 0, right: 16 });
   const [notifications, setNotifications] = useState<DashNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -58,7 +59,7 @@ export function NotificationBell({ restaurantId }: NotificationBellProps) {
 
     if (data) {
       setNotifications(data as DashNotification[]);
-      setUnreadCount(data.filter((n) => !n.is_read).length);
+      setUnreadCount(data.filter((n: DashNotification) => !n.is_read).length);
     }
   }, [restaurantId]);
 
@@ -113,7 +114,16 @@ export function NotificationBell({ restaurantId }: NotificationBellProps) {
 
   const handleOpen = useCallback(() => {
     setOpen((prev) => {
-      if (!prev) markAllRead();
+      if (!prev) {
+        markAllRead();
+        if (buttonRef.current) {
+          const rect = buttonRef.current.getBoundingClientRect();
+          setPanelPos({
+            top: rect.bottom + 8,
+            right: Math.max(16, window.innerWidth - rect.right),
+          });
+        }
+      }
       return !prev;
     });
   }, [markAllRead]);
@@ -142,7 +152,7 @@ export function NotificationBell({ restaurantId }: NotificationBellProps) {
   }, [open]);
 
   return (
-    <div className="relative">
+    <div>
       <button
         ref={buttonRef}
         onClick={handleOpen}
@@ -163,8 +173,8 @@ export function NotificationBell({ restaurantId }: NotificationBellProps) {
       {open && (
         <div
           ref={panelRef}
-          className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl border border-gray-100 shadow-xl z-50 overflow-hidden"
-          style={{ maxHeight: '420px' }}
+          className="fixed w-80 bg-white rounded-2xl border border-gray-100 shadow-xl z-50 overflow-hidden"
+          style={{ top: panelPos.top, right: panelPos.right, maxHeight: '420px', maxWidth: 'calc(100vw - 2rem)' }}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
