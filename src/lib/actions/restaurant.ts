@@ -20,7 +20,7 @@ function inferLocale(currency: string): string {
 
 // ---- Restaurant ----
 export async function createRestaurant(data: CreateRestaurantInput) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'No autenticado' };
 
@@ -157,7 +157,7 @@ export async function createRestaurant(data: CreateRestaurantInput) {
 
 // ---- Re-seed ----
 export async function reseedMyRestaurant() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'No autenticado' };
 
@@ -229,7 +229,7 @@ export async function createCategory(data: CategoryInput) {
 }
 
 async function getAuthenticatedRestaurant() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'No autenticado' as const, supabase, restaurantId: '', restaurantSlug: '' };
 
@@ -1135,7 +1135,7 @@ export async function updatePaymentBreakdown(
 // ── Multi-store switcher ────────────────────────────────────────────────
 
 export async function switchRestaurant(restaurantId: string) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'No autenticado' };
 

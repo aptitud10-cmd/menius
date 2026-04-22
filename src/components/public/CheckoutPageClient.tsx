@@ -205,7 +205,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [orderId, setOrderId] = useState('');
   const [payLoading, setPayLoading] = useState(false);
   const confirmRef = useRef<HTMLDivElement>(null);
-  const confettiTimer = useRef<ReturnType<typeof setTimeout>>();
+  const confettiTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const submittingRef = useRef(false);
   // Generated once per checkout session — prevents duplicate orders on network retry
   const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
@@ -224,14 +224,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   // CTA shake animation when form not ready
   const [ctaShake, setCtaShake] = useState(false);
-  const ctaShakeTimer = useRef<ReturnType<typeof setTimeout>>();
+  const ctaShakeTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => { return () => { clearTimeout(ctaShakeTimer.current); }; }, []);
 
   // Network-error retry state
   const [networkRetrying, setNetworkRetrying] = useState(false);
   const [canManualRetry, setCanManualRetry] = useState(false);
   const retryAttemptRef = useRef(0);
-  const retryTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => { clearTimeout(retryTimerRef.current); }, []);
 
   // Snapshot of items captured before clearCart() — shown on confirmation screen

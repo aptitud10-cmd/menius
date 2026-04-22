@@ -25,7 +25,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Sin campos válidos para actualizar' }, { status: 400 });
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const { error } = await supabase
       .from('products')
       .update(patch)

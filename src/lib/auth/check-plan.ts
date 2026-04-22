@@ -21,7 +21,7 @@ function rank(planId: string): number {
  *  4. Otherwise → 'free'
  */
 export async function getEffectivePlanId(restaurantId: string): Promise<string> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Commission-plan restaurants get starter-level access without a subscription.
   const { data: rest } = await supabase

@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 
-export default function NotFound() {
-  const locale = cookies().get('menius_locale')?.value ?? 'es';
+export default async function NotFound() {
+  const locale = (await cookies()).get('menius_locale')?.value ?? 'es';
   const en = locale === 'en';
 
   return (

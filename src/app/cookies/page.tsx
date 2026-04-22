@@ -171,8 +171,8 @@ function getHero(locale: LandingLocale) {
   return { badge: 'Legal', title: 'Política de Cookies', date: 'Última actualización: 16 de febrero de 2026' };
 }
 
-export default function CookiesPage() {
-  const cookieStore = cookies();
+export default async function CookiesPage() {
+  const cookieStore = await cookies();
   const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as LandingLocale;
   const hero = getHero(locale);
 

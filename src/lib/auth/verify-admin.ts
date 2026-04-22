@@ -14,7 +14,7 @@ export async function verifyAdmin(): Promise<{ supabase: SupabaseClient; user: {
   const adminEmails = adminEmailEnv.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
   if (adminEmails.length === 0) return null;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return null;
 

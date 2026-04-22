@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: restaurant } = await supabase
       .from('restaurants')
       .select('name, locale, slug')

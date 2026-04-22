@@ -10,7 +10,7 @@ export async function GET() {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: products, error } = await supabase
       .from('products')
       .select('id, name, price, in_stock, category_id, is_active')
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const { error } = await supabase
       .from('products')
       .update({ in_stock })

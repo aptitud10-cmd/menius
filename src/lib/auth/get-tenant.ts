@@ -11,7 +11,7 @@ export interface TenantInfo {
  * Returns null if not authenticated or no restaurant is linked.
  */
 export async function getTenant(): Promise<TenantInfo | null> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;

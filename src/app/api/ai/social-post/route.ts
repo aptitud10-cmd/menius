@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     const { platform, postType, customPrompt, locale: reqLocale } = await request.json();
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const [{ data: restaurant }, { data: topProducts }, { data: recentReviews }] = await Promise.all([
       supabase.from('restaurants').select('name, slug, description, address, locale').eq('id', tenant.restaurantId).maybeSingle(),
       supabase

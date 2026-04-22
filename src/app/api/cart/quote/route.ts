@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     const { restaurant_id, order_type, items, promo_code, loyalty_account_id, loyalty_points_redeemed, tip_amount } = parsed.data;
 
-    const supabase = createClient();
+    const supabase = await createClient();
 
     const { data: restaurant } = await supabase
       .from('restaurants')

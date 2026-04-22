@@ -8,7 +8,7 @@ import { getStripe } from '@/lib/stripe';
 export async function GET() {
   try {
     const stripe = getStripe();
-    const supabase = createClient();
+    const supabase = await createClient();
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 

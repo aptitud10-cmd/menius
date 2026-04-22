@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import type { Order } from '@/types';
+import type { RealtimePostgresChangesPayload, REALTIME_SUBSCRIBE_STATES } from '@supabase/supabase-js';
 
 interface UseRealtimeOrdersOptions {
   restaurantId: string;
@@ -139,8 +140,8 @@ export function useRealtimeOrders({
           table: 'orders',
           filter: `restaurant_id=eq.${restaurantId}`,
         },
-        async (payload) => {
-          const fullOrder = await fetchFullOrder(payload.new.id);
+        async (payload: RealtimePostgresChangesPayload<{ id: string }>) => {
+          const fullOrder = await fetchFullOrder((payload.new as { id: string }).id);
           if (!fullOrder) return;
 
           if (!knownIdsRef.current.has(fullOrder.id)) {
@@ -162,8 +163,8 @@ export function useRealtimeOrders({
           table: 'orders',
           filter: `restaurant_id=eq.${restaurantId}`,
         },
-        async (payload) => {
-          const fullOrder = await fetchFullOrder(payload.new.id);
+        async (payload: RealtimePostgresChangesPayload<{ id: string }>) => {
+          const fullOrder = await fetchFullOrder((payload.new as { id: string }).id);
           if (!fullOrder) return;
 
           setOrders((prev) =>
@@ -177,7 +178,7 @@ export function useRealtimeOrders({
           }
         }
       )
-      .subscribe((status) => {
+      .subscribe((status: `${REALTIME_SUBSCRIBE_STATES}`) => {
         // Track WebSocket channel health so the UI can show a real connection indicator.
         // The 10-second polling fallback keeps data fresh even when disconnected.
         if (status === 'SUBSCRIBED') {

@@ -6,7 +6,7 @@ import { getTenant } from '@/lib/auth/get-tenant';
 
 export async function GET() {
   try {
-    const supabase = createClient();
+    const supabase = await createClient();
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 

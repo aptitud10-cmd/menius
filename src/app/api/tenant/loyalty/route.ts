@@ -11,7 +11,7 @@ export async function GET() {
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     const rid = tenant.restaurantId;
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const [configRes, accountsRes] = await Promise.all([
       supabase.from('loyalty_config').select('*').eq('restaurant_id', rid).maybeSingle(),
       supabase
@@ -58,7 +58,7 @@ export async function PUT(req: NextRequest) {
       updated_at: new Date().toISOString(),
     };
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const { error } = await supabase
       .from('loyalty_config')
       .upsert(config, { onConflict: 'restaurant_id' });

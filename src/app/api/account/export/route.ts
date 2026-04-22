@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const rid = tenant.restaurantId;
 
     const [

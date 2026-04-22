@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     const { campaignType, audience, restaurantName, customPrompt, locale: reqLocale } = await request.json();
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const [{ data: topProducts }, { data: recentReviews }, { data: restaurant }] = await Promise.all([
       supabase
         .from('products')

@@ -29,8 +29,8 @@ function extractText(node: ReactNode): string {
   return '';
 }
 
-export default function FaqPage() {
-  const cookieStore = cookies();
+export default async function FaqPage() {
+  const cookieStore = await cookies();
   const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as LandingLocale;
 
   const categories = getFaqCategories(locale);

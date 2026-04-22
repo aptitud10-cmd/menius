@@ -7,22 +7,22 @@ import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { verifyTurnstile } from '@/lib/turnstile';
 import type { SignupInput, LoginInput } from '@/lib/validations';
 
-function getIPFromHeaders(): string {
-  const h = headers();
+async function getIPFromHeaders(): Promise<string> {
+  const h = await headers();
   return h.get('x-forwarded-for')?.split(',')[0]?.trim()
     || h.get('x-real-ip')
     || '127.0.0.1';
 }
 
 export async function signup(data: SignupInput & { turnstileToken?: string }) {
-  const ip = getIPFromHeaders();
+  const ip = await getIPFromHeaders();
   const { allowed } = await checkRateLimitAsync(`signup:${ip}`, { limit: 5, windowSec: 300 });
   if (!allowed) return { error: 'Demasiados intentos. Espera unos minutos.' };
 
   const humanVerified = await verifyTurnstile(data.turnstileToken);
   if (!humanVerified) return { error: 'Verificación de seguridad fallida. Intenta de nuevo.' };
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: signupData, error } = await supabase.auth.signUp({
     email: data.email,
@@ -42,14 +42,14 @@ export async function signup(data: SignupInput & { turnstileToken?: string }) {
 }
 
 export async function login(data: LoginInput & { turnstileToken?: string }) {
-  const ip = getIPFromHeaders();
+  const ip = await getIPFromHeaders();
   const { allowed } = await checkRateLimitAsync(`login:${ip}`, { limit: 10, windowSec: 300 });
   if (!allowed) return { error: 'Demasiados intentos. Espera unos minutos.' };
 
   const humanVerified = await verifyTurnstile(data.turnstileToken);
   if (!humanVerified) return { error: 'Verificación de seguridad fallida. Intenta de nuevo.' };
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { error } = await supabase.auth.signInWithPassword({
     email: data.email,
@@ -79,14 +79,14 @@ export async function login(data: LoginInput & { turnstileToken?: string }) {
 }
 
 export async function requestPasswordReset(email: string, turnstileToken?: string) {
-  const ip = getIPFromHeaders();
+  const ip = await getIPFromHeaders();
   const { allowed } = await checkRateLimitAsync(`reset:${ip}`, { limit: 3, windowSec: 300 });
   if (!allowed) return { error: 'Demasiados intentos. Espera unos minutos.' };
 
   const humanVerified = await verifyTurnstile(turnstileToken);
   if (!humanVerified) return { error: 'Verificación de seguridad fallida. Intenta de nuevo.' };
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
 
   // Always succeed — never reveal whether an email is registered.
@@ -102,7 +102,7 @@ export async function updatePassword(newPassword: string) {
     return { error: 'La contraseña debe tener al menos 8 caracteres' };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { error } = await supabase.auth.updateUser({ password: newPassword });
 
@@ -111,7 +111,7 @@ export async function updatePassword(newPassword: string) {
 }
 
 export async function logout() {
-  const supabase = createClient();
+  const supabase = await createClient();
   await supabase.auth.signOut();
   redirect('/login');
 }

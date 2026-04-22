@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     const until = startParam && endParam
       ? new Date(endParam + 'T23:59:59.999').toISOString()
       : new Date().toISOString();
-    const supabase = createClient();
+    const supabase = await createClient();
 
     let ordersQuery = supabase
       .from('orders')

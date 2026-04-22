@@ -234,8 +234,8 @@ const t = {
   },
 } as const;
 
-export default function SetupProfesionalPage() {
-  const cookieStore = cookies();
+export default async function SetupProfesionalPage() {
+  const cookieStore = await cookies();
   const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as LandingLocale;
   const s = t[locale];
 

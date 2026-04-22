@@ -11,7 +11,7 @@ export async function GET() {
       return NextResponse.json({ messages: [] });
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: messages } = await supabase
       .from('chat_messages')

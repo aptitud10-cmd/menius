@@ -12,7 +12,7 @@ export async function GET() {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Get all restaurants owned by this user
     const { data: branches, error } = await supabase
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Slug inválido (solo letras, números y guiones, 2–60 caracteres)' }, { status: 400 });
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Check slug uniqueness
     const { data: existing } = await supabase

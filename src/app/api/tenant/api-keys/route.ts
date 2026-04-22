@@ -21,7 +21,7 @@ export async function GET() {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: keys, error } = await supabase
       .from('api_keys')
       .select('id, name, prefix, created_at, last_used_at, is_active')
@@ -85,7 +85,7 @@ export async function DELETE(req: NextRequest) {
     const { UUID_RE } = await import('@/lib/constants');
     if (!UUID_RE.test(String(id))) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const { error } = await supabase
       .from('api_keys')
       .update({ is_active: false })

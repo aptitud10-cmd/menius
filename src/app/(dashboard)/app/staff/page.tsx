@@ -8,7 +8,7 @@ export default async function StaffPage() {
   const { restaurantId } = await getDashboardContext();
   const hasAccess = await checkPlanAccess('starter');
   if (!hasAccess) {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: rest } = await supabase.from('restaurants').select('locale').eq('id', restaurantId).maybeSingle();
     const locale = rest?.locale === 'en' ? 'en' : 'es';
     return <PlanUpgradeWall requiredPlan="starter" locale={locale} featureEs="Gestión de Equipo" featureEn="Team Management" />;

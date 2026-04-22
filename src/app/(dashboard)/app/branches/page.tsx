@@ -8,7 +8,7 @@ export default async function BranchesPage() {
   const { restaurantId } = await getDashboardContext();
   const hasAccess = await checkPlanAccess('business');
   if (!hasAccess) {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: rest } = await supabase.from('restaurants').select('locale').eq('id', restaurantId).maybeSingle();
     const locale = rest?.locale === 'en' ? 'en' : 'es';
     return <PlanUpgradeWall requiredPlan="business" locale={locale} featureEs="Sucursales" featureEn="Branches" />;

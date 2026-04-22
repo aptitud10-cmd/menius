@@ -9,7 +9,7 @@ export async function GET() {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: files, error } = await supabase.storage
       .from('product-images')
       .list(tenant.userId, { sortBy: { column: 'created_at', order: 'desc' } });
@@ -53,7 +53,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 });
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const { error } = await supabase.storage
       .from('product-images')
       .remove([filePath]);

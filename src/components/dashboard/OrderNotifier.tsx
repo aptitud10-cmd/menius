@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Bell, X, ShoppingBag } from 'lucide-react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { useNotifications } from '@/hooks/use-notifications';
 import { formatPrice } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
@@ -57,8 +58,8 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
           table: 'orders',
           filter: `restaurant_id=eq.${restaurantId}`,
         },
-        (payload) => {
-          const order = payload.new as any;
+        (payload: RealtimePostgresChangesPayload<{ id: string; order_number: string; customer_name: string; total: number }>) => {
+          const order = payload.new as { id: string; order_number: string; customer_name: string; total: number };
           if (knownIdsRef.current.has(order.id)) return;
           knownIdsRef.current.add(order.id);
 

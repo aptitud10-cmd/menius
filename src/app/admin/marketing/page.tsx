@@ -6,7 +6,7 @@ export default async function AdminMarketingPage() {
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!adminEmail) redirect('/login');
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || user.email !== adminEmail) redirect('/login');
 

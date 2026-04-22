@@ -252,8 +252,8 @@ function getHero(locale: LandingLocale) {
   return { badge: 'Legal', title: 'Términos y Condiciones', date: 'Última actualización: 16 de abril de 2026' };
 }
 
-export default function TermsPage() {
-  const cookieStore = cookies();
+export default async function TermsPage() {
+  const cookieStore = await cookies();
   const locale = (cookieStore.get('menius_locale')?.value === 'en' ? 'en' : 'es') as LandingLocale;
   const hero = getHero(locale);
 

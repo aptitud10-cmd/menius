@@ -15,6 +15,7 @@ import { getLocaleFlag, SUPPORTED_LOCALES, tName, tDesc } from '@/lib/i18n';
 import { trackEvent } from '@/lib/analytics';
 
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { supabaseLoader } from '@/lib/image-loader';
 import { StoreConfigProvider } from '@/lib/store-config-context';
 import { getStoreOverrides } from '@/lib/store-overrides';
@@ -176,8 +177,8 @@ export function MenuShell({
   const [stockOverrides, setStockOverrides] = useState<Map<string, boolean>>(new Map());
   // Realtime pause state: updated live when restaurant pauses orders
   const [pausedUntil, setPausedUntil] = useState<string | null>(() => (restaurant as any).orders_paused_until ?? null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
-  const stockAlertTimer = useRef<ReturnType<typeof setTimeout>>();
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const stockAlertTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const catScrollRef = useRef<HTMLDivElement>(null);
   const desktopPillsRef = useRef<HTMLDivElement>(null);
@@ -197,11 +198,11 @@ export function MenuShell({
   const pillsTouchActiveRef = useRef(false);
   // Timer to delay resetting pillsTouchActiveRef after pointer-up, so iOS momentum scrolling
   // on the main content div (which triggers scroll-spy) doesn't immediately snap pills back.
-  const pillsUpTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const pillsUpTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Debounce timer for scroll-spy-triggered pill bar auto-scroll.
   // Coalesces rapid activeCategory changes (60fps during fast scroll) into a single
   // movement after the user slows down — eliminates the "rapid jumping" artefact.
-  const pillBarScrollTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const pillBarScrollTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const sectionRefs = useRef<Map<string, HTMLElement>>(new Map());
   const isScrollingRef = useRef(false);
   // Sidebar ref — used to auto-scroll sidebar to active category and to
@@ -248,7 +249,7 @@ export function MenuShell({
         schema: 'public',
         table: 'products',
         filter: `restaurant_id=eq.${restaurant.id}`,
-      }, (payload) => {
+      }, (payload: RealtimePostgresChangesPayload<{ id: string; name: string; in_stock: boolean }>) => {
         const updated = payload.new as { id: string; name: string; in_stock: boolean };
         // Always update the displayed badge in real-time
         setStockOverrides(prev => {
@@ -285,8 +286,8 @@ export function MenuShell({
         schema: 'public',
         table: 'restaurants',
         filter: `id=eq.${restaurant.id}`,
-      }, (payload) => {
-        setPausedUntil((payload.new as any).orders_paused_until ?? null);
+      }, (payload: RealtimePostgresChangesPayload<{ orders_paused_until: string | null }>) => {
+        setPausedUntil((payload.new as { orders_paused_until: string | null }).orders_paused_until ?? null);
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };

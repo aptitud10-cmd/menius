@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
     }
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const adminDb = createAdminClient();
 
     const { data: restaurant, error: restaurantDbError } = await adminDb

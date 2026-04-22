@@ -7,7 +7,7 @@ export default async function DevToolPage() {
   const adminEmail = process.env.ADMIN_EMAIL;
   if (!adminEmail) redirect('/login');
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || !adminEmail.split(',').map(e => e.trim()).includes(user.email ?? '')) redirect('/login');
 

@@ -1,15 +1,16 @@
 import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface DashboardContext {
-  supabase: ReturnType<typeof createClient>;
+  supabase: SupabaseClient;
   userId: string;
   restaurantId: string;
 }
 
 export const getDashboardContext = cache(async (): Promise<DashboardContext> => {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');

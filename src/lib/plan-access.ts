@@ -9,7 +9,7 @@ export function meetsMinPlan(currentPlan: string, minPlan: string): boolean {
 }
 
 export async function getDashboardPlan(): Promise<string> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { restaurantId } = await getDashboardContext();
 
   const { data: subscription } = await supabase

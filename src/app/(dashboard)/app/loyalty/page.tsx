@@ -8,7 +8,7 @@ export default async function LoyaltyPage() {
   const { restaurantId } = await getDashboardContext();
   const hasAccess = await checkPlanAccess('pro');
   if (!hasAccess) {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data: rest } = await supabase.from('restaurants').select('locale').eq('id', restaurantId).maybeSingle();
     const locale = rest?.locale === 'en' ? 'en' : 'es';
     return <PlanUpgradeWall requiredPlan="pro" locale={locale} featureEs="Programa de Lealtad" featureEn="Loyalty Program" />;

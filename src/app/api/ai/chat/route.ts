@@ -17,7 +17,7 @@ interface ChatMessage {
 }
 
 async function gatherRestaurantContext(restaurantId: string): Promise<{ context: string; locale: string; restaurantName: string; restaurantSlug: string; atRiskCount: number; zeroSalesNames: string[] }> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
@@ -549,7 +549,7 @@ async function executeTool(
   restaurantId: string,
   menuUrl: string,
 ): Promise<string> {
-  const supabase = createClient();
+  const supabase = await createClient();
 
   if (name === 'create_promotion') {
     const code = String(args.code ?? '').toUpperCase().replace(/\s+/g, '');
@@ -710,7 +710,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Per-plan rate limits: Starter=60, Pro=120, Business=300 msgs/hour
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: sub } = await supabase.from('subscriptions').select('plan_id').eq('restaurant_id', tenant.restaurantId).maybeSingle();
   const planId = sub?.plan_id ?? 'free';
   const rateLimit = planId === 'business' ? 300 : planId === 'pro' ? 120 : 60;

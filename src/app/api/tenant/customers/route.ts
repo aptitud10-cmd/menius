@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const filterTag = searchParams.get('tag') || '';
     const allTagsOnly = searchParams.get('alltags') === '1';
 
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Return only the distinct tags list for the tag-filter chips
     if (allTagsOnly) {
@@ -86,7 +86,7 @@ export async function PATCH(request: NextRequest) {
     const { UUID_RE } = await import('@/lib/constants');
     if (!UUID_RE.test(String(id))) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const updates: Record<string, unknown> = {};
     if (typeof notes === 'string') updates.notes = notes.slice(0, 1000);
     if (Array.isArray(tags)) updates.tags = tags.map(String).slice(0, 20);
