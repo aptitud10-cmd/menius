@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
+import { broadcastOrderUpdate } from '@/lib/realtime/broadcast-order';
 
 export async function POST(req: NextRequest) {
   const ip = getClientIP(req);
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
   // Find order by token
   const { data: order } = await supabase
     .from('orders')
-    .select('id, order_number')
+    .select('id, order_number, status')
     .eq('driver_tracking_token', token)
     .maybeSingle();
 
@@ -70,6 +71,8 @@ export async function POST(req: NextRequest) {
     .eq('id', order.id);
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+
+  void broadcastOrderUpdate(order.id, order.status);
 
   return NextResponse.json({ ok: true, url: publicUrl });
 }

@@ -40,6 +40,8 @@ export interface ReceiptData {
   deliveryAddress?: string;
   items: ReceiptLineItem[];
   subtotal: number;
+  deliveryFee?: number;
+  discountAmount?: number;
   tip?: number;
   tax?: number;
   taxLabel?: string;

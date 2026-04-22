@@ -122,6 +122,9 @@ export function buildReceiptHTML(data: ReceiptData): string {
     paymentMethod,
     deliveryAddress,
     items,
+    subtotal,
+    deliveryFee,
+    discountAmount,
     tip,
     tax,
     taxLabel,
@@ -137,28 +140,68 @@ export function buildReceiptHTML(data: ReceiptData): string {
   } = data;
 
   const L = getLabels(locale);
-  const htmlLang = isEn(locale) ? 'en' : 'es';
+  const en = isEn(locale);
+  const htmlLang = en ? 'en' : 'es';
+
+  // ── A: Order type banner label ──
+  const typeBannerLabel = (() => {
+    if (tableName) return en ? `DINE-IN — ${tableName.toUpperCase()}` : `EN MESA — ${tableName.toUpperCase()}`;
+    if (orderType === 'delivery') return 'DELIVERY';
+    if (orderType === 'pickup') return en ? 'PICKUP' : 'PARA RECOGER';
+    if (orderType === 'dine_in') return en ? 'DINE-IN' : 'EN LOCAL';
+    return null;
+  })();
+
+  // ── B: Prepaid badge ──
+  const isPrepaid = paymentMethod && paymentMethod !== 'cash';
+  const prepaidLabel = en ? '★ PREPAID — DO NOT CHARGE ★' : '★ PREPAGADO — NO COBRAR ★';
+
+  const fmt = (n: number) => formatCurrency(n, currency, locale);
 
   const itemsHTML = items
     .map((item) => {
-      const price = formatCurrency(item.lineTotal, currency, locale);
+      const linePriceStr = fmt(item.lineTotal);
       const rawName = item.name.length > 26 ? item.name.slice(0, 23) + '...' : item.name;
       const name = esc(rawName);
+      const unitPriceLine = item.qty > 1
+        ? `<div class="unit-price">${fmt(item.lineTotal / item.qty)} ${en ? 'ea.' : 'c/u'}</div>`
+        : '';
       return `
         <tr class="item-row">
           <td class="item-qty">${esc(String(item.qty))}x</td>
           <td class="item-name">
             <span>${name}</span>
+            ${unitPriceLine}
             ${item.modifiers.map((m) => `<div class="mod">— ${esc(m)}</div>`).join('')}
             ${item.notes ? `<div class="item-note">★ ${esc(item.notes)}</div>` : ''}
           </td>
-          <td class="item-price">${price}</td>
+          <td class="item-price">${linePriceStr}</td>
         </tr>`;
     })
     .join('');
 
-  const typeLabel = formatOrderType(orderType, locale);
   const payLabel = formatPayment(paymentMethod, locale);
+
+  // ── E+F: Totals rows ──
+  const totalsRows = [
+    `<tr><td class="label">Subtotal</td><td class="value">${fmt(subtotal)}</td></tr>`,
+    discountAmount && discountAmount > 0
+      ? `<tr><td class="label">${en ? 'Discount' : 'Descuento'}</td><td class="value">-${fmt(discountAmount)}</td></tr>`
+      : '',
+    deliveryFee && deliveryFee > 0
+      ? `<tr><td class="label">${en ? 'Delivery fee' : 'Envío'}</td><td class="value">${fmt(deliveryFee)}</td></tr>`
+      : '',
+    tip && tip > 0
+      ? `<tr><td class="label">${en ? 'Tip' : 'Propina'}</td><td class="value">${fmt(tip)}</td></tr>`
+      : '',
+    // F: tax included → italic note, no amount line; tax excluded → amount line
+    tax && tax > 0
+      ? taxIncluded
+        ? `<tr><td colspan="2" class="tax-inc-note">* ${taxLabel ?? 'Tax'} ${en ? 'included' : 'incluido'}</td></tr>`
+        : `<tr><td class="label">${taxLabel ?? 'Tax'}</td><td class="value">${fmt(tax)}</td></tr>`
+      : '',
+    `<tr class="total-row"><td class="label">${L.total}</td><td class="value">${fmt(total)}</td></tr>`,
+  ].filter(Boolean).join('\n');
 
   return `<!DOCTYPE html>
 <html lang="${htmlLang}">
@@ -181,14 +224,51 @@ export function buildReceiptHTML(data: ReceiptData): string {
     }
     .center   { text-align: center; }
     .bold     { font-weight: bold; }
-    .large    { font-size: 14px; font-weight: bold; }
-    .xlarge   { font-size: 18px; font-weight: bold; }
     .divider  { border-top: 1px dashed #000; margin: 5px 0; }
     .spacer   { height: 4px; }
 
     /* Restaurant header */
     .header { text-align: center; margin-bottom: 4px; }
-    .restaurant-name { font-size: 15px; font-weight: bold; letter-spacing: 0.5px; }
+    .restaurant-name { font-size: 16px; font-weight: bold; letter-spacing: 0.5px; }
+
+    /* A: Order type banner — inverse black/white */
+    .type-banner {
+      background: #000;
+      color: #fff;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      padding: 5px 0;
+      margin: 5px 0;
+    }
+
+    /* C: Order number XXL */
+    .order-num {
+      text-align: center;
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      margin: 4px 0 2px;
+    }
+    .order-label {
+      text-align: center;
+      font-size: 9px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #555;
+    }
+
+    /* B: Prepaid badge */
+    .prepaid-badge {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 900;
+      border: 2px solid #000;
+      padding: 3px 0;
+      margin: 4px 0;
+      letter-spacing: 1px;
+    }
 
     /* Order meta */
     .meta-row { display: flex; justify-content: space-between; font-size: 10px; }
@@ -200,15 +280,18 @@ export function buildReceiptHTML(data: ReceiptData): string {
     .item-qty  { width: 20px; white-space: nowrap; }
     .item-name { padding: 0 4px; }
     .item-price { text-align: right; white-space: nowrap; }
+    /* D: unit price sublínea */
+    .unit-price { font-size: 9px; color: #555; padding-left: 0; font-style: italic; }
     .mod  { color: #333; font-size: 10px; padding-left: 8px; }
     .item-note { color: #555; font-size: 10px; padding-left: 8px; font-style: italic; }
 
     /* Totals */
     .totals { width: 100%; }
     .totals td { padding: 1px 0; }
-    .totals .label { }
     .totals .value { text-align: right; }
     .totals .total-row td { font-size: 15px; font-weight: bold; padding-top: 4px; }
+    /* F: tax included note */
+    .tax-inc-note { font-size: 9px; font-style: italic; color: #555; padding-top: 2px; }
 
     /* ETA */
     .eta {
@@ -235,7 +318,6 @@ export function buildReceiptHTML(data: ReceiptData): string {
       font-size: 10px;
     }
     .notes-label { font-weight: bold; font-size: 9px; letter-spacing: 0.5px; text-transform: uppercase; }
-    .table-badge { font-size: 20px; font-weight: 900; text-align: center; border: 3px solid #000; padding: 4px 0; margin: 4px 0; letter-spacing: 1px; }
 
     /* Driver QR section */
     .driver-section { border: 2px dashed #000; padding: 6px 4px; margin: 6px 0; text-align: center; }
@@ -247,25 +329,29 @@ export function buildReceiptHTML(data: ReceiptData): string {
 </head>
 <body>
 
-  <!-- HEADER -->
+  <!-- HEADER: Restaurant name (primary brand) -->
   <div class="header">
     <div class="restaurant-name">${esc(restaurantName).toUpperCase()}</div>
   </div>
+
+  <!-- A: Order type banner — inverse black/white, scannable at a glance -->
+  ${typeBannerLabel ? `<div class="type-banner">${esc(typeBannerLabel)}</div>` : '<div class="divider"></div>'}
+
+  <!-- C: Order number XXL -->
+  <div class="order-label">${L.order}</div>
+  <div class="order-num">#${esc(orderNumber)}</div>
+
+  <!-- B: Prepaid badge -->
+  ${isPrepaid ? `<div class="prepaid-badge">${prepaidLabel}</div>` : ''}
 
   <div class="divider"></div>
 
   <!-- ORDER META -->
   <div class="meta-row">
-    <span class="bold">${L.order}:</span>
-    <span class="large">#${esc(orderNumber)}</span>
-  </div>
-  ${tableName ? `<div class="table-badge">🍽 ${esc(tableName).toUpperCase()}</div>` : ''}
-  <div class="meta-row">
     <span>${L.customer}:</span>
     <span class="bold">${esc(customerName) || L.guest}</span>
   </div>
   ${customerPhone ? `<div class="meta-row"><span>${L.phone}:</span><span>${esc(customerPhone)}</span></div>` : ''}
-  ${typeLabel ? `<div class="meta-row"><span>${L.type}:</span><span>${esc(typeLabel)}</span></div>` : ''}
   ${payLabel ? `<div class="meta-row"><span>${L.payment}:</span><span>${esc(payLabel)}</span></div>` : ''}
   ${deliveryAddress ? `<div class="meta-row"><span>${L.address}:</span><span style="text-align:right;max-width:55mm;">${esc(deliveryAddress)}</span></div>` : ''}
   <div class="meta-row">
@@ -275,7 +361,7 @@ export function buildReceiptHTML(data: ReceiptData): string {
 
   <div class="divider"></div>
 
-  <!-- ITEMS -->
+  <!-- ITEMS (D: unit price sublínea when qty > 1) -->
   <table>
     <tbody>
       ${itemsHTML}
@@ -284,22 +370,9 @@ export function buildReceiptHTML(data: ReceiptData): string {
 
   <div class="divider"></div>
 
-  <!-- TOTALS -->
+  <!-- TOTALS (E: subtotal + delivery fee + discount; F: tax-included as note) -->
   <table class="totals">
-    ${tip && tip > 0 ? `
-    <tr>
-      <td class="label">${isEn(locale) ? 'Tip' : 'Propina'}</td>
-      <td class="value">${formatCurrency(tip, currency, locale)}</td>
-    </tr>` : ''}
-    ${tax && tax > 0 ? `
-    <tr>
-      <td class="label">${taxLabel ?? 'Tax'}${taxIncluded ? (isEn(locale) ? ' (inc.)' : ' (inc.)') : ''}</td>
-      <td class="value">${formatCurrency(tax, currency, locale)}</td>
-    </tr>` : ''}
-    <tr class="total-row">
-      <td class="label">${L.total}</td>
-      <td class="value">${formatCurrency(total, currency, locale)}</td>
-    </tr>
+    ${totalsRows}
   </table>
 
   ${notes ? `
@@ -317,15 +390,15 @@ export function buildReceiptHTML(data: ReceiptData): string {
   <!-- DRIVER TRACKING QR (delivery orders only) -->
   ${driverTrackingUrl ? `
   <div class="driver-section">
-    <div class="driver-title">🛵 ${isEn(locale) ? 'Driver / Tracking' : 'Repartidor / Rastreo'}</div>
+    <div class="driver-title">🛵 ${en ? 'Driver / Tracking' : 'Repartidor / Rastreo'}</div>
     <div class="driver-qr">
       <img src="${driverQrDataUrl || `https://api.qrserver.com/v1/create-qr-code/?size=120x120&ecc=M&data=${encodeURIComponent(driverTrackingUrl)}`}" alt="QR tracking" />
     </div>
     <div class="driver-url">${driverTrackingUrl}</div>
-    <div class="driver-hint">${isEn(locale) ? 'Scan to share live location with customer' : 'Escanea para compartir ubicación en tiempo real'}</div>
+    <div class="driver-hint">${en ? 'Scan to share live location with customer' : 'Escanea para compartir ubicación en tiempo real'}</div>
   </div>` : ''}
 
-  <!-- FOOTER -->
+  <!-- FOOTER: MENIUS branding secondary (footer, small — does not compete with restaurant) -->
   <div class="footer">
     ${L.thanks}<br/>
     Powered by MENIUS
@@ -361,11 +434,26 @@ export function buildReceiptText(data: ReceiptData): string {
   }
 
   lines.push(divider());
-  if (data.tax && data.tax > 0) {
-    const taxLineLabel = `${data.taxLabel ?? 'Tax'}${data.taxIncluded ? (isEn(data.locale) ? ' (inc.)' : ' (inc.)') : ''}:`;
-    lines.push(pad(taxLineLabel, formatCurrency(data.tax, data.currency, data.locale)));
+  const txtEn = isEn(data.locale);
+  const txtFmt = (n: number) => formatCurrency(n, data.currency, data.locale);
+  lines.push(pad('Subtotal:', txtFmt(data.subtotal)));
+  if (data.discountAmount && data.discountAmount > 0) {
+    lines.push(pad(txtEn ? 'Discount:' : 'Descuento:', `-${txtFmt(data.discountAmount)}`));
   }
-  lines.push(pad(`${L.total}:`, formatCurrency(data.total, data.currency, data.locale)));
+  if (data.deliveryFee && data.deliveryFee > 0) {
+    lines.push(pad(txtEn ? 'Delivery fee:' : 'Envío:', txtFmt(data.deliveryFee)));
+  }
+  if (data.tip && data.tip > 0) {
+    lines.push(pad(txtEn ? 'Tip:' : 'Propina:', txtFmt(data.tip)));
+  }
+  if (data.tax && data.tax > 0) {
+    if (data.taxIncluded) {
+      lines.push(`* ${data.taxLabel ?? 'Tax'} ${txtEn ? 'included' : 'incluido'}`);
+    } else {
+      lines.push(pad(`${data.taxLabel ?? 'Tax'}:`, txtFmt(data.tax)));
+    }
+  }
+  lines.push(pad(`${L.total}:`, txtFmt(data.total)));
   lines.push(divider());
 
   if (data.notes) {

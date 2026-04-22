@@ -69,6 +69,16 @@ function mapOrderToReceipt(
   const appUrl = (typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app'));
   const driverTrackingUrl = trackingToken ? `${appUrl}/driver/track/${trackingToken}` : undefined;
 
+  const tipAmt = Number(order.tip_amount) || 0;
+  const feeAmt = Number(order.delivery_fee) || 0;
+  const discountAmt = Number(order.discount_amount) || 0;
+  const subtotal =
+    Number(order.total)
+    - tipAmt
+    - feeAmt
+    + discountAmt
+    - (taxAmt && !taxIncluded ? taxAmt : 0);
+
   return {
     restaurantName,
     orderNumber: order.order_number ?? order.id.slice(-6).toUpperCase(),
@@ -79,8 +89,10 @@ function mapOrderToReceipt(
     paymentMethod: order.payment_method ?? undefined,
     deliveryAddress: order.delivery_address ?? undefined,
     items,
-    subtotal: Number(order.total) - (Number(order.tip_amount) || 0) - (taxAmt && !taxIncluded ? taxAmt : 0),
-    tip: Number(order.tip_amount) || undefined,
+    subtotal,
+    deliveryFee: feeAmt > 0 ? feeAmt : undefined,
+    discountAmount: discountAmt > 0 ? discountAmt : undefined,
+    tip: tipAmt > 0 ? tipAmt : undefined,
     tax: taxAmt,
     taxLabel: taxAmt ? (taxLabel ?? 'Tax') : undefined,
     taxIncluded: taxIncluded ?? false,

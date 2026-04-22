@@ -2921,6 +2921,17 @@ function OrderDetail({
                           {order.driver_phone ? ` · ${order.driver_phone}` : ''}
                         </p>
                       )}
+                      {(order as any).driver_tracking_token && order.driver_picked_up_at && order.status !== 'delivered' && (
+                        <a
+                          href={`${typeof window !== 'undefined' ? window.location.origin : ''}/driver/track/${(order as any).driver_tracking_token}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] font-bold underline mt-0.5 block"
+                          style={{ color: GREEN }}
+                        >
+                          {t.en ? 'Track on map →' : 'Ver en mapa →'}
+                        </a>
+                      )}
                     </div>
                     {order.status === 'delivered' ? (
                       <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex-shrink-0">✓ {t.en ? 'Delivered' : 'Entregado'}</span>
