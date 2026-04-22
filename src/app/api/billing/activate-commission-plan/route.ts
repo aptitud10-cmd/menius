@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   // Deactivation is always allowed regardless of country.
   const query = db
     .from('restaurants')
-    .update({ commission_plan: !deactivate, updated_at: new Date().toISOString() })
+    .update({ commission_plan: !deactivate })
     .eq('id', tenant.restaurantId)
     .select('id');
 
