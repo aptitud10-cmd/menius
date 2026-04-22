@@ -21,6 +21,7 @@ const es = {
       magicLinkLoading: 'Enviando...',
       magicLinkSent: '¡Enlace enviado! Revisa tu bandeja de entrada.',
       magicLinkSentDesc: 'Haz click en el enlace del email para entrar a tu cuenta.',
+      turnstileRequired: 'Completa la verificación de seguridad',
     },
     signup: {
       subtitle: 'Crea tu cuenta gratis — sin tarjeta de crédito',
@@ -46,9 +47,11 @@ const es = {
       confirmClick: 'Haz clic en el enlace para activar tu cuenta.',
       spamNote: '¿No lo ves? Revisa tu carpeta de spam.',
       goToLogin: 'Ir a iniciar sesión →',
+      turnstileRequired: 'Completa la verificación de seguridad',
     },
     forgotPassword: {
       subtitle: 'Restablece tu contraseña',
+      turnstileRequired: 'Completa la verificación de seguridad',
       emailLabel: 'Email',
       emailPlaceholder: 'tu@email.com',
       instructions: 'Ingresa el email de tu cuenta y te enviaremos un enlace para restablecer tu contraseña.',
@@ -419,6 +422,7 @@ const en: LandingT = {
       magicLinkLoading: 'Sending...',
       magicLinkSent: 'Link sent! Check your inbox.',
       magicLinkSentDesc: 'Click the link in the email to sign in to your account.',
+      turnstileRequired: 'Complete the security verification',
     },
     signup: {
       subtitle: 'Create your free account — no credit card needed',
@@ -444,9 +448,11 @@ const en: LandingT = {
       confirmClick: 'Click the link to activate your account.',
       spamNote: "Don't see it? Check your spam folder.",
       goToLogin: 'Go to sign in →',
+      turnstileRequired: 'Complete the security verification',
     },
     forgotPassword: {
       subtitle: 'Reset your password',
+      turnstileRequired: 'Complete the security verification',
       emailLabel: 'Email',
       emailPlaceholder: 'you@email.com',
       instructions: 'Enter your account email and we\'ll send you a link to reset your password.',

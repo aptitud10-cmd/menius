@@ -46,7 +46,7 @@ export default function LoginPage() {
       return;
     }
     if (requiresTurnstile && !turnstileToken) {
-      setError('Completa la verificación de seguridad');
+      setError(t.turnstileRequired);
       return;
     }
 

@@ -33,7 +33,7 @@ export default function ForgotPasswordPage() {
     }
 
     if (requiresTurnstile && !turnstileToken) {
-      setError('Completa la verificación de seguridad');
+      setError(t.turnstileRequired);
       return;
     }
 

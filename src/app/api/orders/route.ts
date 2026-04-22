@@ -545,7 +545,8 @@ export async function POST(request: NextRequest) {
 
     if (orderError) {
       if (orderError.code === '23505' && idempotencyKey) {
-        // Race condition: two concurrent requests with same key — return the winner's order
+        // Race condition: two concurrent requests with same key — return the winner's order.
+        // Do NOT roll back the promo: the winning insert already committed it.
         const { data: raceWinner } = await adminDb
           .from('orders')
           .select('id, order_number, total')
@@ -559,7 +560,7 @@ export async function POST(request: NextRequest) {
         }
       }
       logger.error('Failed to insert order', { error: orderError.message, restaurantId: restaurant.id });
-      if (promoIncremented) {
+      if (promoIncremented && orderError.code !== '23505') {
         adminDb.rpc('decrement_promo_usage', {
           p_code: promo_code!.toUpperCase().trim(),
           p_restaurant_id: restaurant_id,

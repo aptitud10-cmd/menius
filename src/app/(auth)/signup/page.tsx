@@ -95,7 +95,7 @@ export default function SignupPage() {
     }
 
     if (requiresTurnstile && !turnstileToken) {
-      setError('Completa la verificación de seguridad');
+      setError(t.turnstileRequired);
       return;
     }
 
