@@ -70,7 +70,7 @@ export function ActivationBanner({ slug, restaurantName, locale = 'es' }: Activa
       <button
         onClick={dismiss}
         className="absolute top-3 right-3 w-7 h-7 rounded-full bg-amber-100 hover:bg-amber-200 flex items-center justify-center transition-colors flex-shrink-0"
-        aria-label="Cerrar"
+        aria-label={locale === 'en' ? 'Close' : 'Cerrar'}
       >
         <X className="w-3.5 h-3.5 text-amber-700" />
       </button>

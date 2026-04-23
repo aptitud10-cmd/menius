@@ -53,10 +53,16 @@ export const COUNTRY_CONFIG_LIST = [
   ),
 ];
 
-/** O(1) reverse map: currency code → first matching country config (LatAm-first ordering) */
+/** O(1) reverse map: currency code → canonical country config.
+ *  USD maps to US (not EC/SV which share the currency but aren't canonical). */
 const CURRENCY_TO_CONFIG: Record<string, typeof COUNTRY_CONFIG_LIST[number]> = {};
+const CURRENCY_CANONICAL: Record<string, string> = { USD: 'US', EUR: 'ES' };
 for (const c of COUNTRY_CONFIG_LIST) {
   if (!CURRENCY_TO_CONFIG[c.currency]) CURRENCY_TO_CONFIG[c.currency] = c;
+}
+for (const [currency, countryCode] of Object.entries(CURRENCY_CANONICAL)) {
+  const entry = COUNTRY_CONFIG_LIST.find(c => c.code === countryCode);
+  if (entry) CURRENCY_TO_CONFIG[currency] = entry;
 }
 
 /** Deduplicated currency list for dropdowns (one entry per ISO 4217 code) */
