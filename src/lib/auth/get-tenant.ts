@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 export interface TenantInfo {
   userId: string;
   restaurantId: string;
+  email?: string;
 }
 
 /**
@@ -27,5 +28,6 @@ export async function getTenant(): Promise<TenantInfo | null> {
   return {
     userId: user.id,
     restaurantId: profile.default_restaurant_id,
+    email: user.email,
   };
 }

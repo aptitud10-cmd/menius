@@ -15,7 +15,7 @@ export function LandingStickyCta({ locale }: { locale: LandingLocale }) {
     topSentinel.style.cssText = 'position:absolute;top:500px;left:0;height:1px;width:1px;pointer-events:none';
     document.body.appendChild(topSentinel);
 
-    const footer = document.querySelector('footer') ?? document.body.lastElementChild;
+    const footer = document.querySelector('footer');
 
     let pastTop = false;
     let nearBottom = false;

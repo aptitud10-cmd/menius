@@ -24,7 +24,6 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
     const { data: restaurant } = await supabase
       .from('restaurants')
       .select('id, name, stripe_account_id, country_code, currency, commission_plan')
@@ -76,7 +75,7 @@ export async function POST(request: NextRequest) {
       const account = await stripe.accounts.create({
         type: 'express',
         country: stripeCountry,
-        email: user?.email,
+        email: tenant.email,
         display_name: restaurant.name,
         capabilities: {
           card_payments: { requested: true },
