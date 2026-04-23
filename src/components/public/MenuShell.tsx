@@ -1114,6 +1114,7 @@ export function MenuShell({
       <div
         ref={mainRefCb}
         className={`flex-1 overflow-y-auto overscroll-contain max-w-[1440px] w-full mx-auto ${cartCount > 0 ? 'pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0' : 'pb-[env(safe-area-inset-bottom)]'}`}
+        style={{ overscrollBehavior: 'none', WebkitOverflowScrolling: 'touch' } as React.CSSProperties}
       >
 
         {/* Cover banner — full width, scrolls away naturally with content */}

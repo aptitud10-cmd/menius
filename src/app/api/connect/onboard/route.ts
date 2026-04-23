@@ -76,12 +76,14 @@ export async function POST(request: NextRequest) {
         type: 'express',
         country: stripeCountry,
         email: tenant.email,
-        display_name: restaurant.name,
+        business_profile: {
+          name: restaurant.name,
+        },
         capabilities: {
           card_payments: { requested: true },
           transfers: { requested: true },
         },
-      } as any);
+      });
 
       accountId = account.id;
 
