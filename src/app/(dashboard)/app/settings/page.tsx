@@ -20,6 +20,9 @@ export default async function SettingsPage() {
 
   const isMxn = restaurant?.currency === 'MXN';
   const locale = (restaurant?.locale === 'en' ? 'en' : 'es') as 'es' | 'en';
+  // MercadoPago operates in LatAm only — not in US, CA, GB, EU, AU
+  const MP_COUNTRIES = new Set(['MX','AR','CO','PE','CL','UY','BR','BO','DO','EC','GT','HN','NI','CR','PA','VE','PY']);
+  const showMercadoPago = MP_COUNTRIES.has((restaurant?.country_code ?? '').toUpperCase());
   const t = getDashboardTranslations(locale);
 
   return (
@@ -53,8 +56,8 @@ export default async function SettingsPage() {
         <WidgetCode slug={restaurant.slug} isEn={locale === 'en'} />
       </div>
 
-      {/* MercadoPago — available for all currencies except COP (Wompi handles COP) */}
-      {restaurant.currency !== 'COP' && (
+      {/* MercadoPago — only for LatAm countries where MP operates */}
+      {showMercadoPago && (
         <div id="mercadopago">
           <MercadoPagoSettings
             restaurantId={restaurantId}
