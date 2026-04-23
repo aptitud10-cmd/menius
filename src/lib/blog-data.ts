@@ -3104,6 +3104,130 @@ The form appears immediately on your public menu.
 Activate MENIUS Reservations and start filling your tables with less phone calls and more organization.
     `,
   },
+  {
+    slug: 'app-repartidor-offline-delivery-restaurante',
+    title: 'App de repartidor offline: nunca pierdas una entrega aunque no haya señal',
+    description: 'MENIUS lanzó la PWA para repartidores con soporte offline. Tus repartidores pueden confirmar entregas, compartir GPS y actualizar el estado del pedido aunque estén en un túnel o zona sin señal.',
+    category: 'Operaciones',
+    readTime: 5,
+    date: '2026-04-10',
+    author: 'MENIUS',
+    content: `
+## El problema real del delivery: la señal se corta
+
+Tus repartidores salen del restaurante con pedidos y entran en zonas donde la señal desaparece: túneles, edificios, barrios con cobertura deficiente. En ese momento, si intentan marcar el pedido como entregado o actualizar su ubicación, la acción falla silenciosamente — o peor, el cliente ve que el repartidor "se quedó quieto" en el mapa.
+
+MENIUS resolvió este problema con la **PWA del repartidor con soporte offline completo**.
+
+## Qué es la PWA del repartidor de MENIUS
+
+La app del repartidor de MENIUS es una Progressive Web App (PWA) — se instala directamente desde el navegador del celular, sin necesidad de App Store ni Google Play. Es la misma experiencia que una app nativa, pero más ligera y siempre actualizada.
+
+A partir de ahora, esta PWA funciona aunque no haya internet.
+
+## Cómo funciona el modo offline
+
+Cuando el repartidor abre su enlace de tracking (que recibe desde el Counter al asignarle el pedido), la app carga y se guarda en el celular. Desde ese momento:
+
+1. **Sin señal → la acción se guarda localmente** — si el repartidor presiona "Recogí el pedido", "Llegué a la puerta" o "Entregué", la acción queda guardada en el celular aunque no haya internet.
+
+2. **Recupera la señal → la acción se sincroniza automáticamente** — en cuanto el celular vuelve a tener conexión, el estado del pedido se envía al servidor sin que el repartidor tenga que hacer nada.
+
+3. **El cliente siempre ve el estado correcto** — la página de seguimiento del cliente se actualiza en tiempo real cuando la sincronización ocurre.
+
+No hay pérdida de datos. No hay que repetir la acción. No hay pedidos atascados.
+
+## GPS offline: ubicación pendiente
+
+Cuando el repartidor comparte su GPS y pierde señal, la app guarda la última ubicación conocida e intenta reenviarla cuando recupera la conexión. El cliente puede ver en el mapa que el repartidor "está en camino" aunque haya pasado por una zona sin señal.
+
+## Cómo instalar la app en el celular del repartidor
+
+La instalación es automática y no requiere intervención técnica:
+
+1. El encargado en el Counter asigna el pedido al repartidor.
+2. El repartidor recibe un enlace por WhatsApp o SMS.
+3. El repartidor abre el enlace en Chrome (Android) o Safari (iOS).
+4. Aparece un banner de instalación: "Instalar MENIUS Repartidor".
+5. Con un toque, la app queda en la pantalla de inicio del celular.
+
+A partir de ese momento, el repartidor siempre tiene acceso con un ícono en su pantalla, igual que cualquier app.
+
+## Pantalla offline dedicada
+
+Si el repartidor abre la app sin internet antes de cargarla, ve una pantalla de espera clara con el mensaje "Sin conexión — tus acciones están guardadas" en lugar de un error en blanco. Nada de pantallas rotas.
+
+## ¿Por qué esto importa para tu negocio?
+
+- **Cero entregas perdidas** — aunque el repartidor pase por un túnel de 10 minutos
+- **Tracking confiable para tus clientes** — la posición GPS siempre llega cuando hay señal
+- **Sin fricción para tu equipo** — los repartidores no necesitan saber de tecnología, la app funciona sola
+- **Comprobante de entrega offline** — la foto de entrega se sube automáticamente cuando regresa la señal
+
+## Conclusión
+
+El delivery ocurre en el mundo real, donde la señal no siempre es perfecta. La PWA del repartidor de MENIUS fue diseñada para ese mundo: acciones que nunca se pierden, tracking que siempre llega, y una interfaz tan simple que cualquier repartidor puede usarla en su primer día.
+    `,
+    title_en: 'Offline driver app: never lose a delivery even without signal',
+    description_en: 'MENIUS launched the driver PWA with full offline support. Your drivers can confirm deliveries, share GPS, and update order status even in tunnels or areas with no signal.',
+    category_en: 'Operations',
+    content_en: `
+## The real delivery problem: signal drops
+
+Your drivers leave the restaurant with orders and enter areas where signal disappears: tunnels, buildings, neighborhoods with poor coverage. At that moment, if they try to mark an order as delivered or update their location, the action fails silently — or worse, the customer sees the driver "frozen" on the map.
+
+MENIUS solved this with the **driver PWA with full offline support**.
+
+## What is the MENIUS driver PWA
+
+The MENIUS driver app is a Progressive Web App (PWA) — installed directly from the phone's browser, no App Store or Google Play needed. Same experience as a native app, but lighter and always up to date.
+
+Starting now, this PWA works even without internet.
+
+## How offline mode works
+
+When the driver opens their tracking link (received from the Counter when assigned the order), the app loads and saves itself to the phone. From that point:
+
+1. **No signal → action saved locally** — if the driver taps "Picked up", "At the door", or "Delivered", the action is saved on the phone even without internet.
+
+2. **Signal restored → action syncs automatically** — as soon as the phone reconnects, the order status is sent to the server without the driver doing anything.
+
+3. **Customer always sees the correct status** — the customer's tracking page updates in real time when the sync happens.
+
+No data loss. No need to repeat the action. No stuck orders.
+
+## Offline GPS: pending location
+
+When the driver shares GPS and loses signal, the app saves the last known location and tries to resend it when connectivity returns. The customer can see on the map that the driver "is on the way" even after passing through a dead zone.
+
+## How to install the app on the driver's phone
+
+Installation is automatic and requires no technical effort:
+
+1. The Counter operator assigns the order to the driver.
+2. The driver receives a link via WhatsApp or SMS.
+3. The driver opens the link in Chrome (Android) or Safari (iOS).
+4. An install banner appears: "Install MENIUS Driver".
+5. One tap and the app is on the phone's home screen.
+
+From that point, the driver always has access with an icon on their screen, just like any app.
+
+## Dedicated offline screen
+
+If the driver opens the app without internet before it's cached, they see a clear waiting screen with the message "No connection — your actions are saved" instead of a blank error. No broken screens.
+
+## Why this matters for your business
+
+- **Zero lost deliveries** — even if the driver goes through a 10-minute tunnel
+- **Reliable tracking for your customers** — GPS position always arrives when signal returns
+- **No friction for your team** — drivers don't need tech knowledge, the app just works
+- **Offline proof-of-delivery** — the delivery photo uploads automatically when signal returns
+
+## Conclusion
+
+Delivery happens in the real world, where signal isn't always perfect. The MENIUS driver PWA was built for that world: actions that are never lost, tracking that always arrives, and an interface simple enough for any driver to use on their first day.
+    `,
+  },
 ];
 
 export function getBlogPost(slug: string): BlogPost | undefined {

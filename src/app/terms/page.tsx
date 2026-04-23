@@ -24,11 +24,22 @@ function ContentEs() {
       <p>MENIUS es una plataforma de software como servicio (SaaS) que ofrece a restaurantes:</p>
       <ul>
         <li>Creación y gestión de menús digitales accesibles mediante código QR o enlace directo.</li>
-        <li>Recepción y gestión de pedidos en línea en tiempo real.</li>
+        <li>Recepción y gestión de pedidos en línea en tiempo real (dine-in, pickup y delivery).</li>
         <li>Dashboard de administración con analytics, gestión de equipo, promociones y configuración.</li>
-        <li>Generación de imágenes de productos mediante inteligencia artificial.</li>
+        <li>Counter (POS táctil) para gestión de órdenes, asignación de repartidores e impresión de tickets.</li>
+        <li>Sistema KDS (Kitchen Display System) para cocinas.</li>
+        <li>Seguimiento GPS de repartidores en tiempo real con app offline (PWA).</li>
+        <li>Sistema de reservaciones de mesa integrado en el menú público.</li>
+        <li>Marketing Hub con campañas de email, automatizaciones y generador de social media con IA.</li>
+        <li>Programa de lealtad con puntos por compra (planes Pro y Business).</li>
+        <li>CRM de clientes con historial de pedidos, segmentación y etiquetas automáticas.</li>
+        <li>Control de inventario por producto con alertas de stock bajo.</li>
+        <li>Generación de imágenes de productos mediante inteligencia artificial (Google Gemini).</li>
+        <li>Importación de menú desde foto con OCR inteligente.</li>
+        <li>Asistente inteligente MENIUS AI disponible 24/7 en el dashboard.</li>
         <li>Notificaciones por email y push.</li>
-        <li>Procesamiento de pagos a través de Stripe.</li>
+        <li>Procesamiento de pagos a través de Stripe y Wompi (Colombia).</li>
+        <li>API con llaves de acceso para integración con sistemas externos (plan Business).</li>
       </ul>
 
       <h2>3. Registro y Cuenta</h2>
@@ -141,11 +152,22 @@ function ContentEn() {
       <p>MENIUS is a software-as-a-service (SaaS) platform that offers restaurants:</p>
       <ul>
         <li>Creation and management of digital menus accessible via QR code or direct link.</li>
-        <li>Real-time online order reception and management.</li>
+        <li>Real-time online order reception and management (dine-in, pickup, and delivery).</li>
         <li>Administration dashboard with analytics, team management, promotions, and settings.</li>
-        <li>Product image generation using artificial intelligence.</li>
+        <li>Counter (touchscreen POS) for order management, driver assignment, and ticket printing.</li>
+        <li>Kitchen Display System (KDS) for kitchen teams.</li>
+        <li>Real-time driver GPS tracking with offline-capable driver app (PWA).</li>
+        <li>Table reservation system integrated directly into the public menu.</li>
+        <li>Marketing Hub with email campaigns, automations, and AI-powered social media generator.</li>
+        <li>Loyalty program with points per purchase (Pro and Business plans).</li>
+        <li>Customer CRM with order history, segmentation, and automatic tags.</li>
+        <li>Per-product inventory control with low-stock alerts.</li>
+        <li>Product image generation using artificial intelligence (Google Gemini).</li>
+        <li>Smart menu import from photo using OCR.</li>
+        <li>MENIUS AI intelligent assistant available 24/7 in the dashboard.</li>
         <li>Email and push notifications.</li>
-        <li>Payment processing through Stripe.</li>
+        <li>Payment processing through Stripe and Wompi (Colombia).</li>
+        <li>API with access keys for integration with external systems (Business plan).</li>
       </ul>
 
       <h2>3. Registration and Account</h2>
@@ -248,8 +270,8 @@ function ContentEn() {
 }
 
 function getHero(locale: LandingLocale) {
-  if (locale === 'en') return { badge: 'Legal', title: 'Terms & Conditions', date: 'Last updated: April 16, 2026' };
-  return { badge: 'Legal', title: 'Términos y Condiciones', date: 'Última actualización: 16 de abril de 2026' };
+  if (locale === 'en') return { badge: 'Legal', title: 'Terms & Conditions', date: 'Last updated: April 22, 2026' };
+  return { badge: 'Legal', title: 'Términos y Condiciones', date: 'Última actualización: 22 de abril de 2026' };
 }
 
 export default async function TermsPage() {

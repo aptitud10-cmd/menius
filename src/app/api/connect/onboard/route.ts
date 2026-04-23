@@ -1,10 +1,11 @@
 export const dynamic = 'force-dynamic';
 
-import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { getStripe } from '@/lib/stripe';
 import { hasPlanAccess } from '@/lib/auth/check-plan';
+import { getTenant } from '@/lib/auth/get-tenant';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,16 +18,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const tenant = await getTenant();
+    if (!tenant) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     const { data: restaurant } = await supabase
       .from('restaurants')
       .select('id, name, stripe_account_id, country_code, currency, commission_plan')
-      .eq('owner_user_id', user.id)
+      .eq('id', tenant.restaurantId)
       .maybeSingle();
 
     if (!restaurant) {
@@ -74,7 +76,7 @@ export async function POST(request: NextRequest) {
       const account = await stripe.accounts.create({
         type: 'express',
         country: stripeCountry,
-        email: user.email,
+        email: user?.email,
         display_name: restaurant.name,
         capabilities: {
           card_payments: { requested: true },

@@ -3,19 +3,20 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
+import { getTenant } from '@/lib/auth/get-tenant';
 
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const tenant = await getTenant();
+    if (!tenant) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    const supabase = await createClient();
     const { data: restaurant } = await supabase
       .from('restaurants')
       .select('id, stripe_account_id, stripe_onboarding_complete')
-      .eq('owner_user_id', user.id)
+      .eq('id', tenant.restaurantId)
       .maybeSingle();
 
     if (!restaurant) {

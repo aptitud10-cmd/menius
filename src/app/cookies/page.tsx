@@ -39,6 +39,7 @@ function ContentEs() {
           <thead><tr><th>Cookie</th><th>Proveedor</th><th>Propósito</th><th>Duración</th></tr></thead>
           <tbody>
             <tr><td><code>menius-cart</code></td><td>MENIUS</td><td>Almacena el contenido del carrito de compras en el menú público (localStorage)</td><td>Sesión</td></tr>
+            <tr><td><code>menius_locale</code></td><td>MENIUS</td><td>Recuerda el idioma preferido del usuario (español o inglés)</td><td>365 días</td></tr>
           </tbody>
         </table>
       </div>
@@ -74,7 +75,12 @@ function ContentEs() {
       <p><strong>Nota:</strong> si bloqueas las cookies estrictamente necesarias, es posible que no puedas iniciar sesión ni usar ciertas funciones de la Plataforma.</p>
 
       <h2>5. Tecnologías Similares</h2>
-      <p>Además de cookies, utilizamos <strong>localStorage</strong> del navegador para almacenar temporalmente datos como el contenido del carrito de compras en el menú público. Estos datos permanecen en tu dispositivo y no se envían a nuestros servidores hasta que confirmas un pedido.</p>
+      <p>Además de cookies, utilizamos las siguientes tecnologías de almacenamiento local en tu dispositivo:</p>
+      <ul>
+        <li><strong>localStorage:</strong> almacena temporalmente el contenido del carrito de compras en el menú público. Los datos permanecen en tu dispositivo y no se envían a nuestros servidores hasta que confirmas un pedido.</li>
+        <li><strong>IndexedDB:</strong> utilizada por la app del repartidor (PWA) para guardar acciones pendientes (como confirmación de entrega) cuando el dispositivo está sin conexión. Los datos se sincronizan automáticamente con nuestros servidores en cuanto se restablece la conexión.</li>
+        <li><strong>Service Worker / Caché del navegador:</strong> la app del repartidor (PWA) y el menú público almacenan recursos en la caché del navegador para funcionar sin conexión o con señal limitada. Esta caché puede borrase desde la configuración del navegador.</li>
+      </ul>
 
       <h2>6. Cambios a esta Política</h2>
       <p>Podemos actualizar esta Política de Cookies en cualquier momento. Si realizamos cambios significativos (como agregar cookies de análisis o marketing), te notificaremos y solicitaremos tu consentimiento nuevamente.</p>
@@ -116,6 +122,7 @@ function ContentEn() {
           <thead><tr><th>Cookie</th><th>Provider</th><th>Purpose</th><th>Duration</th></tr></thead>
           <tbody>
             <tr><td><code>menius-cart</code></td><td>MENIUS</td><td>Stores shopping cart contents in the public menu (localStorage)</td><td>Session</td></tr>
+            <tr><td><code>menius_locale</code></td><td>MENIUS</td><td>Remembers the user&apos;s preferred language (Spanish or English)</td><td>365 days</td></tr>
           </tbody>
         </table>
       </div>
@@ -151,7 +158,12 @@ function ContentEn() {
       <p><strong>Note:</strong> if you block strictly necessary cookies, you may not be able to sign in or use certain features of the Platform.</p>
 
       <h2>5. Similar Technologies</h2>
-      <p>In addition to cookies, we use the browser&apos;s <strong>localStorage</strong> to temporarily store data such as shopping cart contents in the public menu. This data remains on your device and is not sent to our servers until you confirm an order.</p>
+      <p>In addition to cookies, we use the following local storage technologies on your device:</p>
+      <ul>
+        <li><strong>localStorage:</strong> temporarily stores shopping cart contents in the public menu. Data remains on your device and is not sent to our servers until you confirm an order.</li>
+        <li><strong>IndexedDB:</strong> used by the driver app (PWA) to save pending actions (such as delivery confirmation) when the device is offline. Data is automatically synced with our servers once connectivity is restored.</li>
+        <li><strong>Service Worker / Browser Cache:</strong> the driver app (PWA) and public menu store resources in the browser cache to function offline or with limited signal. This cache can be cleared from your browser settings.</li>
+      </ul>
 
       <h2>6. Changes to This Policy</h2>
       <p>We may update this Cookie Policy at any time. If we make significant changes (such as adding analytics or marketing cookies), we will notify you and request your consent again.</p>
@@ -167,8 +179,8 @@ function ContentEn() {
 }
 
 function getHero(locale: LandingLocale) {
-  if (locale === 'en') return { badge: 'Legal', title: 'Cookie Policy', date: 'Last updated: February 16, 2026' };
-  return { badge: 'Legal', title: 'Política de Cookies', date: 'Última actualización: 16 de febrero de 2026' };
+  if (locale === 'en') return { badge: 'Legal', title: 'Cookie Policy', date: 'Last updated: April 22, 2026' };
+  return { badge: 'Legal', title: 'Política de Cookies', date: 'Última actualización: 22 de abril de 2026' };
 }
 
 export default async function CookiesPage() {

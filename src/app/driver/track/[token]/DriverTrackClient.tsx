@@ -78,7 +78,7 @@ async function queueStatusAction(token: string, action: string): Promise<void> {
   } catch { /* silent — action error shown to user on non-network failures */ }
 }
 
-async function replayQueuedActions(token: string): Promise<void> {
+async function replayQueuedActions(): Promise<void> {
   try {
     const db = await openDriverDB();
     const items: Array<{ id: number; token: string; action: string }> = await new Promise((resolve, reject) => {
@@ -118,7 +118,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   const [deliveryStep, setDeliveryStep] = useState<DeliveryStep>('start');
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState('');
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
 
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -198,7 +198,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
       }
       // iOS manual replay (SyncManager not available on Safari)
       if (!('SyncManager' in window)) {
-        await replayQueuedActions(token);
+        await replayQueuedActions();
       }
     };
     const handleOffline = () => {
@@ -296,14 +296,12 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
-    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     releaseWakeLock();
     setGpsStatus('idle');
   };
 
   useEffect(() => () => {
     if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
-    if (intervalRef.current) clearInterval(intervalRef.current);
   }, []);
 
   // Re-acquire WakeLock when the page becomes visible again (browser releases it on hide)
