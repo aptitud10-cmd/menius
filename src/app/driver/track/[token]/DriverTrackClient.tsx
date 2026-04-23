@@ -118,8 +118,6 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   const [deliveryStep, setDeliveryStep] = useState<DeliveryStep>('start');
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState('');
-
-
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState('');
