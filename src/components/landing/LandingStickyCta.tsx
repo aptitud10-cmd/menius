@@ -8,13 +8,38 @@ export function LandingStickyCta({ locale }: { locale: LandingLocale }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => {
-      const scrollY = window.scrollY;
-      const nearBottom = scrollY + window.innerHeight > document.body.scrollHeight - 200;
-      setVisible(scrollY > 500 && !nearBottom);
+    // IntersectionObserver on a sentinel div injected into document.body.
+    // Immune to Safari's dynamic viewport (address bar show/hide changes
+    // window.innerHeight, breaking scroll-based calculations).
+    const topSentinel = document.createElement('div');
+    topSentinel.style.cssText = 'position:absolute;top:500px;left:0;height:1px;width:1px;pointer-events:none';
+    document.body.appendChild(topSentinel);
+
+    const footer = document.querySelector('footer') ?? document.body.lastElementChild;
+
+    let pastTop = false;
+    let nearBottom = false;
+    const update = () => setVisible(pastTop && !nearBottom);
+
+    const topObs = new IntersectionObserver(
+      ([e]) => { pastTop = !e.isIntersecting; update(); },
+    );
+    topObs.observe(topSentinel);
+
+    let bottomObs: IntersectionObserver | null = null;
+    if (footer) {
+      bottomObs = new IntersectionObserver(
+        ([e]) => { nearBottom = e.isIntersecting; update(); },
+        { rootMargin: '200px 0px 0px 0px' },
+      );
+      bottomObs.observe(footer);
+    }
+
+    return () => {
+      topObs.disconnect();
+      bottomObs?.disconnect();
+      topSentinel.remove();
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   return (
@@ -24,7 +49,7 @@ export function LandingStickyCta({ locale }: { locale: LandingLocale }) {
       }`}
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      <div className="bg-[#050505]/95 backdrop-blur-xl border-t border-white/[0.08] px-4 py-3">
+      <div className="bg-[#050505]/95 border-t border-white/[0.08] px-4 py-3">
         <Link
           href="/signup"
           className="block w-full text-center py-3.5 rounded-xl bg-white text-black font-bold text-[15px] active:bg-gray-100 transition-colors"

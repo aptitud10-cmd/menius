@@ -26,9 +26,15 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
   }, [open]);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 16);
+    let rafId = 0;
+    const onScroll = () => {
+      // rAF batches scroll events during Safari momentum scrolling,
+      // preventing the header from flickering during deceleration
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => setScrolled(window.scrollY > 16));
+    };
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll); cancelAnimationFrame(rafId); };
   }, []);
 
   const switchLocale = (l: LandingLocale) => {
@@ -40,7 +46,7 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
   return (
     <header
       ref={navRef}
-      className={`fixed top-0 w-full z-[120] bg-[#050505]/80 backdrop-blur-2xl border-b transition-colors duration-300 ${scrolled ? 'border-white/[0.09] shadow-[0_1px_0_rgba(255,255,255,0.04)]' : 'border-white/[0.04]'}`}
+      className={`fixed top-0 w-full z-[120] bg-[#050505]/95 md:bg-[#050505]/80 md:backdrop-blur-2xl border-b transition-colors duration-300 ${scrolled ? 'border-white/[0.09] shadow-[0_1px_0_rgba(255,255,255,0.04)]' : 'border-white/[0.04]'}`}
     >
       <div className="max-w-6xl mx-auto px-5 h-14 md:h-16 flex items-center justify-between">
         <Link href="/" className="font-display text-lg font-bold tracking-[-0.04em] text-white">MENIUS</Link>
@@ -74,11 +80,10 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
 
       {open && (
         <div
-          className="md:hidden border-t border-white/[0.06] bg-[#050505]/95 backdrop-blur-xl overflow-y-auto overscroll-contain"
+          className="md:hidden border-t border-white/[0.06] bg-[#050505]/95 overflow-y-auto"
           style={{
             maxHeight: 'calc(100dvh - 3.5rem)',
             paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-            WebkitOverflowScrolling: 'touch',
           }}
         >
           <nav className="flex flex-col px-5 py-4 gap-1">

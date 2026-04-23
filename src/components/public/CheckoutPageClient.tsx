@@ -826,7 +826,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   if (!hasMounted) {
     return (
-      <div className="h-[100dvh] bg-[#f5f5f5] flex flex-col overflow-hidden">
+      <div className="min-h-[100dvh] bg-[#f5f5f5] flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4">
           <div className="h-5 w-24 skeleton rounded-full" />
         </header>
@@ -1303,7 +1303,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   return (
     <div
-      className="h-[100dvh] bg-[#f5f5f5] flex flex-col overflow-hidden"
+      className="min-h-[100dvh] bg-[#f5f5f5] flex flex-col"
     >
       {/* Sticky header */}
       <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between">
