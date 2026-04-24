@@ -136,7 +136,8 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     onboarding_complete: boolean;
     loading: boolean;
     connecting: boolean;
-  }>({ connected: !!initialData.stripe_account_id, onboarding_complete: !!initialData.stripe_onboarding_complete, loading: true, connecting: false });
+    error: string | null;
+  }>({ connected: !!initialData.stripe_account_id, onboarding_complete: !!initialData.stripe_onboarding_complete, loading: true, connecting: false, error: null });
 
   const isColombianRestaurant =
     (form.country_code ?? '').toUpperCase() === 'CO' ||
@@ -163,19 +164,17 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
   }, [isColombianRestaurant]);
 
   const handleConnectStripe = async () => {
-    setStripeStatus((prev) => ({ ...prev, connecting: true }));
+    setStripeStatus((prev) => ({ ...prev, connecting: true, error: null }));
     try {
       const res = await fetch('/api/connect/onboard', { method: 'POST' });
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
       } else {
-        setError(data.error ?? 'Error connecting Stripe');
-        setStripeStatus((prev) => ({ ...prev, connecting: false }));
+        setStripeStatus((prev) => ({ ...prev, connecting: false, error: data.error ?? 'Error connecting Stripe' }));
       }
     } catch {
-      setError('Connection error');
-      setStripeStatus((prev) => ({ ...prev, connecting: false }));
+      setStripeStatus((prev) => ({ ...prev, connecting: false, error: locale === 'en' ? 'Connection error' : 'Error de conexión' }));
     }
   };
 
@@ -1189,6 +1188,12 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
                   <><CreditCard className="w-4 h-4" /> {t.settings_stripeConnect_btn}</>
                 )}
               </button>
+            )}
+            {stripeStatus.error && (
+              <div className="mt-2 flex items-start gap-2 px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700">
+                <span className="shrink-0 mt-0.5">⚠️</span>
+                <span>{stripeStatus.error}</span>
+              </div>
             )}
           </div>
         )}
