@@ -20,7 +20,7 @@ export default async function MisPedidosPage({ params }: PageProps) {
 
   const { data: restaurant } = await adminDb
     .from('restaurants')
-    .select('id, name, slug, currency')
+    .select('id, name, slug, currency, locale')
     .eq('slug', params.slug)
     .maybeSingle();
 
@@ -32,6 +32,7 @@ export default async function MisPedidosPage({ params }: PageProps) {
       restaurantName={restaurant.name}
       restaurantSlug={restaurant.slug}
       currency={restaurant.currency ?? 'MXN'}
+      locale={restaurant.locale ?? 'es'}
     />
   );
 }

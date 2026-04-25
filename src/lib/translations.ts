@@ -162,6 +162,68 @@ export interface Translations {
   ordersLimitReached: string;
   // Popular section title
   popularItems: string;
+  // Review page
+  reviewSelectRating: string;
+  reviewAnonymous: string;
+  reviewError: string;
+  reviewHelp: string;
+  reviewAppreciate: string;
+  reviewTapStar: string;
+  reviewYourName: string;
+  reviewAnonymousPlaceholder: string;
+  reviewComments: string;
+  reviewTellUs: string;
+  reviewSubmitting: string;
+  reviewSubmit: string;
+  reviewThankYou: string;
+  reviewThankYouHelp: string;
+  reviewThankYouAppreciate: string;
+  starLabel1: string;
+  starLabel2: string;
+  starLabel3: string;
+  starLabel4: string;
+  starLabel5: string;
+  // Install banner (PWA)
+  installApp: string;
+  installQuickAccess: string;
+  installClose: string;
+  installInstalling: string;
+  installAdd: string;
+  installIosTitle: string;
+  installIosThen: string;
+  installIosAddToHome: string;
+  // Menu update banner
+  menuUpdated: string;
+  menuReload: string;
+  // Payment success / orden error page
+  paymentReceived: string;
+  paymentSuccess: string;
+  paymentPreparing: string;
+  paymentWhatsNext: string;
+  paymentRestaurantReceived: string;
+  paymentEmailConfirmation: string;
+  paymentRetryView: string;
+  paymentViewStatus: string;
+  orderLoadError: string;
+  orderLoadErrorDesc: string;
+  tryAgain: string;
+  // Order history
+  myOrders: string;
+  orderHistorySearch: string;
+  orderHistoryDesc: string;
+  orderInvalidEmail: string;
+  orderConnectionError: string;
+  orderNotFound: string;
+  orderNotFoundDesc: string;
+  orderMakeOrder: string;
+  orderReordered: string;
+  orderReorder: string;
+  statusPending: string;
+  statusConfirmed: string;
+  statusPreparing: string;
+  statusReady: string;
+  statusDelivered: string;
+  statusCancelled: string;
 }
 
 const es: Translations = {
@@ -287,6 +349,63 @@ const es: Translations = {
   addedCartSuffix: 'se agregó al carrito',
   ordersLimitReached: 'No aceptamos pedidos por el momento. Vuelve mañana.',
   popularItems: 'Populares',
+  reviewSelectRating: 'Por favor selecciona una calificación.',
+  reviewAnonymous: 'Anónimo',
+  reviewError: 'Algo salió mal. Intenta de nuevo.',
+  reviewHelp: 'Tu reseña nos ayuda a mejorar.',
+  reviewAppreciate: `Apreciamos tu opinión sobre`,
+  reviewTapStar: 'Toca una estrella para calificar',
+  reviewYourName: 'Tu nombre',
+  reviewAnonymousPlaceholder: 'Anónimo',
+  reviewComments: 'Comentarios (opcional)',
+  reviewTellUs: 'Cuéntanos tu experiencia…',
+  reviewSubmitting: 'Enviando…',
+  reviewSubmit: 'Enviar reseña',
+  reviewThankYou: '¡Gracias!',
+  reviewThankYouHelp: 'Tu reseña nos ayuda a mejorar.',
+  reviewThankYouAppreciate: 'Apreciamos tu opinión sobre',
+  starLabel1: 'Muy malo',
+  starLabel2: 'Malo',
+  starLabel3: 'Regular',
+  starLabel4: 'Bueno',
+  starLabel5: '¡Excelente!',
+  installApp: 'Instalar app de',
+  installQuickAccess: 'Acceso rápido desde tu pantalla de inicio',
+  installClose: 'Cerrar',
+  installInstalling: 'Instalando…',
+  installAdd: 'Agregar a pantalla de inicio',
+  installIosTitle: 'Instala en tu iPhone',
+  installIosThen: 'y luego',
+  installIosAddToHome: '"Agregar a pantalla de inicio"',
+  menuUpdated: 'Menú actualizado',
+  menuReload: 'Actualizar',
+  paymentReceived: '¡Pago recibido!',
+  paymentSuccess: 'Tu pago fue procesado exitosamente.',
+  paymentPreparing: 'El restaurante ha recibido tu pedido y lo está preparando.',
+  paymentWhatsNext: '¿Qué sigue?',
+  paymentRestaurantReceived: 'El restaurante recibió tu pedido',
+  paymentEmailConfirmation: 'Si dejaste tu email, recibirás un comprobante',
+  paymentRetryView: 'Puedes volver a intentar ver el estado de tu pedido',
+  paymentViewStatus: 'Ver estado del pedido',
+  orderLoadError: 'No se pudo cargar el pedido',
+  orderLoadErrorDesc: 'Hubo un problema al cargar el estado de tu pedido. Por favor intenta de nuevo.',
+  tryAgain: 'Intentar de nuevo',
+  myOrders: 'Mis pedidos',
+  orderHistorySearch: 'Consulta tu historial',
+  orderHistoryDesc: 'Ingresa el email que usaste al hacer tu pedido y veremos tus órdenes anteriores.',
+  orderInvalidEmail: 'Ingresa un email válido',
+  orderConnectionError: 'Error de conexión. Intenta de nuevo.',
+  orderNotFound: 'Sin pedidos encontrados',
+  orderNotFoundDesc: 'No encontramos pedidos con ese email en',
+  orderMakeOrder: 'Hacer un pedido',
+  orderReordered: '¡Agregado!',
+  orderReorder: 'Volver a pedir',
+  statusPending: 'Pendiente',
+  statusConfirmed: 'Confirmado',
+  statusPreparing: 'Preparando',
+  statusReady: 'Listo',
+  statusDelivered: 'Entregado',
+  statusCancelled: 'Cancelado',
 };
 
 const en: Translations = {
@@ -412,6 +531,63 @@ const en: Translations = {
   addedCartSuffix: 'added to cart',
   ordersLimitReached: 'Not accepting orders right now. Come back tomorrow.',
   popularItems: 'Popular items',
+  reviewSelectRating: 'Please select a rating.',
+  reviewAnonymous: 'Anonymous',
+  reviewError: 'Something went wrong. Please try again.',
+  reviewHelp: 'Your review helps us improve.',
+  reviewAppreciate: 'We appreciate your feedback for',
+  reviewTapStar: 'Tap a star to rate',
+  reviewYourName: 'Your name',
+  reviewAnonymousPlaceholder: 'Anonymous',
+  reviewComments: 'Comments (optional)',
+  reviewTellUs: 'Tell us about your experience…',
+  reviewSubmitting: 'Submitting…',
+  reviewSubmit: 'Submit review',
+  reviewThankYou: 'Thank you!',
+  reviewThankYouHelp: 'Your review helps us improve.',
+  reviewThankYouAppreciate: 'We appreciate your feedback for',
+  starLabel1: 'Terrible',
+  starLabel2: 'Bad',
+  starLabel3: 'OK',
+  starLabel4: 'Good',
+  starLabel5: 'Excellent!',
+  installApp: 'Install',
+  installQuickAccess: 'Quick access from your home screen',
+  installClose: 'Close',
+  installInstalling: 'Installing…',
+  installAdd: 'Add to home screen',
+  installIosTitle: 'Install on your iPhone',
+  installIosThen: 'then',
+  installIosAddToHome: '"Add to Home Screen"',
+  menuUpdated: 'Menu updated',
+  menuReload: 'Reload',
+  paymentReceived: 'Payment received!',
+  paymentSuccess: 'Your payment was processed successfully.',
+  paymentPreparing: 'The restaurant has received your order and is preparing it.',
+  paymentWhatsNext: "What's next?",
+  paymentRestaurantReceived: 'The restaurant received your order',
+  paymentEmailConfirmation: 'If you left your email, you will receive a confirmation',
+  paymentRetryView: 'You can retry viewing your order status below',
+  paymentViewStatus: 'View order status',
+  orderLoadError: 'Could not load your order',
+  orderLoadErrorDesc: 'There was a problem loading your order status. Please try again.',
+  tryAgain: 'Try again',
+  myOrders: 'My orders',
+  orderHistorySearch: 'Check your history',
+  orderHistoryDesc: 'Enter the email you used when placing your order and we will show your previous orders.',
+  orderInvalidEmail: 'Please enter a valid email',
+  orderConnectionError: 'Connection error. Please try again.',
+  orderNotFound: 'No orders found',
+  orderNotFoundDesc: 'We could not find orders with that email at',
+  orderMakeOrder: 'Place an order',
+  orderReordered: 'Added!',
+  orderReorder: 'Reorder',
+  statusPending: 'Pending',
+  statusConfirmed: 'Confirmed',
+  statusPreparing: 'Preparing',
+  statusReady: 'Ready',
+  statusDelivered: 'Delivered',
+  statusCancelled: 'Cancelled',
 };
 
 const translations: Record<string, Translations> = { es, en };

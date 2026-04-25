@@ -4,9 +4,9 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { CheckCircle2, RefreshCcw, ShoppingBag } from 'lucide-react';
+import { getTranslations, type Translations } from '@/lib/translations';
 
 export default function OrderTrackingError({
-  error,
   reset,
 }: {
   error: Error;
@@ -16,7 +16,7 @@ export default function OrderTrackingError({
   const paid = searchParams.get('paid') === 'true';
 
   const [slug, setSlug] = useState('');
-  const [en, setEn] = useState(false);
+  const [t, setT] = useState<Translations>(() => getTranslations('es'));
 
   useEffect(() => {
     const parts = window.location.pathname.split('/');
@@ -27,7 +27,7 @@ export default function OrderTrackingError({
     if (restaurantSlug) {
       fetch(`/api/public/restaurant-info?slug=${encodeURIComponent(restaurantSlug)}`)
         .then(r => r.json())
-        .then(d => { if (d?.locale === 'en') setEn(true); })
+        .then(d => { if (d?.locale) setT(getTranslations(d.locale)); })
         .catch(() => {});
     }
   }, []);
@@ -40,21 +40,19 @@ export default function OrderTrackingError({
             <CheckCircle2 className="w-10 h-10 text-emerald-600" />
           </div>
           <h1 className="text-2xl font-extrabold text-gray-900 mb-2">
-            {en ? 'Payment received!' : '¡Pago recibido!'}
+            {t.paymentReceived}
           </h1>
           <p className="text-sm text-gray-500 mb-1">
-            {en ? 'Your payment was processed successfully.' : 'Tu pago fue procesado exitosamente.'}
+            {t.paymentSuccess}
           </p>
           <p className="text-sm text-gray-500 mb-6">
-            {en
-              ? 'The restaurant has received your order and is preparing it.'
-              : 'El restaurante ha recibido tu pedido y lo está preparando.'}
+            {t.paymentPreparing}
           </p>
           <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 mb-6 text-left space-y-1.5">
-            <p className="text-sm font-semibold text-emerald-800">{en ? "What's next?" : '¿Qué sigue?'}</p>
-            <p className="text-xs text-emerald-700">✓ {en ? 'The restaurant received your order' : 'El restaurante recibió tu pedido'}</p>
-            <p className="text-xs text-emerald-700">✓ {en ? 'If you left your email, you will receive a confirmation' : 'Si dejaste tu email, recibirás un comprobante'}</p>
-            <p className="text-xs text-emerald-700">✓ {en ? 'You can retry viewing your order status below' : 'Puedes volver a intentar ver el estado de tu pedido'}</p>
+            <p className="text-sm font-semibold text-emerald-800">{t.paymentWhatsNext}</p>
+            <p className="text-xs text-emerald-700">✓ {t.paymentRestaurantReceived}</p>
+            <p className="text-xs text-emerald-700">✓ {t.paymentEmailConfirmation}</p>
+            <p className="text-xs text-emerald-700">✓ {t.paymentRetryView}</p>
           </div>
           <div className="space-y-3">
             <button
@@ -62,7 +60,7 @@ export default function OrderTrackingError({
               className="w-full py-3.5 rounded-2xl bg-violet-600 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-violet-700 transition-colors active:scale-[0.98]"
             >
               <RefreshCcw className="w-4 h-4" />
-              {en ? 'View order status' : 'Ver estado del pedido'}
+              {t.paymentViewStatus}
             </button>
             {slug && (
               <Link
@@ -71,7 +69,7 @@ export default function OrderTrackingError({
               >
                 <span className="flex items-center justify-center gap-2">
                   <ShoppingBag className="w-4 h-4" />
-                  {en ? 'Back to menu' : 'Volver al menú'}
+                  {t.backToMenu}
                 </span>
               </Link>
             )}
@@ -89,26 +87,24 @@ export default function OrderTrackingError({
         </svg>
       </div>
       <h1 className="text-xl font-bold text-gray-900 mb-2">
-        {en ? 'Could not load your order' : 'No se pudo cargar el pedido'}
+        {t.orderLoadError}
       </h1>
       <p className="text-sm text-gray-500 mb-6 max-w-xs">
-        {en
-          ? 'There was a problem loading your order status. Please try again.'
-          : 'Hubo un problema al cargar el estado de tu pedido. Por favor intenta de nuevo.'}
+        {t.orderLoadErrorDesc}
       </p>
       <div className="flex flex-col gap-3 w-full max-w-xs">
         <button
           onClick={reset}
           className="px-6 py-3 bg-violet-600 text-white rounded-xl font-semibold text-sm hover:bg-violet-700 transition-colors"
         >
-          {en ? 'Try again' : 'Intentar de nuevo'}
+          {t.tryAgain}
         </button>
         {slug && (
           <Link
             href={`/${slug}`}
             className="px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-colors"
           >
-            {en ? 'Back to menu' : 'Volver al menú'}
+            {t.backToMenu}
           </Link>
         )}
       </div>

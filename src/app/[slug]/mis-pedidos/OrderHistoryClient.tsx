@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Search, Package, RotateCcw, Clock, CheckCircle2, XCircle, ChefHat, Truck } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { formatPrice } from '@/lib/utils';
+import { getTranslations } from '@/lib/translations';
 
 interface OrderItem {
   id: string;
@@ -34,18 +35,11 @@ interface Props {
   restaurantName: string;
   restaurantSlug: string;
   currency: string;
+  locale?: string;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; icon: typeof CheckCircle2; color: string }> = {
-  pending:   { label: 'Pendiente',  icon: Clock,        color: 'text-gray-500' },
-  confirmed: { label: 'Confirmado', icon: CheckCircle2, color: 'text-blue-500' },
-  preparing: { label: 'Preparando', icon: ChefHat,      color: 'text-amber-500' },
-  ready:     { label: 'Listo',      icon: CheckCircle2, color: 'text-emerald-500' },
-  delivered: { label: 'Entregado',  icon: Truck,        color: 'text-emerald-600' },
-  cancelled: { label: 'Cancelado',  icon: XCircle,      color: 'text-red-500' },
-};
-
-export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlug, currency }: Props) {
+export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlug, currency, locale }: Props) {
+  const t = getTranslations(locale ?? 'es');
   const [email, setEmail] = useState('');
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -57,11 +51,20 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
 
   const fmtPrice = (n: number) => formatPrice(n, currency);
 
+  const STATUS_CONFIG: Record<string, { label: string; icon: typeof CheckCircle2; color: string }> = {
+    pending:   { label: t.statusPending,   icon: Clock,        color: 'text-gray-500' },
+    confirmed: { label: t.statusConfirmed, icon: CheckCircle2, color: 'text-blue-500' },
+    preparing: { label: t.statusPreparing, icon: ChefHat,      color: 'text-amber-500' },
+    ready:     { label: t.statusReady,     icon: CheckCircle2, color: 'text-emerald-500' },
+    delivered: { label: t.statusDelivered, icon: Truck,        color: 'text-emerald-600' },
+    cancelled: { label: t.statusCancelled, icon: XCircle,      color: 'text-red-500' },
+  };
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setError('Ingresa un email válido');
+      setError(t.orderInvalidEmail);
       return;
     }
     setError('');
@@ -71,10 +74,10 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
         `/api/orders/history?restaurant_id=${encodeURIComponent(restaurantId)}&email=${encodeURIComponent(trimmed)}`
       );
       const data = await res.json();
-      if (!res.ok) { setError(data.error ?? 'Error al cargar'); return; }
+      if (!res.ok) { setError(data.error ?? t.orderConnectionError); return; }
       setOrders(data.orders);
     } catch {
-      setError('Error de conexión. Intenta de nuevo.');
+      setError(t.orderConnectionError);
     } finally {
       setLoading(false);
     }
@@ -102,7 +105,7 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
         </Link>
         <div className="min-w-0">
           <p className="text-xs text-gray-400 truncate">{restaurantName}</p>
-          <h1 className="text-[15px] font-bold text-gray-900">Mis pedidos</h1>
+          <h1 className="text-[15px] font-bold text-gray-900">{t.myOrders}</h1>
         </div>
       </div>
 
@@ -110,10 +113,8 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
 
         {/* Search form */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-          <p className="text-sm font-semibold text-gray-800 mb-1">Consulta tu historial</p>
-          <p className="text-xs text-gray-500 mb-4">
-            Ingresa el email que usaste al hacer tu pedido y veremos tus órdenes anteriores.
-          </p>
+          <p className="text-sm font-semibold text-gray-800 mb-1">{t.orderHistorySearch}</p>
+          <p className="text-xs text-gray-500 mb-4">{t.orderHistoryDesc}</p>
           <form onSubmit={handleSearch} className="flex gap-2">
             <input
               type="email"
@@ -148,26 +149,26 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
               <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
                 <Package className="w-7 h-7 text-gray-400" />
               </div>
-              <p className="font-semibold text-gray-700">Sin pedidos encontrados</p>
+              <p className="font-semibold text-gray-700">{t.orderNotFound}</p>
               <p className="text-sm text-gray-400 mt-1">
-                No encontramos pedidos con ese email en {restaurantName}.
+                {t.orderNotFoundDesc} {restaurantName}.
               </p>
               <Link
                 href={`/${restaurantSlug}`}
                 className="mt-4 inline-block px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-sm font-semibold hover:bg-emerald-600 transition-colors"
               >
-                Hacer un pedido
+                {t.orderMakeOrder}
               </Link>
             </div>
           ) : (
             <div className="space-y-3">
               <p className="text-xs text-gray-500 font-medium px-1">
-                {orders.length} pedido{orders.length !== 1 ? 's' : ''} encontrado{orders.length !== 1 ? 's' : ''}
+                {orders.length} {orders.length !== 1 ? t.resultPlural : t.resultSingular}
               </p>
               {orders.map((order) => {
                 const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
                 const StatusIcon = cfg.icon;
-                const date = new Date(order.created_at).toLocaleDateString('es-MX', {
+                const date = new Date(order.created_at).toLocaleDateString(locale === 'en' ? 'en-US' : 'es-MX', {
                   day: 'numeric', month: 'short', year: 'numeric',
                 });
 
@@ -217,7 +218,7 @@ export function OrderHistoryClient({ restaurantId, restaurantName, restaurantSlu
                         ) : (
                           <RotateCcw className="w-3.5 h-3.5" />
                         )}
-                        {reorderedId === order.id ? '¡Agregado!' : 'Volver a pedir'}
+                        {reorderedId === order.id ? t.orderReordered : t.orderReorder}
                       </button>
                     </div>
                   </div>

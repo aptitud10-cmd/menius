@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
+import { getTranslations } from '@/lib/translations';
 
 interface Props {
   restaurantId: string;
@@ -12,16 +13,10 @@ interface Props {
   locale: string;
 }
 
-const STAR_LABELS: Record<number, { en: string; es: string }> = {
-  1: { en: 'Terrible', es: 'Muy malo' },
-  2: { en: 'Bad', es: 'Malo' },
-  3: { en: 'OK', es: 'Regular' },
-  4: { en: 'Good', es: 'Bueno' },
-  5: { en: 'Excellent!', es: '¡Excelente!' },
-};
+const STAR_LABEL_KEYS = ['starLabel1', 'starLabel2', 'starLabel3', 'starLabel4', 'starLabel5'] as const;
 
 export default function ReviewPageClient({ restaurantId, restaurantName, restaurantSlug, orderId, customerName, locale }: Props) {
-  const en = locale === 'en';
+  const t = getTranslations(locale);
   const [rating, setRating] = useState(0);
   const [hovered, setHovered] = useState(0);
   const [name, setName] = useState(customerName);
@@ -32,12 +27,12 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
   const formRef = useRef<HTMLFormElement>(null);
 
   const displayRating = hovered || rating;
-  const starLabel = displayRating ? (en ? STAR_LABELS[displayRating].en : STAR_LABELS[displayRating].es) : '';
+  const starLabel = displayRating ? t[STAR_LABEL_KEYS[displayRating - 1]] : '';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (rating === 0) {
-      setError(en ? 'Please select a rating.' : 'Por favor selecciona una calificación.');
+      setError(t.reviewSelectRating);
       return;
     }
     setError('');
@@ -49,14 +44,13 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
         body: JSON.stringify({
           restaurant_id: restaurantId,
           order_id: orderId,
-          customer_name: name.trim() || (en ? 'Anonymous' : 'Anónimo'),
+          customer_name: name.trim() || t.reviewAnonymous,
           rating,
           comment: comment.trim(),
           _hp: '',
         }),
       });
       if (res.status === 409) {
-        // Already reviewed — treat as success so the user sees the thank-you screen
         setSubmitted(true);
         return;
       }
@@ -66,7 +60,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
       }
       setSubmitted(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : (en ? 'Something went wrong. Please try again.' : 'Algo salió mal. Intenta de nuevo.'));
+      setError(err instanceof Error ? err.message : t.reviewError);
     } finally {
       setSubmitting(false);
     }
@@ -82,13 +76,13 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
             </svg>
           </div>
           <h1 className="text-2xl font-extrabold text-gray-900 mb-2">
-            {en ? 'Thank you!' : '¡Gracias!'}
+            {t.reviewThankYou}
           </h1>
           <p className="text-sm text-gray-500 mb-1">
-            {en ? 'Your review helps us improve.' : 'Tu reseña nos ayuda a mejorar.'}
+            {t.reviewThankYouHelp}
           </p>
           <p className="text-sm text-gray-400 mb-8">
-            {en ? `We appreciate your feedback for ${restaurantName}.` : `Apreciamos tu opinión sobre ${restaurantName}.`}
+            {t.reviewThankYouAppreciate} {restaurantName}.
           </p>
           <div className="flex justify-center gap-1 mb-8">
             {[1, 2, 3, 4, 5].map((s) => (
@@ -105,7 +99,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
             href={`/${restaurantSlug}`}
             className="block w-full py-3.5 rounded-2xl bg-[#05c8a7] text-white font-bold text-sm hover:bg-[#04b096] transition-colors"
           >
-            {en ? 'Back to menu' : 'Volver al menú'}
+            {t.backToMenu}
           </Link>
         </div>
       </div>
@@ -116,7 +110,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
     <div className="min-h-[100dvh] bg-gray-50 flex flex-col">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-5 py-4 flex items-center gap-3">
-        <Link href={`/${restaurantSlug}`} className="text-gray-400 hover:text-gray-600 transition-colors" aria-label="Back">
+        <Link href={`/${restaurantSlug}`} className="text-gray-400 hover:text-gray-600 transition-colors" aria-label={t.backToMenu}>
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
@@ -133,10 +127,10 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
             </svg>
           </div>
           <h1 className="text-2xl font-extrabold text-gray-900 mb-1">
-            {en ? 'How was your experience?' : '¿Cómo fue tu experiencia?'}
+            {t.whatDidYouThink}
           </h1>
           <p className="text-sm text-gray-500">
-            {en ? 'Your feedback helps us improve.' : 'Tu opinión nos ayuda a mejorar.'}
+            {t.reviewHelp}
           </p>
         </div>
 
@@ -168,21 +162,21 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
               ))}
             </div>
             <p className={`text-sm font-semibold h-5 transition-colors ${displayRating >= 4 ? 'text-[#05c8a7]' : displayRating > 0 ? 'text-amber-500' : 'text-gray-400'}`}>
-              {starLabel || (en ? 'Tap a star to rate' : 'Toca una estrella para calificar')}
+              {starLabel || t.reviewTapStar}
             </p>
           </div>
 
           {/* Name */}
           <div className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100">
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-              {en ? 'Your name' : 'Tu nombre'}
+              {t.reviewYourName}
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               maxLength={100}
-              placeholder={en ? 'Anonymous' : 'Anónimo'}
+              placeholder={t.reviewAnonymousPlaceholder}
               className="w-full text-base text-gray-900 placeholder-gray-300 bg-transparent focus:outline-none"
             />
           </div>
@@ -190,14 +184,14 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
           {/* Comment */}
           <div className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100">
             <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-              {en ? 'Comments (optional)' : 'Comentarios (opcional)'}
+              {t.reviewComments}
             </label>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               maxLength={500}
               rows={3}
-              placeholder={en ? 'Tell us about your experience…' : 'Cuéntanos tu experiencia…'}
+              placeholder={t.reviewTellUs}
               className="w-full text-base text-gray-900 placeholder-gray-300 bg-transparent focus:outline-none resize-none"
             />
           </div>
@@ -211,9 +205,7 @@ export default function ReviewPageClient({ restaurantId, restaurantName, restaur
             disabled={submitting || rating === 0}
             className="w-full py-4 rounded-2xl bg-[#05c8a7] text-white font-bold text-base hover:bg-[#04b096] active:scale-[.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
-            {submitting
-              ? (en ? 'Submitting…' : 'Enviando…')
-              : (en ? 'Submit review' : 'Enviar reseña')}
+            {submitting ? t.reviewSubmitting : t.reviewSubmit}
           </button>
         </form>
       </div>

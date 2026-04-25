@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { X, Download, Share } from 'lucide-react';
 import Image from 'next/image';
 import { usePWAInstall } from '@/hooks/use-pwa-install';
+import { getTranslations } from '@/lib/translations';
 
 interface InstallBannerProps {
   restaurantName: string;
@@ -23,6 +24,7 @@ function isInStandaloneMode() {
 }
 
 export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es' }: InstallBannerProps) {
+  const t = getTranslations(locale);
   const { canInstall, install } = usePWAInstall();
   const [dismissed, setDismissed] = useState(true); // start hidden to avoid flash
   const [iosHint, setIosHint] = useState(false);
@@ -39,8 +41,8 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es' }: 
     // On iOS there's no beforeinstallprompt — show manual hint instead
     if (isIOS() && !canInstall) {
       // Delay so the user has time to browse first
-      const t = setTimeout(() => setIosHint(true), 8000);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setIosHint(true), 8000);
+      return () => clearTimeout(timer);
     }
   }, [DISMISS_KEY, canInstall]);
 
@@ -56,8 +58,6 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es' }: 
     if (ok) setDismissed(true);
     setInstalling(false);
   };
-
-  const isEs = locale === 'es';
 
   // Android/Chrome: native install prompt available
   if (!dismissed && canInstall) {
@@ -77,10 +77,10 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es' }: 
             {/* Text */}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-gray-900 truncate">
-                {isEs ? `Instalar app de ${restaurantName}` : `Install ${restaurantName} app`}
+                {t.installApp} {restaurantName}
               </p>
               <p className="text-xs text-gray-500 mt-0.5">
-                {isEs ? 'Acceso rápido desde tu pantalla de inicio' : 'Quick access from your home screen'}
+                {t.installQuickAccess}
               </p>
             </div>
 
@@ -88,7 +88,7 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es' }: 
             <button
               onClick={dismiss}
               className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 flex-shrink-0 transition-colors"
-              aria-label="Cerrar"
+              aria-label={t.installClose}
             >
               <X className="w-4 h-4" />
             </button>
@@ -102,9 +102,7 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es' }: 
               className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#05c8a7] hover:bg-[#04b096] active:scale-[0.98] text-white text-sm font-semibold transition-all disabled:opacity-60"
             >
               <Download className="w-4 h-4" />
-              {installing
-                ? (isEs ? 'Instalando…' : 'Installing…')
-                : (isEs ? 'Agregar a pantalla de inicio' : 'Add to home screen')}
+              {installing ? t.installInstalling : t.installAdd}
             </button>
           </div>
         </div>
@@ -120,19 +118,16 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es' }: 
           <div className="flex items-start justify-between px-4 pt-4 pb-3 gap-3">
             <div className="flex-1">
               <p className="text-sm font-bold">
-                {isEs ? `Instala ${restaurantName} en tu iPhone` : `Install ${restaurantName} on your iPhone`}
+                {t.installIosTitle} {restaurantName}
               </p>
               <p className="text-xs text-gray-300 mt-1.5 leading-relaxed">
-                {isEs
-                  ? <>Toca <Share className="inline w-3.5 h-3.5 mx-0.5 align-middle" /> y luego <strong>&quot;Agregar a pantalla de inicio&quot;</strong></>
-                  : <>Tap <Share className="inline w-3.5 h-3.5 mx-0.5 align-middle" /> then <strong>&quot;Add to Home Screen&quot;</strong></>
-                }
+                Toca <Share className="inline w-3.5 h-3.5 mx-0.5 align-middle" /> {t.installIosThen} <strong>{t.installIosAddToHome}</strong>
               </p>
             </div>
             <button
               onClick={dismiss}
               className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:text-white flex-shrink-0 mt-0.5 transition-colors"
-              aria-label="Cerrar"
+              aria-label={t.installClose}
             >
               <X className="w-4 h-4" />
             </button>
