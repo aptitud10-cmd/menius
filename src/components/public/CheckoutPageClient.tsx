@@ -573,7 +573,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       saveLastOrder();
       // Capture snapshot before clearing cart — used in confirmation screen
       setConfirmedItems(items.map(i => ({ name: i.product.name, qty: i.qty, variant: i.variant?.name, lineTotal: i.lineTotal })));
-      setConfirmedTotal(displayTotal);
+      setConfirmedTotal(typeof data.total === 'number' ? data.total : displayTotal);
       // Save customer info for next visit
       try {
         if (rememberMe) {
@@ -1325,7 +1325,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         <div className="max-w-lg mx-auto px-5 py-6 space-y-4">
 
           {/* Section: Tu pedido */}
-          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 px-1">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 px-1">
             {locale === 'es' ? '1 · Tu pedido' : '1 · Your order'}
           </p>
 
@@ -1539,7 +1539,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
           {/* Section: Tus datos */}
           <div className="flex items-center justify-between px-1 pt-2">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
               {locale === 'es' ? '2 · Tus datos' : '2 · Your info'}
             </p>
             {hasMounted && isReturningCustomer() && savedCustomer && (
@@ -1723,7 +1723,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           </div>
 
           {/* Section: Forma de pago */}
-          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 px-1 pt-2">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 px-1 pt-2">
             {locale === 'es' ? '3 · Forma de pago' : '3 · Payment'}
           </p>
 

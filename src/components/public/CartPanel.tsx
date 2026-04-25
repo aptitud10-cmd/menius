@@ -350,7 +350,7 @@ export function CartPanel({
         {deliveryFee != null && deliveryFee >= 0 ? (
           <div className="space-y-1 mb-3">
             <div className="flex justify-between items-baseline">
-              <span className="text-xs text-gray-400">{t.subtotal}</span>
+              <span className="text-xs text-gray-500">{t.subtotal}</span>
               <AnimatePresence mode="wait">
                 <motion.span
                   key={cartTotal}
@@ -365,7 +365,7 @@ export function CartPanel({
               </AnimatePresence>
             </div>
             <div className="flex justify-between items-baseline">
-              <span className="text-xs text-gray-400">{t.delivery}</span>
+              <span className="text-xs text-gray-500">{t.delivery}</span>
               {deliveryFee > 0
                 ? <span className="text-xs font-semibold text-gray-600 tabular-nums">+{fmtPrice(deliveryFee)}</span>
                 : <span className="text-xs font-semibold text-[#05c8a7]">{t.freeDelivery}</span>

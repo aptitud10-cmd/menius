@@ -934,6 +934,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       order_number: order.order_number,
       order_id: order.id,
+      total,
       slug: restaurant.slug,
       stripe_url: stripeUrl,
       driver_tracking_url: driverTrackingUrl,

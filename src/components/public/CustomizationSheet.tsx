@@ -411,7 +411,7 @@ export function CustomizationSheet({
                       onClick={() => !isDisabled && toggleOption(group, opt)}
                       disabled={isDisabled}
                       className={cn(
-                        'flex flex-col items-center justify-center px-3 py-3 rounded-2xl transition-colors duration-150 text-center border gap-0.5',
+                        'flex flex-col items-center justify-center px-3 py-3.5 rounded-2xl transition-colors duration-150 text-center border gap-0.5',
                         isSelected
                           ? 'bg-[#05c8a7] text-white border-[#05c8a7] shadow-sm'
                           : isDisabled

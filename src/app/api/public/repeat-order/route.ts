@@ -11,7 +11,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export async function GET(request: NextRequest) {
   const ip = getClientIP(request);
-  const { allowed } = await checkRateLimitAsync(`repeat:${ip}`, { limit: 20, windowSec: 60 });
+  const { allowed } = await checkRateLimitAsync(`repeat:${ip}`, { limit: 5, windowSec: 60 });
   if (!allowed) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
