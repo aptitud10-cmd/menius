@@ -540,6 +540,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         error?: string;
         order_number?: string;
         order_id?: string;
+        total?: number;
         stripe_url?: string;
         idempotent?: boolean;
       }>(text);

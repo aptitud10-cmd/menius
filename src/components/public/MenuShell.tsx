@@ -462,7 +462,7 @@ export function MenuShell({
         unlock();
       }, { once: true });
     }
-  }, [isLargeCatalog, hasCover]);
+  }, [isLargeCatalog]);
 
   const handleProductSelect = useCallback((product: Product) => {
     trackEvent('product_viewed', {
