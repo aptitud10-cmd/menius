@@ -86,6 +86,14 @@ Filtros por categoría + layout distinto de ProductCard.
 9. Product slim pattern (arriba)
 10. `ADMIN_EMAIL` puede ser CSV
 
+## Android Counter app
+`apps/menius-counter-android/` — APK único para todos los restaurantes.
+- WebView carga `menius.app` (login → Counter); misma sesión que web
+- Impresión térmica ESC/POS vía Bluetooth (`MeniusAndroid.printReceipt(json)`)
+- Config: `AppConfig.kt` — URL base + START_PATH
+- Build: Android Studio Hedgehog+, JDK 17, API 26+
+- Multi-tenant: cada restaurante inicia sesión con su cuenta MENIUS
+
 ## Qué NO está aquí (lo leo del repo cuando hace falta)
 - Estructura de directorios → el repo
 - Schema DB completo → `supabase/migration*.sql`
