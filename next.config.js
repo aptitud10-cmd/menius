@@ -35,6 +35,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
+              // 'unsafe-eval' required by Stripe.js — no workaround available (stripe/react-stripe-js#380)
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://fonts.googleapis.com https://maps.googleapis.com https://client.crisp.chat https://us-assets.i.posthog.com https://api.mapbox.com https://challenges.cloudflare.com",
               "worker-src 'self' blob: https://js.stripe.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://client.crisp.chat https://api.mapbox.com",

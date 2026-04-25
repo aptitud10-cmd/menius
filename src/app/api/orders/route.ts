@@ -321,6 +321,7 @@ export async function POST(request: NextRequest) {
           // price_delta — accepting client prices here would allow arbitrary discounts
           // by anyone who sends option_id starting with "__legacy".
           logger.warn('legacy modifier — using $0 for security (migrate to modifier_options)', {
+            restaurant_id,
             product: item.product_id,
             option_id: mod.option_id,
           });
@@ -332,7 +333,8 @@ export async function POST(request: NextRequest) {
           } else {
             // option_id looks like a real UUID but is not in our DB — could be a deleted
             // option or a crafted request. Use 0 instead of trusting the client value.
-            logger.warn('modifier option not found in DB — using $0', { option_id: mod.option_id, product: item.product_id });
+            logger.error('modifier option not found in DB — possible forged request, using $0', { restaurant_id, option_id: mod.option_id, product: item.product_id });
+            captureError(new Error('modifier option not found in DB'), { restaurant_id, option_id: mod.option_id, product: item.product_id });
           }
         }
       }
@@ -359,7 +361,8 @@ export async function POST(request: NextRequest) {
 
       // Always assign server-calculated price — never trust the client value
       if (item.unit_price !== 0 && Math.abs(item.unit_price - expectedUnitPrice) > 0.02) {
-        logger.warn('Price mismatch (client vs server)', { product: item.product_id, sent: item.unit_price, expected: expectedUnitPrice });
+        logger.error('Price mismatch (client vs server) — server value applied', { restaurant_id, product: item.product_id, sent: item.unit_price, expected: expectedUnitPrice });
+        captureError(new Error('Price mismatch: client sent different price than server calculated'), { restaurant_id, product: item.product_id, sent: item.unit_price, expected: expectedUnitPrice });
       }
       item.unit_price = expectedUnitPrice;
       item.line_total = expectedUnitPrice * item.qty;
