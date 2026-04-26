@@ -11,6 +11,7 @@ import { useFavoritesStore } from '@/store/favoritesStore';
 import { useCartStore } from '@/store/cartStore';
 import { tName, tDesc } from '@/lib/i18n';
 import { getBlurUrl, supabaseLoader } from '@/lib/image-loader';
+import { getTranslations } from '@/lib/translations';
 import type { ProductCardProps } from './ProductCard';
 
 export const ProductCardDesktop = memo(function ProductCardDesktop({
@@ -29,10 +30,10 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
   defaultLocale = 'es',
   priority = false,
 }: ProductCardProps) {
-  const isEn = locale === 'en';
-  const labelSoldOut = soldOutLabel ?? (isEn ? 'Sold out' : 'Agotado');
-  const labelUnavailable = unavailableLabel ?? (isEn ? 'Unavailable' : 'No disponible');
-  const labelAdded = addedShortLabel ?? (isEn ? 'Added' : 'Listo');
+  const t = getTranslations(locale);
+  const labelSoldOut = soldOutLabel ?? t.soldOut;
+  const labelUnavailable = unavailableLabel ?? t.unavailable;
+  const labelAdded = addedShortLabel ?? t.addedToCart;
 
   const hasVariants = (product.variants?.length ?? 0) > 0;
   const hasExtras = (product.extras?.length ?? 0) > 0;
@@ -127,7 +128,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           )}
           {!outOfStock && !product.is_featured && product.is_new && (
             <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold shadow-sm">
-              {locale === 'es' ? 'NUEVO' : 'NEW'}
+              {t.productNew}
             </span>
           )}
           {!outOfStock && cartQty > 0 && (
@@ -143,7 +144,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(restaurantId, product.id); }}
             className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
-            aria-label={isFav ? (isEn ? 'Remove from favorites' : 'Quitar de favoritos') : (isEn ? 'Add to favorites' : 'Agregar a favoritos')}
+            aria-label={isFav ? t.removeFromFavorites : t.addToFavorites}
             aria-pressed={isFav}
           >
             <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover:text-gray-500')} />
@@ -164,7 +165,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           )}
           {!outOfStock && !product.is_featured && product.is_new && (
             <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold">
-              {locale === 'es' ? 'NUEVO' : 'NEW'}
+              {t.productNew}
             </span>
           )}
           {!outOfStock && cartQty > 0 && (
@@ -180,7 +181,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           <button
             onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(restaurantId, product.id); }}
             className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
-            aria-label={isFav ? (isEn ? 'Remove from favorites' : 'Quitar de favoritos') : (isEn ? 'Add to favorites' : 'Agregar a favoritos')}
+            aria-label={isFav ? t.removeFromFavorites : t.addToFavorites}
             aria-pressed={isFav}
           >
             <Heart className={cn('w-4 h-4 transition-colors', isFav ? 'fill-red-500 text-red-500' : 'text-gray-400 group-hover:text-gray-500')} />
@@ -233,7 +234,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           ) : (
             <button
               onClick={handleAddClick}
-              aria-label={justAdded ? (isEn ? 'Added to cart' : 'Agregado al carrito') : (hasModifiers ? (isEn ? `Customize ${displayName}` : `Personalizar ${displayName}`) : (isEn ? `Add ${displayName}` : `Agregar ${displayName}`))}
+              aria-label={justAdded ? t.addedToCart : (hasModifiers ? t.ariaCustomize(displayName) : t.ariaAdd(displayName))}
               className={cn(
                 'relative z-10 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#05c8a7]',
                 justAdded

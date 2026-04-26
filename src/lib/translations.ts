@@ -348,6 +348,12 @@ export interface Translations {
   mapDriverOnWay: (eta: number) => string;
   mapDriverLive: string;
   mapOpenInMaps: string;
+  // ProductCardDesktop / ProductCardMobile — aria-labels & badges
+  addToFavorites: string;
+  removeFromFavorites: string;
+  productNew: string;
+  ariaCustomize: (name: string) => string;
+  ariaAdd: (name: string) => string;
 }
 
 const es: Translations = {
@@ -654,6 +660,12 @@ const es: Translations = {
   mapDriverOnWay: (eta: number) => `Repartidor en camino · ~${eta} min`,
   mapDriverLive: 'Repartidor en camino · ubicación en tiempo real',
   mapOpenInMaps: 'Abrir en Google Maps',
+  // ProductCardDesktop / ProductCardMobile — aria-labels & badges
+  addToFavorites: 'Agregar a favoritos',
+  removeFromFavorites: 'Quitar de favoritos',
+  productNew: 'NUEVO',
+  ariaCustomize: (name: string) => `Personalizar ${name}`,
+  ariaAdd: (name: string) => `Agregar ${name}`,
 };
 
 const en: Translations = {
@@ -960,6 +972,12 @@ const en: Translations = {
   mapDriverOnWay: (eta: number) => `Driver on the way · ~${eta} min`,
   mapDriverLive: 'Driver on the way · live location',
   mapOpenInMaps: 'Open in Google Maps',
+  // ProductCardDesktop / ProductCardMobile — aria-labels & badges
+  addToFavorites: 'Add to favorites',
+  removeFromFavorites: 'Remove from favorites',
+  productNew: 'NEW',
+  ariaCustomize: (name: string) => `Customize ${name}`,
+  ariaAdd: (name: string) => `Add ${name}`,
 };
 
 const translations: Record<string, Translations> = { es, en };

@@ -10,6 +10,7 @@ import { useFavoritesStore } from '@/store/favoritesStore';
 import { useCartStore } from '@/store/cartStore';
 import { tName } from '@/lib/i18n';
 import { getBlurUrl, supabaseLoader } from '@/lib/image-loader';
+import { getTranslations } from '@/lib/translations';
 import type { ProductCardProps } from './ProductCard';
 
 export const ProductCardMobile = memo(function ProductCardMobile({
@@ -25,9 +26,9 @@ export const ProductCardMobile = memo(function ProductCardMobile({
   defaultLocale = 'es',
   priority = false,
 }: ProductCardProps) {
-  const isEn = locale === 'en';
-  const labelSoldOut = soldOutLabel ?? (isEn ? 'Sold out' : 'Agotado');
-  const labelAdded = addedShortLabel ?? (isEn ? 'Added' : 'Listo');
+  const t = getTranslations(locale);
+  const labelSoldOut = soldOutLabel ?? t.soldOut;
+  const labelAdded = addedShortLabel ?? t.addedToCart;
 
   const hasVariants = (product.variants?.length ?? 0) > 0;
   const hasExtras = (product.extras?.length ?? 0) > 0;
@@ -117,7 +118,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           <span className="absolute top-2 left-2 text-base leading-none" aria-hidden="true">🔥</span>
         )}
         {!outOfStock && product.is_new && (
-          <span className="absolute top-2 left-2 text-[11px] font-bold text-white bg-blue-500 px-2 py-0.5 rounded-full leading-none">{locale === 'es' ? 'NUEVO' : 'NEW'}</span>
+          <span className="absolute top-2 left-2 text-[11px] font-bold text-white bg-blue-500 px-2 py-0.5 rounded-full leading-none">{t.productNew}</span>
         )}
 
         {!outOfStock && cartQty > 0 && (
@@ -130,7 +131,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
         <button
           onClick={(e) => { e.stopPropagation(); haptic(); toggleFav(restaurantId, product.id); }}
           className="absolute top-1 right-1 w-11 h-11 flex items-center justify-center z-10"
-          aria-label={isFav ? (isEn ? 'Remove from favorites' : 'Quitar de favoritos') : (isEn ? 'Add to favorites' : 'Agregar a favoritos')}
+          aria-label={isFav ? t.removeFromFavorites : t.addToFavorites}
           aria-pressed={isFav}
         >
           <span className="w-7 h-7 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center shadow-sm">
@@ -176,7 +177,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
             /* 44px touch target wrapping the visible 36px circle */
             <button
               onClick={handleAddClick}
-              aria-label={justAdded ? (isEn ? 'Added' : 'Agregado') : (hasModifiers ? (isEn ? `Customize ${displayName}` : `Personalizar ${displayName}`) : (isEn ? `Add ${displayName}` : `Agregar ${displayName}`))}
+              aria-label={justAdded ? t.addedToCart : (hasModifiers ? t.ariaCustomize(displayName) : t.ariaAdd(displayName))}
               className="relative z-10 w-11 h-11 flex items-center justify-center flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#05c8a7]"
             >
               <span className={cn(
