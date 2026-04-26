@@ -360,6 +360,11 @@ export interface Translations {
   // MenuHeaderMobile — aria-labels
   goBack: string;
   searchProducts: string;
+  // not-found page
+  notFoundTitle: string;
+  notFoundDesc: string;
+  notFoundGoHome: string;
+  notFoundViewDemo: string;
   // RepeatOrderButton
   repeatLastOrder: string;
   repeatYourLastOrder: string;
@@ -685,6 +690,10 @@ const es: Translations = {
   ariaAdd: (name: string) => `Agregar ${name}`,
   goBack: 'Atrás',
   searchProducts: 'Buscar',
+  notFoundTitle: 'Página no encontrada',
+  notFoundDesc: 'La página que buscas no existe o fue movida.',
+  notFoundGoHome: '← Ir al inicio',
+  notFoundViewDemo: 'Ver demo',
   repeatLastOrder: 'Pedir lo mismo',
   repeatYourLastOrder: 'Tu último pedido',
   repeatOrderNumber: (n) => `Pedido #${n}`,
@@ -1009,6 +1018,10 @@ const en: Translations = {
   ariaAdd: (name: string) => `Add ${name}`,
   goBack: 'Back',
   searchProducts: 'Search',
+  notFoundTitle: 'Page not found',
+  notFoundDesc: 'The page you are looking for does not exist or has been moved.',
+  notFoundGoHome: '← Go home',
+  notFoundViewDemo: 'View demo',
   repeatLastOrder: 'Repeat last order',
   repeatYourLastOrder: 'Your last order',
   repeatOrderNumber: (n) => `Order #${n}`,

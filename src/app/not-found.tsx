@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
+import { getTranslations } from '@/lib/translations';
 
 export default async function NotFound() {
   const locale = (await cookies()).get('menius_locale')?.value ?? 'es';
-  const en = locale === 'en';
+  const t = getTranslations(locale);
 
   return (
     <div className="min-h-screen landing-bg relative overflow-hidden flex items-center justify-center p-6">
@@ -20,12 +21,10 @@ export default async function NotFound() {
         </div>
 
         <h1 className="text-2xl font-bold text-white mt-2 mb-3 font-display tracking-tight">
-          {en ? 'Page not found' : 'Página no encontrada'}
+          {t.notFoundTitle}
         </h1>
         <p className="text-gray-400 mb-8 text-sm leading-relaxed max-w-sm mx-auto">
-          {en
-            ? 'The page you are looking for does not exist or has been moved.'
-            : 'La página que buscas no existe o fue movida.'}
+          {t.notFoundDesc}
         </p>
 
         <div className="flex gap-3 justify-center">
@@ -33,13 +32,13 @@ export default async function NotFound() {
             href="/"
             className="px-5 py-2.5 bg-white text-black rounded-xl text-sm font-semibold hover:bg-gray-100 transition-colors"
           >
-            {en ? '← Go home' : '← Ir al inicio'}
+            {t.notFoundGoHome}
           </Link>
           <Link
             href="/demo"
             className="px-5 py-2.5 border border-white/[0.1] bg-white/[0.04] text-gray-300 rounded-xl text-sm font-medium hover:bg-white/[0.08] hover:text-white transition-colors"
           >
-            {en ? 'View demo' : 'Ver demo'}
+            {t.notFoundViewDemo}
           </Link>
         </div>
       </div>
