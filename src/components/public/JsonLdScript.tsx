@@ -125,7 +125,7 @@ export function JsonLdScript({
     const sections = Array.from(grouped.entries()).map(([name, items]) => ({
       '@type': 'MenuSection',
       name,
-      hasMenuItem: items.slice(0, 30).map((p: any) => {
+      hasMenuItem: items.map((p: any) => {
         const diets = (p.dietary_tags as string[] | undefined)
           ?.map((t: string) => DIETARY_TAGS.find((dt) => dt.id === t)?.schemaDiet)
           .filter(Boolean);

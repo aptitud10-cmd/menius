@@ -91,7 +91,11 @@ export function NotificationBell({ restaurantId }: NotificationBellProps) {
           fetchNotifications();
         }
       )
-      .subscribe();
+      .subscribe((status: string) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setTimeout(fetchNotifications, 2000);
+        }
+      });
 
     return () => { supabase.removeChannel(channel); };
   }, [restaurantId, fetchNotifications]);
