@@ -87,7 +87,7 @@ function SortableCategoryRow({
         <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onImageUpload(f); }} />
         {cat.image_url ? (
           <button onClick={() => imgRef.current?.click()} className="relative w-7 h-7 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 group/img" title={t.editor_changeImage}>
-            <Image src={cat.image_url} alt="" fill sizes="28px" className="object-cover" />
+            <Image src={cat.image_url} alt="" aria-hidden="true" fill sizes="28px" className="object-cover" />
             <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/30 flex items-center justify-center transition-colors">
               <Camera className="w-3 h-3 text-white opacity-0 group-hover/img:opacity-100 transition-opacity" />
             </div>

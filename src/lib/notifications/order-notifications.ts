@@ -36,6 +36,17 @@ interface OrderNotificationPayload {
   items: { name: string; qty: number; price: number; variant?: string; modifiers?: string[]; extras?: string[]; notes?: string }[];
 }
 
+interface OrderItemRow {
+  qty: number;
+  unit_price: number;
+  line_total: number;
+  notes: string | null;
+  products: { name: string } | null;
+  product_variants: { name: string } | null;
+  order_item_extras: { price: number; product_extras: { name: string } | null }[];
+  order_item_modifiers: { group_name: string; option_name: string; price_delta: number }[];
+}
+
 /** Fetch rich order items (with variants, modifiers, extras) from the DB. */
 async function fetchRichItems(orderId: string, currency: string): Promise<OrderEmailItem[]> {
   try {
@@ -53,17 +64,17 @@ async function fetchRichItems(orderId: string, currency: string): Promise<OrderE
 
     if (!rows) return [];
 
-    return rows.map((row: any) => {
+    return (rows as unknown as OrderItemRow[]).map((row) => {
       const modifiers: string[] = (row.order_item_modifiers ?? []).map(
-        (m: any) => `${m.group_name}: ${m.option_name}`
+        (m) => `${m.group_name}: ${m.option_name}`
       );
       const extras: string[] = (row.order_item_extras ?? [])
-        .filter((e: any) => e.product_extras?.name)
-        .map((e: any) => {
+        .filter((e) => e.product_extras?.name)
+        .map((e) => {
           const extraPrice = Number(e.price);
           return extraPrice > 0
-            ? `${e.product_extras.name} (+${formatPrice(extraPrice, currency)})`
-            : e.product_extras.name;
+            ? `${e.product_extras!.name} (+${formatPrice(extraPrice, currency)})`
+            : e.product_extras!.name;
         });
 
       return {
@@ -341,7 +352,15 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
   if (!order) return;
 
   type RestaurantRow = { name: string; slug: string; currency: string | null; locale: string | null; notification_email: string | null; notifications_enabled: boolean | null };
-  const rawRest = (order as unknown as { restaurants: RestaurantRow[] | RestaurantRow | null }).restaurants;
+  type OrderRow = typeof order & {
+    customer_locale: string | null;
+    customer_phone: string | null;
+    order_type: string | null;
+    delivery_address: string | null;
+    restaurants: RestaurantRow[] | RestaurantRow | null;
+  };
+  const typedOrder = order as unknown as OrderRow;
+  const rawRest = typedOrder.restaurants;
   const restaurant: RestaurantRow | null = Array.isArray(rawRest) ? (rawRest[0] ?? null) : rawRest;
   if (!restaurant) return;
 
@@ -351,7 +370,7 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
   const currency = restaurant.currency ?? 'MXN';
   const restaurantLocale = restaurant.locale ?? 'es';
   // Use customer's checkout language for customer receipt; restaurant locale for owner notification
-  const customerLocale = (order as any).customer_locale ?? restaurantLocale;
+  const customerLocale = typedOrder.customer_locale ?? restaurantLocale;
   const en = customerLocale === 'en';
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
   const trackingUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}`;
@@ -390,10 +409,10 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
       orderNumber: order.order_number,
       restaurantName: restaurant.name,
       customerName: order.customer_name,
-      customerPhone: (order as any).customer_phone ?? undefined,
+      customerPhone: typedOrder.customer_phone ?? undefined,
       customerEmail: order.customer_email ?? undefined,
-      orderType: (order as any).order_type ?? 'dine_in',
-      deliveryAddress: (order as any).delivery_address ?? undefined,
+      orderType: typedOrder.order_type ?? 'dine_in',
+      deliveryAddress: typedOrder.delivery_address ?? undefined,
       total: totalFormatted,
       items: emailItems,
       dashboardUrl: `${appUrl}/app/orders`,

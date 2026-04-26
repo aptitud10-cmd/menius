@@ -58,9 +58,10 @@ export function useRealtimeOrders({
 
     if (!data) return null;
 
+    const row = data as typeof data & { order_items?: unknown[] };
     return {
       ...data,
-      items: (data as any).order_items ?? [],
+      items: row.order_items ?? [],
     } as unknown as Order;
   }, []);
 
@@ -89,10 +90,10 @@ export function useRealtimeOrders({
 
     if (!data) return;
 
-    const fetched: Order[] = data.map((o: any) => ({
-      ...o,
-      items: o.order_items ?? [],
-    }));
+    const fetched: Order[] = data.map((o) => {
+      const row = o as typeof o & { order_items?: unknown[] };
+      return { ...o, items: row.order_items ?? [] } as unknown as Order;
+    });
 
     setOrders(prev => {
       const fetchedMap = new Map(fetched.map(o => [o.id, o]));

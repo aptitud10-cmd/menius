@@ -344,7 +344,7 @@ function EntryRow({
     >
       {/* Preview */}
       <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-        <Image src={entry.preview} alt="" fill sizes="48px" className="object-cover" />
+        <Image src={entry.preview} alt="" aria-hidden="true" fill sizes="48px" className="object-cover" />
         {entry.status === 'uploading' && (
           <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
             <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />
@@ -426,7 +426,7 @@ function EntryRow({
                   >
                     {p.image_url ? (
                       <div className="relative w-6 h-6 rounded overflow-hidden bg-gray-100 flex-shrink-0">
-                        <Image src={p.image_url} alt="" fill sizes="24px" className="object-cover" />
+                        <Image src={p.image_url} alt="" aria-hidden="true" fill sizes="24px" className="object-cover" />
                       </div>
                     ) : (
                       <div className="w-6 h-6 rounded bg-gray-100 flex-shrink-0" />
