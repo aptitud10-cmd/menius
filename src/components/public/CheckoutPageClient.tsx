@@ -1006,7 +1006,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     onChange={(e) => setDemoCardNum(formatCardNum(e.target.value))}
                     placeholder="1234 1234 1234 1234"
                     maxLength={19}
-                    className="flex-1 text-sm font-mono tracking-wider text-gray-900 bg-transparent focus:outline-none placeholder-gray-400"
+                    className="flex-1 text-base font-mono tracking-wider text-gray-900 bg-transparent focus:outline-none placeholder-gray-400"
                   />
                   <div className="ml-2 shrink-0 h-5 flex items-center">
                     {isVisa && <VisaSvg />}
@@ -1031,7 +1031,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                       onChange={(e) => setDemoExpiry(formatExpiry(e.target.value))}
                       placeholder="MM / YY"
                       maxLength={7}
-                      className="w-full text-sm font-mono tracking-wider text-gray-900 bg-transparent focus:outline-none placeholder-gray-400"
+                      className="w-full text-base font-mono tracking-wider text-gray-900 bg-transparent focus:outline-none placeholder-gray-400"
                     />
                   </div>
                   <div className="flex-1 px-3.5 py-3 flex items-center gap-2">
@@ -1042,7 +1042,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                       onChange={(e) => setDemoCVC(e.target.value.replace(/\D/g, '').slice(0, isAmex ? 4 : 3))}
                       placeholder={isAmex ? '1234' : 'CVC'}
                       maxLength={isAmex ? 4 : 3}
-                      className="flex-1 text-sm font-mono tracking-wider text-gray-900 bg-transparent focus:outline-none placeholder-gray-400"
+                      className="flex-1 text-base font-mono tracking-wider text-gray-900 bg-transparent focus:outline-none placeholder-gray-400"
                     />
                     <svg className="w-5 h-5 text-gray-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
                       <rect x="2" y="5" width="20" height="14" rx="2" />
@@ -1146,8 +1146,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 </div>
               ))}
               <div className="border-t border-gray-200 pt-2 flex justify-between items-baseline">
-                <span className="text-sm font-bold text-gray-900">{t.total}</span>
-                <span className="text-sm font-bold text-gray-900 tabular-nums">{fmtPrice(confirmedTotal)}</span>
+                <span className="text-sm font-bold text-gray-900">{t.totalCharged}</span>
+                <span className="text-sm font-bold text-emerald-600 tabular-nums">{fmtPrice(confirmedTotal)}</span>
               </div>
             </div>
           )}
@@ -1347,7 +1347,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     <span className="font-semibold text-gray-900 flex-shrink-0 tabular-nums text-[15px]">{fmtPrice(item.lineTotal)}</span>
                   </div>
                   {(item.modifierSelections ?? []).length > 0 && (
-                    <p className="text-xs text-gray-400 truncate mt-0.5">
+                    <p className="text-xs text-gray-500 truncate mt-0.5">
                       {(item.modifierSelections ?? []).flatMap(ms => ms.selectedOptions.map(o => o.name)).join(', ')}
                     </p>
                   )}
@@ -1629,7 +1629,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               {fieldErrors.customer_email ? (
                 <p id="checkout-email-error" role="alert" className="text-xs text-red-500 mt-1">{fieldErrors.customer_email}</p>
               ) : (
-                <p id="checkout-email-hint" className="text-xs text-gray-400 mt-1">
+                <p id="checkout-email-hint" className="text-xs text-gray-500 mt-1">
                   {t.emailHint}
                 </p>
               )}

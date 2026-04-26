@@ -18,7 +18,7 @@
     },
     {
       "path": "/api/cron/activate-scheduled",
-      "schedule": "*/5 * * * *"
+      "schedule": "*/10 * * * *"
     },
     {
       "path": "/api/cron/auto-cancel-reservations",
@@ -34,7 +34,7 @@
     },
     {
       "path": "/api/cron/monitor-stores",
-      "schedule": "*/5 * * * *"
+      "schedule": "*/10 * * * *"
     },
     {
       "path": "/api/cron/monitor-orders",

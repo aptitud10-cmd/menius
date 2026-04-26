@@ -137,7 +137,7 @@ export function CartPanel({
           <ShoppingCart className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
         </div>
         <p className="font-semibold text-gray-700 text-sm mb-1">{t.cartEmpty}</p>
-        <p className="text-xs text-center text-gray-400 leading-relaxed max-w-[200px]">{t.cartEmptyDesc}</p>
+        <p className="text-xs text-center text-gray-500 leading-relaxed max-w-[200px]">{t.cartEmptyDesc}</p>
 
         {/* Reorder — only shown if there's a previous order from this restaurant */}
         {lastOrder && lastOrder.items.length > 0 && onReorder && (
@@ -275,7 +275,7 @@ export function CartPanel({
                         </div>
                       )}
                       {item.notes && (
-                        <p className="text-xs text-gray-400 italic truncate">&quot;{item.notes}&quot;</p>
+                        <p className="text-xs text-gray-500 italic truncate">&quot;{item.notes}&quot;</p>
                       )}
 
                       {/* Qty stepper + Price */}
