@@ -77,6 +77,92 @@ function getT(locale?: string, orderType?: string) {
     cfdiIssuedPdf: 'Descargar PDF',
     cfdiError: 'Ocurrió un error. Intenta de nuevo.',
     callRestaurant: en ? 'Call restaurant' : 'Llamar al restaurante',
+    // Nav/status bar
+    orderLabel: en ? 'Order' : 'Pedido',
+    connecting: en ? 'Connecting…' : 'Conectando…',
+    offline: en ? 'Offline' : 'Sin conexión',
+    closeBanner: en ? 'Close' : 'Cerrar',
+    // Order type pills
+    orderTypePillDelivery: 'Delivery',
+    orderTypePillPickup: en ? 'Pickup' : 'Para recoger',
+    orderTypePillDineIn: en ? 'Dine-in' : 'En mesa',
+    // Almost ready / pickup
+    almostReadyHeading: en ? 'Almost ready — head over!' : '¡Casi listo — ve saliendo!',
+    almostReadyDesc: en ? 'Your order will be ready by the time you arrive' : 'Tu pedido estará listo cuando llegues',
+    // Driver on the way
+    driverOnWayHeading: en ? 'Driver is on the way!' : '¡Tu repartidor va en camino!',
+    driverOnWayDesc: en ? 'Stay close to your delivery address' : 'Mantente cerca de tu dirección de entrega',
+    // Pickup ready block
+    pickupReadyHeading: en ? 'Your order is READY!' : '¡Tu pedido está LISTO!',
+    pickupReadyDesc: en ? 'Head to the restaurant to pick it up' : 'Dirígete al restaurante a recogerlo',
+    openInMaps: en ? 'Open in Maps' : 'Ver en Maps',
+    call: en ? 'Call' : 'Llamar',
+    // Completed taglines (per order type)
+    taglinePickup: en ? 'Enjoy your meal!' : '¡Buen provecho!',
+    taglineDineIn: en ? 'Enjoy your meal!' : '¡Que lo disfrutes!',
+    taglineDelivery: en ? 'Enjoy your meal!' : '¡Buen provecho!',
+    // Progress bar — "on the way" vs "ready" label
+    progressOnTheWay: en ? 'On the way' : 'En camino',
+    progressReady: en ? 'Ready' : 'Listo',
+    // ETA hero
+    almostReadyEta: en ? 'Almost ready!' : '¡Ya casi!',
+    readyByLabel: (etaStr: string) => en ? `Ready by ${etaStr}` : `Listo a las ${etaStr}`,
+    // Driver on the way hero
+    driverOnWayHeroLabel: en ? 'Driver on the way' : 'Repartidor en camino',
+    estimatedArrival: en ? 'estimated arrival' : 'tiempo estimado de llegada',
+    // Dine-in table card
+    yourTable: en ? 'Your table' : 'Tu mesa',
+    foodBroughtToTable: en ? 'Your food will be brought to you' : 'Tu pedido será llevado a tu mesa',
+    // Driver card
+    yourDriver: en ? 'Your driver' : 'Tu repartidor',
+    onTheWay: en ? 'On the way!' : '¡En camino!',
+    headingToAddress: en ? 'Heading to your address' : 'Dirigiéndose a tu dirección',
+    trackOnMap: en ? 'Track on map ↓' : 'Ver en mapa ↓',
+    // Driver at door card
+    driverArrived: en ? 'Driver arrived!' : '¡Repartidor llegó!',
+    atYourDoor: en ? 'At your door now' : 'Está en tu puerta',
+    comeToTheDoor: en ? 'Please come to the door' : 'Por favor acércate a la puerta',
+    // Items card
+    yourOrderLabel: en ? 'Your order' : 'Tu pedido',
+    itemSingular: en ? 'item' : 'producto',
+    itemPlural: en ? 'items' : 'productos',
+    productFallback: en ? 'Item' : 'Producto',
+    // Delivery map / photo section labels
+    locationLabel: en ? 'Location' : 'Ubicación',
+    deliveryPhotoLabel: en ? 'Delivery photo' : 'Foto de entrega',
+    deliveryProofAlt: en ? 'Delivery proof' : 'Foto de entrega',
+    // Add more items (dine-in)
+    addMoreItems: en ? 'Add more items →' : 'Agregar más productos →',
+    // OrderSuccessRedirect
+    orderProcessedHeading: en ? 'Your order was processed successfully' : 'Tu pedido fue procesado exitosamente',
+    returningToMenu: en ? 'Returning to menu…' : 'Regresando al menú...',
+    goToMenu: en ? 'Go to menu' : 'Ir al menú',
+    // ComingOutButton sub-component
+    notifyingDriver: en ? 'Notifying driver…' : 'Avisando al repartidor…',
+    imComingOut: en ? "🚶 I'm coming out!" : '🚶 ¡Ya salgo!',
+    driverNotified: en ? '✓ Driver notified — on your way!' : '✓ Repartidor avisado — ¡ya voy!',
+    onMyWay: en ? '✓ On your way! The restaurant has been notified.' : '✓ ¡Ya puedes salir! El restaurante fue notificado.',
+    // WaiterCallButton sub-component
+    waiterCallLabel: (tableName: string | null | undefined) =>
+      tableName ? (en ? `Table ${tableName} needs attention` : `Mesa ${tableName} necesita atención`)
+                : (en ? 'Waiter needed' : 'Mesero necesita atención'),
+    staffNotified: en ? '✓ Staff notified!' : '✓ ¡Personal avisado!',
+    callAgainIn: (timeStr: string) => en ? `Again in ${timeStr}` : `De nuevo en ${timeStr}`,
+    notifyingStaff: en ? 'Notifying staff…' : 'Avisando al personal…',
+    callWaiter: en ? 'Call waiter' : 'Llamar al mesero',
+    // PushSubscriptionPrompt sub-component
+    getOrderUpdates: en ? 'Get order updates' : 'Recibe actualizaciones',
+    notifyWhenStatusChanges: en ? "We'll notify you when your order status changes." : 'Te avisamos cuando cambie el estado de tu pedido.',
+    notifyMe: en ? 'Notify me' : 'Activar',
+    // OrderHistorySaver sub-component
+    hideHistory: en ? 'Hide' : 'Ocultar',
+    seePreviousOrders: (n: number) => en
+      ? `See ${n} previous order${n !== 1 ? 's' : ''}`
+      : `Ver ${n} pedido${n !== 1 ? 's' : ''} anterior${n !== 1 ? 'es' : ''}`,
+    // Chef messages (pickup/preparing)
+    chefMessages: en
+      ? ['Chef is preparing your order with care 🍳', 'Almost there — your meal is coming together', 'Hang tight, your order is in good hands']
+      : ['El chef está preparando tu pedido con cariño 🍳', 'Ya casi — tu platillo está tomando forma', 'Tranquilo, tu pedido está en buenas manos'],
     steps: {
       // Header icon/text per DB status (detailed view)
       pending:          { label: en ? 'Received'       : 'Recibido',          desc: en ? 'Your order was received'              : 'Tu pedido fue recibido' },
@@ -414,9 +500,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 order.order_type === 'pickup'   ? 'bg-orange-100 text-orange-600' :
                 'bg-teal-100 text-teal-600'
               )}>
-                {order.order_type === 'delivery' ? (t.en ? 'Delivery' : 'Delivery') :
-                 order.order_type === 'pickup'   ? (t.en ? 'Pickup' : 'Para recoger') :
-                 (t.en ? 'Dine-in' : 'En mesa')}
+                {order.order_type === 'delivery' ? t.orderTypePillDelivery :
+                 order.order_type === 'pickup'   ? t.orderTypePillPickup :
+                 t.orderTypePillDineIn}
               </span>
               {/* Restaurant name — bold and large */}
               <h1 className="text-base font-black font-heading tracking-tight text-gray-900 leading-tight truncate">{restaurantName}</h1>
@@ -432,7 +518,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                   )}
                 </p>
               )}
-              <p className="text-[10px] text-gray-400 mt-0.5">{t.en ? 'Order' : 'Pedido'} #{order.order_number}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">{t.orderLabel} #{order.order_number}</p>
             </div>
           </div>
           <div className="flex-shrink-0">
@@ -444,12 +530,12 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             ) : rtStatus === 'reconnecting' ? (
               <div className="flex items-center gap-1 text-[10px] text-amber-600 font-semibold bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
                 <Wifi className="w-3 h-3 animate-pulse" />
-                {t.en ? 'Connecting…' : 'Conectando…'}
+                {t.connecting}
               </div>
             ) : (
               <div className="flex items-center gap-1 text-[10px] text-red-500 font-semibold bg-red-50 px-2.5 py-1 rounded-full border border-red-100">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                {t.en ? 'Offline' : 'Sin conexión'}
+                {t.offline}
               </div>
             )}
           </div>
@@ -479,7 +565,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             <button
               onClick={() => setPaidBannerVisible(false)}
               className="flex-shrink-0 p-1 text-[#05c8a7] hover:text-[#047a65] transition-colors"
-              aria-label={t.en ? 'Close' : 'Cerrar'}
+              aria-label={t.closeBanner}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -495,8 +581,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               <Zap className="w-6 h-6 text-amber-500" />
             </div>
             <div>
-              <p className="text-sm font-black text-amber-700">{t.en ? 'Almost ready — head over!' : '¡Casi listo — ve saliendo!'}</p>
-              <p className="text-xs text-amber-600 mt-0.5">{t.en ? 'Your order will be ready by the time you arrive' : 'Tu pedido estará listo cuando llegues'}</p>
+              <p className="text-sm font-black text-amber-700">{t.almostReadyHeading}</p>
+              <p className="text-xs text-amber-600 mt-0.5">{t.almostReadyDesc}</p>
             </div>
           </div>
         )}
@@ -508,8 +594,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               <Truck className="w-6 h-6 text-violet-600" />
             </div>
             <div>
-              <p className="text-sm font-black text-violet-700">{t.en ? 'Driver is on the way!' : '¡Tu repartidor va en camino!'}</p>
-              <p className="text-xs text-violet-500 mt-0.5">{t.en ? 'Stay close to your delivery address' : 'Mantente cerca de tu dirección de entrega'}</p>
+              <p className="text-sm font-black text-violet-700">{t.driverOnWayHeading}</p>
+              <p className="text-xs text-violet-500 mt-0.5">{t.driverOnWayDesc}</p>
             </div>
           </div>
         )}
@@ -522,10 +608,10 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 <ShoppingBag className="w-8 h-8 text-emerald-600" />
               </div>
               <h2 className="text-2xl font-black text-emerald-700 mb-1">
-                {t.en ? 'Your order is READY!' : '¡Tu pedido está LISTO!'}
+                {t.pickupReadyHeading}
               </h2>
               <p className="text-sm text-emerald-600 mb-5">
-                {t.en ? 'Head to the restaurant to pick it up' : 'Dirígete al restaurante a recogerlo'}
+                {t.pickupReadyDesc}
               </p>
               {(restaurantAddress || restaurantPhone) && (
                 <div className="bg-white/70 rounded-2xl px-4 py-3 space-y-2.5 text-left mb-4">
@@ -552,7 +638,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                     className="flex items-center gap-1.5 rounded-full bg-emerald-500 text-white text-xs font-bold px-4 py-2 hover:bg-emerald-600 active:scale-95 transition-all"
                   >
                     <MapPin className="w-3.5 h-3.5" />
-                    {t.en ? 'Open in Maps' : 'Ver en Maps'}
+                    {t.openInMaps}
                   </a>
                 )}
                 {restaurantPhone && (
@@ -561,7 +647,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                     className="flex items-center gap-1.5 rounded-full bg-white border-2 border-emerald-300 text-emerald-700 text-xs font-bold px-4 py-2 hover:bg-emerald-50 active:scale-95 transition-all"
                   >
                     <Phone className="w-3.5 h-3.5" />
-                    {t.en ? 'Call' : 'Llamar'}
+                    {t.call}
                   </a>
                 )}
               </div>
@@ -599,9 +685,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                   <>
                     {(() => {
                       const typeConfig = {
-                        pickup:   { icon: ShoppingBag,  solid: '#f97316', tagline: tWithType.en ? 'Enjoy your meal!'  : '¡Buen provecho!' },
-                        dine_in:  { icon: Utensils,     solid: '#7c3aed', tagline: tWithType.en ? 'Enjoy your meal!'  : '¡Que lo disfrutes!' },
-                        delivery: { icon: CheckCircle2, solid: '#059669', tagline: tWithType.en ? 'Enjoy your meal!'  : '¡Buen provecho!' },
+                        pickup:   { icon: ShoppingBag,  solid: '#f97316', tagline: tWithType.taglinePickup },
+                        dine_in:  { icon: Utensils,     solid: '#7c3aed', tagline: tWithType.taglineDineIn },
+                        delivery: { icon: CheckCircle2, solid: '#059669', tagline: tWithType.taglineDelivery },
                       };
                       const cfg = typeConfig[order.order_type as keyof typeof typeConfig] ?? typeConfig.delivery;
                       const IconCmp = cfg.icon;
@@ -671,8 +757,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                           )}>
                             {key === 'ready' && order.order_type === 'delivery'
                               ? ((order as any).driver_picked_up_at
-                                  ? (tWithType.en ? 'On the way' : 'En camino')
-                                  : (tWithType.en ? 'Ready'      : 'Listo'))
+                                  ? tWithType.progressOnTheWay
+                                  : tWithType.progressReady)
                               : tWithType.customerSteps[key]}
                           </span>
                         </div>
@@ -700,7 +786,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             <div className="tracker-card rounded-3xl bg-gradient-to-br from-[#fff7ed] to-[#ffedd5] border border-orange-200 shadow-sm overflow-hidden">
               <div className="px-6 py-7 text-center">
                 <p className="text-[11px] font-bold text-orange-500 uppercase tracking-widest mb-3">
-                  {t.en ? 'Driver on the way' : 'Repartidor en camino'}
+                  {t.driverOnWayHeroLabel}
                 </p>
                 {liveDeliveryEta !== null ? (
                   <>
@@ -709,7 +795,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                       <span className="text-2xl font-bold text-orange-400 mb-3">min</span>
                     </div>
                     <p className="text-sm text-orange-500 font-medium">
-                      {t.en ? 'estimated arrival' : 'tiempo estimado de llegada'}
+                      {t.estimatedArrival}
                     </p>
                   </>
                 ) : (
@@ -749,11 +835,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                   </div>
                 ) : (
                   <p className="text-4xl font-black text-[#047a65] mb-1">
-                    {t.en ? 'Almost ready!' : '¡Ya casi!'}
+                    {t.almostReadyEta}
                   </p>
                 )}
                 <p className="text-sm text-[#05c8a7] font-medium">
-                  {t.en ? `Ready by ${etaStr}` : `Listo a las ${etaStr}`}
+                  {t.readyByLabel(etaStr)}
                 </p>
               </div>
               {/* Progress shimmer bar */}
@@ -773,11 +859,11 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               </div>
               <div>
                 <p className="text-[11px] font-bold text-violet-400 uppercase tracking-widest mb-0.5">
-                  {t.en ? 'Your table' : 'Tu mesa'}
+                  {t.yourTable}
                 </p>
                 <p className="text-3xl font-black text-violet-700 leading-tight">{(order as any).table_name}</p>
                 <p className="text-sm text-violet-500 mt-1">
-                  {t.en ? 'Your food will be brought to you' : 'Tu pedido será llevado a tu mesa'}
+                  {t.foodBroughtToTable}
                 </p>
               </div>
             </div>
@@ -788,10 +874,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {order.order_type === 'pickup' && ['confirmed', 'preparing'].includes(order.status) && (
           <div key={chefMessageIndex} className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm px-5 py-4 transition-opacity duration-500">
             <p className="text-sm font-semibold text-gray-600 text-center">
-              {(t.en
-                ? ['Chef is preparing your order with care 🍳', 'Almost there — your meal is coming together', 'Hang tight, your order is in good hands']
-                : ['El chef está preparando tu pedido con cariño 🍳', 'Ya casi — tu platillo está tomando forma', 'Tranquilo, tu pedido está en buenas manos']
-              )[chefMessageIndex]}
+              {t.chefMessages[chefMessageIndex]}
             </p>
           </div>
         )}
@@ -814,13 +897,13 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">
-                        {t.en ? 'Your driver' : 'Tu repartidor'}
+                        {t.yourDriver}
                       </p>
                       <p className="text-lg font-black text-white leading-tight">
-                        {t.en ? 'On the way!' : '¡En camino!'}
+                        {t.onTheWay}
                       </p>
                       <p className="text-sm text-blue-200 mt-0.5">
-                        {t.en ? 'Heading to your address' : 'Dirigiéndose a tu dirección'}
+                        {t.headingToAddress}
                       </p>
                     </div>
                     {/* Live GPS indicator */}
@@ -837,7 +920,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                     className="flex items-center justify-center gap-2 py-3 bg-blue-50 border-t border-blue-100 text-blue-600 text-sm font-bold hover:bg-blue-100 active:bg-blue-200 transition-colors"
                   >
                     <Truck className="w-4 h-4" />
-                    {t.en ? 'Track on map ↓' : 'Ver en mapa ↓'}
+                    {t.trackOnMap}
                   </a>
                 )}
               </div>
@@ -855,13 +938,13 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                     </div>
                     <div className="flex-1">
                       <p className="text-[10px] font-bold text-orange-100 uppercase tracking-widest">
-                        {t.en ? 'Driver arrived!' : '¡Repartidor llegó!'}
+                        {t.driverArrived}
                       </p>
                       <p className="text-xl font-black text-white leading-tight">
-                        {t.en ? 'At your door now' : 'Está en tu puerta'}
+                        {t.atYourDoor}
                       </p>
                       <p className="text-sm text-orange-100 mt-0.5">
-                        {t.en ? 'Please come to the door' : 'Por favor acércate a la puerta'}
+                        {t.comeToTheDoor}
                       </p>
                     </div>
                   </div>
@@ -888,12 +971,12 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {!isCancelled && order.order_items?.length > 0 && (
           <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
-              <h3 className="text-sm font-bold text-gray-900">{t.en ? 'Your order' : 'Tu pedido'}</h3>
-              <span className="text-xs font-semibold text-gray-400">{order.order_items.length} {order.order_items.length === 1 ? (t.en ? 'item' : 'producto') : (t.en ? 'items' : 'productos')}</span>
+              <h3 className="text-sm font-bold text-gray-900">{t.yourOrderLabel}</h3>
+              <span className="text-xs font-semibold text-gray-400">{order.order_items.length} {order.order_items.length === 1 ? t.itemSingular : t.itemPlural}</span>
             </div>
             <div className="px-5 py-3 space-y-2.5">
               {order.order_items.map((item: any) => {
-                const productName = item.product_name ?? item.products?.name ?? (t.en ? 'Item' : 'Producto');
+                const productName = item.product_name ?? item.products?.name ?? t.productFallback;
                 const variantName = item.variant_name ?? item.product_variants?.name;
                 return (
                   <div key={item.id} className="flex items-baseline justify-between gap-2">
@@ -1062,7 +1145,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {/* Delivery map — static position (shown when driver not yet active or order complete) */}
         {order.order_type === 'delivery' && (order.delivery_address || restaurantAddress) && (!(order as any).driver_picked_up_at || order.status === 'delivered') && (
           <div className="tracker-card">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">{t.en ? 'Location' : 'Ubicación'}</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">{t.locationLabel}</p>
             <DeliveryMap
               restaurantAddress={restaurantAddress}
               deliveryAddress={order.delivery_address}
@@ -1078,13 +1161,13 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {isComplete && (order as any).delivery_photo_url && (
           <div className="tracker-card">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">
-              {t.en ? 'Delivery photo' : 'Foto de entrega'}
+              {t.deliveryPhotoLabel}
             </p>
             <a href={(order as any).delivery_photo_url} target="_blank" rel="noopener noreferrer">
               <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
                 <Image
                   src={(order as any).delivery_photo_url}
-                  alt={t.en ? 'Delivery proof' : 'Foto de entrega'}
+                  alt={t.deliveryProofAlt}
                   fill
                   sizes="(max-width: 640px) 100vw, 480px"
                   className="object-contain"
@@ -1105,7 +1188,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             onClick={() => {
               const reorderItems = order.order_items.map((item: any) => ({
                 product_id: item.product_id,
-                name: item.product_name ?? item.products?.name ?? (t.en ? 'Item' : 'Producto'),
+                name: item.product_name ?? item.products?.name ?? t.productFallback,
                 qty: item.qty,
                 price: Number(item.unit_price),
                 variant_id: item.variant_id,
@@ -1133,7 +1216,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             className="tracker-card flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-[#05c8a7] text-white font-bold text-sm hover:bg-[#04b096] active:scale-[0.98] transition-all shadow-lg shadow-[#05c8a7]/20"
           >
             <Utensils className="w-4 h-4" />
-            {t.en ? 'Add more items →' : 'Agregar más productos →'}
+            {t.addMoreItems}
           </Link>
         )}
 
@@ -1186,7 +1269,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 }
 
 function ComingOutButton({ orderId, locale }: { orderId: string; locale?: string }) {
-  const en = locale === 'en';
+  const t = getT(locale);
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'sent_no_driver'>('idle');
 
   const handlePress = async () => {
@@ -1209,7 +1292,7 @@ function ComingOutButton({ orderId, locale }: { orderId: string; locale?: string
     return (
       <div className="px-5 pb-4 text-center">
         <p className="text-sm font-semibold text-orange-700">
-          {en ? '✓ Driver notified — on your way!' : '✓ Repartidor avisado — ¡ya voy!'}
+          {t.driverNotified}
         </p>
       </div>
     );
@@ -1219,7 +1302,7 @@ function ComingOutButton({ orderId, locale }: { orderId: string; locale?: string
     return (
       <div className="px-5 pb-4 text-center">
         <p className="text-sm font-semibold text-gray-600">
-          {en ? '✓ On your way! The restaurant has been notified.' : '✓ ¡Ya puedes salir! El restaurante fue notificado.'}
+          {t.onMyWay}
         </p>
       </div>
     );
@@ -1233,15 +1316,15 @@ function ComingOutButton({ orderId, locale }: { orderId: string; locale?: string
         className="w-full py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 active:scale-[0.98] text-white font-bold text-sm transition-all disabled:opacity-60 shadow-md shadow-orange-500/30"
       >
         {state === 'sending'
-          ? (en ? 'Notifying driver…' : 'Avisando al repartidor…')
-          : (en ? '🚶 I\'m coming out!' : '🚶 ¡Ya salgo!')}
+          ? t.notifyingDriver
+          : t.imComingOut}
       </button>
     </div>
   );
 }
 
 function WaiterCallButton({ orderId, tableName, locale }: { orderId: string; tableName?: string | null; locale?: string }) {
-  const en = locale === 'en';
+  const t = getT(locale);
   const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [cooldown, setCooldown] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1271,9 +1354,7 @@ function WaiterCallButton({ orderId, tableName, locale }: { orderId: string; tab
     }, 1000);
   };
 
-  const label = tableName
-    ? (en ? `Table ${tableName} needs attention` : `Mesa ${tableName} necesita atención`)
-    : (en ? 'Waiter needed' : 'Mesero necesita atención');
+  const label = t.waiterCallLabel(tableName);
 
   if (state === 'sent' && cooldown > 0) {
     const mins = Math.floor(cooldown / 60);
@@ -1282,9 +1363,9 @@ function WaiterCallButton({ orderId, tableName, locale }: { orderId: string; tab
     return (
       <div className="flex items-center justify-between px-4 py-3 rounded-2xl bg-violet-50 border border-violet-200">
         <p className="text-sm font-semibold text-violet-700">
-          {en ? '✓ Staff notified!' : '✓ ¡Personal avisado!'}
+          {t.staffNotified}
         </p>
-        <p className="text-xs text-violet-400">{en ? `Again in ${timeStr}` : `De nuevo en ${timeStr}`}</p>
+        <p className="text-xs text-violet-400">{t.callAgainIn(timeStr)}</p>
       </div>
     );
   }
@@ -1293,18 +1374,19 @@ function WaiterCallButton({ orderId, tableName, locale }: { orderId: string; tab
     <button
       onClick={handlePress}
       disabled={state === 'sending' || cooldown > 0}
+      aria-label={label}
       className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-violet-50 border border-violet-200 text-violet-700 font-semibold text-sm hover:bg-violet-100 active:scale-[0.98] transition-all disabled:opacity-50"
     >
       <span className="text-base">🙋</span>
       {state === 'sending'
-        ? (en ? 'Notifying staff…' : 'Avisando al personal…')
-        : (en ? 'Call waiter' : 'Llamar al mesero')}
+        ? t.notifyingStaff
+        : t.callWaiter}
     </button>
   );
 }
 
 function PushSubscriptionPrompt({ orderId, locale }: { orderId: string; locale?: string }) {
-  const en = locale === 'en';
+  const t = getT(locale);
   const [state, setState] = useState<'idle' | 'subscribed' | 'denied' | 'unsupported'>('idle');
 
   useEffect(() => {
@@ -1356,17 +1438,17 @@ function PushSubscriptionPrompt({ orderId, locale }: { orderId: string; locale?:
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-violet-800">
-          {en ? 'Get order updates' : 'Recibe actualizaciones'}
+          {t.getOrderUpdates}
         </p>
         <p className="text-xs text-violet-600 mt-0.5">
-          {en ? 'We\'ll notify you when your order status changes.' : 'Te avisamos cuando cambie el estado de tu pedido.'}
+          {t.notifyWhenStatusChanges}
         </p>
       </div>
       <button
         onClick={handleSubscribe}
         className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 transition-colors"
       >
-        {en ? 'Notify me' : 'Activar'}
+        {t.notifyMe}
       </button>
     </div>
   );
@@ -1428,7 +1510,8 @@ function ReviewPrompt({ restaurantId, orderId, customerName, locale }: { restaur
   );
 }
 
-function OrderSuccessRedirect({ restaurantSlug }: { restaurantSlug: string }) {
+function OrderSuccessRedirect({ restaurantSlug, locale }: { restaurantSlug: string; locale?: string }) {
+  const t = getT(locale);
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -1497,13 +1580,13 @@ function OrderSuccessRedirect({ restaurantSlug }: { restaurantSlug: string }) {
         <div className="w-16 h-16 rounded-2xl bg-[#d0f7f1] flex items-center justify-center mx-auto mb-4">
           <CheckCircle2 className="w-8 h-8 text-[#05c8a7]" />
         </div>
-        <h2 className="text-lg font-bold text-gray-900 mb-1">Tu pedido fue procesado exitosamente</h2>
-        <p className="text-sm text-gray-500 mb-6 animate-pulse">Regresando al menú...</p>
+        <h2 className="text-lg font-bold text-gray-900 mb-1">{t.orderProcessedHeading}</h2>
+        <p className="text-sm text-gray-500 mb-6 animate-pulse">{t.returningToMenu}</p>
         <Link
           href={`/${restaurantSlug}`}
               className="px-6 py-3 rounded-xl bg-[#05c8a7] text-white font-semibold text-sm hover:bg-[#04b096] transition-colors"
         >
-          Ir al menú
+          {t.goToMenu}
         </Link>
       </div>
     </div>
@@ -1511,9 +1594,9 @@ function OrderSuccessRedirect({ restaurantSlug }: { restaurantSlug: string }) {
 }
 
 function OrderHistorySaver({ order, restaurantSlug, restaurantName, locale, currency }: { order: any; restaurantSlug: string; restaurantName: string; locale?: string; currency?: string }) {
-  const en = locale === 'en';
+  const t = getT(locale);
   const displayCurrency = currency ?? 'MXN';
-  const dateLocale = en ? 'en-US' : 'es-MX';
+  const dateLocale = locale === 'en' ? 'en-US' : 'es-MX';
 
   useEffect(() => {
     if (!order?.id) return;
@@ -1544,10 +1627,8 @@ function OrderHistorySaver({ order, restaurantSlug, restaurantName, locale, curr
   if (history.length === 0) return null;
 
   const toggleLabel = showHistory
-    ? (en ? 'Hide' : 'Ocultar')
-    : en
-      ? `See ${history.length} previous order${history.length !== 1 ? 's' : ''}`
-      : `Ver ${history.length} pedido${history.length !== 1 ? 's' : ''} anterior${history.length !== 1 ? 'es' : ''}`;
+    ? t.hideHistory
+    : t.seePreviousOrders(history.length);
 
   return (
     <div className="mt-2">
@@ -1562,7 +1643,7 @@ function OrderHistorySaver({ order, restaurantSlug, restaurantName, locale, curr
               <div>
                 <p className="text-sm font-medium">#{h.number}</p>
                 <p className="text-xs text-gray-400">
-                  {new Date(h.date).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · {h.items} {en ? 'items' : 'items'}
+                  {new Date(h.date).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · {h.items} items
                 </p>
               </div>
               <span className="text-sm font-bold text-gray-700">{formatPrice(Number(h.total), displayCurrency)}</span>
