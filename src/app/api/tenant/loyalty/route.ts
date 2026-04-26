@@ -22,8 +22,19 @@ export async function GET() {
         .limit(100),
     ]);
 
-    if (configRes.error?.code === '42P01' || accountsRes.error?.code === '42P01') {
+    // Check for missing tables — if either returns 42P01 (table does not exist), return needsMigration
+    const configMissing = configRes.error?.code === '42P01';
+    const accountsMissing = accountsRes.error?.code === '42P01';
+    if (configMissing || accountsMissing) {
       return NextResponse.json({ config: null, accounts: [], needsMigration: true });
+    }
+
+    // Other errors are actual failures
+    if (configRes.error && configRes.error.code !== '42P01') {
+      return NextResponse.json({ error: 'Error al cargar configuración' }, { status: 500 });
+    }
+    if (accountsRes.error && accountsRes.error.code !== '42P01') {
+      return NextResponse.json({ error: 'Error al cargar cuentas' }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -86,11 +97,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Tipo de transacción inválido' }, { status: 400 });
     }
 
+    // Validate points is a finite number and clamp to reasonable range
+    const clamp = (val: unknown, min: number, max: number, fallback: number): number => {
+      const n = Number(val);
+      if (!isFinite(n)) return fallback;
+      return Math.min(max, Math.max(min, n));
+    };
+    const validPoints = clamp(points, -1_000_000, 1_000_000, 0);
+
+    const supabase = await createClient();
     const adminDb = createAdminClient();
+
+    // Verify account belongs to this restaurant (ownership check)
+    const { data: account, error: accountErr } = await supabase
+      .from('loyalty_accounts')
+      .select('restaurant_id')
+      .eq('id', account_id)
+      .maybeSingle();
+
+    if (accountErr || !account) {
+      return NextResponse.json({ error: 'Cuenta no encontrada' }, { status: 404 });
+    }
+
+    if (account.restaurant_id !== rid) {
+      return NextResponse.json({ error: 'Cuenta no encontrada' }, { status: 404 });
+    }
+
     const { data, error: rpcErr } = await adminDb.rpc('adjust_loyalty_points', {
       p_account_id: account_id,
       p_restaurant_id: rid,
-      p_points: Number(points),
+      p_points: validPoints,
       p_type: type,
       p_description: description || null,
     });

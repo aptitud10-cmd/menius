@@ -11,6 +11,8 @@
  * Returns the raw text string. JSON parsing is the caller's responsibility.
  */
 
+import { createLogger } from './logger';
+
 export interface TextAIOptions {
   maxTokens?: number;
   temperature?: number;
@@ -27,6 +29,7 @@ export async function callTextAI(
   prompt: string,
   options: TextAIOptions = {},
 ): Promise<TextAIResult> {
+  const logger = createLogger('ai-text');
   const { maxTokens = 2048, temperature = 1.0, jsonMode = true } = options;
 
   const geminiKey = (process.env.GEMINI_API_KEY ?? '').trim();
@@ -63,10 +66,13 @@ export async function callTextAI(
           .map((p: { text?: string }) => p.text ?? '')
           .join('');
         if (text) return { text, provider: 'gemini' };
+      } else {
+        logger.warn('Gemini API returned non-ok status', { status: res.status });
       }
-      // Non-ok or empty → fall through to OpenRouter
-    } catch {
-      // Network error → fall through to OpenRouter
+    } catch (err) {
+      logger.warn('Gemini API call failed, falling back to OpenRouter', {
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
@@ -94,6 +100,7 @@ export async function callTextAI(
 
   if (!orRes.ok) {
     const errText = await orRes.text();
+    logger.error('OpenRouter API failed', { status: orRes.status, body: errText.slice(0, 200) });
     throw new Error(`OpenRouter error: ${errText.slice(0, 200)}`);
   }
 

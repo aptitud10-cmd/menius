@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
         await supabase.from('customers').update({ tags: newTags }).eq('id', customer.id);
       } else {
         results.errors++;
+        logger.warn('Welcome email failed to send', { customer_id: customer.id, email: customer.email });
       }
     }
 
@@ -106,6 +107,7 @@ export async function GET(request: NextRequest) {
         await supabase.from('customers').update({ tags: newTags }).eq('id', customer.id);
       } else {
         results.errors++;
+        logger.warn('Reactivation email failed to send', { customer_id: customer.id, email: customer.email });
       }
     }
 
@@ -147,8 +149,12 @@ export async function GET(request: NextRequest) {
         html: buildReviewRequestEmail(order.customer_name || (en ? 'Customer' : 'Cliente'), restaurant.name, reviewUrl, en),
       });
 
-      if (sent) results.review_request++;
-      else results.errors++;
+      if (sent) {
+        results.review_request++;
+      } else {
+        results.errors++;
+        logger.warn('Review request email failed to send', { order_id: order.id, email: order.customer_email });
+      }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -261,14 +267,15 @@ export async function GET(request: NextRequest) {
 
     for (const step of onboardingDays) {
       const targetDate = new Date(Date.now() - step.days * 24 * 60 * 60 * 1000);
-      const dayStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate()).toISOString();
-      const dayEnd = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1).toISOString();
+      const dayStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+      const dayEnd = new Date(dayStart);
+      dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
 
       const { data: targetRestaurants } = await supabase
         .from('restaurants')
         .select('id, name, slug, notification_email, locale, tags')
-        .gte('created_at', dayStart)
-        .lt('created_at', dayEnd)
+        .gte('created_at', dayStart.toISOString())
+        .lt('created_at', dayEnd.toISOString())
         .not('notification_email', 'is', null)
         .limit(50);
 
@@ -357,12 +364,12 @@ export async function GET(request: NextRequest) {
 
           if (sent) {
             results.monthly_report++;
-            // Mark as sent for this month to prevent duplicate sends on cron retries
             try {
               await supabase.rpc('append_restaurant_tag', { p_restaurant_id: restaurant.id, p_tag: reportMonthTag });
             } catch { /* non-blocking */ }
           } else {
             results.errors++;
+            logger.warn('Monthly report email failed to send', { restaurant_id: restaurant.id, email: restaurant.notification_email });
           }
         }
       }
