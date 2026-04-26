@@ -186,7 +186,9 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
     }
 
     if (emailJobs.length > 0) {
-      await Promise.all(emailJobs).catch(() => {});
+      await Promise.all(emailJobs).catch((err) => {
+        logger.error('Failed to send new order emails', { error: err instanceof Error ? err.message : String(err), restaurantId, orderNumber });
+      });
     }
 
     // In-app dashboard notification (fire-and-forget)
@@ -197,9 +199,11 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
       body: `${customerName} — ${totalFormatted}`,
       actionUrl: '/app/orders',
       metadata: { order_id: orderId, order_number: orderNumber },
-    }).catch(() => {});
+    }).catch((err) => {
+      logger.error('Failed to create dashboard notification', { error: err instanceof Error ? err.message : String(err), restaurantId, orderNumber });
+    });
   } catch (err) {
-    console.error('[Notifications] Error sending new order notifications:', err);
+    logger.error('Error sending new order notifications', { error: err instanceof Error ? err.message : String(err), restaurantId, orderNumber });
   }
 }
 
@@ -406,7 +410,9 @@ export async function sendPaymentConfirmedNotifications(orderId: string) {
   }
 
   if (jobs.length > 0) {
-    await Promise.all(jobs).catch(() => {});
+    await Promise.all(jobs).catch((err) => {
+      logger.error('Failed to send payment confirmed emails', { error: err instanceof Error ? err.message : String(err), orderId });
+    });
   }
 }
 

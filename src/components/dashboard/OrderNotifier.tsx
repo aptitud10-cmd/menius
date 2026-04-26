@@ -45,6 +45,59 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const rtConnectedRef = useRef(false);
+  const lastPollRef = useRef<string | null>(null);
+
+  const handleNewOrder = useCallback((order: { id: string; order_number: string; customer_name: string; total: number }) => {
+    if (knownIdsRef.current.has(order.id)) return;
+    knownIdsRef.current.add(order.id);
+
+    const total = formatPrice(Number(order.total || 0), currency);
+    notifyNewOrder(order.order_number || '?', total);
+
+    setToasts((prev) => [
+      {
+        id: order.id,
+        orderNumber: order.order_number || '?',
+        customerName: order.customer_name || '',
+        total,
+        timestamp: Date.now(),
+      },
+      ...prev,
+    ].slice(0, 5));
+
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== order.id));
+    }, 15000);
+  }, [currency, notifyNewOrder]);
+
+  // Polling fallback — fires only when Realtime is disconnected/errored.
+  // Uses browser Supabase client (respects RLS via session cookie) instead of
+  // a dedicated API route to keep this self-contained.
+  useEffect(() => {
+    const poll = async () => {
+      if (rtConnectedRef.current) return;
+      try {
+        const supabase = getSupabaseBrowser();
+        const since = lastPollRef.current ?? new Date(Date.now() - 60_000).toISOString();
+        const { data } = await supabase
+          .from('orders')
+          .select('id, order_number, customer_name, total, created_at')
+          .eq('restaurant_id', restaurantId)
+          .gt('created_at', since)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (!data) return;
+        for (const o of data) handleNewOrder(o as { id: string; order_number: string; customer_name: string; total: number });
+        if (data.length > 0) lastPollRef.current = data[0].created_at as string;
+      } catch { /* silent — best effort */ }
+    };
+
+    const id = setInterval(poll, 15_000);
+    return () => clearInterval(id);
+  }, [restaurantId, handleNewOrder]);
+
   useEffect(() => {
     const supabase = getSupabaseBrowser();
 
@@ -59,35 +112,17 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
           filter: `restaurant_id=eq.${restaurantId}`,
         },
         (payload: RealtimePostgresChangesPayload<{ id: string; order_number: string; customer_name: string; total: number }>) => {
-          const order = payload.new as { id: string; order_number: string; customer_name: string; total: number };
-          if (knownIdsRef.current.has(order.id)) return;
-          knownIdsRef.current.add(order.id);
-
-          const total = formatPrice(Number(order.total || 0), currency);
-          notifyNewOrder(order.order_number || '?', total);
-
-          setToasts((prev) => [
-            {
-              id: order.id,
-              orderNumber: order.order_number || '?',
-              customerName: order.customer_name || '',
-              total,
-              timestamp: Date.now(),
-            },
-            ...prev,
-          ].slice(0, 5));
-
-          setTimeout(() => {
-            setToasts((prev) => prev.filter((t) => t.id !== order.id));
-          }, 15000);
+          handleNewOrder(payload.new as { id: string; order_number: string; customer_name: string; total: number });
         }
       )
-      .subscribe();
+      .subscribe((status: string) => {
+        rtConnectedRef.current = status === 'SUBSCRIBED';
+      });
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [restaurantId, currency, notifyNewOrder]);
+  }, [restaurantId, handleNewOrder]);
 
   return (
     <>
