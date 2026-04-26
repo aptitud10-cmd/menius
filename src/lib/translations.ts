@@ -245,6 +245,81 @@ export interface Translations {
   changeLanguageAriaLabel: string;
   exploreMenu: string;
   itemsUpdatedAlert: string;
+  // CheckoutPageClient — validation
+  validationNameRequired: string;
+  validationNameMinLength: string;
+  validationPhoneRequired: string;
+  validationPhoneInvalid: string;
+  validationEmailRequired: string;
+  validationEmailInvalid: string;
+  validationAddressRequired: string;
+  validationErrorPromo: string;
+  validationNamePhoneRequired: string;
+  validationEmailRequiredOrder: string;
+  validationDeliveryAddressRequired: string;
+  // CheckoutPageClient — network errors
+  noConnectionRetry: string;
+  noConnectionPayment: string;
+  // CheckoutPageClient — notes prefix
+  arrivesLabel: string;
+  // CheckoutPageClient — demo/payment step
+  securePayment: string;
+  testModeDemo: string;
+  orderSummaryLabel: string;
+  nameOnCard: string;
+  cardFullNamePlaceholder: string;
+  cardInformation: string;
+  processingLabel: string;
+  payAmountPrefix: string;
+  backToForm: string;
+  secureEncryptedPayment: string;
+  termsLabel: string;
+  privacyLabel: string;
+  // CheckoutPageClient — confirmation
+  redirectingToTracking: string;
+  estimatedDelivery: string;
+  readyInApprox: string;
+  payWithWompi: string;
+  payWithMercadoPago: string;
+  trackOrderLive: string;
+  shareWithFriends: string;
+  hungerModeMsg: string;
+  // CheckoutPageClient — form header/sections
+  payLabel: string;
+  secureLabel: string;
+  yourOrderSection: string;
+  yourInfoSection: string;
+  infoSaved: string;
+  emailHint: string;
+  includeUtensils: string;
+  scheduleForLater: string;
+  rememberMeLabel: string;
+  paymentSection: string;
+  // CheckoutPageClient — loyalty
+  youHavePoints: string;
+  ofDiscount: string;
+  loyaltyApplied: string;
+  redeemLabel: string;
+  havePromoCode: string;
+  applyingLabel: string;
+  addTipQuestion: string;
+  // CheckoutPageClient — CTA / footer
+  retryingLabel: string;
+  completeFormToContinue: string;
+  placeOrderAriaLabel: string;
+  retryLabel: string;
+  // CheckoutPageClient — dine_in fields
+  tableQuestion: string;
+  arrivalTimeQuestion: string;
+  tablePlaceholder: string;
+  decreaseQuantity: string;
+  increaseQuantity: string;
+  // CheckoutPageClient — totals
+  deliveryLabel: string;
+  freeLabel: string;
+  tipLabel: string;
+  includedLabel: string;
+  pointsLabel: string;
 }
 
 const es: Translations = {
@@ -448,6 +523,81 @@ const es: Translations = {
   changeLanguageAriaLabel: 'Cambiar idioma',
   exploreMenu: 'Explorar Menú',
   itemsUpdatedAlert: 'Algunos productos fueron actualizados — agrégalos nuevamente para elegir las opciones requeridas.',
+  // CheckoutPageClient — validation
+  validationNameRequired: 'El nombre es obligatorio',
+  validationNameMinLength: 'Mínimo 2 caracteres',
+  validationPhoneRequired: 'El teléfono es obligatorio',
+  validationPhoneInvalid: 'Teléfono no válido',
+  validationEmailRequired: 'El email es obligatorio para recibir tu confirmación',
+  validationEmailInvalid: 'Email no válido',
+  validationAddressRequired: 'La dirección es obligatoria para delivery',
+  validationErrorPromo: 'Error validando código',
+  validationNamePhoneRequired: 'Nombre y teléfono son requeridos',
+  validationEmailRequiredOrder: 'Email requerido para recibir tu confirmación de pedido',
+  validationDeliveryAddressRequired: 'Dirección de entrega requerida',
+  // CheckoutPageClient — network errors
+  noConnectionRetry: 'Sin conexión. Revisa tu red e inténtalo de nuevo.',
+  noConnectionPayment: 'Sin conexión al iniciar el pago. Revisa tu red e inténtalo.',
+  // CheckoutPageClient — notes prefix
+  arrivesLabel: 'Llega',
+  // CheckoutPageClient — demo/payment step
+  securePayment: 'Pago seguro',
+  testModeDemo: '🧪 MODO DEMO — Sin cobro real. Datos pre-llenados.',
+  orderSummaryLabel: 'Resumen del pedido',
+  nameOnCard: 'Nombre en la tarjeta',
+  cardFullNamePlaceholder: 'Nombre completo',
+  cardInformation: 'Información de tarjeta',
+  processingLabel: 'Procesando…',
+  payAmountPrefix: 'Pagar',
+  backToForm: 'Volver al formulario',
+  secureEncryptedPayment: 'Pago seguro y cifrado',
+  termsLabel: 'Términos',
+  privacyLabel: 'Privacidad',
+  // CheckoutPageClient — confirmation
+  redirectingToTracking: 'Redirigiendo al seguimiento…',
+  estimatedDelivery: 'Entrega estimada',
+  readyInApprox: 'Listo en aprox.',
+  payWithWompi: 'Pagar con Wompi',
+  payWithMercadoPago: 'Pagar con MercadoPago',
+  trackOrderLive: 'Seguir mi pedido en vivo',
+  shareWithFriends: 'Compartir con amigos',
+  hungerModeMsg: 'hambre mode: ON 😤🍽️\nPedí en *{name}* — ¿alguien más quiere algo?\n👇 Pide aquí: {url}',
+  // CheckoutPageClient — form header/sections
+  payLabel: 'Pagar',
+  secureLabel: 'Seguro',
+  yourOrderSection: '1 · Tu pedido',
+  yourInfoSection: '2 · Tus datos',
+  infoSaved: '👋 Datos guardados',
+  emailHint: 'Te enviaremos la confirmación y actualizaciones de tu pedido.',
+  includeUtensils: 'Incluir cubiertos y servilletas',
+  scheduleForLater: 'Programar para después',
+  rememberMeLabel: 'Recordar mis datos para la próxima vez',
+  paymentSection: '3 · Forma de pago',
+  // CheckoutPageClient — loyalty
+  youHavePoints: 'Tienes {n} puntos',
+  ofDiscount: 'de descuento',
+  loyaltyApplied: '✓ Aplicado',
+  redeemLabel: 'Canjear',
+  havePromoCode: '¿Tienes un código de descuento?',
+  applyingLabel: 'Aplicando…',
+  addTipQuestion: '¿Deseas dejar propina?',
+  // CheckoutPageClient — CTA / footer
+  retryingLabel: 'Reintentando…',
+  completeFormToContinue: 'Completa nombre, teléfono y email para continuar',
+  placeOrderAriaLabel: 'Confirmar orden',
+  retryLabel: 'Reintentar',
+  // CheckoutPageClient — dine_in fields
+  tableQuestion: '¿En qué mesa estás?',
+  arrivalTimeQuestion: '¿A qué hora planeas llegar?',
+  tablePlaceholder: 'Ej: Mesa 4, Terraza, Barra…',
+  decreaseQuantity: 'Reducir cantidad',
+  increaseQuantity: 'Aumentar cantidad',
+  // CheckoutPageClient — totals
+  deliveryLabel: 'Envío',
+  freeLabel: 'Gratis',
+  tipLabel: 'Propina',
+  includedLabel: 'incluido',
+  pointsLabel: 'Puntos',
 };
 
 const en: Translations = {
@@ -651,6 +801,81 @@ const en: Translations = {
   changeLanguageAriaLabel: 'Change language',
   exploreMenu: 'Explore Menu',
   itemsUpdatedAlert: 'Some items were updated — please add them again to select the required options.',
+  // CheckoutPageClient — validation
+  validationNameRequired: 'Name is required',
+  validationNameMinLength: 'Minimum 2 characters',
+  validationPhoneRequired: 'Phone is required',
+  validationPhoneInvalid: 'Invalid phone number',
+  validationEmailRequired: 'Email is required to receive your confirmation',
+  validationEmailInvalid: 'Invalid email',
+  validationAddressRequired: 'Delivery address is required',
+  validationErrorPromo: 'Error validating code',
+  validationNamePhoneRequired: 'Name and phone required',
+  validationEmailRequiredOrder: 'Email required to receive your order confirmation',
+  validationDeliveryAddressRequired: 'Delivery address required',
+  // CheckoutPageClient — network errors
+  noConnectionRetry: 'No connection. Check your network and try again.',
+  noConnectionPayment: 'Could not reach the server to start payment. Check your connection.',
+  // CheckoutPageClient — notes prefix
+  arrivesLabel: 'Arrives',
+  // CheckoutPageClient — demo/payment step
+  securePayment: 'Secure payment',
+  testModeDemo: '🧪 TEST MODE — No real charge. Data pre-filled.',
+  orderSummaryLabel: 'Order summary',
+  nameOnCard: 'Name on card',
+  cardFullNamePlaceholder: 'Full name',
+  cardInformation: 'Card information',
+  processingLabel: 'Processing…',
+  payAmountPrefix: 'Pay',
+  backToForm: 'Back to form',
+  secureEncryptedPayment: 'Secure encrypted payment',
+  termsLabel: 'Terms',
+  privacyLabel: 'Privacy',
+  // CheckoutPageClient — confirmation
+  redirectingToTracking: 'Redirecting to tracking…',
+  estimatedDelivery: 'Estimated delivery',
+  readyInApprox: 'Ready in approx.',
+  payWithWompi: 'Pay with Wompi',
+  payWithMercadoPago: 'Pay with MercadoPago',
+  trackOrderLive: 'Track my order live',
+  shareWithFriends: 'Share with friends',
+  hungerModeMsg: 'hunger mode: ON 😤🍽️\nJust ordered at *{name}* — anyone else want something?\n👇 Order here: {url}',
+  // CheckoutPageClient — form header/sections
+  payLabel: 'Pay',
+  secureLabel: 'Secure',
+  yourOrderSection: '1 · Your order',
+  yourInfoSection: '2 · Your info',
+  infoSaved: '👋 Info saved',
+  emailHint: "We'll send you order confirmation and updates.",
+  includeUtensils: 'Include utensils & napkins',
+  scheduleForLater: 'Schedule for later',
+  rememberMeLabel: 'Remember my info for next time',
+  paymentSection: '3 · Payment',
+  // CheckoutPageClient — loyalty
+  youHavePoints: 'You have {n} points',
+  ofDiscount: 'discount',
+  loyaltyApplied: '✓ Applied',
+  redeemLabel: 'Redeem',
+  havePromoCode: 'Have a promo code?',
+  applyingLabel: 'Applying…',
+  addTipQuestion: 'Add a tip?',
+  // CheckoutPageClient — CTA / footer
+  retryingLabel: 'Retrying…',
+  completeFormToContinue: 'Enter your name, phone and email to continue',
+  placeOrderAriaLabel: 'Place order',
+  retryLabel: 'Retry',
+  // CheckoutPageClient — dine_in fields
+  tableQuestion: 'Which table are you at?',
+  arrivalTimeQuestion: 'What time do you plan to arrive?',
+  tablePlaceholder: 'E.g. Table 4, Patio, Bar…',
+  decreaseQuantity: 'Decrease quantity',
+  increaseQuantity: 'Increase quantity',
+  // CheckoutPageClient — totals
+  deliveryLabel: 'Delivery',
+  freeLabel: 'Free',
+  tipLabel: 'Tip',
+  includedLabel: 'included',
+  pointsLabel: 'Points',
 };
 
 const translations: Record<string, Translations> = { es, en };

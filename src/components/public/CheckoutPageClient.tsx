@@ -350,19 +350,19 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     let error = '';
     switch (name) {
       case 'customer_name':
-        if (!value.trim()) error = locale === 'es' ? 'El nombre es obligatorio' : 'Name is required';
-        else if (value.trim().length < 2) error = locale === 'es' ? 'Mínimo 2 caracteres' : 'Minimum 2 characters';
+        if (!value.trim()) error = t.validationNameRequired;
+        else if (value.trim().length < 2) error = t.validationNameMinLength;
         break;
       case 'customer_phone':
-        if (!value.trim()) error = locale === 'es' ? 'El teléfono es obligatorio' : 'Phone is required';
-        else if (!/^\+?[\d\s()-]{7,}$/.test(value)) error = locale === 'es' ? 'Teléfono no válido' : 'Invalid phone number';
+        if (!value.trim()) error = t.validationPhoneRequired;
+        else if (!/^\+?[\d\s()-]{7,}$/.test(value)) error = t.validationPhoneInvalid;
         break;
       case 'customer_email':
-        if (!value.trim()) error = locale === 'es' ? 'El email es obligatorio para recibir tu confirmación' : 'Email is required to receive your confirmation';
-        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = locale === 'es' ? 'Email no válido' : 'Invalid email';
+        if (!value.trim()) error = t.validationEmailRequired;
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) error = t.validationEmailInvalid;
         break;
       case 'delivery_address':
-        if (orderType === 'delivery' && !value.trim()) error = locale === 'es' ? 'La dirección es obligatoria para delivery' : 'Delivery address is required';
+        if (orderType === 'delivery' && !value.trim()) error = t.validationAddressRequired;
         break;
     }
     setFieldErrors(prev => ({ ...prev, [name]: error }));
@@ -398,7 +398,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         });
       }
     } catch {
-      setPromoError(locale === 'es' ? 'Error validando código' : 'Error validating code');
+      setPromoError(t.validationErrorPromo);
     } finally {
       setPromoLoading(false);
     }
@@ -427,7 +427,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const handleSubmitOrder = async () => {
     if (submittingRef.current) return;
     if (!customerName.trim() || !customerPhone.trim()) {
-      setOrderError(locale === 'es' ? 'Nombre y teléfono son requeridos' : 'Name and phone required');
+      setOrderError(t.validationNamePhoneRequired);
       trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'name_or_phone', order_type: orderType });
       // Trigger shake + scroll to first invalid field
       setCtaShake(true);
@@ -437,7 +437,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       return;
     }
     if (!customerEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
-      setOrderError(locale === 'es' ? 'Email requerido para recibir tu confirmación de pedido' : 'Email required to receive your order confirmation');
+      setOrderError(t.validationEmailRequiredOrder);
       validateField('customer_email', customerEmail);
       trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'email', order_type: orderType });
       setCtaShake(true);
@@ -447,7 +447,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       return;
     }
     if (orderType === 'delivery' && !deliveryAddress.trim()) {
-      setOrderError(locale === 'es' ? 'Dirección de entrega requerida' : 'Delivery address required');
+      setOrderError(t.validationDeliveryAddressRequired);
       trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'delivery_address', order_type: orderType });
       setCtaShake(true);
       clearTimeout(ctaShakeTimer.current);
@@ -496,7 +496,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           customer_email: customerEmail.trim() || undefined,
           notes: (() => {
             const arrival = orderType === 'dine_in' && !tableName && arrivalTime
-              ? `[${locale === 'es' ? 'Llega' : 'Arrives'}: ${arrivalTime}] `
+              ? `[${t.arrivesLabel}: ${arrivalTime}] `
               : '';
             return arrival + orderNotes.trim() || undefined;
           })(),
@@ -620,11 +620,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         // Second failure — give up and let user retry manually
         retryAttemptRef.current = 0;
         setCanManualRetry(true);
-        setOrderError(
-          locale === 'es'
-            ? 'Sin conexión. Revisa tu red e inténtalo de nuevo.'
-            : 'No connection. Check your network and try again.'
-        );
+        setOrderError(t.noConnectionRetry);
       }
     } finally {
       submittingRef.current = false;
@@ -706,11 +702,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         setPayLoading(false);
       }
     } catch {
-      setOrderError(
-        locale === 'es'
-          ? 'Sin conexión al iniciar el pago. Revisa tu red e inténtalo.'
-          : 'Could not reach the server to start payment. Check your connection.'
-      );
+      setOrderError(t.noConnectionPayment);
       setPayLoading(false);
     }
   };
@@ -784,11 +776,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       }
       window.location.href = `https://checkout.wompi.co/p/?${params.toString()}`;
     } catch {
-      setOrderError(
-        locale === 'es'
-          ? 'Sin conexión al iniciar el pago. Revisa tu red e inténtalo.'
-          : 'Could not reach the server to start payment. Check your connection.'
-      );
+      setOrderError(t.noConnectionPayment);
       setPayLoading(false);
     }
   };
@@ -814,11 +802,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       setOrderError(formatPaymentStartError(res.status, undefined, locale));
       setPayLoading(false);
     } catch {
-      setOrderError(
-        locale === 'es'
-          ? 'Sin conexión al iniciar el pago. Revisa tu red e inténtalo.'
-          : 'Could not reach the server to start payment. Check your connection.'
-      );
+      setOrderError(t.noConnectionPayment);
       setPayLoading(false);
     }
   };
@@ -862,7 +846,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     return (
       <div className="min-h-[100dvh] bg-gray-50 flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4">
-          <button onClick={goBack} aria-label={locale === 'es' ? 'Volver al menú' : 'Back to menu'} className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors">
+          <button onClick={goBack} aria-label={t.backToMenu} className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors">
             <ArrowLeft className="w-5 h-5" />
             <span className="text-sm font-medium">{t.backToMenu}</span>
           </button>
@@ -929,7 +913,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0110 0v4" />
             </svg>
-            <span className="text-xs text-gray-500 font-medium">{locale === 'es' ? 'Pago seguro' : 'Secure payment'}</span>
+            <span className="text-xs text-gray-500 font-medium">{t.securePayment}</span>
           </div>
           <svg viewBox="0 0 60 25" className="h-4 w-auto" xmlns="http://www.w3.org/2000/svg">
             <path d="M59.64 14.28h-8.06c.19 1.93 1.6 2.55 3.2 2.55 1.64 0 2.96-.37 4.05-.95v3.32a8.33 8.33 0 01-4.56 1.1c-4.01 0-6.83-2.5-6.83-7.48 0-4.19 2.39-7.52 6.3-7.52 3.92 0 5.96 3.28 5.96 7.5 0 .4-.04 1.26-.06 1.48zm-5.92-5.62c-1.03 0-2.17.73-2.17 2.58h4.25c0-1.85-1.07-2.58-2.08-2.58zM40.95 20.3c-1.44 0-2.32-.6-2.9-1.04l-.02 4.63-4.12.87V5.57h3.76l.08 1.02a4.7 4.7 0 013.23-1.29c2.9 0 5.62 2.6 5.62 7.4 0 5.23-2.7 7.6-5.65 7.6zM40 8.95c-.95 0-1.54.34-1.97.81l.02 6.12c.4.44.98.78 1.95.78 1.52 0 2.54-1.65 2.54-3.87 0-2.15-1.04-3.84-2.54-3.84zM28.24 5.57h4.13v14.44h-4.13V5.57zm0-4.7L32.37 0v3.36l-4.13.88V.87zm-4.32 9.35v9.79H19.8V5.57h3.7l.12 1.22c1-1.77 3.07-1.41 3.62-1.22v3.79c-.52-.17-2.29-.43-3.32.86zm-8.55 4.72c0 2.43 2.6 1.68 3.12 1.46v3.36c-.55.3-1.54.54-2.89.54a4.15 4.15 0 01-4.27-4.24l.01-13.17 4.02-.86v3.54h3.14V9.1h-3.13v5.84zm-4.91.7c0 2.97-2.31 4.66-5.73 4.66a11.2 11.2 0 01-4.46-.93v-3.93c1.38.75 3.1 1.31 4.46 1.31.92 0 1.53-.24 1.53-1C6.26 13.77 0 14.51 0 9.95 0 7.04 2.28 5.3 5.62 5.3c1.36 0 2.72.2 4.09.75v3.88a9.23 9.23 0 00-4.1-1.06c-.86 0-1.44.25-1.44.9 0 1.85 6.29.97 6.29 5.77z" fill="#635BFF"/>
@@ -939,7 +923,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         {/* TEST MODE banner */}
         <div className="w-full bg-orange-500 px-4 py-1.5 text-center">
           <p className="text-white text-xs font-semibold tracking-wide">
-            {locale === 'es' ? '🧪 MODO DEMO — Sin cobro real. Datos pre-llenados.' : '🧪 TEST MODE — No real charge. Data pre-filled.'}
+            {t.testModeDemo}
           </p>
         </div>
 
@@ -970,7 +954,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 aria-controls="order-summary-content"
                 className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
-                <span>{locale === 'es' ? 'Resumen del pedido' : 'Order summary'} ({items.length} {items.length === 1 ? (locale === 'es' ? 'item' : 'item') : (locale === 'es' ? 'items' : 'items')})</span>
+                <span>{t.orderSummaryLabel} ({items.length} items)</span>
                 <svg
                   className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${summaryOpen ? 'rotate-180' : ''}`}
                   fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
@@ -987,7 +971,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     </div>
                   ))}
                   <div className="border-t border-gray-100 pt-2 flex justify-between text-sm font-semibold text-gray-800">
-                    <span>{locale === 'es' ? 'Total' : 'Total'}</span>
+                    <span>{t.total}</span>
                     <span className={`tabular-nums transition-opacity ${quoteLoading ? 'opacity-50' : 'opacity-100'}`}>{fmtPrice(displayTotal)}</span>
                   </div>
                 </div>
@@ -997,12 +981,12 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             {/* Card holder name */}
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                {locale === 'es' ? 'Nombre en la tarjeta' : 'Name on card'}
+                {t.nameOnCard}
               </label>
               <input
                 type="text"
                 defaultValue="Test User"
-                placeholder={locale === 'es' ? 'Nombre completo' : 'Full name'}
+                placeholder={t.cardFullNamePlaceholder}
                 className="w-full px-3.5 py-3 rounded-lg border border-gray-300 focus:border-[#635BFF] focus:ring-2 focus:ring-[#635BFF]/20 focus:outline-none text-sm text-gray-900 bg-white transition-all"
               />
             </div>
@@ -1010,7 +994,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             {/* Unified card input — Stripe style */}
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-                {locale === 'es' ? 'Información de tarjeta' : 'Card information'}
+                {t.cardInformation}
               </label>
               <div className="rounded-lg border border-gray-300 overflow-hidden shadow-sm focus-within:border-[#635BFF] focus-within:ring-2 focus-within:ring-[#635BFF]/20 transition-all bg-white">
                 {/* Card number row */}
@@ -1083,10 +1067,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  {locale === 'es' ? 'Procesando…' : 'Processing…'}
+                  {t.processingLabel}
                 </span>
               ) : (
-                `${locale === 'es' ? 'Pagar' : 'Pay'} ${fmtPrice(displayTotal)}`
+                `${t.payAmountPrefix} ${fmtPrice(displayTotal)}`
               )}
             </button>
 
@@ -1096,7 +1080,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               className="w-full flex items-center justify-center gap-1.5 py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              {locale === 'es' ? 'Volver al formulario' : 'Back to form'}
+              {t.backToForm}
             </button>
 
             {/* Powered by Stripe footer */}
@@ -1106,7 +1090,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   <path fillRule="evenodd" clipRule="evenodd" d="M6 1a5 5 0 100 10A5 5 0 006 1zM5 4a1 1 0 112 0v3a1 1 0 11-2 0V4zm1 5.5a.75.75 0 100-1.5.75.75 0 000 1.5z" fill="currentColor"/>
                 </svg>
                 <span className="text-[11px]">
-                  {locale === 'es' ? 'Pago seguro y cifrado' : 'Secure encrypted payment'}
+                  {t.secureEncryptedPayment}
                 </span>
               </div>
               <div className="flex items-center gap-1 text-gray-400">
@@ -1116,9 +1100,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 </svg>
               </div>
               <div className="flex items-center gap-3 text-[10px] text-gray-400">
-                <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">{locale === 'es' ? 'Términos' : 'Terms'}</a>
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">{t.termsLabel}</a>
                 <span>·</span>
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">{locale === 'es' ? 'Privacidad' : 'Privacy'}</a>
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 transition-colors">{t.privacyLabel}</a>
               </div>
             </div>
 
@@ -1162,7 +1146,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 </div>
               ))}
               <div className="border-t border-gray-200 pt-2 flex justify-between items-baseline">
-                <span className="text-sm font-bold text-gray-900">{locale === 'es' ? 'Total' : 'Total'}</span>
+                <span className="text-sm font-bold text-gray-900">{t.total}</span>
                 <span className="text-sm font-bold text-gray-900 tabular-nums">{fmtPrice(confirmedTotal)}</span>
               </div>
             </div>
@@ -1171,7 +1155,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           {/* Auto-redirect hint — shown for non-online, non-demo orders */}
           {orderId && orderId !== 'demo-order-id' && paymentMethod !== 'online' && (
             <p className="text-xs text-gray-400 mb-2 animate-pulse">
-              {locale === 'es' ? 'Redirigiendo al seguimiento…' : 'Redirecting to tracking…'}
+              {t.redirectingToTracking}
             </p>
           )}
 
@@ -1183,8 +1167,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </svg>
               <p className="text-sm text-amber-700 font-medium">
                 {orderType === 'delivery'
-                  ? (locale === 'es' ? 'Entrega estimada' : 'Estimated delivery')
-                  : (locale === 'es' ? 'Listo en aprox.' : 'Ready in approx.')}
+                  ? t.estimatedDelivery
+                  : t.readyInApprox}
                 {' '}~{restaurant.estimated_delivery_minutes} min
               </p>
             </div>
@@ -1208,7 +1192,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 )}
               >
                 {payLoading ? (
-                  locale === 'es' ? 'Redirigiendo...' : 'Redirecting...'
+                  t.redirecting
                 ) : isColombianRestaurant ? (
                   <>
                     <svg width="18" height="18" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1216,7 +1200,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                       <path d="M8 20C8 13.373 13.373 8 20 8s12 5.373 12 12-5.373 12-12 12S8 26.627 8 20z" fill="#FDDA24"/>
                       <path d="M16 17h8v6h-8z" fill="#002C76"/>
                     </svg>
-                    {locale === 'es' ? 'Pagar con Wompi' : 'Pay with Wompi'}
+                    {t.payWithWompi}
                   </>
                 ) : t.payNow}
               </button>
@@ -1230,14 +1214,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 className="w-full py-3.5 rounded-xl font-semibold text-sm disabled:opacity-50 transition-colors flex items-center justify-center gap-2 bg-[#009EE3] hover:bg-[#008ccc] text-white"
               >
                 {payLoading ? (
-                  locale === 'es' ? 'Redirigiendo...' : 'Redirecting...'
+                  t.redirecting
                 ) : (
                   <>
                     <svg width="18" height="18" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <rect width="40" height="40" rx="8" fill="#009EE3"/>
                       <text x="7" y="27" fontSize="18" fontWeight="bold" fill="white">MP</text>
                     </svg>
-                    {locale === 'es' ? 'Pagar con MercadoPago' : 'Pay with MercadoPago'}
+                    {t.payWithMercadoPago}
                   </>
                 )}
               </button>
@@ -1260,7 +1244,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
-                  {locale === 'es' ? 'Seguir mi pedido en vivo' : 'Track my order live'}
+                  {t.trackOrderLive}
                 </button>
               </div>
             )}
@@ -1279,9 +1263,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 onClick={() => {
                   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
                   const msg = encodeURIComponent(
-                    locale === 'es'
-                      ? `hambre mode: ON 😤🍽️\nPedí en *${restaurant.name}* — ¿alguien más quiere algo?\n👇 Pide aquí: ${appUrl}/${restaurant.slug}`
-                      : `hunger mode: ON 😤🍽️\nJust ordered at *${restaurant.name}* — anyone else want something?\n👇 Order here: ${appUrl}/${restaurant.slug}`
+                    t.hungerModeMsg
+                      .replace('{name}', restaurant.name)
+                      .replace('{url}', `${appUrl}/${restaurant.slug}`)
                   );
                   window.location.href = `whatsapp://send?text=${msg}`;
                   setTimeout(() => {
@@ -1293,7 +1277,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                 </svg>
-                {locale === 'es' ? 'Compartir con amigos' : 'Share with friends'}
+                {t.shareWithFriends}
               </button>
             )}
           </div>
@@ -1313,11 +1297,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           <span className="text-sm font-medium">{t.backToMenu}</span>
         </button>
         <h1 className="text-base font-bold text-gray-900">
-          {locale === 'es' ? 'Pagar' : 'Pay'} {fmtPrice(displayTotal)}
+          {t.payLabel} {fmtPrice(displayTotal)}
         </h1>
         <div className="flex items-center gap-1.5 text-gray-400">
           <Lock className="w-3.5 h-3.5" />
-          <span className="text-xs font-medium">{locale === 'es' ? 'Seguro' : 'Secure'}</span>
+          <span className="text-xs font-medium">{t.secureLabel}</span>
         </div>
       </header>
 
@@ -1327,7 +1311,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
           {/* Section: Tu pedido */}
           <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 px-1">
-            {locale === 'es' ? '1 · Tu pedido' : '1 · Your order'}
+            {t.yourOrderSection}
           </p>
 
           {/* Order summary */}
@@ -1382,7 +1366,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                         }
                       }}
                       className="w-11 h-11 flex items-center justify-center flex-shrink-0"
-                      aria-label={locale === 'es' ? 'Reducir cantidad' : 'Decrease quantity'}
+                      aria-label={t.decreaseQuantity}
                     >
                       <span className={cn(
                         'w-7 h-7 rounded-full border flex items-center justify-center transition-colors text-lg leading-none pointer-events-none',
@@ -1398,7 +1382,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                     <button
                       onClick={() => updateQty(idx, item.qty + 1)}
                       className="w-11 h-11 flex items-center justify-center flex-shrink-0"
-                      aria-label={locale === 'es' ? 'Aumentar cantidad' : 'Increase quantity'}
+                      aria-label={t.increaseQuantity}
                     >
                       <span className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-[#e6faf7] hover:border-[#b3efe6] hover:text-[#05c8a7] transition-colors text-lg leading-none pointer-events-none">
                         +
@@ -1416,25 +1400,25 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             )}
             {loyaltyDiscount > 0 && (
               <div className="flex justify-between text-[15px] text-[#05c8a7] pt-1">
-                <span>⭐ {locale === 'es' ? 'Puntos' : 'Points'}</span>
+                <span>⭐ {t.pointsLabel}</span>
                 <span className="font-semibold">-{fmtPrice(loyaltyDiscount)}</span>
               </div>
             )}
             {deliveryFee > 0 && (
               <div className="flex justify-between text-[15px] text-gray-500">
-                <span>{locale === 'es' ? 'Envío' : 'Delivery'}</span>
+                <span>{t.deliveryLabel}</span>
                 <span className="font-semibold tabular-nums">+{fmtPrice(deliveryFee)}</span>
               </div>
             )}
             {orderType === 'delivery' && deliveryFee === 0 && restaurant.order_types_enabled?.includes('delivery') && (
               <div className="flex justify-between text-[15px] text-[#05c8a7]">
-                <span>{locale === 'es' ? 'Envío' : 'Delivery'}</span>
-                <span className="font-semibold">{locale === 'es' ? 'Gratis' : 'Free'}</span>
+                <span>{t.deliveryLabel}</span>
+                <span className="font-semibold">{t.freeLabel}</span>
               </div>
             )}
             {tipAmount > 0 && (
               <div className="flex justify-between text-[15px] text-gray-500">
-                <span>{locale === 'es' ? 'Propina' : 'Tip'}</span>
+                <span>{t.tipLabel}</span>
                 <span className="font-semibold tabular-nums">+{fmtPrice(tipAmount)}</span>
               </div>
             )}
@@ -1443,7 +1427,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 <span>
                   {taxLabel}{' '}
                   {taxIncluded
-                    ? `(${locale === 'es' ? 'incluido' : 'included'})`
+                    ? `(${t.includedLabel})`
                     : `(${taxRate}%)`}
                 </span>
                 <span className="font-semibold tabular-nums">
@@ -1511,21 +1495,21 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               <div className="mt-4 space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    {locale === 'es' ? '¿En qué mesa estás?' : 'Which table are you at?'}
-                    <span className="ml-1 text-gray-400 font-normal">({locale === 'es' ? 'opcional' : 'optional'})</span>
+                    {t.tableQuestion}
+                    <span className="ml-1 text-gray-400 font-normal">({t.optional})</span>
                   </label>
                   <input
                     type="text"
                     value={manualTableName}
                     onChange={(e) => setManualTableName(e.target.value)}
-                    placeholder={locale === 'es' ? 'Ej: Mesa 4, Terraza, Barra…' : 'E.g. Table 4, Patio, Bar…'}
+                    placeholder={t.tablePlaceholder}
                     className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    {locale === 'es' ? '¿A qué hora planeas llegar?' : 'What time do you plan to arrive?'}
-                    <span className="ml-1 text-gray-400 font-normal">({locale === 'es' ? 'opcional' : 'optional'})</span>
+                    {t.arrivalTimeQuestion}
+                    <span className="ml-1 text-gray-400 font-normal">({t.optional})</span>
                   </label>
                   <input
                     type="time"
@@ -1541,11 +1525,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
           {/* Section: Tus datos */}
           <div className="flex items-center justify-between px-1 pt-2">
             <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500">
-              {locale === 'es' ? '2 · Tus datos' : '2 · Your info'}
+              {t.yourInfoSection}
             </p>
             {hasMounted && isReturningCustomer() && savedCustomer && (
               <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
-                {locale === 'es' ? '👋 Datos guardados' : '👋 Info saved'}
+                {t.infoSaved}
               </span>
             )}
           </div>
@@ -1646,7 +1630,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 <p id="checkout-email-error" role="alert" className="text-xs text-red-500 mt-1">{fieldErrors.customer_email}</p>
               ) : (
                 <p id="checkout-email-hint" className="text-xs text-gray-400 mt-1">
-                  {locale === 'es' ? 'Te enviaremos la confirmación y actualizaciones de tu pedido.' : 'We\'ll send you order confirmation and updates.'}
+                  {t.emailHint}
                 </p>
               )}
             </div>
@@ -1670,7 +1654,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </div>
               <UtensilsCrossed className="w-4 h-4 text-gray-500" />
               <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors text-left">
-                {locale === 'es' ? 'Incluir cubiertos y servilletas' : 'Include utensils & napkins'}
+                {t.includeUtensils}
               </span>
             </button>
 
@@ -1690,7 +1674,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   )}
                 </div>
                 <span className="text-sm font-semibold text-gray-900">
-                  {locale === 'en' ? 'Schedule for later' : 'Programar para después'}
+                  {t.scheduleForLater}
                 </span>
               </button>
               {scheduleEnabled && (
@@ -1718,14 +1702,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 )}
               </div>
               <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors text-left">
-                {locale === 'es' ? 'Recordar mis datos para la próxima vez' : 'Remember my info for next time'}
+                {t.rememberMeLabel}
               </span>
             </button>
           </div>
 
           {/* Section: Forma de pago */}
           <p className="text-[11px] font-bold uppercase tracking-widest text-gray-500 px-1 pt-2">
-            {locale === 'es' ? '3 · Forma de pago' : '3 · Payment'}
+            {t.paymentSection}
           </p>
 
           {/* Payment method */}
@@ -1749,10 +1733,10 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   <span className="text-xl">⭐</span>
                   <div>
                     <p className="text-sm font-semibold text-gray-900">
-                      {locale === 'es' ? 'Tienes' : 'You have'} {loyaltyBalance.points} {locale === 'es' ? 'puntos' : 'points'}
+                      {t.youHavePoints.replace('{n}', String(loyaltyBalance.points))}
                     </p>
                     <p className="text-xs text-[#047a65]">
-                      = {fmtPrice(Math.floor(loyaltyBalance.points * loyaltyBalance.config.peso_per_point * 100) / 100)} {locale === 'es' ? 'de descuento' : 'discount'}
+                      = {fmtPrice(Math.floor(loyaltyBalance.points * loyaltyBalance.config.peso_per_point * 100) / 100)} {t.ofDiscount}
                     </p>
                   </div>
                 </div>
@@ -1766,9 +1750,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                       : 'bg-white text-[#047a65] border border-[#b3efe6] hover:bg-[#e6faf7]'
                   )}
                 >
-                  {loyaltyApplied
-                    ? (locale === 'es' ? '✓ Aplicado' : '✓ Applied')
-                    : (locale === 'es' ? 'Canjear' : 'Redeem')}
+                  {loyaltyApplied ? t.loyaltyApplied : t.redeemLabel}
                 </button>
               </div>
             </div>
@@ -1788,7 +1770,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 </svg>
                 {promoResult?.valid
                   ? <span className="text-[#05c8a7]">✓ {t.promoCode}: -{fmtPrice(promoResult.discount)}</span>
-                  : (locale === 'es' ? '¿Tienes un código de descuento?' : 'Have a promo code?')}
+                  : t.havePromoCode}
               </span>
               <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${promoOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -1799,7 +1781,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 <div className="flex gap-2">
                   <input type="text" value={promoCode} onChange={(e) => { setPromoCode(e.target.value); setPromoError(''); setPromoResult(null); }} placeholder={t.promoCodePlaceholder} className={cn(inputClass, 'flex-1 uppercase')} />
                   <button onClick={validatePromo} disabled={promoLoading || !promoCode.trim()} className="px-5 py-3.5 rounded-xl bg-gray-900 text-white text-[15px] font-semibold disabled:opacity-30 transition-colors">
-                    {promoLoading ? (locale === 'es' ? 'Aplicando…' : 'Applying…') : t.apply}
+                    {promoLoading ? t.applyingLabel : t.apply}
                   </button>
                 </div>
                 {promoError && <p className="text-sm text-red-500">{promoError}</p>}
@@ -1812,7 +1794,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
           {/* Tip */}
           <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-            <label className="block text-sm font-semibold text-gray-900 mb-3">{locale === 'es' ? '¿Deseas dejar propina?' : 'Add a tip?'}</label>
+            <label className="block text-sm font-semibold text-gray-900 mb-3">{t.addTipQuestion}</label>
             <div className="grid grid-cols-3 gap-2">
               {[10, 15, 20].map((pct) => {
                 const isActive = tipPercent === pct;
@@ -1852,7 +1834,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             >
               <svg className="animate-spin h-4 w-4 text-amber-600 shrink-0" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
               <span className="text-amber-700 text-sm font-medium">
-                {locale === 'es' ? 'Reintentando…' : 'Retrying…'}
+                {t.retryingLabel}
               </span>
             </motion.div>
           )}
@@ -1876,7 +1858,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   }}
                   className="shrink-0 text-sm font-bold text-red-700 underline underline-offset-2 hover:text-red-900"
                 >
-                  {locale === 'es' ? 'Reintentar' : 'Retry'}
+                  {t.retryLabel}
                 </button>
               )}
             </motion.div>
@@ -1885,15 +1867,13 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         <div className="max-w-lg mx-auto space-y-2">
           {!isFormReady && !submitting && items.length > 0 && (
             <p className="text-center text-xs text-gray-400">
-              {locale === 'es'
-                ? 'Completa nombre, teléfono y email para continuar'
-                : 'Enter your name, phone and email to continue'}
+              {t.completeFormToContinue}
             </p>
           )}
           <motion.button
             onClick={handleSubmitOrder}
             disabled={submitting || networkRetrying || items.length === 0}
-            aria-label={locale === 'es' ? 'Confirmar orden' : 'Place order'}
+            aria-label={t.placeOrderAriaLabel}
             animate={ctaShake ? { x: [0, -8, 8, -6, 6, -4, 4, 0] } : { x: 0 }}
             transition={{ duration: 0.5 }}
             className={cn(
@@ -1905,7 +1885,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               <span className="flex items-center justify-center gap-2">
                 <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                 {networkRetrying
-                  ? (locale === 'es' ? 'Reintentando…' : 'Retrying…')
+                  ? t.retryingLabel
                   : t.sending}
               </span>
             ) : (
