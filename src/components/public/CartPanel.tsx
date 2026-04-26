@@ -21,7 +21,6 @@ interface CartPanelProps {
   onClose?: () => void;
   estimatedMinutes?: number;
   deliveryFee?: number;
-  locale?: string;
   lastOrder?: { items: LastOrderSummaryItem[] } | null;
   onReorder?: () => void;
 }
@@ -68,7 +67,6 @@ export function CartPanel({
   onClose,
   estimatedMinutes,
   deliveryFee,
-  locale = 'es',
   lastOrder,
   onReorder,
 }: CartPanelProps) {
@@ -190,7 +188,7 @@ export function CartPanel({
           <button
             onClick={onClose}
             className="p-2 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-all duration-150"
-            aria-label={locale === 'en' ? 'Close cart' : 'Cerrar carrito'}
+            aria-label={t.closeCart}
           >
             <X className="w-4 h-4" />
           </button>
@@ -285,7 +283,7 @@ export function CartPanel({
                         <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
                           <button
                             onClick={(e) => { e.stopPropagation(); handleMinusTap(idx, item.qty); }}
-                            aria-label={isPendingRemove ? `${locale === 'en' ? 'Confirm remove' : 'Confirmar eliminar'} ${item.product.name}` : `${locale === 'en' ? 'Decrease quantity' : 'Disminuir cantidad'} ${item.product.name}`}
+                            aria-label={isPendingRemove ? `${t.confirmRemove} ${item.product.name}` : `${t.decreaseQuantity} ${item.product.name}`}
                             className={cn(
                               'w-11 h-11 flex items-center justify-center transition-all duration-150',
                               isPendingRemove
@@ -302,7 +300,7 @@ export function CartPanel({
                           <span className="w-7 text-center text-sm font-bold tabular-nums" aria-live="polite">{item.qty}</span>
                           <button
                             onClick={(e) => { e.stopPropagation(); updateQty(idx, item.qty + 1); }}
-                            aria-label={`${locale === 'en' ? 'Increase quantity' : 'Aumentar cantidad'} ${item.product.name}`}
+                            aria-label={`${t.increaseQuantity} ${item.product.name}`}
                             className="w-11 h-11 flex items-center justify-center hover:bg-gray-50 active:bg-gray-100 transition-colors text-gray-600"
                           >
                             <Plus className="w-4 h-4" />
@@ -315,7 +313,7 @@ export function CartPanel({
                           <button
                             onClick={(e) => { e.stopPropagation(); removeItem(idx); }}
                             className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                            aria-label={`${locale === 'en' ? 'Remove' : 'Eliminar'} ${item.product.name}`}
+                            aria-label={`${t.removeItem} ${item.product.name}`}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

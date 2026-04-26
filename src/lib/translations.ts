@@ -337,6 +337,10 @@ export interface Translations {
   labelNotesPlaceholder: string;
   reservationSubmitting: string;
   reservationBookTable: string;
+  // CartPanel — aria-labels
+  closeCart: string;
+  confirmRemove: string;
+  removeItem: string;
 }
 
 const es: Translations = {
@@ -632,6 +636,10 @@ const es: Translations = {
   labelNotesPlaceholder: 'Alergias, ocasiones especiales, preferencia de mesa...',
   reservationSubmitting: 'Enviando...',
   reservationBookTable: 'Reservar mesa',
+  // CartPanel — aria-labels
+  closeCart: 'Cerrar carrito',
+  confirmRemove: 'Confirmar eliminar',
+  removeItem: 'Eliminar',
 };
 
 const en: Translations = {
@@ -927,6 +935,10 @@ const en: Translations = {
   labelNotesPlaceholder: 'Allergies, special occasions, seating preference...',
   reservationSubmitting: 'Submitting...',
   reservationBookTable: 'Book table',
+  // CartPanel — aria-labels
+  closeCart: 'Close cart',
+  confirmRemove: 'Confirm remove',
+  removeItem: 'Remove',
 };
 
 const translations: Record<string, Translations> = { es, en };
