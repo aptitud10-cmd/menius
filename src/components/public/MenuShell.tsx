@@ -330,11 +330,7 @@ export function MenuShell({
     if (idxToRemove.length > 0) {
       // Remove in reverse order to preserve indices
       [...idxToRemove].reverse().forEach((idx) => store.removeItem(idx));
-      setStockOutAlert(
-        locale === 'en'
-          ? 'Some items were updated — please add them again to select the required options.'
-          : 'Algunos productos fueron actualizados — agrégalos nuevamente para elegir las opciones requeridas.'
-      );
+      setStockOutAlert(t.itemsUpdatedAlert);
       stockAlertTimer.current = setTimeout(() => setStockOutAlert(null), 8000);
     }
   // Run once when products stabilize (restaurant load)
@@ -1002,7 +998,7 @@ export function MenuShell({
         onClick={() => setShowCatSheet(true)}
         style={{ touchAction: 'manipulation' }}
         className="flex-shrink-0 flex items-center justify-center w-9 h-9 ml-2 rounded-lg text-gray-500 active:bg-gray-200 transition-colors"
-        aria-label={locale === 'en' ? 'Browse categories' : 'Ver categorías'}
+        aria-label={t.browseCategoriesAriaLabel}
       >
         <AlignJustify className="w-[18px] h-[18px]" />
       </button>
@@ -1086,7 +1082,7 @@ export function MenuShell({
         href="#menu-main"
         className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-[200] focus:bg-white focus:text-gray-900 focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg focus:font-semibold focus:text-sm"
       >
-        {locale === 'en' ? 'Skip to menu' : 'Ir al menú'}
+        {t.skipToMenu}
       </a>
 
       <div className={cn(
@@ -1226,7 +1222,7 @@ export function MenuShell({
         {/* Sticky category pills — desktop only, pins once banner scrolls away */}
         <div ref={desktopPillsRef} className="hidden lg:block sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-100">
           <div className="relative px-2 py-2">
-            <button onClick={() => scrollCats('left')} className="absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-white via-white to-transparent flex items-center justify-start" aria-label={locale === 'en' ? 'Scroll left' : 'Desplazar izquierda'}>
+            <button onClick={() => scrollCats('left')} className="absolute left-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-r from-white via-white to-transparent flex items-center justify-start" aria-label={t.scrollLeftAriaLabel}>
               <ChevronLeft className="w-4 h-4 text-gray-400" />
             </button>
             <div ref={catScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide px-6 pb-0.5" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}>
@@ -1234,7 +1230,7 @@ export function MenuShell({
               {filterDivider}
               {favPill}
             </div>
-            <button onClick={() => scrollCats('right')} className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end" aria-label={locale === 'en' ? 'Scroll right' : 'Desplazar derecha'}>
+            <button onClick={() => scrollCats('right')} className="absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white via-white to-transparent flex items-center justify-end" aria-label={t.scrollRightAriaLabel}>
               <ChevronRight className="w-4 h-4 text-gray-400" />
             </button>
           </div>
@@ -1297,13 +1293,13 @@ export function MenuShell({
             <div className="mx-4 lg:mx-8 mt-3 flex items-center gap-3 px-4 py-3 rounded-2xl bg-gray-950 text-white">
               <span className="text-lg flex-shrink-0">🍽️</span>
               <p className="flex-1 text-sm font-bold">
-                {locale === 'en' ? `You're at` : 'Estás en'}{' '}
+                {t.youreAt}{' '}
                 <span className="text-[#05c8a7]">{activeTableName}</span>
               </p>
               <button
                 onClick={() => setTableBannerDismissed(true)}
                 className="flex-shrink-0 p-1 text-white/50 hover:text-white transition-colors"
-                aria-label={locale === 'en' ? 'Dismiss' : 'Cerrar'}
+                aria-label={t.dismiss}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1387,7 +1383,7 @@ export function MenuShell({
                   <div>
                     <p className="font-bold text-gray-700">{t.noResults}</p>
                     <p className="text-sm text-gray-400 mt-1 leading-relaxed max-w-[180px] mx-auto">
-                      {locale === 'en' ? 'Try a different keyword or check the spelling' : 'Intenta con otra palabra o revisa la ortografía'}
+                      {t.tryDifferentKeyword}
                     </p>
                   </div>
                 </motion.div>
@@ -1654,13 +1650,13 @@ export function MenuShell({
                   const reviewDate = new Date(review.created_at);
                   const diffDays = Math.floor((Date.now() - reviewDate.getTime()) / (1000 * 60 * 60 * 24));
                   const relativeDate = diffDays === 0
-                    ? (locale === 'en' ? 'Today' : 'Hoy')
+                    ? t.todayLabel
                     : diffDays === 1
-                    ? (locale === 'en' ? 'Yesterday' : 'Ayer')
+                    ? t.yesterdayLabel
                     : diffDays < 7
-                    ? (locale === 'en' ? `${diffDays} days ago` : `Hace ${diffDays} días`)
+                    ? t.daysAgoLabel.replace('{n}', String(diffDays))
                     : diffDays < 30
-                    ? (locale === 'en' ? `${Math.floor(diffDays / 7)}w ago` : `Hace ${Math.floor(diffDays / 7)} sem`)
+                    ? t.weeksAgoLabel.replace('{n}', String(Math.floor(diffDays / 7)))
                     : reviewDate.toLocaleDateString(locale === 'en' ? 'en-US' : 'es-MX', { month: 'short', year: 'numeric' });
                   return (
                     <div
@@ -1793,7 +1789,7 @@ export function MenuShell({
                         rel="noopener noreferrer"
                         className="text-sm text-blue-600 font-medium hover:text-blue-700 transition-colors mt-0.5 block"
                       >
-                        {locale === 'en' ? 'See on Google Maps' : 'Ver en Google Maps'}
+                        {t.seeOnGoogleMaps}
                       </a>
                     </div>
                   </div>
@@ -1928,7 +1924,7 @@ export function MenuShell({
               >
                 <div className="w-10 h-1.5 rounded-full bg-gray-300" aria-hidden="true" />
               </div>
-              <h2 id="cart-sheet-title" className="sr-only">{t.myOrder ?? (locale === 'en' ? 'Your order' : 'Tu orden')}</h2>
+              <h2 id="cart-sheet-title" className="sr-only">{t.myOrder}</h2>
               <div className="flex-1 overflow-hidden min-h-0">
                 <CartPanel
                   fmtPrice={fmtPrice}
@@ -1987,7 +1983,7 @@ export function MenuShell({
             <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100" role="search">
               <button
                 onClick={() => { setShowSearch(false); setSearchQuery(''); }}
-                aria-label={locale === 'en' ? 'Close search' : 'Cerrar búsqueda'}
+                aria-label={t.closeSearch}
                 className="p-1.5 -ml-1 rounded-lg active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-600" aria-hidden="true" />
@@ -2006,7 +2002,7 @@ export function MenuShell({
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    aria-label={locale === 'en' ? 'Clear search' : 'Borrar búsqueda'}
+                    aria-label={t.clearSearch}
                     className="absolute right-3 top-1/2 -translate-y-1/2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7] rounded"
                   >
                     <X className="w-4 h-4 text-gray-400" aria-hidden="true" />
@@ -2077,7 +2073,7 @@ export function MenuShell({
                     onClick={() => { setSearchQuery(''); setActiveDiet(null); setShowFavs(false); }}
                     className="mt-5 px-5 py-2.5 rounded-xl bg-gray-900 text-white text-sm font-semibold active:scale-95 transition-transform"
                   >
-                    {locale === 'en' ? 'Clear filters' : 'Limpiar filtros'}
+                    {t.clearFilters}
                   </button>
                 </div>
               )}
@@ -2128,7 +2124,7 @@ export function MenuShell({
             onClick={() => { setCartResumeShown(false); setOpen(true); }}
           >
             <ShoppingCart className="w-4 h-4" aria-hidden="true" />
-            {locale === 'en' ? `Continue your order (${rawCartCount} items)` : `Continúa tu pedido (${rawCartCount} items)`}
+            {t.continueOrderItems.replace('{n}', String(rawCartCount))}
           </button>
         </div>
       )}
@@ -2139,7 +2135,7 @@ export function MenuShell({
           <div className="pointer-events-none flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-orange-600 text-white shadow-xl border border-orange-400/30 text-sm font-semibold animate-in slide-in-from-top-2 duration-300 max-w-sm w-full">
             <span className="text-base" aria-hidden="true">⏸️</span>
             <span className="flex-1">
-              {locale === 'en' ? 'Orders are temporarily paused' : 'Los pedidos están temporalmente pausados'}
+              {t.ordersPaused}
             </span>
           </div>
         </div>
@@ -2207,7 +2203,7 @@ export function MenuShell({
               'fixed left-4 z-[60] flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-gray-200 shadow-lg text-sm font-medium text-gray-700 hover:shadow-xl transition-shadow active:scale-95',
               cartCount > 0 ? 'bottom-36 lg:bottom-6' : 'bottom-6'
             )}
-            aria-label={locale === 'en' ? 'Change language' : 'Cambiar idioma'}
+            aria-label={t.changeLanguageAriaLabel}
           >
             <Globe className="w-4 h-4 text-gray-500" />
             <span>{getLocaleFlag(locale)}</span>
@@ -2249,7 +2245,7 @@ export function MenuShell({
               {/* Category list — scrollable */}
               <div className="overflow-y-auto flex-1 pb-4">
                 <p className="px-6 py-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                  {locale === 'en' ? 'Explore Menu' : 'Explorar Menú'}
+                  {t.exploreMenu}
                 </p>
                 {visibleCats.map((cat) => {
                   const label = tName(cat, locale, defaultLocale);
@@ -2280,7 +2276,7 @@ export function MenuShell({
                   onClick={() => setShowCatSheet(false)}
                   className="w-full py-3 rounded-2xl border border-gray-200 bg-transparent text-gray-600 font-semibold text-[15px] active:bg-gray-50 transition-colors"
                 >
-                  {locale === 'en' ? 'Dismiss' : 'Cerrar'}
+                  {t.dismiss}
                 </button>
               </div>
               {/* Safe area spacer — decoupled to prevent reflow during slide-in animation */}

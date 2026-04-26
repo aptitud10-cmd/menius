@@ -224,6 +224,27 @@ export interface Translations {
   statusReady: string;
   statusDelivered: string;
   statusCancelled: string;
+  // MenuShell
+  browseCategoriesAriaLabel: string;
+  skipToMenu: string;
+  scrollLeftAriaLabel: string;
+  scrollRightAriaLabel: string;
+  youreAt: string;
+  dismiss: string;
+  tryDifferentKeyword: string;
+  todayLabel: string;
+  yesterdayLabel: string;
+  daysAgoLabel: string;
+  weeksAgoLabel: string;
+  seeOnGoogleMaps: string;
+  closeSearch: string;
+  clearSearch: string;
+  clearFilters: string;
+  continueOrderItems: string;
+  ordersPaused: string;
+  changeLanguageAriaLabel: string;
+  exploreMenu: string;
+  itemsUpdatedAlert: string;
 }
 
 const es: Translations = {
@@ -406,6 +427,27 @@ const es: Translations = {
   statusReady: 'Listo',
   statusDelivered: 'Entregado',
   statusCancelled: 'Cancelado',
+  // MenuShell
+  browseCategoriesAriaLabel: 'Ver categorías',
+  skipToMenu: 'Ir al menú',
+  scrollLeftAriaLabel: 'Desplazar izquierda',
+  scrollRightAriaLabel: 'Desplazar derecha',
+  youreAt: 'Estás en',
+  dismiss: 'Cerrar',
+  tryDifferentKeyword: 'Intenta con otra palabra o revisa la ortografía',
+  todayLabel: 'Hoy',
+  yesterdayLabel: 'Ayer',
+  daysAgoLabel: 'Hace {n} días',
+  weeksAgoLabel: 'Hace {n} sem',
+  seeOnGoogleMaps: 'Ver en Google Maps',
+  closeSearch: 'Cerrar búsqueda',
+  clearSearch: 'Borrar búsqueda',
+  clearFilters: 'Limpiar filtros',
+  continueOrderItems: 'Continúa tu pedido ({n} items)',
+  ordersPaused: 'Los pedidos están temporalmente pausados',
+  changeLanguageAriaLabel: 'Cambiar idioma',
+  exploreMenu: 'Explorar Menú',
+  itemsUpdatedAlert: 'Algunos productos fueron actualizados — agrégalos nuevamente para elegir las opciones requeridas.',
 };
 
 const en: Translations = {
@@ -588,6 +630,27 @@ const en: Translations = {
   statusReady: 'Ready',
   statusDelivered: 'Delivered',
   statusCancelled: 'Cancelled',
+  // MenuShell
+  browseCategoriesAriaLabel: 'Browse categories',
+  skipToMenu: 'Skip to menu',
+  scrollLeftAriaLabel: 'Scroll left',
+  scrollRightAriaLabel: 'Scroll right',
+  youreAt: `You're at`,
+  dismiss: 'Dismiss',
+  tryDifferentKeyword: 'Try a different keyword or check the spelling',
+  todayLabel: 'Today',
+  yesterdayLabel: 'Yesterday',
+  daysAgoLabel: '{n} days ago',
+  weeksAgoLabel: '{n}w ago',
+  seeOnGoogleMaps: 'See on Google Maps',
+  closeSearch: 'Close search',
+  clearSearch: 'Clear search',
+  clearFilters: 'Clear filters',
+  continueOrderItems: 'Continue your order ({n} items)',
+  ordersPaused: 'Orders are temporarily paused',
+  changeLanguageAriaLabel: 'Change language',
+  exploreMenu: 'Explore Menu',
+  itemsUpdatedAlert: 'Some items were updated — please add them again to select the required options.',
 };
 
 const translations: Record<string, Translations> = { es, en };
