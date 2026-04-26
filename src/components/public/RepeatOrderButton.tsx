@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { RotateCcw, Loader2, AlertCircle } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
+import { getTranslations } from '@/lib/translations';
 
 interface RepeatOrderItem {
   product_id: string;
@@ -38,7 +39,7 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
   const [checked, setChecked] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
 
-  const en = locale === 'en';
+  const t = getTranslations(locale);
 
   const savedPhone = typeof window !== 'undefined'
     ? localStorage.getItem('menius_customer_phone')
@@ -120,7 +121,7 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
       >
         <RotateCcw className="w-4 h-4" />
         <span className="text-sm font-semibold">
-          {en ? 'Repeat last order' : 'Pedir lo mismo'}
+          {t.repeatLastOrder}
         </span>
       </button>
 
@@ -135,18 +136,16 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
             <div className="w-12 h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-full mx-auto mb-4" />
 
             <h3 className="text-lg font-bold mb-1" data-testid="repeat-order-title">
-              {en ? 'Your last order' : 'Tu último pedido'}
+              {t.repeatYourLastOrder}
             </h3>
             <p className="text-sm text-zinc-500 mb-4">
-              {en ? `Order #${data.order_number}` : `Pedido #${data.order_number}`}
+              {t.repeatOrderNumber(data.order_number ?? '')}
             </p>
 
             {data.some_unavailable && (
               <div className="flex items-center gap-2 p-3 mb-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 text-sm">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                {en
-                  ? 'Some items are no longer available'
-                  : 'Algunos productos ya no están disponibles'}
+                {t.repeatSomeUnavailable}
               </div>
             )}
 
@@ -169,7 +168,7 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
                     )}
                     {item.price_changed && (
                       <p className="text-xs text-amber-600">
-                        {en ? 'Price updated' : 'Precio actualizado'}
+                        {t.repeatPriceUpdated}
                       </p>
                     )}
                   </div>
@@ -192,9 +191,7 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
               ) : (
                 <>
                   <RotateCcw className="w-4 h-4" />
-                  {en
-                    ? `Add ${data.items.length} items to cart`
-                    : `Agregar ${data.items.length} productos al carrito`}
+                  {t.repeatAddItemsToCart(data.items.length)}
                 </>
               )}
             </button>

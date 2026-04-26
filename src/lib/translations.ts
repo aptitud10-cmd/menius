@@ -357,6 +357,13 @@ export interface Translations {
   // MenuHeaderMobile — aria-labels
   goBack: string;
   searchProducts: string;
+  // RepeatOrderButton
+  repeatLastOrder: string;
+  repeatYourLastOrder: string;
+  repeatOrderNumber: (n: string | number) => string;
+  repeatSomeUnavailable: string;
+  repeatPriceUpdated: string;
+  repeatAddItemsToCart: (n: number) => string;
 }
 
 const es: Translations = {
@@ -671,6 +678,12 @@ const es: Translations = {
   ariaAdd: (name: string) => `Agregar ${name}`,
   goBack: 'Atrás',
   searchProducts: 'Buscar',
+  repeatLastOrder: 'Pedir lo mismo',
+  repeatYourLastOrder: 'Tu último pedido',
+  repeatOrderNumber: (n) => `Pedido #${n}`,
+  repeatSomeUnavailable: 'Algunos productos ya no están disponibles',
+  repeatPriceUpdated: 'Precio actualizado',
+  repeatAddItemsToCart: (n) => `Agregar ${n} productos al carrito`,
 };
 
 const en: Translations = {
@@ -985,6 +998,12 @@ const en: Translations = {
   ariaAdd: (name: string) => `Add ${name}`,
   goBack: 'Back',
   searchProducts: 'Search',
+  repeatLastOrder: 'Repeat last order',
+  repeatYourLastOrder: 'Your last order',
+  repeatOrderNumber: (n) => `Order #${n}`,
+  repeatSomeUnavailable: 'Some items are no longer available',
+  repeatPriceUpdated: 'Price updated',
+  repeatAddItemsToCart: (n) => `Add ${n} items to cart`,
 };
 
 const translations: Record<string, Translations> = { es, en };
