@@ -354,6 +354,9 @@ export interface Translations {
   productNew: string;
   ariaCustomize: (name: string) => string;
   ariaAdd: (name: string) => string;
+  // MenuHeaderMobile — aria-labels
+  goBack: string;
+  searchProducts: string;
 }
 
 const es: Translations = {
@@ -666,6 +669,8 @@ const es: Translations = {
   productNew: 'NUEVO',
   ariaCustomize: (name: string) => `Personalizar ${name}`,
   ariaAdd: (name: string) => `Agregar ${name}`,
+  goBack: 'Atrás',
+  searchProducts: 'Buscar',
 };
 
 const en: Translations = {
@@ -978,6 +983,8 @@ const en: Translations = {
   productNew: 'NEW',
   ariaCustomize: (name: string) => `Customize ${name}`,
   ariaAdd: (name: string) => `Add ${name}`,
+  goBack: 'Back',
+  searchProducts: 'Search',
 };
 
 const translations: Record<string, Translations> = { es, en };

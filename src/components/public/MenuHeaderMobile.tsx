@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Search, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import { getTranslations } from '@/lib/translations';
 import type { MenuHeaderProps } from './MenuHeader';
 
 let _sessionCache: Promise<boolean> | null = null;
@@ -38,6 +39,7 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
     checkIsLoggedIn().then((loggedIn) => { if (loggedIn) setIsOwner(true); });
   }, []);
 
+  const t = getTranslations(locale);
   const showName = !hasCover || isScrolled;
   const isTransparent = hasCover && !isScrolled;
 
@@ -60,7 +62,7 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
                 'w-10 h-10 flex items-center justify-center rounded-full transition-colors',
                 isTransparent ? 'bg-black/30 backdrop-blur-sm active:bg-black/50' : 'active:bg-gray-100'
               )}
-              aria-label={locale === 'en' ? 'Back' : 'Atrás'}
+              aria-label={t.goBack}
             >
               <ArrowLeft className={cn('w-5 h-5', isTransparent ? 'text-white' : 'text-gray-600')} />
             </Link>
@@ -96,7 +98,7 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
               'w-10 h-10 flex items-center justify-center rounded-full transition-colors',
               isTransparent ? 'bg-black/30 backdrop-blur-sm active:bg-black/50' : 'active:bg-gray-100'
             )}
-            aria-label={locale === 'en' ? 'Search' : 'Buscar'}
+            aria-label={t.searchProducts}
           >
             <Search className={cn('w-4 h-4', isTransparent ? 'text-white' : 'text-gray-500')} />
           </button>
