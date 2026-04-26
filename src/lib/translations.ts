@@ -320,6 +320,23 @@ export interface Translations {
   tipLabel: string;
   includedLabel: string;
   pointsLabel: string;
+  // ReservationWidget
+  reserveTable: string;
+  reservationSubmitted: string;
+  reservationConfirmDesc: string;
+  reservationConnectionError: string;
+  labelName: string;
+  labelNamePlaceholder: string;
+  labelGuests: string;
+  labelDate: string;
+  labelTime: string;
+  labelTimeSelect: string;
+  labelPhone: string;
+  labelEmail: string;
+  labelNotes: string;
+  labelNotesPlaceholder: string;
+  reservationSubmitting: string;
+  reservationBookTable: string;
 }
 
 const es: Translations = {
@@ -598,6 +615,23 @@ const es: Translations = {
   tipLabel: 'Propina',
   includedLabel: 'incluido',
   pointsLabel: 'Puntos',
+  // ReservationWidget
+  reserveTable: 'Reservar una mesa',
+  reservationSubmitted: '¡Reservación enviada!',
+  reservationConfirmDesc: 'Te confirmaremos pronto por teléfono o correo.',
+  reservationConnectionError: 'Error de conexión. Intenta de nuevo.',
+  labelName: 'Tu nombre *',
+  labelNamePlaceholder: 'Nombre completo',
+  labelGuests: 'Personas *',
+  labelDate: 'Fecha *',
+  labelTime: 'Hora *',
+  labelTimeSelect: 'Seleccionar',
+  labelPhone: 'Teléfono',
+  labelEmail: 'Correo electrónico',
+  labelNotes: 'Notas especiales (opcional)',
+  labelNotesPlaceholder: 'Alergias, ocasiones especiales, preferencia de mesa...',
+  reservationSubmitting: 'Enviando...',
+  reservationBookTable: 'Reservar mesa',
 };
 
 const en: Translations = {
@@ -876,6 +910,23 @@ const en: Translations = {
   tipLabel: 'Tip',
   includedLabel: 'included',
   pointsLabel: 'Points',
+  // ReservationWidget
+  reserveTable: 'Reserve a table',
+  reservationSubmitted: 'Reservation submitted!',
+  reservationConfirmDesc: "We'll confirm shortly by phone or email.",
+  reservationConnectionError: 'Connection error. Please try again.',
+  labelName: 'Your name *',
+  labelNamePlaceholder: 'Full name',
+  labelGuests: 'Guests *',
+  labelDate: 'Date *',
+  labelTime: 'Time *',
+  labelTimeSelect: 'Select',
+  labelPhone: 'Phone',
+  labelEmail: 'Email',
+  labelNotes: 'Special notes (optional)',
+  labelNotesPlaceholder: 'Allergies, special occasions, seating preference...',
+  reservationSubmitting: 'Submitting...',
+  reservationBookTable: 'Book table',
 };
 
 const translations: Record<string, Translations> = { es, en };

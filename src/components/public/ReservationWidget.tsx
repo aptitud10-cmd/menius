@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { CalendarDays, Clock, Users, CheckCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { getTranslations } from '@/lib/translations';
 
 interface ReservationWidgetProps {
   restaurantId: string;
@@ -10,7 +10,7 @@ interface ReservationWidgetProps {
 }
 
 export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWidgetProps) {
-  const isEs = locale !== 'en';
+  const t = getTranslations(locale);
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -52,7 +52,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
         setDone(true);
       }
     } catch {
-      setError(isEs ? 'Error de conexión. Intenta de nuevo.' : 'Connection error. Please try again.');
+      setError(t.reservationConnectionError);
     } finally {
       setLoading(false);
     }
@@ -64,10 +64,10 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
         <div className="bg-[#e6faf7] border border-[#b3efe6] rounded-2xl p-6 text-center">
           <CheckCircle className="w-10 h-10 text-[#05c8a7] mx-auto mb-3" />
           <h3 className="text-base font-bold text-[#047a65]">
-            {isEs ? '¡Reservación enviada!' : 'Reservation submitted!'}
+            {t.reservationSubmitted}
           </h3>
           <p className="text-sm text-[#047a65] mt-1">
-            {isEs ? 'Te confirmaremos pronto por teléfono o correo.' : "We'll confirm shortly by phone or email."}
+            {t.reservationConfirmDesc}
           </p>
         </div>
       </section>
@@ -78,21 +78,21 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
     <section className="mt-8 mb-6">
       <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
         <CalendarDays className="w-4 h-4 text-[#05c8a7]" />
-        {isEs ? 'Reservar una mesa' : 'Reserve a table'}
+        {t.reserveTable}
       </h3>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
         {/* Name */}
         <div>
           <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-            {isEs ? 'Tu nombre *' : 'Your name *'}
+            {t.labelName}
           </label>
           <input
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
             required
-            placeholder={isEs ? 'Nombre completo' : 'Full name'}
+            placeholder={t.labelNamePlaceholder}
             className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors"
           />
         </div>
@@ -102,7 +102,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
           <div>
             <label className="flex items-center gap-1 text-xs font-semibold text-gray-600 mb-1.5">
               <Users className="w-3.5 h-3.5" />
-              {isEs ? 'Personas *' : 'Guests *'}
+              {t.labelGuests}
             </label>
             <select
               value={partySize}
@@ -117,7 +117,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
           <div className="sm:col-span-1">
             <label className="flex items-center gap-1 text-xs font-semibold text-gray-600 mb-1.5">
               <CalendarDays className="w-3.5 h-3.5" />
-              {isEs ? 'Fecha *' : 'Date *'}
+              {t.labelDate}
             </label>
             <input
               type="date"
@@ -131,7 +131,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
           <div>
             <label className="flex items-center gap-1 text-xs font-semibold text-gray-600 mb-1.5">
               <Clock className="w-3.5 h-3.5" />
-              {isEs ? 'Hora *' : 'Time *'}
+              {t.labelTime}
             </label>
             <select
               value={time}
@@ -139,7 +139,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
               required
               className="w-full px-3 py-3 rounded-xl border-2 border-gray-200 text-base text-gray-900 focus:outline-none focus:border-gray-900 bg-white"
             >
-              <option value="">{isEs ? 'Seleccionar' : 'Select'}</option>
+              <option value="">{t.labelTimeSelect}</option>
               {Array.from({ length: 28 }, (_, i) => {
                 const totalMin = 12 * 60 + i * 30;
                 const h = Math.floor(totalMin / 60);
@@ -161,7 +161,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-              {isEs ? 'Teléfono' : 'Phone'}
+              {t.labelPhone}
             </label>
             <input
               type="tel"
@@ -173,7 +173,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-              {isEs ? 'Correo electrónico' : 'Email'}
+              {t.labelEmail}
             </label>
             <input
               type="email"
@@ -188,12 +188,12 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
         {/* Notes */}
         <div>
           <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-            {isEs ? 'Notas especiales (opcional)' : 'Special notes (optional)'}
+            {t.labelNotes}
           </label>
           <textarea
             value={notes}
             onChange={e => setNotes(e.target.value)}
-            placeholder={isEs ? 'Alergias, ocasiones especiales, preferencia de mesa...' : 'Allergies, special occasions, seating preference...'}
+            placeholder={t.labelNotesPlaceholder}
             rows={2}
             className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:border-gray-900 transition-colors resize-none"
           />
@@ -208,9 +208,7 @@ export function ReservationWidget({ restaurantId, locale = 'es' }: ReservationWi
           disabled={loading || !name.trim() || !date || !time}
           className="w-full py-3.5 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {loading
-            ? (isEs ? 'Enviando...' : 'Submitting...')
-            : (isEs ? 'Reservar mesa' : 'Book table')}
+          {loading ? t.reservationSubmitting : t.reservationBookTable}
         </button>
       </form>
     </section>
