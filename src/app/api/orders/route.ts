@@ -12,7 +12,7 @@ import { sanitizeText, sanitizeEmail, sanitizeMultiline } from '@/lib/sanitize';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 import { getStripe } from '@/lib/stripe';
-import { computeTaxAmount } from '@/lib/tax-presets';
+import { computeUnitPrice, computeOrderTotals, resolveCommission } from '@/lib/order-pricing';
 
 const logger = createLogger('orders');
 
@@ -206,38 +206,19 @@ export async function POST(request: NextRequest) {
 
     // Check subscription — enforce monthly limit for FREE-tier restaurants
     try {
-      // Commission-plan restaurants bypass subscription checks entirely.
-      // They pay 4% per order via Stripe application_fee_amount instead.
-      const now = new Date();
-
-      if ((restaurant as any).commission_plan === true) {
-        isFreeTier = false;
-        commissionBps = 400; // 4%
-      } else {
-        const { data: sub } = await supabase
+      let sub: { status: string; trial_end?: string | null } | null = null;
+      if ((restaurant as any).commission_plan !== true) {
+        const { data } = await supabase
           .from('subscriptions')
           .select('status, trial_end, current_period_end, plan_id')
           .eq('restaurant_id', restaurant_id)
           .maybeSingle();
-
-        if (!sub) {
-          isFreeTier = true;
-        } else {
-          const { status, plan_id } = sub;
-          const trialStillValid = sub.trial_end && new Date(sub.trial_end) > now;
-
-          if (status === 'active' || status === 'past_due') {
-            isFreeTier = false;
-            commissionBps = 0; // All subscription plans (starter/pro/business) = 0%
-          } else if (trialStillValid) {
-            isFreeTier = false;
-            commissionBps = 0;
-          } else {
-            isFreeTier = true;
-          }
-        }
+        sub = data;
       }
-
+      ({ commissionBps, isFreeTier } = resolveCommission(
+        (restaurant as any).commission_plan === true,
+        sub,
+      ));
     } catch (subErr) {
       logger.warn('Subscription check failed during order creation — proceeding without plan enforcement', { error: subErr });
       // On subscription check failure: treat as non-free (don't block), 0% commission
@@ -298,44 +279,27 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      let expectedUnitPrice = Number(dbProduct.price);
-      if (item.variant_id) {
-        const v = variantMap.get(item.variant_id);
-        if (!v || v.product_id !== item.product_id) {
-          return NextResponse.json({ error: 'Variante inválida.' }, { status: 400 });
-        }
-        expectedUnitPrice += Number(v.price_delta);
+      const priceResult = computeUnitPrice(item, productMap, variantMap, extraMap, modOptionMap);
+      if (priceResult.error === 'invalid_variant') {
+        return NextResponse.json({ error: 'Variante inválida.' }, { status: 400 });
       }
-      for (const ex of item.extras) {
-        const dbExtra = extraMap.get(ex.extra_id);
-        if (!dbExtra || dbExtra.product_id !== item.product_id) {
-          return NextResponse.json({ error: 'Extra inválido.' }, { status: 400 });
-        }
-        expectedUnitPrice += Number(dbExtra.price);
+      if (priceResult.error === 'invalid_extra') {
+        return NextResponse.json({ error: 'Extra inválido.' }, { status: 400 });
       }
+      const expectedUnitPrice = priceResult.unitPrice;
+
+      // Log legacy/unknown modifiers for visibility (computeUnitPrice already uses $0 for both)
       for (const mod of (item.modifiers ?? [])) {
         const isLegacy = !mod.option_id || String(mod.option_id).startsWith('__legacy');
         if (isLegacy) {
-          // Legacy modifiers predate the modifier_options table and have no DB record
-          // to verify against. We use $0 instead of trusting the client-supplied
-          // price_delta — accepting client prices here would allow arbitrary discounts
-          // by anyone who sends option_id starting with "__legacy".
           logger.warn('legacy modifier — using $0 for security (migrate to modifier_options)', {
             restaurant_id,
             product: item.product_id,
             option_id: mod.option_id,
           });
-          // expectedUnitPrice += 0 (intentional: never trust client price)
-        } else {
-          const dbOpt = modOptionMap.get(mod.option_id);
-          if (dbOpt) {
-            expectedUnitPrice += Number(dbOpt.price_delta);
-          } else {
-            // option_id looks like a real UUID but is not in our DB — could be a deleted
-            // option or a crafted request. Use 0 instead of trusting the client value.
-            logger.error('modifier option not found in DB — possible forged request, using $0', { restaurant_id, option_id: mod.option_id, product: item.product_id });
-            captureError(new Error('modifier option not found in DB'), { restaurant_id, option_id: mod.option_id, product: item.product_id });
-          }
+        } else if (mod.option_id && !modOptionMap.has(mod.option_id)) {
+          logger.error('modifier option not found in DB — possible forged request, using $0', { restaurant_id, option_id: mod.option_id, product: item.product_id });
+          captureError(new Error('modifier option not found in DB'), { restaurant_id, option_id: mod.option_id, product: item.product_id });
         }
       }
 
@@ -372,13 +336,8 @@ export async function POST(request: NextRequest) {
     const orderNumber = orderNum ?? `ORD-${Date.now().toString(36).toUpperCase()}`;
 
     const serverDeliveryFee = Number(restaurant.delivery_fee) || 0;
-    const deliveryFeeAmt = parsed.data.order_type === 'delivery' ? serverDeliveryFee : 0;
-    const subtotal = parsed.data.items.reduce((sum, item) => sum + item.line_total, 0);
-
-    // Clamp tip to 100% of subtotal — Zod allows up to $1,000 flat but that is
-    // unreasonable on a $1 order. Server enforces a proportional ceiling.
     const rawTip = Math.max(0, Number(parsed.data.tip_amount) || 0);
-    const tipAmt = Math.min(rawTip, subtotal);
+    const subtotal = parsed.data.items.reduce((sum, item) => sum + item.line_total, 0);
 
     let discountAmt = 0;
     if (promo_code) {
@@ -444,11 +403,16 @@ export async function POST(request: NextRequest) {
 
     const taxRate = Number((restaurant as any).tax_rate) || 0;
     const taxIncluded = (restaurant as any).tax_included ?? false;
-    const totalDiscountAmt = discountAmt + loyaltyDiscountAmt;
-    const taxableBase = Math.max(0, subtotal - totalDiscountAmt);
-    const taxAmt = computeTaxAmount(taxableBase, taxRate, taxIncluded);
-
-    const total = Math.max(0, subtotal - totalDiscountAmt + tipAmt + deliveryFeeAmt + (taxIncluded ? 0 : taxAmt));
+    const { tipAmt, deliveryFeeAmt, totalDiscountAmt, taxAmt, total } = computeOrderTotals({
+      items: parsed.data.items.map((i) => ({ unit_price: i.unit_price, qty: i.qty })),
+      deliveryFee: serverDeliveryFee,
+      isDelivery: parsed.data.order_type === 'delivery',
+      rawTip,
+      discountAmt,
+      loyaltyDiscountAmt,
+      taxRate,
+      taxIncluded,
+    });
 
     // scheduled_for: parse ISO string from body, validate, reject if in the past
     let scheduledFor: string | null = null;
