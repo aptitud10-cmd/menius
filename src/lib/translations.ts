@@ -341,6 +341,13 @@ export interface Translations {
   closeCart: string;
   confirmRemove: string;
   removeItem: string;
+  // DeliveryMap
+  mapDeliveryAddress: string;
+  mapRemaining: string;
+  mapCalculating: string;
+  mapDriverOnWay: (eta: number) => string;
+  mapDriverLive: string;
+  mapOpenInMaps: string;
 }
 
 const es: Translations = {
@@ -640,6 +647,13 @@ const es: Translations = {
   closeCart: 'Cerrar carrito',
   confirmRemove: 'Confirmar eliminar',
   removeItem: 'Eliminar',
+  // DeliveryMap
+  mapDeliveryAddress: 'Dirección de entrega',
+  mapRemaining: 'restantes',
+  mapCalculating: 'Calculando…',
+  mapDriverOnWay: (eta: number) => `Repartidor en camino · ~${eta} min`,
+  mapDriverLive: 'Repartidor en camino · ubicación en tiempo real',
+  mapOpenInMaps: 'Abrir en Google Maps',
 };
 
 const en: Translations = {
@@ -939,6 +953,13 @@ const en: Translations = {
   closeCart: 'Close cart',
   confirmRemove: 'Confirm remove',
   removeItem: 'Remove',
+  // DeliveryMap
+  mapDeliveryAddress: 'Delivery address',
+  mapRemaining: 'away',
+  mapCalculating: 'Calculating…',
+  mapDriverOnWay: (eta: number) => `Driver on the way · ~${eta} min`,
+  mapDriverLive: 'Driver on the way · live location',
+  mapOpenInMaps: 'Open in Google Maps',
 };
 
 const translations: Record<string, Translations> = { es, en };

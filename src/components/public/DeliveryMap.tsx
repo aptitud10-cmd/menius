@@ -9,6 +9,8 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { ExternalLink } from 'lucide-react';
+import { getTranslations } from '@/lib/translations';
+import type { Translations } from '@/lib/translations';
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? '';
 
@@ -119,12 +121,11 @@ interface LiveMapProps {
   restaurantName: string;
   driverCoords: Coords | null;
   etaMinutes: number | null;
-  locale?: string;
+  t: Translations;
   onEtaUpdate?: (minutes: number | null) => void;
 }
 
-function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoords, etaMinutes: etaMinutesProp, locale, onEtaUpdate }: LiveMapProps) {
-  const en = locale === 'en';
+function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoords, etaMinutes: etaMinutesProp, t, onEtaUpdate }: LiveMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const driverMarkerRef = useRef<any>(null);
@@ -232,7 +233,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
         destEl.innerHTML = `<div style="width:36px;height:36px;border-radius:50%;background:#2563eb;border:2.5px solid white;box-shadow:0 2px 10px rgba(37,99,235,0.4);display:flex;align-items:center;justify-content:center;font-size:16px;">📍</div>`;
         new mapboxgl.Marker({ element: destEl, anchor: 'center' })
           .setLngLat([deliveryCoords.lng, deliveryCoords.lat])
-          .setPopup(new mapboxgl.Popup({ offset: 20 }).setText('Dirección de entrega'))
+          .setPopup(new mapboxgl.Popup({ offset: 20 }).setText(t.mapDeliveryAddress))
           .addTo(map);
 
         // Route line — starts as dashed placeholder, upgraded to real road
@@ -373,10 +374,10 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
         <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/95 backdrop-blur-sm border border-orange-200 shadow-md rounded-full px-3 py-1.5 pointer-events-none">
           <span className="text-base leading-none">🛵</span>
           <span className="text-sm font-bold text-gray-900">
-            ~{etaMinutes} {en ? 'min' : 'min'}
+            ~{etaMinutes} min
           </span>
           <span className="text-xs text-gray-400 font-medium">
-            {en ? 'away' : 'restantes'}
+            {t.mapRemaining}
           </span>
         </div>
       )}
@@ -384,7 +385,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
       {driverCoords && etaMinutes === null && ready && (
         <div className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm border border-gray-200 shadow-sm rounded-full px-3 py-1.5 pointer-events-none">
           <span className="text-base leading-none">🛵</span>
-          <span className="text-xs text-gray-400 font-medium">{en ? 'Calculating…' : 'Calculando…'}</span>
+          <span className="text-xs text-gray-400 font-medium">{t.mapCalculating}</span>
         </div>
       )}
     </div>
@@ -394,7 +395,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName, driverLat, driverLng, locale, onEtaUpdate }: DeliveryMapProps) {
-  const en = locale === 'en';
+  const t = getTranslations(locale ?? 'es');
   const [restaurantCoords, setRestaurantCoords] = useState<Coords | null>(null);
   const [deliveryCoords, setDeliveryCoords] = useState<Coords | null>(null);
   const [geocodingDone, setGeocodingDone] = useState(false);
@@ -450,16 +451,14 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
         restaurantName={restaurantName}
         driverCoords={driverCoords}
         etaMinutes={etaMinutes}
-        locale={locale}
+        t={t}
         onEtaUpdate={onEtaUpdate}
       />
       {driverCoords && (
         <div className="flex items-center gap-1.5 justify-center">
           <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
           <p className="text-xs text-gray-500 font-medium">
-            {etaMinutes !== null
-              ? (en ? `Driver on the way · ~${etaMinutes} min` : `Repartidor en camino · ~${etaMinutes} min`)
-              : (en ? 'Driver on the way · live location' : 'Repartidor en camino · ubicación en tiempo real')}
+            {etaMinutes !== null ? t.mapDriverOnWay(etaMinutes) : t.mapDriverLive}
           </p>
         </div>
       )}
@@ -470,7 +469,7 @@ export function DeliveryMap({ restaurantAddress, deliveryAddress, restaurantName
         className="flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-blue-600 transition-colors py-1"
       >
         <ExternalLink className="w-3 h-3" />
-        {en ? 'Open in Google Maps' : 'Abrir en Google Maps'}
+        {t.mapOpenInMaps}
       </a>
     </div>
   );
