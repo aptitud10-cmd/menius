@@ -283,6 +283,9 @@ export interface Translations {
   payWithMercadoPago: string;
   trackOrderLive: string;
   shareWithFriends: string;
+  shareMoreItems: (n: number) => string;
+  shareTitle: (restaurantName: string) => string;
+  shareMessage: (restaurantName: string, itemsList: string, moreItems: string, currency: string, total: string, orderNumber: string, menuUrl: string) => string;
   hungerModeMsg: string;
   // CheckoutPageClient — form header/sections
   payLabel: string;
@@ -605,6 +608,10 @@ const es: Translations = {
   payWithMercadoPago: 'Pagar con MercadoPago',
   trackOrderLive: 'Seguir mi pedido en vivo',
   shareWithFriends: 'Compartir con amigos',
+  shareMoreItems: (n) => `\n  ...y ${n} más`,
+  shareTitle: (restaurantName) => `Mi pedido en ${restaurantName}`,
+  shareMessage: (restaurantName, itemsList, moreItems, currency, total, orderNumber, menuUrl) =>
+    `Acabo de pedir en ${restaurantName}! 🍽️\n\n${itemsList}${moreItems}\n\nTotal: ${currency} $${total}\nPedido #${orderNumber}\n\nMira su menú: ${menuUrl}`,
   hungerModeMsg: 'hambre mode: ON 😤🍽️\nPedí en *{name}* — ¿alguien más quiere algo?\n👇 Pide aquí: {url}',
   // CheckoutPageClient — form header/sections
   payLabel: 'Pagar',
@@ -925,6 +932,10 @@ const en: Translations = {
   payWithMercadoPago: 'Pay with MercadoPago',
   trackOrderLive: 'Track my order live',
   shareWithFriends: 'Share with friends',
+  shareMoreItems: (n) => `\n  ...and ${n} more`,
+  shareTitle: (restaurantName) => `My order at ${restaurantName}`,
+  shareMessage: (restaurantName, itemsList, moreItems, currency, total, orderNumber, menuUrl) =>
+    `Just ordered from ${restaurantName}! 🍽️\n\n${itemsList}${moreItems}\n\nTotal: ${currency} $${total}\nOrder #${orderNumber}\n\nCheck out their menu: ${menuUrl}`,
   hungerModeMsg: 'hunger mode: ON 😤🍽️\nJust ordered at *{name}* — anyone else want something?\n👇 Order here: {url}',
   // CheckoutPageClient — form header/sections
   payLabel: 'Pay',

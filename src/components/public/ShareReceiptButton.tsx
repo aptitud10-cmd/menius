@@ -1,6 +1,7 @@
 'use client';
 
 import { Share2 } from 'lucide-react';
+import { getTranslations } from '@/lib/translations';
 
 interface Props {
   orderNumber: string;
@@ -16,7 +17,7 @@ export default function ShareReceiptButton({
   orderNumber, restaurantName, restaurantSlug,
   total, currency, items, locale,
 }: Props) {
-  const en = locale === 'en';
+  const t = getTranslations(locale);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
   const menuUrl = `${appUrl}/${restaurantSlug}`;
 
@@ -25,13 +26,11 @@ export default function ShareReceiptButton({
     .map((i) => `• ${i.qty}x ${i.name}`)
     .join('\n');
 
-  const moreItems = items.length > 5
-    ? (en ? `\n  ...and ${items.length - 5} more` : `\n  ...y ${items.length - 5} más`)
-    : '';
+  const moreItems = items.length > 5 ? t.shareMoreItems(items.length - 5) : '';
 
-  const message = en
-    ? `Just ordered from ${restaurantName}! 🍽️\n\n${itemsList}${moreItems}\n\nTotal: ${currency} $${total.toFixed(2)}\nOrder #${orderNumber}\n\nCheck out their menu: ${menuUrl}`
-    : `Acabo de pedir en ${restaurantName}! 🍽️\n\n${itemsList}${moreItems}\n\nTotal: ${currency} $${total.toFixed(2)}\nPedido #${orderNumber}\n\nMira su menú: ${menuUrl}`;
+  const message = t.shareMessage(
+    restaurantName, itemsList, moreItems, currency, total.toFixed(2), orderNumber, menuUrl
+  );
 
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
 
@@ -39,9 +38,7 @@ export default function ShareReceiptButton({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: en
-            ? `My order at ${restaurantName}`
-            : `Mi pedido en ${restaurantName}`,
+          title: t.shareTitle(restaurantName),
           text: message,
           url: menuUrl,
         });
@@ -61,7 +58,7 @@ export default function ShareReceiptButton({
     >
       <Share2 className="w-4 h-4" />
       <span className="text-sm font-medium">
-        {en ? 'Share with friends' : 'Compartir con amigos'}
+        {t.shareWithFriends}
       </span>
     </button>
   );
