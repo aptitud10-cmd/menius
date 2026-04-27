@@ -1079,6 +1079,14 @@ export async function assignDriver(
   const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
+  // Read current status so we can broadcast the right value after update
+  const { data: current } = await supabase
+    .from('orders')
+    .select('status')
+    .eq('id', orderId)
+    .eq('restaurant_id', restaurantId)
+    .maybeSingle();
+
   // Generate a unique tracking token for this delivery
   const token = driverName.trim() ? crypto.randomUUID() : null;
 
@@ -1106,6 +1114,11 @@ export async function assignDriver(
     .eq('restaurant_id', restaurantId);
 
   if (error) return { error: error.message };
+
+  // Notify customer tracker so it can refetch and show driver name/phone
+  if (current?.status) {
+    void broadcastOrderUpdate(orderId, current.status);
+  }
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app').replace(/\/$/, '');
   // Base URL without lang param — overridden with ?lang=en once locale is known

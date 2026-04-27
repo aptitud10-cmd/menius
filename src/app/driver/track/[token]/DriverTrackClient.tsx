@@ -173,9 +173,13 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
     const channel = supabase
       .channel(`order-track:${orderId}`)
       .on('broadcast', { event: 'status_change' }, ({ payload }: { payload: Record<string, unknown> }) => {
-        if (payload?.status === 'cancelled') {
+        const status = payload?.status as string | undefined;
+        if (status === 'cancelled') {
           setOrderCancelled(true);
           stopGps();
+        } else if (status === 'delivered') {
+          stopGps();
+          setDeliveryStep('delivered');
         }
       })
       .subscribe();
