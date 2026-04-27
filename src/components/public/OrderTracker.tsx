@@ -491,6 +491,27 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           100% { transform: scale(1.45); opacity: 0; }
         }
         .delivered-ring { animation: ringExpand 1.1s ease-out 0.2s both; }
+        @keyframes statusSlideIn {
+          from { opacity: 0; transform: translateY(10px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .status-hero-inner { animation: statusSlideIn 0.3s cubic-bezier(0.22,1,0.36,1) both; }
+        @keyframes chefFadeIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .chef-msg { animation: chefFadeIn 0.4s ease-out both; }
+        @keyframes stateIllustration {
+          0%   { transform: scale(0.7) rotate(-8deg); opacity: 0; }
+          60%  { transform: scale(1.08) rotate(2deg); opacity: 1; }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        .state-illustration { animation: stateIllustration 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+        @keyframes floatBob {
+          0%, 100% { transform: translateY(0px); }
+          50%      { transform: translateY(-5px); }
+        }
+        .float-bob { animation: floatBob 2.5s ease-in-out infinite; }
       `}</style>
 
       {/* Sticky nav bar — minimal: back + name + live badge only */}
@@ -523,11 +544,17 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         </div>
       </header>
 
-      {/* Restaurant identity + order context — centered, breathing room */}
+      {/* Restaurant identity — hero section below sticky nav */}
       <div className="bg-white border-b border-gray-100">
-        <div className="max-w-lg mx-auto px-5 pt-6 pb-5 text-center">
-          {/* Order type pill — larger, centered, more presence */}
-          <div className="flex justify-center mb-4">
+        <div className="max-w-lg mx-auto px-5 pt-7 pb-6 text-center">
+
+          {/* Restaurant name — large, font-display, the star of the header */}
+          <h2 className="text-[26px] font-black font-display tracking-tight text-gray-900 leading-tight mb-1">
+            {restaurantName}
+          </h2>
+
+          {/* Order type pill — centered, colored, right below the name */}
+          <div className="flex justify-center mt-3 mb-4">
             <span className={cn(
               'inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest px-3.5 py-1.5 rounded-full',
               order.order_type === 'delivery' ? 'bg-violet-100 text-violet-600' :
@@ -543,36 +570,36 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             </span>
           </div>
 
-          {/* Dine-in from QR: table number centered and prominent */}
+          {/* Dine-in from QR: table number prominent */}
           {order.order_type === 'dine_in' && (order as any).table_name ? (
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <Utensils className="w-3.5 h-3.5 text-teal-400 flex-shrink-0" />
-              <span className="text-[13px] text-gray-600 font-semibold">
-                {t.yourTable} <span className="text-teal-600 font-black">{(order as any).table_name}</span>
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <Utensils className="w-4 h-4 text-teal-400 flex-shrink-0" />
+              <span className="text-sm text-gray-600 font-semibold">
+                {t.yourTable} <span className="text-teal-600 font-black text-base">{(order as any).table_name}</span>
               </span>
             </div>
           ) : (
-            /* Pickup / Delivery / Dine-in online: address + phone centered */
+            /* Pickup / Delivery: address as map CTA + phone as call button */
             (restaurantAddress || restaurantPhone) && (
-              <div className="flex flex-col items-center gap-1.5 mb-1">
+              <div className="flex flex-wrap justify-center gap-2 mb-4">
                 {restaurantAddress && (
                   <a
                     href={`https://maps.google.com/?q=${encodeURIComponent(restaurantAddress)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 group"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-[12px] text-gray-600 font-semibold hover:bg-gray-100 active:scale-95 transition-all max-w-[240px]"
                   >
                     <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                    <span className="text-[13px] text-gray-600 group-hover:text-gray-800 transition-colors leading-tight">{restaurantAddress}</span>
+                    <span className="truncate">{restaurantAddress}</span>
                   </a>
                 )}
                 {restaurantPhone && (
                   <a
                     href={`tel:${restaurantPhone}`}
-                    className="flex items-center gap-2 group"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-[12px] text-gray-600 font-semibold hover:bg-gray-100 active:scale-95 transition-all"
                   >
                     <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                    <span className="text-[13px] text-gray-600 group-hover:text-gray-800 transition-colors">{restaurantPhone}</span>
+                    {restaurantPhone}
                   </a>
                 )}
               </div>
@@ -580,7 +607,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           )}
 
           {/* Order number — centered, subtle */}
-          <p className="text-[11px] text-gray-400 mt-3 font-medium tracking-wide">
+          <p className="text-[11px] text-gray-400 font-medium tracking-wide">
             {t.orderLabel} <span className="font-bold text-gray-700">#{order.order_number}</span>
           </p>
         </div>
@@ -723,8 +750,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 'bg-amber-400'
               )} />
 
-              {/* Icon + title + subtitle */}
-              <div className="px-6 pt-8 pb-6 text-center">
+              {/* Icon + title + subtitle — keyed so React re-mounts with animation on status change */}
+              <div key={order.status} className="status-hero-inner px-6 pt-8 pb-6 text-center">
                 {isComplete ? (
                   <>
                     {(() => {
@@ -758,9 +785,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                   </>
                 ) : currentStepStyle && currentStepText ? (
                   <>
-                    <div className={cn('w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5', currentStepStyle.bg)}>
-                      <currentStepStyle.icon className={cn('w-10 h-10', currentStepStyle.color)} />
-                    </div>
+                    {/* Thematic illustration per status */}
+                    <StateIllustration status={order.status} orderType={order.order_type} />
                     <h2 className="text-2xl font-black text-gray-900 mb-1">{currentStepText.label}</h2>
                     <p className="text-sm text-gray-500 leading-snug">{statusSubtitle}</p>
                   </>
@@ -861,36 +887,86 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           </>
         )}
 
-        {/* ── ETA HERO (Uber-style large display) ── */}
-        {/* etaTick forces re-render every 30s so minsLeft counts down live */}
+        {/* ── ETA HERO — dual display: minutes countdown + exact clock time ── */}
         {order.estimated_ready_minutes && ['confirmed', 'preparing'].includes(order.status) && (() => {
-          const confirmedAt = order.updated_at ? new Date(order.updated_at) : new Date(order.created_at);
-          const etaTime   = new Date(confirmedAt.getTime() + order.estimated_ready_minutes * 60_000);
-          const etaLocale = t.en ? 'en-US' : 'es-MX';
-          const etaStr    = etaTime.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });
-          // etaTick is read here so the expression re-evaluates every 30s
-          const minsLeft  = Math.max(0, Math.round((etaTime.getTime() - Date.now()) / 60_000) - etaTick * 0);
+          const confirmedAt  = order.updated_at ? new Date(order.updated_at) : new Date(order.created_at);
+          const etaTime      = new Date(confirmedAt.getTime() + order.estimated_ready_minutes * 60_000);
+          const etaLocale    = t.en ? 'en-US' : 'es-MX';
+          const etaStr       = etaTime.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });
+          // etaTick is read here so this IIFE re-evaluates every 30s without polling
+          const minsLeft     = Math.max(0, Math.round((etaTime.getTime() - Date.now()) / 60_000) - etaTick * 0);
+          const progressPct  = Math.min(100, Math.max(0, 100 - (minsLeft / order.estimated_ready_minutes) * 100));
+          const isAlmost     = minsLeft <= 2;
           return (
-            <div className="tracker-card rounded-3xl bg-gradient-to-br from-[#e6faf7] to-[#d0f7f1] border border-[#b3efe6] shadow-sm overflow-hidden">
-              <div className="px-6 py-7 text-center">
-                <p className="text-[11px] font-bold text-[#05c8a7] uppercase tracking-widest mb-3">{t.estimatedTime}</p>
-                {minsLeft > 0 ? (
-                  <div className="flex items-end justify-center gap-1 mb-1">
-                    <span className="text-[72px] font-black text-[#047a65] leading-none tabular-nums">~{minsLeft}</span>
-                    <span className="text-2xl font-bold text-[#05c8a7] mb-3">min</span>
-                  </div>
-                ) : (
-                  <p className="text-4xl font-black text-[#047a65] mb-1">
-                    {t.almostReadyEta}
-                  </p>
-                )}
-                <p className="text-sm text-[#05c8a7] font-medium">
-                  {t.readyByLabel(etaStr)}
+            <div className={cn(
+              'tracker-card rounded-3xl border shadow-sm overflow-hidden',
+              isAlmost
+                ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200'
+                : 'bg-gradient-to-br from-[#e6faf7] to-[#d0f7f1] border-[#b3efe6]'
+            )}>
+              <div className="px-6 pt-6 pb-5 text-center">
+                {/* Label */}
+                <p className={cn(
+                  'text-[10px] font-black uppercase tracking-widest mb-4',
+                  isAlmost ? 'text-amber-500' : 'text-[#05c8a7]'
+                )}>
+                  {t.estimatedTime}
                 </p>
+
+                {minsLeft > 0 ? (
+                  <>
+                    {/* Big minutes */}
+                    <div className="flex items-end justify-center gap-1.5 mb-3">
+                      <span className={cn(
+                        'text-[80px] font-black leading-none tabular-nums',
+                        isAlmost ? 'text-amber-600' : 'text-[#047a65]'
+                      )}>~{minsLeft}</span>
+                      <span className={cn(
+                        'text-2xl font-bold mb-4',
+                        isAlmost ? 'text-amber-400' : 'text-[#05c8a7]'
+                      )}>min</span>
+                    </div>
+
+                    {/* Divider line */}
+                    <div className={cn(
+                      'w-12 h-px mx-auto mb-3',
+                      isAlmost ? 'bg-amber-200' : 'bg-[#b3efe6]'
+                    )} />
+
+                    {/* Exact clock time — secondary but visible */}
+                    <div className={cn(
+                      'inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold',
+                      isAlmost ? 'bg-amber-100 text-amber-700' : 'bg-white/60 text-[#047a65]'
+                    )}>
+                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                      {t.readyByLabel(etaStr)}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className={cn(
+                      'text-5xl font-black mb-3',
+                      isAlmost ? 'text-amber-600' : 'text-[#047a65]'
+                    )}>
+                      {t.almostReadyEta}
+                    </p>
+                    <div className={cn(
+                      'inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold',
+                      isAlmost ? 'bg-amber-100 text-amber-700' : 'bg-white/60 text-[#047a65]'
+                    )}>
+                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                      {t.readyByLabel(etaStr)}
+                    </div>
+                  </>
+                )}
               </div>
-              {/* Progress shimmer bar */}
-              <div className="h-1 bg-[#d0f7f1] relative overflow-hidden">
-                <div className="absolute inset-y-0 left-0 bg-[#05c8a7] animate-pulse" style={{ width: `${Math.min(100, 100 - (minsLeft / order.estimated_ready_minutes) * 100)}%`, transition: 'width 1s ease' }} />
+
+              {/* Progress bar — fills as time passes */}
+              <div className={cn('h-1.5 relative overflow-hidden', isAlmost ? 'bg-amber-100' : 'bg-[#d0f7f1]')}>
+                <div
+                  className={cn('absolute inset-y-0 left-0 transition-all duration-[1500ms] ease-out', isAlmost ? 'bg-amber-400' : 'bg-[#05c8a7]')}
+                  style={{ width: `${progressPct}%` }}
+                />
               </div>
             </div>
           );
@@ -916,12 +992,22 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           </div>
         )}
 
-        {/* ── PICKUP CHEF MESSAGES (while preparing) ── */}
+        {/* ── PICKUP CHEF MESSAGES — cross-fade between rotating messages ── */}
         {order.order_type === 'pickup' && ['confirmed', 'preparing'].includes(order.status) && (
-          <div key={chefMessageIndex} className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm px-5 py-4 transition-opacity duration-500">
-            <p className="text-sm font-semibold text-gray-600 text-center">
-              {t.chefMessages[chefMessageIndex]}
-            </p>
+          <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm px-5 py-4 relative overflow-hidden" style={{ minHeight: '52px' }}>
+            {t.chefMessages.map((msg, idx) => (
+              <p
+                key={idx}
+                className="text-sm font-semibold text-gray-600 text-center absolute inset-x-5 top-1/2 -translate-y-1/2 transition-all duration-500"
+                style={{
+                  opacity: idx === chefMessageIndex ? 1 : 0,
+                  transform: `translateY(${idx === chefMessageIndex ? '-50%' : 'calc(-50% + 8px)'})`,
+                  pointerEvents: idx === chefMessageIndex ? 'auto' : 'none',
+                }}
+              >
+                {msg}
+              </p>
+            ))}
           </div>
         )}
 
@@ -1316,6 +1402,35 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {/* Save order to local history */}
         <OrderHistorySaver order={order} restaurantSlug={restaurantSlug} restaurantName={restaurantName} locale={locale} currency={currency} />
       </div>
+    </div>
+  );
+}
+
+// Thematic animated illustration per order status.
+// Large emoji + bouncing/floating CSS animation — swaps with status-hero transition.
+function StateIllustration({ status, orderType }: { status: string; orderType?: string }) {
+  const config: Record<string, { emoji: string; bg: string; ring: string; float?: boolean }> = {
+    pending:          { emoji: '📋', bg: 'bg-amber-100',  ring: 'ring-amber-200',  float: false },
+    confirmed:        { emoji: '👨‍🍳', bg: 'bg-violet-100', ring: 'ring-violet-200', float: true  },
+    preparing:        { emoji: '🍳', bg: 'bg-violet-100', ring: 'ring-violet-200', float: true  },
+    almost_ready:     { emoji: '⚡', bg: 'bg-amber-50',   ring: 'ring-amber-200',  float: false },
+    ready:            orderType === 'delivery'
+                        ? { emoji: '🛵', bg: 'bg-orange-100', ring: 'ring-orange-200', float: true }
+                        : orderType === 'dine_in'
+                          ? { emoji: '🍽️', bg: 'bg-teal-100',  ring: 'ring-teal-200',  float: false }
+                          : { emoji: '🛍️', bg: 'bg-orange-100', ring: 'ring-orange-200', float: false },
+    out_for_delivery: { emoji: '🛵', bg: 'bg-violet-100', ring: 'ring-violet-200', float: true  },
+    served:           { emoji: '✨', bg: 'bg-teal-50',    ring: 'ring-teal-200',   float: false },
+  };
+
+  const cfg = config[status];
+  if (!cfg) return null;
+
+  return (
+    <div className={cn('state-illustration w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-5 ring-4', cfg.bg, cfg.ring)}>
+      <span className={cn('text-4xl select-none', cfg.float && 'float-bob')}>
+        {cfg.emoji}
+      </span>
     </div>
   );
 }
