@@ -259,6 +259,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   const [liveDriverCoords, setLiveDriverCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [liveDeliveryEta, setLiveDeliveryEta] = useState<number | null>(null);
   const [chefMessageIndex, setChefMessageIndex] = useState(0);
+  const [etaTick, setEtaTick] = useState(0);
 
   const hasInitialOrder = !!initialOrder;
 
@@ -334,6 +335,13 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     const interval = setInterval(() => setChefMessageIndex(i => (i + 1) % 3), 6000);
     return () => clearInterval(interval);
   }, [order?.order_type, order?.status]);
+
+  // Tick every 30s so ETA hero re-renders with live minsLeft without waiting for the 5s poll
+  useEffect(() => {
+    if (!order?.estimated_ready_minutes || !['confirmed', 'preparing'].includes(order?.status)) return;
+    const interval = setInterval(() => setEtaTick(n => n + 1), 30_000);
+    return () => clearInterval(interval);
+  }, [order?.estimated_ready_minutes, order?.status]);
 
   useEffect(() => {
     if (!order?.id || isTerminal) return;
@@ -515,36 +523,38 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         </div>
       </header>
 
-      {/* Restaurant identity + order context — non-sticky, full breathing room */}
+      {/* Restaurant identity + order context — centered, breathing room */}
       <div className="bg-white border-b border-gray-100">
-        <div className="max-w-lg mx-auto px-5 pt-5 pb-4">
-          {/* Order type pill */}
-          <span className={cn(
-            'inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full mb-3',
-            order.order_type === 'delivery' ? 'bg-violet-100 text-violet-600' :
-            order.order_type === 'pickup'   ? 'bg-orange-100 text-orange-600' :
-            'bg-teal-100 text-teal-600'
-          )}>
-            {order.order_type === 'delivery' ? <Truck className="w-3 h-3" /> :
-             order.order_type === 'pickup'   ? <ShoppingBag className="w-3 h-3" /> :
-             <Utensils className="w-3 h-3" />}
-            {order.order_type === 'delivery' ? t.orderTypePillDelivery :
-             order.order_type === 'pickup'   ? t.orderTypePillPickup :
-             t.orderTypePillDineIn}
-          </span>
+        <div className="max-w-lg mx-auto px-5 pt-6 pb-5 text-center">
+          {/* Order type pill — larger, centered, more presence */}
+          <div className="flex justify-center mb-4">
+            <span className={cn(
+              'inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-widest px-3.5 py-1.5 rounded-full',
+              order.order_type === 'delivery' ? 'bg-violet-100 text-violet-600' :
+              order.order_type === 'pickup'   ? 'bg-orange-100 text-orange-600' :
+              'bg-teal-100 text-teal-600'
+            )}>
+              {order.order_type === 'delivery' ? <Truck className="w-3.5 h-3.5" /> :
+               order.order_type === 'pickup'   ? <ShoppingBag className="w-3.5 h-3.5" /> :
+               <Utensils className="w-3.5 h-3.5" />}
+              {order.order_type === 'delivery' ? t.orderTypePillDelivery :
+               order.order_type === 'pickup'   ? t.orderTypePillPickup :
+               t.orderTypePillDineIn}
+            </span>
+          </div>
 
-          {/* Dine-in from QR: show table number prominently instead of address/phone */}
+          {/* Dine-in from QR: table number centered and prominent */}
           {order.order_type === 'dine_in' && (order as any).table_name ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2 mb-1">
               <Utensils className="w-3.5 h-3.5 text-teal-400 flex-shrink-0" />
               <span className="text-[13px] text-gray-600 font-semibold">
                 {t.yourTable} <span className="text-teal-600 font-black">{(order as any).table_name}</span>
               </span>
             </div>
           ) : (
-            /* Pickup / Delivery / Dine-in online: address + phone tappable */
+            /* Pickup / Delivery / Dine-in online: address + phone centered */
             (restaurantAddress || restaurantPhone) && (
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col items-center gap-1.5 mb-1">
                 {restaurantAddress && (
                   <a
                     href={`https://maps.google.com/?q=${encodeURIComponent(restaurantAddress)}`}
@@ -569,7 +579,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             )
           )}
 
-          {/* Order number — subtle, last */}
+          {/* Order number — centered, subtle */}
           <p className="text-[11px] text-gray-400 mt-3 font-medium tracking-wide">
             {t.orderLabel} <span className="font-bold text-gray-700">#{order.order_number}</span>
           </p>
@@ -852,12 +862,14 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         )}
 
         {/* ── ETA HERO (Uber-style large display) ── */}
+        {/* etaTick forces re-render every 30s so minsLeft counts down live */}
         {order.estimated_ready_minutes && ['confirmed', 'preparing'].includes(order.status) && (() => {
           const confirmedAt = order.updated_at ? new Date(order.updated_at) : new Date(order.created_at);
           const etaTime   = new Date(confirmedAt.getTime() + order.estimated_ready_minutes * 60_000);
           const etaLocale = t.en ? 'en-US' : 'es-MX';
           const etaStr    = etaTime.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });
-          const minsLeft  = Math.max(0, Math.round((etaTime.getTime() - Date.now()) / 60_000));
+          // etaTick is read here so the expression re-evaluates every 30s
+          const minsLeft  = Math.max(0, Math.round((etaTime.getTime() - Date.now()) / 60_000) - etaTick * 0);
           return (
             <div className="tracker-card rounded-3xl bg-gradient-to-br from-[#e6faf7] to-[#d0f7f1] border border-[#b3efe6] shadow-sm overflow-hidden">
               <div className="px-6 py-7 text-center">
@@ -1256,12 +1268,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
         {/* ── CTA BUTTONS ── */}
         <div className="tracker-card space-y-2.5">
-          <Link
-            href={`/${restaurantSlug}`}
-            className="block w-full py-4 rounded-2xl bg-brand-500 text-white text-center font-bold text-sm hover:bg-brand-600 active:scale-[0.98] transition-all shadow-md shadow-brand-500/20"
-          >
-            {t.backToMenu}
-          </Link>
+          {/* When complete: share receipt is the prominent action; back to menu becomes secondary */}
           {isComplete && order.order_items?.length > 0 && (
             <ShareReceiptButton
               orderNumber={order.order_number}
@@ -1276,6 +1283,17 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
               locale={locale === 'en' ? 'en' : 'es'}
             />
           )}
+          <Link
+            href={`/${restaurantSlug}`}
+            className={cn(
+              'block w-full py-4 rounded-2xl text-center font-bold text-sm active:scale-[0.98] transition-all',
+              isComplete
+                ? 'bg-white border-2 border-gray-200 text-gray-700 hover:bg-gray-50'
+                : 'bg-brand-500 text-white hover:bg-brand-600 shadow-md shadow-brand-500/20'
+            )}
+          >
+            {t.backToMenu}
+          </Link>
           {restaurantPhone && (
             <a
               href={`tel:${restaurantPhone}`}
