@@ -1094,10 +1094,13 @@ export async function assignDriver(
       driver_assigned_at: driverName.trim() ? new Date().toISOString() : null,
       driver_tracking_token: token,
       driver_token_expires_at: tokenExpiresAt,
-      // Reset GPS on new assignment
+      // Reset GPS and delivery progress on new assignment
       driver_lat: null,
       driver_lng: null,
       driver_updated_at: null,
+      driver_picked_up_at: null,
+      driver_at_door_at: null,
+      driver_delivered_at: null,
     })
     .eq('id', orderId)
     .eq('restaurant_id', restaurantId);

@@ -800,6 +800,10 @@ export function CounterView({
   }, [t, updateOrderLocally, showNotif]);
 
   const handleMarkOutForDelivery = useCallback(async (order: Order) => {
+    if (!order.driver_picked_up_at) {
+      showError(t.en ? 'Driver has not confirmed pickup yet' : 'El repartidor aún no confirmó la recolección');
+      return;
+    }
     setUpdatingId(order.id);
     updateOrderLocally(order.id, { status: 'out_for_delivery' }); // optimistic
     try {
@@ -814,7 +818,7 @@ export function CounterView({
       updateOrderLocally(order.id, { status: order.status }); // revert
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
     } finally { setUpdatingId(null); }
-  }, [t, updateOrderLocally, showNotif]);
+  }, [t, updateOrderLocally, showNotif, showError]);
 
   // ── Edit order items ──────────────────────────────────────────────────────
   const openEditItems = useCallback(async (orderId: string) => {

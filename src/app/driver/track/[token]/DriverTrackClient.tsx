@@ -146,7 +146,8 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
         setCustomerPhone(data.customerPhone ?? null);
         if (data.orderId) setOrderId(data.orderId);
         if (data.restaurantName) setRestaurantName(data.restaurantName);
-        if (data.orderStatus === 'cancelled') setOrderCancelled(true);
+        const cancelled = data.orderStatus === 'cancelled';
+        if (cancelled) setOrderCancelled(true);
 
         // Restore step from server timestamps so a page reload doesn't reset progress
         if (data.driverDeliveredAt) {
@@ -155,7 +156,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
           setDeliveryStep('at_door');
         } else if (data.driverPickedUpAt) {
           setDeliveryStep('picked_up');
-          startGps();
+          if (!cancelled) startGps();
         }
       }
     } catch { /* silent */ }

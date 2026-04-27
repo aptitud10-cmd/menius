@@ -71,6 +71,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === 'at_door') {
+    if (!(order as any).driver_picked_up_at) {
+      return NextResponse.json({ error: 'Cannot mark at_door before picked_up' }, { status: 409 });
+    }
     updateData = { driver_at_door_at: now };
   }
 
@@ -79,6 +82,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === 'delivered') {
+    if (!(order as any).driver_picked_up_at) {
+      return NextResponse.json({ error: 'Cannot mark delivered before picked_up' }, { status: 409 });
+    }
     // Only update if the transition is valid (guards delivered/cancelled orders)
     if (!canTransition(order.status, 'delivered')) {
       return NextResponse.json({ ok: true, skipped: true, action });
