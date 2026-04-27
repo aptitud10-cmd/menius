@@ -9,10 +9,15 @@ const logger = createLogger('webhook-stripe-monitor');
 
 export async function POST(request: NextRequest) {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
-  const webhookSecret = process.env.STRIPE_MONITOR_WEBHOOK_SECRET ?? process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = (process.env.STRIPE_MONITOR_WEBHOOK_SECRET ?? process.env.STRIPE_WEBHOOK_SECRET ?? '').trim();
 
   if (!stripeKey) {
     return NextResponse.json({ error: 'Missing STRIPE_SECRET_KEY' }, { status: 500 });
+  }
+
+  if (!webhookSecret) {
+    logger.error('Missing webhook secret — refusing unsigned payload');
+    return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
   }
 
   const stripe = new Stripe(stripeKey, { apiVersion: '2026-01-28.clover' });
@@ -21,9 +26,7 @@ export async function POST(request: NextRequest) {
 
   let event: Stripe.Event;
   try {
-    event = webhookSecret
-      ? stripe.webhooks.constructEvent(rawBody, sig, webhookSecret)
-      : JSON.parse(rawBody) as Stripe.Event;
+    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
   } catch (err) {
     logger.warn('Stripe webhook signature failed', { error: String(err) });
     return NextResponse.json({ error: 'Webhook signature failed' }, { status: 400 });

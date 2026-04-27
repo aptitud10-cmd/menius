@@ -59,78 +59,81 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    // ── Idempotency guard ──
+    // ── Idempotency guard: claim the event BEFORE processing ──
     const adminDb = createAdminClient();
-    const { data: alreadyProcessed } = await adminDb
+    const { error: claimErr } = await adminDb
       .from('processed_webhook_events')
-      .select('id')
-      .eq('event_id', event.id)
-      .maybeSingle();
+      .insert({ event_id: event.id, event_type: event.type, processed_at: new Date().toISOString() });
 
-    if (alreadyProcessed) {
-      logger.info('Duplicate payments webhook — skipping', { eventId: event.id });
-      return NextResponse.json({ received: true });
+    if (claimErr) {
+      if ((claimErr as any).code === '23505') {
+        logger.info('Duplicate payments webhook — skipping', { eventId: event.id });
+        return NextResponse.json({ received: true });
+      }
+      logger.error('Failed to claim webhook event', { eventId: event.id, error: claimErr.message });
+      return NextResponse.json({ error: 'claim failed' }, { status: 500 });
     }
 
     const session = event.data.object as any;
     const orderId = session.metadata?.order_id;
 
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        if (orderId && session.payment_status === 'paid') {
-          await updateOrderPayment(orderId, 'paid', session.payment_intent ?? '');
+    try {
+      switch (event.type) {
+        case 'checkout.session.completed': {
+          if (orderId && session.payment_status === 'paid') {
+            await updateOrderPayment(orderId, 'paid', session.payment_intent ?? '');
+          }
+          break;
         }
-        break;
-      }
 
-      case 'checkout.session.async_payment_succeeded': {
-        if (orderId) {
-          await updateOrderPayment(orderId, 'paid', session.payment_intent ?? '');
-          logger.info('Async payment succeeded (OXXO/SPEI)', { orderId });
+        case 'checkout.session.async_payment_succeeded': {
+          if (orderId) {
+            await updateOrderPayment(orderId, 'paid', session.payment_intent ?? '');
+            logger.info('Async payment succeeded (OXXO/SPEI)', { orderId });
+          }
+          break;
         }
-        break;
-      }
 
-      case 'checkout.session.async_payment_failed': {
-        if (orderId) {
-          await updateOrderPayment(orderId, 'failed');
-          logger.warn('Async payment failed (OXXO/SPEI)', { orderId });
+        case 'checkout.session.async_payment_failed': {
+          if (orderId) {
+            await updateOrderPayment(orderId, 'failed');
+            logger.warn('Async payment failed (OXXO/SPEI)', { orderId });
+          }
+          break;
         }
-        break;
-      }
 
-      case 'checkout.session.expired': {
-        if (orderId) {
-          await updateOrderPayment(orderId, 'failed');
-          logger.info('Checkout session expired', { orderId });
+        case 'checkout.session.expired': {
+          if (orderId) {
+            await updateOrderPayment(orderId, 'failed');
+            logger.info('Checkout session expired', { orderId });
+          }
+          break;
         }
-        break;
-      }
 
-      case 'payment_intent.succeeded': {
-        if (orderId) {
-          await updateOrderPayment(orderId, 'paid', session.id ?? '');
-          logger.info('PaymentIntent succeeded (Apple Pay / Google Pay)', { orderId });
+        case 'payment_intent.succeeded': {
+          if (orderId) {
+            await updateOrderPayment(orderId, 'paid', session.id ?? '');
+            logger.info('PaymentIntent succeeded (Apple Pay / Google Pay)', { orderId });
+          }
+          break;
         }
-        break;
-      }
 
-      case 'payment_intent.payment_failed': {
-        if (orderId) {
-          await updateOrderPayment(orderId, 'failed', session.id ?? '');
-          logger.warn('PaymentIntent failed', { orderId });
+        case 'payment_intent.payment_failed': {
+          if (orderId) {
+            await updateOrderPayment(orderId, 'failed', session.id ?? '');
+            logger.warn('PaymentIntent failed', { orderId });
+          }
+          break;
         }
-        break;
-      }
 
-      default:
-        logger.info('Unhandled event type', { type: event.type });
+        default:
+          logger.info('Unhandled event type', { type: event.type });
+      }
+    } catch (procErr) {
+      // Release the claim so Stripe can retry this event
+      await adminDb.from('processed_webhook_events').delete().eq('event_id', event.id);
+      throw procErr;
     }
-
-    // Mark event as processed
-    await adminDb
-      .from('processed_webhook_events')
-      .upsert({ event_id: event.id, processed_at: new Date().toISOString() }, { onConflict: 'event_id' });
 
     return NextResponse.json({ received: true });
   } catch (err: unknown) {

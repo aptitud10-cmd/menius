@@ -816,6 +816,7 @@ export async function POST(request: NextRequest) {
           metadata: { order_id: order.id, order_number: order.order_number },
           payment_intent_data: {
             transfer_data: { destination: connectedAccount },
+            metadata: { order_id: order.id, order_number: order.order_number },
             ...(applicationFeeAmount !== undefined && applicationFeeAmount > 0 && {
               application_fee_amount: applicationFeeAmount,
             }),

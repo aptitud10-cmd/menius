@@ -31,27 +31,32 @@ export async function POST(request: NextRequest) {
 
     const supabase = createAdminClient();
 
-    // Idempotency: skip already-processed events
+    // Idempotency: claim the event BEFORE processing (unique constraint on event_id)
     const eventId = event.id;
-    const { data: existing } = await supabase
+    const { error: claimErr } = await supabase
       .from('processed_webhook_events')
-      .select('id')
-      .eq('event_id', eventId)
-      .maybeSingle();
+      .insert({ event_id: eventId, event_type: event.type, processed_at: new Date().toISOString() });
 
-    if (existing) {
-      return NextResponse.json({ received: true, skipped: true });
+    if (claimErr) {
+      if ((claimErr as any).code === '23505') {
+        return NextResponse.json({ received: true, skipped: true });
+      }
+      logger.error('Failed to claim webhook event', { eventId, error: claimErr.message });
+      return NextResponse.json({ error: 'claim failed' }, { status: 500 });
     }
 
     const auditLog = async (restaurantId: string | null, action: string, oldStatus: string | null, newStatus: string, meta: Record<string, unknown> = {}) => {
       if (!restaurantId) return;
-      await supabase.from('subscription_audit_log').insert({
+      const { error: auditErr } = await supabase.from('subscription_audit_log').insert({
         restaurant_id: restaurantId,
         action,
         old_status: oldStatus,
         new_status: newStatus,
         metadata: { stripe_event_id: eventId, stripe_event_type: event.type, ...meta },
-      }).then(() => {});
+      });
+      if (auditErr) {
+        logger.warn('audit_log insert failed', { eventId, restaurantId, error: auditErr.message });
+      }
     };
 
     // Resolve restaurant_id from customer_id when metadata is missing
@@ -66,7 +71,8 @@ export async function POST(request: NextRequest) {
       return subRow?.restaurant_id ?? null;
     };
 
-    switch (event.type) {
+    try {
+      switch (event.type) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const sub = event.data.object as any;
@@ -161,8 +167,8 @@ export async function POST(request: NextRequest) {
           }).catch(() => {});
         }
 
-        // Auto-seed style anchors when restaurant activates Pro or Business plan
-        if (resolvedId && ['pro', 'business'].includes(plan?.id ?? '') && ['active', 'trialing'].includes(status)) {
+        // Auto-seed style anchors only on first transition to Pro/Business (not every webhook update)
+        if (resolvedId && ['pro', 'business'].includes(plan?.id ?? '') && ['active', 'trialing'].includes(status) && previousStatus !== status) {
           try {
             const { seedStyleAnchors } = await import('@/lib/seed-style-anchors');
             seedStyleAnchors(supabase, resolvedId).catch(() => {});
@@ -355,14 +361,12 @@ export async function POST(request: NextRequest) {
         }
         break;
       }
+      }
+    } catch (procErr) {
+      // Release the claim so Stripe can retry this event
+      await supabase.from('processed_webhook_events').delete().eq('event_id', eventId);
+      throw procErr;
     }
-
-    await supabase
-      .from('processed_webhook_events')
-      .upsert(
-        { event_id: eventId, event_type: event.type, processed_at: new Date().toISOString() },
-        { onConflict: 'event_id', ignoreDuplicates: true }
-      );
 
     return NextResponse.json({ received: true });
   } catch (err) {

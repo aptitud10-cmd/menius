@@ -81,6 +81,11 @@ export async function POST(request: NextRequest) {
     if (dbError) {
       logger.error('DB update failed after Stripe plan change', { error: dbError.message, planId, restaurantId: tenant.restaurantId });
       captureError(new Error(dbError.message), { route: '/api/billing/change-plan', context: 'db-update' });
+      return NextResponse.json({
+        error: 'Plan changed in Stripe but DB sync failed. Will reconcile shortly.',
+        plan_id: planId,
+        pending: true,
+      }, { status: 500 });
     }
 
     logger.info('Plan changed successfully', { planId, interval });

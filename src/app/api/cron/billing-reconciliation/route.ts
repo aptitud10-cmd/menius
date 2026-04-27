@@ -99,59 +99,63 @@ export async function GET(request: NextRequest) {
     if (stripeSubs && stripeSubs.length > 0) {
       const stripe = getStripe();
 
-      const syncResults = await Promise.allSettled(
-        stripeSubs.map(async (dbSub) => {
-          const stripeSub = await stripe.subscriptions.retrieve(dbSub.stripe_subscription_id!) as any;
-          let mismatch = false;
-          const updates: Record<string, unknown> = { updated_at: nowIso };
+      const syncOne = async (dbSub: typeof stripeSubs[number]) => {
+        const stripeSub = await stripe.subscriptions.retrieve(dbSub.stripe_subscription_id!) as any;
+        let mismatch = false;
+        const updates: Record<string, unknown> = { updated_at: nowIso };
 
-          if (stripeSub.status !== dbSub.status) {
-            updates.status = stripeSub.status === 'incomplete_expired' ? 'canceled' : stripeSub.status;
-            mismatch = true;
-          }
+        if (stripeSub.status !== dbSub.status) {
+          updates.status = stripeSub.status === 'incomplete_expired' ? 'canceled' : stripeSub.status;
+          mismatch = true;
+        }
 
-          const stripePeriodEnd = new Date(stripeSub.current_period_end * 1000).toISOString();
-          if (dbSub.current_period_end !== stripePeriodEnd) {
-            updates.current_period_end = stripePeriodEnd;
-            mismatch = true;
-          }
+        const stripePeriodEnd = new Date(stripeSub.current_period_end * 1000).toISOString();
+        if (dbSub.current_period_end !== stripePeriodEnd) {
+          updates.current_period_end = stripePeriodEnd;
+          mismatch = true;
+        }
 
-          const priceId = stripeSub.items?.data?.[0]?.price?.id;
-          const stripePlan = priceId ? getPlanByStripePrice(priceId) : null;
-          if (stripePlan && stripePlan.id !== dbSub.plan_id) {
-            updates.plan_id = stripePlan.id;
-            mismatch = true;
-          }
+        const priceId = stripeSub.items?.data?.[0]?.price?.id;
+        const stripePlan = priceId ? getPlanByStripePrice(priceId) : null;
+        if (stripePlan && stripePlan.id !== dbSub.plan_id) {
+          updates.plan_id = stripePlan.id;
+          mismatch = true;
+        }
 
-          if (mismatch) {
-            await supabase.from('subscriptions').update(updates).eq('id', dbSub.id);
-            await supabase.from('subscription_audit_log').insert({
-              restaurant_id: dbSub.restaurant_id,
-              action: 'reconciliation_sync',
-              old_status: dbSub.status,
-              new_status: updates.status ?? dbSub.status,
-              metadata: { source: 'cron', updates },
-            }).then(() => {});
-            logger.warn('Fixed Stripe mismatch', {
-              restaurantId: dbSub.restaurant_id,
-              dbStatus: dbSub.status,
-              stripeStatus: stripeSub.status,
-            });
-            return { mismatch: true };
-          }
-          return { mismatch: false };
-        }),
-      );
-
-      for (const result of syncResults) {
-        if (result.status === 'fulfilled') {
-          results.stripe_synced++;
-          if (result.value.mismatch) results.stripe_mismatches++;
-        } else {
-          results.errors++;
-          logger.error('Stripe sync error', {
-            error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+        if (mismatch) {
+          await supabase.from('subscriptions').update(updates).eq('id', dbSub.id);
+          await supabase.from('subscription_audit_log').insert({
+            restaurant_id: dbSub.restaurant_id,
+            action: 'reconciliation_sync',
+            old_status: dbSub.status,
+            new_status: updates.status ?? dbSub.status,
+            metadata: { source: 'cron', updates },
+          }).then(() => {});
+          logger.warn('Fixed Stripe mismatch', {
+            restaurantId: dbSub.restaurant_id,
+            dbStatus: dbSub.status,
+            stripeStatus: stripeSub.status,
           });
+          return { mismatch: true };
+        }
+        return { mismatch: false };
+      };
+
+      // Process in chunks of 10 to avoid Stripe rate-limit bursts (100 req/s)
+      const CHUNK_SIZE = 10;
+      for (let i = 0; i < stripeSubs.length; i += CHUNK_SIZE) {
+        const chunk = stripeSubs.slice(i, i + CHUNK_SIZE);
+        const chunkResults = await Promise.allSettled(chunk.map(syncOne));
+        for (const result of chunkResults) {
+          if (result.status === 'fulfilled') {
+            results.stripe_synced++;
+            if (result.value.mismatch) results.stripe_mismatches++;
+          } else {
+            results.errors++;
+            logger.error('Stripe sync error', {
+              error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+            });
+          }
         }
       }
     }
