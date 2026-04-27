@@ -117,7 +117,6 @@ function getT(locale?: string, orderType?: string) {
     yourDriver: en ? 'Your driver' : 'Tu repartidor',
     onTheWay: en ? 'On the way!' : '¡En camino!',
     headingToAddress: en ? 'Heading to your address' : 'Dirigiéndose a tu dirección',
-    trackOnMap: en ? 'Track on map ↓' : 'Ver en mapa ↓',
     // Driver at door card
     driverArrived: en ? 'Driver arrived!' : '¡Repartidor llegó!',
     atYourDoor: en ? 'At your door now' : 'Está en tu puerta',
@@ -159,10 +158,22 @@ function getT(locale?: string, orderType?: string) {
     seePreviousOrders: (n: number) => en
       ? `See ${n} previous order${n !== 1 ? 's' : ''}`
       : `Ver ${n} pedido${n !== 1 ? 's' : ''} anterior${n !== 1 ? 'es' : ''}`,
-    // Chef messages (pickup/preparing)
+    // Chef messages (pickup/preparing) — 5 rotating messages for variety
     chefMessages: en
-      ? ['Chef is preparing your order with care 🍳', 'Almost there — your meal is coming together', 'Hang tight, your order is in good hands']
-      : ['El chef está preparando tu pedido con cariño 🍳', 'Ya casi — tu platillo está tomando forma', 'Tranquilo, tu pedido está en buenas manos'],
+      ? [
+          'Your order is getting the full attention it deserves 🍳',
+          'Each item is being prepared fresh, just for you',
+          'Almost there — something delicious is on its way',
+          'The kitchen is on it — won\'t be long now',
+          'Your meal is in good hands. We\'ll have it ready soon!',
+        ]
+      : [
+          'Tu pedido recibe toda la atención que merece 🍳',
+          'Cada platillo preparado fresco, especialmente para ti',
+          'Ya casi — algo delicioso está en camino',
+          'La cocina está en ello — no tardará mucho',
+          '¡Tu pedido está en buenas manos. Listo muy pronto!',
+        ],
     steps: {
       // Header icon/text per DB status (detailed view)
       pending:          { label: en ? 'Received'       : 'Recibido',          desc: en ? 'Your order was received'              : 'Tu pedido fue recibido' },
@@ -332,7 +343,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // Rotate chef messages every 6s while pickup order is being prepared
   useEffect(() => {
     if (order?.order_type !== 'pickup' || !['confirmed', 'preparing'].includes(order?.status)) return;
-    const interval = setInterval(() => setChefMessageIndex(i => (i + 1) % 3), 6000);
+    const interval = setInterval(() => setChefMessageIndex(i => (i + 1) % 5), 6000);
     return () => clearInterval(interval);
   }, [order?.order_type, order?.status]);
 
@@ -658,8 +669,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           </div>
         )}
 
-        {/* ── OUT FOR DELIVERY — driver context ── */}
-        {order.order_type === 'delivery' && order.status === 'out_for_delivery' && (
+        {/* ── OUT FOR DELIVERY — driver context (only if no specific driver card below) ── */}
+        {order.order_type === 'delivery' && order.status === 'out_for_delivery' && !(order as any).driver_picked_up_at && (
           <div className="tracker-card bg-violet-50 border-2 border-violet-200 rounded-3xl px-5 py-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
               <Truck className="w-6 h-6 text-violet-600" />
@@ -994,7 +1005,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
         {/* ── PICKUP CHEF MESSAGES — cross-fade between rotating messages ── */}
         {order.order_type === 'pickup' && ['confirmed', 'preparing'].includes(order.status) && (
-          <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm px-5 py-4 relative overflow-hidden" style={{ minHeight: '52px' }}>
+          <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm px-5 py-4 relative overflow-hidden" style={{ minHeight: '60px' }}>
             {t.chefMessages.map((msg, idx) => (
               <p
                 key={idx}
@@ -1012,7 +1023,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         )}
 
         {/* ── DRIVER CARD + STATUS BANNERS (delivery only) ── */}
-        {order.order_type === 'delivery' && order.status === 'ready' && (
+        {order.order_type === 'delivery' && ['ready', 'out_for_delivery'].includes(order.status) && (
           <>
             {/* Driver card — shown as soon as driver picks up */}
             {(order as any).driver_picked_up_at && !(order as any).driver_at_door_at && (
@@ -1045,16 +1056,6 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                     </div>
                   </div>
                 </div>
-                {/* Call button strip */}
-                {order.customer_phone && (
-                  <a
-                    href={`tel:${order.customer_phone}`}
-                    className="flex items-center justify-center gap-2 py-3 bg-blue-50 border-t border-blue-100 text-blue-600 text-sm font-bold hover:bg-blue-100 active:bg-blue-200 transition-colors"
-                  >
-                    <Truck className="w-4 h-4" />
-                    {t.trackOnMap}
-                  </a>
-                )}
               </div>
             )}
 

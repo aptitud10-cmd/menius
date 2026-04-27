@@ -342,9 +342,11 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
   };
 
   const handlePickedUp = async () => {
-    startGps();
     const ok = await callDriverStatus('picked_up');
-    if (ok) setDeliveryStep('picked_up');
+    if (ok) {
+      setDeliveryStep('picked_up');
+      startGps();
+    }
   };
 
   const handleAtDoor = async () => {
