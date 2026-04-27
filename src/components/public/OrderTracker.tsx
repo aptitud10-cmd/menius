@@ -136,11 +136,7 @@ function getT(locale?: string, orderType?: string) {
     orderProcessedHeading: en ? 'Your order was processed successfully' : 'Tu pedido fue procesado exitosamente',
     returningToMenu: en ? 'Returning to menu…' : 'Regresando al menú...',
     goToMenu: en ? 'Go to menu' : 'Ir al menú',
-    // ComingOutButton sub-component
-    notifyingDriver: en ? 'Notifying driver…' : 'Avisando al repartidor…',
-    imComingOut: en ? "🚶 I'm coming out!" : '🚶 ¡Ya salgo!',
-    driverNotified: en ? '✓ Driver notified — on your way!' : '✓ Repartidor avisado — ¡ya voy!',
-    onMyWay: en ? '✓ On your way! The restaurant has been notified.' : '✓ ¡Ya puedes salir! El restaurante fue notificado.',
+    callDriver: en ? 'Call driver' : 'Llamar al repartidor',
     // WaiterCallButton sub-component
     waiterCallLabel: (tableName: string | null | undefined) =>
       tableName ? (en ? `Table ${tableName} needs attention` : `Mesa ${tableName} necesita atención`)
@@ -1028,10 +1024,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             {/* Driver card — shown as soon as driver picks up */}
             {(order as any).driver_picked_up_at && !(order as any).driver_at_door_at && (
               <div className="tracker-card rounded-3xl overflow-hidden shadow-lg">
-                {/* Gradient header */}
                 <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-5">
                   <div className="flex items-center gap-4">
-                    {/* Driver avatar — animated motorcycle */}
                     <div className="relative flex-shrink-0">
                       <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-2xl">
                         🛵
@@ -1049,13 +1043,23 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                         {t.headingToAddress}
                       </p>
                     </div>
-                    {/* Live GPS indicator */}
                     <div className="flex flex-col items-center gap-1 flex-shrink-0">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#05c8a7] animate-pulse" />
                       <span className="text-[9px] font-bold text-blue-200 uppercase">GPS</span>
                     </div>
                   </div>
                 </div>
+                {order.customer_phone && (
+                  <div className="bg-blue-50 px-5 py-3 border-t border-blue-100">
+                    <a
+                      href={`tel:${order.customer_phone}`}
+                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl bg-white border border-blue-200 text-blue-700 font-bold text-sm hover:bg-blue-100 active:scale-[0.98] transition-all"
+                    >
+                      <Phone className="w-4 h-4" />
+                      {t.callDriver}
+                    </a>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1082,9 +1086,17 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                     </div>
                   </div>
                 </div>
-                <div className="bg-orange-50">
-                  <ComingOutButton orderId={order.id} locale={locale} />
-                </div>
+                {order.customer_phone && (
+                  <div className="bg-orange-50 px-5 py-3 border-t border-orange-200">
+                    <a
+                      href={`tel:${order.customer_phone}`}
+                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl bg-white border border-orange-200 text-orange-700 font-bold text-sm hover:bg-orange-100 active:scale-[0.98] transition-all"
+                    >
+                      <Phone className="w-4 h-4" />
+                      {t.callDriver}
+                    </a>
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -1436,60 +1448,6 @@ function StateIllustration({ status, orderType }: { status: string; orderType?: 
   );
 }
 
-function ComingOutButton({ orderId, locale }: { orderId: string; locale?: string }) {
-  const t = getT(locale);
-  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'sent_no_driver'>('idle');
-
-  const handlePress = async () => {
-    if (state !== 'idle') return;
-    setState('sending');
-    try {
-      const res = await fetch('/api/public/customer-reply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, action: 'coming_out' }),
-      });
-      const data = await res.json().catch(() => ({}));
-      setState(data.notified === false ? 'sent_no_driver' : 'sent');
-    } catch {
-      setState('sent');
-    }
-  };
-
-  if (state === 'sent') {
-    return (
-      <div className="px-5 pb-4 text-center">
-        <p className="text-sm font-semibold text-orange-700">
-          {t.driverNotified}
-        </p>
-      </div>
-    );
-  }
-
-  if (state === 'sent_no_driver') {
-    return (
-      <div className="px-5 pb-4 text-center">
-        <p className="text-sm font-semibold text-gray-600">
-          {t.onMyWay}
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="px-5 pb-4">
-      <button
-        onClick={handlePress}
-        disabled={state === 'sending'}
-        className="w-full py-3 rounded-2xl bg-orange-500 hover:bg-orange-600 active:scale-[0.98] text-white font-bold text-sm transition-all disabled:opacity-60 shadow-md shadow-orange-500/30"
-      >
-        {state === 'sending'
-          ? t.notifyingDriver
-          : t.imComingOut}
-      </button>
-    </div>
-  );
-}
 
 function WaiterCallButton({ orderId, tableName, locale }: { orderId: string; tableName?: string | null; locale?: string }) {
   const t = getT(locale);
