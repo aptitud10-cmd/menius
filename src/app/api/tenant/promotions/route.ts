@@ -6,6 +6,7 @@ import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 import { promotionSchema } from '@/lib/validations';
+import { UUID_RE } from '@/lib/constants';
 
 const logger = createLogger('tenant-promotions');
 
@@ -76,6 +77,9 @@ export async function PATCH(request: NextRequest) {
     if (!id || typeof is_active !== 'boolean') {
       return NextResponse.json({ error: 'id e is_active requeridos' }, { status: 400 });
     }
+    if (!UUID_RE.test(String(id))) {
+      return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+    }
 
     const { error } = await supabase
       .from('promotions')
@@ -99,6 +103,10 @@ export async function DELETE(request: NextRequest) {
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
     const { id } = await request.json();
+    if (!id || !UUID_RE.test(String(id))) {
+      return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+    }
+
     const { error } = await supabase
       .from('promotions')
       .delete()

@@ -59,6 +59,9 @@ export async function POST(request: NextRequest) {
     const to: string[] = event.data?.to ?? [];
     const subject: string = event.data?.subject ?? '(sin asunto)';
 
+    const escHtml = (s: string) =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
     logger.info('Email received', { from, to, subject, emailId });
 
     if (!forwardTo) {
@@ -94,9 +97,9 @@ export async function POST(request: NextRequest) {
             <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px;">
               <h2 style="color:#059669;margin:0 0 16px;">📬 Nuevo mensaje recibido</h2>
               <table style="width:100%;border-collapse:collapse;font-size:14px;">
-                <tr><td style="padding:6px 0;color:#6b7280;width:80px;">De:</td><td style="padding:6px 0;color:#111827;">${from}</td></tr>
-                <tr><td style="padding:6px 0;color:#6b7280;">Para:</td><td style="padding:6px 0;color:#111827;">${to.join(', ')}</td></tr>
-                <tr><td style="padding:6px 0;color:#6b7280;">Asunto:</td><td style="padding:6px 0;color:#111827;font-weight:600;">${subject}</td></tr>
+                <tr><td style="padding:6px 0;color:#6b7280;width:80px;">De:</td><td style="padding:6px 0;color:#111827;">${escHtml(from)}</td></tr>
+                <tr><td style="padding:6px 0;color:#6b7280;">Para:</td><td style="padding:6px 0;color:#111827;">${escHtml(to.join(', '))}</td></tr>
+                <tr><td style="padding:6px 0;color:#6b7280;">Asunto:</td><td style="padding:6px 0;color:#111827;font-weight:600;">${escHtml(subject)}</td></tr>
               </table>
               <p style="margin:20px 0 8px;font-size:13px;color:#9ca3af;">
                 Para ver el contenido completo del email, revisa tu bandeja de entrada en 

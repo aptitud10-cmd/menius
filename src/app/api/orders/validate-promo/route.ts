@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
+import { UUID_RE } from '@/lib/constants';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +21,9 @@ export async function POST(request: NextRequest) {
 
     if (!code || !restaurant_id) {
       return NextResponse.json({ error: en ? 'Code and restaurant_id required' : 'Código y restaurant_id requeridos' }, { status: 400 });
+    }
+    if (!UUID_RE.test(String(restaurant_id))) {
+      return NextResponse.json({ error: en ? 'Invalid restaurant_id' : 'restaurant_id inválido' }, { status: 400 });
     }
 
     const supabase = await createClient();

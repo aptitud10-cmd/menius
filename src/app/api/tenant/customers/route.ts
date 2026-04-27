@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
+import { getDashboardPlan, meetsMinPlan } from '@/lib/plan-access';
+import { UUID_RE } from '@/lib/constants';
 
 const logger = createLogger('tenant-customers');
 
@@ -13,10 +15,15 @@ export async function GET(request: NextRequest) {
     const tenant = await getTenant();
     if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
+    const plan = await getDashboardPlan();
+    if (!meetsMinPlan(plan, 'starter')) {
+      return NextResponse.json({ error: 'Plan no incluye acceso a CRM' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
-    // Strip characters that can break the PostgREST filter syntax (parens, commas, percent)
+    // Strip characters that can break PostgREST filter syntax — including LIKE wildcards _ and %
     const rawSearch = searchParams.get('search') || '';
-    const search = rawSearch.replace(/[(),%]/g, '').slice(0, 100);
+    const search = rawSearch.replace(/[(),%_]/g, '').slice(0, 100);
     const sortBy = searchParams.get('sort') || 'last_order_at';
     const order = searchParams.get('order') === 'asc' ? true : false;
     const rawPage = parseInt(searchParams.get('page') ?? '', 10);
@@ -82,14 +89,12 @@ export async function PATCH(request: NextRequest) {
     const { id, notes, tags } = body;
 
     if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 });
-
-    const { UUID_RE } = await import('@/lib/constants');
     if (!UUID_RE.test(String(id))) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
 
     const supabase = await createClient();
     const updates: Record<string, unknown> = {};
     if (typeof notes === 'string') updates.notes = notes.slice(0, 1000);
-    if (Array.isArray(tags)) updates.tags = tags.map(String).slice(0, 20);
+    if (Array.isArray(tags)) updates.tags = tags.map((t) => String(t).slice(0, 50)).slice(0, 20);
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: 'Nada que actualizar' }, { status: 400 });

@@ -179,7 +179,8 @@ export async function GET(request: NextRequest) {
     // Only count items from non-cancelled orders for top products
     const validOrderIds = allOrders
       .filter(o => o.status !== 'cancelled')
-      .map(o => o.id);
+      .map(o => o.id)
+      .slice(0, 5000); // cap para evitar queries .in() excesivos
     let topProducts: { name: string; qty: number; revenue: number }[] = [];
     if (validOrderIds.length > 0) {
       const { data: items } = await supabase
