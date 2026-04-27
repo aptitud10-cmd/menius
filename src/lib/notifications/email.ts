@@ -10,6 +10,11 @@
  *  - Full item details: variant, modifiers, extras, notes
  */
 
+import { createLogger } from '@/lib/logger';
+import { captureError } from '@/lib/error-reporting';
+
+const logger = createLogger('email');
+
 // ---------- Types ----------
 
 export interface OrderEmailItem {
@@ -46,11 +51,11 @@ function esc(s: string | null | undefined): string {
 export async function sendEmail({ to, from, replyTo, subject, html }: EmailMessage): Promise<boolean> {
   const apiKey = (process.env.RESEND_API_KEY ?? '').trim();
   if (!apiKey) {
-    console.error('[Email] ❌ MISSING ENV VAR — RESEND_API_KEY not configured in Vercel. Emails will NOT be sent until this is set.');
+    logger.error('RESEND_API_KEY not configured — emails will not be sent');
     return false;
   }
 
-  console.info(`[Email] → Sending "${subject}" to ${to}`);
+  logger.info('Sending email', { subject, to });
 
   try {
     const payload: Record<string, unknown> = {
@@ -72,14 +77,16 @@ export async function sendEmail({ to, from, replyTo, subject, html }: EmailMessa
 
     if (!res.ok) {
       const errBody = await res.text();
-      console.error(`[Email] ❌ Resend error (HTTP ${res.status}) to ${to}:`, errBody);
+      logger.error('Resend HTTP error', { status: res.status, to, errBody });
+      captureError(new Error(`Resend HTTP ${res.status}: ${errBody}`), { context: 'sendEmail', to });
       return false;
     }
     const body = await res.json().catch(() => ({}));
-    console.info(`[Email] ✅ Sent to ${to}. ID:`, (body as any)?.id ?? 'unknown');
+    logger.info('Email sent', { to, id: (body as Record<string, unknown>)?.id ?? 'unknown' });
     return true;
   } catch (err) {
-    console.error('[Email] ❌ Network error sending to', to, ':', err);
+    logger.error('Network error sending email', { to, error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { context: 'sendEmail', to });
     return false;
   }
 }

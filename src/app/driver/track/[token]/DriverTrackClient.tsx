@@ -177,6 +177,9 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
         if (status === 'cancelled') {
           setOrderCancelled(true);
           stopGps();
+        } else if (status === 'out_for_delivery') {
+          setDeliveryStep('picked_up');
+          startGps();
         } else if (status === 'delivered') {
           stopGps();
           setDeliveryStep('delivered');
@@ -185,7 +188,7 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  // stopGps is stable — defined below with no reactive deps
+  // startGps and stopGps are stable — only use refs and state setters, no reactive deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 

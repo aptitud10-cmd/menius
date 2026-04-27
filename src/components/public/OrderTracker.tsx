@@ -127,7 +127,7 @@ function getT(locale?: string, orderType?: string) {
     timelineOrdered: en ? 'Order placed' : 'Pedido realizado',
     timelineConfirmed: en ? 'Confirmed by restaurant' : 'Confirmado por el restaurante',
     timelinePreparing: en ? 'Preparation started' : 'En preparación',
-    timelineReady: en ? 'Ready for dispatch' : 'Listo para envío',
+    timelineReady: en ? 'Driver assigned' : 'Driver asignado',
     timelinePickedUp: en ? 'Picked up by driver' : 'Recogido por el repartidor',
     timelineAtDoor: en ? 'Driver at your door' : 'Repartidor en tu puerta',
     timelineDelivered: en ? 'Delivered' : 'Entregado',
@@ -147,6 +147,8 @@ function getT(locale?: string, orderType?: string) {
     returningToMenu: en ? 'Returning to menu…' : 'Regresando al menú...',
     goToMenu: en ? 'Go to menu' : 'Ir al menú',
     callDriver: en ? 'Call driver' : 'Llamar al repartidor',
+    driverAssignedEtaLabel: en ? 'Estimated pickup' : 'Recogida estimada',
+    driverAssignedSubtitle: en ? 'Driver is heading to the restaurant' : 'El driver va hacia el restaurante',
     // WaiterCallButton sub-component
     waiterCallLabel: (tableName: string | null | undefined) =>
       tableName ? (en ? `Table ${tableName} needs attention` : `Mesa ${tableName} necesita atención`)
@@ -313,7 +315,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
   // Polling fallback — refreshes every 5 s for active orders.
   // Fires even when the WebSocket is up, so GPS coordinates and ETA
   // countdown stay fresh without extra subscriptions.
-  const isTerminal = ['delivered', 'completed', 'served', 'cancelled'].includes(order?.status);
+  const isTerminal = ['delivered', 'completed', 'cancelled'].includes(order?.status);
   useEffect(() => {
     if (!order?.id || isTerminal) return;
     const interval = setInterval(fetchOrder, 5_000);
@@ -1031,39 +1033,67 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {/* ── DRIVER CARD + STATUS BANNERS (delivery only) ── */}
         {order.order_type === 'delivery' && ['ready', 'out_for_delivery'].includes(order.status) && (
           <>
-            {/* Driver card — shown as soon as driver picks up */}
-            {(order as any).driver_picked_up_at && !(order as any).driver_at_door_at && (
+            {/* Driver card — shown from assignment onwards, until driver is at door */}
+            {(order as any).driver_assigned_at && !(order as any).driver_at_door_at && (
               <div className="tracker-card rounded-3xl overflow-hidden shadow-lg">
-                <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-5">
+                <div className={cn(
+                  'px-5 py-5',
+                  (order as any).driver_picked_up_at
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-500'
+                    : 'bg-gradient-to-r from-violet-600 to-violet-500'
+                )}>
                   <div className="flex items-center gap-4">
                     <div className="relative flex-shrink-0">
-                      <div className="w-14 h-14 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-2xl">
+                      <div className={cn(
+                        'w-14 h-14 rounded-full bg-white/20 border-2 border-white/40 flex items-center justify-center text-2xl',
+                        !(order as any).driver_picked_up_at && 'opacity-80'
+                      )}>
                         🛵
                       </div>
-                      <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#05c8a7] border-2 border-blue-600 animate-pulse" />
+                      {(order as any).driver_picked_up_at && (
+                        <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#05c8a7] border-2 border-blue-600 animate-pulse" />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">
+                      <p className={cn(
+                        'text-[10px] font-bold uppercase tracking-widest',
+                        (order as any).driver_picked_up_at ? 'text-blue-200' : 'text-violet-200'
+                      )}>
                         {t.yourDriver}
                       </p>
                       <p className="text-lg font-black text-white leading-tight truncate">
-                        {(order as any).driver_name ?? t.onTheWay}
+                        {(order as any).driver_name?.trim() || t.onTheWay}
                       </p>
-                      <p className="text-sm text-blue-200 mt-0.5">
-                        {t.headingToAddress}
+                      <p className={cn(
+                        'text-sm mt-0.5',
+                        (order as any).driver_picked_up_at ? 'text-blue-200' : 'text-violet-200'
+                      )}>
+                        {(order as any).driver_picked_up_at ? t.headingToAddress : tWithType.steps.ready?.desc}
                       </p>
                     </div>
-                    <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                      <span className="w-2.5 h-2.5 rounded-full bg-[#05c8a7] animate-pulse" />
-                      <span className="text-[9px] font-bold text-blue-200 uppercase">GPS</span>
-                    </div>
+                    {(order as any).driver_picked_up_at && (
+                      <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#05c8a7] animate-pulse" />
+                        <span className="text-[9px] font-bold text-blue-200 uppercase">GPS</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {(order as any).driver_phone && (
-                  <div className="bg-blue-50 px-5 py-3 border-t border-blue-100">
+                  <div className={cn(
+                    'px-5 py-3 border-t',
+                    (order as any).driver_picked_up_at
+                      ? 'bg-blue-50 border-blue-100'
+                      : 'bg-violet-50 border-violet-100'
+                  )}>
                     <a
                       href={`tel:${(order as any).driver_phone}`}
-                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl bg-white border border-blue-200 text-blue-700 font-bold text-sm hover:bg-blue-100 active:scale-[0.98] transition-all"
+                      className={cn(
+                        'flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl bg-white font-bold text-sm active:scale-[0.98] transition-all border',
+                        (order as any).driver_picked_up_at
+                          ? 'border-blue-200 text-blue-700 hover:bg-blue-100'
+                          : 'border-violet-200 text-violet-700 hover:bg-violet-100'
+                      )}
                     >
                       <Phone className="w-4 h-4" />
                       {(order as any).driver_name ? t.callDriverDirect((order as any).driver_name) : t.callDriver}
@@ -1072,6 +1102,34 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                 )}
               </div>
             )}
+
+            {/* ETA pill — shown from assignment until driver picks up */}
+            {['ready', 'out_for_delivery'].includes(order.status) && (order as any).driver_assigned_at && !(order as any).driver_picked_up_at && !(order as any).driver_at_door_at && Number(order.estimated_ready_minutes) > 0 && (() => {
+              const tEta = getT(locale, 'delivery');
+              const assignedAt = new Date((order as any).driver_assigned_at as string);
+              if (isNaN(assignedAt.getTime())) return null;
+              const etaMins = Number(order.estimated_ready_minutes);
+              const etaTime = new Date(assignedAt.getTime() + etaMins * 60_000);
+              const minsLeft = Math.max(0, Math.round((etaTime.getTime() - Date.now()) / 60_000));
+              const etaLocale = tEta.en ? 'en-US' : 'es-MX';
+              const etaStr = etaTime.toLocaleTimeString(etaLocale, { hour: '2-digit', minute: '2-digit' });
+              return (
+                <div className="tracker-card flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-violet-50 border border-violet-100">
+                  <Clock className="w-4 h-4 text-violet-400 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-violet-600">{tEta.driverAssignedEtaLabel}</p>
+                    <p className="text-xs text-violet-400 truncate">{tEta.driverAssignedSubtitle}</p>
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    {minsLeft > 0 ? (
+                      <p className="text-base font-black text-violet-700 tabular-nums">~{minsLeft} min</p>
+                    ) : (
+                      <p className="text-sm font-black text-violet-700">{etaStr}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* "Driver at door" — highest urgency, full pulsing card */}
             {(order as any).driver_at_door_at && (
@@ -1088,7 +1146,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                         {t.driverArrived}
                       </p>
                       <p className="text-xl font-black text-white leading-tight truncate">
-                        {(order as any).driver_name ?? t.atYourDoor}
+                        {(order as any).driver_name?.trim() || t.atYourDoor}
                       </p>
                       <p className="text-sm text-orange-100 mt-0.5">
                         {t.comeToTheDoor}
@@ -1334,12 +1392,13 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
         {/* ── EVENT TIMELINE (delivery orders only) ── */}
         {order.order_type === 'delivery' && (() => {
+          const tl = getT(locale, 'delivery');
           const events: { label: string; ts: string }[] = [];
-          if (order.created_at) events.push({ label: t.timelineOrdered, ts: order.created_at });
-          if ((order as any).driver_assigned_at) events.push({ label: t.timelineReady, ts: (order as any).driver_assigned_at });
-          if ((order as any).driver_picked_up_at) events.push({ label: t.timelinePickedUp, ts: (order as any).driver_picked_up_at });
-          if ((order as any).driver_at_door_at) events.push({ label: t.timelineAtDoor, ts: (order as any).driver_at_door_at });
-          if ((order as any).driver_delivered_at) events.push({ label: t.timelineDelivered, ts: (order as any).driver_delivered_at });
+          if (order.created_at) events.push({ label: tl.timelineOrdered, ts: order.created_at });
+          if ((order as any).driver_assigned_at) events.push({ label: tl.timelineReady, ts: (order as any).driver_assigned_at });
+          if ((order as any).driver_picked_up_at) events.push({ label: tl.timelinePickedUp, ts: (order as any).driver_picked_up_at });
+          if ((order as any).driver_at_door_at) events.push({ label: tl.timelineAtDoor, ts: (order as any).driver_at_door_at });
+          if ((order as any).driver_delivered_at) events.push({ label: tl.timelineDelivered, ts: (order as any).driver_delivered_at });
           if (events.length < 2) return null;
           const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString(t.en ? 'en-US' : 'es-MX', { hour: '2-digit', minute: '2-digit' });
           return (
