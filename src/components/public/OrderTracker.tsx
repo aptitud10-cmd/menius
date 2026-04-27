@@ -485,55 +485,28 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         .delivered-ring { animation: ringExpand 1.1s ease-out 0.2s both; }
       `}</style>
 
-      {/* Sticky nav bar */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-gray-100">
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <Link href={`/${restaurantSlug}`} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors active:scale-95 flex-shrink-0">
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
+      {/* Sticky nav bar — minimal: back + name + live badge only */}
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100">
+        <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Link href={`/${restaurantSlug}`} className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors active:scale-95 flex-shrink-0">
+              <ArrowLeft className="w-4.5 h-4.5 text-gray-500" />
             </Link>
-            <div className="min-w-0">
-              {/* Order type pill */}
-              <span className={cn(
-                'inline-flex items-center text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mb-1',
-                order.order_type === 'delivery' ? 'bg-violet-100 text-violet-600' :
-                order.order_type === 'pickup'   ? 'bg-orange-100 text-orange-600' :
-                'bg-teal-100 text-teal-600'
-              )}>
-                {order.order_type === 'delivery' ? t.orderTypePillDelivery :
-                 order.order_type === 'pickup'   ? t.orderTypePillPickup :
-                 t.orderTypePillDineIn}
-              </span>
-              {/* Restaurant name — bold and large */}
-              <h1 className="text-base font-black font-heading tracking-tight text-gray-900 leading-tight truncate">{restaurantName}</h1>
-              {/* Address + phone inline */}
-              {(restaurantAddress || restaurantPhone) && (
-                <p className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5 truncate">
-                  {restaurantAddress && (
-                    <><MapPin className="w-3 h-3 flex-shrink-0" /><span className="truncate">{restaurantAddress}</span></>
-                  )}
-                  {restaurantAddress && restaurantPhone && <span className="text-gray-300">·</span>}
-                  {restaurantPhone && (
-                    <><Phone className="w-3 h-3 flex-shrink-0" /><span>{restaurantPhone}</span></>
-                  )}
-                </p>
-              )}
-              <p className="text-[10px] text-gray-400 mt-0.5">{t.orderLabel} #{order.order_number}</p>
-            </div>
+            <h1 className="text-[15px] font-black font-display tracking-tight text-gray-900 truncate">{restaurantName}</h1>
           </div>
-          <div className="flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {rtStatus === 'connected' ? (
-              <div className="flex items-center gap-1 text-[10px] text-[#047a65] font-semibold bg-[#e6faf7] px-2.5 py-1 rounded-full border border-[#b3efe6]">
+              <div className="flex items-center gap-1.5 text-[11px] text-[#047a65] font-bold bg-[#e6faf7] px-3 py-1.5 rounded-full border border-[#b3efe6]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#05c8a7] animate-pulse" />
                 {t.live}
               </div>
             ) : rtStatus === 'reconnecting' ? (
-              <div className="flex items-center gap-1 text-[10px] text-amber-600 font-semibold bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100">
+              <div className="flex items-center gap-1.5 text-[11px] text-amber-600 font-bold bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100">
                 <Wifi className="w-3 h-3 animate-pulse" />
                 {t.connecting}
               </div>
             ) : (
-              <div className="flex items-center gap-1 text-[10px] text-red-500 font-semibold bg-red-50 px-2.5 py-1 rounded-full border border-red-100">
+              <div className="flex items-center gap-1.5 text-[11px] text-red-500 font-bold bg-red-50 px-3 py-1.5 rounded-full border border-red-100">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
                 {t.offline}
               </div>
@@ -541,6 +514,67 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           </div>
         </div>
       </header>
+
+      {/* Restaurant identity + order context — non-sticky, full breathing room */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-lg mx-auto px-5 pt-5 pb-4">
+          {/* Order type pill */}
+          <span className={cn(
+            'inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full mb-3',
+            order.order_type === 'delivery' ? 'bg-violet-100 text-violet-600' :
+            order.order_type === 'pickup'   ? 'bg-orange-100 text-orange-600' :
+            'bg-teal-100 text-teal-600'
+          )}>
+            {order.order_type === 'delivery' ? <Truck className="w-3 h-3" /> :
+             order.order_type === 'pickup'   ? <ShoppingBag className="w-3 h-3" /> :
+             <Utensils className="w-3 h-3" />}
+            {order.order_type === 'delivery' ? t.orderTypePillDelivery :
+             order.order_type === 'pickup'   ? t.orderTypePillPickup :
+             t.orderTypePillDineIn}
+          </span>
+
+          {/* Dine-in from QR: show table number prominently instead of address/phone */}
+          {order.order_type === 'dine_in' && (order as any).table_name ? (
+            <div className="flex items-center gap-2">
+              <Utensils className="w-3.5 h-3.5 text-teal-400 flex-shrink-0" />
+              <span className="text-[13px] text-gray-600 font-semibold">
+                {t.yourTable} <span className="text-teal-600 font-black">{(order as any).table_name}</span>
+              </span>
+            </div>
+          ) : (
+            /* Pickup / Delivery / Dine-in online: address + phone tappable */
+            (restaurantAddress || restaurantPhone) && (
+              <div className="flex flex-col gap-1.5">
+                {restaurantAddress && (
+                  <a
+                    href={`https://maps.google.com/?q=${encodeURIComponent(restaurantAddress)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 group"
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                    <span className="text-[13px] text-gray-600 group-hover:text-gray-800 transition-colors leading-tight">{restaurantAddress}</span>
+                  </a>
+                )}
+                {restaurantPhone && (
+                  <a
+                    href={`tel:${restaurantPhone}`}
+                    className="flex items-center gap-2 group"
+                  >
+                    <Phone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                    <span className="text-[13px] text-gray-600 group-hover:text-gray-800 transition-colors">{restaurantPhone}</span>
+                  </a>
+                )}
+              </div>
+            )
+          )}
+
+          {/* Order number — subtle, last */}
+          <p className="text-[11px] text-gray-400 mt-3 font-medium tracking-wide">
+            {t.orderLabel} <span className="font-bold text-gray-700">#{order.order_number}</span>
+          </p>
+        </div>
+      </div>
 
       {/* MENIUS branding banner */}
       <div className="bg-gray-50 border-b border-gray-100 py-1.5 px-4 flex items-center justify-center gap-1.5">
