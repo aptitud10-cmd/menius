@@ -1,0 +1,2 @@
+ALTER TABLE restaurants
+  ADD COLUMN IF NOT EXISTS cuisine_type TEXT DEFAULT NULL;

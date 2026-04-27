@@ -87,7 +87,7 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
 
     const { data: restaurant, error: restaurantError } = await db
       .from('restaurants')
-      .select('id, slug, name, description, logo_url, cover_image_url, address, phone, email, website, currency, locale, timezone, operating_hours, is_active, order_types_enabled, payment_methods_enabled, delivery_fee, estimated_delivery_minutes, latitude, longitude, available_locales, orders_paused_until, created_at, commission_plan, tax_rate, country_code, cuisine_type, translations')
+      .select('*')
       .eq('slug', slug)
       .single();
 
