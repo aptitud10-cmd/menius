@@ -117,10 +117,20 @@ function getT(locale?: string, orderType?: string) {
     yourDriver: en ? 'Your driver' : 'Tu repartidor',
     onTheWay: en ? 'On the way!' : '¡En camino!',
     headingToAddress: en ? 'Heading to your address' : 'Dirigiéndose a tu dirección',
+    callDriverDirect: (name: string) => en ? `Call ${name}` : `Llamar a ${name}`,
     // Driver at door card
     driverArrived: en ? 'Driver arrived!' : '¡Repartidor llegó!',
     atYourDoor: en ? 'At your door now' : 'Está en tu puerta',
     comeToTheDoor: en ? 'Please come to the door' : 'Por favor acércate a la puerta',
+    // Event timeline
+    timelineTitle: en ? 'Order activity' : 'Actividad del pedido',
+    timelineOrdered: en ? 'Order placed' : 'Pedido realizado',
+    timelineConfirmed: en ? 'Confirmed by restaurant' : 'Confirmado por el restaurante',
+    timelinePreparing: en ? 'Preparation started' : 'En preparación',
+    timelineReady: en ? 'Ready for dispatch' : 'Listo para envío',
+    timelinePickedUp: en ? 'Picked up by driver' : 'Recogido por el repartidor',
+    timelineAtDoor: en ? 'Driver at your door' : 'Repartidor en tu puerta',
+    timelineDelivered: en ? 'Delivered' : 'Entregado',
     // Items card
     yourOrderLabel: en ? 'Your order' : 'Tu pedido',
     itemSingular: en ? 'item' : 'producto',
@@ -1036,8 +1046,8 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                       <p className="text-[10px] font-bold text-blue-200 uppercase tracking-widest">
                         {t.yourDriver}
                       </p>
-                      <p className="text-lg font-black text-white leading-tight">
-                        {t.onTheWay}
+                      <p className="text-lg font-black text-white leading-tight truncate">
+                        {(order as any).driver_name ?? t.onTheWay}
                       </p>
                       <p className="text-sm text-blue-200 mt-0.5">
                         {t.headingToAddress}
@@ -1049,14 +1059,14 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                     </div>
                   </div>
                 </div>
-                {order.customer_phone && (
+                {(order as any).driver_phone && (
                   <div className="bg-blue-50 px-5 py-3 border-t border-blue-100">
                     <a
-                      href={`tel:${order.customer_phone}`}
+                      href={`tel:${(order as any).driver_phone}`}
                       className="flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl bg-white border border-blue-200 text-blue-700 font-bold text-sm hover:bg-blue-100 active:scale-[0.98] transition-all"
                     >
                       <Phone className="w-4 h-4" />
-                      {t.callDriver}
+                      {(order as any).driver_name ? t.callDriverDirect((order as any).driver_name) : t.callDriver}
                     </a>
                   </div>
                 )}
@@ -1073,12 +1083,12 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                         🚪
                       </div>
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <p className="text-[10px] font-bold text-orange-100 uppercase tracking-widest">
                         {t.driverArrived}
                       </p>
-                      <p className="text-xl font-black text-white leading-tight">
-                        {t.atYourDoor}
+                      <p className="text-xl font-black text-white leading-tight truncate">
+                        {(order as any).driver_name ?? t.atYourDoor}
                       </p>
                       <p className="text-sm text-orange-100 mt-0.5">
                         {t.comeToTheDoor}
@@ -1086,14 +1096,14 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                     </div>
                   </div>
                 </div>
-                {order.customer_phone && (
+                {(order as any).driver_phone && (
                   <div className="bg-orange-50 px-5 py-3 border-t border-orange-200">
                     <a
-                      href={`tel:${order.customer_phone}`}
+                      href={`tel:${(order as any).driver_phone}`}
                       className="flex items-center justify-center gap-2 w-full py-2.5 rounded-2xl bg-white border border-orange-200 text-orange-700 font-bold text-sm hover:bg-orange-100 active:scale-[0.98] transition-all"
                     >
                       <Phone className="w-4 h-4" />
-                      {t.callDriver}
+                      {(order as any).driver_name ? t.callDriverDirect((order as any).driver_name) : t.callDriver}
                     </a>
                   </div>
                 )}
@@ -1321,6 +1331,49 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
             </a>
           </div>
         )}
+
+        {/* ── EVENT TIMELINE (delivery orders only) ── */}
+        {order.order_type === 'delivery' && (() => {
+          const events: { label: string; ts: string }[] = [];
+          if (order.created_at) events.push({ label: t.timelineOrdered, ts: order.created_at });
+          if ((order as any).driver_assigned_at) events.push({ label: t.timelineReady, ts: (order as any).driver_assigned_at });
+          if ((order as any).driver_picked_up_at) events.push({ label: t.timelinePickedUp, ts: (order as any).driver_picked_up_at });
+          if ((order as any).driver_at_door_at) events.push({ label: t.timelineAtDoor, ts: (order as any).driver_at_door_at });
+          if ((order as any).driver_delivered_at) events.push({ label: t.timelineDelivered, ts: (order as any).driver_delivered_at });
+          if (events.length < 2) return null;
+          const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString(t.en ? 'en-US' : 'es-MX', { hour: '2-digit', minute: '2-digit' });
+          return (
+            <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-50">
+                <h3 className="text-sm font-bold text-gray-900">{t.timelineTitle}</h3>
+              </div>
+              <div className="px-5 py-4">
+                <div className="relative">
+                  <div className="absolute left-[7px] top-2 bottom-2 w-0.5 bg-gray-100" />
+                  <div className="space-y-4">
+                    {events.map((ev, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className={cn(
+                          'relative z-10 w-4 h-4 rounded-full border-2 flex-shrink-0',
+                          i === events.length - 1
+                            ? 'bg-brand-500 border-brand-500'
+                            : 'bg-white border-gray-300'
+                        )} />
+                        <div className="flex-1 flex items-center justify-between min-w-0">
+                          <span className={cn(
+                            'text-sm truncate',
+                            i === events.length - 1 ? 'font-bold text-gray-900' : 'text-gray-500'
+                          )}>{ev.label}</span>
+                          <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{fmtTime(ev.ts)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Review prompt */}
         {isComplete && (

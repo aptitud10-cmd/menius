@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
         delivery_fee, discount_amount, payment_method, notes, created_at, updated_at,
         customer_name, customer_phone, customer_email, delivery_address,
         estimated_ready_minutes,
+        driver_name, driver_phone, driver_assigned_at,
         driver_lat, driver_lng, driver_picked_up_at, driver_at_door_at, driver_delivered_at,
         delivery_photo_url,
         table:table_id(name),
