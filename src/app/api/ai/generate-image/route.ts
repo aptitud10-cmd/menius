@@ -337,30 +337,71 @@ FOOD STYLING: ${foodStyling}`;
 
     const aspectRatio = isBanner ? '16:9' : '4:3';
 
-    // ─── FETCH STYLE ANCHOR FOR THIS RESTAURANT + CATEGORY ───────────────────
+    // ─── FETCH STYLE ANCHOR (own → master fallback) ──────────────────────────
     let anchorBase64: string | null = null;
+    let anchorSource: 'restaurant' | 'master' | null = null;
     if (!isBanner && category) {
+      const adminSupabase = createAdminClient();
+      let anchorUrl: string | null = null;
+
+      // 1) Restaurant-specific anchor takes priority
       try {
-        const adminSupabase = createAdminClient();
-        const { data: anchor } = await adminSupabase
+        const { data: ownAnchor } = await adminSupabase
           .from('style_anchors')
           .select('anchor_url')
           .eq('restaurant_id', tenant.restaurantId)
           .eq('category_name', category)
           .maybeSingle();
+        if (ownAnchor?.anchor_url) {
+          anchorUrl = ownAnchor.anchor_url;
+          anchorSource = 'restaurant';
+        }
+      } catch (ownErr) {
+        logger.warn('Failed to query own style anchor', {
+          error: ownErr instanceof Error ? ownErr.message : String(ownErr),
+        });
+      }
 
-        if (anchor?.anchor_url) {
-          const anchorRes = await fetch(anchor.anchor_url, { signal: AbortSignal.timeout(8000) });
+      // 2) Fallback: master anchor matched by alias
+      if (!anchorUrl) {
+        try {
+          const { findMasterAnchor } = await import('@/lib/anchors/master-anchors');
+          const master = await findMasterAnchor(adminSupabase, category);
+          if (master?.anchor_url) {
+            anchorUrl = master.anchor_url;
+            anchorSource = 'master';
+            logger.info('Using master anchor fallback', {
+              restaurantId: tenant.restaurantId,
+              category,
+              masterSlug: master.category_slug,
+            });
+          }
+        } catch (masterErr) {
+          logger.warn('Failed to query master style anchor', {
+            error: masterErr instanceof Error ? masterErr.message : String(masterErr),
+          });
+        }
+      }
+
+      // 3) Download anchor image if we have a URL
+      if (anchorUrl) {
+        try {
+          const anchorRes = await fetch(anchorUrl, { signal: AbortSignal.timeout(8000) });
           if (anchorRes.ok) {
             const anchorBuffer = await anchorRes.arrayBuffer();
             anchorBase64 = Buffer.from(anchorBuffer).toString('base64');
-            logger.info('Style anchor loaded', { restaurantId: tenant.restaurantId, category });
+            logger.info('Style anchor loaded', {
+              restaurantId: tenant.restaurantId,
+              category,
+              source: anchorSource,
+            });
           }
+        } catch (downloadErr) {
+          logger.warn('Failed to download style anchor, generating without reference', {
+            error: downloadErr instanceof Error ? downloadErr.message : String(downloadErr),
+          });
+          anchorSource = null;
         }
-      } catch (anchorErr) {
-        logger.warn('Failed to load style anchor, generating without reference', {
-          error: anchorErr instanceof Error ? anchorErr.message : String(anchorErr),
-        });
       }
     }
 
@@ -579,6 +620,7 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
       url: urlData.publicUrl,
       generated: true,
       usedAnchor: !!anchorBase64,
+      anchorSource,
       engine,
     });
   } catch (err: unknown) {
