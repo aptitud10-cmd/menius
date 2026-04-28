@@ -61,18 +61,20 @@ export async function findMasterAnchor(
  * shape.
  */
 export const MASTER_PROMPTS: Record<string, string> = {
-  omelette: `Award-winning food photography of a CLASSIC FRENCH OMELETTE.
+  omelette: `Award-winning food photography of a CLASSIC AMERICAN-STYLE FOLDED OMELETTE.
 
-CRITICAL — the form is non-negotiable: pale yellow buttery exterior, slightly browned in spots, FOLDED in classic half-moon shape with the filling visible spilling from one open side. Steam wisps rising naturally. A few scattered fresh chives on top.
+CRITICAL — THIS IS A FOLDED OMELETTE, NOT scrambled eggs, NOT a flat egg sheet. Mandatory shape: a thin egg sheet cooked just until set, then FOLDED IN HALF into a clean HALF-MOON / CRESCENT SHAPE with the seam on top. The folded edge is clean and continuous. Pale buttery yellow exterior with the lightest brown blush in spots. Filling visible peeking out from one open side of the fold (cheese melting, ham diced). Light dusting of fresh chives on top.
 
-ON: pristine round white ceramic plate. Hash brown potatoes and a slice of buttered toast plated next to the omelette as breakfast accompaniments.
+The omelette must read INSTANTLY as a folded omelette — if a viewer sees scrambled eggs or a flat egg pancake, the photo has FAILED.
+
+ON: pristine round white ceramic plate. Crispy hash brown potatoes and a slice of buttered white toast plated next to the omelette as breakfast accompaniments.
 SURFACE: warm light oak wood breakfast table with subtle wood grain.
 LIGHTING: soft morning window light from the left at 35°, warm tones (3400K), gentle shadows.
-ANGLE: 42° hero angle showing the omelette's folded form clearly.
+ANGLE: 35° hero angle showing the omelette's folded crescent shape clearly from the side.
 CAMERA: 85mm prime lens, f/3.5, ISO 400, natural film grain.
 COMPOSITION: subject centered, occupying 60-65% of the frame width, generous margin all around.
 
-NO white corner artifacts. NO text. NO logos. NO hands. NO utensils. NO vignette.`,
+NO scrambled eggs. NO flat egg sheet. NO white corner artifacts. NO text. NO logos. NO hands. NO utensils. NO vignette.`,
 
   burger: `Award-winning food photography of a CLASSIC GOURMET BURGER.
 
@@ -217,18 +219,20 @@ COMPOSITION: wings arranged centered on the plate, 65% of frame width.
 
 NO white corner artifacts. NO text. NO logos. NO hands. NO vignette.`,
 
-  steak: `Award-winning food photography of a PERFECTLY GRILLED RIBEYE STEAK.
+  steak: `Award-winning food photography of a PERFECTLY GRILLED WHOLE STEAK.
 
-CRITICAL — a thick prime ribeye steak with deep crosshatch grill marks on the surface and a beautiful golden-brown Maillard crust. ONE clean cut on the side revealing the perfect medium-rare interior — vibrant pink with red juices glistening. Resting butter and fresh thyme sprig on top, slowly melting. Fresh cracked black pepper. Steam rising. Roasted garlic cloves and a small ramekin of chimichurri sauce beside the steak.
+CRITICAL — a thick juicy steak (sirloin or ribeye cut) shown WHOLE and UNCUT, never sliced open. Deep crosshatch grill marks on top, beautiful caramelized golden-brown Maillard crust on every visible surface. Cooked to MEDIUM (NOT rare, NOT medium-rare) — the steak is fully cooked through with a warm pink-brown interior that should ONLY be implied by appearance, never exposed by a cut showing red center. Resting butter pat melting on top with a fresh thyme sprig. Fresh cracked black pepper visible. Light steam rising naturally. Roasted garlic cloves and a small ramekin of green chimichurri sauce plated beside the steak.
 
-ON: matte dark ceramic plate or rustic wooden cutting board.
-SURFACE: dark slate restaurant surface.
-LIGHTING: single hard key light from the left at 45° revealing every texture — the crust, the cross-section interior, the glossy juices.
-ANGLE: 30° angle showing both the surface char and the cross-section.
+The steak must read as fully cooked and APPETIZING for everyday diners — no exposed red raw center, no blood-pink interior visible.
+
+ON: rustic wooden cutting board OR matte dark ceramic dinner plate.
+SURFACE: dark slate restaurant surface, slightly textured.
+LIGHTING: single hard key light from the left at 45° revealing every texture — the surface char, the grill marks, the glossy butter on top.
+ANGLE: 28° angle from the front showing the surface char and the steak's natural thickness in profile.
 CAMERA: 85mm prime lens, f/3.5, ISO 400.
 COMPOSITION: steak centered, 60% of frame width.
 
-NO white corner artifacts. NO text. NO logos. NO hands. NO vignette.`,
+NO red raw interior visible. NO sliced cross-section. NO white corner artifacts. NO text. NO logos. NO hands. NO vignette.`,
 
   seafood: `Award-winning food photography of a PAN-SEARED ATLANTIC SALMON FILLET.
 
@@ -253,6 +257,149 @@ LIGHTING: backlight at 30° behind the glass creating natural translucency glow 
 ANGLE: 20° tilt showing the full glass profile, condensation, and juice level.
 CAMERA: 85mm prime lens, f/2.0, ISO 400.
 COMPOSITION: glass centered, 50% of frame width, generous negative space.
+
+NO white corner artifacts. NO text. NO logos. NO hands. NO vignette.`,
+
+  appetizer: `Award-winning food photography of LOADED NACHOS as a sharable appetizer.
+
+CRITICAL — a generous pile of golden crispy tortilla chips arranged on a sharing platter, blanketed with melted yellow cheese, sprinkled with diced tomato, fresh cilantro, sliced jalapeños, black beans, and small dollops of guacamole and sour cream. The composition reads as an inviting shared starter — abundant but not chaotic.
+
+ON: round dark slate sharing platter or rustic wooden board.
+SURFACE: dark restaurant table, out-of-focus.
+LIGHTING: warm directional light from above-left at 40° revealing every texture — chip crispness, cheese pull, sauce shine.
+ANGLE: 35° hero angle showing the layered toppings clearly.
+CAMERA: 50mm prime lens, f/3.5, ISO 400.
+COMPOSITION: dish centered, 70% of frame width, slight overflow energy.
+
+NO white corner artifacts. NO text. NO logos. NO hands. NO vignette.`,
+
+  soup: `Award-winning food photography of a HEARTY HOMEMADE CHICKEN SOUP.
+
+CRITICAL — a wide ceramic soup bowl filled with golden chicken broth. Visible chunks of pulled chicken, carrots in rounds, celery, fresh herbs (parsley, cilantro), and small pasta or rice. Steam rising naturally. The broth is clear and inviting, not greasy. A wedge of lime and a slice of avocado on top hint at LatAm style.
+
+ON: wide ceramic soup bowl with a generous rim, on a small saucer.
+SURFACE: rustic warm wood table or warm ceramic surface.
+LIGHTING: soft natural light from the right at 35°, warm and homey, slight steam catching the light.
+ANGLE: 28° angle — bowl rim and broth surface clearly visible, soup ingredients showing.
+CAMERA: 85mm prime lens, f/3.2, ISO 400.
+COMPOSITION: bowl centered, 65% of frame width.
+
+NO white corner artifacts. NO text. NO logos. NO hands. NO vignette.`,
+
+  rice: `Award-winning food photography of CLASSIC ARROZ CON POLLO.
+
+CRITICAL — a wide plate of fluffy yellow rice (saffron or achiote tinted) topped with golden-roasted chicken pieces — clearly identifiable thigh and drumstick with crispy skin. Vibrant green peas, red bell pepper strips, and small black olives scattered through the rice. A wedge of lime on the side. The dish reads as abundant, homey LatAm comfort food.
+
+ON: wide round white ceramic dinner plate or shallow oval terracotta dish.
+SURFACE: warm wood restaurant table.
+LIGHTING: warm directional natural light from the left at 35°, golden tones (3200K).
+ANGLE: 32° angle — clearly showing the rice, the chicken pieces, and the colorful vegetables.
+CAMERA: 50mm prime lens, f/3.5, ISO 400.
+COMPOSITION: plate centered, 65% of frame width.
+
+NO white corner artifacts. NO text. NO logos. NO hands. NO vignette.`,
+
+  soft_drink: `Award-winning food photography of a CLASSIC ICED SODA in a clean glass.
+
+CRITICAL — a tall clear highball glass filled with bubbling amber-brown cola or lightly tinted soda. Crystal-clear ice cubes packed inside, bubbles visible rising through the liquid. Heavy condensation on the exterior glass with droplets running down. A simple lemon or lime wedge on the rim. The drink reads instantly as a refreshing soft drink, not alcohol.
+
+ON: polished dark wood bar counter or smooth dark stone.
+SURFACE: dark out-of-focus background, smooth.
+LIGHTING: backlight at 35° behind the glass creating luminous translucency through the bubbles. Soft cool fill from the front-right at low intensity.
+ANGLE: 18° tilt showing the full glass silhouette, ice, condensation, and bubbles.
+CAMERA: 85mm prime lens, f/2.2, ISO 400.
+COMPOSITION: glass centered, 50% of frame width, generous dark negative space.
+
+NO branded labels. NO white corner artifacts. NO text. NO logos. NO hands. NO vignette.`,
+
+  grill_meat: `Award-winning food photography of an ARGENTINIAN-STYLE PARRILLA / ASADO platter.
+
+CRITICAL — a generous wooden serving board piled with multiple cuts of grilled meat: a thick slice of churrasco (sirloin) with deep grill marks, a piece of grilled chorizo sausage cut diagonally to show the inside, a slice of grilled chicken or short rib. Each cut shows beautiful char marks and Maillard crust. ALL CUTS ARE FULLY COOKED — no exposed raw red interior. A small ramekin of bright green chimichurri sauce. A few roasted potato chunks and a wedge of lime alongside.
+
+ON: rustic wooden cutting board with handle, well-worn.
+SURFACE: warm wood restaurant table or stone tile.
+LIGHTING: single warm directional light from the left at 40° creating dramatic char-mark shadows.
+ANGLE: 30° hero angle showing the variety of cuts and char marks.
+CAMERA: 50mm prime lens, f/3.5, ISO 400.
+COMPOSITION: board centered, 70% of frame width, abundant feel.
+
+NO red raw interior. NO white corner artifacts. NO text. NO logos. NO hands. NO vignette.`,
+
+  ceviche: `Award-winning food photography of CLASSIC PERUVIAN CEVICHE.
+
+CRITICAL — a shallow white plate or wide glass coupe filled with chunks of cured white fish glistening in cloudy lime "leche de tigre" marinade. Thinly sliced red onion in vibrant magenta. Bright cilantro leaves scattered. One yellow rocoto pepper slice or thin chili rings for color. On the side: a few corn kernels (choclo) and a slice of orange sweet potato (camote). A wedge of lime garnish.
+
+ON: shallow flat white ceramic plate OR clear curved glass coupe.
+SURFACE: wet stone or cool blue-gray slate hinting at coastal freshness.
+LIGHTING: bright cool natural light from above-left, fresh and clean.
+ANGLE: 38° angle — fish chunks, onion, marinade pool, and accompaniments all visible.
+CAMERA: 85mm prime lens, f/3.2, ISO 200.
+COMPOSITION: plate centered, 60% of frame width, the plate filling but not crowded.
+
+NO white corner artifacts. NO text. NO logos. NO hands. NO vignette.`,
+
+  arepa: `Award-winning food photography of a CLASSIC VENEZUELAN AREPA REINA PEPIADA.
+
+CRITICAL — a thick golden-toasted round corn arepa, sliced open horizontally to show the white corn interior and stuffed generously with creamy chicken-avocado salad — visible chicken, mashed avocado, mayo. The filling is overflowing slightly from the open side, inviting. The arepa exterior shows dark golden char spots from the budare grill.
+
+ON: small round wooden cutting board OR plain white ceramic plate.
+SURFACE: warm wood breakfast table or warm tile surface.
+LIGHTING: warm soft directional light from the left at 35°, golden tones, natural.
+ANGLE: 30° angle — open side facing camera so filling is fully visible, char marks on the exterior visible.
+CAMERA: 85mm prime lens, f/3.2, ISO 400.
+COMPOSITION: arepa centered, 60% of frame width.
+
+NO white corner artifacts. NO text. NO logos. NO hands. NO vignette.`,
+
+  empanada: `Award-winning food photography of a TRIO OF GOLDEN EMPANADAS.
+
+CRITICAL — three baked or fried empanadas with a beautifully golden-brown crust, classic crimped half-moon shape with neat fork-pressed edges. ONE empanada cut open to show a generous savory filling inside (seasoned ground beef with onions, peppers, hard-boiled egg pieces, olives — clearly visible). The other two whole. A small ramekin of chimichurri or green sauce on the side. A wedge of lime.
+
+ON: rustic ceramic plate or wooden serving board.
+SURFACE: warm wood restaurant table.
+LIGHTING: warm directional light from the right at 40° revealing the texture of the crust.
+ANGLE: 32° angle showing the trio together with the cut empanada displaying its filling.
+CAMERA: 85mm prime lens, f/3.5, ISO 400.
+COMPOSITION: empanadas arranged centered, 65% of frame width.
+
+NO white corner artifacts. NO text. NO logos. NO hands. NO vignette.`,
+
+  combo_plate: `Award-winning food photography of COLOMBIAN BANDEJA PAISA.
+
+CRITICAL — a large oval or round plate generously loaded with a Colombian combo plate: white rice on one side, red beans (frijoles) in a small mound, a piece of grilled steak (well done), a piece of golden crispy chicharrón pork belly, a fried egg on top with bright yellow yolk visible, a few slices of golden fried sweet plantain (plátano maduro), one small white arepa, half an avocado, and a small white chorizo sausage. Every component clearly identifiable. The plate is abundant but ordered — readable as a complete typical plate.
+
+ON: large oval white ceramic plate or rectangular wooden serving board.
+SURFACE: warm wood restaurant table, brown and inviting.
+LIGHTING: warm overhead-leaning light from above-left at 50°, even, slightly warm.
+ANGLE: 38° angle balancing top-down readability with hero angle on the meats.
+CAMERA: 35mm wide prime lens, f/4.5, ISO 400 — wider lens to fit all components.
+COMPOSITION: plate centered, 80% of frame width — abundance is the point.
+
+NO white corner artifacts. NO text. NO logos. NO hands. NO vignette.`,
+
+  chilaquiles: `Award-winning food photography of MEXICAN CHILAQUILES VERDES.
+
+CRITICAL — a wide ceramic plate piled with crispy tortilla chips bathed in vibrant green tomatillo salsa, the chips slightly softened but still maintaining crunch on the edges. Topped with crumbled white queso fresco, thin slices of red onion, fresh cilantro, sliced avocado, and a fried egg on top with bright yellow runny yolk. A drizzle of crema and a wedge of lime on the side.
+
+ON: wide round white ceramic plate.
+SURFACE: warm woven Mexican tablecloth or rustic ceramic tile.
+LIGHTING: warm morning light from the right at 35°.
+ANGLE: 35° hero angle showing the green salsa, the toppings, and the egg yolk catching the light.
+CAMERA: 85mm prime lens, f/3.2, ISO 400.
+COMPOSITION: plate centered, 65% of frame width.
+
+NO white corner artifacts. NO text. NO logos. NO hands. NO vignette.`,
+
+  mole: `Award-winning food photography of MOLE POBLANO over chicken.
+
+CRITICAL — a piece of cooked chicken (thigh and drumstick) plated and generously coated with a thick, glossy, deep mahogany-brown mole sauce that pools naturally on the plate. Toasted sesame seeds sprinkled over the top of the sauce. A small mound of white Mexican rice on one side. A warm corn tortilla folded beside it. The mole has a velvety, lacquered surface that reads as authentic.
+
+ON: round white ceramic dinner plate.
+SURFACE: warm woven Mexican tablecloth or rustic terracotta tile.
+LIGHTING: warm directional light from the left at 40° catching the sheen of the mole sauce.
+ANGLE: 32° angle showing the sauce coating, the chicken, the rice, and the tortilla.
+CAMERA: 85mm prime lens, f/3.5, ISO 400.
+COMPOSITION: plate centered, 65% of frame width.
 
 NO white corner artifacts. NO text. NO logos. NO hands. NO vignette.`,
 };

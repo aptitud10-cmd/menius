@@ -12,11 +12,25 @@ export function CalibrateClient({ initialAnchors }: { initialAnchors: MasterAnch
   const [candidates, setCandidates] = useState<CandidatesMap>({});
   const [failures, setFailures] = useState<FailureList>([]);
   const [generating, setGenerating] = useState(false);
+  const [regeneratingSlug, setRegeneratingSlug] = useState<string | null>(null);
   const [savingSlug, setSavingSlug] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const missingSlugs = anchors.filter((a) => !a.anchor_url).map((a) => a.category_slug);
   const totalToGenerate = missingSlugs.length;
+
+  async function callGenerate(slugs: string[]) {
+    const r = await fetch('/api/admin/master-anchors/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slugs }),
+    });
+    if (!r.ok) {
+      const errBody = await r.json().catch(() => ({}));
+      throw new Error(errBody.error ?? r.statusText);
+    }
+    return r.json() as Promise<{ candidates?: CandidatesMap; failures?: FailureList }>;
+  }
 
   async function generateAll() {
     if (totalToGenerate === 0) {
@@ -28,24 +42,12 @@ export function CalibrateClient({ initialAnchors }: { initialAnchors: MasterAnch
     setFailures([]);
     try {
       const slugsToSend = totalToGenerate > 0 ? missingSlugs : anchors.map((a) => a.category_slug);
-      const r = await fetch('/api/admin/master-anchors/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slugs: slugsToSend }),
-      });
-      if (!r.ok) {
-        const errBody = await r.json().catch(() => ({}));
-        throw new Error(errBody.error ?? r.statusText);
-      }
-      const data = await r.json();
+      const data = await callGenerate(slugsToSend);
       const cands = data.candidates ?? {};
       const fails = data.failures ?? [];
       setCandidates(cands);
       setFailures(fails);
-      const totalCandidates = Object.values(cands as Record<string, string[]>).reduce(
-        (sum, arr) => sum + arr.length,
-        0,
-      );
+      const totalCandidates = Object.values(cands).reduce((sum, arr) => sum + arr.length, 0);
       if (totalCandidates === 0) {
         setError(
           fails.length > 0
@@ -57,6 +59,30 @@ export function CalibrateClient({ initialAnchors }: { initialAnchors: MasterAnch
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function regenerateOne(slug: string) {
+    setError(null);
+    setRegeneratingSlug(slug);
+    try {
+      const data = await callGenerate([slug]);
+      const newCands = data.candidates?.[slug] ?? [];
+      const newFails = (data.failures ?? []).filter((f) => f.slug === slug);
+      setCandidates((prev) => ({ ...prev, [slug]: newCands }));
+      // Replace existing failures for this slug with the new ones
+      setFailures((prev) => [...prev.filter((f) => f.slug !== slug), ...newFails]);
+      if (newCands.length === 0) {
+        setError(
+          newFails.length > 0
+            ? `0 images generated for ${slug}. ${newFails.length} failure(s).`
+            : `0 images generated for ${slug} and no failures reported.`,
+        );
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRegeneratingSlug(null);
     }
   }
 
@@ -89,6 +115,13 @@ export function CalibrateClient({ initialAnchors }: { initialAnchors: MasterAnch
     }
   }
 
+  function regenerateButtonClasses(slug: string, variant: 'compact' | 'full') {
+    const base = variant === 'compact'
+      ? 'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 disabled:cursor-wait'
+      : 'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 disabled:cursor-wait';
+    return `${base} border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10 ${regeneratingSlug === slug || generating ? 'opacity-50 cursor-wait' : ''}`;
+  }
+
   return (
     <>
       <div className="mb-8 flex items-center justify-between gap-4 flex-wrap">
@@ -105,7 +138,7 @@ export function CalibrateClient({ initialAnchors }: { initialAnchors: MasterAnch
           <button
             type="button"
             onClick={generateAll}
-            disabled={generating}
+            disabled={generating || regeneratingSlug !== null}
             className="px-5 py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {generating ? 'Generating… (3-5 min)' : totalToGenerate > 0 ? `Generate ${totalToGenerate} missing` : 'Regenerate all'}
@@ -134,6 +167,8 @@ export function CalibrateClient({ initialAnchors }: { initialAnchors: MasterAnch
       <div className="space-y-8">
         {anchors.map((a) => {
           const cands = candidates[a.category_slug] ?? [];
+          const isRegenerating = regeneratingSlug === a.category_slug;
+
           if (cands.length === 0 && a.anchor_url) {
             return (
               <section
@@ -151,6 +186,14 @@ export function CalibrateClient({ initialAnchors }: { initialAnchors: MasterAnch
                   <h3 className="text-base font-semibold text-emerald-300">{a.display_name}</h3>
                   <p className="text-xs text-gray-500 truncate mt-0.5">Configured · {a.category_slug}</p>
                 </div>
+                <button
+                  type="button"
+                  disabled={isRegenerating || generating}
+                  onClick={() => regenerateOne(a.category_slug)}
+                  className={regenerateButtonClasses(a.category_slug, 'compact')}
+                >
+                  {isRegenerating ? 'Generating… (~30s)' : 'Regenerate 3'}
+                </button>
               </section>
             );
           }
@@ -167,21 +210,39 @@ export function CalibrateClient({ initialAnchors }: { initialAnchors: MasterAnch
                   <h3 className="text-base font-semibold">{a.display_name}</h3>
                   <p className="text-xs text-gray-500 mt-0.5">No anchor yet · {a.category_slug}</p>
                 </div>
+                <button
+                  type="button"
+                  disabled={isRegenerating || generating}
+                  onClick={() => regenerateOne(a.category_slug)}
+                  className={regenerateButtonClasses(a.category_slug, 'compact')}
+                >
+                  {isRegenerating ? 'Generating… (~30s)' : 'Generate 3'}
+                </button>
               </section>
             );
           }
           return (
             <section key={a.id} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-base font-semibold">{a.display_name}</h3>
-                <code className="text-[10px] text-gray-600 font-mono">{a.category_slug}</code>
+              <div className="flex items-center justify-between mb-4 gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <h3 className="text-base font-semibold">{a.display_name}</h3>
+                  <code className="text-[10px] text-gray-600 font-mono">{a.category_slug}</code>
+                </div>
+                <button
+                  type="button"
+                  disabled={isRegenerating || generating}
+                  onClick={() => regenerateOne(a.category_slug)}
+                  className={regenerateButtonClasses(a.category_slug, 'full')}
+                >
+                  {isRegenerating ? 'Regenerating… (~30s)' : 'Regenerate 3'}
+                </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {cands.map((url, i) => (
                   <button
                     key={url}
                     type="button"
-                    disabled={savingSlug === a.category_slug}
+                    disabled={savingSlug === a.category_slug || isRegenerating}
                     onClick={() => pickCandidate(a.category_slug, url)}
                     className="group relative rounded-xl overflow-hidden border-2 border-white/[0.06] hover:border-emerald-400/60 transition-colors disabled:opacity-50 disabled:cursor-wait"
                     style={{ aspectRatio: '4/3' }}
