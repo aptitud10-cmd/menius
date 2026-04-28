@@ -446,7 +446,10 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
               guidance_scale: 3.5,
             },
           });
-          falImageUrl = (kontextResult as any)?.images?.[0]?.url ?? null;
+          falImageUrl =
+            (kontextResult as any)?.data?.images?.[0]?.url ??
+            (kontextResult as any)?.images?.[0]?.url ??
+            null;
         } else {
           // flux-pro/v1.1-ultra: improved architecture with fewer corner artifacts
           const v1Result = await (fal as any).subscribe('fal-ai/flux-pro/v1.1-ultra', {
@@ -460,7 +463,10 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
               safety_tolerance: '5',
             },
           });
-          falImageUrl = (v1Result as any)?.images?.[0]?.url ?? null;
+          falImageUrl =
+            (v1Result as any)?.data?.images?.[0]?.url ??
+            (v1Result as any)?.images?.[0]?.url ??
+            null;
         }
 
         if (falImageUrl) {

@@ -90,9 +90,16 @@ export async function POST(request: NextRequest) {
           },
         });
 
-      const imgUrl = (result as { images?: Array<{ url?: string }> })?.images?.[0]?.url;
+      // @fal-ai/client@1.x wraps the response in { data, requestId }.
+      // Older code paths in this repo also accept the unwrapped shape, so try both.
+      const r = result as {
+        data?: { images?: Array<{ url?: string }> };
+        images?: Array<{ url?: string }>;
+      };
+      const imgUrl = r?.data?.images?.[0]?.url ?? r?.images?.[0]?.url;
       if (!imgUrl) {
-        failures.push({ slug, reason: `variant ${v + 1}: no image URL returned` });
+        const shape = JSON.stringify(result).slice(0, 200);
+        failures.push({ slug, reason: `variant ${v + 1}: no image URL returned (shape: ${shape})` });
         return null;
       }
 
