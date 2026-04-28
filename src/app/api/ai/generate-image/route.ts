@@ -224,6 +224,13 @@ export async function POST(request: NextRequest) {
         if (/coffee|café|espresso|latte|cappuccino/.test(lowerName)) return 'Perfect latte art rosette or tulip pattern. Steam rising delicately. Crema golden-brown and smooth. Impeccable barista craft visible.';
         return 'Drink fresh, vibrant, and perfectly prepared. Garnish precisely placed. Condensation visible on cold glass. Every detail of the preparation visible.';
       }
+      if (/omelette|omelet|tortilla francesa/.test(lowerName)) return 'Classic folded omelette in a half-moon or tri-fold shape — pale yellow buttery exterior, slightly browned in spots, slightly glossy. Filling clearly visible spilling from the open side — every ingredient from the description must be identifiable and recognizable (proteins, vegetables, cheese melting). Steam wisps rising. Side accompaniments (potatoes, toast, fruit, etc.) plated alongside the omelette as described, never on top. Garnish of fresh herbs. Always a real cooked egg dish — never a burger, never a flat pancake.';
+      if (/huevos? benedict|benedictinos/.test(lowerName)) return 'Two perfectly poached eggs on English muffin halves with Canadian bacon or ham, blanketed in glossy hollandaise sauce dripping naturally. The yolk must be visibly runny in the cross-section — golden orange. Chives sprinkled on top. Sides plated next to it.';
+      if (/huevos? rancheros/.test(lowerName)) return 'Two sunny-side-up fried eggs with vibrant orange-yellow yolks, on warm corn tortillas, smothered in red ranchera salsa. Refried beans, queso fresco crumbled, cilantro, avocado slices on the side.';
+      if (/chilaquiles/.test(lowerName)) return 'Crispy tortilla chips coated in red or green salsa, topped with crema, queso fresco crumbled, sliced onion, cilantro. Two fried eggs on top with bright orange-yellow yolks. Avocado slices on the side.';
+      if (/pancake|hotcake/.test(lowerName)) return 'Stack of 3 fluffy golden-brown pancakes with butter pat melting and pooling on top. Maple syrup dripping naturally down the sides forming a small pool. Fresh berries bright and colorful on top. Powdered sugar dusting delicate as snow.';
+      if (/waffle/.test(lowerName)) return 'Golden-brown Belgian waffle with deep crispy squares, butter pat melting in a pocket, maple syrup pooling, fresh berries on top, powdered sugar dusting. Whipped cream cloud on the side.';
+      if (/french toast|tostada francesa/.test(lowerName)) return 'Thick slices of golden-brown French toast with crisp edges, dusted with powdered sugar, maple syrup dripping. Fresh berries and a butter pat melting on top.';
       if (/burger|hamburguesa/.test(lowerName)) return 'Every layer perfectly composed: brioche bun with toasted sesame seeds, Maillard-crusted patty with visible char, cheese melting in golden ribbons draping over the sides, vibrant fresh lettuce and bright red tomato. One natural sauce drip at the side — controlled and artful.';
       if (/taco/.test(lowerName)) return 'Taco filling overflowing generously — protein, vibrant salsa, fresh cilantro, white diced onion. Lime wedge bright yellow. Slight char marks on the tortilla. Authentic street food energy.';
       if (/pizza/.test(lowerName)) return 'One slice being lifted — mozzarella cheese stretching in long glossy strands catching the light. Crust golden-brown with char bubbles from a wood-fired oven. Fresh basil leaf vibrant green. Sauce glistening red through the cheese.';
@@ -235,7 +242,6 @@ export async function POST(request: NextRequest) {
       if (/nacho/.test(lowerName)) return 'Cheese melted and pulling dramatically between chips. Jalapeño slices vibrant green. Guacamole bright fresh green. Pico de gallo vivid red and yellow.';
       if (/ice cream|helado/.test(lowerName)) return 'Scoops perfectly rounded and glistening. Sauce dripping naturally down the sides. Slight condensation on the cold bowl. Colors vivid and rich.';
       if (/brownie/.test(lowerName)) return 'Warm brownie with a cracked top revealing a fudgy interior. Ice cream melting slightly over the warm surface. Chocolate sauce dripping in a controlled artful stream. Whipped cream perfectly swirled.';
-      if (/pancake|hotcake/.test(lowerName)) return 'Pancakes stacked with butter melting and pooling on top. Maple syrup dripping naturally down the sides. Fresh berries bright and colorful. Powdered sugar dusting delicate as snow.';
       if (/salad|ensalada/.test(lowerName)) return 'Greens crisp and vibrant, each leaf glistening. Dressing coating every leaf naturally. Parmesan shavings catching the light. Croutons golden-brown with visible texture.';
       return 'Food fresh, exquisitely appetizing, and perfectly prepared. Natural textures and deep colors. Steam rising if hot. Professional fine-dining restaurant presentation with artful plating.';
     };
@@ -311,13 +317,14 @@ COLOR SCIENCE: Rich warm tonal depth. Deep shadows with warm amber undertones �
 
 This is an award-winning commercial food photograph in the style of Lyan van Furth or Eric Wolfinger — the world's finest food photographers. Every pixel is intentional, every corner covered with rich background texture.
 
-SUBJECT: "${productName}"${description ? ` — ${description}` : ''}.
+SUBJECT: "${productName}".
+${description ? `INGREDIENTS — every ingredient listed here MUST be visibly identifiable in the photograph, accurately depicted (no substitutions, no missing items): ${description}` : ''}
 SERVED IN/ON: ${container}.
 ${effectiveCuisineContext ? `PLATING IDENTITY: ${effectiveCuisineContext}` : ''}
 
 CAMERA: 50mm or 85mm prime lens, ${dofInstruction}, ISO 400 — authentic DSLR photograph with natural film grain.
 ANGLE: ${angleInstruction}.
-COMPOSITION: 4:3 horizontal frame. Subject positioned at the power point using the rule of thirds — slightly off-center, never dead-center. Subject fills 55-65% of the frame, leaving generous negative space that gives the image breathing room and a high-end editorial feel. SAFE ZONE: all food/drink within the central 80% — outer 10% may be cropped by UI.
+COMPOSITION: 4:3 horizontal frame. Subject CENTERED horizontally and vertically — the dish/glass must be in the middle of the frame, NOT pushed to any side. Subject fills 60-70% of the frame for balanced presentation. SAFE ZONE: all food/drink within the central 75% — outer 12.5% margin all around must contain only background/surface, never the subject.
 
 SURFACE & SETTING: ${surfaceInstruction}
 ${styleOverride ? styleOverride : ''}
@@ -364,10 +371,15 @@ FOOD STYLING: ${foodStyling}`;
 - The camera angle and overall composition style
 - The color grading, mood, and tonal quality
 
-Change ONLY the subject to: "${productName}"${description ? ` — ${description}` : ''}.
+CRITICAL — the SUBJECT must change completely to: "${productName}".
+${description ? `INGREDIENTS — these must be VISIBLY identifiable in the new photograph, faithfully depicted with no substitutions: ${description}` : ''}
+
 Served in/on: ${container}.
 ${foodStyling}
-Keep everything else — surface, lighting, background, atmosphere — pixel-perfect consistent with the reference.` : null;
+
+COMPOSITION: Subject CENTERED in the frame, balanced, occupying 60-70% of the width. Outer 12.5% margin all around must show only background/surface, never the subject. Do NOT shift the dish to the right, left, top or bottom.
+
+Keep everything else — surface, lighting, background, atmosphere — pixel-perfect consistent with the reference, but NEVER copy the food itself from the reference. The food must be the new subject described above.` : null;
 
     // ─── PRIMARY: fal.ai flux-pro/v1.1 — single image, fast ─────────────────
     let imageBase64: string | null = null;
@@ -467,15 +479,78 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
     // Optimize AI-generated image the same way manual uploads are processed:
     // resize to max 1200×1200, convert to WebP at quality 82.
     const sharp = (await import('sharp')).default;
-    // Optimize sharp performance
     sharp.simd(true);
-    // Determine concurrency based on environment (e.g., Vercel's CPU count)
-    // Fallback to 2 if os.cpus() is not available or appropriate for serverless
     const os = await import('os');
     const cpuCount = os.cpus().length;
-    sharp.concurrency(Math.max(2, Math.min(cpuCount, 4))); // Limit to 4 concurrent operations
-    logger.info('Sharp concurrency and SIMD enabled', { cpuCount, sharpConcurrency: sharp.concurrency() });
-    const buffer = await sharp(rawBuffer)
+    sharp.concurrency(Math.max(2, Math.min(cpuCount, 4)));
+
+    // ─── DETECT + REMOVE WHITE/BRIGHT CORNER ARTIFACTS ─────────────────────
+    // Some AI models leave bright/white patches in image corners. We sample
+    // each corner (8% × 8% region) and check the mean brightness. If a corner
+    // is significantly brighter than the rest of the image, we crop inward
+    // by ~4% to eliminate the artifact before the final resize.
+    let preprocessed = sharp(rawBuffer);
+    try {
+      const meta = await preprocessed.metadata();
+      const w = meta.width ?? 0;
+      const h = meta.height ?? 0;
+      if (w > 200 && h > 200) {
+        const sampleW = Math.floor(w * 0.08);
+        const sampleH = Math.floor(h * 0.08);
+        const corners = [
+          { left: 0, top: 0 },
+          { left: w - sampleW, top: 0 },
+          { left: 0, top: h - sampleH },
+          { left: w - sampleW, top: h - sampleH },
+        ];
+        const cornerMeans = await Promise.all(
+          corners.map(async (c) =>
+            sharp(rawBuffer)
+              .extract({ left: c.left, top: c.top, width: sampleW, height: sampleH })
+              .greyscale()
+              .stats()
+              .then((s) => s.channels[0]?.mean ?? 0)
+              .catch(() => 0),
+          ),
+        );
+        // Sample image center (40% × 40%) for comparison
+        const cx = Math.floor(w * 0.3);
+        const cy = Math.floor(h * 0.3);
+        const cw = Math.floor(w * 0.4);
+        const ch = Math.floor(h * 0.4);
+        const centerStats = await sharp(rawBuffer)
+          .extract({ left: cx, top: cy, width: cw, height: ch })
+          .greyscale()
+          .stats()
+          .catch(() => null);
+        const centerMean = centerStats?.channels[0]?.mean ?? 128;
+
+        // If ANY corner is >220 brightness (near-white) AND substantially
+        // brighter than center (> +50), crop ~4% off all sides to remove it.
+        const hasWhiteCorner = cornerMeans.some((m) => m > 220 && m - centerMean > 50);
+        if (hasWhiteCorner) {
+          const cropPx = Math.floor(Math.min(w, h) * 0.04);
+          preprocessed = sharp(rawBuffer).extract({
+            left: cropPx,
+            top: cropPx,
+            width: w - cropPx * 2,
+            height: h - cropPx * 2,
+          });
+          logger.info('Cropped white corner artifact', {
+            cornerMeans,
+            centerMean,
+            cropPx,
+          });
+        }
+      }
+    } catch (cornerErr) {
+      logger.warn('Corner artifact detection failed, proceeding without crop', {
+        error: cornerErr instanceof Error ? cornerErr.message : String(cornerErr),
+      });
+      preprocessed = sharp(rawBuffer);
+    }
+
+    const buffer = await preprocessed
       .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 82 })
       .toBuffer();
