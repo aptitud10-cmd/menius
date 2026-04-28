@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { getLandingT, type LandingLocale } from '@/lib/landing-translations';
 import { PhoneMockup } from './PhoneMockup';
+import { HeroScrollCue } from './HeroScrollCue';
 
 function formatCount(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1).replace('.0', '')}k+`;
@@ -83,7 +84,14 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
         </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#050505] to-transparent z-20" />
+      {/* Bridge to next section — soft fade + brand glow + scroll cue */}
+      <div className="hero-bridge" aria-hidden>
+        <div className="hero-bridge-fade" />
+        <div className="hero-bridge-glow" />
+      </div>
+
+      {/* Scroll indicator — desktop only, fades when user scrolls */}
+      <HeroScrollCue />
     </section>
   );
 }

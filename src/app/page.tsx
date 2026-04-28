@@ -1,14 +1,22 @@
 import { cookies, headers } from 'next/headers';
 import { unstable_cache } from 'next/cache';
+import dynamic from 'next/dynamic';
 import type { Metadata, Viewport } from 'next';
 import { LandingHero } from '@/components/landing/LandingHero';
-import { LandingSections } from '@/components/landing/LandingSections';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { LandingStickyCta } from '@/components/landing/LandingStickyCta';
 import CrispChat from '@/components/CrispChat';
 import type { LandingLocale } from '@/lib/landing-translations';
 import { createAdminClient } from '@/lib/supabase/admin';
+
+// Lazy-load below-the-fold sections — splits the heavy interactive bundle
+// (pricing, calculator, features, FAQ) into a separate chunk so the hero LCP
+// is not blocked by it. SSR stays true → SEO and crawlers see the full page.
+const LandingSections = dynamic(
+  () => import('@/components/landing/LandingSections').then((m) => m.LandingSections),
+  { ssr: true }
+);
 
 const getPublicStats = unstable_cache(
   async () => {

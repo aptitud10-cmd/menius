@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
-import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import { LandingNav } from '@/components/landing/LandingNav';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import type { LandingLocale } from '@/lib/landing-translations';
-import { getFaqCategories, getFaqPageText } from '@/lib/faq-data';
+import { getFaqCategories, getFaqPageText, extractFaqText } from '@/lib/faq-data';
 import { FaqClient } from '@/components/faq/FaqClient';
 
 export const metadata: Metadata = {
@@ -17,17 +16,6 @@ export const metadata: Metadata = {
     type: 'website',
   },
 };
-
-function extractText(node: ReactNode): string {
-  if (typeof node === 'string') return node;
-  if (typeof node === 'number') return String(node);
-  if (!node) return '';
-  if (Array.isArray(node)) return node.map(extractText).join('');
-  if (typeof node === 'object' && 'props' in node) {
-    return extractText((node as any).props.children);
-  }
-  return '';
-}
 
 export default async function FaqPage() {
   const cookieStore = await cookies();
@@ -45,7 +33,7 @@ export default async function FaqPage() {
     mainEntity: allQuestions.map((q) => ({
       '@type': 'Question',
       name: q.q,
-      acceptedAnswer: { '@type': 'Answer', text: extractText(q.a) },
+      acceptedAnswer: { '@type': 'Answer', text: extractFaqText(q.a) },
     })),
   };
 
@@ -67,7 +55,7 @@ export default async function FaqPage() {
       </section>
 
       {/* Interactive nav + filtered content */}
-      <FaqClient categories={categories} pt={pt} totalQuestions={totalQuestions} />
+      <FaqClient categories={categories} pt={pt} />
 
       <LandingFooter locale={locale} />
     </div>

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { BlogPost } from '@/lib/blog-data';
+import { CategoryFilter } from '@/components/ui/CategoryFilter';
 
 interface BlogGridProps {
   posts: BlogPost[];
@@ -42,46 +43,54 @@ function getUiText(locale: string) {
 
 export function BlogGrid({ posts, categories, locale = 'es' }: BlogGridProps) {
   const [active, setActive] = useState<string | null>(null);
+  const [hidden, setHidden] = useState(false);
+  const lastScrollY = useRef(0);
   const ui = getUiText(locale);
+
+  // Auto-hide sticky on scroll-down, reveal on scroll-up (mobile UX)
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      const delta = y - lastScrollY.current;
+      // Only react past 80px and on meaningful deltas (avoid jitter)
+      if (y < 80) {
+        setHidden(false);
+      } else if (delta > 6) {
+        setHidden(true);
+      } else if (delta < -6) {
+        setHidden(false);
+      }
+      lastScrollY.current = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const filtered = active ? posts.filter((p) => p.category === active) : posts;
   const featured = filtered[0];
   const rest = filtered.slice(1);
 
+  const filterCategories = categories.map((cat) => ({
+    id: cat,
+    label: cat,
+    count: posts.filter((p) => p.category === cat).length,
+  }));
+
   return (
     <>
-      {/* Categories */}
-      <section className="sticky top-16 z-40 bg-[#050505]/80 backdrop-blur-2xl border-b border-white/[0.04]">
+      {/* Categories — auto-hides on scroll-down for mobile */}
+      <section
+        className={`sticky top-16 z-40 bg-[#050505]/80 backdrop-blur-2xl border-b border-white/[0.04] transition-transform duration-300 ${hidden ? '-translate-y-full' : 'translate-y-0'}`}
+      >
         <div className="max-w-5xl mx-auto">
-          <nav className="flex items-center gap-1 overflow-x-auto py-3 scrollbar-hide px-6">
-            <button
-              onClick={() => setActive(null)}
-              className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                active === null
-                  ? 'bg-white text-black'
-                  : 'text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              {ui.all} ({posts.length})
-            </button>
-            {categories.map((cat) => {
-              const count = posts.filter((p) => p.category === cat).length;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setActive(active === cat ? null : cat)}
-                  className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    active === cat
-                      ? 'bg-white text-black'
-                      : 'text-gray-500 hover:text-gray-300'
-                  }`}
-                >
-                  {cat} ({count})
-                </button>
-              );
-            })}
-            <div className="flex-shrink-0 w-2" aria-hidden />
-          </nav>
+          <CategoryFilter
+            categories={filterCategories}
+            active={active}
+            onChange={setActive}
+            allLabel={ui.all}
+            allCount={posts.length}
+            ariaLabel={locale === 'en' ? 'Blog categories' : 'Categorías del blog'}
+          />
         </div>
       </section>
 

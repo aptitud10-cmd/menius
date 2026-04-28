@@ -34,10 +34,52 @@
   /* Animation timing */
   --ease-spring:     cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out:        cubic-bezier(0.0, 0, 0.2, 1);
+  --ease-premium:    cubic-bezier(0.16, 1, 0.3, 1);
   --dur-fast:        150ms;
   --dur-base:        250ms;
   --dur-slow:        400ms;
   --dur-enter:       700ms;
+
+  /* ── Border radius scale ──
+     Single source of truth for radii. Tailwind classes in components
+     should match this hierarchy:
+       - rounded-full  → pills, badges, circular icons
+       - rounded-2xl   → cards (matches --radius-card)
+       - rounded-xl    → primary buttons (matches --radius-button)
+       - rounded-lg    → small chips, tabs, secondary buttons
+     Use the CSS variables directly when writing custom styles
+     (e.g. .card-premium, .hero-bridge-glow). */
+  --radius-pill:     999px;          /* rounded-full */
+  --radius-card:     1rem;           /* rounded-2xl (16px) */
+  --radius-button:   0.75rem;        /* rounded-xl (12px) */
+  --radius-chip:     0.5rem;         /* rounded-lg (8px) */
+  --radius-input:    0.625rem;       /* rounded-[10px] */
+
+  /* ── Section spacing scale ──
+     Vertical rhythm between major landing sections. The scale is
+     intentionally compact:
+       - py-section-sm  → social proof, separators (~80px / 96px)
+       - py-section-md  → standard section (~96px / 160px) — most sections
+       - py-section-lg  → hero, final CTA (~96px / 200px) — emphasis
+     Components should reach for these tokens via @apply or use
+     the matching Tailwind classes (py-20 md:py-24 / py-24 md:py-40 / py-24 md:py-52). */
+  --section-pad-sm-mobile:  5rem;     /* py-20 */
+  --section-pad-sm-desktop: 6rem;     /* py-24 */
+  --section-pad-md-mobile:  6rem;     /* py-24 */
+  --section-pad-md-desktop: 10rem;    /* py-40 */
+  --section-pad-lg-mobile:  6rem;     /* py-24 */
+  --section-pad-lg-desktop: 13rem;    /* py-52 */
+
+  /* ── Card padding scale ──
+     Horizontal/vertical inset for card content. Three steps:
+       - card-pad-sm  → testimonials, FAQ rows (24px / 28px)
+       - card-pad-md  → standard cards (32px)
+       - card-pad-lg  → feature spotlight, hero cards (32px / 48px) */
+  --card-pad-sm-mobile:  1.5rem;     /* p-6 */
+  --card-pad-sm-desktop: 1.75rem;    /* p-7 */
+  --card-pad-md:         2rem;       /* p-8 */
+  --card-pad-lg-mobile:  2rem;       /* p-8 */
+  --card-pad-lg-desktop: 3rem;       /* p-12 */
 }
 
 /* ── Mobile-first foundation ── */
@@ -734,6 +776,84 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
   animation-delay: -8s;
 }
 
+/* ─── Hero → next section bridge ──────────────────────────────────
+   Replaces the abrupt "fade to black" at the end of the hero with a
+   soft 3-layer transition: a vertical fade, a brand-tinted glow that
+   bleeds into Social Proof, and a scroll cue that fades on first
+   scroll. Together they give the visual continuity that "hero gigante
+   + content plano abajo" was missing. */
+.hero-bridge {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 280px;
+  pointer-events: none;
+  z-index: 20;
+}
+.hero-bridge-fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, #050505 0%, rgba(5, 5, 5, 0.85) 35%, rgba(5, 5, 5, 0) 100%);
+}
+.hero-bridge-glow {
+  position: absolute;
+  left: 50%;
+  bottom: -60px;
+  transform: translateX(-50%);
+  width: 80%;
+  max-width: 900px;
+  height: 240px;
+  background: radial-gradient(ellipse 60% 100% at 50% 100%, var(--brand-10) 0%, transparent 70%);
+  opacity: 0.7;
+}
+@media (min-width: 768px) {
+  .hero-bridge-glow {
+    opacity: 1;
+  }
+}
+
+/* Scroll cue — animated mouse hint at bottom of hero */
+.hero-scroll-cue {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 21;
+  pointer-events: none;
+  opacity: 0.5;
+  transition: opacity 0.4s ease;
+}
+.hero-scroll-cue-mouse {
+  width: 22px;
+  height: 36px;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  position: relative;
+}
+.hero-scroll-cue-dot {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 3px;
+  height: 6px;
+  margin-left: -1.5px;
+  background: rgba(5, 200, 167, 0.9);
+  border-radius: 999px;
+  animation: scroll-cue-dot 1.8s ease-in-out infinite;
+}
+@keyframes scroll-cue-dot {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(10px); opacity: 0.2; }
+}
+@media (max-width: 1024px) {
+  .hero-scroll-cue { display: none; }
+}
+/* Hide cue automatically when user has scrolled — driven by IntersectionObserver fallback below */
+@media (prefers-reduced-motion: reduce) {
+  .hero-scroll-cue-dot { animation: none; }
+}
+
 /* Section gradient transitions */
 .section-glow {
   position: absolute;
@@ -748,6 +868,22 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
 }
 .section-glow-blue {
   background: radial-gradient(ellipse 60% 60% at 50% 30%, var(--brand-10) 0%, transparent 70%);
+}
+
+/* ─── Card variants — use these instead of redefining card styles per component ───
+   .card-default → standard surface card (FAQ rows, list items)
+   .card-premium → primary card with hover state (existing, kept for compat)
+   .card-feature → showcase card with stronger emphasis */
+.card-default {
+  background: var(--surface-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--radius-card);
+  transition: background-color var(--dur-base) var(--ease-out),
+              border-color var(--dur-base) var(--ease-out);
+}
+.card-default:hover {
+  background: var(--surface-3);
+  border-color: var(--border-2);
 }
 
 /* Premium card with gradient border */
@@ -1047,3 +1183,5 @@ details[open] .faq-answer { animation: fadeIn 0.3s ease-out; }
     color-adjust: exact;
   }
 }
+
+

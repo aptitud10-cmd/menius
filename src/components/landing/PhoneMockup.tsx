@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  AnimatePresence,
   motion,
   useMotionValue,
   useSpring,
@@ -174,6 +175,13 @@ function MenuItem({
 function MenuScreen({ locale }: { locale: LandingLocale }) {
   const isEs = locale === 'es';
 
+  // Toast loop: visible 3.5s, hidden 3.5s
+  const [showToast, setShowToast] = useState(true);
+  useEffect(() => {
+    const id = setInterval(() => setShowToast((v) => !v), 3500);
+    return () => clearInterval(id);
+  }, []);
+
   const items = [
     { name: 'Tacos al Pastor',    price: '$12.99', desc: isEs ? 'Piña, cilantro, cebolla'       : 'Pineapple, cilantro, onion',     popular: true  },
     { name: 'Fresh Guacamole',    price: '$8.50',  desc: isEs ? 'Aguacate, jitomate, limón'      : 'Avocado, tomato, lime',          popular: false },
@@ -208,16 +216,24 @@ function MenuScreen({ locale }: { locale: LandingLocale }) {
         ))}
       </div>
 
-      {/* Cart CTA */}
+      {/* Cart CTA — pulsing badge */}
       <div style={{ padding: '8px 16px 6px', flexShrink: 0 }}>
-        <div style={{
-          background: '#0d9488',
-          borderRadius: 14,
-          padding: '11px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}>
+        <motion.div
+          animate={{ scale: [1, 1.025, 1], boxShadow: [
+            '0 0 0 0 rgba(13,148,136,0)',
+            '0 0 0 6px rgba(13,148,136,0.15)',
+            '0 0 0 0 rgba(13,148,136,0)',
+          ] }}
+          transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+          style={{
+            background: '#0d9488',
+            borderRadius: 14,
+            padding: '11px 18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
           <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', letterSpacing: '-0.1px' }}>
             {isEs ? '🛒 Ver carrito' : '🛒 View cart'}
           </span>
@@ -227,22 +243,33 @@ function MenuScreen({ locale }: { locale: LandingLocale }) {
           }}>
             $40.48
           </span>
-        </div>
+        </motion.div>
       </div>
 
-      {/* Order confirmation */}
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 16px 6px', flexShrink: 0 }}>
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 5,
-          background: 'rgba(13,148,136,0.12)',
-          border: '1px solid rgba(13,148,136,0.25)',
-          borderRadius: 999, padding: '5px 14px',
-        }}>
-          <span style={{ color: '#0d9488', fontSize: 9, fontWeight: 700 }}>✓</span>
-          <span style={{ color: '#5eead4', fontSize: 8.5, fontWeight: 600, letterSpacing: '0.1px' }}>
-            {isEs ? 'Pedido enviado a cocina' : 'Order sent to kitchen!'}
-          </span>
-        </div>
+      {/* Order confirmation — appears every ~7s */}
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 16px 6px', flexShrink: 0, minHeight: 24 }}>
+        <AnimatePresence mode="wait">
+          {showToast && (
+            <motion.div
+              key="toast"
+              initial={{ opacity: 0, y: 12, scale: 0.92 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.95 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                background: 'rgba(13,148,136,0.12)',
+                border: '1px solid rgba(13,148,136,0.25)',
+                borderRadius: 999, padding: '5px 14px',
+              }}
+            >
+              <span style={{ color: '#0d9488', fontSize: 9, fontWeight: 700 }}>✓</span>
+              <span style={{ color: '#5eead4', fontSize: 8.5, fontWeight: 600, letterSpacing: '0.1px' }}>
+                {isEs ? 'Pedido enviado a cocina' : 'Order sent to kitchen!'}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Home indicator */}
@@ -324,7 +351,11 @@ export function PhoneMockup({ locale }: { locale: LandingLocale }) {
       }}
       onMouseLeave={() => { mouseX.set(0); mouseY.set(0); }}
     >
-      <motion.div style={{ rotateX: rotX, rotateY: rotY, transformStyle: 'preserve-3d', willChange: 'transform' }}>
+      <motion.div
+        style={{ rotateX: rotX, rotateY: rotY, transformStyle: 'preserve-3d', willChange: 'transform' }}
+        animate={{ y: [0, -14, 0] }}
+        transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+      >
         <PhoneFrame locale={locale} />
       </motion.div>
     </div>
