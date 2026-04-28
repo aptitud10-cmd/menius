@@ -38,8 +38,21 @@ export function CalibrateClient({ initialAnchors }: { initialAnchors: MasterAnch
         throw new Error(errBody.error ?? r.statusText);
       }
       const data = await r.json();
-      setCandidates(data.candidates ?? {});
-      setFailures(data.failures ?? []);
+      const cands = data.candidates ?? {};
+      const fails = data.failures ?? [];
+      setCandidates(cands);
+      setFailures(fails);
+      const totalCandidates = Object.values(cands as Record<string, string[]>).reduce(
+        (sum, arr) => sum + arr.length,
+        0,
+      );
+      if (totalCandidates === 0) {
+        setError(
+          fails.length > 0
+            ? `0 images generated. ${fails.length} failures — see details below.`
+            : '0 images generated and no failures reported. The request may have timed out on Vercel before completing. Check Vercel function logs.',
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
