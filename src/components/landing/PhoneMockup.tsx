@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import {
-  AnimatePresence,
   motion,
   useMotionValue,
   useSpring,
@@ -175,13 +174,6 @@ function MenuItem({
 function MenuScreen({ locale }: { locale: LandingLocale }) {
   const isEs = locale === 'es';
 
-  // Toast loop: visible 3.5s, hidden 3.5s
-  const [showToast, setShowToast] = useState(true);
-  useEffect(() => {
-    const id = setInterval(() => setShowToast((v) => !v), 3500);
-    return () => clearInterval(id);
-  }, []);
-
   const items = [
     { name: 'Tacos al Pastor',    price: '$12.99', desc: isEs ? 'Piña, cilantro, cebolla'       : 'Pineapple, cilantro, onion',     popular: true  },
     { name: 'Fresh Guacamole',    price: '$8.50',  desc: isEs ? 'Aguacate, jitomate, limón'      : 'Avocado, tomato, lime',          popular: false },
@@ -246,31 +238,6 @@ function MenuScreen({ locale }: { locale: LandingLocale }) {
         </motion.div>
       </div>
 
-      {/* Order confirmation — appears every ~7s */}
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 16px 6px', flexShrink: 0, minHeight: 24 }}>
-        <AnimatePresence mode="wait">
-          {showToast && (
-            <motion.div
-              key="toast"
-              initial={{ opacity: 0, y: 12, scale: 0.92 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.95 }}
-              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
-                background: 'rgba(13,148,136,0.12)',
-                border: '1px solid rgba(13,148,136,0.25)',
-                borderRadius: 999, padding: '5px 14px',
-              }}
-            >
-              <span style={{ color: '#0d9488', fontSize: 9, fontWeight: 700 }}>✓</span>
-              <span style={{ color: '#5eead4', fontSize: 8.5, fontWeight: 600, letterSpacing: '0.1px' }}>
-                {isEs ? 'Pedido enviado a cocina' : 'Order sent to kitchen!'}
-              </span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
 
       {/* Home indicator */}
       <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 10px', flexShrink: 0 }}>
