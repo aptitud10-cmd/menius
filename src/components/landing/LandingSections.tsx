@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { getLandingT, type LandingLocale, type LandingT } from '@/lib/landing-translations';
 import { PLANS } from '@/lib/plans';
-import { CategoryFilter } from '@/components/ui/CategoryFilter';
 
 /* ─── STATIC DATA ─── */
 
@@ -646,63 +645,35 @@ function TestimonialsSection({ t }: { t: LandingT['testimonials'] }) {
 
 /* ─── FAQ SECTION ─── */
 
-type FaqCategoryId = 'general' | 'pricing' | 'setup' | 'security';
-
-const FAQ_ES: { q: string; a: string; category: FaqCategoryId }[] = [
-  { category: 'general', q: '¿Qué es MENIUS?', a: 'MENIUS es una plataforma todo-en-uno para restaurantes: menú digital con QR, pedidos en tiempo real, cocina KDS, asistente IA, analytics, CRM y pagos integrados. Todos los planes de suscripción tienen 0% de comisión.' },
-  { category: 'general', q: '¿Mis clientes necesitan descargar una app?', a: 'No. El menú funciona directo en el navegador del celular. El cliente escanea el QR y ve tu menú al instante, sin descargar nada ni registrarse.' },
-  { category: 'general', q: '¿Funciona con mi tipo de restaurante?', a: 'Sí. MENIUS funciona para restaurantes de mesa, comida para llevar (pickup), delivery propio, food trucks, dark kitchens, cafeterías, bares, heladerías y cualquier negocio de alimentos. Si vendes comida, MENIUS funciona.' },
-  { category: 'setup', q: '¿Cuánto tiempo toma configurar el menú?', a: 'La configuración básica toma entre 15 y 30 minutos. Al crear tu restaurante se genera un menú de ejemplo que solo tienes que editar con tus datos.' },
-  { category: 'pricing', q: '¿MENIUS cobra comisión por pedido?', a: 'Los pedidos en efectivo no tienen comisión en ningún plan. Los pagos online con Stripe tienen 0% de comisión en todos los planes de suscripción. El plan Free no incluye pagos online. Wompi (Colombia) tampoco tiene comisión de MENIUS.' },
-  { category: 'pricing', q: '¿Puedo cancelar en cualquier momento?', a: 'Sí. Sin contratos ni penalidades. Cancelas cuando quieras desde tu dashboard y vuelves automáticamente al plan Free — tu cuenta y menú permanecen intactos.' },
-  { category: 'security', q: '¿Es seguro?', a: 'Sí. Todos los pagos se procesan a través de Stripe o Wompi (PCI DSS Level 1). Tu menú usa HTTPS con certificado SSL. No almacenamos datos de tarjetas de crédito.' },
+const FAQ_ES = [
+  { q: '¿Qué es MENIUS?', a: 'MENIUS es una plataforma todo-en-uno para restaurantes: menú digital con QR, pedidos en tiempo real, cocina KDS, asistente IA, analytics, CRM y pagos integrados. Todos los planes de suscripción tienen 0% de comisión.' },
+  { q: '¿Mis clientes necesitan descargar una app?', a: 'No. El menú funciona directo en el navegador del celular. El cliente escanea el QR y ve tu menú al instante, sin descargar nada ni registrarse.' },
+  { q: '¿Cuánto tiempo toma configurar el menú?', a: 'La configuración básica toma entre 15 y 30 minutos. Al crear tu restaurante se genera un menú de ejemplo que solo tienes que editar con tus datos.' },
+  { q: '¿MENIUS cobra comisión por pedido?', a: 'Los pedidos en efectivo no tienen comisión en ningún plan. Los pagos online con Stripe tienen 0% de comisión en todos los planes de suscripción. El plan Free no incluye pagos online. Wompi (Colombia) tampoco tiene comisión de MENIUS.' },
+  { q: '¿Puedo cancelar en cualquier momento?', a: 'Sí. Sin contratos ni penalidades. Cancelas cuando quieras desde tu dashboard y vuelves automáticamente al plan Free — tu cuenta y menú permanecen intactos.' },
+  { q: '¿Es seguro?', a: 'Sí. Todos los pagos se procesan a través de Stripe o Wompi (PCI DSS Level 1). Tu menú usa HTTPS con certificado SSL. No almacenamos datos de tarjetas de crédito.' },
+  { q: '¿Funciona con mi tipo de restaurante?', a: 'Sí. MENIUS funciona para restaurantes de mesa, comida para llevar (pickup), delivery propio, food trucks, dark kitchens, cafeterías, bares, heladerías y cualquier negocio de alimentos. Si vendes comida, MENIUS funciona.' },
 ];
 
-const FAQ_EN: { q: string; a: string; category: FaqCategoryId }[] = [
-  { category: 'general', q: 'What is MENIUS?', a: 'MENIUS is an all-in-one platform for restaurants: digital menu with QR, real-time orders, kitchen KDS, AI assistant, analytics, CRM, and integrated payments. All subscription plans have 0% commission.' },
-  { category: 'general', q: 'Do my customers need to download an app?', a: 'No. The menu works directly in the phone browser. Customers scan the QR code and see your menu instantly — no downloads, no sign-up required.' },
-  { category: 'general', q: 'Does it work for my type of restaurant?', a: 'Yes. MENIUS works for dine-in restaurants, takeout (pickup), in-house delivery, food trucks, dark kitchens, cafés, bars, ice cream shops, and any food business. If you sell food, MENIUS works.' },
-  { category: 'setup', q: 'How long does it take to set up the menu?', a: 'Basic setup takes 15–30 minutes. When you create your restaurant, a sample menu is generated automatically. Just replace the example data with yours.' },
-  { category: 'pricing', q: 'Does MENIUS charge a commission per order?', a: 'Cash orders have zero commission on any plan. Online payments via Stripe have 0% commission on all subscription plans. The Free plan does not include online payments. Wompi (Colombia) also has no MENIUS commission.' },
-  { category: 'pricing', q: 'Can I cancel anytime?', a: 'Yes. No contracts or penalties. Cancel anytime from your dashboard and you automatically return to the Free plan — your account, menu, and data stay intact.' },
-  { category: 'security', q: 'Is it secure?', a: 'Yes. All payments are processed through Stripe or Wompi (PCI DSS Level 1). Your menu uses HTTPS with SSL. We never store credit card data.' },
+const FAQ_EN = [
+  { q: 'What is MENIUS?', a: 'MENIUS is an all-in-one platform for restaurants: digital menu with QR, real-time orders, kitchen KDS, AI assistant, analytics, CRM, and integrated payments. All subscription plans have 0% commission.' },
+  { q: 'Do my customers need to download an app?', a: 'No. The menu works directly in the phone browser. Customers scan the QR code and see your menu instantly — no downloads, no sign-up required.' },
+  { q: 'How long does it take to set up the menu?', a: 'Basic setup takes 15–30 minutes. When you create your restaurant, a sample menu is generated automatically. Just replace the example data with yours.' },
+  { q: 'Does MENIUS charge a commission per order?', a: 'Cash orders have zero commission on any plan. Online payments via Stripe have 0% commission on all subscription plans. The Free plan does not include online payments. Wompi (Colombia) also has no MENIUS commission.' },
+  { q: 'Can I cancel anytime?', a: 'Yes. No contracts or penalties. Cancel anytime from your dashboard and you automatically return to the Free plan — your account, menu, and data stay intact.' },
+  { q: 'Is it secure?', a: 'Yes. All payments are processed through Stripe or Wompi (PCI DSS Level 1). Your menu uses HTTPS with SSL. We never store credit card data.' },
+  { q: 'Does it work for my type of restaurant?', a: 'Yes. MENIUS works for dine-in restaurants, takeout (pickup), in-house delivery, food trucks, dark kitchens, cafés, bars, ice cream shops, and any food business. If you sell food, MENIUS works.' },
 ];
-
-const FAQ_CATEGORY_LABELS: Record<FaqCategoryId, { es: string; en: string }> = {
-  general: { es: 'General', en: 'General' },
-  pricing: { es: 'Precios y planes', en: 'Pricing & plans' },
-  setup: { es: 'Configuración', en: 'Setup' },
-  security: { es: 'Seguridad', en: 'Security' },
-};
 
 function FaqSection({ locale }: { locale: LandingLocale }) {
   const [open, setOpen] = useState<number | null>(null);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const faqs = locale === 'es' ? FAQ_ES : FAQ_EN;
   const isEs = locale === 'es';
-
-  const filtered = activeCategory
-    ? faqs.filter((f) => f.category === activeCategory)
-    : faqs;
-
-  // Build category list with counts (only categories that have entries)
-  const categoryCounts = faqs.reduce<Record<string, number>>((acc, f) => {
-    acc[f.category] = (acc[f.category] || 0) + 1;
-    return acc;
-  }, {});
-
-  const filterCategories = (Object.keys(FAQ_CATEGORY_LABELS) as FaqCategoryId[])
-    .filter((id) => categoryCounts[id] > 0)
-    .map((id) => ({
-      id,
-      label: FAQ_CATEGORY_LABELS[id][isEs ? 'es' : 'en'],
-      count: categoryCounts[id],
-    }));
 
   return (
     <section id="faq" className="relative py-24 md:py-32 overflow-clip">
       <div className="relative z-10 max-w-3xl mx-auto px-6">
-        <div className="text-center mb-10">
+        <div className="text-center mb-12">
           <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white tracking-[-0.02em]">
             {isEs ? 'Preguntas frecuentes' : 'Frequently asked questions'}
           </h2>
@@ -714,28 +685,13 @@ function FaqSection({ locale }: { locale: LandingLocale }) {
           </p>
         </div>
 
-        <div className="-mx-6 mb-6">
-          <CategoryFilter
-            categories={filterCategories}
-            active={activeCategory}
-            onChange={(id) => {
-              setActiveCategory(id);
-              setOpen(null);
-            }}
-            allLabel={isEs ? 'Todas' : 'All'}
-            allCount={faqs.length}
-            ariaLabel={isEs ? 'Categorías de preguntas' : 'FAQ categories'}
-          />
-        </div>
-
         <div className="space-y-2">
-          {filtered.map((item) => {
-            const idx = faqs.indexOf(item);
-            const isOpen = open === idx;
+          {faqs.map((item, i) => {
+            const isOpen = open === i;
             return (
-              <div key={idx} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
+              <div key={i} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
                 <button
-                  onClick={() => setOpen(isOpen ? null : idx)}
+                  onClick={() => setOpen(isOpen ? null : i)}
                   aria-expanded={isOpen}
                   className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-inset"
                 >

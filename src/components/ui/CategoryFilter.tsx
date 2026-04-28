@@ -35,9 +35,20 @@ export function CategoryFilter({
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(true);
 
-  // Auto-scroll active pill into view on change (smooth)
+  // Auto-scroll active pill into view (horizontal-only, never vertical).
+  // Skip the initial mount so loading the page doesn't jump the document.
+  const isFirstRender = useRef(true);
   useEffect(() => {
-    activeBtnRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const container = scrollRef.current;
+    const btn = activeBtnRef.current;
+    if (!container || !btn) return;
+    const targetScroll =
+      btn.offsetLeft - container.clientWidth / 2 + btn.clientWidth / 2;
+    container.scrollTo({ left: targetScroll, behavior: 'smooth' });
   }, [active]);
 
   // Track scroll position for edge fades

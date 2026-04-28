@@ -395,13 +395,6 @@ export function getFaqPageText(locale: LandingLocale) {
     ctaTitle: "Didn't find your answer?",
     ctaSubtitle: 'Contact us and our team will respond as soon as possible.',
     ctaDemo: 'Explore the demo',
-    searchPlaceholder: 'Search a question…',
-    searchClear: 'Clear search',
-    searchResultsZero: 'No results',
-    searchResultsOne: '1 result',
-    searchResultsMany: '{n} results',
-    noResultsTitle: 'No matches',
-    noResultsBody: 'Try other keywords or clear the search.',
   };
   return {
     badge: 'Centro de Ayuda',
@@ -410,12 +403,5 @@ export function getFaqPageText(locale: LandingLocale) {
     ctaTitle: '¿No encontraste tu respuesta?',
     ctaSubtitle: 'Escríbenos y nuestro equipo te responderá lo antes posible.',
     ctaDemo: 'Explorar el demo',
-    searchPlaceholder: 'Busca una pregunta…',
-    searchClear: 'Limpiar búsqueda',
-    searchResultsZero: 'Sin resultados',
-    searchResultsOne: '1 resultado',
-    searchResultsMany: '{n} resultados',
-    noResultsTitle: 'Sin resultados',
-    noResultsBody: 'Probá con otras palabras o limpiá la búsqueda.',
   };
 }
