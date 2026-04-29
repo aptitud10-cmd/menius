@@ -4,7 +4,16 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
 
-async function resolveRedirect(supabase: any, origin: string, next: string, type: string | null) {
+const VALID_PUBLIC_PLANS = new Set(['free', 'starter', 'pro', 'business']);
+
+async function resolveRedirect(
+  supabase: any,
+  origin: string,
+  next: string,
+  type: string | null,
+  intendedPlan: string | null,
+  intendedBilling: string | null,
+) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(new URL(next, origin));
 
@@ -20,7 +29,14 @@ async function resolveRedirect(supabase: any, origin: string, next: string, type
   if (profile?.default_restaurant_id) {
     return NextResponse.redirect(new URL('/app', origin));
   }
-  return NextResponse.redirect(new URL('/onboarding/create-restaurant', origin));
+
+  // New restaurant flow — propagate plan intent to onboarding (only if valid)
+  const onboardingUrl = new URL('/onboarding/create-restaurant', origin);
+  if (intendedPlan && VALID_PUBLIC_PLANS.has(intendedPlan) && intendedPlan !== 'free') {
+    onboardingUrl.searchParams.set('plan', intendedPlan);
+    if (intendedBilling === 'annual') onboardingUrl.searchParams.set('billing', 'annual');
+  }
+  return NextResponse.redirect(onboardingUrl);
 }
 
 export async function GET(request: NextRequest) {
@@ -35,6 +51,13 @@ export async function GET(request: NextRequest) {
   const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/app';
 
   const cookieStore = await cookies();
+
+  // Read plan intent from cookie (set during signup) — propagated to onboarding
+  const intendedPlan = cookieStore.get('menius_intended_plan')?.value ?? null;
+  const intendedBilling = cookieStore.get('menius_intended_billing')?.value ?? null;
+  // Clear cookies after reading (one-shot)
+  if (intendedPlan) cookieStore.set({ name: 'menius_intended_plan', value: '', maxAge: 0, path: '/' });
+  if (intendedBilling) cookieStore.set({ name: 'menius_intended_billing', value: '', maxAge: 0, path: '/' });
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -56,13 +79,13 @@ export async function GET(request: NextRequest) {
   // Flow 1: PKCE code exchange (Google OAuth + magic link same-browser)
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return resolveRedirect(supabase, origin, next, type);
+    if (!error) return resolveRedirect(supabase, origin, next, type, intendedPlan, intendedBilling);
   }
 
   // Flow 2: token_hash (magic link opened in a different browser/device)
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ token_hash, type });
-    if (!error) return resolveRedirect(supabase, origin, next, type);
+    if (!error) return resolveRedirect(supabase, origin, next, type, intendedPlan, intendedBilling);
   }
 
   // Auth error — redirect to login with error indicator

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Save, ExternalLink, CheckCircle2, Bell, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2, Languages, Plus, X, Sparkles, Receipt } from 'lucide-react';
+import { Save, ExternalLink, CheckCircle2, Bell, Mail, Globe, ShoppingBag, CreditCard, Loader2, XCircle, RefreshCw, Camera, Clock, Link2, Languages, Plus, X, Receipt } from 'lucide-react';
 import { COUNTRY_LIST, US_STATE_LIST, COUNTRY_TAX_PRESETS, US_STATE_TAX_RATES, US_CITY_TAX_RATES, computeTaxAmount } from '@/lib/tax-presets';
 import { COUNTRY_CONFIG_LIST, COUNTRY_CONFIGS, UNIQUE_CURRENCIES, formatTimezone } from '@/lib/country-config';
 import { SUPPORTED_LOCALES, getLocaleFlag } from '@/lib/i18n';
@@ -82,7 +82,6 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
   const [coverUrl, setCoverUrl] = useState(initialData.cover_image_url ?? '');
   const [uploadingCover, setUploadingCover] = useState(false);
-  const [generatingCoverAI, setGeneratingCoverAI] = useState(false);
   const coverRef = useRef<HTMLInputElement>(null);
 
   const [saving, setSaving] = useState(false);
@@ -251,30 +250,6 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     if (logoRef.current) logoRef.current.value = '';
   };
 
-  const handleGenerateBannerAI = async () => {
-    setGeneratingCoverAI(true);
-    setError('');
-    try {
-      const res = await fetch('/api/ai/generate-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productName: form.name,
-          description: form.description || form.name,
-          isBanner: true,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t.settings_uploadError);
-      setCoverUrl(data.url);
-      await autoSaveImageField('cover_image_url', data.url);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : t.settings_uploadError);
-    } finally {
-      setGeneratingCoverAI(false);
-    }
-  };
-
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -412,18 +387,8 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
 
       {/* Cover / Banner */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5">
-        <div className="flex items-start justify-between mb-1">
+        <div className="mb-1">
           <h2 className="font-semibold text-sm text-gray-900">{t.settings_banner}</h2>
-          <button
-            onClick={handleGenerateBannerAI}
-            disabled={generatingCoverAI || uploadingCover}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors disabled:opacity-50"
-          >
-            {generatingCoverAI
-              ? <Loader2 className="w-3 h-3 animate-spin" />
-              : <Sparkles className="w-3 h-3" />}
-            {generatingCoverAI ? t.settings_generatingBannerAI : t.settings_generateBannerAI}
-          </button>
         </div>
         <p className="text-xs text-gray-500 mb-4">
           {t.settings_bannerDesc} {t.settings_bannerFormatNote}
@@ -452,11 +417,11 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         ) : (
           <button
             onClick={() => coverRef.current?.click()}
-            disabled={uploadingCover || generatingCoverAI}
+            disabled={uploadingCover}
             className="w-full aspect-[3/1] border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors disabled:opacity-50"
           >
-            {uploadingCover || generatingCoverAI ? (
-              <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+            {uploadingCover ? (
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
             ) : (
               <>
                 <Camera className="w-6 h-6 text-gray-400" />

@@ -101,6 +101,20 @@ export default function SignupPage() {
       return;
     }
 
+    // Persist plan intent in cookie so /auth/callback can propagate it to onboarding
+    // even after email confirmation (URL params are lost during magic link flow).
+    if (typeof document !== 'undefined') {
+      const url = new URL(window.location.href);
+      const intendedPlan = url.searchParams.get('plan');
+      const intendedBilling = url.searchParams.get('billing');
+      if (intendedPlan && VALID_PUBLIC_PLANS.has(intendedPlan)) {
+        document.cookie = `menius_intended_plan=${intendedPlan}; path=/; max-age=3600; SameSite=Lax`;
+      }
+      if (intendedBilling === 'annual') {
+        document.cookie = `menius_intended_billing=annual; path=/; max-age=3600; SameSite=Lax`;
+      }
+    }
+
     setLoading(true);
     const result = await signup({ ...parsed.data, turnstileToken });
     if (result?.error) {

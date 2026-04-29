@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   ExternalLink,
@@ -178,6 +178,8 @@ export default function BillingPage() {
     }
   }, [searchParams]);
 
+  const autoCheckoutTriggered = useRef(false);
+
   useEffect(() => {
     Promise.all([
       fetch('/api/billing/subscription').then((r) => r.json()),
@@ -239,6 +241,20 @@ export default function BillingPage() {
     },
     [sub, t.billing_connectionError, t.billing_noCheckout],
   );
+
+  // Auto-trigger Stripe Checkout when arriving from onboarding with a paid plan
+  // (e.g. /app/billing?autoCheckout=pro). Fires once after subscription data loads.
+  useEffect(() => {
+    if (autoCheckoutTriggered.current) return;
+    if (loading) return;
+    const planParam = searchParams.get('autoCheckout');
+    if (!planParam) return;
+    if (!['starter', 'pro', 'business'].includes(planParam)) return;
+    const hasLiveSub = sub?.stripe_subscription_id && (sub.status === 'active' || sub.status === 'past_due');
+    if (hasLiveSub) return;
+    autoCheckoutTriggered.current = true;
+    handlePlanSelect(planParam as PlanId, 'monthly');
+  }, [loading, sub, searchParams, handlePlanSelect]);
 
   const handlePortal = useCallback(async () => {
     setActionLoading('portal');

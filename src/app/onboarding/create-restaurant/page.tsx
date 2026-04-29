@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createRestaurant, createProduct } from '@/lib/actions/restaurant';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
@@ -55,6 +55,17 @@ const WIZARD_TEXT = {
     atLeastOne: 'Agrega al menos un platillo',
     invalidPrice: (name: string) => `El precio de "${name}" no es válido`,
     productPlaceholders: ['Ej: Hamburguesa clásica', 'Ej: Refresco', 'Ej: Papas fritas'],
+    planTitle: 'Elegí tu plan',
+    planDesc: 'Empezá gratis o subí cuando quieras. Sin contratos.',
+    planRecommended: 'Recomendado',
+    planContinue: 'Continuar',
+    planSelectFree: 'Seguir gratis',
+    planSubscribe: (n: string) => `Suscribirme a ${n}`,
+    plans: [
+      { id: 'free', name: 'Free', price: '$0', priceSuffix: '/mes', desc: 'Para probar. Hasta 5 mesas, solo dine-in en efectivo.', features: ['Menú digital + QR (5 mesas)', 'Pedidos ilimitados', 'Solo efectivo', 'Branding "Powered by MENIUS"'] },
+      { id: 'starter', name: 'Starter', price: '$39', priceSuffix: '/mes', desc: 'Para empezar a vender online sin comisión.', features: ['Hasta 15 mesas', 'Pickup + Delivery', 'Pagos online (0% comisión)', 'AI menu import', 'Sin marca MENIUS'], recommended: true },
+      { id: 'pro', name: 'Pro', price: '$79', priceSuffix: '/mes', desc: 'Para crecer con KDS, loyalty y promos.', features: ['Hasta 50 mesas', 'Cocina KDS', 'Programa de lealtad', 'Promociones y cupones', 'Soporte 2h'] },
+    ],
   },
   en: {
     businessType: 'What type of business do you have?',
@@ -100,6 +111,17 @@ const WIZARD_TEXT = {
     atLeastOne: 'Add at least one item',
     invalidPrice: (name: string) => `The price for "${name}" is not valid`,
     productPlaceholders: ['e.g. Classic Burger', 'e.g. Soft Drink', 'e.g. French Fries'],
+    planTitle: 'Choose your plan',
+    planDesc: 'Start free or upgrade anytime. No contracts.',
+    planRecommended: 'Recommended',
+    planContinue: 'Continue',
+    planSelectFree: 'Stay on Free',
+    planSubscribe: (n: string) => `Subscribe to ${n}`,
+    plans: [
+      { id: 'free', name: 'Free', price: '$0', priceSuffix: '/mo', desc: 'Try it out. Up to 5 tables, cash dine-in only.', features: ['Digital menu + QR (5 tables)', 'Unlimited orders', 'Cash only', '"Powered by MENIUS" branding'] },
+      { id: 'starter', name: 'Starter', price: '$39', priceSuffix: '/mo', desc: 'Start selling online with 0% commission.', features: ['Up to 15 tables', 'Pickup + Delivery', 'Online payments (0% commission)', 'AI menu import', 'No MENIUS branding'], recommended: true },
+      { id: 'pro', name: 'Pro', price: '$79', priceSuffix: '/mo', desc: 'Grow with KDS, loyalty and promos.', features: ['Up to 50 tables', 'Kitchen KDS', 'Loyalty program', 'Promotions & coupons', '2h support'] },
+    ],
   },
 };
 
@@ -110,8 +132,11 @@ const LANGUAGES = [
 
 
 
+const WIZARD_PLAN_IDS = new Set(['free', 'starter', 'pro']);
+
 export default function CreateRestaurantPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Detect browser/cookie locale after hydration to avoid SSR mismatch
   const [uiLocale, setUiLocale] = useState<'es' | 'en'>('es');
@@ -162,6 +187,13 @@ export default function CreateRestaurantPage() {
   ]);
   const [productError, setProductError] = useState('');
   const [productLoading, setProductLoading] = useState(false);
+
+  // Step 4 state — plan selection (preselected from ?plan= URL param if it's in wizard)
+  const intendedPlanParam = searchParams.get('plan');
+  const initialIntendedPlan = intendedPlanParam && WIZARD_PLAN_IDS.has(intendedPlanParam)
+    ? intendedPlanParam
+    : 'starter';
+  const [selectedPlan, setSelectedPlan] = useState<string>(initialIntendedPlan);
 
   const handleNameChange = (val: string) => {
     setName(val);
@@ -262,6 +294,11 @@ export default function CreateRestaurantPage() {
     setProductLoading(false);
     trackEvent('onboarding_step_completed', { step: 3, step_name: 'first_products', product_count: validProducts.length });
     trackEvent('onboarding_completed', { completed_all_steps: true });
+    // If user came with ?plan=business (not in wizard), skip plan step and go straight to checkout
+    if (intendedPlanParam === 'business') {
+      router.push('/app/billing?autoCheckout=business');
+      return;
+    }
     setStep(4);
   };
 
@@ -287,8 +324,8 @@ export default function CreateRestaurantPage() {
             <span className="text-white">MENIUS</span>
           </Link>
 
-          {/* Step indicator — hidden in step 0, step 2 doesn't exist, remap 3→2, 4→3 */}
-          {step > 0 && step < 4 && (
+          {/* Step indicator — hidden in step 0 and final celebration; visible during 1, 3, 4 */}
+          {step > 0 && step < 5 && (
             <>
               <div className="flex items-center justify-center gap-2 mt-6 mb-4">
                 {[1, 3, 4].map((s) => (
@@ -601,6 +638,10 @@ export default function CreateRestaurantPage() {
                   onClick={() => {
                     trackEvent('onboarding_step_skipped', { step: 3, step_name: 'first_products' });
                     trackEvent('onboarding_completed', { completed_all_steps: false });
+                    if (intendedPlanParam === 'business') {
+                      router.push('/app/billing?autoCheckout=business');
+                      return;
+                    }
                     setStep(4);
                   }}
                   className="w-full py-2.5 text-[13px] text-gray-500 hover:text-gray-300 transition-colors"
@@ -612,8 +653,79 @@ export default function CreateRestaurantPage() {
           </>
         )}
 
-        {/* ── STEP 4: First win celebration ── */}
+        {/* ── STEP 4: Choose plan ── */}
         {step === 4 && (
+          <>
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-black text-white leading-tight tracking-tight">{ui.planTitle}</h1>
+              <p className="text-gray-400 text-sm mt-3 max-w-sm mx-auto leading-relaxed">{ui.planDesc}</p>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              {ui.plans.map((p) => {
+                const isSelected = selectedPlan === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setSelectedPlan(p.id)}
+                    className={`w-full text-left rounded-2xl p-5 border transition-all ${
+                      isSelected
+                        ? 'bg-emerald-500/[0.06] border-emerald-500/40 shadow-[0_0_30px_rgba(16,185,129,0.08)]'
+                        : 'bg-white/[0.03] border-white/[0.08] hover:border-white/[0.15]'
+                    }`}
+                  >
+                    <div className="flex items-baseline justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-base font-bold ${isSelected ? 'text-white' : 'text-gray-200'}`}>{p.name}</span>
+                        {p.recommended && (
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400">
+                            {ui.planRecommended}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-baseline gap-0.5">
+                        <span className={`text-lg font-bold ${isSelected ? 'text-emerald-400' : 'text-gray-300'}`}>{p.price}</span>
+                        <span className="text-[11px] text-gray-500">{p.priceSuffix}</span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2.5">{p.desc}</p>
+                    <ul className="space-y-1">
+                      {p.features.map((f) => (
+                        <li key={f} className="flex items-start gap-1.5 text-[11px] text-gray-500">
+                          <svg className="w-3 h-3 mt-0.5 text-emerald-500/60 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                trackEvent('onboarding_plan_selected', { plan: selectedPlan });
+                if (selectedPlan === 'free') {
+                  setStep(5);
+                } else {
+                  router.push(`/app/billing?autoCheckout=${selectedPlan}`);
+                }
+              }}
+              className="w-full py-3.5 rounded-xl bg-emerald-500 text-white font-semibold text-[15px] md:text-sm hover:bg-emerald-400 transition-colors"
+            >
+              {selectedPlan === 'free'
+                ? ui.planSelectFree
+                : ui.planSubscribe(ui.plans.find((p) => p.id === selectedPlan)?.name ?? '')}
+            </button>
+          </>
+        )}
+
+        {/* ── STEP 5: First win celebration ── */}
+        {step === 5 && (
           <>
             <div className="text-center mb-6">
               {/* Animated success icon with pulsing ring */}
