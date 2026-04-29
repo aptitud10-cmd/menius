@@ -16,6 +16,27 @@ import { computeUnitPrice, computeOrderTotals, resolveCommission } from '@/lib/o
 
 const logger = createLogger('orders');
 
+interface OrderRestaurantRow {
+  id: string;
+  slug: string;
+  name: string;
+  delivery_fee: number | null;
+  currency: string | null;
+  locale: string | null;
+  notification_email: string | null;
+  notification_whatsapp: string | null;
+  notifications_enabled: boolean | null;
+  orders_paused_until: string | null;
+  operating_hours: Record<string, { open: string; close: string; closed?: boolean }> | null;
+  timezone: string | null;
+  tax_rate: number | null;
+  tax_included: boolean | null;
+  tax_label: string | null;
+  commission_plan: boolean | null;
+  order_types_enabled: string[] | null;
+  payment_methods_enabled: string[] | null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIP(request);
@@ -119,7 +140,7 @@ export async function POST(request: NextRequest) {
       .select('id, slug, delivery_fee, name, currency, locale, notification_email, notification_whatsapp, notifications_enabled, orders_paused_until, operating_hours, timezone, tax_rate, tax_included, tax_label, commission_plan, order_types_enabled, payment_methods_enabled')
       .eq('id', restaurant_id)
       .eq('is_active', true)
-      .maybeSingle();
+      .maybeSingle<OrderRestaurantRow>();
 
     if (restaurantDbError) {
       logger.error('Restaurant DB query failed', { restaurant_id, error: restaurantDbError.message });
@@ -131,7 +152,7 @@ export async function POST(request: NextRequest) {
     const en = restaurant.locale === 'en';
 
     // Validate order_type is enabled for this restaurant
-    const orderTypesEnabled = (restaurant as any).order_types_enabled as string[] | null;
+    const orderTypesEnabled = restaurant.order_types_enabled;
     if (orderTypesEnabled && orderTypesEnabled.length > 0 && !orderTypesEnabled.includes(order_type)) {
       return NextResponse.json(
         { error: en
@@ -161,7 +182,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Pause guard — if the restaurant paused orders, reject new ones
-    const pausedUntil = (restaurant as any).orders_paused_until;
+    const pausedUntil = restaurant.orders_paused_until;
     if (pausedUntil && new Date(pausedUntil) > new Date()) {
       return NextResponse.json(
         { error: en
@@ -172,9 +193,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Business hours check — reject orders outside opening hours
-    const opHours = (restaurant as any).operating_hours as Record<string, { open: string; close: string; closed?: boolean }> | null;
+    const opHours = restaurant.operating_hours;
     if (opHours && Object.keys(opHours).length > 0 && !body.scheduled_for) {
-      const tz = (restaurant as any).timezone ?? 'UTC';
+      const tz = restaurant.timezone ?? 'UTC';
       const nowInTz = new Date(new Date().toLocaleString('en-US', { timeZone: tz }));
       const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
       const day = days[nowInTz.getDay()];
@@ -207,7 +228,7 @@ export async function POST(request: NextRequest) {
     // Check subscription — enforce monthly limit for FREE-tier restaurants
     try {
       let sub: { status: string; trial_end?: string | null } | null = null;
-      if ((restaurant as any).commission_plan !== true) {
+      if (restaurant.commission_plan !== true) {
         const { data } = await supabase
           .from('subscriptions')
           .select('status, trial_end, current_period_end, plan_id')
@@ -216,7 +237,7 @@ export async function POST(request: NextRequest) {
         sub = data;
       }
       ({ commissionBps, isFreeTier } = resolveCommission(
-        (restaurant as any).commission_plan === true,
+        restaurant.commission_plan === true,
         sub,
       ));
     } catch (subErr) {
@@ -312,8 +333,8 @@ export async function POST(request: NextRequest) {
         // Match by group_id (preferred) OR group_name (fallback for legacy/stale cart items).
         // Using both avoids failures when the client has stale cart data or when group
         // names differ by case/whitespace from the database value.
-        const selected = (item.modifiers ?? []).filter((m: any) =>
-          m.group_id === grp.id || m.group_name === grp.name
+        const selected = (item.modifiers ?? []).filter(
+          (m) => m.group_id === grp.id || m.group_name === grp.name,
         ).length;
         if (selected < grp.min_select) {
           return NextResponse.json({ error: `Selecciona al menos ${grp.min_select} opción(es) en "${grp.name}".` }, { status: 400 });
@@ -423,8 +444,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const taxRate = Number((restaurant as any).tax_rate) || 0;
-    const taxIncluded = (restaurant as any).tax_included ?? false;
+    const taxRate = Number(restaurant.tax_rate) || 0;
+    const taxIncluded = restaurant.tax_included ?? false;
     const { tipAmt, deliveryFeeAmt, totalDiscountAmt, taxAmt, total } = computeOrderTotals({
       items: parsed.data.items.map((i) => ({ unit_price: i.unit_price, qty: i.qty })),
       deliveryFee: serverDeliveryFee,
@@ -565,8 +586,8 @@ export async function POST(request: NextRequest) {
             line_total: item.line_total,
             notes: item.notes,
             // Snapshot current names so historical orders are not affected by future menu edits
-            product_name: (dbProd as any)?.name ?? '',
-            variant_name: (dbVar as any)?.name ?? '',
+            product_name: dbProd?.name ?? '',
+            variant_name: dbVar?.name ?? '',
           };
         })
       )
@@ -627,8 +648,15 @@ export async function POST(request: NextRequest) {
     }
 
     const orderedItems = insertedItems ?? [];
-    const extrasToInsert: any[] = [];
-    const modifiersToInsert: any[] = [];
+    const extrasToInsert: Array<{ order_item_id: string; extra_id: string; price: number }> = [];
+    const modifiersToInsert: Array<{
+      order_item_id: string;
+      group_id: string | null;
+      option_id: string | null;
+      group_name: string;
+      option_name: string;
+      price_delta: number;
+    }> = [];
 
     parsed.data.items.forEach((item, idx) => {
       const orderItemId = orderedItems[idx]?.id;

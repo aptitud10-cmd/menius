@@ -216,7 +216,9 @@ function getAudioCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
   if (!_audioCtx) {
     try {
-      _audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctx) return null;
+      _audioCtx = new Ctx();
     } catch { return null; }
   }
   return _audioCtx;
@@ -536,9 +538,15 @@ export function CounterView({
   // Wake Lock — keep tablet screen on
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('wakeLock' in navigator)) return;
-    let lock: any = null;
+    interface WakeLockSentinel { release(): Promise<void>; }
+    interface NavigatorWithWakeLock {
+      wakeLock: { request(type: 'screen'): Promise<WakeLockSentinel> };
+    }
+    let lock: WakeLockSentinel | null = null;
     const acquire = async () => {
-      try { lock = await (navigator as any).wakeLock.request('screen'); } catch { /* denied */ }
+      try {
+        lock = await (navigator as unknown as NavigatorWithWakeLock).wakeLock.request('screen');
+      } catch { /* denied */ }
     };
     acquire();
     const onVisible = () => { if (document.visibilityState === 'visible') acquire(); };
@@ -563,7 +571,7 @@ export function CounterView({
   useEffect(() => {
     fetch('/api/tenant/drivers')
       .then(r => r.json())
-      .then(d => { if (d.drivers) setDriverPool(d.drivers.filter((dr: any) => dr.is_active)); })
+      .then(d => { if (d.drivers) setDriverPool(d.drivers.filter((dr: { is_active: boolean }) => dr.is_active)); })
       .catch(() => {});
   }, []);
 
