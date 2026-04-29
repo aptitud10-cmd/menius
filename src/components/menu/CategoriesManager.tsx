@@ -22,6 +22,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { createCategory, updateCategory, deleteCategory, reorderCategories } from '@/lib/actions/restaurant';
 import { UpgradePromptModal } from '@/components/dashboard/UpgradePromptModal';
+import { useToast } from '@/components/dashboard/DashToast';
 import { cn } from '@/lib/utils';
 import { SUPPORTED_LOCALES, getLocaleFlag } from '@/lib/i18n';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
@@ -145,6 +146,7 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
   const [translatingCat, setTranslatingCat] = useState<Category | null>(null);
   const [isPending, startTransition] = useTransition();
   const { t } = useDashboardLocale();
+  const { success: toastSuccess, error: toastError } = useToast();
 
   const extraLocales = availableLocales.filter((l) => l !== defaultLocale);
   const hasMultiLang = extraLocales.length > 0;
@@ -234,14 +236,17 @@ export function CategoriesManager({ initialCategories, defaultLocale, availableL
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
+    let reordered: typeof categories = [];
     setCategories((prev) => {
       const oldIndex = prev.findIndex((c) => c.id === active.id);
       const newIndex = prev.findIndex((c) => c.id === over.id);
-      const reordered = arrayMove(prev, oldIndex, newIndex);
-      startTransition(async () => {
-        await reorderCategories(reordered.map((c) => c.id));
-      });
+      reordered = arrayMove(prev, oldIndex, newIndex);
       return reordered;
+    });
+    startTransition(async () => {
+      const result = await reorderCategories(reordered.map((c) => c.id));
+      if (result?.error) toastError(t.categories_reorderError);
+      else toastSuccess(t.categories_reorderSaved);
     });
   };
 

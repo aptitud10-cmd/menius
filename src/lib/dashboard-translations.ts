@@ -408,6 +408,12 @@ export interface DashboardTranslations {
   products_show: string;
   products_deleteConfirm: string;
   products_deleteMultiConfirm: string;
+  products_reorderSaved: string;
+  products_reorderError: string;
+  products_bulkToggleError: string;
+  products_bulkDeleteError: string;
+  categories_reorderSaved: string;
+  categories_reorderError: string;
   products_clickEditPrice: string;
   products_groups: string;
   products_copy: string;
@@ -1620,6 +1626,12 @@ const es: DashboardTranslations = {
   products_show: 'Mostrar',
   products_deleteConfirm: '¿Eliminar este producto?',
   products_deleteMultiConfirm: '¿Eliminar {n} productos?',
+  products_reorderSaved: 'Orden guardado',
+  products_reorderError: 'Error al guardar el orden',
+  products_bulkToggleError: 'Error al actualizar productos',
+  products_bulkDeleteError: 'Error al eliminar productos',
+  categories_reorderSaved: 'Orden guardado',
+  categories_reorderError: 'Error al guardar el orden',
   products_clickEditPrice: 'Click para editar precio',
   products_groups: 'grupos',
   products_copy: 'copia',
@@ -2832,6 +2844,12 @@ const en: DashboardTranslations = {
   products_show: 'Show',
   products_deleteConfirm: 'Delete this product?',
   products_deleteMultiConfirm: 'Delete {n} products?',
+  products_reorderSaved: 'Order saved',
+  products_reorderError: 'Error saving order',
+  products_bulkToggleError: 'Error updating products',
+  products_bulkDeleteError: 'Error deleting products',
+  categories_reorderSaved: 'Order saved',
+  categories_reorderError: 'Error saving order',
   products_clickEditPrice: 'Click to edit price',
   products_groups: 'groups',
   products_copy: 'copy',

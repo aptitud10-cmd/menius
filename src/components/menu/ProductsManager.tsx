@@ -30,6 +30,7 @@ import {
 import { formatPrice, cn } from '@/lib/utils';
 import type { Product, Category } from '@/types';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
+import { useToast } from '@/components/dashboard/DashToast';
 
 const MenuImportLazy = lazy(() => import('./MenuImport').then(m => ({ default: m.MenuImport })));
 const BulkImageUploadLazy = lazy(() => import('./BulkImageUpload').then(m => ({ default: m.BulkImageUpload })));
@@ -141,6 +142,7 @@ export function ProductsManager({
   const [showBulkAI, setShowBulkAI] = useState(false);
   const [showAdminRegen, setShowAdminRegen] = useState(false);
   const { t } = useDashboardLocale();
+  const { success: toastSuccess, error: toastError } = useToast();
 
   const toggleCat = (id: string) => {
     setExpanded(prev => {
@@ -277,7 +279,10 @@ export function ProductsManager({
       const results = await Promise.all(
         Array.from(ids).map(id => updateProduct(id, { is_active: active })),
       );
-      if (results.some(r => r?.error)) setProducts(prev);
+      if (results.some(r => r?.error)) {
+        setProducts(prev);
+        toastError(t.products_bulkToggleError);
+      }
     });
   };
 
@@ -291,7 +296,10 @@ export function ProductsManager({
       const results = await Promise.all(
         Array.from(ids).map(id => deleteProduct(id)),
       );
-      if (results.some(r => r?.error)) setProducts(prev);
+      if (results.some(r => r?.error)) {
+        setProducts(prev);
+        toastError(t.products_bulkDeleteError);
+      }
     });
   };
 
@@ -661,6 +669,8 @@ function SortableProductList({
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
+  const { t } = useDashboardLocale();
+  const { success: toastSuccess, error: toastError } = useToast();
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -676,7 +686,9 @@ function SortableProductList({
     });
 
     startTransition(async () => {
-      await reorderProducts(reordered.map((p) => p.id));
+      const result = await reorderProducts(reordered.map((p) => p.id));
+      if (result?.error) toastError(t.products_reorderError);
+      else toastSuccess(t.products_reorderSaved);
     });
   };
 

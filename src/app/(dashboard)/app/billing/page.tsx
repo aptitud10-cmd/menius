@@ -1014,22 +1014,6 @@ export default function BillingPage() {
         />
       </div>
 
-      {/* ─── No subscription (legacy fallback) ─── */}
-      {false && !sub && (
-        <div className="space-y-10">
-          <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">
-            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gray-100 mx-auto mb-4">
-              <CreditCard className="w-7 h-7 text-gray-400" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">{t.billing_noSubscription}</h2>
-            <p className="text-gray-500 max-w-md mx-auto">
-              {t.billing_choosePlan}
-            </p>
-          </div>
-          <PricingTable onSelect={handlePlanSelect} loading={actionLoading} />
-        </div>
-      )}
-
       {/* ─── Cancel subscription confirmation modal ─── */}
       {showCancelModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowCancelModal(false)}>
