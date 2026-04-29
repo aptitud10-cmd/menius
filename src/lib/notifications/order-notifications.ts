@@ -129,10 +129,15 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
     const customerEn = customerEffectiveLocale === 'en';
     const notificationsOn = restaurant.notifications_enabled !== false;
 
-    // Fetch rich items (with variants/modifiers/extras) if orderId available
-    const richItems: OrderEmailItem[] = orderId
-      ? await fetchRichItems(orderId, currency)
-      : items.map(i => ({
+    // Use rich items from the caller when available — saves a JOIN query.
+    // Caller is the order-creation route, which already has all data in
+    // memory from the validation pass. fetchRichItems is only used when the
+    // caller can't pre-build the rich shape (e.g. legacy paths).
+    const itemsAreRich = items.some(
+      (i) => i.variant !== undefined || i.modifiers !== undefined || i.extras !== undefined,
+    );
+    const richItems: OrderEmailItem[] = itemsAreRich || !orderId
+      ? items.map(i => ({
           name: i.name,
           qty: i.qty,
           price: formatPrice(i.price, currency),
@@ -140,7 +145,8 @@ export async function notifyNewOrder(payload: OrderNotificationPayload) {
           modifiers: i.modifiers,
           extras: i.extras,
           notes: i.notes,
-        }));
+        }))
+      : await fetchRichItems(orderId, currency);
 
     const emailJobs: Promise<boolean>[] = [];
 

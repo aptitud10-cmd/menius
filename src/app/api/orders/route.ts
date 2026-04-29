@@ -357,16 +357,38 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Run independent reads in parallel: loyalty_config (only if redeeming),
+    // tables (only for dine_in), in a single round-trip.
+    const wantsLoyalty = loyalty_points_redeemed > 0 && !!loyalty_account_id;
+    const wantsTable = !!table_name && parsed.data.order_type === 'dine_in';
+
+    const [loyaltyConfigRes, tableRowRes] = await Promise.all([
+      wantsLoyalty
+        ? adminDb
+            .from('loyalty_config')
+            .select('enabled, min_redeem_points, peso_per_point')
+            .eq('restaurant_id', restaurant_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null as { enabled: boolean; min_redeem_points: number; peso_per_point: number } | null }),
+      wantsTable
+        ? adminDb
+            .from('tables')
+            .select('id')
+            .eq('restaurant_id', restaurant_id)
+            .eq('name', table_name)
+            .eq('is_active', true)
+            .maybeSingle()
+        : Promise.resolve({ data: null as { id: string } | null }),
+    ]);
+
+    const loyaltyConfig = loyaltyConfigRes.data;
+    const resolvedTableIdEarly = tableRowRes.data?.id ?? null;
+
     // Validate and apply loyalty points redemption
     let loyaltyDiscountAmt = 0;
     let validatedLoyaltyPoints = 0;
     let loyaltyPesoPerPoint = 0;
-    if (loyalty_points_redeemed > 0 && loyalty_account_id) {
-      const { data: loyaltyConfig } = await adminDb
-        .from('loyalty_config')
-        .select('enabled, min_redeem_points, peso_per_point')
-        .eq('restaurant_id', restaurant_id)
-        .maybeSingle();
+    if (wantsLoyalty) {
       loyaltyPesoPerPoint = loyaltyConfig?.peso_per_point ?? 0;
 
       if (loyaltyConfig?.enabled) {
@@ -431,18 +453,8 @@ export async function POST(request: NextRequest) {
       ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       : null;
 
-    // Resolve table_name → table_id FK for dine_in orders
-    let resolvedTableId: string | null = null;
-    if (table_name && parsed.data.order_type === 'dine_in') {
-      const { data: tableRow } = await adminDb
-        .from('tables')
-        .select('id')
-        .eq('restaurant_id', restaurant_id)
-        .eq('name', table_name)
-        .eq('is_active', true)
-        .maybeSingle();
-      resolvedTableId = tableRow?.id ?? null;
-    }
+    // table_id FK already resolved in the parallel block above
+    const resolvedTableId: string | null = resolvedTableIdEarly;
 
     const orderInsert: Record<string, any> = {
       restaurant_id,
@@ -775,19 +787,12 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const stripeProductIds = parsed.data.items.map((i) => i.product_id);
-        const { data: stripeProducts } = await adminDb
-          .from('products')
-          .select('id, name, variants:product_variants(id, name)')
-          .in('id', stripeProductIds);
-
-        const stripeProductMap = new Map((stripeProducts ?? []).map((p) => [p.id, p]));
-
+        // Reuse productMap + variantMap built earlier (line 243-244) — saves a
+        // ~300-500ms round-trip to Supabase per online order.
         const lineItems = parsed.data.items.map((item) => {
-          const prod = stripeProductMap.get(item.product_id);
-          const prodName = prod?.name ?? 'Item';
+          const prodName = productMap.get(item.product_id)?.name ?? 'Item';
           const variantName = item.variant_id
-            ? (prod?.variants as { id: string; name: string }[] | undefined)?.find((v) => v.id === item.variant_id)?.name
+            ? variantMap.get(item.variant_id)?.name
             : undefined;
           return {
             price_data: {
@@ -857,12 +862,41 @@ export async function POST(request: NextRequest) {
     // immediately. Vercel keeps the function alive while the promise pending,
     // up to the route's maxDuration. Errors are logged inside notifyNewOrder
     // and never bubble up here.
+    //
+    // notifItems is built rich (variant + modifiers + extras + notes) from the
+    // in-memory maps already loaded for validation, so notifyNewOrder doesn't
+    // need to re-query order_items + JOINs. Saves ~1-3s on email dispatch.
     try {
-      const notifItems = parsed.data.items.map((i) => ({
-        name: productMap.get(i.product_id)?.name ?? 'Producto',
-        qty: i.qty,
-        price: i.line_total,
-      }));
+      // Build a one-off product_extras name lookup. We already have extraMap
+      // (id → {id, product_id, price}) but no name; one cheap query is fine.
+      const extraIds = parsed.data.items.flatMap((i) => (i.extras ?? []).map((e) => e.extra_id));
+      const extraNameMap = new Map<string, string>();
+      if (extraIds.length > 0) {
+        const { data: extraNamesData } = await adminDb
+          .from('product_extras')
+          .select('id, name')
+          .in('id', Array.from(new Set(extraIds)));
+        for (const e of extraNamesData ?? []) extraNameMap.set(e.id, e.name);
+      }
+
+      const notifItems = parsed.data.items.map((i) => {
+        const variantName = i.variant_id ? variantMap.get(i.variant_id)?.name : undefined;
+        const modifierLabels = (i.modifiers ?? [])
+          .map((m) => `${m.group_name}: ${m.option_name}`)
+          .filter(Boolean);
+        const extraLabels = (i.extras ?? [])
+          .map((e) => extraNameMap.get(e.extra_id) ?? '')
+          .filter(Boolean);
+        return {
+          name: productMap.get(i.product_id)?.name ?? 'Producto',
+          qty: i.qty,
+          price: i.line_total,
+          variant: variantName,
+          modifiers: modifierLabels.length ? modifierLabels : undefined,
+          extras: extraLabels.length ? extraLabels : undefined,
+          notes: i.notes || undefined,
+        };
+      });
 
       void notifyNewOrder({
         orderId: order.id,

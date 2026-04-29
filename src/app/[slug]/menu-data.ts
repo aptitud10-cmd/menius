@@ -121,13 +121,15 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
         .eq('restaurant_id', restaurant.id)
         .eq('is_active', true)
         .order('sort_order', { ascending: true }),
+      // Fetch products with all columns (select('*') is required — see CLAUDE.md
+      // rule #11 about explicit column select breaking on missing migrations).
+      // The JOINs to product_variants and product_extras have been removed:
+      // those payloads are stripped in [slug]/page.tsx before reaching MenuShell
+      // and never used by JsonLdScript or HighConversionLayout. Lazy-loaded via
+      // /api/product-modifiers when CustomizationSheet opens.
       db
         .from('products')
-        .select(`
-          *,
-          product_variants ( id, name, price_delta, sort_order ),
-          product_extras   ( id, name, price, sort_order )
-        `)
+        .select('*')
         .eq('restaurant_id', restaurant.id)
         .eq('is_active', true)
         .order('sort_order', { ascending: true }),
