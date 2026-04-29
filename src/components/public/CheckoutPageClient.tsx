@@ -300,16 +300,35 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMounted, items, orderType, promoResult, promoCode, loyaltyApplied, loyaltyBalance, tipPercent, restaurant.id, tipAmount]);
 
-  // Auto-redirect to order tracking 2.5s after successful cash/dine-in order
+  // Auto-redirect to order tracking 2.5s after successful cash/dine-in order.
+  // Stored in a ref so the manual "Track order" button can cancel it before
+  // navigating itself — otherwise the auto-redirect can fire concurrently with
+  // the click and cause the navigation to drop on Android (Samsung Internet).
+  const trackRedirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (step !== 'confirmation' || !orderNumber || !orderId) return;
     if (orderId === 'demo-order-id') return;
     if (paymentMethod === 'online') return;
-    const timer = setTimeout(() => {
+    trackRedirectTimer.current = setTimeout(() => {
       router.push(`/${slug}/orden/${orderNumber}`);
     }, 2500);
-    return () => clearTimeout(timer);
+    return () => {
+      if (trackRedirectTimer.current) {
+        clearTimeout(trackRedirectTimer.current);
+        trackRedirectTimer.current = null;
+      }
+    };
   }, [step, orderNumber, orderId, paymentMethod, router, slug]);
+
+  const goToTracking = useCallback(() => {
+    if (trackRedirectTimer.current) {
+      clearTimeout(trackRedirectTimer.current);
+      trackRedirectTimer.current = null;
+    }
+    if (orderNumber) {
+      router.push(`/${slug}/orden/${orderNumber}`);
+    }
+  }, [router, slug, orderNumber]);
 
   // Reactive form validation — drives CTA disabled state
   const isFormReady = Boolean(
@@ -1233,7 +1252,8 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   <span className="absolute -inset-1 rounded-2xl animate-ping bg-[#05c8a7]/25 pointer-events-none" />
                 )}
                 <button
-                  onClick={() => router.push(`/${slug}/orden/${orderNumber}`)}
+                  onClick={goToTracking}
+                  type="button"
                   className={cn(
                     'relative w-full py-3.5 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2',
                     paymentMethod === 'cash'
