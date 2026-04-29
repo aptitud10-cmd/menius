@@ -300,10 +300,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMounted, items, orderType, promoResult, promoCode, loyaltyApplied, loyaltyBalance, tipPercent, restaurant.id, tipAmount]);
 
-  // Auto-redirect to order tracking 2.5s after successful cash/dine-in order.
-  // Stored in a ref so the manual "Track order" button can cancel it before
-  // navigating itself — otherwise the auto-redirect can fire concurrently with
-  // the click and cause the navigation to drop on Android (Samsung Internet).
+  // Auto-redirect to order tracking ~1s after successful cash/dine-in order.
+  // Short enough that the manual button is essentially a fallback for users
+  // on flaky connections — the most common case is the auto-redirect wins.
   const trackRedirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (step !== 'confirmation' || !orderNumber || !orderId) return;
@@ -311,7 +310,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     if (paymentMethod === 'online') return;
     trackRedirectTimer.current = setTimeout(() => {
       router.push(`/${slug}/orden/${orderNumber}`);
-    }, 2500);
+    }, 1000);
     return () => {
       if (trackRedirectTimer.current) {
         clearTimeout(trackRedirectTimer.current);
@@ -320,14 +319,30 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     };
   }, [step, orderNumber, orderId, paymentMethod, router, slug]);
 
+  // Manual track-order navigation. Uses window.location.assign as a hard
+  // fallback because some Android browsers (Samsung Internet 23+, certain
+  // WebViews) intermittently drop router.push() inside a touch handler when
+  // overlapping pulse-ring layers are present.
   const goToTracking = useCallback(() => {
+    if (!orderNumber) return;
     if (trackRedirectTimer.current) {
       clearTimeout(trackRedirectTimer.current);
       trackRedirectTimer.current = null;
     }
-    if (orderNumber) {
-      router.push(`/${slug}/orden/${orderNumber}`);
+    const url = `/${slug}/orden/${orderNumber}`;
+    try {
+      router.push(url);
+    } catch {
+      window.location.assign(url);
+      return;
     }
+    // Fallback: if router.push silently no-ops (we'd still be on /checkout
+    // 250ms later), force a hard navigation.
+    setTimeout(() => {
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/orden/')) {
+        window.location.assign(url);
+      }
+    }, 250);
   }, [router, slug, orderNumber]);
 
   // Reactive form validation — drives CTA disabled state
@@ -1246,27 +1261,21 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </button>
             )}
             {!restaurant.id.startsWith('demo') && orderNumber && (
-              <div className="relative">
-                {/* Pulsing ring outside the button — only for cash orders */}
-                {paymentMethod === 'cash' && (
-                  <span className="absolute -inset-1 rounded-2xl animate-ping bg-[#05c8a7]/25 pointer-events-none" />
+              <button
+                onClick={goToTracking}
+                type="button"
+                className={cn(
+                  'relative w-full py-3.5 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2 touch-manipulation',
+                  paymentMethod === 'cash'
+                    ? 'bg-[#05c8a7] text-white hover:bg-[#04b096] active:bg-[#04b096]'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-200'
                 )}
-                <button
-                  onClick={goToTracking}
-                  type="button"
-                  className={cn(
-                    'relative w-full py-3.5 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2',
-                    paymentMethod === 'cash'
-                      ? 'bg-[#05c8a7] text-white hover:bg-[#04b096]'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  )}
-                >
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                  </svg>
-                  {t.trackOrderLive}
-                </button>
-              </div>
+              >
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                {t.trackOrderLive}
+              </button>
             )}
             {paymentMethod !== 'cash' && (
               <button onClick={goBack} className="w-full py-3.5 rounded-xl bg-gray-100 text-gray-700 font-semibold text-sm hover:bg-gray-200 transition-colors">
