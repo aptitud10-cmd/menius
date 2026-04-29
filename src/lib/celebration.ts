@@ -45,13 +45,17 @@ interface Particle {
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
 export function spawnConfetti(container: HTMLElement) {
-  const canvas = document.createElement('canvas');
+  // Mounted on document.body (NOT inside container) with position:fixed.
+  // Some Android browsers (Samsung Internet, certain Chromium WebViews) can
+  // ignore pointer-events:none on a child <canvas> with hardware acceleration,
+  // which made overlapping buttons unclickable for the canvas's lifetime.
+  // Keeping the canvas out of the interactive subtree sidesteps that entirely.
   const rect = container.getBoundingClientRect();
+  const canvas = document.createElement('canvas');
   canvas.width = rect.width;
   canvas.height = rect.height;
-  canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:50;';
-  container.style.position = container.style.position || 'relative';
-  container.appendChild(canvas);
+  canvas.style.cssText = `position:fixed;top:${rect.top}px;left:${rect.left}px;width:${rect.width}px;height:${rect.height}px;pointer-events:none;z-index:50;`;
+  document.body.appendChild(canvas);
 
   const ctx = canvas.getContext('2d')!;
   const particles: Particle[] = [];
