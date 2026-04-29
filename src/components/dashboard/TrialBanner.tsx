@@ -46,15 +46,21 @@ export function TrialBanner() {
       >
         <Clock className="w-3.5 h-3.5 flex-shrink-0" />
         <span className="flex-1 leading-snug">
-          <span className="block">
+          <span className="block font-semibold">
             {daysLeft === 0
-              ? (isEn ? 'Trial ends today' : 'La prueba termina hoy')
-              : isEn
-                ? `${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} of Starter trial left`
-                : `${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} de prueba Starter`}
+              ? (isEn ? '⏰ Trial ends today' : '⏰ La prueba termina hoy')
+              : isUrgent
+                ? (isEn
+                    ? `⏰ ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'} of Starter left`
+                    : `⏰ ${daysLeft} ${daysLeft === 1 ? 'día' : 'días'} de Starter`)
+                : isEn
+                  ? `${daysLeft} days of Starter trial`
+                  : `${daysLeft} días de prueba Starter`}
           </span>
           <span className="block text-[10px] opacity-70 font-normal mt-0.5">
-            {isEn ? 'Then → Free plan forever' : 'Después → Plan Free para siempre'}
+            {isUrgent
+              ? (isEn ? 'Activate a plan to keep your features →' : 'Activá un plan para conservar las funciones →')
+              : (isEn ? 'Activate a plan or continue on Free' : 'Activá un plan o continuá con Free')}
           </span>
         </span>
         <ArrowRight className="w-3 h-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
@@ -78,7 +84,7 @@ export function TrialBanner() {
     >
       <Zap className="w-3.5 h-3.5 flex-shrink-0" />
       <span className="flex-1 leading-snug">
-        {isEn ? 'Free plan · 50 orders/mo' : 'Plan gratuito · 50 pedidos/mes'}
+        {isEn ? 'Free plan · cash only' : 'Plan gratuito · solo efectivo'}
       </span>
       <span className="text-[10px] font-semibold bg-emerald-600 text-white px-1.5 py-0.5 rounded-full group-hover:bg-emerald-700 transition-colors">
         {isEn ? 'Upgrade' : 'Mejorar'}
