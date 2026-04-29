@@ -218,7 +218,7 @@ export function DashboardNav({ slug, mobile, planId = 'free' }: DashboardNavProp
             <div
               className="fixed top-14 left-0 right-0 bottom-0 bg-white z-50 px-4 pt-4 overflow-y-auto overscroll-contain animate-fade-in"
               style={{
-                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)',
+                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 4.5rem)',
                 WebkitOverflowScrolling: 'touch',
               }}
             >
