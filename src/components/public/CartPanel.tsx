@@ -7,6 +7,7 @@ import { Minus, Plus, Pencil, Trash2, ShoppingCart, Clock, RotateCcw, X } from '
 import { useCartStore } from '@/store/cartStore';
 import { cn } from '@/lib/utils';
 import type { Translations } from '@/lib/translations';
+import type { Product } from '@/types';
 
 interface LastOrderSummaryItem {
   qty: number;
@@ -23,6 +24,8 @@ interface CartPanelProps {
   deliveryFee?: number;
   lastOrder?: { items: LastOrderSummaryItem[] } | null;
   onReorder?: () => void;
+  suggestions?: Product[];
+  onSuggestionAdd?: (product: Product) => void;
 }
 
 // ── Swipeable cart item ──────────────────────────────────────────────────────
@@ -69,6 +72,8 @@ export function CartPanel({
   deliveryFee,
   lastOrder,
   onReorder,
+  suggestions,
+  onSuggestionAdd,
 }: CartPanelProps) {
   const items = useCartStore((s) => s.items);
   const updateQty = useCartStore((s) => s.updateQty);
@@ -347,6 +352,42 @@ export function CartPanel({
       </div>
 
       {/* ── Footer: breakdown + checkout ── */}
+      {/* Upsell suggestions */}
+      {suggestions && suggestions.length > 0 && (
+        <div className="px-4 pb-3 border-t border-gray-100 pt-3 flex-shrink-0">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
+            {t.upsellTitle}
+          </p>
+          <div className="flex gap-2.5 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
+            {suggestions.slice(0, 5).map((p) => (
+              <button
+                key={p.id}
+                onClick={() => onSuggestionAdd?.(p)}
+                className="flex-shrink-0 w-[100px] flex flex-col gap-1 rounded-xl border border-gray-100 bg-white shadow-sm p-2 active:scale-95 transition-transform text-left"
+              >
+                {p.image_url ? (
+                  <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-100">
+                    <Image
+                      src={p.image_url}
+                      alt={p.name}
+                      fill
+                      sizes="100px"
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full aspect-square rounded-lg bg-gray-100 flex items-center justify-center">
+                    <span className="text-xl" aria-hidden="true">🍽️</span>
+                  </div>
+                )}
+                <span className="text-[11px] font-semibold text-gray-800 line-clamp-2 leading-tight">{p.name}</span>
+                <span className="text-[11px] font-bold text-[#05c8a7] tabular-nums">{fmtPrice(Number(p.price))}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="border-t border-gray-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex-shrink-0">
         {!!estimatedMinutes && estimatedMinutes > 0 && (
           <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-2">
