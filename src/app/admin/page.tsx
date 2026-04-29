@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Store, ShoppingBag, TrendingUp, Clock, AlertTriangle,
-  ExternalLink, Loader2, Shield, Megaphone, Sparkles, Activity, UserPlus, Mail, Zap,
-  XCircle, CreditCard, TrendingDown, Bell,
+  ExternalLink, Loader2, Shield, Megaphone, Sparkles, Activity, UserPlus, Mail,
+  CreditCard, TrendingDown, Bell, LogIn,
 } from 'lucide-react';
 import type { ActivityEvent } from '@/app/api/admin/activity/route';
 
@@ -85,6 +85,31 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [feed, setFeed] = useState<ActivityEvent[]>([]);
   const [urgentCount, setUrgentCount] = useState(0);
+  const [search, setSearch] = useState('');
+  const [impersonating, setImpersonating] = useState<string | null>(null);
+
+  async function impersonate(restaurantId: string, restaurantName: string) {
+    if (impersonating) return;
+    if (!confirm(`Vas a entrar al dashboard de "${restaurantName}" como su dueño. Tu sesión actual será reemplazada. ¿Continuar?`)) return;
+    setImpersonating(restaurantId);
+    try {
+      const res = await fetch('/api/admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restaurantId }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.actionLink) {
+        alert(`Error: ${json.error ?? 'No se pudo generar el acceso'}`);
+        setImpersonating(null);
+        return;
+      }
+      window.location.href = json.actionLink;
+    } catch (e) {
+      alert(`Error de red: ${e instanceof Error ? e.message : 'desconocido'}`);
+      setImpersonating(null);
+    }
+  }
 
   const fetchStats = useCallback(async () => {
     try {
@@ -154,56 +179,83 @@ export default function AdminPage() {
     return days;
   };
 
+  const filteredRestaurants = data.restaurants.filter(r => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return r.name.toLowerCase().includes(q) || r.slug.toLowerCase().includes(q) || r.owner_email.toLowerCase().includes(q);
+  });
+
   return (
     <div className="min-h-screen bg-[#050505] text-gray-100">
-      <div className="max-w-6xl mx-auto px-4 md:px-8 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Shield className="w-6 h-6 text-purple-400" /> Admin MENIUS
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">Panel de administración del SaaS</p>
+      {/* Sticky Top Bar */}
+      <div className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#070707]/80 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 flex items-center gap-4">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Shield className="w-5 h-5 text-purple-400" />
+            <span className="text-sm font-semibold text-white">MENIUS Admin</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Link href="/admin/alerts" className="relative flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600/80 hover:bg-red-600 text-sm text-white font-medium transition-colors">
-              <Bell className="w-4 h-4" /> Alertas
+
+          <div className="hidden md:flex flex-1 max-w-md mx-4">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar restaurante, slug o email…"
+              className="w-full px-3 py-1.5 text-sm bg-white/[0.04] border border-white/[0.08] rounded-lg text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500/40 transition-colors"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 ml-auto">
+            <Link href="/admin/alerts" className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-xs text-gray-300 hover:text-white transition-colors">
+              <Bell className="w-3.5 h-3.5" /> Alertas
               {urgentCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-400 text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300 text-[10px] font-bold">
                   {urgentCount}
                 </span>
               )}
             </Link>
-            <Link href="/admin/users" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm text-white font-medium transition-colors">
-              <UserPlus className="w-4 h-4" /> Usuarios
+            <Link href="/admin/metrics" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-xs text-gray-300 hover:text-white transition-colors">
+              <TrendingUp className="w-3.5 h-3.5" /> Métricas
             </Link>
-            <Link href="/admin/support" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-sm text-white font-medium transition-colors">
-              <Mail className="w-4 h-4" /> Soporte
+            <Link href="/admin/health" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-xs text-gray-300 hover:text-white transition-colors">
+              <Activity className="w-3.5 h-3.5" /> Salud
             </Link>
-            <Link href="/admin/health" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-sm text-white font-medium transition-colors">
-              <Activity className="w-4 h-4" /> Salud
+
+            <span className="w-px h-5 bg-white/[0.08] mx-1" />
+
+            <Link href="/admin/users" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-xs text-gray-300 hover:text-white transition-colors">
+              <UserPlus className="w-3.5 h-3.5" /> Usuarios
             </Link>
-            <Link href="/admin/social-generator" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-gray-400 hover:text-white transition-colors">
-              <Sparkles className="w-4 h-4" /> Social AI
+            <Link href="/admin/support" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-xs text-gray-300 hover:text-white transition-colors">
+              <Mail className="w-3.5 h-3.5" /> Soporte
             </Link>
-            <Link href="/admin/marketing" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-sm text-white font-medium transition-colors">
-              <Megaphone className="w-4 h-4" /> Marketing
+
+            <span className="w-px h-5 bg-white/[0.08] mx-1" />
+
+            <Link href="/admin/marketing" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 border border-purple-500/30 hover:bg-purple-600/30 text-xs text-purple-200 transition-colors">
+              <Megaphone className="w-3.5 h-3.5" /> Marketing
             </Link>
-            <Link href="/admin/metrics" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-sm text-white font-medium transition-colors">
-              <TrendingUp className="w-4 h-4" />
-              Métricas
+            <Link href="/admin/social-generator" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 border border-purple-500/30 hover:bg-purple-600/30 text-xs text-purple-200 transition-colors">
+              <Sparkles className="w-3.5 h-3.5" /> Social AI
             </Link>
-            <Link href="/admin/onboarding" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-700 hover:bg-cyan-600 text-sm text-white font-medium transition-colors">
-              <Sparkles className="w-4 h-4" />
-              Onboarding AI
+            <Link href="/admin/onboarding" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600/20 border border-purple-500/30 hover:bg-purple-600/30 text-xs text-purple-200 transition-colors">
+              <Sparkles className="w-3.5 h-3.5" /> Onboarding AI
             </Link>
-            <Link href="/admin/dev" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-sm text-white font-medium transition-colors">
-              <Zap className="w-4 h-4" /> Dev Tool
-            </Link>
-            <Link href="/app" className="px-4 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-gray-400 hover:text-white transition-colors">
-              Dashboard →
+
+            <span className="w-px h-5 bg-white/[0.08] mx-1" />
+
+            <Link href="/app" className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] text-xs text-gray-400 hover:text-white transition-colors">
+              Mi Dashboard →
             </Link>
           </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
+        {/* Page title */}
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-white">Resumen general</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Estado del SaaS · {new Date().toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' })}</p>
         </div>
 
         {/* KPIs */}
@@ -344,7 +396,10 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.restaurants.map(r => {
+                {filteredRestaurants.length === 0 && (
+                  <tr><td colSpan={7} className="px-5 py-8 text-center text-sm text-gray-600">Sin resultados para "{search}"</td></tr>
+                )}
+                {filteredRestaurants.map(r => {
                   const info = STATUS_LABELS[r.status] ?? STATUS_LABELS.none;
                   const trial = daysLeft(r.trial_end);
                   const isNew = (Date.now() - new Date(r.created_at).getTime()) < 7 * 24 * 60 * 60 * 1000;
@@ -386,7 +441,16 @@ export default function AdminPage() {
                         {new Date(r.created_at).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </td>
                       <td className="px-5 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => impersonate(r.id, r.name)}
+                            disabled={impersonating !== null}
+                            title="Entrar al dashboard de este restaurante"
+                            className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-purple-600/20 border border-purple-500/30 text-purple-300 hover:bg-purple-600/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            {impersonating === r.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <LogIn className="w-3 h-3" />}
+                            Entrar
+                          </button>
                           <Link
                             href={`/admin/restaurant?id=${r.id}`}
                             className="text-xs px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:text-white transition-colors"
@@ -398,6 +462,7 @@ export default function AdminPage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-gray-600 hover:text-purple-400 transition-colors"
+                            title="Ver menú público"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                           </a>
@@ -410,8 +475,8 @@ export default function AdminPage() {
             </table>
           </div>
         </div>
+      </div>
     </div>
-  </div>
   );
 }
 
