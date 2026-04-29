@@ -211,6 +211,9 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
 
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
           <div className="flex flex-col gap-0.5">
+            {hasModifiers && !outOfStock && (
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide leading-none">{t.fromPrice}</span>
+            )}
             <span className={cn('text-base font-bold tabular-nums', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
               {fmtPrice(Number(product.price))}
             </span>

@@ -138,6 +138,7 @@ export interface Translations {
   soldOut: string;
   unavailable: string;
   addedShort: string;
+  fromPrice: string;
   // Favorites
   favoritesTitle: string;
   noFavoritesYet: string;
@@ -483,6 +484,7 @@ const es: Translations = {
   soldOut: 'Agotado',
   unavailable: 'No disponible',
   addedShort: 'Listo',
+  fromPrice: 'Desde',
   favoritesTitle: 'Favoritos',
   noFavoritesYet: 'Aún no tienes favoritos',
   noFavoritesHint: 'Toca el ♥ en un producto para guardarlo',
@@ -813,6 +815,7 @@ const en: Translations = {
   soldOut: 'Sold out',
   unavailable: 'Unavailable',
   addedShort: 'Added',
+  fromPrice: 'From',
   favoritesTitle: 'Favorites',
   noFavoritesYet: 'No favorites yet',
   noFavoritesHint: 'Tap ♥ on a product to save it',

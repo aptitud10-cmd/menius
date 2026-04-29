@@ -179,9 +179,14 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           </div>
         )}
         <div className="flex items-center justify-between mt-auto pt-2.5">
-          <span className={cn('text-[17px] font-black tabular-nums leading-none', outOfStock ? 'text-gray-300 line-through' : 'text-gray-950')}>
-            {fmtPrice(Number(product.price))}
-          </span>
+          <div className="flex flex-col leading-none">
+            {hasModifiers && !outOfStock && (
+              <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide leading-none mb-0.5">{t.fromPrice}</span>
+            )}
+            <span className={cn('text-[17px] font-black tabular-nums leading-none', outOfStock ? 'text-gray-300 line-through' : 'text-gray-950')}>
+              {fmtPrice(Number(product.price))}
+            </span>
+          </div>
           {outOfStock ? (
             <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
               <Ban className="w-4 h-4 text-gray-300" />
