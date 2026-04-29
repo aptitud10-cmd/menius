@@ -47,6 +47,7 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
 
   const rtConnectedRef = useRef(false);
   const lastPollRef = useRef<string | null>(null);
+  const pollNowRef = useRef<(() => void) | null>(null);
 
   const handleNewOrder = useCallback((order: { id: string; order_number: string; customer_name: string; total: number }) => {
     if (knownIdsRef.current.has(order.id)) return;
@@ -71,12 +72,11 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
     }, 15000);
   }, [currency, notifyNewOrder]);
 
-  // Polling fallback — fires only when Realtime is disconnected/errored.
+  // Polling fallback — fires periodically AND on demand when Realtime errors.
   // Uses browser Supabase client (respects RLS via session cookie) instead of
   // a dedicated API route to keep this self-contained.
   useEffect(() => {
     const poll = async () => {
-      if (rtConnectedRef.current) return;
       try {
         const supabase = getSupabaseBrowser();
         const since = lastPollRef.current ?? new Date(Date.now() - 60_000).toISOString();
@@ -94,8 +94,18 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
       } catch { /* silent — best effort */ }
     };
 
-    const id = setInterval(poll, 15_000);
-    return () => clearInterval(id);
+    pollNowRef.current = () => { if (!rtConnectedRef.current) poll(); };
+
+    // Periodic poll only fires when RT is down — saves DB hits in normal state.
+    const periodic = async () => {
+      if (rtConnectedRef.current) return;
+      await poll();
+    };
+    const id = setInterval(periodic, 15_000);
+    return () => {
+      clearInterval(id);
+      pollNowRef.current = null;
+    };
   }, [restaurantId, handleNewOrder]);
 
   useEffect(() => {
@@ -117,6 +127,12 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
       )
       .subscribe((status: string) => {
         rtConnectedRef.current = status === 'SUBSCRIBED';
+        // On disconnect/error/timeout: poll immediately so the owner doesn't
+        // miss orders during the gap. The 15s periodic poll keeps covering
+        // until Supabase auto-reconnects.
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setTimeout(() => pollNowRef.current?.(), 2000);
+        }
       });
 
     return () => {

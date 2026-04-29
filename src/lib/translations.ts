@@ -309,6 +309,7 @@ export interface Translations {
   addTipQuestion: string;
   // CheckoutPageClient — CTA / footer
   retryingLabel: string;
+  retryingBanner: string;
   completeFormToContinue: string;
   placeOrderAriaLabel: string;
   retryLabel: string;
@@ -641,6 +642,7 @@ const es: Translations = {
   addTipQuestion: '¿Deseas dejar propina?',
   // CheckoutPageClient — CTA / footer
   retryingLabel: 'Reintentando…',
+  retryingBanner: 'Problema de conexión — reintentando automáticamente, no salgas de esta pantalla.',
   completeFormToContinue: 'Completa nombre, teléfono y email para continuar',
   placeOrderAriaLabel: 'Confirmar orden',
   retryLabel: 'Reintentar',
@@ -970,6 +972,7 @@ const en: Translations = {
   addTipQuestion: 'Add a tip?',
   // CheckoutPageClient — CTA / footer
   retryingLabel: 'Retrying…',
+  retryingBanner: 'Connection issue — retrying automatically, please stay on this screen.',
   completeFormToContinue: 'Enter your name, phone and email to continue',
   placeOrderAriaLabel: 'Place order',
   retryLabel: 'Retry',
