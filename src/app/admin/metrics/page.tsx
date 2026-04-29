@@ -532,14 +532,22 @@ export default function MetricsDashboard() {
                             <CountryFlag code={r.country_code} />
                           </td>
                           <td className="px-5 py-3 text-right">
-                            <a
-                              href={`/${r.slug}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-gray-700 hover:text-purple-400 transition-colors inline-flex"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
+                            <div className="flex items-center justify-end gap-2">
+                              <Link
+                                href={`/admin/restaurant?id=${r.id}`}
+                                className="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.08] text-gray-500 hover:text-white transition-colors"
+                              >
+                                Detalle
+                              </Link>
+                              <a
+                                href={`/${r.slug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-700 hover:text-purple-400 transition-colors inline-flex"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            </div>
                           </td>
                         </tr>
                       );

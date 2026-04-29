@@ -24,7 +24,7 @@ export async function GET() {
   const stripeKey = process.env.STRIPE_SECRET_KEY;
   if (!stripeKey) return NextResponse.json({ error: 'No Stripe key' }, { status: 500 });
 
-  const stripe = new Stripe(stripeKey, { apiVersion: '2026-01-28.clover' });
+  const stripe = new Stripe(stripeKey, { apiVersion: '2026-01-28.clover', maxNetworkRetries: 1, timeout: 12000 });
   const db = createAdminClient();
 
   const [stripeData, supabaseData] = await Promise.all([
@@ -87,30 +87,35 @@ async function fetchStripeMetrics(stripe: Stripe) {
       }
     }
 
-    // ── Monthly trend (last 6 months) ──────────────────────────────────────
-    const monthlyMrr: { month: string; mrr: number; newSubs: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const start = startOfMonth(i);
-      const end = startOfMonth(i - 1);
-      const monthSubs = await stripe.subscriptions.list({
-        status: 'active',
-        created: { gte: toUnix(start), lt: toUnix(end) },
-        limit: 100,
-        expand: ['data.items.data.price'],
-      });
-      let monthMrr = 0;
-      for (const sub of monthSubs.data) {
-        for (const item of sub.items.data) {
-          const amount = (item.price.unit_amount ?? 0) / 100;
-          monthMrr += item.price.recurring?.interval === 'year' ? amount / 12 : amount;
+    // ── Monthly trend (last 6 months) — parallel ──────────────────────────
+    const monthlyMrr = await Promise.all(
+      Array.from({ length: 6 }, (_, idx) => 5 - idx).map(async (i) => {
+        const start = startOfMonth(i);
+        const end = startOfMonth(i - 1);
+        try {
+          const monthSubs = await stripe.subscriptions.list({
+            status: 'active',
+            created: { gte: toUnix(start), lt: toUnix(end) },
+            limit: 100,
+            expand: ['data.items.data.price'],
+          });
+          let monthMrr = 0;
+          for (const sub of monthSubs.data) {
+            for (const item of sub.items.data) {
+              const amount = (item.price.unit_amount ?? 0) / 100;
+              monthMrr += item.price.recurring?.interval === 'year' ? amount / 12 : amount;
+            }
+          }
+          return {
+            month: start.toLocaleDateString('es', { month: 'short', year: '2-digit' }),
+            mrr: Math.round(monthMrr * 100) / 100,
+            newSubs: monthSubs.data.length,
+          };
+        } catch {
+          return { month: start.toLocaleDateString('es', { month: 'short', year: '2-digit' }), mrr: 0, newSubs: 0 };
         }
-      }
-      monthlyMrr.push({
-        month: start.toLocaleDateString('es', { month: 'short', year: '2-digit' }),
-        mrr: Math.round(monthMrr * 100) / 100,
-        newSubs: monthSubs.data.length,
-      });
-    }
+      })
+    );
 
     // ── Churn this month ───────────────────────────────────────────────────
     const som = startOfMonth();

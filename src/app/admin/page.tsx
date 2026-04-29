@@ -5,7 +5,9 @@ import Link from 'next/link';
 import {
   Store, ShoppingBag, TrendingUp, Clock, AlertTriangle,
   ExternalLink, Loader2, Shield, Megaphone, Sparkles, Activity, UserPlus, Mail, Zap,
+  XCircle, CreditCard, TrendingDown, Bell,
 } from 'lucide-react';
+import type { ActivityEvent } from '@/app/api/admin/activity/route';
 
 interface AdminStats {
   totalRestaurants: number;
@@ -48,10 +50,41 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   none: { label: 'Sin sub', color: 'text-gray-500 bg-white/[0.04] border-white/[0.08]' },
 };
 
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'ahora';
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.floor(h / 24)}d`;
+}
+
+const EVENT_ICON: Record<ActivityEvent['type'], React.ReactNode> = {
+  order: <ShoppingBag className="w-3.5 h-3.5" />,
+  signup: <UserPlus className="w-3.5 h-3.5" />,
+  payment_failed: <CreditCard className="w-3.5 h-3.5" />,
+  trial_ending: <Clock className="w-3.5 h-3.5" />,
+  cancellation: <TrendingDown className="w-3.5 h-3.5" />,
+  churn_risk: <AlertTriangle className="w-3.5 h-3.5" />,
+};
+const SEV_COLOR: Record<ActivityEvent['severity'], string> = {
+  danger: 'text-red-400',
+  warning: 'text-amber-400',
+  info: 'text-blue-400',
+};
+const SEV_DOT: Record<ActivityEvent['severity'], string> = {
+  danger: 'bg-red-400',
+  warning: 'bg-amber-400',
+  info: 'bg-blue-400/60',
+};
+
 export default function AdminPage() {
   const [data, setData] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [feed, setFeed] = useState<ActivityEvent[]>([]);
+  const [urgentCount, setUrgentCount] = useState(0);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -73,7 +106,22 @@ export default function AdminPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchStats(); }, [fetchStats]);
+  const fetchFeed = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/activity');
+      const json = await res.json();
+      setFeed(json.events ?? []);
+      setUrgentCount((json.events ?? []).filter((e: ActivityEvent) => e.severity === 'danger').length);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => { fetchStats(); fetchFeed(); }, [fetchStats, fetchFeed]);
+
+  // Poll feed every 30s
+  useEffect(() => {
+    const id = setInterval(fetchFeed, 30_000);
+    return () => clearInterval(id);
+  }, [fetchFeed]);
 
   if (loading) {
     return (
@@ -118,6 +166,14 @@ export default function AdminPage() {
             <p className="text-sm text-gray-500 mt-1">Panel de administración del SaaS</p>
           </div>
           <div className="flex items-center gap-2">
+            <Link href="/admin/alerts" className="relative flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600/80 hover:bg-red-600 text-sm text-white font-medium transition-colors">
+              <Bell className="w-4 h-4" /> Alertas
+              {urgentCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-400 text-white text-[10px] font-bold flex items-center justify-center">
+                  {urgentCount}
+                </span>
+              )}
+            </Link>
             <Link href="/admin/users" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm text-white font-medium transition-colors">
               <UserPlus className="w-4 h-4" /> Usuarios
             </Link>
@@ -224,6 +280,51 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* Activity feed widget */}
+        <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] overflow-hidden mb-6">
+          <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-purple-400" />
+              <h3 className="text-sm font-semibold text-white">Actividad reciente</h3>
+              {urgentCount > 0 && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/15 border border-red-500/20 text-red-400 font-semibold">
+                  {urgentCount} urgente{urgentCount > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+            <Link href="/admin/alerts" className="text-xs text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1">
+              Ver todo →
+            </Link>
+          </div>
+          <div className="divide-y divide-white/[0.03]">
+            {feed.length === 0 ? (
+              <p className="px-5 py-4 text-xs text-gray-600">Cargando actividad…</p>
+            ) : feed.slice(0, 8).map(event => (
+              <div key={event.id} className="flex items-center gap-3 px-5 py-3 hover:bg-white/[0.02] transition-colors group">
+                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${SEV_DOT[event.severity]}`} />
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 bg-white/[0.04] ${SEV_COLOR[event.severity]}`}>
+                  {EVENT_ICON[event.type]}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-200 font-medium truncate">{event.title}</p>
+                  <p className="text-[10px] text-gray-600 truncate">{event.restaurant_name ?? event.subtitle}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-[10px] text-gray-600">{timeAgo(event.created_at)}</span>
+                  {event.restaurant_id && (
+                    <Link
+                      href={`/admin/restaurant?id=${event.restaurant_id}`}
+                      className="text-[10px] text-gray-600 hover:text-purple-400 opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Restaurants table */}
         <div className="bg-[#0a0a0a] rounded-2xl border border-white/[0.06] overflow-hidden">
           <div className="px-5 py-4 border-b border-white/[0.06]">
@@ -285,14 +386,22 @@ export default function AdminPage() {
                         {new Date(r.created_at).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </td>
                       <td className="px-5 py-3 text-right">
-                        <a
-                          href={`/${r.slug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-gray-600 hover:text-purple-400 transition-colors"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/admin/restaurant?id=${r.id}`}
+                            className="text-xs px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-gray-400 hover:text-white transition-colors"
+                          >
+                            Detalle
+                          </Link>
+                          <a
+                            href={`/${r.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-600 hover:text-purple-400 transition-colors"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
                       </td>
                     </tr>
                   );
