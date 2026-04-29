@@ -319,31 +319,6 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     };
   }, [step, orderNumber, orderId, paymentMethod, router, slug]);
 
-  // Manual track-order navigation. Uses window.location.assign as a hard
-  // fallback because some Android browsers (Samsung Internet 23+, certain
-  // WebViews) intermittently drop router.push() inside a touch handler when
-  // overlapping pulse-ring layers are present.
-  const goToTracking = useCallback(() => {
-    if (!orderNumber) return;
-    if (trackRedirectTimer.current) {
-      clearTimeout(trackRedirectTimer.current);
-      trackRedirectTimer.current = null;
-    }
-    const url = `/${slug}/orden/${orderNumber}`;
-    try {
-      router.push(url);
-    } catch {
-      window.location.assign(url);
-      return;
-    }
-    // Fallback: if router.push silently no-ops (we'd still be on /checkout
-    // 250ms later), force a hard navigation.
-    setTimeout(() => {
-      if (typeof window !== 'undefined' && !window.location.pathname.includes('/orden/')) {
-        window.location.assign(url);
-      }
-    }, 250);
-  }, [router, slug, orderNumber]);
 
   // Reactive form validation — drives CTA disabled state
   const isFormReady = Boolean(
@@ -1261,11 +1236,16 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               </button>
             )}
             {!restaurant.id.startsWith('demo') && orderNumber && (
-              <button
-                onClick={goToTracking}
-                type="button"
+              <a
+                href={`/${slug}/orden/${orderNumber}`}
+                onClick={() => {
+                  if (trackRedirectTimer.current) {
+                    clearTimeout(trackRedirectTimer.current);
+                    trackRedirectTimer.current = null;
+                  }
+                }}
                 className={cn(
-                  'relative w-full py-3.5 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2 touch-manipulation',
+                  'relative w-full py-3.5 rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2 touch-manipulation no-underline',
                   paymentMethod === 'cash'
                     ? 'bg-[#05c8a7] text-white hover:bg-[#04b096] active:bg-[#04b096]'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200 active:bg-gray-200'
@@ -1275,7 +1255,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
                 {t.trackOrderLive}
-              </button>
+              </a>
             )}
             {paymentMethod !== 'cash' && (
               <button onClick={goBack} className="w-full py-3.5 rounded-xl bg-gray-100 text-gray-700 font-semibold text-sm hover:bg-gray-200 transition-colors">

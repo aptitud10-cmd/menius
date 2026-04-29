@@ -5,28 +5,38 @@
  * - Canvas confetti burst
  */
 
+// Run audio + vibration off the main thread so they never block UI / handlers.
+// Some Android browsers serialize AudioContext creation on the main thread,
+// which can delay rendering after a successful order on slow devices.
 export function playSuccessChime() {
-  try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const t = ctx.currentTime;
-
-    const notes = [523.25, 659.25, 783.99, 1046.5];
-    notes.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      const start = t + i * 0.1;
-      gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(0.15, start + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.3);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + 0.35);
-    });
-  } catch {}
-  try { navigator.vibrate?.([40, 30, 40, 30, 60]); } catch {}
+  if (typeof window === 'undefined') return;
+  // Defer to next tick so the caller's render commits first.
+  setTimeout(() => {
+    try {
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctx) return;
+      const ctx = new Ctx();
+      const t = ctx.currentTime;
+      const notes = [523.25, 659.25, 783.99, 1046.5];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const start = t + i * 0.1;
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.15, start + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + 0.35);
+      });
+      // Close the AudioContext after the chime finishes to release resources.
+      setTimeout(() => { ctx.close().catch(() => {}); }, 800);
+    } catch {}
+    try { navigator.vibrate?.([40, 30, 40, 30, 60]); } catch {}
+  }, 0);
 }
 
 interface Particle {
