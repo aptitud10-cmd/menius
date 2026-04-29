@@ -253,6 +253,12 @@ export default function BillingPage() {
     const hasLiveSub = sub?.stripe_subscription_id && (sub.status === 'active' || sub.status === 'past_due');
     if (hasLiveSub) return;
     autoCheckoutTriggered.current = true;
+    // Clean URL so refresh/bookmark doesn't re-trigger checkout
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('autoCheckout');
+      window.history.replaceState({}, '', url.toString());
+    }
     handlePlanSelect(planParam as PlanId, 'monthly');
   }, [loading, sub, searchParams, handlePlanSelect]);
 

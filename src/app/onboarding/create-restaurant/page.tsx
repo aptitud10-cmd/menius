@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createRestaurant, createProduct } from '@/lib/actions/restaurant';
@@ -135,6 +135,14 @@ const LANGUAGES = [
 const WIZARD_PLAN_IDS = new Set(['free', 'starter', 'pro']);
 
 export default function CreateRestaurantPage() {
+  return (
+    <Suspense fallback={null}>
+      <CreateRestaurantPageInner />
+    </Suspense>
+  );
+}
+
+function CreateRestaurantPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
