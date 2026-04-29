@@ -524,27 +524,14 @@ export default function BillingPage() {
                   </button>
                 )}
                 {isFreePlan && !commissions?.isCommissionPlan && (
-                  <>
-                    <button
-                      onClick={() => handlePlanSelect('starter', 'monthly')}
-                      disabled={actionLoading !== null}
-                      className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50"
-                    >
-                      <CreditCard className="w-4 h-4" />
-                      {actionLoading === 'starter' ? t.billing_redirecting : (locale === 'en' ? 'Upgrade to Starter' : 'Subir a Starter')}
-                    </button>
-                    {commissions?.countryCode !== 'CO' && (
-                      <button
-                        onClick={() => setShowCommissionModal(true)}
-                        disabled={actionLoading !== null}
-                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-teal-300 text-sm font-medium text-teal-700 hover:bg-teal-50 disabled:opacity-50 transition-all"
-                      >
-                        {actionLoading === 'commission'
-                          ? (locale === 'en' ? 'Activating...' : 'Activando...')
-                          : (locale === 'en' ? 'Or pay 4% per online order' : 'O pagar 4% por orden online')}
-                      </button>
-                    )}
-                  </>
+                  <button
+                    onClick={() => handlePlanSelect('starter', 'monthly')}
+                    disabled={actionLoading !== null}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-sm font-semibold hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 transition-all shadow-md shadow-emerald-200/50"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    {actionLoading === 'starter' ? t.billing_redirecting : (locale === 'en' ? 'Upgrade to Starter' : 'Subir a Starter')}
+                  </button>
                 )}
                 {isTrialing && (
                   <button

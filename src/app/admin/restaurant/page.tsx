@@ -17,6 +17,7 @@ interface RestaurantDetail {
     id: string; name: string; slug: string; currency: string;
     country_code: string; is_active: boolean; created_at: string;
     notification_email: string; phone: string;
+    commission_plan: boolean | null;
     ownerEmail: string; ownerName: string; lastSignIn: string | null;
   };
   subscription: {
@@ -120,6 +121,7 @@ export default function RestaurantDetailPage() {
   const [data, setData] = useState<RestaurantDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [togglingCommission, setTogglingCommission] = useState(false);
 
   const load = useCallback(async () => {
     if (!restaurantId) return;
@@ -138,6 +140,29 @@ export default function RestaurantDetailPage() {
   }, [restaurantId]);
 
   useEffect(() => { load(); }, [load]);
+
+  async function toggleCommission(enable: boolean) {
+    if (!restaurantId || togglingCommission) return;
+    const action = enable ? 'activar' : 'desactivar';
+    if (!confirm(`¿${action.charAt(0).toUpperCase() + action.slice(1)} plan comisión 4% para este restaurante?`)) return;
+    setTogglingCommission(true);
+    try {
+      const res = await fetch('/api/admin/toggle-commission-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restaurantId, enable }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        alert(`Error: ${json.error ?? 'No se pudo actualizar'}`);
+      } else {
+        await load();
+      }
+    } catch (e) {
+      alert(`Error de red: ${e instanceof Error ? e.message : 'desconocido'}`);
+    }
+    setTogglingCommission(false);
+  }
 
   if (!restaurantId) {
     return (
@@ -319,6 +344,34 @@ export default function RestaurantDetailPage() {
                   <AlertTriangle className="w-3 h-3" /> Cancelación programada
                 </div>
               )}
+            </div>
+
+            {/* Plan Comisión 4% — interno, solo admin */}
+            <div className="mt-5 pt-4 border-t border-white/[0.05]">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Plan Comisión 4%</p>
+                  <p className="text-[10px] text-gray-600 mt-0.5">Uso interno · 4% por orden online</p>
+                </div>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full border ${restaurant.commission_plan ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/[0.04] border-white/[0.08] text-gray-500'}`}>
+                  {restaurant.commission_plan ? 'Activo' : 'Inactivo'}
+                </span>
+              </div>
+              <button
+                onClick={() => toggleCommission(!restaurant.commission_plan)}
+                disabled={togglingCommission}
+                className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                  restaurant.commission_plan
+                    ? 'bg-red-600/20 border border-red-500/20 text-red-300 hover:bg-red-600/30'
+                    : 'bg-emerald-600/20 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-600/30'
+                }`}
+              >
+                {togglingCommission
+                  ? 'Actualizando…'
+                  : restaurant.commission_plan
+                    ? 'Desactivar plan 4%'
+                    : 'Activar plan 4%'}
+              </button>
             </div>
 
             {/* Quick actions */}

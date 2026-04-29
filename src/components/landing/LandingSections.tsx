@@ -260,97 +260,17 @@ function formatCOP(amount: number): string {
   return amount.toLocaleString('es-CO');
 }
 
-function CommissionPlanBanner({ tp }: { tp: LandingT['pricing'] }) {
-  const [sales, setSales] = useState('');
-  const cp = tp.commissionPlan;
-  const numSales = parseFloat(sales.replace(/[^0-9.]/g, '')) || 0;
-  const commission = numSales * 0.04;
-  const otherPlatforms = numSales * 0.25;
-  const showUpsell = numSales >= 975;
-
-  return (
-    <div className="mb-8 rounded-2xl border border-[#05c8a7]/20 bg-white/[0.03] p-6 md:p-8">
-      <div className="flex flex-col md:flex-row gap-8 md:gap-12">
-        {/* Left: info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#05c8a7]/15 text-[#05c8a7] uppercase tracking-wider">
-              {cp.badge}
-            </span>
-          </div>
-          <h3 className="text-xl font-bold text-white mb-1.5">{cp.name}</h3>
-          <p className="text-sm text-gray-400 leading-relaxed mb-3">{cp.desc}</p>
-          <p className="text-xs text-[#05c8a7]/80">{cp.note}</p>
-          <ul className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-            {cp.features.map((f) => (
-              <li key={f} className="flex items-center gap-2 text-xs text-gray-400">
-                <svg className="w-3.5 h-3.5 text-[#05c8a7]/60 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                {f}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Right: calculator */}
-        <div className="md:w-72 flex-shrink-0 flex flex-col gap-4">
-          <div className="rounded-2xl bg-white/[0.05] border border-white/[0.08] p-5">
-            <p className="text-xs text-gray-400 font-medium mb-3">{cp.calcLabel}</p>
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder={cp.calcPlaceholder}
-              value={sales}
-              onChange={(e) => setSales(e.target.value.replace(/[^0-9.]/g, ''))}
-              className="w-full px-4 py-3 rounded-xl bg-white/[0.08] border border-white/[0.10] text-white text-2xl font-bold placeholder-gray-700 focus:outline-none focus:border-[#05c8a7]/50 transition-colors"
-            />
-            {numSales > 0 ? (
-              <div className="mt-4 space-y-2">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-xs text-gray-500">MENIUS (4%)</span>
-                  <span className="text-lg font-bold text-[#05c8a7]">${commission.toFixed(0)}/mes</span>
-                </div>
-                <div className="flex items-baseline justify-between">
-                  <span className="text-xs text-gray-500">{cp.calcComparisonLabel}</span>
-                  <span className="text-lg font-bold text-red-400 line-through opacity-70">${otherPlatforms.toFixed(0)}/mes</span>
-                </div>
-                <div className="border-t border-white/[0.06] pt-2 mt-1">
-                  {showUpsell ? (
-                    <p className="text-xs text-[#05c8a7]">↑ {cp.calcUpsell}</p>
-                  ) : (
-                    <p className="text-xs text-gray-600">{cp.breakeven}</p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <p className="mt-3 text-xs text-gray-600">{cp.breakeven}</p>
-            )}
-          </div>
-          <Link
-            href="/signup?plan=commission"
-            className="block text-center py-3 rounded-xl bg-white/[0.06] text-gray-300 border border-white/[0.10] hover:text-white hover:bg-white/[0.1] hover:border-white/[0.18] text-sm font-semibold transition-all duration-150 active:scale-[0.97]"
-          >
-            {cp.cta}
-          </Link>
-          <p className="text-[10px] text-gray-600 text-center leading-relaxed">{cp.notColombia}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-type ColKey = 'free' | 'commission' | 'starter' | 'pro' | 'business';
+type ColKey = 'free' | 'starter' | 'pro' | 'business';
 
 const COL_PRICES: Record<ColKey, string> = {
   free: '$0',
-  commission: '4%',
   starter: '$39',
   pro: '$79',
   business: '$149',
 };
 
-const COL_PRICE_SUFFIX_KEYS: Record<ColKey, 'perOrder' | 'perMonth' | ''> = {
+const COL_PRICE_SUFFIX_KEYS: Record<ColKey, 'perMonth' | ''> = {
   free: '',
-  commission: 'perOrder',
   starter: 'perMonth',
   pro: 'perMonth',
   business: 'perMonth',
@@ -376,20 +296,17 @@ function DashIcon() {
 
 function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boolean }) {
   const pc = t.pricing.planComparison;
-  const colKeys: ColKey[] = isColombia
-    ? ['free', 'starter', 'pro', 'business']
-    : ['free', 'commission', 'starter', 'pro', 'business'];
+  const colKeys: ColKey[] = ['free', 'starter', 'pro', 'business'];
   const colLabels = colKeys.map((k) => ({
-    free: pc.colFree, commission: pc.colCommission, starter: pc.colStarter, pro: pc.colPro, business: pc.colBusiness,
+    free: pc.colFree, starter: pc.colStarter, pro: pc.colPro, business: pc.colBusiness,
   }[k]));
 
   const isCheck = (v: string) => v === '✓';
   const isDash = (v: string) => v === '—';
-  const proIdx = isColombia ? 2 : 3;
+  const proIdx = 2;
   const getSuffix = (key: ColKey) => {
     const suffixKey = COL_PRICE_SUFFIX_KEYS[key];
     if (!suffixKey) return '';
-    if (isColombia && key !== 'commission') return pc.perMonth;
     return pc[suffixKey];
   };
 
@@ -411,7 +328,7 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
               const key = colKeys[i];
               const isPro = i === proIdx;
               const price = isColombia
-                ? ({ starter: '$89K', pro: '$179K', business: '$349K', free: '$0', commission: '4%' } as Record<ColKey, string>)[key]
+                ? ({ starter: '$89K', pro: '$179K', business: '$349K', free: '$0' } as Record<ColKey, string>)[key]
                 : COL_PRICES[key];
               const suffix = getSuffix(key);
               return (
@@ -575,12 +492,6 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
             );
           })}
         </div>
-
-        {!isColombia && (
-          <div className="mt-6">
-            <CommissionPlanBanner tp={tp} />
-          </div>
-        )}
 
         <Link
           href="/signup"

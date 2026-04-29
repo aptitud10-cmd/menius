@@ -42,11 +42,13 @@ function mapAuthError(msg: string, locale: string): string {
   return msg;
 }
 
+const VALID_PUBLIC_PLANS = new Set(['free', 'starter', 'pro', 'business']);
+
 function PlanBadge({ locale }: { locale: string }) {
   const searchParams = useSearchParams();
   const selectedPlan = searchParams.get('plan');
   const selectedBilling = searchParams.get('billing');
-  if (!selectedPlan) return null;
+  if (!selectedPlan || !VALID_PUBLIC_PLANS.has(selectedPlan)) return null;
   return (
     <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-medium">
       <Sparkles className="w-3 h-3" />

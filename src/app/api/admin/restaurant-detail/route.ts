@@ -22,7 +22,7 @@ export async function GET(req: Request) {
   // ── Restaurant base + subscription ───────────────────────────────────────
   const [{ data: restaurant }, { data: subscription }] = await Promise.all([
     db.from('restaurants')
-      .select('id, name, slug, currency, country_code, is_active, created_at, owner_user_id, notification_email, phone')
+      .select('id, name, slug, currency, country_code, is_active, created_at, owner_user_id, notification_email, phone, commission_plan')
       .eq('id', restaurantId)
       .maybeSingle(),
     db.from('subscriptions')

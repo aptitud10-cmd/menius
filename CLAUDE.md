@@ -32,8 +32,14 @@ Comisiones online (pagos con tarjeta):
 - starter/pro/business activos: **0%**
 - trial: 0%
 - Wompi (Colombia): 0% MENIUS (Wompi cobra aparte)
-- `restaurants.commission_plan = true`: **4%** por orden (equivalente a starter en features)
-- Country gating: activación manual (admin SQL). No chequear país en runtime.
+
+Plan Comisión 4% (INTERNO — no público desde 2026-04-29):
+- Columna `restaurants.commission_plan = true` → cobra 4% por orden online + features tier "starter"
+- Activación SOLO desde `/admin/restaurant?id=XXX` (botón "Activar plan 4%")
+- Endpoint admin: `/api/admin/toggle-commission-plan` (verifyAdmin + UUID validation)
+- Country gating: bloqueado en Colombia (Wompi no soporta application_fee)
+- Toda la lógica de cobro 4% sigue activa en `/api/orders`, `/api/payments/checkout`, `/api/payments/intent` y `/api/billing/commissions`
+- NO mostrar este plan en landing, FAQ, signup ni dashboard del cliente — uso solo para clientes especiales
 
 ## Órdenes
 Estados DB: `pending|confirmed|preparing|ready|delivered|cancelled`
