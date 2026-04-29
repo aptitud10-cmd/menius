@@ -585,13 +585,7 @@ export function MenuShell({
     [filteredProducts, isLargeCatalog],
   );
 
-  // Stable sorted string of unique IDs — lets memos do a cheap string-equality dep check.
-  const cartProductIdsKey = useCartStore((s) => {
-    const seen = new Set<string>();
-    for (const item of s.items) seen.add(item.product.id);
-    return Array.from(seen).sort().join(',');
-  });
-  const cartProductIds = useMemo(() => new Set(cartProductIdsKey ? cartProductIdsKey.split(',') : []), [cartProductIdsKey]);
+  const cartProductIds = useCartStore((s) => new Set(s.items.map((i) => i.product.id)));
 
   // Classifier shared between suggestedProducts and the data-merge below
   const classifyProduct = useCallback((catName: string, productName: string): 'drink' | 'dessert' | 'side' | 'main' => {
@@ -661,55 +655,6 @@ export function MenuShell({
 
     return [...dataProducts, ...fallback];
   }, [customization?.product, products, categories, cartProductIds, dataBasedSuggestionIds, classifyProduct]);
-
-  // Cart-level upsell: suggest products complementary to what's already in the cart
-  const cartItems = useCartStore((s) => s.items);
-  const cartSuggestions = useMemo(() => {
-    if (cartItems.length === 0) return [];
-    const isEligible = (p: Product) => p.in_stock !== false && !cartProductIds.has(p.id);
-    const hour = new Date().getHours();
-    const isBreakfastHour = hour >= 5 && hour < 11;
-    const alcoholRegex = /cerveza|beer|vino|wine|margarita|coctel|cocktail|mojito|sangria|michelada|alcohol/i;
-    const isAlcohol = (p: Product) =>
-      alcoholRegex.test(`${p.name} ${categories.find((c) => c.id === p.category_id)?.name ?? ''}`);
-
-    // What types does the cart already have?
-    const cartTypes = new Set(
-      cartItems.map((i) => {
-        const cat = categories.find((c) => c.id === i.product.category_id);
-        return classifyProduct(cat?.name ?? '', i.product.name);
-      })
-    );
-    const hasDrink = cartTypes.has('drink');
-    const hasMain = cartTypes.has('main');
-    const hasDessert = cartTypes.has('dessert');
-
-    // Priority order: what's MISSING from the cart comes first.
-    // Products of a type already well-represented are shown only as last resort.
-    const wantOrder: Array<'drink' | 'dessert' | 'side' | 'main'> = [];
-    if (!hasDrink) wantOrder.push('drink');
-    if (!hasDessert) wantOrder.push('dessert');
-    if (!hasMain) wantOrder.push('main');
-    wantOrder.push('side');
-
-    const SCORE_UNWANTED = 999; // mains/drinks already in cart type get this to appear last
-
-    return products
-      .filter((p) => isEligible(p) && !(isBreakfastHour && isAlcohol(p)))
-      .map((p) => {
-        const cat = categories.find((c) => c.id === p.category_id);
-        const pType = classifyProduct(cat?.name ?? '', p.name);
-        const typeRank = wantOrder.indexOf(pType);
-        // If this type is already satisfied in the cart and not in wantOrder, deprioritize hard
-        const baseRank = typeRank === -1 ? SCORE_UNWANTED : typeRank * 10;
-        const popularBoost = p.popularity_rank != null ? -2 : 0;
-        const featuredBoost = p.is_featured ? 0 : 3;
-        return { product: p, score: baseRank + featuredBoost + popularBoost };
-      })
-      .sort((a, b) => a.score - b.score)
-      .slice(0, 5)
-      .map(({ product }) => product);
-  }, [cartItems, products, categories, cartProductIds, classifyProduct]);
 
   const itemsByCategory = useMemo(() => {
     const regular = categories
@@ -1892,14 +1837,6 @@ export function MenuShell({
             deliveryFee={restaurant.delivery_fee ?? undefined}
             lastOrder={lastOrder?.restaurantId === restaurant.id ? lastOrder : null}
             onReorder={handleReorder}
-            suggestions={cartSuggestions}
-            onSuggestionAdd={(product) => {
-              if (product.has_modifiers) {
-                setCustomization({ product, editIndex: null });
-              } else {
-                handleQuickAdd(product);
-              }
-            }}
           />
           </MenuErrorBoundary>
         </aside>
@@ -2004,15 +1941,6 @@ export function MenuShell({
                   deliveryFee={restaurant.delivery_fee ?? undefined}
                   lastOrder={lastOrder?.restaurantId === restaurant.id ? lastOrder : null}
                   onReorder={() => { handleReorder(); setOpen(false); }}
-                  suggestions={cartSuggestions}
-                  onSuggestionAdd={(product) => {
-                    if (product.has_modifiers) {
-                      setOpen(false);
-                      setCustomization({ product, editIndex: null });
-                    } else {
-                      handleQuickAdd(product);
-                    }
-                  }}
                 />
               </div>
               <div className="pb-[env(safe-area-inset-bottom)] flex-shrink-0" />

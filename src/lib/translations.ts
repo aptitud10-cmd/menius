@@ -145,7 +145,6 @@ export interface Translations {
   // Diet filter
   noDietMatch: string;
   viewFullMenu: string;
-  upsellTitle: string;
   // Reviews section
   customersTestimonial: string;
   // Restaurant info footer
@@ -489,7 +488,6 @@ const es: Translations = {
   noFavoritesHint: 'Toca el ♥ en un producto para guardarlo',
   noDietMatch: 'No hay productos con esta dieta',
   viewFullMenu: 'Ver todo el menú',
-  upsellTitle: 'También te puede gustar',
   customersTestimonial: 'Lo que dicen nuestros clientes',
   addressLabel: 'Dirección',
   getDirections: 'Cómo llegar',
@@ -820,7 +818,6 @@ const en: Translations = {
   noFavoritesHint: 'Tap ♥ on a product to save it',
   noDietMatch: 'No products match this diet',
   viewFullMenu: 'View full menu',
-  upsellTitle: 'You might also like',
   customersTestimonial: 'What our customers say',
   addressLabel: 'Address',
   getDirections: 'Get directions',
