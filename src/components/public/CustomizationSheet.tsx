@@ -188,32 +188,6 @@ export function CustomizationSheet({
   const [added, setAdded] = useState(false);
   const dragControls = useDragControls();
 
-  // Drag-to-scroll for suggestions row (desktop mouse drag)
-  const suggestionsScrollRef = useRef<HTMLDivElement>(null);
-  const isDraggingScroll = useRef(false);
-  const dragStartX = useRef(0);
-  const dragStartScrollLeft = useRef(0);
-  const handleSuggestionMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const el = suggestionsScrollRef.current;
-    if (!el) return;
-    isDraggingScroll.current = true;
-    dragStartX.current = e.clientX;
-    dragStartScrollLeft.current = el.scrollLeft;
-    el.style.cursor = 'grabbing';
-    el.style.userSelect = 'none';
-  }, []);
-  const handleSuggestionMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDraggingScroll.current) return;
-    const el = suggestionsScrollRef.current;
-    if (!el) return;
-    el.scrollLeft = dragStartScrollLeft.current - (e.clientX - dragStartX.current);
-  }, []);
-  const handleSuggestionMouseUp = useCallback(() => {
-    isDraggingScroll.current = false;
-    const el = suggestionsScrollRef.current;
-    if (el) { el.style.cursor = 'grab'; el.style.userSelect = ''; }
-  }, []);
-
   // Focus trap: save previously focused element, restore on unmount
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
@@ -518,7 +492,6 @@ export function CustomizationSheet({
           {/* Outer wrapper is relative so the fade overlay can be positioned over the scroll area */}
           <div className="relative">
             <div
-              ref={suggestionsScrollRef}
               className="flex gap-2.5 overflow-x-auto"
               style={{
                 WebkitOverflowScrolling: 'touch',
@@ -526,12 +499,7 @@ export function CustomizationSheet({
                 msOverflowStyle: 'none',
                 paddingLeft: '20px',
                 paddingRight: '20px',
-                cursor: 'grab',
               } as React.CSSProperties}
-              onMouseDown={handleSuggestionMouseDown}
-              onMouseMove={handleSuggestionMouseMove}
-              onMouseUp={handleSuggestionMouseUp}
-              onMouseLeave={handleSuggestionMouseUp}
             >
               {(suggestedProducts ?? []).slice(0, 8).map((p) => (
                 <div
