@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, type WheelEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Minus, Plus, Pencil, Trash2, ShoppingCart, Clock, RotateCcw, X } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
@@ -96,6 +96,18 @@ export function CartPanel({
       if (confirmTimer.current) clearTimeout(confirmTimer.current);
       if (clearTimer.current) clearTimeout(clearTimer.current);
     };
+  }, []);
+
+  // Suggestions scroll ref — converts vertical wheel to horizontal scroll on desktop
+  const suggestionsScrollRef = useRef<HTMLDivElement>(null);
+  const handleSuggestionsWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
+    const el = suggestionsScrollRef.current;
+    if (!el) return;
+    // Only intercept when there's horizontal overflow; let natural vertical scroll pass through otherwise
+    const canScrollH = el.scrollWidth > el.clientWidth;
+    if (!canScrollH) return;
+    e.preventDefault();
+    el.scrollLeft += e.deltaY + e.deltaX;
   }, []);
 
   const handleMinusTap = useCallback((idx: number, qty: number) => {
@@ -358,7 +370,12 @@ export function CartPanel({
           <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
             {t.upsellTitle}
           </p>
-          <div className="flex gap-2.5 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
+          <div
+            ref={suggestionsScrollRef}
+            onWheel={handleSuggestionsWheel}
+            className="flex gap-2.5 overflow-x-auto -mx-1 px-1 pb-1.5 scrollbar-hide"
+            style={{ scrollbarWidth: 'thin', scrollbarColor: '#e5e7eb transparent' }}
+          >
             {suggestions.slice(0, 5).map((p) => (
               <button
                 key={p.id}

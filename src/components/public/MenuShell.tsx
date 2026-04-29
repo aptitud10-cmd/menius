@@ -585,7 +585,13 @@ export function MenuShell({
     [filteredProducts, isLargeCatalog],
   );
 
-  const cartProductIds = useCartStore((s) => new Set(s.items.map((i) => i.product.id)));
+  // Stable sorted string of unique IDs — lets memos do a cheap string-equality dep check.
+  const cartProductIdsKey = useCartStore((s) => {
+    const seen = new Set<string>();
+    for (const item of s.items) seen.add(item.product.id);
+    return Array.from(seen).sort().join(',');
+  });
+  const cartProductIds = useMemo(() => new Set(cartProductIdsKey ? cartProductIdsKey.split(',') : []), [cartProductIdsKey]);
 
   // Classifier shared between suggestedProducts and the data-merge below
   const classifyProduct = useCallback((catName: string, productName: string): 'drink' | 'dessert' | 'side' | 'main' => {
@@ -667,20 +673,26 @@ export function MenuShell({
     const isAlcohol = (p: Product) =>
       alcoholRegex.test(`${p.name} ${categories.find((c) => c.id === p.category_id)?.name ?? ''}`);
 
-    // Determine the dominant type in the cart
-    const cartTypes = cartItems.map((i) => {
-      const cat = categories.find((c) => c.id === i.product.category_id);
-      return classifyProduct(cat?.name ?? '', i.product.name);
-    });
-    const hasDrink = cartTypes.includes('drink');
-    const hasMain = cartTypes.includes('main');
-    const hasDessert = cartTypes.includes('dessert');
+    // What types does the cart already have?
+    const cartTypes = new Set(
+      cartItems.map((i) => {
+        const cat = categories.find((c) => c.id === i.product.category_id);
+        return classifyProduct(cat?.name ?? '', i.product.name);
+      })
+    );
+    const hasDrink = cartTypes.has('drink');
+    const hasMain = cartTypes.has('main');
+    const hasDessert = cartTypes.has('dessert');
 
+    // Priority order: what's MISSING from the cart comes first.
+    // Products of a type already well-represented are shown only as last resort.
     const wantOrder: Array<'drink' | 'dessert' | 'side' | 'main'> = [];
     if (!hasDrink) wantOrder.push('drink');
     if (!hasDessert) wantOrder.push('dessert');
     if (!hasMain) wantOrder.push('main');
     wantOrder.push('side');
+
+    const SCORE_UNWANTED = 999; // mains/drinks already in cart type get this to appear last
 
     return products
       .filter((p) => isEligible(p) && !(isBreakfastHour && isAlcohol(p)))
@@ -688,10 +700,11 @@ export function MenuShell({
         const cat = categories.find((c) => c.id === p.category_id);
         const pType = classifyProduct(cat?.name ?? '', p.name);
         const typeRank = wantOrder.indexOf(pType);
-        const baseRank = typeRank === -1 ? wantOrder.length + 1 : typeRank;
-        const popularBoost = p.popularity_rank != null ? -1 : 0;
-        const featuredBoost = p.is_featured ? 0 : 2;
-        return { product: p, score: baseRank * 10 + featuredBoost + popularBoost };
+        // If this type is already satisfied in the cart and not in wantOrder, deprioritize hard
+        const baseRank = typeRank === -1 ? SCORE_UNWANTED : typeRank * 10;
+        const popularBoost = p.popularity_rank != null ? -2 : 0;
+        const featuredBoost = p.is_featured ? 0 : 3;
+        return { product: p, score: baseRank + featuredBoost + popularBoost };
       })
       .sort((a, b) => a.score - b.score)
       .slice(0, 5)
