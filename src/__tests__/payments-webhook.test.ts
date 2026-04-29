@@ -3,9 +3,9 @@ import { createHmac, createHash } from 'crypto';
 
 // ── Supabase admin mock ───────────────────────────────────────────────────────
 const mockMaybeSingle = vi.fn();
-const mockSelect = vi.fn(() => ({ eq: mockEq, maybeSingle: mockMaybeSingle }));
-const mockEq = vi.fn(() => ({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq }));
 const mockNeq = vi.fn(() => ({ select: mockSelect, maybeSingle: mockMaybeSingle }));
+const mockSelect = vi.fn(() => ({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq }));
+const mockEq = vi.fn(() => ({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq }));
 const mockUpdate = vi.fn(() => ({ eq: mockEq }));
 const mockInsert = vi.fn();
 const mockUpsert = vi.fn();
@@ -90,7 +90,7 @@ describe('POST /api/payments/webhook (Stripe)', () => {
     mockUpdate.mockReturnValue({ eq: mockEq });
     mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq });
     mockNeq.mockReturnValue({ select: mockSelect, maybeSingle: mockMaybeSingle });
-    mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle });
+    mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq });
   });
 
   it('returns 400 when stripe-signature header is missing', async () => {
@@ -226,7 +226,7 @@ describe('POST /api/payments/wompi-webhook', () => {
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
     mockUpdate.mockReturnValue({ eq: mockEq });
     mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq });
-    mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle });
+    mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq });
   });
 
   it('returns 503 when WOMPI_EVENTS_SECRET is not set', async () => {
@@ -327,8 +327,8 @@ describe('POST /api/payments/mercadopago-webhook', () => {
     vi.stubEnv('MP_WEBHOOK_SECRET', MP_SECRET);
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
     mockUpdate.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
-    mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect });
-    mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle });
+    mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq });
+    mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq });
   });
 
   it('returns 503 when MP_WEBHOOK_SECRET is not set', async () => {
