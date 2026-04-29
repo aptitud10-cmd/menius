@@ -6,6 +6,7 @@ import { createTable, updateTable, updateTableMeta, deleteTable } from '@/lib/ac
 import { cn } from '@/lib/utils';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 import type { Table, TableStatus } from '@/types';
+import { UpgradePromptModal } from '@/components/dashboard/UpgradePromptModal';
 
 const TABLE_STATUS_CONFIG: Record<TableStatus, { label: string; color: string; bg: string; dot: string }> = {
   available: { label: 'Disponible', color: 'text-emerald-600', bg: 'bg-emerald-50', dot: 'bg-emerald-400' },
@@ -24,6 +25,7 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
   const [name, setName] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState('');
+  const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; reason?: string; suggestedPlan?: 'starter' | 'pro' | 'business' }>({ open: false });
   const [isPending, startTransition] = useTransition();
   const { t } = useDashboardLocale();
 
@@ -49,7 +51,13 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
 
     startTransition(async () => {
       const result = await createTable({ name: name.trim() });
-      if (result.error) { setError(result.error); return; }
+      if (result.error) {
+        if ((result as any).limitReached) {
+          setUpgradeModal({ open: true, reason: result.error, suggestedPlan: (result as any).suggestedPlan ?? 'starter' });
+          return;
+        }
+        setError(result.error); return;
+      }
       setName('');
       setShowForm(false);
       setError('');
@@ -164,6 +172,13 @@ export function TablesManager({ initialTables, restaurantSlug, restaurantName }:
           ))}
         </div>
       )}
+
+      <UpgradePromptModal
+        open={upgradeModal.open}
+        onClose={() => setUpgradeModal({ open: false })}
+        reason={upgradeModal.reason}
+        suggestedPlan={upgradeModal.suggestedPlan}
+      />
     </div>
   );
 }

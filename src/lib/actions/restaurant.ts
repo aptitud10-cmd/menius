@@ -210,7 +210,12 @@ export async function createCategory(data: CategoryInput) {
   const { getPlan, isWithinLimit } = await import('@/lib/plans');
   const plan = getPlan(subRow?.plan_id ?? 'starter');
   if (plan && !isWithinLimit((catCount ?? 0) + 1, plan.limits.maxCategories)) {
-    return { error: `Tu plan ${plan.name} permite hasta ${plan.limits.maxCategories} categorías. Actualiza tu plan para agregar más.`, limitReached: true };
+    return {
+      error: `Tu plan ${plan.name} permite hasta ${plan.limits.maxCategories} categorías. Actualiza tu plan para agregar más.`,
+      limitReached: true,
+      limitType: 'categories' as const,
+      suggestedPlan: 'starter' as const,
+    };
   }
 
   const { data: created, error } = await supabase.from('categories').insert({
@@ -325,7 +330,12 @@ export async function createProduct(data: ProductInput & { image_url?: string })
   const { getPlan, isWithinLimit } = await import('@/lib/plans');
   const plan = getPlan(subRow?.plan_id ?? 'starter');
   if (plan && !isWithinLimit((productCount ?? 0) + 1, plan.limits.maxProducts)) {
-    return { error: `Tu plan ${plan.name} permite hasta ${plan.limits.maxProducts} productos. Actualiza tu plan para agregar más.`, limitReached: true };
+    return {
+      error: `Tu plan ${plan.name} permite hasta ${plan.limits.maxProducts} productos. Actualiza tu plan para agregar más.`,
+      limitReached: true,
+      limitType: 'products' as const,
+      suggestedPlan: 'starter' as const,
+    };
   }
 
   const { data: created, error } = await supabase.from('products').insert({
@@ -768,7 +778,16 @@ export async function createTable(data: TableInput) {
   const { getPlan, isWithinLimit } = await import('@/lib/plans');
   const plan = getPlan(planId);
   if (plan && !isWithinLimit(currentCount + 1, plan.limits.maxTables)) {
-    return { error: `Tu plan ${plan.name} permite hasta ${plan.limits.maxTables} mesas. Actualiza tu plan para agregar más.` };
+    const targetCount = currentCount + 1;
+    let suggestedPlan: 'starter' | 'pro' | 'business' = 'starter';
+    if (targetCount > 15) suggestedPlan = 'pro';
+    if (targetCount > 50) suggestedPlan = 'business';
+    return {
+      error: `Tu plan ${plan.name} permite hasta ${plan.limits.maxTables} mesas. Actualiza tu plan para agregar más.`,
+      limitReached: true,
+      limitType: 'tables' as const,
+      suggestedPlan,
+    };
   }
 
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app').replace(/\/$/, '');

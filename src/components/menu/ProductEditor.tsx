@@ -20,6 +20,7 @@ import { ModifierGroupsEditor } from './ModifierGroupsEditor';
 import { MediaPicker } from './MediaPicker';
 import { CustomizationSheet } from '@/components/public/CustomizationSheet';
 import { PairingsEditor } from './PairingsEditor';
+import { UpgradePromptModal } from '@/components/dashboard/UpgradePromptModal';
 
 interface KDSStation {
   id: string;
@@ -168,6 +169,7 @@ export function ProductEditor({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [upgradeModal, setUpgradeModal] = useState<{ open: boolean; reason?: string; suggestedPlan?: 'starter' | 'pro' | 'business' }>({ open: false });
   const [isPending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -425,7 +427,13 @@ export function ProductEditor({
             ...(form.station_id ? { station_id: form.station_id } : {}),
             ...(imageUrl ? { image_url: imageUrl } : {}),
           } as any);
-          if (res.error) { setError(res.error); toastError(res.error); return; }
+          if (res.error) {
+            if ((res as any).limitReached) {
+              setUpgradeModal({ open: true, reason: res.error, suggestedPlan: (res as any).suggestedPlan ?? 'starter' });
+              return;
+            }
+            setError(res.error); toastError(res.error); return;
+          }
           setSaved(true);
           toastSuccess(t.editor_productCreated);
           setTimeout(() => router.push('/app/menu/products'), 1200);
@@ -1089,6 +1097,13 @@ export function ProductEditor({
           isPreview
         />
       )}
+
+      <UpgradePromptModal
+        open={upgradeModal.open}
+        onClose={() => setUpgradeModal({ open: false })}
+        reason={upgradeModal.reason}
+        suggestedPlan={upgradeModal.suggestedPlan}
+      />
     </div>
   );
 }

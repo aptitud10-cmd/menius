@@ -10,6 +10,7 @@ import { OrderNotifier } from '@/components/dashboard/OrderNotifier';
 import { SidebarSoundButton } from '@/components/dashboard/SidebarSoundButton';
 import { IdentifyUser } from '@/components/dashboard/IdentifyUser';
 import { TrialBanner } from '@/components/dashboard/TrialBanner';
+import { LimitWarningBanner } from '@/components/dashboard/LimitWarningBanner';
 import { StripeConnectBanner } from '@/components/dashboard/StripeConnectBanner';
 import { WelcomeQRModal } from '@/components/dashboard/WelcomeQRModal';
 import { NotificationBell } from '@/components/dashboard/NotificationBell';
@@ -85,6 +86,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
 
           <TrialBanner />
+          <LimitWarningBanner />
 
           {/* User profile + sound toggle + notification bell */}
           <div className="px-4 py-4 border-t border-gray-100 space-y-3">
@@ -125,6 +127,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
           <div className="md:hidden">
             <TrialBanner />
+            <LimitWarningBanner />
           </div>
 
           <StripeConnectBanner
