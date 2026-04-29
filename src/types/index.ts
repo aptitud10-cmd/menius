@@ -129,6 +129,10 @@ export interface Product {
    * full modifier payload in the initial page HTML.
    */
   has_modifiers?: boolean;
+  /** 1 = most ordered in last 7d for this restaurant. Set by recalc-popularity cron. */
+  popularity_rank?: number | null;
+  /** Orders in the last 7 days containing this product. Set by recalc-popularity cron. */
+  orders_last_7d?: number | null;
 }
 
 export interface ModifierGroup {

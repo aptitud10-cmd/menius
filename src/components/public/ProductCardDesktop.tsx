@@ -121,16 +121,15 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               <span className="px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-bold">{labelSoldOut}</span>
             </div>
           )}
-          {!outOfStock && product.is_featured && (
-            <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-bold shadow-sm" aria-hidden="true">
-              🔥 {popularLabel}
-            </span>
-          )}
-          {!outOfStock && !product.is_featured && product.is_new && (
-            <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold shadow-sm">
-              {t.productNew}
-            </span>
-          )}
+          {!outOfStock && (() => {
+            const rank = product.popularity_rank;
+            const orders7d = product.orders_last_7d ?? 0;
+            if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-amber-500 to-yellow-400">⭐ #1 esta semana</span>;
+            if (rank != null && rank <= 3) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 Top {rank}</span>;
+            if (orders7d >= 10) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 {orders7d} pedidos</span>;
+            if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold shadow-sm">{t.productNew}</span>;
+            return null;
+          })()}
           {!outOfStock && cartQty > 0 && (
             <motion.span
               key={cartQty}
@@ -158,16 +157,15 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               <span className="px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-bold">{labelSoldOut}</span>
             </div>
           )}
-          {!outOfStock && product.is_featured && (
-            <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500 text-white text-[10px] font-bold" aria-hidden="true">
-              🔥 {popularLabel}
-            </span>
-          )}
-          {!outOfStock && !product.is_featured && product.is_new && (
-            <span className="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold">
-              {t.productNew}
-            </span>
-          )}
+          {!outOfStock && (() => {
+            const rank = product.popularity_rank;
+            const orders7d = product.orders_last_7d ?? 0;
+            if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-amber-500 to-yellow-400">⭐ #1 esta semana</span>;
+            if (rank != null && rank <= 3) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 Top {rank}</span>;
+            if (orders7d >= 10) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 {orders7d} pedidos</span>;
+            if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold shadow-sm">{t.productNew}</span>;
+            return null;
+          })()}
           {!outOfStock && cartQty > 0 && (
             <motion.span
               key={cartQty}

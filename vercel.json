@@ -51,6 +51,10 @@
     {
       "path": "/api/cron/trial-ending-reminders",
       "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron/recalc-popularity",
+      "schedule": "0 4 * * *"
     }
   ]
 }
