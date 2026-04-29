@@ -1872,9 +1872,15 @@ export function MenuShell({
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <ShoppingCart className="w-5 h-5" />
-                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-white text-[#05c8a7] text-[10px] font-extrabold px-1">
+                    <motion.span
+                      key={cartCount}
+                      initial={{ scale: 1.4 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                      className="absolute -top-2 -right-2 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-white text-[#05c8a7] text-[10px] font-extrabold px-1"
+                    >
                       {cartCount}
-                    </span>
+                    </motion.span>
                   </div>
                   <span className="text-sm font-semibold opacity-90">{t.myOrder}</span>
                 </div>

@@ -2,6 +2,7 @@
 
 import { memo, useState, useCallback } from 'react';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { Plus, Check, UtensilsCrossed, ChevronRight, Heart, Ban } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Product } from '@/types';
@@ -69,6 +70,10 @@ export const ProductCardMobile = memo(function ProductCardMobile({
       onQuickAdd(product);
       setJustAdded(true);
       setTimeout(() => setJustAdded(false), 1200);
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      window.dispatchEvent(new CustomEvent('menu:cart-fly', {
+        detail: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+      }));
     }
   }, [outOfStock, hasModifiers, onSelect, onQuickAdd, product]);
 
@@ -125,9 +130,14 @@ export const ProductCardMobile = memo(function ProductCardMobile({
         })()}
 
         {!outOfStock && cartQty > 0 && (
-          <span className="absolute bottom-2 left-2 min-w-[24px] h-[24px] px-1.5 rounded-full bg-[#05c8a7] text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none">
+          <motion.span
+            key={cartQty}
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="absolute bottom-2 left-2 min-w-[24px] h-[24px] px-1.5 rounded-full bg-[#05c8a7] text-white text-xs font-extrabold flex items-center justify-center shadow-md tabular-nums leading-none"
+          >
             {cartQty}
-          </span>
+          </motion.span>
         )}
 
         {/* 44px touch target wrapping the visible 28px circle */}
@@ -183,12 +193,15 @@ export const ProductCardMobile = memo(function ProductCardMobile({
               aria-label={justAdded ? t.addedToCart : (hasModifiers ? t.ariaCustomize(displayName) : t.ariaAdd(displayName))}
               className="relative z-10 w-11 h-11 flex items-center justify-center flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#05c8a7]"
             >
-              <span className={cn(
-                'w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 shadow-md pointer-events-none',
-                justAdded ? 'bg-[#05c8a7] text-white scale-110' : 'bg-[#05c8a7] text-white hover:bg-[#04b096]'
-              )}>
+              <motion.span
+                whileTap={{ scale: 0.88 }}
+                className={cn(
+                  'w-9 h-9 rounded-full flex items-center justify-center transition-colors duration-300 shadow-md pointer-events-none',
+                  justAdded ? 'bg-[#05c8a7] text-white scale-110' : 'bg-[#05c8a7] text-white hover:bg-[#04b096]'
+                )}
+              >
                 {justAdded ? <Check className="w-4 h-4" aria-hidden="true" /> : <Plus className="w-4 h-4" aria-hidden="true" />}
-              </span>
+              </motion.span>
             </button>
           )}
         </div>

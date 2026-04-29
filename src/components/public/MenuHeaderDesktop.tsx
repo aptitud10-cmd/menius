@@ -153,9 +153,15 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
           {/* Cart summary */}
           <div className="flex items-center gap-2 pl-3 border-l border-gray-200">
             <ShoppingCart className="w-4 h-4 text-gray-400" />
-            <span className={cn('text-sm font-bold tabular-nums', itemCount > 0 ? 'text-gray-900' : 'text-gray-300')}>
+            <motion.span
+              key={itemCount}
+              initial={{ scale: 1.4 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+              className={cn('text-sm font-bold tabular-nums inline-block', itemCount > 0 ? 'text-gray-900' : 'text-gray-300')}
+            >
               {itemCount}
-            </span>
+            </motion.span>
             {itemCount > 0 && (
               <span className="text-sm font-bold text-[#05c8a7] tabular-nums">{fmtPrice(itemTotal)}</span>
             )}

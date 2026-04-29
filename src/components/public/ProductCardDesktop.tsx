@@ -230,11 +230,12 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               {labelUnavailable}
             </span>
           ) : (
-            <button
+            <motion.button
               onClick={handleAddClick}
+              whileTap={{ scale: 0.92 }}
               aria-label={justAdded ? t.addedToCart : (hasModifiers ? t.ariaCustomize(displayName) : t.ariaAdd(displayName))}
               className={cn(
-                'relative z-10 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#05c8a7]',
+                'relative z-10 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[#05c8a7]',
                 justAdded
                   ? 'bg-[#04b096] text-white shadow-lg shadow-[#05c8a7]/25 scale-105'
                   : 'bg-[#05c8a7] text-white hover:bg-[#04b096] hover:shadow-md'
@@ -245,7 +246,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
               ) : (
                 <><Plus className="w-3.5 h-3.5" aria-hidden="true" /> {addLabel}</>
               )}
-            </button>
+            </motion.button>
           )}
         </div>
       </div>

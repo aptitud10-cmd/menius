@@ -168,9 +168,20 @@ export function CartPanel({
       <div className="px-4 pt-2 pb-2 flex items-center gap-2 flex-shrink-0">
         {/* Drag handle pill centered */}
         <div className="flex-1 flex justify-start">
-          <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full tabular-nums font-semibold">
-            {items.reduce((s, i) => s + i.qty, 0)} {t.items}
-          </span>
+          {(() => {
+            const totalQty = items.reduce((s, i) => s + i.qty, 0);
+            return (
+              <motion.span
+                key={totalQty}
+                initial={{ scale: 1.4 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full tabular-nums font-semibold inline-block"
+              >
+                {totalQty} {t.items}
+              </motion.span>
+            );
+          })()}
         </div>
         <button
           onClick={handleClearTap}
