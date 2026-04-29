@@ -853,7 +853,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send notifications — awaited so Vercel doesn't freeze the process before emails are sent
+    // Send notifications — fire-and-forget so the order response returns
+    // immediately. Vercel keeps the function alive while the promise pending,
+    // up to the route's maxDuration. Errors are logged inside notifyNewOrder
+    // and never bubble up here.
     try {
       const notifItems = parsed.data.items.map((i) => ({
         name: productMap.get(i.product_id)?.name ?? 'Producto',
@@ -861,7 +864,7 @@ export async function POST(request: NextRequest) {
         price: i.line_total,
       }));
 
-      await notifyNewOrder({
+      void notifyNewOrder({
         orderId: order.id,
         orderNumber: order.order_number,
         restaurantId: restaurant_id,
@@ -886,9 +889,11 @@ export async function POST(request: NextRequest) {
         includeUtensils: body.include_utensils !== false,
         total,
         items: notifItems,
+      }).catch((err) => {
+        logger.error('notifyNewOrder failed', { error: err instanceof Error ? err.message : String(err) });
       });
     } catch (err) {
-      logger.error('notifyNewOrder failed', { error: err instanceof Error ? err.message : String(err) });
+      logger.error('notifyNewOrder dispatch failed', { error: err instanceof Error ? err.message : String(err) });
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
