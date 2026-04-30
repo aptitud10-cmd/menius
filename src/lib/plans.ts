@@ -34,34 +34,36 @@ export interface PlanConfig {
 /** Trial disabled — kept for backward compat with existing 'trialing' subscriptions in DB */
 export const TRIAL_DAYS = 0;
 
-/** No longer enforced — Free plan has unlimited orders */
+/** No longer enforced — Free plan has unlimited orders to avoid customer-facing failures */
 export const FREE_MONTHLY_ORDER_LIMIT = -1;
 
 export const PLANS: Record<PlanId, PlanConfig> = {
   free: {
     id: 'free',
     name: 'Free',
-    description: 'Empieza gratis. Sin tarjeta de crédito.',
-    description_en: 'Start for free. No credit card required.',
+    description: 'Para probar el producto. 1 mesa, hasta 15 productos.',
+    description_en: 'For trying the product. 1 table, up to 15 products.',
     price: { monthly: 0, annual: 0 },
     stripePriceId: { monthly: '', annual: '' },
     limits: {
-      maxProducts: -1,
-      maxTables: 5,
+      maxProducts: 15,
+      maxTables: 1,
       maxUsers: 1,
       maxCategories: -1,
       maxOrdersPerMonth: -1,
     },
     features: [
-      'Menú digital + QR (hasta 5 mesas)',
-      'Solo dine-in',
+      'Menú digital + QR (1 mesa)',
+      'Hasta 15 productos',
       'Pedidos ilimitados',
+      'Solo dine-in en efectivo',
       'Soporte por email',
     ],
     features_en: [
-      'Digital menu + QR (up to 5 tables)',
-      'Dine-in only',
+      'Digital menu + QR (1 table)',
+      'Up to 15 products',
       'Unlimited orders',
+      'Cash dine-in only',
       'Email support',
     ],
     excluded: [

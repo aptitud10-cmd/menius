@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { PLANS } from '@/lib/plans';
 
 const PLAN_RANK: Record<string, number> = {
   free: 0,
@@ -9,6 +10,53 @@ const PLAN_RANK: Record<string, number> = {
 
 function rank(planId: string): number {
   return PLAN_RANK[planId] ?? 0;
+}
+
+/**
+ * Legacy Free limits — applied to restaurants grandfathered before 2026-04-29.
+ * These match the generous Free plan that existed before plan-limit tightening.
+ */
+export const LEGACY_FREE_LIMITS = {
+  maxProducts: -1,
+  maxTables: 5,
+  maxUsers: 1,
+  maxCategories: -1,
+  maxOrdersPerMonth: -1,
+} as const;
+
+/**
+ * Returns the effective limits for a restaurant.
+ * Grandfathered restaurants (`is_legacy_free=true`) on the Free plan get the
+ * old generous limits. Everyone else uses the current PLANS config.
+ */
+export async function getEffectivePlanLimits(
+  restaurantId: string,
+): Promise<{ planId: string; limits: typeof LEGACY_FREE_LIMITS; isLegacyFree: boolean }> {
+  const planId = await getEffectivePlanId(restaurantId);
+
+  // Only Free-tier restaurants can be grandfathered — paid plans use their own limits.
+  if (planId !== 'free') {
+    const plan = PLANS[planId as keyof typeof PLANS];
+    return {
+      planId,
+      limits: (plan?.limits ?? PLANS.free.limits) as typeof LEGACY_FREE_LIMITS,
+      isLegacyFree: false,
+    };
+  }
+
+  const supabase = await createClient();
+  const { data: rest } = await supabase
+    .from('restaurants')
+    .select('is_legacy_free')
+    .eq('id', restaurantId)
+    .maybeSingle();
+
+  const isLegacyFree = (rest as any)?.is_legacy_free === true;
+  return {
+    planId: 'free',
+    limits: isLegacyFree ? LEGACY_FREE_LIMITS : (PLANS.free.limits as typeof LEGACY_FREE_LIMITS),
+    isLegacyFree,
+  };
 }
 
 /**

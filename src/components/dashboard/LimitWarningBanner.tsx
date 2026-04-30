@@ -9,57 +9,33 @@ interface UsageData {
   products: number;
   categories: number;
   tables: number;
+  limits?: {
+    maxProducts: number;
+    maxTables: number;
+    maxCategories: number;
+  };
+  planId?: string;
+  isLegacyFree?: boolean;
 }
-
-interface SubInfo {
-  status: string;
-  plan_id?: string | null;
-}
-
-interface PlanLimits {
-  maxProducts: number;
-  maxTables: number;
-  maxCategories: number;
-}
-
-const PLAN_LIMITS: Record<string, PlanLimits> = {
-  free: { maxProducts: -1, maxTables: 5, maxCategories: -1 },
-  starter: { maxProducts: -1, maxTables: 15, maxCategories: -1 },
-  pro: { maxProducts: -1, maxTables: 50, maxCategories: -1 },
-  business: { maxProducts: -1, maxTables: -1, maxCategories: -1 },
-};
 
 const WARN_THRESHOLD = 0.8; // 80%
 
 export function LimitWarningBanner() {
   const { locale } = useDashboardLocale();
   const [usage, setUsage] = useState<UsageData | null>(null);
-  const [sub, setSub] = useState<SubInfo | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/billing/usage').then((r) => r.json()),
-      fetch('/api/billing/subscription').then((r) => r.json()),
-    ])
-      .then(([usageData, subData]) => {
-        setUsage(usageData);
-        setSub(subData.subscription ?? null);
-      })
+    fetch('/api/billing/usage')
+      .then((r) => r.json())
+      .then((data) => setUsage(data))
       .catch(() => {});
   }, []);
 
-  if (dismissed || !usage) return null;
+  if (dismissed || !usage || !usage.limits) return null;
 
-  // Determine effective plan id
-  const planId = (() => {
-    if (!sub) return 'free';
-    if (sub.status === 'active' || sub.status === 'past_due') return sub.plan_id ?? 'free';
-    if (sub.status === 'trialing') return sub.plan_id ?? 'starter';
-    return 'free';
-  })();
-
-  const limits = PLAN_LIMITS[planId] ?? PLAN_LIMITS.free;
+  const limits = usage.limits;
+  const planId = usage.planId ?? 'free';
   const isEn = locale === 'en';
 
   // Find the most-saturated limit (only ones with finite caps)

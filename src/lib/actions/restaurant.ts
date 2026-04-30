@@ -202,16 +202,15 @@ export async function createCategory(data: CategoryInput) {
   const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
-  // Enforce plan category limit
-  const [{ count: catCount }, { data: subRow }] = await Promise.all([
-    supabase.from('categories').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
-    supabase.from('subscriptions').select('plan_id').eq('restaurant_id', restaurantId).maybeSingle(),
-  ]);
-  const { getPlan, isWithinLimit } = await import('@/lib/plans');
-  const plan = getPlan(subRow?.plan_id ?? 'starter');
-  if (plan && !isWithinLimit((catCount ?? 0) + 1, plan.limits.maxCategories)) {
+  // Enforce category limit using effective plan (respects is_legacy_free for grandfathered restaurants)
+  const { getEffectivePlanLimits } = await import('@/lib/auth/check-plan');
+  const { isWithinLimit } = await import('@/lib/plans');
+  const { count: catCount } = await supabase
+    .from('categories').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId);
+  const effective = await getEffectivePlanLimits(restaurantId);
+  if (!isWithinLimit((catCount ?? 0) + 1, effective.limits.maxCategories)) {
     return {
-      error: `Tu plan ${plan.name} permite hasta ${plan.limits.maxCategories} categorías. Actualiza tu plan para agregar más.`,
+      error: `Tu plan permite hasta ${effective.limits.maxCategories} categorías. Actualiza tu plan para agregar más.`,
       limitReached: true,
       limitType: 'categories' as const,
       suggestedPlan: 'starter' as const,
@@ -323,15 +322,14 @@ export async function createProduct(data: ProductInput & { image_url?: string })
   const { supabase, restaurantId, restaurantSlug, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
-  const [{ count: productCount }, { data: subRow }] = await Promise.all([
-    supabase.from('products').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
-    supabase.from('subscriptions').select('plan_id').eq('restaurant_id', restaurantId).maybeSingle(),
-  ]);
-  const { getPlan, isWithinLimit } = await import('@/lib/plans');
-  const plan = getPlan(subRow?.plan_id ?? 'starter');
-  if (plan && !isWithinLimit((productCount ?? 0) + 1, plan.limits.maxProducts)) {
+  const { getEffectivePlanLimits } = await import('@/lib/auth/check-plan');
+  const { isWithinLimit } = await import('@/lib/plans');
+  const { count: productCount } = await supabase
+    .from('products').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId);
+  const effective = await getEffectivePlanLimits(restaurantId);
+  if (!isWithinLimit((productCount ?? 0) + 1, effective.limits.maxProducts)) {
     return {
-      error: `Tu plan ${plan.name} permite hasta ${plan.limits.maxProducts} productos. Actualiza tu plan para agregar más.`,
+      error: `Tu plan permite hasta ${effective.limits.maxProducts} productos. Actualiza tu plan para agregar más.`,
       limitReached: true,
       limitType: 'products' as const,
       suggestedPlan: 'starter' as const,
@@ -764,26 +762,24 @@ export async function createTable(data: TableInput) {
   const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
 
-  const [restaurantRes, tablesCountRes, subscriptionRes] = await Promise.all([
+  const [restaurantRes, tablesCountRes] = await Promise.all([
     supabase.from('restaurants').select('slug').eq('id', restaurantId).maybeSingle(),
     supabase.from('tables').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
-    supabase.from('subscriptions').select('plan_id').eq('restaurant_id', restaurantId).maybeSingle(),
   ]);
 
   if (!restaurantRes.data?.slug) return { error: 'Restaurante no encontrado' };
 
   const currentCount = tablesCountRes.count ?? 0;
-  const planId = subscriptionRes.data?.plan_id ?? 'starter';
-
-  const { getPlan, isWithinLimit } = await import('@/lib/plans');
-  const plan = getPlan(planId);
-  if (plan && !isWithinLimit(currentCount + 1, plan.limits.maxTables)) {
+  const { getEffectivePlanLimits } = await import('@/lib/auth/check-plan');
+  const { isWithinLimit } = await import('@/lib/plans');
+  const effective = await getEffectivePlanLimits(restaurantId);
+  if (!isWithinLimit(currentCount + 1, effective.limits.maxTables)) {
     const targetCount = currentCount + 1;
     let suggestedPlan: 'starter' | 'pro' | 'business' = 'starter';
     if (targetCount > 15) suggestedPlan = 'pro';
     if (targetCount > 50) suggestedPlan = 'business';
     return {
-      error: `Tu plan ${plan.name} permite hasta ${plan.limits.maxTables} mesas. Actualiza tu plan para agregar más.`,
+      error: `Tu plan permite hasta ${effective.limits.maxTables} mesas. Actualiza tu plan para agregar más.`,
       limitReached: true,
       limitType: 'tables' as const,
       suggestedPlan,
