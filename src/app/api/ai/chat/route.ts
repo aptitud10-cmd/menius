@@ -351,34 +351,83 @@ const SHARED_CAPABILITIES_BODY = `
 DASHBOARD GUIDE (step-by-step for each section):
 
 - **Home**: Today's stats, sales vs yesterday, recent orders, low stock alerts, onboarding checklist, share menu button.
-- **Menu > Categories**: Create/edit/reorder categories, show/hide.
+- **Menu > Categories**: Create/edit/reorder categories, show/hide. Drag to reorder.
 - **Menu > Products**: Add with name, description, price, photo (upload, AI-generate, or gallery). Toggles: Active, In Stock, Featured, New, Dietary tags, Translations. Add variants/extras via "Options & extras".
+- **Menu > Inventory**: Track stock per product. Toggle "Track inventory" on each product. Set stock quantity. Out-of-stock items auto-hide or show "Sold out".
 - **Menu > Import (OCR)**: Upload photo of physical menu → AI creates categories and products automatically.
-- **Tables & QR**: Create tables, generate printable QR codes per table.
-- **Counter**: Cashier screen. Accept orders, set ETA, assign drivers, print tickets.
-- **Kitchen (KDS)**: Full-screen real-time kitchen display with sound alerts.
-- **Orders**: Full history, filter by status/date/type. Click order for details, contact customer via WhatsApp.
-- **Customers (CRM)**: Auto-built from orders. Profile shows history, total spent, tags. Send WhatsApp/email.
-- **Analytics**: Sales charts, top products, order type breakdown, peak hours heatmap.
-- **Marketing Hub**: Email Campaigns, Social Media AI generator, SMS Campaigns, 9 pre-built Automations.
-- **Promotions**: Discount coupons — percentage or fixed, with code, max uses, expiration.
-- **Reviews**: See ratings and comments. Respond from dashboard.
-- **Team/Staff**: Add employees with roles (admin, manager, staff, kitchen). Add delivery drivers.
-- **Settings**: Logo, cover, public URL, custom domain (Pro+), basic info, order types, payment methods, Stripe Connect, operating hours, notifications (WhatsApp + email), taxes, printers (per-device).
-- **Billing**: Plan status, usage, upgrade/downgrade, invoices, Stripe portal, cancel subscription.
-- **Data & Privacy**: Export all data as JSON. Delete account permanently.
-- **Keyboard Shortcuts**: Ctrl+K (Cmd+K) opens Command Palette.
+- **Tables & QR**: Create tables, generate printable QR codes per table. Each QR links directly to that table's ordering page.
+- **Counter**: Cashier/POS screen. Accept walk-in orders, set ETA, assign delivery drivers, print tickets. Works on tablet/iPad.
+- **Kitchen (KDS)**: Full-screen real-time kitchen display with sound alerts. Requires Pro plan. Open at menius.app/kds
+- **Orders**: Full history, filter by status/date/type. Click order for details, contact customer via WhatsApp, see order items.
+- **Reservations** (Starter+): Manage bookings from public menu. See calendar view, confirm/cancel. Auto-notifications to customer.
+- **Customers (CRM)** (Starter+): Auto-built from orders. Segments: VIP (5+ orders), regular, at-risk (no order 21+ days). Profile shows full history, total spent, tags, notes. Actions: send WhatsApp, send email, add tags, add notes, export.
+- **Analytics** (Starter+): Sales charts by day/week/month, top products by revenue, order type breakdown (dine-in/pickup/delivery), peak hours heatmap, cancellation rate.
+- **Reviews** (Pro+): See ratings and comments from customers. Reply from dashboard. Flag reviews.
+- **Marketing Hub** (Pro+): Email Campaigns (segmented: all/VIP/inactive/recent), Social Media AI generator (Instagram/Facebook/WhatsApp), SMS Campaigns, 9 pre-built Automations (birthday, reactivation, VIP reward, etc.).
+- **Promotions** (Pro+): Discount coupons — percentage or fixed amount, with code, max uses, expiration date, minimum order.
+- **Loyalty Program** (Pro+): Points per order, redeem as discount. Manage from dashboard or via chat.
+- **Team/Staff** (Starter+): Add employees with roles (admin, manager, staff, kitchen). Add delivery drivers. Each gets their own login.
+- **Settings**: Logo, cover photo, public URL (slug), custom domain (Pro+), basic info, order types (dine-in/pickup/delivery), payment methods (cash/card/Stripe Connect/Wompi), operating hours, WhatsApp notifications, email notifications, taxes (rate, label, included/on-top), printers (thermal, per-device config).
+- **Billing**: Plan status, usage vs limits, upgrade/downgrade, invoices, Stripe billing portal, cancel subscription.
+- **API Keys** (Business): Generate API keys for integrations. Full REST API available.
+- **Data & Privacy**: Export all data as JSON (GDPR). Delete account permanently.
+- **Keyboard Shortcuts**: Ctrl+K (Cmd+K) opens Command Palette — quick navigation.
+
+ONBOARDING GUIDE (detect incomplete setup and guide step by step):
+When a new restaurant is missing key data, guide them in this priority order:
+1. Logo + cover photo → Settings > General (increases trust, customers 40% more likely to order)
+2. Add categories + products → Menu > Categories, then Menu > Products
+3. Configure order types → Settings > Order Types (dine-in, pickup, delivery)
+4. Set payment methods → Settings > Payments (start with Cash, add card later)
+5. Configure notifications → Settings > Notifications (add WhatsApp number for instant order alerts — CRITICAL)
+6. Create QR codes → Tables & QR (print and place on tables)
+7. Set operating hours → Settings > Hours
+8. Share menu link → Home > "Share menu" button or menius.app/{slug}
+Signs a restaurant needs onboarding help: no address, no phone, no schedule, 0 products, 0 categories, 0 tables.
+
+CRM GUIDE:
+- Segments auto-calculated: VIP = 5+ orders, at-risk = no order in 21+ days, regular = everything else
+- Tags: add custom tags (e.g. "delivery-only", "corporate") from customer profile
+- Reactivation strategy: message at-risk customers with a personalized offer mentioning their favorite dish
+- VIP strategy: reward top customers with exclusive promos or early access
+- Export: Customers > Export CSV for external email tools (Mailchimp, etc.)
+- Notes: add internal notes per customer (allergies, preferences, special instructions)
+
+RESERVATIONS GUIDE:
+- Requires Starter plan
+- Customers can book from public menu page
+- Dashboard shows calendar + list view
+- Status flow: pending → confirmed → completed / cancelled
+- Auto-sends confirmation email to customer
+- Can create reservations manually from dashboard or via this chat
+
+INVENTORY GUIDE:
+- Enable stock tracking per product in Menu > Products > click product > toggle "Track inventory"
+- Set initial stock quantity
+- Stock decreases automatically with each order
+- When stock = 0: product shows "Sold out" badge but stays visible (or auto-hides — configurable)
+- Use "get_inventory_status" tool to see current alerts
+- Bulk restock: go to Menu > Inventory
 
 MARKETING:
 - Email campaigns: best for reactivating lapsed customers and rewarding VIPs. Segment first.
 - Social media AI generator: pick platform + post type → caption, hashtags, posting tips.
 - SMS: 98% open rate. Use for time-sensitive offers only. Keep under 160 chars.
 - Automations: enable in Settings. Zero-effort retention — runs automatically on customer behavior.
+- Best automation to enable first: "Reactivation" (sends email after 30 days of inactivity).
 
 PROMOTION STRATEGY:
 - "Free dessert with order over $X" beats "10% off" (higher perceived value, lower cost).
 - Reactivation: specific product mention beats generic "we miss you".
 - Flash offers: 4-6 hour windows perform 3x better than "this week only".
+- Best promo for new restaurants: first-order discount to build initial customer base.
+
+ANALYTICS INTERPRETATION:
+- Cancellation rate > 10%: check notification setup, kitchen capacity, or out-of-stock products.
+- Peak hour insight: schedule more staff 30 min before peak.
+- Low average ticket: push combos, extras, or featured products.
+- 0 delivery orders: check if delivery is enabled in Settings > Order Types.
+- Zero-sales products: feature them, discount, or remove to simplify menu.
 
 TROUBLESHOOTING:
 - Orders not appearing: Settings > Notifications — master toggle must be ON, add WhatsApp/email.
@@ -387,10 +436,25 @@ TROUBLESHOOTING:
 - Product shows sold out: Menu > Products > click product > toggle "In Stock" ON.
 - Custom domain not verifying: DNS takes up to 48h. CNAME → cname.vercel-dns.com.
 - Printer not printing: Settings > Printers — enable at least one option. Use Chrome/Edge.
+- KDS not showing orders: check you're on the /kds page and have Pro plan.
+- Reservations not showing: check Starter plan is active.
+- WhatsApp notification not arriving: verify the number in Settings > Notifications includes country code (e.g. +573001234567).
 
 ESCALATION:
 - After 3 unresolved exchanges, or billing/payment dispute, or critical bug → soporte@menius.app
 - Never say "I'm just an AI". Give best answer and offer escalation if truly out of scope.
+
+AVAILABLE ACTIONS (tools you can execute):
+1. create_promotion — create a discount coupon
+2. toggle_product — activate or deactivate a product
+3. update_product_price — change a product's price
+4. send_campaign — send email campaign to a customer segment
+5. adjust_loyalty_points — add/remove loyalty points for a customer
+6. get_orders_live — real-time order status for today
+7. get_customer_detail — full profile of a specific customer
+8. update_operating_hours — change the restaurant schedule
+9. create_reservation — create a reservation manually
+10. get_inventory_status — see out-of-stock and low-stock products
 
 RULES:
 - Max 350 words, clear and direct
@@ -400,6 +464,7 @@ RULES:
 - Max 2-3 emojis per response, only when they add value
 - Never make up data — say "I don't have that data yet"
 - On first message / hello, give a quick status summary with 2-3 actionable tips from real data
+- When owner asks "what can you do?" or "ayúdame", list the available actions above
 - CRITICAL: Always respond in the same language the user writes in`;
 
 
@@ -632,6 +697,187 @@ async function executeTool(
     return `SUCCESS: ${points > 0 ? 'Added' : 'Removed'} ${Math.abs(points)} points for ${customer_phone}. New balance: ${newBalance} points.`;
   }
 
+  if (name === 'update_product_price') {
+    const product_name = String(args.product_name ?? '');
+    const new_price = Number(args.new_price);
+
+    if (isNaN(new_price) || new_price < 0) return 'ERROR: Invalid price.';
+
+    const { data: matches } = await supabase
+      .from('products')
+      .select('id, name, price')
+      .eq('restaurant_id', restaurantId)
+      .ilike('name', `%${product_name}%`)
+      .limit(3);
+
+    if (!matches || matches.length === 0) {
+      return `ERROR: No product found matching "${product_name}".`;
+    }
+    if (matches.length > 1) {
+      return `CLARIFY: Multiple products match "${product_name}": ${matches.map(p => p.name).join(', ')}. Be more specific.`;
+    }
+
+    const product = matches[0];
+    const { error } = await supabase.from('products').update({ price: new_price }).eq('id', product.id);
+    if (error) return `ERROR: Could not update price — ${error.message}`;
+    return `SUCCESS: "${product.name}" price updated from $${Number(product.price).toFixed(2)} to $${new_price.toFixed(2)}.`;
+  }
+
+  if (name === 'get_orders_live') {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+
+    const { data: orders } = await supabase
+      .from('orders')
+      .select('id, order_number, status, total, order_type, customer_name, customer_phone, created_at, items_count')
+      .eq('restaurant_id', restaurantId)
+      .gte('created_at', todayStart)
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    if (!orders || orders.length === 0) return 'No orders today yet.';
+
+    const pending = orders.filter(o => o.status === 'pending');
+    const confirmed = orders.filter(o => o.status === 'confirmed');
+    const preparing = orders.filter(o => o.status === 'preparing');
+    const ready = orders.filter(o => o.status === 'ready');
+    const completed = orders.filter(o => ['completed', 'delivered'].includes(o.status));
+    const cancelled = orders.filter(o => o.status === 'cancelled');
+    const revenue = completed.reduce((s, o) => s + Number(o.total), 0);
+
+    const lines = [
+      `TODAY: ${orders.length} orders | Revenue: $${revenue.toFixed(2)}`,
+      `Status: ${pending.length} pending | ${confirmed.length} confirmed | ${preparing.length} preparing | ${ready.length} ready | ${completed.length} completed | ${cancelled.length} cancelled`,
+    ];
+
+    if (pending.length > 0) {
+      lines.push(`\nPENDING (needs attention):`);
+      for (const o of pending.slice(0, 5)) {
+        const mins = Math.floor((now.getTime() - new Date(o.created_at).getTime()) / 60000);
+        lines.push(`  #${o.order_number} — ${o.customer_name || 'No name'} — $${Number(o.total).toFixed(2)} — ${o.order_type ?? 'dine_in'} — ${mins}min ago`);
+      }
+    }
+
+    if (ready.length > 0) {
+      lines.push(`\nREADY (waiting pickup/delivery):`);
+      for (const o of ready.slice(0, 5)) {
+        lines.push(`  #${o.order_number} — ${o.customer_name || 'No name'} — $${Number(o.total).toFixed(2)}`);
+      }
+    }
+
+    return lines.join('\n');
+  }
+
+  if (name === 'get_customer_detail') {
+    const search = String(args.search ?? '').trim();
+    if (!search) return 'ERROR: Provide a name, phone, or email to search.';
+
+    const { data: customers } = await supabase
+      .from('customers')
+      .select('id, name, phone, email, total_orders, total_spent, last_order_at, tags, notes, created_at')
+      .eq('restaurant_id', restaurantId)
+      .or(`name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`)
+      .limit(5);
+
+    if (!customers || customers.length === 0) return `No customer found matching "${search}".`;
+
+    const lines: string[] = [];
+    for (const c of customers) {
+      const now = new Date();
+      const daysSince = c.last_order_at
+        ? Math.floor((now.getTime() - new Date(c.last_order_at).getTime()) / (1000 * 60 * 60 * 24))
+        : null;
+      const segment = daysSince !== null && daysSince > 21 ? 'at-risk' : (c.total_orders >= 5 ? 'VIP' : 'regular');
+
+      lines.push(`--- ${c.name || 'No name'} ---`);
+      if (c.phone) lines.push(`Phone: ${c.phone}`);
+      if (c.email) lines.push(`Email: ${c.email}`);
+      lines.push(`Orders: ${c.total_orders} | Spent: $${Number(c.total_spent).toFixed(2)} | Segment: ${segment}`);
+      if (c.last_order_at) lines.push(`Last order: ${new Date(c.last_order_at).toLocaleDateString()} (${daysSince} days ago)`);
+      if (c.tags?.length) lines.push(`Tags: ${c.tags.join(', ')}`);
+      if (c.notes) lines.push(`Notes: ${c.notes}`);
+      lines.push(`Member since: ${new Date(c.created_at).toLocaleDateString()}`);
+    }
+
+    return lines.join('\n');
+  }
+
+  if (name === 'update_operating_hours') {
+    const hours = args.hours as Record<string, { open: string; close: string; closed: boolean }>;
+    if (!hours || typeof hours !== 'object') return 'ERROR: Invalid hours format.';
+
+    const { error } = await supabase
+      .from('restaurants')
+      .update({ operating_hours: hours })
+      .eq('id', restaurantId);
+
+    if (error) return `ERROR: Could not update hours — ${error.message}`;
+
+    const days = Object.entries(hours)
+      .map(([day, h]) => `${day}: ${h.closed ? 'Closed' : `${h.open}–${h.close}`}`)
+      .join(', ');
+    return `SUCCESS: Operating hours updated — ${days}`;
+  }
+
+  if (name === 'create_reservation') {
+    const customer_name = String(args.customer_name ?? '').trim();
+    const reserved_date = String(args.reserved_date ?? '').trim();
+    const reserved_time = String(args.reserved_time ?? '').trim();
+    const party_size = Number(args.party_size ?? 2);
+    const customer_phone = args.customer_phone ? String(args.customer_phone) : null;
+    const notes = args.notes ? String(args.notes).slice(0, 500) : null;
+
+    if (!customer_name) return 'ERROR: customer_name is required.';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(reserved_date)) return 'ERROR: reserved_date must be YYYY-MM-DD.';
+    if (!/^\d{2}:\d{2}$/.test(reserved_time)) return 'ERROR: reserved_time must be HH:MM.';
+
+    const adminClient = createAdminClient();
+    const { data, error } = await adminClient
+      .from('reservations')
+      .insert({
+        restaurant_id: restaurantId,
+        customer_name,
+        customer_phone,
+        party_size,
+        reserved_date,
+        reserved_time,
+        notes,
+        status: 'confirmed',
+      })
+      .select('id')
+      .single();
+
+    if (error) return `ERROR: Could not create reservation — ${error.message}`;
+    return `SUCCESS: Reservation created for ${customer_name} — ${party_size} people on ${reserved_date} at ${reserved_time}${customer_phone ? ` (${customer_phone})` : ''}. ID: ${data.id}`;
+  }
+
+  if (name === 'get_inventory_status') {
+    const { data: products } = await supabase
+      .from('products')
+      .select('id, name, is_active, in_stock, stock_quantity, category_id')
+      .eq('restaurant_id', restaurantId)
+      .eq('is_active', true);
+
+    if (!products || products.length === 0) return 'No active products found.';
+
+    const outOfStock = products.filter(p => p.in_stock === false);
+    const lowStock = products.filter(p => p.in_stock !== false && p.stock_quantity !== null && p.stock_quantity <= 5);
+    const noTracking = products.filter(p => p.in_stock !== false && p.stock_quantity === null);
+
+    const lines = [`INVENTORY: ${products.length} active products`];
+    if (outOfStock.length > 0) {
+      lines.push(`\nOUT OF STOCK (${outOfStock.length}): ${outOfStock.map(p => p.name).join(', ')}`);
+    }
+    if (lowStock.length > 0) {
+      lines.push(`\nLOW STOCK (≤5 units): ${lowStock.map(p => `${p.name} (${p.stock_quantity})`).join(', ')}`);
+    }
+    if (outOfStock.length === 0 && lowStock.length === 0) {
+      lines.push('All products in stock. No alerts.');
+    }
+    lines.push(`\nNot tracking stock: ${noTracking.length} products`);
+    return lines.join('\n');
+  }
+
   return `ERROR: Unknown tool "${name}".`;
 }
 
@@ -776,6 +1022,85 @@ export async function POST(request: NextRequest) {
           reason: { type: 'string', description: 'Reason for the adjustment.' },
         },
         required: ['customer_phone', 'points', 'reason'],
+      },
+    },
+    {
+      name: 'update_product_price',
+      description: 'Update the price of a product by name. Use when the owner asks to change, update, or set a product price.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          product_name: { type: 'string', description: 'Product name to search for (partial match OK).' },
+          new_price: { type: 'number', description: 'New price for the product.' },
+        },
+        required: ['product_name', 'new_price'],
+      },
+    },
+    {
+      name: 'get_orders_live',
+      description: 'Get real-time order status for today: pending, preparing, ready, completed. Use when owner asks about current orders, pending orders, or what\'s happening right now.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {},
+        required: [],
+      },
+    },
+    {
+      name: 'get_customer_detail',
+      description: 'Get full profile of a customer by name, phone, or email. Use when owner asks about a specific customer.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          search: { type: 'string', description: 'Customer name, phone number, or email to search for.' },
+        },
+        required: ['search'],
+      },
+    },
+    {
+      name: 'update_operating_hours',
+      description: 'Update the restaurant operating hours. Use when owner asks to change schedule, opening/closing times, or mark a day as closed.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          hours: {
+            type: 'object',
+            description: 'Map of day names to schedule. Days: monday, tuesday, wednesday, thursday, friday, saturday, sunday.',
+            additionalProperties: {
+              type: 'object',
+              properties: {
+                open: { type: 'string', description: 'Opening time HH:MM' },
+                close: { type: 'string', description: 'Closing time HH:MM' },
+                closed: { type: 'boolean', description: 'true if closed that day' },
+              },
+            },
+          },
+        },
+        required: ['hours'],
+      },
+    },
+    {
+      name: 'create_reservation',
+      description: 'Create a reservation for a customer. Use when owner asks to add, book, or create a reservation.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          customer_name: { type: 'string', description: 'Customer full name.' },
+          reserved_date: { type: 'string', description: 'Reservation date in YYYY-MM-DD format.' },
+          reserved_time: { type: 'string', description: 'Reservation time in HH:MM format.' },
+          party_size: { type: 'number', description: 'Number of guests.' },
+          customer_phone: { type: 'string', description: 'Customer phone (optional).' },
+          notes: { type: 'string', description: 'Special requests or notes (optional).' },
+        },
+        required: ['customer_name', 'reserved_date', 'reserved_time'],
+      },
+    },
+    {
+      name: 'get_inventory_status',
+      description: 'Get inventory status: out-of-stock products, low stock alerts. Use when owner asks about inventory, stock, or what products are unavailable.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {},
+        required: [],
       },
     },
   ];
