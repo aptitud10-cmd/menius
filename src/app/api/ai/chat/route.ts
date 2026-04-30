@@ -483,66 +483,7 @@ function buildProactiveTips(context: string, atRiskCount: number, zeroSalesNames
   return `\n\n=== ALERTS & OPPORTUNITIES ===\n${tips.join('\n')}`;
 }
 
-// Gemini function declarations for direct actions
-const TOOL_DECLARATIONS = [
-  {
-    name: 'create_promotion',
-    description: 'Create a discount promotion/coupon for the restaurant. Use when the owner asks to create a promo, coupon, or discount code.',
-    parameters: {
-      type: 'OBJECT',
-      properties: {
-        code: { type: 'STRING', description: 'Promotion code (uppercase, no spaces). E.g. LUNES20' },
-        discount_type: { type: 'STRING', enum: ['percentage', 'fixed'], description: 'percentage = % off, fixed = fixed amount off' },
-        discount_value: { type: 'NUMBER', description: 'Discount amount. For percentage: 0-100. For fixed: amount in restaurant currency.' },
-        min_order: { type: 'NUMBER', description: 'Minimum order total to apply the promo. Optional, default 0.' },
-        expires_in_days: { type: 'NUMBER', description: 'Days until expiration from today. Default 30.' },
-        max_uses: { type: 'NUMBER', description: 'Maximum number of times the code can be used. Omit for unlimited.' },
-      },
-      required: ['code', 'discount_type', 'discount_value'],
-    },
-  },
-  {
-    name: 'toggle_product',
-    description: 'Activate or deactivate a product by name. Use when owner asks to enable/disable/hide/show a product.',
-    parameters: {
-      type: 'OBJECT',
-      properties: {
-        product_name: { type: 'STRING', description: 'Product name to search for (partial match is OK).' },
-        active: { type: 'BOOLEAN', description: 'true = activate the product, false = deactivate it.' },
-      },
-      required: ['product_name', 'active'],
-    },
-  },
-  {
-    name: 'send_campaign',
-    description: 'Send an email marketing campaign to a customer segment. Use when owner asks to send email/campaign to customers.',
-    parameters: {
-      type: 'OBJECT',
-      properties: {
-        segment: { type: 'STRING', enum: ['all', 'vip', 'inactive', 'recent'], description: 'all=everyone, vip=5+ orders, inactive=30+ days no order, recent=last 7 days' },
-        subject: { type: 'STRING', description: 'Email subject line.' },
-        message: { type: 'STRING', description: 'Email body message (plain text, max 500 chars).' },
-        cta_label: { type: 'STRING', description: 'Call-to-action button text. E.g. "Ver menú".' },
-      },
-      required: ['segment', 'subject', 'message'],
-    },
-  },
-  {
-    name: 'adjust_loyalty_points',
-    description: 'Add or remove loyalty points for a customer by phone number.',
-    parameters: {
-      type: 'OBJECT',
-      properties: {
-        customer_phone: { type: 'STRING', description: 'Customer phone number.' },
-        points: { type: 'NUMBER', description: 'Points to add (positive) or remove (negative).' },
-        reason: { type: 'STRING', description: 'Reason for the adjustment.' },
-      },
-      required: ['customer_phone', 'points', 'reason'],
-    },
-  },
-];
-
-// Execute a function call from Gemini and return a human-readable result
+// Execute a tool call and return a human-readable result
 async function executeTool(
   name: string,
   args: Record<string, unknown>,
@@ -720,8 +661,8 @@ export async function POST(request: NextRequest) {
     return new Response(JSON.stringify({ error: 'Has alcanzado el límite de mensajes. Intenta en unos minutos.' }), { status: 429 });
   }
 
-  const apiKey = (process.env.GEMINI_API_KEY ?? '').trim();
-  if (!apiKey) {
+  const anthropicKey = (process.env.ANTHROPIC_API_KEY ?? '').trim();
+  if (!anthropicKey) {
     return new Response(JSON.stringify({ error: 'IA no configurada.' }), { status: 503 });
   }
 
@@ -758,18 +699,16 @@ export async function POST(request: NextRequest) {
   // Client always sends its own history (even empty []). We trust client state
   // exclusively — DB memory is only used when the client explicitly sends nothing
   // (body.history === undefined), which means a legacy or non-widget caller.
-  let conversationHistory: { role: string; parts: { text: string }[] }[];
+  let conversationHistory: { role: 'user' | 'assistant'; content: string }[];
   if (Array.isArray(body.history)) {
-    // Client sent history (may be empty for a new conversation) — use as-is
     conversationHistory = clientHistory.map(m => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.text }],
+      role: m.role === 'user' ? 'user' : 'assistant',
+      content: m.text,
     }));
   } else if (memoryMessages.length > 0) {
-    // No history field at all (legacy callers) — fall back to DB
     conversationHistory = memoryMessages.map(m => ({
-      role: m.role === 'user' ? 'user' : 'model',
-      parts: [{ text: m.content }],
+      role: m.role === 'user' ? 'user' : 'assistant' as 'user' | 'assistant',
+      content: m.content,
     }));
   } else {
     conversationHistory = [];
@@ -780,110 +719,137 @@ export async function POST(request: NextRequest) {
   const proactiveTips = buildProactiveTips(context, atRiskCount, zeroSalesNames);
   const systemPrompt = getSystemPrompt(restaurantLocale, restaurantName);
   const menuUrl = `${(process.env.NEXT_PUBLIC_APP_URL ?? 'https://menius.app').replace(/\/$/, '')}/${restaurantSlug}`;
+  const fullSystemPrompt = `${systemPrompt}\n\n${restaurantLocale === 'en' ? 'CURRENT RESTAURANT DATA' : 'DATOS ACTUALES DEL RESTAURANTE'}:\n${context}${proactiveTips}`;
+
+  // Claude tool definitions (same capabilities as before)
+  const claudeTools: import('@anthropic-ai/sdk/resources').Tool[] = [
+    {
+      name: 'create_promotion',
+      description: 'Create a discount promotion/coupon for the restaurant. Use when the owner asks to create a promo, coupon, or discount code.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          code: { type: 'string', description: 'Promotion code (uppercase, no spaces). E.g. LUNES20' },
+          discount_type: { type: 'string', enum: ['percentage', 'fixed'], description: 'percentage = % off, fixed = fixed amount off' },
+          discount_value: { type: 'number', description: 'Discount amount. For percentage: 0-100. For fixed: amount in restaurant currency.' },
+          min_order: { type: 'number', description: 'Minimum order total to apply the promo. Optional, default 0.' },
+          expires_in_days: { type: 'number', description: 'Days until expiration from today. Default 30.' },
+          max_uses: { type: 'number', description: 'Maximum number of times the code can be used. Omit for unlimited.' },
+        },
+        required: ['code', 'discount_type', 'discount_value'],
+      },
+    },
+    {
+      name: 'toggle_product',
+      description: 'Activate or deactivate a product by name. Use when owner asks to enable/disable/hide/show a product.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          product_name: { type: 'string', description: 'Product name to search for (partial match is OK).' },
+          active: { type: 'boolean', description: 'true = activate the product, false = deactivate it.' },
+        },
+        required: ['product_name', 'active'],
+      },
+    },
+    {
+      name: 'send_campaign',
+      description: 'Send an email marketing campaign to a customer segment. Use when owner asks to send email/campaign to customers.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          segment: { type: 'string', enum: ['all', 'vip', 'inactive', 'recent'], description: 'all=everyone, vip=5+ orders, inactive=30+ days no order, recent=last 7 days' },
+          subject: { type: 'string', description: 'Email subject line.' },
+          message: { type: 'string', description: 'Email body message (plain text, max 500 chars).' },
+          cta_label: { type: 'string', description: 'Call-to-action button text. E.g. "Ver menú".' },
+        },
+        required: ['segment', 'subject', 'message'],
+      },
+    },
+    {
+      name: 'adjust_loyalty_points',
+      description: 'Add or remove loyalty points for a customer by phone number.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          customer_phone: { type: 'string', description: 'Customer phone number.' },
+          points: { type: 'number', description: 'Points to add (positive) or remove (negative).' },
+          reason: { type: 'string', description: 'Reason for the adjustment.' },
+        },
+        required: ['customer_phone', 'points', 'reason'],
+      },
+    },
+  ];
+
+  const { default: Anthropic } = await import('@anthropic-ai/sdk');
+  const anthropic = new Anthropic({ apiKey: anthropicKey });
+
+  const messages: import('@anthropic-ai/sdk/resources').MessageParam[] = [
+    ...conversationHistory,
+    { role: 'user', content: userMessage },
+  ];
 
   const stream = new ReadableStream({
     async start(controller) {
       let fullReply = '';
 
       try {
-        const makeGeminiRequest = (contents: unknown[]) =>
-          fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                systemInstruction: {
-                  parts: [{ text: `${systemPrompt}\n\n${restaurantLocale === 'en' ? 'CURRENT RESTAURANT DATA' : 'DATOS ACTUALES DEL RESTAURANTE'}:\n${context}${proactiveTips}` }],
-                },
-                contents,
-                tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
-                generationConfig: {
-                  maxOutputTokens: 2500,
-                  temperature: 0.55,
-                  topP: 0.92,
-                  thinkingConfig: { thinkingBudget: 1024 },
-                },
-              }),
-              signal: AbortSignal.timeout(30000),
-            }
-          );
+        const claudeStream = anthropic.messages.stream({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 2500,
+          system: fullSystemPrompt,
+          tools: claudeTools,
+          messages,
+        });
 
-        // Stream and collect all parts (text + possible functionCall)
-        const streamAndCollect = async (geminiRes: Response) => {
-          const reader = geminiRes.body?.getReader();
-          if (!reader) throw new Error('No reader');
-
-          const decoder = new TextDecoder();
-          let buffer = '';
-          const textChunks: string[] = [];
-          let functionCall: { name: string; args: Record<string, unknown> } | null = null;
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() ?? '';
-
-            for (const line of lines) {
-              if (!line.startsWith('data: ')) continue;
-              const raw = line.slice(6).trim();
-              if (raw === '[DONE]') continue;
-              try {
-                const parsed = JSON.parse(raw);
-                const parts: { text?: string; thought?: boolean; functionCall?: { name: string; args: Record<string, unknown> } }[] =
-                  parsed?.candidates?.[0]?.content?.parts ?? [];
-                for (const part of parts) {
-                  if (part.thought) continue;
-                  if (part.functionCall) {
-                    functionCall = part.functionCall;
-                  } else if (part.text) {
-                    textChunks.push(part.text);
-                    fullReply += part.text;
-                    controller.enqueue(sse({ chunk: part.text }));
-                  }
-                }
-              } catch {
-                // malformed SSE line — skip
-              }
-            }
+        for await (const event of claudeStream) {
+          if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            fullReply += event.delta.text;
+            controller.enqueue(sse({ chunk: event.delta.text }));
           }
-          return { textChunks, functionCall };
-        };
-
-        const initialContents = [
-          ...conversationHistory,
-          { role: 'user', parts: [{ text: userMessage }] },
-        ];
-
-        const geminiRes = await makeGeminiRequest(initialContents);
-        if (!geminiRes.ok) {
-          const errText = await geminiRes.text();
-          logger.error('Gemini stream error', { error: errText });
-          controller.enqueue(sse({ error: 'Error al procesar tu pregunta.' }));
-          controller.close();
-          return;
         }
 
-        const { functionCall } = await streamAndCollect(geminiRes);
+        const finalMsg = await claudeStream.finalMessage();
 
-        // Handle function call: execute tool, then send result back to Gemini for final reply
-        if (functionCall) {
-          const toolResult = await executeTool(functionCall.name, functionCall.args, tenant.restaurantId, menuUrl);
+        // Handle tool use
+        if (finalMsg.stop_reason === 'tool_use') {
+          const toolUseBlock = finalMsg.content.find(b => b.type === 'tool_use');
+          if (toolUseBlock && toolUseBlock.type === 'tool_use') {
+            const toolResult = await executeTool(
+              toolUseBlock.name,
+              toolUseBlock.input as Record<string, unknown>,
+              tenant.restaurantId,
+              menuUrl,
+            );
 
-          // Second round: send tool result and get final text response
-          const contentsWithTool = [
-            ...initialContents,
-            { role: 'model', parts: [{ functionCall }] },
-            { role: 'user', parts: [{ functionResponse: { name: functionCall.name, response: { result: toolResult } } }] },
-          ];
+            // Second round with tool result
+            const messagesWithTool: import('@anthropic-ai/sdk/resources').MessageParam[] = [
+              ...messages,
+              { role: 'assistant', content: finalMsg.content },
+              {
+                role: 'user',
+                content: [{
+                  type: 'tool_result',
+                  tool_use_id: toolUseBlock.id,
+                  content: toolResult,
+                }],
+              },
+            ];
 
-          const geminiRes2 = await makeGeminiRequest(contentsWithTool);
-          if (geminiRes2.ok) {
-            fullReply = ''; // reset — only save the final reply
-            await streamAndCollect(geminiRes2);
+            fullReply = '';
+            const claudeStream2 = anthropic.messages.stream({
+              model: 'claude-haiku-4-5-20251001',
+              max_tokens: 2500,
+              system: fullSystemPrompt,
+              tools: claudeTools,
+              messages: messagesWithTool,
+            });
+
+            for await (const event of claudeStream2) {
+              if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+                fullReply += event.delta.text;
+                controller.enqueue(sse({ chunk: event.delta.text }));
+              }
+            }
           }
         }
 
