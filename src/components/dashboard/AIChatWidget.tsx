@@ -485,16 +485,16 @@ export function AIChatWidget() {
           />
         )}
 
-        {/* Drawer — slides up from bottom, safe-area aware */}
+        {/* Drawer — slides up from bottom, sits above the MobileBottomNav */}
         <div
-          className={`fixed inset-x-0 bottom-0 z-50 transition-transform duration-300 ease-out ${open ? 'translate-y-0' : 'translate-y-full'}`}
+          className={`fixed inset-x-0 bottom-14 z-50 transition-transform duration-300 ease-out ${open ? 'translate-y-0' : 'translate-y-full'}`}
           style={{ height: 'calc(100dvh - 56px)', paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           <ChatPanel {...sharedPanelProps} />
         </div>
 
-        {/* Mobile launcher button — sits above the MobileBottomNav (~56px) */}
-        <div className="fixed bottom-[72px] right-4 z-50">
+        {/* Mobile launcher button — sits above the MobileBottomNav (~56px) + gap */}
+        <div className="fixed bottom-[84px] right-4 z-50">
           {showProactive && !open && (
             <div className="absolute bottom-full right-0 mb-2 pointer-events-none">
               <div className="bg-gray-900 text-white text-xs px-3 py-2 rounded-xl shadow-xl whitespace-nowrap border border-white/10">
