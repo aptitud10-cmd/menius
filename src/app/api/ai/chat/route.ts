@@ -755,13 +755,18 @@ export async function POST(request: NextRequest) {
 
   const memoryMessages = (savedMessages ?? []).reverse();
 
+  // Client always sends its own history (even empty []). We trust client state
+  // exclusively — DB memory is only used when the client explicitly sends nothing
+  // (body.history === undefined), which means a legacy or non-widget caller.
   let conversationHistory: { role: string; parts: { text: string }[] }[];
-  if (clientHistory.length > 0) {
+  if (Array.isArray(body.history)) {
+    // Client sent history (may be empty for a new conversation) — use as-is
     conversationHistory = clientHistory.map(m => ({
       role: m.role === 'user' ? 'user' : 'model',
       parts: [{ text: m.text }],
     }));
   } else if (memoryMessages.length > 0) {
+    // No history field at all (legacy callers) — fall back to DB
     conversationHistory = memoryMessages.map(m => ({
       role: m.role === 'user' ? 'user' : 'model',
       parts: [{ text: m.content }],

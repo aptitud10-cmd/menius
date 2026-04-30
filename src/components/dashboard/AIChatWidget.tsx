@@ -18,6 +18,7 @@ interface Message {
   text: string;
   timestamp: Date;
   streaming?: boolean;
+  pastSession?: boolean;
 }
 
 function formatAIText(text: string) {
@@ -164,8 +165,16 @@ function ChatPanel({
 
         {visibleMessages.map((msg, idx) => {
           const isLastAI = msg.role === 'assistant' && !visibleMessages.slice(idx + 1).some(m => m.role === 'assistant');
+          const isFirstNew = !msg.pastSession && (idx === 0 || visibleMessages[idx - 1]?.pastSession);
           return (
             <div key={msg.id} ref={isLastAI ? lastAiMsgRef : undefined}>
+              {isFirstNew && visibleMessages.some(m => m.pastSession) && (
+                <div className="flex items-center gap-2 my-3">
+                  <div className="flex-1 h-px bg-white/[0.06]" />
+                  <span className="text-[10px] text-gray-600 font-medium uppercase tracking-wider">{isEn ? 'New conversation' : 'Nueva conversación'}</span>
+                  <div className="flex-1 h-px bg-white/[0.06]" />
+                </div>
+              )}
               <MessageItem msg={msg} />
             </div>
           );
@@ -237,7 +246,9 @@ export function AIChatWidget() {
   const isEn = locale === 'en';
   const quickQuestions = [t.chat_q1, t.chat_q2, t.chat_q3, t.chat_q4, t.chat_q5, t.chat_q6, t.chat_q7, t.chat_q8];
 
-  // Load history from localStorage on mount
+  // Load history from localStorage on mount — only for display, never sent as
+  // context to the API. Each page load is a fresh conversation; the user can
+  // scroll up to see past messages but they don't influence new AI responses.
   useEffect(() => {
     try {
       const stored = localStorage.getItem(HISTORY_KEY);
@@ -248,6 +259,7 @@ export function AIChatWidget() {
           role: m.role as 'user' | 'assistant',
           text: m.text,
           timestamp: new Date(m.timestamp),
+          pastSession: true,
         }));
         if (restored.length > 0) {
           setMessages(restored);
@@ -257,10 +269,10 @@ export function AIChatWidget() {
     } catch { /* ignore parse errors */ }
   }, []);
 
-  // Save history to localStorage whenever messages change (skip streaming messages)
+  // Save history to localStorage whenever messages change (skip streaming + past session messages)
   useEffect(() => {
     if (messages.length === 0) { localStorage.removeItem(HISTORY_KEY); return; }
-    const toSave = messages.filter(m => !m.streaming);
+    const toSave = messages.filter(m => !m.streaming && !m.pastSession);
     if (toSave.length === 0) return;
     try {
       localStorage.setItem(HISTORY_KEY, JSON.stringify(toSave.slice(-MAX_STORED)));
@@ -350,7 +362,7 @@ export function AIChatWidget() {
     const assistantId = `a-${Date.now()}`;
 
     try {
-      const history = messages.filter(m => !m.streaming).slice(-20).map(m => ({ role: m.role, text: m.text }));
+      const history = messages.filter(m => !m.streaming && !m.pastSession).slice(-20).map(m => ({ role: m.role, text: m.text }));
 
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
