@@ -1,10 +1,11 @@
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 import { NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
+import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { buildFoodPrompt, analyzeIngredients } from '@/lib/ai/food-prompt';
 
 const logger = createLogger('admin-regenerate-images');
@@ -39,6 +40,15 @@ export async function POST(request: NextRequest) {
   // Only allow regenerating images for the caller's own restaurant
   if (restaurantId !== tenant.restaurantId) {
     return new Response('Sin acceso a este restaurante', { status: 403 });
+  }
+
+  // Rate limit: max 3 bulk regenerations per restaurant per day
+  const { allowed: rateLimitAllowed } = await checkRateLimitAsync(
+    `bulk-regen:${tenant.restaurantId}`,
+    { limit: 3, windowSec: 86400 },
+  );
+  if (!rateLimitAllowed) {
+    return new Response('Límite de regeneraciones masivas alcanzado (3/día). Vuelve mañana.', { status: 429 });
   }
 
   const geminiKey = (process.env.GEMINI_API_KEY ?? '').trim();
@@ -125,28 +135,6 @@ export async function POST(request: NextRequest) {
           return Buffer.from(buf).toString('base64');
         };
 
-        // ─── Helper: pick best image with Gemini Flash Vision ─────────────
-        const pickBest = async (base64A: string, base64B: string, productName: string): Promise<string> => {
-          if (!ai) return base64A;
-          try {
-            const visionResponse = await ai.models.generateContent({
-              model: 'gemini-2.0-flash',
-              contents: [{
-                role: 'user',
-                parts: [
-                  { inlineData: { mimeType: 'image/jpeg', data: base64A } },
-                  { inlineData: { mimeType: 'image/jpeg', data: base64B } },
-                  { text: `Two food photos of "${productName}". Reply with ONLY "A" or "B" — which photo has better food photography quality: sharper textures, more appetizing presentation, and professional lighting?` },
-                ],
-              }],
-            });
-            const choice = (visionResponse as any).candidates?.[0]?.content?.parts?.[0]?.text?.trim().toUpperCase();
-            return choice === 'B' ? base64B : base64A;
-          } catch {
-            return base64A;
-          }
-        };
-
         // ─── Helper: generate with fal.ai ─────────────────────────────────
         const generateWithFal = async (
           product: { id: string; name: string; description?: string | null },
@@ -176,26 +164,21 @@ export async function POST(request: NextRequest) {
               return null;
 
             } else {
-              // ── Flux Pro v1.1-ultra: improved architecture, fewer corner artifacts ─
+              // ── Flux Pro v1.1-ultra: single image per product in bulk mode ──
               const result = await falClient.subscribe('fal-ai/flux-pro/v1.1-ultra', {
                 input: {
                   prompt,
                   aspect_ratio: '1:1',
-                  num_inference_steps: 40,
+                  num_inference_steps: 28,
                   guidance_scale: 3.5,
-                  num_images: 2,
+                  num_images: 1,
                   output_format: 'jpeg',
                   safety_tolerance: '5',
                 },
               });
               const images: Array<{ url: string }> = result?.data?.images ?? result?.images ?? [];
               if (images.length === 0) return null;
-
-              const base64A = await urlToBase64(images[0].url);
-              if (images.length === 1) return base64A;
-
-              const base64B = await urlToBase64(images[1].url);
-              return pickBest(base64A, base64B, product.name);
+              return urlToBase64(images[0].url);
             }
           } catch (falErr) {
             logger.warn('fal.ai generation failed', {

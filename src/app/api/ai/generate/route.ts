@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
+import { buildFoodPrompt } from '@/lib/ai/food-prompt';
 
 const logger = createLogger('ai-generate-public');
 
@@ -35,62 +36,23 @@ async function generateWithFalAi(prompt: string): Promise<string | null> {
     const { fal } = await import('@fal-ai/client');
     fal.config({ credentials: falKey });
 
-    const result = await (fal as any).subscribe('fal-ai/flux-pro/v1.1', {
+    const result = await (fal as any).subscribe('fal-ai/flux-pro/v1.1-ultra', {
       input: {
         prompt,
-        num_inference_steps: 30,
+        aspect_ratio: '1:1',
+        num_inference_steps: 28,
         guidance_scale: 3.5,
-        image_size: 'square_hd',
+        num_images: 1,
+        output_format: 'jpeg',
+        safety_tolerance: '5',
       },
     });
 
-    return (result as any)?.images?.[0]?.url ?? null;
+    return (result as any)?.data?.images?.[0]?.url ?? (result as any)?.images?.[0]?.url ?? null;
   } catch (err) {
     logger.warn('fal.ai generate failed', { error: err instanceof Error ? err.message : String(err) });
     return null;
   }
-}
-
-function buildFoodPrompt(dishName: string, cuisine: string, style: string): string {
-  const styleMap: Record<string, string> = {
-    dark_moody:  'dark moody fine dining, dramatic single-source chiaroscuro lighting, deep rich shadows, charcoal dark background',
-    bright_airy: 'bright airy natural window light, clean white background, fresh and vibrant colors',
-    rustic:      'warm rustic setting, reclaimed wood surface, golden hour side lighting, cozy authentic atmosphere',
-    editorial:   'editorial magazine style, high contrast professional studio, sophisticated plating',
-    delivery:    'white clean background, bright even lighting, vibrant colors, delivery app optimized',
-  };
-
-  const cuisineMap: Record<string, string> = {
-    Mexican:    'Served on a rustic hand-painted Talavera ceramic. Cilantro, lime, vibrant salsa as natural garnishes.',
-    Colombian:  'On a colorful hand-painted ceramic plate. Hogao sauce and fresh herbs visible.',
-    Peruvian:   'Modern fine-dining plate. Aji amarillo drizzle, microgreens arranged with precision.',
-    Argentine:  'Rustic wooden board. Visible char marks, chimichurri in a small clay dish, fresh lemon wedge.',
-    Italian:    'White ceramic. Fresh basil leaf, extra-virgin olive oil drizzle, Parmigiano shavings.',
-    American:   'Generous portion on a white plate or rustic wooden board. Casual fine-dining feel.',
-    General:    'White ceramic plate, clean restaurant presentation.',
-  };
-
-  const styleDesc = styleMap[style] ?? styleMap.editorial;
-  const cuisineContext = cuisineMap[cuisine] ?? cuisineMap.General;
-
-  return `NOT CGI, NOT 3D render, NOT illustration — this is a REAL DSLR photograph.
-
-Award-winning commercial food photograph in the style of a Michelin-starred restaurant lookbook.
-
-SUBJECT: "${dishName}" — a freshly prepared, beautifully plated restaurant dish.
-PLATING: ${cuisineContext}
-STYLE: ${styleDesc}
-
-CAMERA: 85mm prime lens, f/2.8, ISO 400 — authentic DSLR photograph with natural film grain.
-COMPOSITION: Square 1:1. Subject fills 60% of frame, slight off-center. All food within central 80%.
-
-LIGHTING: Professional three-point setup — key light at 45° left, subtle fill right, warm rim backlight separating subject from background.
-
-COLOR SCIENCE: Rich cinematic color grading. Deep shadows with warm amber undertones. Highlights golden, never blown out. Micro-contrast revealing every texture detail — sauce gloss, fresh herb edges, char marks.
-
-FOOD STYLING: Exquisitely plated, every ingredient visible and intentional. Steam rising if hot. Natural garnishes precisely placed.
-
-NO text, NO logos, NO human hands, NO cooking equipment visible.`;
 }
 
 export async function POST(request: NextRequest) {
@@ -134,7 +96,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Dish name is required' }, { status: 400 });
     }
 
-    const prompt = buildFoodPrompt(rawDishName, cuisine, style);
+    // Map public-facing style keys to food-prompt.ts style tokens
+    const styleTokenMap: Record<string, string> = {
+      dark_moody:  'modern',
+      bright_airy: '',
+      rustic:      'rustic',
+      editorial:   'modern',
+      delivery:    'vibrant',
+    };
+    const foodPromptStyle = styleTokenMap[style] ?? '';
+
+    const prompt = buildFoodPrompt({ productName: rawDishName, cuisine, style: foodPromptStyle || undefined });
 
     // Try fal.ai first (better quality), then Gemini
     let imageUrl: string | null = null;
