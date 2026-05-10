@@ -7,6 +7,7 @@ import { getTenant } from '@/lib/auth/get-tenant';
 import { getEffectivePlanId } from '@/lib/auth/check-plan';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
+import { getJuiceContainer, getJuiceStyling } from '@/lib/ai/food-prompt';
 
 const logger = createLogger('ai-generate-image');
 
@@ -128,14 +129,7 @@ export async function POST(request: NextRequest) {
       if (/horchata/.test(lowerName)) return 'a tall clear glass with ice, filled with creamy white horchata, a cinnamon stick resting on the rim';
       if (/smoothie|batido/.test(lowerName)) return 'a tall frosted glass with a paper straw and fresh fruit garnish on the rim';
       if (/agua mineral|sparkling water|water/.test(lowerName)) return 'a clear glass bottle with condensation and a lemon slice beside it on the surface';
-      if (/apple|manzana/.test(lowerName)) return 'a tall clear glass filled with crisp pale golden-green apple juice, clear ice cubes, a thin green APPLE slice perched on the rim — NOT lime, NOT lemon, NOT orange, ONLY apple garnish';
-      if (/watermelon|sand[íi]a/.test(lowerName)) return 'a tall clear glass filled with vibrant deep pink-red watermelon juice, fresh mint leaves on top, no citrus';
-      if (/mango/.test(lowerName)) return 'a tall clear glass filled with thick rich golden-yellow mango juice, a fresh mango slice on the rim';
-      if (/pi[ñn]a|pineapple/.test(lowerName)) return 'a tall clear glass filled with bright golden-yellow pineapple juice, a pineapple wedge on the rim';
-      if (/fresa|strawberry/.test(lowerName)) return 'a tall clear glass filled with vibrant deep pink-red strawberry juice, a fresh strawberry on the rim';
-      if (/zanahoria|carrot/.test(lowerName)) return 'a tall clear glass filled with bright orange carrot juice, a carrot stick beside it';
-      if (/guanabana|tamarindo|maracuy[áa]|passion.?fruit|guava|guayaba/.test(lowerName)) return 'a tall clear glass filled with tropical juice, garnish of the matching fruit on the rim';
-      if (/jugo|juice|naranja|orange/.test(lowerName)) return 'a chilled clear glass filled with freshly squeezed vibrant orange juice, a citrus orange slice on the rim';
+      if (/jugo|juice/.test(lowerName)) return getJuiceContainer(lowerName);
       if (/café|coffee|espresso|latte|cappuccino|olla/.test(lowerName)) return 'a beautiful ceramic coffee mug or artisan clay pot, steam gently curling upward';
       if (/tea|té/.test(lowerName)) return 'a delicate ceramic mug or clear glass cup showing the tea color';
       if (/hot chocolate|chocolate caliente/.test(lowerName)) return 'a large ceramic mug topped with a cloud of whipped cream and a dusting of cocoa powder';
@@ -214,13 +208,7 @@ export async function POST(request: NextRequest) {
         if (/whiskey|bourbon/.test(lowerName)) return 'Amber whiskey with a single large perfectly clear ice sphere. Orange peel twist garnish, one edge caught by the light.';
         if (/limonada|lemonade/.test(lowerName)) return 'Vibrant yellow liquid, fresh mint leaves, ice cubes perfectly clear, lemon wheel on rim. Condensation on the cold glass exterior.';
         if (/smoothie/.test(lowerName)) return 'Thick vibrant tropical smoothie. Fresh fruit garnish on the rim. Straw at a natural relaxed angle.';
-        if (/apple|manzana/.test(lowerName)) return 'APPLE JUICE — pale golden-green color, crystal clear. Green APPLE slice on the rim — NOT lime, NOT lemon, NOT citrus, ONLY apple. Ice perfectly clear. Condensation on glass. The liquid is pale golden-green, NOT orange, NOT yellow — distinctly apple juice.';
-        if (/watermelon|sand[íi]a/.test(lowerName)) return 'Deep vibrant pink-red watermelon juice color. Fresh mint leaves. No citrus. Refreshing summer feel.';
-        if (/mango/.test(lowerName)) return 'Thick rich golden-yellow mango juice, tropical and vibrant. Mango slice garnish.';
-        if (/pi[ñn]a|pineapple/.test(lowerName)) return 'Bright golden-yellow pineapple juice. Pineapple wedge on rim. Tropical freshness.';
-        if (/fresa|strawberry/.test(lowerName)) return 'Vibrant deep pink-red strawberry juice. Fresh strawberry on rim. Sweet and fresh.';
-        if (/zanahoria|carrot/.test(lowerName)) return 'Bright vivid orange carrot juice. Carrot stick garnish. Earthy and fresh.';
-        if (/juice|jugo/.test(lowerName)) return 'Bright vibrant freshly squeezed orange-citrus color. Citrus slice on the rim. Natural pulp visible. Condensation on the cold glass.';
+        if (/juice|jugo/.test(lowerName)) return getJuiceStyling(lowerName);
         if (/coffee|café|espresso|latte|cappuccino/.test(lowerName)) return 'Perfect latte art rosette or tulip pattern. Steam rising delicately. Crema golden-brown and smooth. Impeccable barista craft visible.';
         return 'Drink fresh, vibrant, and perfectly prepared. Garnish precisely placed. Condensation visible on cold glass. Every detail of the preparation visible.';
       }
@@ -289,6 +277,19 @@ export async function POST(request: NextRequest) {
     const foodStyling = getFoodStylingDetails();
     const lighting = getLighting();
 
+    // ─── INGREDIENT ANALYSIS (Flash structuring — #5) ────────────────────────
+    // Only runs when description is rich enough to be useful. Adds ~100ms + $0.0001.
+    let ingredientSection = '';
+    if (!isBanner && description && description.length >= 40) {
+      try {
+        const { analyzeIngredients, buildIngredientSection } = await import('@/lib/ai/food-prompt');
+        const analysis = await analyzeIngredients(productName, description, apiKey);
+        if (analysis) ingredientSection = buildIngredientSection(analysis);
+      } catch {
+        // non-critical — proceed without ingredient analysis
+      }
+    }
+
     // ─── BANNER MODE ──────────────────────────────────────────────────────────
     const bannerPrompt = isBanner ? `CRITICAL RULES — strictly enforce: NOT CGI, NOT 3D render, NOT illustration. NO text, NO logos, NO watermarks, NO white patches or artifacts in any corner, NO human hands, NO cooking equipment. Every corner filled with background — no blank white areas.
 
@@ -321,6 +322,7 @@ SUBJECT: "${productName}".
 ${description ? `INGREDIENTS — every ingredient listed here MUST be visibly identifiable in the photograph, accurately depicted (no substitutions, no missing items): ${description}` : ''}
 SERVED IN/ON: ${container}.
 ${effectiveCuisineContext ? `PLATING IDENTITY: ${effectiveCuisineContext}` : ''}
+${ingredientSection ? `\n${ingredientSection}` : ''}
 
 CAMERA: 50mm or 85mm prime lens, ${dofInstruction}, ISO 400 — authentic DSLR photograph with natural film grain.
 ANGLE: ${angleInstruction}.
@@ -336,6 +338,24 @@ COLOR SCIENCE: Rich cinematic color grading. Deep shadows with warm amber-brown 
 FOOD STYLING: ${foodStyling}`;
 
     const aspectRatio = isBanner ? '16:9' : '4:3';
+
+    // ─── COHERENCE CHECK (#4) — validate prompt before expensive generation ───
+    let finalPrompt = prompt;
+    if (!isBanner && description && description.length >= 30) {
+      try {
+        const { checkPromptCoherence } = await import('@/lib/ai/food-prompt');
+        const coherence = await checkPromptCoherence(productName, description, prompt, apiKey);
+        if (coherence && !coherence.ok && coherence.fixedPrompt) {
+          logger.info('Coherence check fixed prompt', {
+            productName,
+            issues: coherence.issues,
+          });
+          finalPrompt = coherence.fixedPrompt;
+        }
+      } catch {
+        // non-critical — proceed with original prompt
+      }
+    }
 
     // ─── FETCH STYLE ANCHOR (own → master fallback) ──────────────────────────
     let anchorBase64: string | null = null;
@@ -439,7 +459,7 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
           // flux-pro/kontext: image-aware generation using the style anchor as reference
           const kontextResult = await (fal as any).subscribe('fal-ai/flux-pro/kontext', {
             input: {
-              prompt: anchorPrompt ?? prompt,
+              prompt: anchorPrompt ?? finalPrompt,
               image_url: `data:image/jpeg;base64,${anchorBase64}`,
               num_images: 1,
               output_format: 'jpeg',
@@ -454,7 +474,7 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
           // flux-pro/v1.1-ultra: improved architecture with fewer corner artifacts
           const v1Result = await (fal as any).subscribe('fal-ai/flux-pro/v1.1-ultra', {
             input: {
-              prompt,
+              prompt: finalPrompt,
               aspect_ratio: isBanner ? '16:9' : '4:3',
               num_inference_steps: 28,
               guidance_scale: 3.5,
@@ -489,7 +509,7 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
         const useAnchor = anchorBase64 && anchorPrompt && !falKey;
         const contents: object[] = useAnchor
           ? [{ role: 'user', parts: [{ inlineData: { mimeType, data: anchorBase64 } }, { text: anchorPrompt }] }]
-          : [{ role: 'user', parts: [{ text: prompt }] }];
+          : [{ role: 'user', parts: [{ text: finalPrompt }] }];
 
         const response = await ai.models.generateContent({
           model: 'gemini-3-pro-image-preview',

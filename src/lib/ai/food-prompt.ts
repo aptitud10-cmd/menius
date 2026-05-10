@@ -112,6 +112,52 @@ function getIsDrink(category: string | null | undefined): boolean {
   return ['Beverages', 'Hot drinks', 'Cocktails', 'Drinks'].includes(category ?? '');
 }
 
+// Fruit juice lookup: maps name patterns → { color, garnish }
+// Add new fruits here — the catch-all below will NOT assume citrus.
+const FRUIT_JUICE_MAP: Array<{ pattern: RegExp; color: string; garnish: string }> = [
+  { pattern: /cranberry|ar[aá]ndano rojo|cr[aá]nberry/,    color: 'deep ruby-red cranberry juice',                garnish: 'a few fresh or frozen cranberries and a sprig of rosemary on the rim — NO citrus, NO orange slice' },
+  { pattern: /naranja|orange/,                              color: 'vibrant freshly squeezed orange juice',         garnish: 'a thin orange wheel on the rim' },
+  { pattern: /apple|manzana/,                               color: 'pale golden-green apple juice',                garnish: 'a thin green apple slice on the rim — NOT lime, NOT lemon, ONLY apple' },
+  { pattern: /watermelon|sand[íi]a/,                        color: 'deep pink-red watermelon juice',               garnish: 'fresh mint leaves, no citrus' },
+  { pattern: /mango/,                                       color: 'thick rich golden-yellow mango juice',         garnish: 'a fresh mango slice on the rim' },
+  { pattern: /pi[ñn]a|pineapple/,                           color: 'bright golden-yellow pineapple juice',         garnish: 'a pineapple wedge on the rim' },
+  { pattern: /fresa|strawberry/,                            color: 'vibrant deep pink-red strawberry juice',       garnish: 'a fresh strawberry on the rim' },
+  { pattern: /zanahoria|carrot/,                            color: 'bright vivid orange carrot juice',             garnish: 'a carrot stick beside the glass' },
+  { pattern: /mora|blackberry/,                             color: 'deep purple-black blackberry juice',           garnish: 'a few fresh blackberries on the rim' },
+  { pattern: /maracuy[áa]|passion.?fruit/,                  color: 'vibrant golden-orange passion fruit juice',    garnish: 'a passion fruit half beside the glass' },
+  { pattern: /guayaba|guava/,                               color: 'pale pink guava juice',                        garnish: 'a thin guava slice on the rim' },
+  { pattern: /guanabana|soursop/,                           color: 'creamy pale white-green soursop juice',        garnish: 'a small piece of soursop on the rim' },
+  { pattern: /tamarindo/,                                   color: 'deep brown tamarind juice',                    garnish: 'a tamarind pod beside the glass' },
+  { pattern: /lim[oó]n|lime/,                               color: 'pale greenish-yellow lime juice',              garnish: 'a lime wheel on the rim' },
+  { pattern: /toronja|grapefruit/,                          color: 'blush pink grapefruit juice',                  garnish: 'a grapefruit wedge on the rim' },
+  { pattern: /uva|grape/,                                   color: 'deep purple grape juice',                      garnish: 'a small bunch of grapes beside the glass' },
+  { pattern: /durazno|peach/,                               color: 'soft peachy-golden peach juice',               garnish: 'a peach slice on the rim' },
+  { pattern: /lichi|lychee/,                                color: 'clear pale rose lychee juice',                 garnish: 'two lychee fruits on a pick on the rim' },
+  { pattern: /pitahaya|dragon.?fruit/,                      color: 'vivid magenta-pink dragon fruit juice',        garnish: 'a small dragon fruit slice on the rim' },
+  { pattern: /coco|coconut/,                                color: 'opaque creamy white coconut juice',            garnish: 'a piece of fresh coconut and a straw' },
+  { pattern: /betabel|beet/,                                color: 'deep jewel-red beet juice',                    garnish: 'a thin beet slice beside the glass' },
+  { pattern: /pepino|cucumber/,                             color: 'pale clear green cucumber juice',              garnish: 'a thin cucumber wheel on the rim and fresh mint' },
+];
+
+export function getJuiceContainer(lowerName: string): string {
+  for (const { pattern, color, garnish } of FRUIT_JUICE_MAP) {
+    if (pattern.test(lowerName)) {
+      return `a tall clear glass filled with ${color}, clear ice cubes, ${garnish}. Condensation on the cold glass exterior.`;
+    }
+  }
+  // Generic fallback: do NOT assume citrus — let the model read the product name
+  return `a tall clear glass filled with freshly prepared juice whose color matches the fruit in the product name, ice cubes, garnish matching the fruit — NOT orange, NOT citrus unless the product name specifies it. Condensation on the cold glass exterior.`;
+}
+
+export function getJuiceStyling(lowerName: string): string {
+  for (const { pattern, color, garnish } of FRUIT_JUICE_MAP) {
+    if (pattern.test(lowerName)) {
+      return `${color.charAt(0).toUpperCase() + color.slice(1)}, crystal clear or naturally textured. ${garnish.charAt(0).toUpperCase() + garnish.slice(1)}. Ice perfectly clear. Condensation on glass. Color is accurate to the real fruit — not orange, not generic citrus.`;
+    }
+  }
+  return `Juice color accurate to the fruit named in the product — do NOT use orange or citrus color unless the product is orange juice. Garnish matching the actual fruit. Ice perfectly clear. Condensation on glass.`;
+}
+
 function getContainer(lowerName: string, isDrink: boolean): string {
   if (/margarita/.test(lowerName)) return 'a classic wide-rim margarita glass with a half-salted rim, fresh lime wedge perched on the rim, ice visible through the glass';
   if (/cerveza|beer|craft beer/.test(lowerName)) return 'a cold frosted pint glass with a perfectly formed creamy foam head, condensation running down the exterior';
@@ -123,7 +169,7 @@ function getContainer(lowerName: string, isDrink: boolean): string {
   if (/horchata/.test(lowerName)) return 'a tall clear glass with ice, filled with creamy white horchata, a cinnamon stick resting on the rim';
   if (/smoothie|batido/.test(lowerName)) return 'a tall frosted glass with a paper straw and fresh fruit garnish on the rim';
   if (/agua mineral|sparkling water|water/.test(lowerName)) return 'a clear glass bottle with condensation and a lemon slice beside it on the surface';
-  if (/jugo|juice|naranja/.test(lowerName)) return 'a chilled clear glass filled with freshly squeezed vibrant juice, a citrus slice on the rim';
+  if (/jugo|juice/.test(lowerName)) return getJuiceContainer(lowerName);
   if (/café|coffee|espresso|latte|cappuccino|olla/.test(lowerName)) return 'a beautiful ceramic coffee mug or artisan clay pot, steam gently curling upward';
   if (/tea|té/.test(lowerName)) return 'a delicate ceramic mug or clear glass cup showing the tea color';
   if (/hot chocolate|chocolate caliente/.test(lowerName)) return 'a large ceramic mug topped with a cloud of whipped cream and a dusting of cocoa powder';
@@ -182,7 +228,7 @@ function getFoodStylingDetails(lowerName: string, isDrink: boolean): string {
     if (/whiskey|bourbon/.test(lowerName)) return 'Amber whiskey with a single large perfectly clear ice sphere. Orange peel twist garnish, one edge caught by the light.';
     if (/limonada|lemonade/.test(lowerName)) return 'Vibrant yellow liquid, fresh mint leaves, ice cubes perfectly clear, lemon wheel on rim. Condensation on the cold glass exterior.';
     if (/smoothie/.test(lowerName)) return 'Thick vibrant tropical smoothie. Fresh fruit garnish on the rim. Straw at a natural relaxed angle.';
-    if (/juice|jugo/.test(lowerName)) return 'Bright vibrant freshly squeezed color. Citrus slice on the rim. Natural pulp visible. Condensation on the cold glass.';
+    if (/juice|jugo/.test(lowerName)) return getJuiceStyling(lowerName);
     if (/coffee|café|espresso|latte|cappuccino/.test(lowerName)) return 'Perfect latte art rosette or tulip pattern. Steam rising delicately. Crema golden-brown and smooth. Impeccable barista craft visible.';
     return 'Drink fresh, vibrant, and perfectly prepared. Garnish precisely placed. Condensation visible on cold glass. Every detail of the preparation visible.';
   }
@@ -202,13 +248,174 @@ function getFoodStylingDetails(lowerName: string, isDrink: boolean): string {
   return 'Food fresh, exquisitely appetizing, and perfectly prepared. Natural textures and deep colors. Steam rising if hot. Professional fine-dining restaurant presentation with artful plating.';
 }
 
+// ─── Ingredient analysis (Flash structuring) ─────────────────────────────────
+
+export interface IngredientAnalysis {
+  visible_ingredients: string[];  // ingredients that must appear in the photo
+  dominant_color: string;         // primary color of the dish
+  presentation_style: string;     // how it's plated/served
+  garnish: string;                // specific garnish to show
+  texture_highlights: string[];   // key textures to render (crispy, melted, etc.)
+  avoid: string[];                // things NOT to show based on description
+}
+
+/**
+ * Uses Gemini Flash to extract structured ingredient data from product name+description.
+ * Returns null if Flash is unavailable or description is too short to be useful.
+ * Cost: ~$0.0001 per call — only invoked when description.length > 60.
+ */
+export async function analyzeIngredients(
+  productName: string,
+  description: string | null | undefined,
+  geminiKey: string,
+): Promise<IngredientAnalysis | null> {
+  if (!description || description.trim().length < 40) return null;
+
+  try {
+    const { GoogleGenAI } = await import('@google/genai');
+    const ai = new GoogleGenAI({ apiKey: geminiKey });
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: [{
+        role: 'user',
+        parts: [{
+          text: `You are a food photography art director. Analyze this restaurant menu item and extract structured data for a food photo shoot.
+
+Product: "${productName}"
+Description: "${description}"
+
+Return ONLY a valid JSON object (no markdown, no explanation) with this exact schema:
+{
+  "visible_ingredients": ["list of specific ingredients that MUST be visibly identifiable in the photo"],
+  "dominant_color": "the main color of the dish as seen in the photo (e.g. 'golden brown', 'deep red', 'bright green')",
+  "presentation_style": "how the dish looks when plated (e.g. 'stacked layers', 'sauce-coated', 'arranged in bowl', 'wrapped')",
+  "garnish": "specific garnish that should be visible (e.g. 'fresh cilantro leaves', 'lemon wedge', 'none')",
+  "texture_highlights": ["2-3 key textures that make this dish look appetizing (e.g. 'crispy crust', 'melted cheese pull', 'glossy sauce')"],
+  "avoid": ["things that should NOT appear based on the description (e.g. if it says 'vegan' → avoid dairy; if 'mocktail' → avoid alcohol bottles)"]
+}`,
+        }],
+      }],
+    });
+
+    const text = (response as any).candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    const cleaned = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned) as IngredientAnalysis;
+
+    // Basic validation
+    if (!Array.isArray(parsed.visible_ingredients) || !parsed.dominant_color) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Converts IngredientAnalysis into prompt fragments that override generic styling.
+ */
+export function buildIngredientSection(analysis: IngredientAnalysis): string {
+  const parts: string[] = [];
+
+  if (analysis.visible_ingredients.length > 0) {
+    parts.push(`VISIBLE INGREDIENTS — every one of these MUST be identifiable in the photo: ${analysis.visible_ingredients.join(', ')}.`);
+  }
+  if (analysis.dominant_color) {
+    parts.push(`DOMINANT COLOR: The dish is primarily ${analysis.dominant_color} — render this color accurately and vividly.`);
+  }
+  if (analysis.presentation_style) {
+    parts.push(`PRESENTATION: ${analysis.presentation_style}.`);
+  }
+  if (analysis.garnish && analysis.garnish !== 'none') {
+    parts.push(`GARNISH: ${analysis.garnish} — precisely placed, sharp focus, vibrant.`);
+  }
+  if (analysis.texture_highlights.length > 0) {
+    parts.push(`TEXTURE FOCUS: Emphasize ${analysis.texture_highlights.join(', ')} — these are what make this dish irresistible.`);
+  }
+  if (analysis.avoid.length > 0) {
+    parts.push(`DO NOT SHOW: ${analysis.avoid.join(', ')}.`);
+  }
+
+  return parts.join('\n');
+}
+
+export interface CoherenceResult {
+  ok: boolean;
+  issues: string[];
+  fixedPrompt?: string;
+}
+
+/**
+ * Pre-generation coherence check (#4).
+ * Asks Gemini Flash whether the prompt faithfully represents the product.
+ * Returns ok:true (proceed), ok:false + issues (retry with fixedPrompt), or null on error.
+ * Only run this on the per-product flow — not in bulk regeneration.
+ */
+export async function checkPromptCoherence(
+  productName: string,
+  description: string | null | undefined,
+  prompt: string,
+  geminiKey: string,
+): Promise<CoherenceResult | null> {
+  if (!description || description.trim().length < 30) return { ok: true, issues: [] };
+
+  try {
+    const { GoogleGenAI } = await import('@google/genai');
+    const ai = new GoogleGenAI({ apiKey: geminiKey });
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: [{
+        role: 'user',
+        parts: [{
+          text: `You are a food photography art director reviewing a photo prompt for accuracy.
+
+Product: "${productName}"
+Description: "${description}"
+
+Prompt to review (first 800 chars):
+${prompt.slice(0, 800)}
+
+Check: does the prompt accurately represent this specific product? Look for:
+1. Wrong garnish or wrong fruit (e.g. orange slice on a cranberry juice)
+2. Wrong color description (e.g. "golden" for a red product)
+3. Wrong container type (e.g. "mug" for a cold drink)
+4. Anything in "SERVED IN/ON" or "FOOD STYLING" that contradicts the product name or description
+
+Return ONLY valid JSON (no markdown):
+{
+  "ok": true or false,
+  "issues": ["list any specific inaccuracies found — empty array if ok"],
+  "fix": "if not ok, one sentence describing what to correct in the prompt — empty string if ok"
+}`,
+        }],
+      }],
+    });
+
+    const text = (response as any).candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    const cleaned = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(cleaned) as { ok: boolean; issues: string[]; fix: string };
+
+    if (parsed.ok) return { ok: true, issues: [] };
+
+    // Build a corrected prompt suffix from the fix instruction
+    const fixedPrompt = parsed.fix
+      ? `${prompt}\n\nCORRECTION — OVERRIDE any conflicting instruction above: ${parsed.fix}`
+      : prompt;
+
+    return { ok: false, issues: parsed.issues ?? [], fixedPrompt };
+  } catch {
+    return null;
+  }
+}
+
 export function buildFoodPrompt({
   productName,
   description,
   category,
   style,
   cuisine,
-}: FoodPromptParams): string {
+  ingredientAnalysis,
+}: FoodPromptParams & { ingredientAnalysis?: IngredientAnalysis | null }): string {
   const lowerName = (productName + ' ' + (description ?? '')).toLowerCase();
   const isDrink = getIsDrink(category);
 
@@ -249,6 +456,7 @@ export function buildFoodPrompt({
   const container = getContainer(lowerName, isDrink);
   const foodStyling = getFoodStylingDetails(lowerName, isDrink);
   const lighting = getLighting(category, isDrink, lowerName);
+  const ingredientSection = ingredientAnalysis ? buildIngredientSection(ingredientAnalysis) : '';
 
   return `NOT CGI, NOT 3D render, NOT illustration — this is a REAL photograph. NO cooking equipment visible, NO text or logos, NO human hands.
 
@@ -257,7 +465,7 @@ This is an award-winning commercial food photograph in the style of Lyan van Fur
 SUBJECT: "${productName}"${description ? ` — ${description}` : ''}.
 SERVED IN/ON: ${container}.
 ${effectiveCuisineContext ? `PLATING IDENTITY: ${effectiveCuisineContext}` : ''}
-
+${ingredientSection ? `\n${ingredientSection}` : ''}
 CAMERA: 50mm or 85mm prime lens, ${dofInstruction}, ISO 400 — authentic DSLR photograph with natural film grain.
 ANGLE: ${angleInstruction}.
 COMPOSITION: Square 1:1 frame. Subject CENTERED in the frame — plate/bowl/glass at the geometric center. Subject fills 60-65% of the frame. Negative space distributed evenly on all four sides. SAFE ZONE: all food/drink within the central 80% — outer 10% may be cropped by UI. DO NOT shift the subject left or right — center is mandatory.

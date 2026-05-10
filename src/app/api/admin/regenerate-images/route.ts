@@ -5,7 +5,7 @@ import { NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
-import { buildFoodPrompt } from '@/lib/ai/food-prompt';
+import { buildFoodPrompt, analyzeIngredients } from '@/lib/ai/food-prompt';
 
 const logger = createLogger('admin-regenerate-images');
 
@@ -260,11 +260,18 @@ export async function POST(request: NextRequest) {
               const anchorStyle = categoryName ? (anchorStyleMap.get(categoryName) ?? null) : null;
               const anchorUrl = categoryName ? (anchorUrlMap.get(categoryName) ?? null) : null;
 
+              // Ingredient analysis (Flash structuring) — only when description is rich
+              let ingredientAnalysis = null;
+              if (geminiKey && product.description && product.description.length >= 40) {
+                ingredientAnalysis = await analyzeIngredients(product.name, product.description, geminiKey).catch(() => null);
+              }
+
               const prompt = buildFoodPrompt({
                 productName: product.name,
                 description: product.description,
                 category: categoryName,
                 style: anchorStyle,
+                ingredientAnalysis,
               });
 
               try {
