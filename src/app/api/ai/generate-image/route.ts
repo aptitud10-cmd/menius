@@ -126,6 +126,7 @@ COLOR SCIENCE: Rich warm tonal depth. Deep shadows with warm amber undertones �
 
     // ─── FETCH STYLE ANCHOR (own → master fallback) ──────────────────────────
     let anchorBase64: string | null = null;
+    let anchorPublicUrl: string | null = null;
     let anchorSource: 'restaurant' | 'master' | null = null;
     if (!isBanner && category) {
       const adminSupabase = createAdminClient();
@@ -170,8 +171,10 @@ COLOR SCIENCE: Rich warm tonal depth. Deep shadows with warm amber undertones �
         }
       }
 
-      // 3) Download anchor image if we have a URL
+      // 3) Keep anchor URL for Kontext (uses public URL directly — better than base64)
+      //    Also download as base64 for Gemini fallback which needs inline data
       if (anchorUrl) {
+        anchorPublicUrl = anchorUrl;
         try {
           const anchorRes = await fetch(anchorUrl, { signal: AbortSignal.timeout(8000) });
           if (anchorRes.ok) {
@@ -188,25 +191,18 @@ COLOR SCIENCE: Rich warm tonal depth. Deep shadows with warm amber undertones �
             error: downloadErr instanceof Error ? downloadErr.message : String(downloadErr),
           });
           anchorSource = null;
+          anchorPublicUrl = null;
         }
       }
     }
 
     // ─── ANCHOR PROMPT (when reference image is available) ───────────────────
-    const anchorPrompt = anchorBase64 ? `STYLE REFERENCE: The reference image above is the approved visual style anchor for the "${category}" category of this restaurant. You MUST match EXACTLY:
-- The background material, color, texture, and depth of field
-- The lighting direction, color temperature, shadow depth, and intensity
-- The camera angle and overall composition style
-- The color grading, mood, and tonal quality
-
-CRITICAL — the SUBJECT must change completely to: "${productName}".
-${description ? `INGREDIENTS — these must be VISIBLY identifiable in the new photograph, faithfully depicted with no substitutions: ${description}` : ''}
+    const anchorPrompt = anchorPublicUrl ? `REPLACE the food subject in the reference image with: "${productName}"${description ? ` (${description})` : ''}. The new food must look completely different from the original — do NOT copy or blend the original food. KEEP EXACTLY: the background color/texture, lighting direction, shadow depth, camera angle, color grading, plate/surface style. CHANGE ONLY: the food subject itself.
+${description ? `VISIBLE INGREDIENTS: ${description} — all must be clearly identifiable.` : ''}
 
 ${finalPrompt}
 
-COMPOSITION: Subject CENTERED in the frame, balanced, occupying 60-70% of the width. Outer 12.5% margin all around must show only background/surface, never the subject. Do NOT shift the dish to the right, left, top or bottom.
-
-Keep everything else — surface, lighting, background, atmosphere — pixel-perfect consistent with the reference, but NEVER copy the food itself from the reference. The food must be the new subject described above.` : null;
+COMPOSITION: new subject centered, occupying 60-70% of frame. Background fills the rest exactly as in the reference.` : null;
 
     // ─── PRIMARY: fal.ai flux-pro/v1.1 — single image, fast ─────────────────
     let imageBase64: string | null = null;
@@ -221,15 +217,16 @@ Keep everything else — surface, lighting, background, atmosphere — pixel-per
 
         let falImageUrl: string | null = null;
 
-        if (anchorBase64) {
-          // flux-pro/kontext: image-aware generation using the style anchor as reference
+        if (anchorPublicUrl) {
+          // flux-pro/kontext: pass the public URL directly — better than base64 inline.
+          // guidance_scale 7.5 forces strong subject replacement while preserving style.
           const kontextResult = await (fal as any).subscribe('fal-ai/flux-pro/kontext', {
             input: {
               prompt: anchorPrompt ?? finalPrompt,
-              image_url: `data:image/jpeg;base64,${anchorBase64}`,
+              image_url: anchorPublicUrl,
               num_images: 1,
               output_format: 'jpeg',
-              guidance_scale: 3.5,
+              guidance_scale: 7.5,
             },
           });
           falImageUrl =
