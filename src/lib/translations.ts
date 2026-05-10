@@ -358,6 +358,8 @@ export interface Translations {
   addToFavorites: string;
   removeFromFavorites: string;
   productNew: string;
+  popularityTop1: string;
+  popularityOrders: (n: number) => string;
   ariaCustomize: (name: string) => string;
   ariaAdd: (name: string) => string;
   // MenuHeaderMobile — aria-labels
@@ -692,6 +694,8 @@ const es: Translations = {
   addToFavorites: 'Agregar a favoritos',
   removeFromFavorites: 'Quitar de favoritos',
   productNew: 'NUEVO',
+  popularityTop1: '#1 esta semana',
+  popularityOrders: (n: number) => `${n} pedidos`,
   ariaCustomize: (name: string) => `Personalizar ${name}`,
   ariaAdd: (name: string) => `Agregar ${name}`,
   goBack: 'Atrás',
@@ -1023,6 +1027,8 @@ const en: Translations = {
   addToFavorites: 'Add to favorites',
   removeFromFavorites: 'Remove from favorites',
   productNew: 'NEW',
+  popularityTop1: '#1 this week',
+  popularityOrders: (n: number) => `${n} orders`,
   ariaCustomize: (name: string) => `Customize ${name}`,
   ariaAdd: (name: string) => `Add ${name}`,
   goBack: 'Back',

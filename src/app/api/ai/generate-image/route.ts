@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
         return 'Backlight at 30 degrees behind the glass creating a natural translucency glow through the liquid. Soft reflector fill from the right, about 3 stops underexposed relative to the key. This makes the liquid appear to glow from within — the definitive technique for premium beverage photography.';
       }
       if (['Burgers', 'Chicken', 'Dinner'].includes(category ?? '') || /steak|ribeye|filete/.test(lowerName)) {
-        return 'Single hard key light from the left at 45 degrees — no softbox, just a focused directional light that creates dramatic shadows revealing every texture: the Maillard crust, the crispy skin, the glossy sauce. A black negative fill card on the right deepens shadows for maximum tonal contrast. This is the lighting signature of Lyan van Furth and the standard for Michelin-starred food photography.';
+        return 'Single hard key light from the left at 45 degrees — no softbox, just a focused directional light that creates dramatic shadows revealing every texture: the Maillard crust, the crispy skin, the glossy sauce. A black negative fill card on the right deepens shadows for maximum tonal contrast. This is the lighting signature of Con Poulos and the standard for Michelin-starred food photography.';
       }
       if (['Desserts', 'Breakfast'].includes(category ?? '')) {
         return 'Soft diffused north-facing window light — large and even, no harsh shadows, mimicking overcast natural daylight. The light wraps gently around the subject, creating a luminous and inviting mood. A white reflector card on the shadow side fills gently to lift detail without flattening the image. Warm golden cast from the slight golden-hour color temperature.';
@@ -316,7 +316,7 @@ COLOR SCIENCE: Rich warm tonal depth. Deep shadows with warm amber undertones �
 - NO human hands, NO cooking equipment, NO utensils in frame
 - Every corner filled with natural background — NO blank areas, NO darkness, NO undefined shapes
 
-This is an award-winning commercial food photograph in the style of Lyan van Furth or Eric Wolfinger — the world's finest food photographers. Every pixel is intentional, every corner covered with rich background texture.
+This is an award-winning commercial food photograph featured in Bon Appétit and Food & Wine magazines — Michelin-starred restaurant photography at its finest. Every pixel is intentional, every corner covered with rich background texture.
 
 SUBJECT: "${productName}".
 ${description ? `INGREDIENTS — every ingredient listed here MUST be visibly identifiable in the photograph, accurately depicted (no substitutions, no missing items): ${description}` : ''}

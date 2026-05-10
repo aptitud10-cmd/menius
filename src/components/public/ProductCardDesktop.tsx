@@ -124,9 +124,9 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           {!outOfStock && (() => {
             const rank = product.popularity_rank;
             const orders7d = product.orders_last_7d ?? 0;
-            if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-amber-500 to-yellow-400">⭐ #1 esta semana</span>;
+            if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-amber-500 to-yellow-400">⭐ {t.popularityTop1}</span>;
             if (rank != null && rank <= 3) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 Top {rank}</span>;
-            if (orders7d >= 10) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 {orders7d} pedidos</span>;
+            if (orders7d >= 10) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 {t.popularityOrders(orders7d)}</span>;
             if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold shadow-sm">{t.productNew}</span>;
             return null;
           })()}
@@ -160,9 +160,9 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
           {!outOfStock && (() => {
             const rank = product.popularity_rank;
             const orders7d = product.orders_last_7d ?? 0;
-            if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-amber-500 to-yellow-400">⭐ #1 esta semana</span>;
+            if (rank === 1) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-amber-500 to-yellow-400">⭐ {t.popularityTop1}</span>;
             if (rank != null && rank <= 3) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 Top {rank}</span>;
-            if (orders7d >= 10) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 {orders7d} pedidos</span>;
+            if (orders7d >= 10) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full text-white text-[10px] font-bold shadow-sm bg-gradient-to-r from-red-500 to-orange-400">🔥 {t.popularityOrders(orders7d)}</span>;
             if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold shadow-sm">{t.productNew}</span>;
             return null;
           })()}

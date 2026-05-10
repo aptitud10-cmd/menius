@@ -122,9 +122,9 @@ export const ProductCardMobile = memo(function ProductCardMobile({
         {!outOfStock && (() => {
           const rank = product.popularity_rank;
           const orders7d = product.orders_last_7d ?? 0;
-          if (rank === 1) return <span className="absolute top-2 left-2 text-[10px] font-bold text-white px-2 py-0.5 rounded-full leading-none bg-gradient-to-r from-amber-500 to-yellow-400 shadow-sm">⭐ #1 esta semana</span>;
+          if (rank === 1) return <span className="absolute top-2 left-2 text-[10px] font-bold text-white px-2 py-0.5 rounded-full leading-none bg-gradient-to-r from-amber-500 to-yellow-400 shadow-sm">⭐ {t.popularityTop1}</span>;
           if (rank != null && rank <= 3) return <span className="absolute top-2 left-2 text-[10px] font-bold text-white px-2 py-0.5 rounded-full leading-none bg-gradient-to-r from-red-500 to-orange-400 shadow-sm">🔥 Top {rank}</span>;
-          if (orders7d >= 10) return <span className="absolute top-2 left-2 text-[10px] font-bold text-white px-2 py-0.5 rounded-full leading-none bg-gradient-to-r from-red-500 to-orange-400 shadow-sm">🔥 {orders7d} pedidos</span>;
+          if (orders7d >= 10) return <span className="absolute top-2 left-2 text-[10px] font-bold text-white px-2 py-0.5 rounded-full leading-none bg-gradient-to-r from-red-500 to-orange-400 shadow-sm">🔥 {t.popularityOrders(orders7d)}</span>;
           if (product.is_new) return <span className="absolute top-2 left-2 text-[10px] font-bold text-white bg-blue-500 px-2 py-0.5 rounded-full leading-none shadow-sm">{t.productNew}</span>;
           return null;
         })()}
