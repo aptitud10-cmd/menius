@@ -196,13 +196,21 @@ COLOR SCIENCE: Rich warm tonal depth. Deep shadows with warm amber undertones �
       }
     }
 
-    // ─── ANCHOR PROMPT (when reference image is available) ───────────────────
-    const anchorPrompt = anchorPublicUrl ? `REPLACE the food subject in the reference image with: "${productName}"${description ? ` (${description})` : ''}. The new food must look completely different from the original — do NOT copy or blend the original food. KEEP EXACTLY: the background color/texture, lighting direction, shadow depth, camera angle, color grading, plate/surface style. CHANGE ONLY: the food subject itself.
-${description ? `VISIBLE INGREDIENTS: ${description} — all must be clearly identifiable.` : ''}
-
-${finalPrompt}
-
-COMPOSITION: new subject centered, occupying 60-70% of frame. Background fills the rest exactly as in the reference.` : null;
+    // ─── KONTEXT PROMPT (clean — no finalPrompt to avoid conflicting instructions) ──
+    // Kontext needs ONE clear directive: replace the food, keep everything else.
+    // Mixing in finalPrompt (which has its own lighting/angle instructions) causes
+    // the model to ignore the anchor's visual style — last instruction wins.
+    const anchorPrompt = anchorPublicUrl
+      ? [
+          `Replace the food subject in the reference image with: "${productName}"${description ? ` (${description})` : ''}.`,
+          `The new food must look completely different from the original — do NOT copy or blend the original food subject.`,
+          description ? `Visible ingredients: ${description} — all must be clearly identifiable in the final image.` : '',
+          `KEEP EXACTLY: background color and texture, lighting direction and color temperature, shadow depth, camera angle, color grading, plate and surface style, overall mood and atmosphere.`,
+          `CHANGE ONLY: the food subject itself.`,
+          `Photorealistic commercial food photograph — NOT CGI, NOT illustration.`,
+          `New subject centered, occupying 60–70% of the frame.`,
+        ].filter(Boolean).join(' ')
+      : null;
 
     // ─── PRIMARY: fal.ai flux-pro/v1.1 — single image, fast ─────────────────
     let imageBase64: string | null = null;
@@ -226,7 +234,7 @@ COMPOSITION: new subject centered, occupying 60-70% of frame. Background fills t
               image_url: anchorPublicUrl,
               num_images: 1,
               output_format: 'jpeg',
-              guidance_scale: 7.5,
+              guidance_scale: 5.5,
             },
           });
           falImageUrl =

@@ -147,7 +147,17 @@ export async function POST(request: NextRequest) {
           try {
             if (anchorUrl) {
               // ── Kontext: image-to-image with style anchor ──────────────
-              const kontextPrompt = `STYLE REFERENCE: The reference image is the approved visual style for the "${categoryName ?? 'restaurant'}" category. MATCH EXACTLY: background material, color and texture, lighting direction and color temperature, camera angle, composition, color grading and mood. Change ONLY the food subject to: "${product.name}"${product.description ? ` — ${product.description}` : ''}. Keep every other element — surface, lighting, background, atmosphere — consistent with the reference. NOT CGI, NOT illustration — a real commercial food photograph.`;
+              // Keep prompt clean — no finalPrompt concat, to avoid conflicting
+              // lighting/angle instructions that cause Kontext to ignore the anchor.
+              const kontextPrompt = [
+                `Replace the food subject in the reference image with: "${product.name}"${product.description ? ` (${product.description})` : ''}.`,
+                `The new food must look completely different from the original — do NOT copy or blend the original food subject.`,
+                product.description ? `Visible ingredients: ${product.description} — all must be clearly identifiable in the final image.` : '',
+                `KEEP EXACTLY: background color and texture, lighting direction and color temperature, shadow depth, camera angle, color grading, plate and surface style, overall mood and atmosphere.`,
+                `CHANGE ONLY: the food subject itself.`,
+                `Photorealistic commercial food photograph — NOT CGI, NOT illustration.`,
+                `New subject centered, occupying 60–70% of the frame.`,
+              ].filter(Boolean).join(' ');
 
               const result = await falClient.subscribe('fal-ai/flux-pro/kontext', {
                 input: {
@@ -155,7 +165,7 @@ export async function POST(request: NextRequest) {
                   image_url: anchorUrl,
                   num_images: 1,
                   output_format: 'jpeg',
-                  guidance_scale: 3.5,
+                  guidance_scale: 5.5,
                   safety_tolerance: '5',
                 },
               });
