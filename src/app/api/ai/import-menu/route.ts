@@ -4,13 +4,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getTenant } from '@/lib/auth/get-tenant';
 import { hasPlanAccess } from '@/lib/auth/check-plan';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { createLogger } from '@/lib/logger';
 
 const logger = createLogger('ai-import-menu');
-
-// Free plan: 3 lifetime imports to let users experience the "wow" moment
-const FREE_PLAN_IMPORT_LIMIT = 3;
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,25 +16,11 @@ export async function POST(request: NextRequest) {
     }
 
     const isPaid = await hasPlanAccess(tenant.restaurantId, 'starter');
-
     if (!isPaid) {
-      // Count lifetime AI imports for this restaurant
-      const adminDb = createAdminClient();
-      const { count } = await adminDb
-        .from('ai_enhance_logs')
-        .select('id', { count: 'exact', head: true })
-        .eq('restaurant_id', tenant.restaurantId)
-        .eq('action', 'import_menu');
-
-      if ((count ?? 0) >= FREE_PLAN_IMPORT_LIMIT) {
-        return NextResponse.json(
-          {
-            error: 'Has usado tus 3 importaciones gratuitas. Activa el plan Starter para importaciones ilimitadas.',
-            upgrade_required: true,
-          },
-          { status: 403 }
-        );
-      }
+      return NextResponse.json(
+        { error: 'Esta función requiere un plan activo.' },
+        { status: 403 }
+      );
     }
 
     const { allowed } = await checkRateLimitAsync(`ocr:${tenant.userId}`, { limit: 10, windowSec: 3600 });
@@ -252,13 +234,6 @@ Example output:
           .filter((d) => VALID_DIETARY.includes(String(d)))
           .map(String),
       }));
-
-    // Log the import for free-plan usage tracking (non-blocking)
-    createAdminClient()
-      .from('ai_enhance_logs')
-      .insert({ ip: '', restaurant_id: tenant.restaurantId, action: 'import_menu', type: 'import' })
-      .then(() => {})
-      .catch(() => {});
 
     return NextResponse.json({
       items: sanitized,

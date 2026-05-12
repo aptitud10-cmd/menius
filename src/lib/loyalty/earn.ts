@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sendEmail } from '@/lib/notifications/email';
 
 /**
  * Earn loyalty points for a customer when an order is completed.
@@ -116,7 +117,76 @@ export async function earnLoyaltyPoints({
       points: earnedPoints,
       description: `Auto-earn: order #${orderId.slice(-6).toUpperCase()}`,
     });
+
+    // Notify customer via email — non-blocking, best-effort
+    if (customerEmail) {
+      const newBalance = currentPoints + earnedPoints;
+
+      const { data: restaurant } = await adminDb
+        .from('restaurants')
+        .select('name')
+        .eq('id', restaurantId)
+        .maybeSingle();
+
+      const restaurantName = restaurant?.name ?? 'tu restaurante';
+
+      const html = buildLoyaltyEarnEmail({ customerName, restaurantName, earnedPoints, newBalance });
+      sendEmail({
+        to: customerEmail,
+        from: `${restaurantName} <noreply@menius.app>`,
+        subject: `+${earnedPoints} puntos en ${restaurantName} 🎉`,
+        html,
+      }).catch(() => {});
+    }
   } catch {
     // Non-critical — never throw
   }
+}
+
+function buildLoyaltyEarnEmail({
+  customerName,
+  restaurantName,
+  earnedPoints,
+  newBalance,
+}: {
+  customerName: string;
+  restaurantName: string;
+  earnedPoints: number;
+  newBalance: number;
+}): string {
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:32px 16px">
+<tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+  <tr><td style="background:#10b981;padding:28px 32px;text-align:center">
+    <p style="margin:0;font-size:36px">🎉</p>
+    <p style="margin:8px 0 0;color:#fff;font-size:22px;font-weight:700">¡Ganaste puntos!</p>
+  </td></tr>
+  <tr><td style="padding:32px">
+    <p style="margin:0 0 16px;font-size:15px;color:#374151">Hola <strong>${esc(customerName)}</strong>,</p>
+    <p style="margin:0 0 24px;font-size:15px;color:#374151">Gracias por tu compra en <strong>${esc(restaurantName)}</strong>. Acreditamos:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px">
+      <tr>
+        <td style="background:#ecfdf5;border-radius:10px;padding:20px;text-align:center">
+          <p style="margin:0;font-size:40px;font-weight:800;color:#10b981">+${earnedPoints}</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#6b7280">puntos ganados</p>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0;font-size:14px;color:#6b7280;text-align:center">
+      Tu saldo total: <strong style="color:#111827">${newBalance} puntos</strong>
+    </p>
+  </td></tr>
+  <tr><td style="padding:0 32px 28px;text-align:center">
+    <p style="margin:0;font-size:12px;color:#9ca3af">Powered by <a href="https://menius.app" style="color:#9ca3af">MENIUS</a></p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
 }
