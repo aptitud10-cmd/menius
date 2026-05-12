@@ -255,6 +255,83 @@ export default async function DashboardPage() {
     hasOrders: (totalOrdersRes.count ?? 0) > 0,
   };
 
+  // --- Health Score (1-100) ---
+  // Each check has a weight; we sum passed weights / total weights * 100
+  const weekOrderCount = weekOrders.filter(o => o.status !== 'cancelled').length;
+
+  // Fetch products with photos and active promotions for health score
+  const [productsWithPhotoRes, activePromosRes, atRiskRes] = await Promise.all([
+    supabase
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurantId)
+      .eq('is_active', true)
+      .not('image_url', 'is', null)
+      .neq('image_url', ''),
+    supabase
+      .from('promotions')
+      .select('id', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurantId)
+      .eq('is_active', true),
+    supabase
+      .from('customers')
+      .select('id', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurantId)
+      .lt('last_order_at', new Date(Date.now() - 21 * 24 * 3600 * 1000).toISOString())
+      .gte('total_orders', 2),
+  ]);
+
+  const productsWithPhoto = productsWithPhotoRes.count ?? 0;
+  const activePromos = activePromosRes.count ?? 0;
+  const atRiskCustomers = atRiskRes.count ?? 0;
+  const photoRatio = activeProducts > 0 ? productsWithPhoto / activeProducts : 0;
+
+  const locale = restaurant.locale ?? 'es';
+  const en = locale === 'en';
+  const healthChecks: { label: string; ok: boolean; weight: number }[] = [
+    {
+      label: en ? 'Restaurant has a logo' : 'Restaurante tiene logo',
+      ok: !!restaurant.logo_url,
+      weight: 15,
+    },
+    {
+      label: en ? 'Profile info complete (description + phone)' : 'Perfil completo (descripción + teléfono)',
+      ok: !!(restaurant.description && restaurant.phone),
+      weight: 15,
+    },
+    {
+      label: en ? 'Operating hours configured' : 'Horario de atención configurado',
+      ok: hasOpenDay,
+      weight: 10,
+    },
+    {
+      label: en ? 'At least 70% of products have photos' : 'Al menos 70% de productos tienen foto',
+      ok: photoRatio >= 0.7,
+      weight: 20,
+    },
+    {
+      label: en ? 'Orders received this week' : 'Pedidos recibidos esta semana',
+      ok: weekOrderCount > 0,
+      weight: 20,
+    },
+    {
+      label: en ? 'Has an active promotion' : 'Tiene una promoción activa',
+      ok: activePromos > 0,
+      weight: 10,
+    },
+    {
+      label: en ? 'No at-risk customers (21+ days inactive)' : 'Sin clientes en riesgo (21+ días inactivos)',
+      ok: atRiskCustomers === 0,
+      weight: 10,
+    },
+  ];
+  const totalWeight = healthChecks.reduce((s, c) => s + c.weight, 0);
+  const passedWeight = healthChecks.filter(c => c.ok).reduce((s, c) => s + c.weight, 0);
+  const healthScore = {
+    score: Math.round((passedWeight / totalWeight) * 100),
+    checks: healthChecks.map(({ label, ok }) => ({ label, ok })),
+  };
+
   return (
     <DashboardHome
       restaurant={restaurant}
@@ -266,6 +343,7 @@ export default async function DashboardPage() {
       analytics={analytics}
       freeTier={freeTier}
       planId={sub?.plan_id ?? 'free'}
+      healthScore={healthScore}
     />
   );
 }

@@ -7,6 +7,7 @@ import {
   ArrowRight, Sparkles, AlertTriangle, CreditCard, Clock,
   Copy, Check, Share2, BarChart3, PieChart, Flame,
   ArrowUpRight, ArrowDownRight, XCircle, DollarSign, Target,
+  Heart, ChevronRight,
 } from 'lucide-react';
 import { formatPrice, timeAgo, ORDER_STATUS_CONFIG, cn } from '@/lib/utils';
 import { OnboardingChecklist } from './OnboardingChecklist';
@@ -53,9 +54,13 @@ interface DashboardHomeProps {
   analytics?: AnalyticsData;
   freeTier?: { ordersThisMonth: number; monthlyLimit: number } | null;
   planId?: string;
+  healthScore?: {
+    score: number;
+    checks: { label: string; ok: boolean }[];
+  } | null;
 }
 
-export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrders, subscription, onboarding, analytics, freeTier, planId }: DashboardHomeProps) {
+export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrders, subscription, onboarding, analytics, freeTier, planId, healthScore }: DashboardHomeProps) {
   const { t, locale } = useDashboardLocale();
   const isEn = locale === 'en';
   const salesDelta = stats.salesYesterday > 0
@@ -199,6 +204,28 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
         );
       })()}
 
+      {/* Upsell banner — free plan with real activity (has sales or orders this week) */}
+      {planId === 'free' && (stats.salesToday > 0 || stats.ordersToday > 0) && (
+        <div className="rounded-2xl p-4 flex items-center justify-between gap-4 border bg-gradient-to-r from-violet-50 to-indigo-50 border-violet-200">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-5 h-5 text-violet-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-semibold text-sm text-violet-800">{t.home_upsellTitle}</p>
+              <p className="text-xs text-violet-600/80 mt-0.5">{t.home_upsellDesc}</p>
+            </div>
+          </div>
+          <Link
+            href="/app/billing"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 text-white text-sm font-bold hover:bg-violet-700 transition-colors flex-shrink-0"
+          >
+            <CreditCard className="w-4 h-4" />
+            {t.home_upsellCta}
+          </Link>
+        </div>
+      )}
+
       {/* Activation banner — shown until first real order */}
       {onboarding && !onboarding.hasOrders && (
         <ActivationBanner
@@ -215,6 +242,9 @@ export function DashboardHome({ restaurant, lowStockProducts, stats, recentOrder
 
       {/* Revenue Goal */}
       <RevenueGoal salesToday={stats.salesToday} currency={restaurant.currency} />
+
+      {/* Health Score */}
+      {healthScore && <HealthScoreWidget score={healthScore.score} checks={healthScore.checks} />}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -806,6 +836,68 @@ function DonutChart({ slices, total }: { slices: { label: string; value: number;
         );
       })}
     </svg>
+  );
+}
+
+function HealthScoreWidget({ score, checks }: { score: number; checks: { label: string; ok: boolean }[] }) {
+  const { t } = useDashboardLocale();
+  const failing = checks.filter(c => !c.ok);
+  const color = score >= 80 ? 'text-emerald-600' : score >= 50 ? 'text-amber-500' : 'text-red-500';
+  const ringColor = score >= 80 ? 'stroke-emerald-500' : score >= 50 ? 'stroke-amber-400' : 'stroke-red-400';
+  const bgColor = score >= 80 ? 'bg-emerald-50 border-emerald-200' : score >= 50 ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200';
+
+  const size = 72;
+  const strokeWidth = 6;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const dash = (score / 100) * circumference;
+
+  return (
+    <div className={cn('dash-card p-4 flex items-center gap-4 border', bgColor)}>
+      {/* Ring */}
+      <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
+          <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="currentColor" strokeWidth={strokeWidth} className="text-gray-100" />
+          <circle
+            cx={size / 2} cy={size / 2} r={radius} fill="none"
+            strokeWidth={strokeWidth}
+            strokeDasharray={`${dash} ${circumference - dash}`}
+            strokeLinecap="round"
+            className={ringColor}
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className={cn('text-lg font-bold tabular-nums', color)}>{score}</span>
+        </div>
+      </div>
+
+      {/* Text */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <Heart className={cn('w-3.5 h-3.5', color)} />
+          <p className="text-sm font-semibold text-gray-800">{t.home_healthScore}</p>
+        </div>
+        <p className="text-xs text-gray-400">{t.home_healthScoreDesc}</p>
+        {failing.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {failing.slice(0, 3).map(c => (
+              <div key={c.label} className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                <span className="text-[11px] text-gray-500 truncate">{c.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* CTA */}
+      {failing.length > 0 && (
+        <Link href="/app/settings" className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold text-violet-600 hover:text-violet-700">
+          {t.home_healthImproveTip}
+          <ChevronRight className="w-3.5 h-3.5" />
+        </Link>
+      )}
+    </div>
   );
 }
 

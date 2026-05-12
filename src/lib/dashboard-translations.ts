@@ -178,6 +178,17 @@ export interface DashboardTranslations {
   home_copied: string;
   home_moreOptions: string;
 
+  // Upsell banner (free plan with activity)
+  home_upsellTitle: string;
+  home_upsellDesc: string;
+  home_upsellCta: string;
+
+  // Health score
+  home_healthScore: string;
+  home_healthScoreDesc: string;
+  home_healthScoreItems: string;
+  home_healthImproveTip: string;
+
   // Analytics section
   analytics_title: string;
   analytics_last7days: string;
@@ -1397,6 +1408,17 @@ const es: DashboardTranslations = {
   home_copied: 'Copiado',
   home_moreOptions: 'Más opciones',
 
+  // Upsell banner
+  home_upsellTitle: 'Tu negocio está creciendo — sin límites',
+  home_upsellDesc: 'Estás en el plan gratuito. Acepta delivery, pickup y pagos online con un plan de pago.',
+  home_upsellCta: 'Ver planes',
+
+  // Health score
+  home_healthScore: 'Salud del restaurante',
+  home_healthScoreDesc: 'Basado en perfil, menú, pedidos y clientes',
+  home_healthScoreItems: 'puntos de mejora',
+  home_healthImproveTip: 'Mejora tu puntaje',
+
   // Analytics
   analytics_title: 'Analytics',
   analytics_last7days: 'Últimos 7 días',
@@ -2614,6 +2636,17 @@ const en: DashboardTranslations = {
   home_copyLink: 'Copy link',
   home_copied: 'Copied',
   home_moreOptions: 'More options',
+
+  // Upsell banner
+  home_upsellTitle: 'Your business is growing — no limits',
+  home_upsellDesc: 'You\'re on the free plan. Accept delivery, pickup, and online payments with a paid plan.',
+  home_upsellCta: 'View plans',
+
+  // Health score
+  home_healthScore: 'Restaurant health',
+  home_healthScoreDesc: 'Based on profile, menu, orders & customers',
+  home_healthScoreItems: 'improvement points',
+  home_healthImproveTip: 'Improve your score',
 
   // Analytics
   analytics_title: 'Analytics',
