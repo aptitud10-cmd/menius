@@ -46,7 +46,7 @@
     },
     {
       "path": "/api/cron/daily-summary",
-      "schedule": "0 22 * * *"
+      "schedule": "0 13 * * 1"
     },
     {
       "path": "/api/cron/trial-ending-reminders",

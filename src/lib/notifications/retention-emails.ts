@@ -356,6 +356,189 @@ export function buildOnboardingGuideEmail(params: {
 }
 
 // ─────────────────────────────────────────────
+// EMAIL 4: Weekly digest — lunes a las 9am
+// ─────────────────────────────────────────────
+export function buildWeeklyDigestEmail(params: {
+  ownerName: string;
+  restaurantName: string;
+  dashboardUrl: string;
+  locale: string;
+  currency: string;
+  weekRevenue: number;
+  weekOrders: number;
+  avgTicket: number;
+  prevWeekRevenue: number;
+  prevWeekOrders: number;
+  topProduct: string | null;
+  topProductRevenue: number;
+  atRiskCount: number;
+  pendingOrdersCount: number;
+  productsWithoutImage: number;
+  activePromos: number;
+  tip: string;
+  tipCta: string;
+  tipCtaUrl: string;
+}): string {
+  const {
+    ownerName, restaurantName, dashboardUrl, locale, currency,
+    weekRevenue, weekOrders, avgTicket,
+    prevWeekRevenue, prevWeekOrders,
+    topProduct, topProductRevenue,
+    atRiskCount, pendingOrdersCount, productsWithoutImage, activePromos,
+    tip, tipCta, tipCtaUrl,
+  } = params;
+
+  const en = locale === 'en';
+  const firstName = esc(ownerName.split(' ')[0]);
+  const safeRestaurantName = esc(restaurantName);
+  const fmt = (n: number) => `${currency} ${n.toFixed(2)}`;
+
+  const revChange = prevWeekRevenue > 0
+    ? Math.round(((weekRevenue - prevWeekRevenue) / prevWeekRevenue) * 100)
+    : null;
+  const ordChange = prevWeekOrders > 0
+    ? Math.round(((weekOrders - prevWeekOrders) / prevWeekOrders) * 100)
+    : null;
+
+  function changeTag(pct: number | null): string {
+    if (pct === null) return '';
+    const up = pct >= 0;
+    const color = up ? '#059669' : '#dc2626';
+    const bg = up ? '#f0fdf4' : '#fef2f2';
+    const arrow = up ? '↑' : '↓';
+    return `<span style="display:inline-block;margin-left:6px;padding:2px 8px;background:${bg};border-radius:20px;font-size:11px;font-weight:700;color:${color};font-family:Arial,sans-serif;">${arrow} ${Math.abs(pct)}% vs ${en ? 'last week' : 'sem. anterior'}</span>`;
+  }
+
+  function statBlock(label: string, value: string, changePct: number | null): string {
+    return `
+    <td style="width:33.3%;padding:0 8px;text-align:center;vertical-align:top;">
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:14px;padding:20px 12px;">
+        <p style="margin:0 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">${label}</p>
+        <p style="margin:0;font-size:20px;font-weight:800;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;letter-spacing:-0.03em;">${value}</p>
+        ${changePct !== null ? `<p style="margin:6px 0 0;">${changeTag(changePct)}</p>` : ''}
+      </div>
+    </td>`;
+  }
+
+  const alerts: string[] = [];
+  if (pendingOrdersCount > 0) alerts.push(`⚠️ ${pendingOrdersCount} ${en ? 'pending orders need attention' : 'órdenes pendientes sin atender'}`);
+  if (productsWithoutImage > 0) alerts.push(`📸 ${productsWithoutImage} ${en ? 'products without photo — they sell 30% less' : 'productos sin foto — venden 30% menos'}`);
+  if (atRiskCount > 0) alerts.push(`💔 ${atRiskCount} ${en ? 'customers at churn risk (21+ days inactive)' : 'clientes en riesgo de fuga (21+ días sin pedir)'}`);
+  if (activePromos === 0) alerts.push(en ? '🎟️ No active promotions — promos can increase sales 15-20%' : '🎟️ Sin promociones activas — las promos aumentan ventas 15-20%');
+
+  const alertRows = alerts.map(a => `
+    <tr>
+      <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">
+        <p style="margin:0;font-size:13px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.5;">${esc(a)}</p>
+      </td>
+    </tr>`).join('');
+
+  const content = `
+    <!-- Hero -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td style="padding:36px 40px 28px;text-align:center;border-bottom:1px solid #f3f4f6;">
+          <div style="display:inline-block;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:7px 16px;margin-bottom:16px;">
+            <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:11px;font-weight:700;color:#059669;letter-spacing:0.07em;text-transform:uppercase;">
+              📊 ${en ? 'Weekly Digest' : 'Resumen semanal'}
+            </span>
+          </div>
+          <h1 style="margin:0 0 10px;font-size:26px;font-weight:800;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;letter-spacing:-0.03em;line-height:1.2;">
+            ${en ? `Hey ${firstName}, here's your week` : `Hola ${firstName}, así fue tu semana`} 👋
+          </h1>
+          <p style="margin:0 auto;font-size:14px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.6;max-width:400px;">
+            ${esc(safeRestaurantName)} · ${en ? 'Last 7 days summary' : 'Últimos 7 días'}
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Stats row -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td style="padding:28px 32px 0;">
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+              ${statBlock(en ? 'Revenue' : 'Ingresos', fmt(weekRevenue), revChange)}
+              ${statBlock(en ? 'Orders' : 'Órdenes', String(weekOrders), ordChange)}
+              ${statBlock(en ? 'Avg ticket' : 'Ticket prom.', fmt(avgTicket), null)}
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    ${topProduct ? `
+    <!-- Top product -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td style="padding:20px 32px 0;">
+          <div style="background:linear-gradient(135deg,#fdf4ff,#f5f3ff);border:1px solid #e9d5ff;border-radius:14px;padding:18px 22px;">
+            <p style="margin:0 0 2px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#7c3aed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">🏆 ${en ? 'Top product this week' : 'Producto estrella esta semana'}</p>
+            <p style="margin:6px 0 0;font-size:16px;font-weight:800;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">${esc(topProduct)}</p>
+            <p style="margin:2px 0 0;font-size:13px;color:#7c3aed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-weight:600;">${fmt(topProductRevenue)} ${en ? 'in revenue' : 'en ventas'}</p>
+          </div>
+        </td>
+      </tr>
+    </table>` : ''}
+
+    ${alerts.length > 0 ? `
+    <!-- Alerts -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td style="padding:20px 32px 0;">
+          <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;text-transform:uppercase;letter-spacing:0.05em;">${en ? 'Alerts & Opportunities' : 'Alertas y oportunidades'}</p>
+          <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;padding:0 16px;">
+            <tr><td style="padding:0 16px;">${alertRows}</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>` : ''}
+
+    <!-- Weekly tip -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td style="padding:20px 32px 0;">
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:18px 22px;">
+            <p style="margin:0 0 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#d97706;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">💡 ${en ? 'Tip of the week' : 'Tip de la semana'}</p>
+            <p style="margin:8px 0 12px;font-size:14px;color:#92400e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.6;">${esc(tip)}</p>
+            <a href="${tipCtaUrl}" style="display:inline-block;padding:9px 20px;background:#d97706;border-radius:8px;font-size:13px;font-weight:700;color:#ffffff;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+              ${esc(tipCta)} →
+            </a>
+          </div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- CTA -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td style="padding:28px 40px 40px;text-align:center;">
+          ${cta(dashboardUrl, en ? 'View full dashboard' : 'Ver dashboard completo', '#059669')}
+          <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+            ${en ? 'Questions? Reply to this email.' : '¿Dudas? Responde este correo directamente.'}
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Sign-off -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td style="padding:20px 40px 32px;border-top:1px solid #f3f4f6;">
+          <p style="margin:0;font-size:14px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;line-height:1.7;">
+            ${en ? `Keep it up, ${firstName}! 🚀` : `¡Sigue así, ${firstName}! 🚀`}<br/><br/>
+            — William<br/>
+            <span style="color:#9ca3af;font-size:13px;">${en ? 'Founder, MENIUS' : 'Fundador, MENIUS'} · soporte@menius.app</span>
+          </p>
+        </td>
+      </tr>
+    </table>`;
+
+  return emailShell('linear-gradient(90deg, #059669, #10b981)', content);
+}
+
+// ─────────────────────────────────────────────
 // EMAIL 2: Engagement / Onboarding tips
 // ─────────────────────────────────────────────
 export function buildEngagementEmail(params: {
