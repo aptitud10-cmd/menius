@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       )
     `)
     .eq('restaurant_id', restaurantId)
-    .ilike('customer_email', email)
+    .eq('customer_email', email)
     .order('created_at', { ascending: false })
     .limit(20);
 
