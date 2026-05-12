@@ -323,8 +323,8 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         throw new Error(API_ERROR_MAP[data.error] ?? data.error ?? t.settings_errorSaving);
       }
       setSaved(true);
-    } catch (err: any) {
-      setError(err.message ?? t.settings_errorSaving);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t.settings_errorSaving);
     } finally {
       setSaving(false);
     }

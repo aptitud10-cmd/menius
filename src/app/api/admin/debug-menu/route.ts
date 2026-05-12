@@ -5,6 +5,7 @@ import { verifyAdmin } from '@/lib/auth/verify-admin';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(req: NextRequest) {
+  try {
   const auth = await verifyAdmin();
   if (!auth) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
@@ -53,4 +54,7 @@ export async function GET(req: NextRequest) {
       activeProductsShown: allProducts?.filter(p => p.is_active).length ?? 0,
     },
   });
+  } catch {
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+  }
 }

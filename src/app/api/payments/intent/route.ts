@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
     const paymentIntent = await stripe.paymentIntents.create(intentParams);
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });
-  } catch (err: any) {
+  } catch (err: unknown) {
     captureError(err, { route: '/api/payments/intent' });
-    return NextResponse.json({ error: err.message ?? 'Error creating payment intent' }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error creating payment intent' }, { status: 500 });
   }
 }

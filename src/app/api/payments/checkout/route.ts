@@ -117,8 +117,8 @@ export async function POST(request: NextRequest) {
     const session = await stripe.checkout.sessions.create(sessionParams);
 
     return NextResponse.json({ url: session.url });
-  } catch (err: any) {
+  } catch (err: unknown) {
     captureError(err, { route: '/api/payments/checkout' });
-    return NextResponse.json({ error: err.message ?? 'Error creando sesión de pago' }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error creando sesión de pago' }, { status: 500 });
   }
 }

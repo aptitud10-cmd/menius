@@ -138,8 +138,8 @@ export function SetupForm({ packages, locale = 'es' }: { packages: PackageOption
       }
 
       setSent(true);
-    } catch (err: any) {
-      setError(err.message || s.errorGeneric);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : s.errorGeneric);
     } finally {
       setSending(false);
     }

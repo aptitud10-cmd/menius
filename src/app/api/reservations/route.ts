@@ -97,8 +97,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ reservation }, { status: 201 });
-  } catch (err: any) {
+  } catch (err: unknown) {
     captureError(err, { route: '/api/reservations' });
-    return NextResponse.json({ error: err.message ?? 'Error interno' }, { status: 500 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error interno' }, { status: 500 });
   }
 }

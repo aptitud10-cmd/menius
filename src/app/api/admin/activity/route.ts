@@ -18,6 +18,7 @@ export interface ActivityEvent {
 }
 
 export async function GET() {
+  try {
   const auth = await verifyAdmin();
   if (!auth) return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
 
@@ -176,4 +177,7 @@ export async function GET() {
   });
 
   return NextResponse.json({ events: events.slice(0, 40), generatedAt: now.toISOString() });
+  } catch {
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+  }
 }

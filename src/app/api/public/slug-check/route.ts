@@ -29,12 +29,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ available: false, reason: 'reserved' });
   }
 
-  const supabase = createAdminClient();
-  const { data } = await supabase
-    .from('restaurants')
-    .select('id')
-    .eq('slug', slug)
-    .maybeSingle();
+  try {
+    const supabase = createAdminClient();
+    const { data } = await supabase
+      .from('restaurants')
+      .select('id')
+      .eq('slug', slug)
+      .maybeSingle();
 
-  return NextResponse.json({ available: !data });
+    return NextResponse.json({ available: !data });
+  } catch {
+    return NextResponse.json({ available: false, reason: 'server_error' }, { status: 500 });
+  }
 }
