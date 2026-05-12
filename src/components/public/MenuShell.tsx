@@ -656,6 +656,60 @@ export function MenuShell({
     return [...dataProducts, ...fallback];
   }, [customization?.product, products, categories, cartProductIds, dataBasedSuggestionIds, classifyProduct]);
 
+  // Cart-based suggestions: regex-fallback only (data-driven needs an active anchor
+  // in customization). Anchor is the most recently added cart item.
+  const firstCartProductId = useCartStore(
+    (s) => s.items[s.items.length - 1]?.product.id ?? null,
+  );
+  const cartBasedSuggestions = useMemo(() => {
+    if (!firstCartProductId) return [];
+    const anchor = products.find((p) => p.id === firstCartProductId);
+    if (!anchor) return [];
+
+    const hour = new Date().getHours();
+    const isBreakfastHour = hour >= 5 && hour < 11;
+    const alcoholRegex = /cerveza|beer|vino|wine|margarita|coctel|cocktail|mojito|sangria|michelada|alcohol/i;
+    const isAlcohol = (p: Product) =>
+      alcoholRegex.test(`${p.name} ${categories.find((c) => c.id === p.category_id)?.name ?? ''}`);
+
+    const anchorCat = categories.find((c) => c.id === anchor.category_id);
+    const anchorType = classifyProduct(anchorCat?.name ?? '', anchor.name);
+    const wantOrder: Array<'drink' | 'dessert' | 'side' | 'main'> = (() => {
+      if (anchorType === 'main')    return ['drink', 'side', 'dessert'];
+      if (anchorType === 'side')    return ['drink', 'main', 'dessert'];
+      if (anchorType === 'dessert') return ['drink', 'main'];
+      return ['main', 'side', 'dessert'];
+    })();
+
+    return products
+      .filter((p) =>
+        p.id !== anchor.id &&
+        p.in_stock !== false &&
+        !cartProductIds.has(p.id) &&
+        !(isBreakfastHour && isAlcohol(p)),
+      )
+      .map((p) => {
+        const cat = categories.find((c) => c.id === p.category_id);
+        const pType = classifyProduct(cat?.name ?? '', p.name);
+        const typeRank = wantOrder.indexOf(pType);
+        const baseRank = typeRank === -1 ? wantOrder.length + 1 : typeRank;
+        const featuredBoost = p.is_featured ? 0 : 3;
+        return { product: p, score: baseRank * 10 + featuredBoost };
+      })
+      .sort((a, b) => a.score - b.score)
+      .slice(0, 5)
+      .map(({ product }) => product);
+  }, [firstCartProductId, products, categories, cartProductIds, classifyProduct]);
+
+  const handleCartSuggestionAdd = useCallback((product: Product) => {
+    if ((product.variants?.length ?? 0) > 0 || (product.extras?.length ?? 0) > 0 || product.has_modifiers) {
+      setCustomization({ product, editIndex: null });
+      setOpen(false);
+    } else {
+      handleQuickAdd(product);
+    }
+  }, [handleQuickAdd]);
+
   const itemsByCategory = useMemo(() => {
     const regular = categories
       .map((cat) => ({
@@ -1837,6 +1891,8 @@ export function MenuShell({
             deliveryFee={restaurant.delivery_fee ?? undefined}
             lastOrder={lastOrder?.restaurantId === restaurant.id ? lastOrder : null}
             onReorder={handleReorder}
+            suggestions={cartBasedSuggestions}
+            onSuggestionAdd={handleCartSuggestionAdd}
           />
           </MenuErrorBoundary>
         </aside>
@@ -1941,6 +1997,8 @@ export function MenuShell({
                   deliveryFee={restaurant.delivery_fee ?? undefined}
                   lastOrder={lastOrder?.restaurantId === restaurant.id ? lastOrder : null}
                   onReorder={() => { handleReorder(); setOpen(false); }}
+                  suggestions={cartBasedSuggestions}
+                  onSuggestionAdd={handleCartSuggestionAdd}
                 />
               </div>
               <div className="pb-[env(safe-area-inset-bottom)] flex-shrink-0" />

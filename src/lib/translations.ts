@@ -24,6 +24,7 @@ export interface Translations {
   yourCart: string;
   cartEmpty: string;
   cartEmptyDesc: string;
+  upsellTitle: string;
   total: string;
   totalCharged: string;
   subtotal: string;
@@ -393,6 +394,7 @@ const es: Translations = {
   yourCart: 'Tu carrito',
   cartEmpty: 'Tu carrito está vacío',
   cartEmptyDesc: 'Agrega productos del menú para comenzar tu pedido',
+  upsellTitle: 'También te puede gustar',
   total: 'Total',
   totalCharged: 'Total cobrado',
   subtotal: 'Subtotal',
@@ -726,6 +728,7 @@ const en: Translations = {
   yourCart: 'Your cart',
   cartEmpty: 'Your cart is empty',
   cartEmptyDesc: 'Browse the menu and add items to get started',
+  upsellTitle: 'You might also like',
   total: 'Total',
   totalCharged: 'Total charged',
   subtotal: 'Subtotal',
