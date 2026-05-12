@@ -78,6 +78,7 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
   const [items, setItems] = useState<ImportedItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [upgradeRequired, setUpgradeRequired] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, label: '' });
   const [preview, setPreview] = useState<string | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
@@ -102,7 +103,10 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
       const res = await fetch('/api/ai/import-menu', { method: 'POST', body: formData });
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || 'Error procesando imagen');
+      if (!res.ok) {
+        if (data.upgrade_required) setUpgradeRequired(true);
+        throw new Error(data.error || 'Error procesando imagen');
+      }
 
       setItems(data.items.map((item: Omit<ImportedItem, 'selected'>) => ({ ...item, selected: true })));
       if (data.cuisine) setDetectedCuisine(data.cuisine);
@@ -413,9 +417,18 @@ export function MenuImport({ existingCategories, currency, onComplete, onClose }
               {error && (
                 <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/[0.06] border border-red-500/[0.15]">
                   <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                  <div>
+                  <div className="flex-1">
                     <p className="text-sm font-medium text-red-400">{error}</p>
-                    <p className="text-xs text-red-400/70 mt-1">Asegúrate de que la foto sea clara y legible.</p>
+                    {upgradeRequired ? (
+                      <a
+                        href="/app/billing"
+                        className="inline-block mt-2 text-xs font-semibold text-white bg-primary rounded-lg px-3 py-1.5 hover:opacity-90 transition-opacity"
+                      >
+                        Ver planes →
+                      </a>
+                    ) : (
+                      <p className="text-xs text-red-400/70 mt-1">Asegúrate de que la foto sea clara y legible.</p>
+                    )}
                   </div>
                 </div>
               )}

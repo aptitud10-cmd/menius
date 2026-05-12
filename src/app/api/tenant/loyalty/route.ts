@@ -66,6 +66,9 @@ export async function PUT(req: NextRequest) {
       min_redeem_points: clamp(body.min_redeem_points, 1, 1_000_000, 100),
       peso_per_point: clamp(body.peso_per_point, 0.001, 1000, 0.1),
       welcome_points: clamp(body.welcome_points, 0, 100_000, 0),
+      referral_enabled: Boolean(body.referral_enabled),
+      referral_points_referrer: clamp(body.referral_points_referrer, 0, 100_000, 0),
+      referral_points_referee: clamp(body.referral_points_referee, 0, 100_000, 0),
       updated_at: new Date().toISOString(),
     };
 

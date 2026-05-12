@@ -11,6 +11,9 @@ interface LoyaltyConfig {
   min_redeem_points: number;
   peso_per_point: number;
   welcome_points: number;
+  referral_enabled: boolean;
+  referral_points_referrer: number;
+  referral_points_referee: number;
 }
 
 interface LoyaltyAccount {
@@ -46,6 +49,7 @@ export default function LoyaltyContent() {
       if (data.needsMigration) { setNeedsMigration(true); setLoading(false); return; }
       setConfig(data.config ?? {
         enabled: false, points_per_peso: 1, min_redeem_points: 100, peso_per_point: 0.1, welcome_points: 0,
+        referral_enabled: false, referral_points_referrer: 0, referral_points_referee: 0,
       });
       setAccounts(data.accounts ?? []);
     } catch { /* noop */ } finally {
@@ -228,6 +232,49 @@ export default function LoyaltyContent() {
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
               />
             </div>
+          </div>
+
+          {/* Referral program */}
+          <div className="border border-gray-100 rounded-2xl p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-gray-900">{en ? 'Referral program' : 'Programa de referidos'}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{en ? 'Reward customers who bring new members' : 'Recompensá a clientes que traen nuevos miembros'}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConfig(c => c ? { ...c, referral_enabled: !c.referral_enabled } : c)}
+                className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', config.referral_enabled ? 'bg-gray-900' : 'bg-gray-200')}
+              >
+                <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white transition-transform', config.referral_enabled ? 'translate-x-6' : 'translate-x-1')} />
+              </button>
+            </div>
+            {config.referral_enabled && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">{en ? 'Referrer bonus' : 'Bonus quien refiere'}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={config.referral_points_referrer}
+                    onChange={e => setConfig(c => c ? { ...c, referral_points_referrer: parseInt(e.target.value) || 0 } : c)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">{en ? 'Points when their friend orders' : 'Puntos cuando su amigo ordena'}</p>
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5 block">{en ? 'Referee bonus' : 'Bonus referido'}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={config.referral_points_referee}
+                    onChange={e => setConfig(c => c ? { ...c, referral_points_referee: parseInt(e.target.value) || 0 } : c)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-gray-900"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">{en ? 'Points for the new member' : 'Puntos para el nuevo miembro'}</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <button
