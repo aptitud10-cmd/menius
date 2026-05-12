@@ -217,9 +217,16 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             {hasModifiers && !outOfStock && (
               <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide leading-none">{t.fromPrice}</span>
             )}
-            <span className={cn('text-base font-bold tabular-nums', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
-              {fmtPrice(Number(product.price))}
-            </span>
+            <div className="flex items-baseline gap-1.5">
+              <span className={cn('text-base font-bold tabular-nums', outOfStock ? 'text-gray-300 line-through' : 'text-gray-900')}>
+                {fmtPrice(Number(product.price))}
+              </span>
+              {!outOfStock && product.compare_at_price != null && Number(product.compare_at_price) > Number(product.price) && (
+                <span className="text-xs text-gray-400 line-through tabular-nums">
+                  {fmtPrice(Number(product.compare_at_price))}
+                </span>
+              )}
+            </div>
             {outOfStock ? (
               <span className="inline-flex items-center gap-1 text-xs text-red-500 font-semibold">
                 <Ban className="w-3 h-3" /> {labelSoldOut}

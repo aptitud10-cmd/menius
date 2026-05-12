@@ -189,6 +189,11 @@ export const ProductCardMobile = memo(function ProductCardMobile({
             <span className={cn('text-[17px] font-black tabular-nums leading-none', outOfStock ? 'text-gray-300 line-through' : 'text-gray-950')}>
               {fmtPrice(Number(product.price))}
             </span>
+            {!outOfStock && product.compare_at_price != null && Number(product.compare_at_price) > Number(product.price) && (
+              <span className="text-[11px] text-gray-400 line-through tabular-nums leading-none mt-0.5">
+                {fmtPrice(Number(product.compare_at_price))}
+              </span>
+            )}
           </div>
           {outOfStock ? (
             <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">

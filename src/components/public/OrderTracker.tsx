@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, Fragment } from 'react';
 import Image from 'next/image';
 import { CheckCircle2, Check, Clock, ChefHat, Bell, Package, XCircle, ArrowLeft, Star, Wifi, Utensils, ShoppingBag, Truck, CreditCard, Banknote, MapPin, Phone, DoorOpen, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -827,21 +828,42 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                             {isActive && (
                               <span className="absolute inset-0 rounded-full bg-brand-400 animate-ping opacity-30" />
                             )}
-                            <div className={cn(
-                              'relative w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all duration-500',
-                              isDone   ? 'bg-brand-500 border-brand-500' :
-                              isActive ? 'bg-brand-500 border-brand-500' :
-                              'bg-white border-gray-200'
-                            )}>
-                              {isDone ? (
-                                <Check className="w-4 h-4 text-white" strokeWidth={3} />
-                              ) : (
-                                <div className={cn('w-2 h-2 rounded-full', isActive ? 'bg-white' : 'bg-gray-300')} />
-                              )}
-                            </div>
+                            <motion.div
+                              initial={false}
+                              animate={{
+                                scale: isActive ? 1.12 : 1,
+                                backgroundColor: isDone || isActive ? '#05c8a7' : '#ffffff',
+                                borderColor: isDone || isActive ? '#05c8a7' : '#e5e7eb',
+                              }}
+                              transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                              className="relative w-9 h-9 rounded-full flex items-center justify-center border-2"
+                            >
+                              <AnimatePresence mode="wait">
+                                {isDone ? (
+                                  <motion.span
+                                    key="check"
+                                    initial={{ scale: 0, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0, opacity: 0 }}
+                                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                  >
+                                    <Check className="w-4 h-4 text-white" strokeWidth={3} />
+                                  </motion.span>
+                                ) : isActive ? (
+                                  <motion.div
+                                    key="active-dot"
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="w-2 h-2 rounded-full bg-white"
+                                  />
+                                ) : (
+                                  <motion.div key="inactive-dot" className="w-2 h-2 rounded-full bg-gray-300" />
+                                )}
+                              </AnimatePresence>
+                            </motion.div>
                           </div>
                           <span className={cn(
-                            'text-[9px] font-semibold text-center leading-tight w-14',
+                            'text-[9px] font-semibold text-center leading-tight w-14 transition-colors duration-500',
                             isDone || isActive ? 'text-brand-600' : 'text-gray-300'
                           )}>
                             {key === 'ready' && order.order_type === 'delivery'
@@ -852,12 +874,16 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                           </span>
                         </div>
 
-                        {/* Connecting line between circles */}
+                        {/* Connecting line between circles — fills with brand color as steps complete */}
                         {i < CUSTOMER_STEPS.length - 1 && (
-                          <div className={cn(
-                            'flex-1 h-0.5 mt-[18px] mx-1 transition-all duration-700',
-                            i < currentStepIndex ? 'bg-brand-500' : 'bg-gray-100'
-                          )} />
+                          <div className="flex-1 h-0.5 mt-[18px] mx-1 bg-gray-100 relative overflow-hidden rounded-full">
+                            <motion.div
+                              className="absolute inset-y-0 left-0 bg-brand-500 rounded-full"
+                              initial={false}
+                              animate={{ width: i < currentStepIndex ? '100%' : '0%' }}
+                              transition={{ duration: 0.7, ease: 'easeOut' }}
+                            />
+                          </div>
                         )}
                       </Fragment>
                     );
@@ -1014,19 +1040,18 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
         {/* ── PICKUP CHEF MESSAGES — cross-fade between rotating messages ── */}
         {order.order_type === 'pickup' && ['confirmed', 'preparing'].includes(order.status) && (
           <div className="tracker-card bg-white rounded-3xl border border-gray-100 shadow-sm px-5 py-4 relative overflow-hidden" style={{ minHeight: '60px' }}>
-            {t.chefMessages.map((msg, idx) => (
-              <p
-                key={idx}
-                className="text-sm font-semibold text-gray-600 text-center absolute inset-x-5 top-1/2 -translate-y-1/2 transition-all duration-500"
-                style={{
-                  opacity: idx === chefMessageIndex ? 1 : 0,
-                  transform: `translateY(${idx === chefMessageIndex ? '-50%' : 'calc(-50% + 8px)'})`,
-                  pointerEvents: idx === chefMessageIndex ? 'auto' : 'none',
-                }}
+            <AnimatePresence mode="wait">
+              <motion.p
+                key={chefMessageIndex}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.4, ease: 'easeInOut' }}
+                className="text-sm font-semibold text-gray-600 text-center"
               >
-                {msg}
-              </p>
-            ))}
+                {t.chefMessages[chefMessageIndex]}
+              </motion.p>
+            </AnimatePresence>
           </div>
         )}
 

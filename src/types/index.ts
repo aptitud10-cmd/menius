@@ -134,6 +134,8 @@ export interface Product {
   popularity_rank?: number | null;
   /** Orders in the last 7 days containing this product. Set by recalc-popularity cron. */
   orders_last_7d?: number | null;
+  /** Original price before discount — shown as strikethrough next to current price. */
+  compare_at_price?: number | null;
 }
 
 export interface ModifierGroup {

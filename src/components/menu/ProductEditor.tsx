@@ -157,6 +157,7 @@ export function ProductEditor({
     is_new: product?.is_new ?? false,
     prep_time_minutes: product?.prep_time_minutes ? String(product.prep_time_minutes) : '',
     cost_price: (product as any)?.cost_price != null ? String((product as any).cost_price) : '',
+    compare_at_price: (product as any)?.compare_at_price != null ? String((product as any).compare_at_price) : '',
     dietary_tags: (product?.dietary_tags ?? []) as DietaryTag[],
     station_id: (product as any)?.station_id ?? '',
   });
@@ -394,6 +395,7 @@ export function ProductEditor({
       try {
         const prepTime = form.prep_time_minutes ? parseInt(form.prep_time_minutes, 10) : null;
         const costPrice = form.cost_price !== '' ? parseFloat(form.cost_price) : null;
+        const compareAtPrice = form.compare_at_price !== '' ? parseFloat(form.compare_at_price) : null;
         if (isEditing && product) {
           const data: Record<string, unknown> = {
             name: form.name,
@@ -406,6 +408,7 @@ export function ProductEditor({
             is_new: form.is_new,
             prep_time_minutes: !isNaN(prepTime as number) && prepTime !== null && prepTime > 0 ? prepTime : null,
             cost_price: costPrice != null && !isNaN(costPrice) && costPrice >= 0 ? costPrice : null,
+            compare_at_price: compareAtPrice != null && !isNaN(compareAtPrice) && compareAtPrice > 0 ? compareAtPrice : null,
             dietary_tags: form.dietary_tags,
             translations: Object.keys(translations).length > 0 ? translations : null,
             station_id: form.station_id || null,
@@ -427,6 +430,7 @@ export function ProductEditor({
             is_new: form.is_new,
             prep_time_minutes: !isNaN(prepTime as number) && prepTime !== null && prepTime > 0 ? prepTime : null,
             cost_price: costPrice != null && !isNaN(costPrice) && costPrice >= 0 ? costPrice : null,
+            compare_at_price: compareAtPrice != null && !isNaN(compareAtPrice) && compareAtPrice > 0 ? compareAtPrice : null,
             dietary_tags: form.dietary_tags,
             ...(form.station_id ? { station_id: form.station_id } : {}),
             ...(imageUrl ? { image_url: imageUrl } : {}),
@@ -1012,6 +1016,32 @@ export function ProductEditor({
                       }>
                         {(((parseFloat(form.price) - parseFloat(form.cost_price)) / parseFloat(form.price)) * 100).toFixed(1)}%
                       </span>
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1.5">
+                    {dashLocale === 'en' ? 'Compare-at price (optional — shows as strikethrough)' : 'Precio anterior (opcional — se muestra tachado)'}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">
+                      {currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency}
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={form.compare_at_price}
+                      onChange={e => setForm(prev => ({ ...prev, compare_at_price: e.target.value }))}
+                      placeholder="0.00"
+                      className="dash-input"
+                      style={{ paddingLeft: '2rem' }}
+                    />
+                  </div>
+                  {form.compare_at_price !== '' && parseFloat(form.compare_at_price) > 0 && parseFloat(form.price) > 0 && parseFloat(form.compare_at_price) > parseFloat(form.price) && (
+                    <p className="text-xs text-emerald-600 font-semibold mt-1.5">
+                      {dashLocale === 'en' ? 'Discount: ' : 'Descuento: '}
+                      {Math.round((1 - parseFloat(form.price) / parseFloat(form.compare_at_price)) * 100)}% off
                     </p>
                   )}
                 </div>
