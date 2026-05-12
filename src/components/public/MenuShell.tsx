@@ -1497,7 +1497,7 @@ export function MenuShell({
               <button onClick={() => setActiveDiet(null)} className="mt-1 text-sm text-[#05c8a7] font-semibold hover:text-[#047a65] transition-colors">{t.viewFullMenu}</button>
             </motion.div>
           ) : (
-            <MenuErrorBoundary section="products">
+            <MenuErrorBoundary section="products" locale={locale}>
             <div
               key={activeCatFilter ?? 'all'}
               className="space-y-8 menu-cat-fade"
@@ -1827,7 +1827,7 @@ export function MenuShell({
 
         {/* Right: Cart — sticky, stays in place while content scrolls */}
         <aside ref={cartColRef} className="hidden lg:flex flex-col w-[340px] flex-shrink-0 border-l border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto">
-          <MenuErrorBoundary section="cart" inline>
+          <MenuErrorBoundary section="cart" inline locale={locale}>
           <CartPanel
             fmtPrice={fmtPrice}
             t={t}
@@ -1950,7 +1950,7 @@ export function MenuShell({
       </AnimatePresence>
 
       {/* ── Customization Sheet ── */}
-      <MenuErrorBoundary section="customization" inline>
+      <MenuErrorBoundary section="customization" inline locale={locale}>
       <AnimatePresence>
         {customization && (
           <CustomizationSheet

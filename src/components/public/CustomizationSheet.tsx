@@ -60,6 +60,7 @@ export function CustomizationSheet({
     extras: ProductExtra[];
   } | null>(null);
   const [modifiersLoading, setModifiersLoading] = useState(false);
+  const [modifiersError, setModifiersError] = useState(false);
 
   const needsLazyLoad =
     product.has_modifiers === true &&
@@ -67,17 +68,25 @@ export function CustomizationSheet({
     !product.variants?.length &&
     !product.extras?.length;
 
-  useEffect(() => {
-    if (!needsLazyLoad) return;
+  const loadModifiers = useCallback(() => {
     setModifiersLoading(true);
+    setModifiersError(false);
     fetch(`/api/product-modifiers?productId=${product.id}`)
       .then((r) => r.json())
       .then((data: { modifier_groups: ModifierGroup[]; variants: ProductVariant[]; extras: ProductExtra[] }) => {
         setLazyModifiers(data);
         setModifiersLoading(false);
       })
-      .catch(() => setModifiersLoading(false));
-  }, [product.id, needsLazyLoad]);
+      .catch(() => {
+        setModifiersLoading(false);
+        setModifiersError(true);
+      });
+  }, [product.id]);
+
+  useEffect(() => {
+    if (!needsLazyLoad) return;
+    loadModifiers();
+  }, [needsLazyLoad, loadModifiers]);
 
   // Re-apply defaults once lazy data is available (non-edit case only)
   useEffect(() => {
@@ -376,6 +385,24 @@ export function CustomizationSheet({
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="skeleton h-10 rounded-xl" style={{ animationDelay: `${i * 60}ms` }} />
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Error state when modifier data fails to load */}
+      {modifiersError && !modifiersLoading && (
+        <div className="px-5 pt-5">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 border border-amber-200">
+            <span className="text-amber-500 text-base flex-shrink-0">⚠️</span>
+            <p className="text-sm text-amber-700 flex-1">
+              {locale === 'es' ? 'No se pudieron cargar las opciones.' : 'Options could not be loaded.'}
+            </p>
+            <button
+              onClick={loadModifiers}
+              className="text-xs font-semibold text-amber-700 underline underline-offset-2 hover:no-underline flex-shrink-0"
+            >
+              {locale === 'es' ? 'Reintentar' : 'Retry'}
+            </button>
           </div>
         </div>
       )}

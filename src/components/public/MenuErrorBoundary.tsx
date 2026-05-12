@@ -9,6 +9,8 @@ interface Props {
   section?: string;
   /** If true, shows a compact inline error instead of a full card */
   inline?: boolean;
+  /** Used to render error messages in the correct language */
+  locale?: string;
 }
 
 interface State {
@@ -50,16 +52,21 @@ export class MenuErrorBoundary extends Component<Props, State> {
   render() {
     if (!this.state.hasError) return this.props.children;
 
+    const en = this.props.locale?.startsWith('en');
+    const somethingWentWrong = en ? 'Something went wrong' : 'Algo salió mal';
+    const couldNotLoad = en ? 'We couldn\'t load this section.' : 'No pudimos cargar esta sección.';
+    const retry = en ? 'Retry' : 'Reintentar';
+
     if (this.props.inline) {
       return (
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-sm">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          <span className="flex-1">Algo salió mal. </span>
+          <span className="flex-1">{somethingWentWrong}.</span>
           <button
             onClick={this.handleRetry}
             className="font-semibold underline underline-offset-2 hover:no-underline"
           >
-            Reintentar
+            {retry}
           </button>
         </div>
       );
@@ -71,9 +78,9 @@ export class MenuErrorBoundary extends Component<Props, State> {
           <AlertCircle className="w-6 h-6 text-amber-500" />
         </div>
         <div>
-          <p className="font-semibold text-gray-900">Algo salió mal</p>
+          <p className="font-semibold text-gray-900">{somethingWentWrong}</p>
           <p className="text-sm text-gray-500 mt-1">
-            No pudimos cargar esta sección.
+            {couldNotLoad}
           </p>
         </div>
         <button
@@ -81,7 +88,7 @@ export class MenuErrorBoundary extends Component<Props, State> {
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-700 transition-colors"
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          Reintentar
+          {retry}
         </button>
       </div>
     );
