@@ -63,7 +63,9 @@ export default async function DashboardPage() {
   const todayStart = getStartOfDayUTC(timezone);
   const weekAgo = getStartOfDayUTC(timezone, 6);
 
-  const [ordersRes, productsRes, tablesRes, recentOrdersRes, subRes, totalOrdersRes, weekOrdersRes, topProductsRes, lowStockRes] = await Promise.all([
+  const atRiskThreshold = new Date(Date.now() - 21 * 24 * 3600 * 1000).toISOString();
+
+  const [ordersRes, productsRes, tablesRes, recentOrdersRes, subRes, totalOrdersRes, weekOrdersRes, topProductsRes, lowStockRes, productsWithPhotoRes, activePromosRes, atRiskRes] = await Promise.all([
     supabase
       .from('orders')
       .select('id, total, status, created_at, order_type')
@@ -117,6 +119,25 @@ export default async function DashboardPage() {
       .lte('stock_qty', 10)
       .order('stock_qty', { ascending: true })
       .limit(10),
+    // Health score queries — run in parallel with the main batch
+    supabase
+      .from('products')
+      .select('id', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurantId)
+      .eq('is_active', true)
+      .not('image_url', 'is', null)
+      .neq('image_url', ''),
+    supabase
+      .from('promotions')
+      .select('id', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurantId)
+      .eq('is_active', true),
+    supabase
+      .from('customers')
+      .select('id', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurantId)
+      .lt('last_order_at', atRiskThreshold)
+      .gte('total_orders', 2),
   ]);
 
   const todaysOrders = ordersRes.data ?? [];
@@ -258,28 +279,6 @@ export default async function DashboardPage() {
   // --- Health Score (1-100) ---
   // Each check has a weight; we sum passed weights / total weights * 100
   const weekOrderCount = weekOrders.filter(o => o.status !== 'cancelled').length;
-
-  // Fetch products with photos and active promotions for health score
-  const [productsWithPhotoRes, activePromosRes, atRiskRes] = await Promise.all([
-    supabase
-      .from('products')
-      .select('id', { count: 'exact', head: true })
-      .eq('restaurant_id', restaurantId)
-      .eq('is_active', true)
-      .not('image_url', 'is', null)
-      .neq('image_url', ''),
-    supabase
-      .from('promotions')
-      .select('id', { count: 'exact', head: true })
-      .eq('restaurant_id', restaurantId)
-      .eq('is_active', true),
-    supabase
-      .from('customers')
-      .select('id', { count: 'exact', head: true })
-      .eq('restaurant_id', restaurantId)
-      .lt('last_order_at', new Date(Date.now() - 21 * 24 * 3600 * 1000).toISOString())
-      .gte('total_orders', 2),
-  ]);
 
   const productsWithPhoto = productsWithPhotoRes.count ?? 0;
   const activePromos = activePromosRes.count ?? 0;

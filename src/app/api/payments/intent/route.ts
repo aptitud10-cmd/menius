@@ -17,8 +17,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const stripe = getStripe();
-
     const body = await request.json();
     const order_id = body.order_id;
 
@@ -29,12 +27,26 @@ export async function POST(request: NextRequest) {
     const adminDb = createAdminClient();
     const { data: order } = await adminDb
       .from('orders')
-      .select('id, total, order_number, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete, commission_plan )')
+      .select('id, total, order_number, payment_intent_id, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete, commission_plan )')
       .eq('id', order_id)
       .maybeSingle();
 
     if (!order) {
       return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
+    }
+
+    // Idempotency: if a PaymentIntent already exists for this order, retrieve and return it
+    if (order.payment_intent_id) {
+      const stripeClient = getStripe();
+      try {
+        const existing = await stripeClient.paymentIntents.retrieve(order.payment_intent_id);
+        if (existing.status !== 'canceled') {
+          return NextResponse.json({ clientSecret: existing.client_secret });
+        }
+        // If canceled, fall through to create a new one
+      } catch {
+        // PI not found on Stripe (e.g. different account) — fall through to create
+      }
     }
 
     const rest = (order as any)?.restaurants;
@@ -77,7 +89,14 @@ export async function POST(request: NextRequest) {
       }),
     };
 
+    const stripe = getStripe();
     const paymentIntent = await stripe.paymentIntents.create(intentParams);
+
+    // Persist so retries return the same PI instead of creating duplicates
+    await adminDb
+      .from('orders')
+      .update({ payment_intent_id: paymentIntent.id })
+      .eq('id', order_id);
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });
   } catch (err: unknown) {

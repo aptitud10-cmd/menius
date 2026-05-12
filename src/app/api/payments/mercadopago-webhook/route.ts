@@ -47,13 +47,17 @@ export async function POST(req: NextRequest) {
     const ts = tsMatch?.[1] ?? '';
     const receivedHmac = v1Match?.[1] ?? '';
 
-    if (ts && receivedHmac && dataId) {
-      const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
-      const computed = createHmac('sha256', webhookSecret).update(manifest).digest('hex');
-      if (computed !== receivedHmac) {
-        logger.warn('MP webhook signature mismatch', { dataId });
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
-      }
+    // All three components are required — reject if any is missing
+    if (!ts || !receivedHmac || !dataId) {
+      logger.warn('MP webhook missing signature components', { hasTs: !!ts, hasHmac: !!receivedHmac, hasDataId: !!dataId });
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    }
+
+    const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+    const computed = createHmac('sha256', webhookSecret).update(manifest).digest('hex');
+    if (computed !== receivedHmac) {
+      logger.warn('MP webhook signature mismatch', { dataId });
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
     }
 
     const body = await req.json().catch(() => ({}));

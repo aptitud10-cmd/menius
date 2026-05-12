@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
     }
 
-    const ALLOWED_TYPES = ['earn', 'redeem', 'adjustment', 'welcome', 'expiry'];
+    const ALLOWED_TYPES = ['earn', 'redeem', 'adjust', 'welcome', 'expiry'];
     if (!ALLOWED_TYPES.includes(String(type))) {
       return NextResponse.json({ error: 'Tipo de transacción inválido' }, { status: 400 });
     }
