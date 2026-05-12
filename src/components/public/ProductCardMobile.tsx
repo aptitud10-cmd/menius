@@ -81,7 +81,10 @@ export const ProductCardMobile = memo(function ProductCardMobile({
     <article
       onClick={outOfStock ? undefined : handleCardClick}
       className={cn(
-        'relative flex flex-col bg-white rounded-2xl border border-gray-100 shadow-[0_2px_12px_rgba(20,15,10,0.07)] overflow-hidden transition-all duration-150',
+        'relative flex flex-col bg-white rounded-2xl shadow-[0_2px_12px_rgba(20,15,10,0.07)] overflow-hidden transition-all duration-150',
+        product.popularity_rank === 1 && !outOfStock
+          ? 'border-2 border-amber-400 shadow-amber-100'
+          : 'border border-gray-100',
         outOfStock ? 'opacity-60' : 'cursor-pointer active:opacity-80'
       )}
     >

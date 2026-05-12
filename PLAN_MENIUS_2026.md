@@ -107,7 +107,7 @@
 
 ## 2. Sprint 2 — AOV y conversión (2-3 sesiones)
 
-### 2.1 Smart Upsell en checkout (#2)
+### 2.1 Smart Upsell en CartPanel (#2) ✅ COMPLETO
 
 **Goal:** antes del "Pagar", sección "Completá tu pedido" con 3 sugerencias personalizadas.
 
@@ -157,7 +157,7 @@
 
 ---
 
-### 2.3 Empty cart con sugerencias (refinamiento visual)
+### 2.3 Empty cart con sugerencias (refinamiento visual) ✅ COMPLETO
 
 - En `CartPanel.tsx`, cuando `items.length === 0`:
   - Mostrar mensaje + 3 productos populares del restaurant ("Pedí esto") con botón Add directo.
@@ -165,7 +165,7 @@
 
 ---
 
-### 2.4 Refinamiento ProductCard
+### 2.4 Refinamiento ProductCard ⚠️ PARCIAL (golden border ✅ — compare_at_price pendiente: requiere migración)
 
 - Borde sutil dorado en `popularity_rank === 1`.
 - Mostrar precio tachado si hay `compare_at_price` o promo activa.

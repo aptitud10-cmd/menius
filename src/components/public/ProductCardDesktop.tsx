@@ -87,7 +87,10 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
     <article
       onClick={outOfStock ? undefined : handleCardClick}
       className={cn(
-        'group relative bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-[transform,box-shadow] duration-300 ease-out will-change-transform',
+        'group relative bg-white rounded-2xl shadow-sm overflow-hidden transition-[transform,box-shadow] duration-300 ease-out will-change-transform',
+        product.popularity_rank === 1 && !outOfStock
+          ? 'border-2 border-amber-400 shadow-amber-100'
+          : 'border border-gray-100',
         outOfStock
           ? 'opacity-75'
           : 'cursor-pointer hover:shadow-[0_12px_40px_rgba(0,0,0,0.14)] hover:-translate-y-1 active:scale-[0.98]'

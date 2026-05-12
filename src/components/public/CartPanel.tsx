@@ -136,30 +136,68 @@ export function CartPanel({
 
   // ── Empty state ────────────────────────────────────────────────────────────
   if (items.length === 0) {
+    const emptySuggestions = suggestions?.filter((p) => p.in_stock !== false).slice(0, 3) ?? [];
     return (
-      <div className="flex flex-col items-center justify-center h-full px-8 py-12">
-        <div className="w-20 h-20 rounded-3xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-4">
-          <ShoppingCart className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
-        </div>
-        <p className="font-semibold text-gray-700 text-sm mb-1">{t.cartEmpty}</p>
-        <p className="text-xs text-center text-gray-500 leading-relaxed max-w-[200px]">{t.cartEmptyDesc}</p>
+      <div className="flex flex-col h-full px-4 py-8">
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-20 h-20 rounded-3xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-4">
+            <ShoppingCart className="w-8 h-8 text-gray-300" strokeWidth={1.5} />
+          </div>
+          <p className="font-semibold text-gray-700 text-sm mb-1">{t.cartEmpty}</p>
+          <p className="text-xs text-center text-gray-500 leading-relaxed max-w-[200px]">{t.cartEmptyDesc}</p>
 
-        {/* Reorder — only shown if there's a previous order from this restaurant */}
-        {lastOrder && lastOrder.items.length > 0 && onReorder && (
-          <button
-            onClick={onReorder}
-            className="mt-6 w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#e6faf7] border border-[#b3efe6] active:bg-[#d0f7f1] transition-colors"
-          >
-            <RotateCcw className="w-4 h-4 text-[#05c8a7] flex-shrink-0" />
-            <div className="flex-1 min-w-0 text-left">
-              <p className="text-xs font-semibold text-[#047a65]">
-                {t.reorderLastOrder}
-              </p>
-              <p className="text-[10px] text-[#05c8a7] truncate mt-0.5">
-                {lastOrder.items.slice(0, 3).map((i) => `${i.qty}× ${i.productName}`).join(' · ')}
-              </p>
+          {/* Reorder — only shown if there's a previous order from this restaurant */}
+          {lastOrder && lastOrder.items.length > 0 && onReorder && (
+            <button
+              onClick={onReorder}
+              className="mt-6 w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#e6faf7] border border-[#b3efe6] active:bg-[#d0f7f1] transition-colors"
+            >
+              <RotateCcw className="w-4 h-4 text-[#05c8a7] flex-shrink-0" />
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-xs font-semibold text-[#047a65]">
+                  {t.reorderLastOrder}
+                </p>
+                <p className="text-[10px] text-[#05c8a7] truncate mt-0.5">
+                  {lastOrder.items.slice(0, 3).map((i) => `${i.qty}× ${i.productName}`).join(' · ')}
+                </p>
+              </div>
+            </button>
+          )}
+        </div>
+
+        {/* Popular suggestions in empty cart */}
+        {emptySuggestions.length > 0 && onSuggestionAdd && (
+          <div className="mt-auto pt-4 border-t border-gray-100">
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              {t.popularItems}
+            </p>
+            <div className="flex flex-col gap-2">
+              {emptySuggestions.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => onSuggestionAdd(p)}
+                  className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white shadow-sm p-2.5 active:scale-[0.98] transition-transform text-left"
+                >
+                  {p.image_url ? (
+                    <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                      <Image src={p.image_url} alt={p.name} fill sizes="48px" className="object-cover" />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <span className="text-lg">🍽️</span>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold text-gray-800 line-clamp-1">{p.name}</p>
+                    <p className="text-[11px] font-bold text-[#05c8a7] tabular-nums mt-0.5">{fmtPrice(Number(p.price))}</p>
+                  </div>
+                  <div className="w-7 h-7 rounded-full bg-[#05c8a7] flex items-center justify-center flex-shrink-0">
+                    <Plus className="w-4 h-4 text-white" />
+                  </div>
+                </button>
+              ))}
             </div>
-          </button>
+          </div>
         )}
       </div>
     );
