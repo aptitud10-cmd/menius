@@ -16,7 +16,12 @@ export async function POST(request: NextRequest) {
     const apiKey = (process.env.GEMINI_API_KEY ?? '').trim();
     if (!apiKey) return NextResponse.json({ error: 'IA no configurada.' }, { status: 503 });
 
-    const { channel, campaignType, audience, customPrompt } = await request.json();
+    const body = await request.json();
+    const { channel, campaignType, audience } = body;
+    // Strip control chars and limit length to prevent prompt injection amplification
+    const customPrompt = typeof body.customPrompt === 'string'
+      ? body.customPrompt.replace(/[\x00-\x1F\x7F]/g, ' ').trim().slice(0, 500)
+      : undefined;
 
     const [
       { count: totalRestaurants },

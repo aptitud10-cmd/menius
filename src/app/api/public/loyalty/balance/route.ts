@@ -64,7 +64,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       points: account?.points ?? 0,
-      account_id: account?.id ?? null,
       config: {
         min_redeem_points: config.min_redeem_points,
         peso_per_point: config.peso_per_point,
