@@ -30,7 +30,7 @@ interface AnalyticsData {
   weeklyHeatmap?: number[][];
   statusCount: Record<string, number>;
   orderTypeCount?: Record<string, number>;
-  topProducts: { name: string; qty: number; revenue: number }[];
+  topProducts: { name: string; qty: number; revenue: number; cost?: number; margin?: number }[];
 }
 
 function getStatusLabels(t: ReturnType<typeof useDashboardLocale>['t']): Record<string, string> {
@@ -480,6 +480,8 @@ export default function AnalyticsPage() {
             <div className="space-y-2">
               {topProducts.map((p, i) => {
                 const pct = topProducts[0].revenue > 0 ? (p.revenue / topProducts[0].revenue) * 100 : 0;
+                const hasMargin = p.margin != null;
+                const marginColor = !hasMargin ? '' : p.margin! >= 60 ? 'text-emerald-600' : p.margin! >= 30 ? 'text-amber-500' : 'text-red-500';
                 return (
                   <div key={p.name} className="flex items-center gap-3 group">
                     <span className={cn(
@@ -494,7 +496,14 @@ export default function AnalyticsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <h4 className="text-sm text-gray-700 font-medium truncate">{p.name}</h4>
-                        <span className="text-sm text-gray-900 font-bold flex-shrink-0 ml-2">{fmt(p.revenue)}</span>
+                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                          {hasMargin && (
+                            <span className={`text-xs font-semibold ${marginColor}`}>
+                              {p.margin!.toFixed(0)}% margen
+                            </span>
+                          )}
+                          <span className="text-sm text-gray-900 font-bold">{fmt(p.revenue)}</span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">

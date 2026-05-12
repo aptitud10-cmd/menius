@@ -156,6 +156,7 @@ export function ProductEditor({
     is_featured: product?.is_featured ?? false,
     is_new: product?.is_new ?? false,
     prep_time_minutes: product?.prep_time_minutes ? String(product.prep_time_minutes) : '',
+    cost_price: (product as any)?.cost_price != null ? String((product as any).cost_price) : '',
     dietary_tags: (product?.dietary_tags ?? []) as DietaryTag[],
     station_id: (product as any)?.station_id ?? '',
   });
@@ -392,6 +393,7 @@ export function ProductEditor({
     startTransition(async () => {
       try {
         const prepTime = form.prep_time_minutes ? parseInt(form.prep_time_minutes, 10) : null;
+        const costPrice = form.cost_price !== '' ? parseFloat(form.cost_price) : null;
         if (isEditing && product) {
           const data: Record<string, unknown> = {
             name: form.name,
@@ -403,6 +405,7 @@ export function ProductEditor({
             is_featured: form.is_featured,
             is_new: form.is_new,
             prep_time_minutes: !isNaN(prepTime as number) && prepTime !== null && prepTime > 0 ? prepTime : null,
+            cost_price: costPrice != null && !isNaN(costPrice) && costPrice >= 0 ? costPrice : null,
             dietary_tags: form.dietary_tags,
             translations: Object.keys(translations).length > 0 ? translations : null,
             station_id: form.station_id || null,
@@ -423,6 +426,7 @@ export function ProductEditor({
             is_active: form.is_active,
             is_new: form.is_new,
             prep_time_minutes: !isNaN(prepTime as number) && prepTime !== null && prepTime > 0 ? prepTime : null,
+            cost_price: costPrice != null && !isNaN(costPrice) && costPrice >= 0 ? costPrice : null,
             dietary_tags: form.dietary_tags,
             ...(form.station_id ? { station_id: form.station_id } : {}),
             ...(imageUrl ? { image_url: imageUrl } : {}),
@@ -956,21 +960,60 @@ export function ProductEditor({
             {/* Pricing card */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <h2 className="text-sm font-semibold text-gray-900 mb-4">{t.editor_price}</h2>
-              <div>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">
-                    {currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency}
-                  </span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={form.price}
-                    onChange={e => setForm(prev => ({ ...prev, price: e.target.value }))}
-                    placeholder="0.00"
-                    className="dash-input text-lg font-semibold"
-                    style={{ paddingLeft: '2rem' }}
-                  />
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1.5">
+                    {dashLocale === 'en' ? 'Sale price' : 'Precio de venta'}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">
+                      {currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency}
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={form.price}
+                      onChange={e => setForm(prev => ({ ...prev, price: e.target.value }))}
+                      placeholder="0.00"
+                      className="dash-input text-lg font-semibold"
+                      style={{ paddingLeft: '2rem' }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1.5">
+                    {dashLocale === 'en' ? 'Cost price (optional)' : 'Costo del producto (opcional)'}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium">
+                      {currency === 'USD' ? '$' : currency === 'EUR' ? '€' : currency}
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={form.cost_price}
+                      onChange={e => setForm(prev => ({ ...prev, cost_price: e.target.value }))}
+                      placeholder="0.00"
+                      className="dash-input"
+                      style={{ paddingLeft: '2rem' }}
+                    />
+                  </div>
+                  {form.cost_price !== '' && parseFloat(form.price) > 0 && parseFloat(form.cost_price) >= 0 && (
+                    <p className="text-xs text-gray-500 mt-1.5">
+                      {dashLocale === 'en' ? 'Margin: ' : 'Margen: '}
+                      <span className={
+                        ((parseFloat(form.price) - parseFloat(form.cost_price)) / parseFloat(form.price)) * 100 >= 60
+                          ? 'text-emerald-600 font-semibold'
+                          : ((parseFloat(form.price) - parseFloat(form.cost_price)) / parseFloat(form.price)) * 100 >= 30
+                            ? 'text-amber-500 font-semibold'
+                            : 'text-red-500 font-semibold'
+                      }>
+                        {(((parseFloat(form.price) - parseFloat(form.cost_price)) / parseFloat(form.price)) * 100).toFixed(1)}%
+                      </span>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

@@ -348,6 +348,7 @@ export async function createProduct(data: ProductInput & { image_url?: string })
     ...(data.dietary_tags && { dietary_tags: data.dietary_tags }),
     ...(data.image_url && { image_url: data.image_url }),
     ...(data.prep_time_minutes != null && { prep_time_minutes: data.prep_time_minutes }),
+    ...(data.cost_price != null && { cost_price: data.cost_price }),
   }).select('id').single();
 
   if (error) return { error: error.message };

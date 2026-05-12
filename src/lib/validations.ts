@@ -49,6 +49,7 @@ export const productSchema = z.object({
   prep_time_minutes: z.number().int().min(1).max(120).nullable().optional(),
   dietary_tags: z.array(z.string()).optional(),
   translations: z.record(z.string(), contentTranslationSchema).nullable().optional(),
+  cost_price: z.number().min(0).nullable().optional(),
 });
 
 export const tableSchema = z.object({

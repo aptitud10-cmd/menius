@@ -185,20 +185,30 @@ export async function GET(request: NextRequest) {
     if (validOrderIds.length > 0) {
       const { data: items } = await supabase
         .from('order_items')
-        .select('product_id, qty, line_total, products(name)')
+        .select('product_id, qty, line_total, products(name, cost_price)')
         .in('order_id', validOrderIds);
 
-      const productMap: Record<string, { name: string; qty: number; revenue: number }> = {};
+      const productMap: Record<string, { name: string; qty: number; revenue: number; cost: number; hasCost: boolean }> = {};
       for (const item of (items ?? [])) {
         const pid = item.product_id;
-        // Supabase returns joined rows as array or object depending on relation type
-        const rawProds = (item as unknown as { products: { name: string }[] | { name: string } | null }).products;
-        const pname = (Array.isArray(rawProds) ? rawProds[0]?.name : rawProds?.name) ?? 'Desconocido';
-        if (!productMap[pid]) productMap[pid] = { name: pname, qty: 0, revenue: 0 };
+        const rawProds = (item as unknown as { products: { name: string; cost_price: number | null }[] | { name: string; cost_price: number | null } | null }).products;
+        const prod = Array.isArray(rawProds) ? rawProds[0] : rawProds;
+        const pname = prod?.name ?? 'Desconocido';
+        const costPrice = prod?.cost_price != null ? Number(prod.cost_price) : null;
+        if (!productMap[pid]) productMap[pid] = { name: pname, qty: 0, revenue: 0, cost: 0, hasCost: costPrice != null };
         productMap[pid].qty += item.qty;
         productMap[pid].revenue += Number(item.line_total);
+        if (costPrice != null) productMap[pid].cost += costPrice * item.qty;
       }
-      topProducts = Object.values(productMap).sort((a, b) => b.revenue - a.revenue).slice(0, 10);
+      topProducts = Object.values(productMap)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 10)
+        .map(p => ({
+          name: p.name,
+          qty: p.qty,
+          revenue: p.revenue,
+          ...(p.hasCost && { cost: p.cost, margin: p.revenue > 0 ? ((p.revenue - p.cost) / p.revenue) * 100 : 0 }),
+        }));
     }
 
     return NextResponse.json({
