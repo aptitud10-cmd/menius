@@ -104,6 +104,8 @@ export async function POST(request: NextRequest) {
         .eq('id', order.id);
 
       if (error) {
+        // Delete the idempotency claim so Wompi can retry successfully
+        await adminDb.from('processed_webhook_events').delete().eq('event_id', eventId);
         logger.error('Failed to update order payment', { orderId: order.id, error: error.message });
         return NextResponse.json({ error: error.message }, { status: 500 });
       }

@@ -48,6 +48,7 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
   const rtConnectedRef = useRef(false);
   const lastPollRef = useRef<string | null>(null);
   const pollNowRef = useRef<(() => void) | null>(null);
+  const backoffRef = useRef(15_000); // current poll interval when RT is down
 
   const handleNewOrder = useCallback((order: { id: string; order_number: string; customer_name: string; total: number }) => {
     if (knownIdsRef.current.has(order.id)) return;
@@ -96,14 +97,22 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
 
     pollNowRef.current = () => { if (!rtConnectedRef.current) poll(); };
 
-    // Periodic poll only fires when RT is down — saves DB hits in normal state.
-    const periodic = async () => {
-      if (rtConnectedRef.current) return;
-      await poll();
+    // Periodic poll with exponential backoff — only fires when RT is down.
+    // Backoff: 15s → 30s → 60s → 120s (cap), resets to 15s on RT reconnect.
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const schedulePoll = () => {
+      timeoutId = setTimeout(async () => {
+        if (!rtConnectedRef.current) {
+          await poll();
+          backoffRef.current = Math.min(backoffRef.current * 2, 120_000);
+          schedulePoll();
+        }
+        // If RT reconnected, don't reschedule — the subscribe callback resets backoff
+      }, backoffRef.current);
     };
-    const id = setInterval(periodic, 15_000);
+    schedulePoll();
     return () => {
-      clearInterval(id);
+      if (timeoutId) clearTimeout(timeoutId);
       pollNowRef.current = null;
     };
   }, [restaurantId, handleNewOrder]);
@@ -126,11 +135,14 @@ export function OrderNotifier({ restaurantId, currency }: OrderNotifierProps) {
         }
       )
       .subscribe((status: string) => {
+        const wasConnected = rtConnectedRef.current;
         rtConnectedRef.current = status === 'SUBSCRIBED';
-        // On disconnect/error/timeout: poll immediately so the owner doesn't
-        // miss orders during the gap. The 15s periodic poll keeps covering
-        // until Supabase auto-reconnects.
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+
+        if (status === 'SUBSCRIBED') {
+          // RT back online — reset backoff so next outage starts fresh
+          backoffRef.current = 15_000;
+        } else if (!wasConnected && (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED')) {
+          // Newly disconnected — poll immediately then let the backoff loop take over
           setTimeout(() => pollNowRef.current?.(), 2000);
         }
       });

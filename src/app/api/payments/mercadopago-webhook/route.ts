@@ -103,8 +103,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
+    // Idempotency guard — insert before any mutation; duplicate raises 23505
+    const eventId = `mp:${paymentId}`;
+    const { error: insertErr } = await adminDb
+      .from('processed_webhook_events')
+      .insert({ event_id: eventId, event_type: 'payment.approved' });
+
+    if (insertErr) {
+      if (insertErr.code === '23505') {
+        logger.info('Duplicate MP webhook — skipping', { eventId });
+        return NextResponse.json({ received: true });
+      }
+      throw insertErr;
+    }
+
     if (order.payment_status === 'paid') {
-      return NextResponse.json({ received: true }); // idempotent
+      return NextResponse.json({ received: true });
     }
 
     // Load restaurant MP token to verify payment against their account
