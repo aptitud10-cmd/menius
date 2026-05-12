@@ -16,6 +16,7 @@ export interface Restaurant {
   available_locales?: string[];
   logo_url: string | null;
   cover_image_url?: string | null;
+  hero_video_url?: string | null;
   description?: string;
   address?: string;
   phone?: string;

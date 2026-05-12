@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   ClipboardList, Tag, ShoppingBag, QrCode, Settings, LogOut, Menu, X,
-  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star, Store, Boxes, Key, Gift, Building2, LifeBuoy, CalendarDays, Globe, Lock,
+  ExternalLink, LayoutDashboard, Ticket, Users, BarChart3, CreditCard, Monitor, Contact2, Megaphone, Shield, Image, Star, Store, Boxes, Key, Gift, Building2, LifeBuoy, CalendarDays, Globe, Lock, Sparkles,
 } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { cn } from '@/lib/utils';
@@ -63,6 +63,7 @@ function buildNavSections(t: DashboardTranslations, locale: string): { title: st
       title: t.nav_business,
       items: [
         { href: '/app/analytics', label: t.nav_analytics, icon: BarChart3, minPlan: 'starter', badge: 'Starter' },
+        { href: '/app/ai-insights', label: locale === 'es' ? 'AI Insights' : 'AI Insights', icon: Sparkles, minPlan: 'starter', badge: 'Starter' },
         { href: '/app/marketing', label: t.nav_marketing, icon: Megaphone, minPlan: 'pro', badge: 'Pro' },
         { href: '/app/business', label: locale === 'es' ? 'Mi Negocio' : 'My Business', icon: LayoutDashboard },
         { href: '/app/branches', label: t.nav_branches, icon: Building2, minPlan: 'business', badge: 'Business' },

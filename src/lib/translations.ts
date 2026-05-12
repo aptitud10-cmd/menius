@@ -371,6 +371,10 @@ export interface Translations {
   notFoundDesc: string;
   notFoundGoHome: string;
   notFoundViewDemo: string;
+  // Sprint 3.2 — Recommendations "Para ti"
+  forYouTitle: string;
+  forYouLastOrder: string;
+  forYouSuggested: string;
   // RepeatOrderButton
   repeatLastOrder: string;
   repeatYourLastOrder: string;
@@ -706,6 +710,10 @@ const es: Translations = {
   notFoundDesc: 'La página que buscas no existe o fue movida.',
   notFoundGoHome: '← Ir al inicio',
   notFoundViewDemo: 'Ver demo',
+  // Sprint 3.2
+  forYouTitle: 'Para ti',
+  forYouLastOrder: 'Lo que pediste',
+  forYouSuggested: 'Te puede gustar',
   repeatLastOrder: 'Pedir lo mismo',
   repeatYourLastOrder: 'Tu último pedido',
   repeatOrderNumber: (n) => `Pedido #${n}`,
@@ -1040,6 +1048,10 @@ const en: Translations = {
   notFoundDesc: 'The page you are looking for does not exist or has been moved.',
   notFoundGoHome: '← Go home',
   notFoundViewDemo: 'View demo',
+  // Sprint 3.2
+  forYouTitle: 'For you',
+  forYouLastOrder: 'What you ordered',
+  forYouSuggested: 'You might like',
   repeatLastOrder: 'Repeat last order',
   repeatYourLastOrder: 'Your last order',
   repeatOrderNumber: (n) => `Order #${n}`,
