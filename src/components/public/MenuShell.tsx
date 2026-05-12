@@ -566,6 +566,14 @@ export function MenuShell({
     });
   }, [products, activeDiet, stockOverrides]);
 
+  const availableDietTags = useMemo(() => {
+    const seen = new Set<DietaryTag>();
+    for (const p of products) {
+      if (p.dietary_tags) for (const tag of p.dietary_tags) seen.add(tag);
+    }
+    return DIETARY_TAGS.filter((t) => seen.has(t.id as DietaryTag));
+  }, [products]);
+
   // Returns true if category has no schedule restriction or current time is within window
   const isCategoryAvailableNow = useCallback((cat: { available_from?: string | null; available_to?: string | null }) => {
     if (!cat.available_from || !cat.available_to) return true;
@@ -1126,6 +1134,40 @@ export function MenuShell({
     </div>
   );
 
+  const dietaryPills = availableDietTags.length > 0 && (
+    <div className="flex gap-2 overflow-x-auto scrollbar-hide px-4 py-2 -mx-0" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}>
+      {activeDiet && (
+        <button
+          onClick={() => setActiveDiet(null)}
+          style={{ touchAction: 'manipulation' }}
+          className="flex-shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap bg-gray-900 text-white active:opacity-80 transition-opacity"
+        >
+          <X className="w-3 h-3" />
+          {t.clearFilters}
+        </button>
+      )}
+      {availableDietTags.map((tag) => {
+        const isActive = activeDiet === tag.id;
+        return (
+          <button
+            key={tag.id}
+            onClick={() => setActiveDiet(isActive ? null : tag.id as DietaryTag)}
+            style={{ touchAction: 'manipulation' }}
+            className={cn(
+              'flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap border transition-colors',
+              isActive
+                ? 'bg-[#05c8a7] border-[#05c8a7] text-white'
+                : 'bg-white border-gray-200 text-gray-600 active:bg-gray-100'
+            )}
+          >
+            <span aria-hidden="true">{tag.emoji}</span>
+            <span>{locale === 'en' ? tag.labelEn : tag.labelEs}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
   const ordersLeft = limitedMode ? Math.max(0, limitedMode.dailyLimit - limitedMode.ordersToday) : null;
 
   return (
@@ -1254,6 +1296,13 @@ export function MenuShell({
         {/* Mobile pills — sticky debajo del header */}
         {mobileCategoryPills}
 
+        {/* Dietary filter pills — mobile, below category pills */}
+        {availableDietTags.length > 0 && (
+          <div className="lg:hidden sticky z-30 bg-[#f5f5f3] border-b border-gray-100" style={{ top: HEADER_HEIGHT + 40 }}>
+            {dietaryPills}
+          </div>
+        )}
+
         {/* ── 3-Column row ── */}
         <div className="flex lg:min-h-[calc(100dvh-48px)]">
 
@@ -1288,6 +1337,11 @@ export function MenuShell({
               <ChevronRight className="w-4 h-4 text-gray-400" />
             </button>
           </div>
+          {availableDietTags.length > 0 && (
+            <div className="border-t border-gray-100">
+              {dietaryPills}
+            </div>
+          )}
         </div>
 
         {/* Center: Products — natural flow, no independent scroll */}
