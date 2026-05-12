@@ -53,23 +53,19 @@ export async function POST(req: NextRequest) {
     }
 
     const rest = (order as any).restaurants;
-    const connectedAccount: string | null = rest?.stripe_onboarding_complete ? (rest?.stripe_account_id ?? null) : null;
-
-    if (!connectedAccount) {
+    if (!rest?.stripe_onboarding_complete || !rest?.stripe_account_id) {
       return NextResponse.json({ error: 'El restaurante no tiene Stripe configurado.' }, { status: 422 });
     }
 
     const stripe = getStripe();
 
-    // For destination charges, refund must go through the connected account
-    // The platform fee (if any) is refunded proportionally by Stripe automatically
-    const refund = await stripe.refunds.create(
-      {
-        payment_intent: order.payment_intent_id,
-        reason: refundReason as 'duplicate' | 'fraudulent' | 'requested_by_customer',
-      },
-      { stripeAccount: connectedAccount }
-    );
+    // Destination charges are created on the platform account (transfer_data.destination).
+    // Refunds must also be issued from the platform — no stripeAccount header.
+    // Stripe automatically reverses the transfer to the connected account.
+    const refund = await stripe.refunds.create({
+      payment_intent: order.payment_intent_id,
+      reason: refundReason as 'duplicate' | 'fraudulent' | 'requested_by_customer',
+    });
 
     if (refund.status === 'failed') {
       logger.error('Stripe refund failed', { orderId: order.id, refundId: refund.id });
