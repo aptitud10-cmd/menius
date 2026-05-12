@@ -1,6 +1,9 @@
 import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createLogger } from '@/lib/logger';
 import type { Restaurant, Category, Product } from '@/types';
+
+const logger = createLogger('menu-data');
 
 /**
  * Fetch all active restaurant slugs for generateStaticParams.
@@ -92,7 +95,7 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       .single();
 
     if (restaurantError || !restaurant) {
-      console.error('[menu-data] Restaurant not found', {
+      logger.error('Restaurant not found', {
         slug,
         error: restaurantError?.message,
         code: restaurantError?.code,
@@ -207,7 +210,7 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
         limitedMode = { ordersToday: count ?? 0, dailyLimit: DAILY_FREE_LIMIT };
       }
     } catch {
-      console.error('[menu-data] Subscription check failed — showing menu', {
+      logger.warn('Subscription check failed — showing menu', {
         restaurantId: restaurant.id,
       });
     }
@@ -266,9 +269,9 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       isFreePlan,
     };
   } catch (err) {
-    console.error('[menu-data] Unexpected error in fetchMenuData', {
+    logger.error('Unexpected error in fetchMenuData', {
       slug,
-      error: String(err),
+      error: err instanceof Error ? err.message : String(err),
     });
     return null;
   }

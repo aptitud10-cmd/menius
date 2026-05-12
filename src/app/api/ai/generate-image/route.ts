@@ -7,7 +7,7 @@ import { getTenant } from '@/lib/auth/get-tenant';
 import { getEffectivePlanId } from '@/lib/auth/check-plan';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { createLogger } from '@/lib/logger';
-import { buildFoodPrompt, getJuiceContainer, getJuiceStyling, analyzeIngredients, buildIngredientSection, checkPromptCoherence } from '@/lib/ai/food-prompt';
+import { buildFoodPrompt, analyzeIngredients, checkPromptCoherence } from '@/lib/ai/food-prompt';
 
 const logger = createLogger('ai-generate-image');
 
