@@ -38,6 +38,7 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
   backUrl,
   isScrolled = false,
   hasCover = false,
+  loyaltyPoints,
 }: MenuHeaderProps) {
   const itemCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.qty, 0));
   const itemTotal = useCartStore((s) => s.items.reduce((sum, i) => sum + i.lineTotal, 0));
@@ -149,6 +150,12 @@ export const MenuHeaderDesktop = memo(function MenuHeaderDesktop({
           >
             <History className="w-4 h-4 text-gray-500" />
           </Link>
+
+          {loyaltyPoints != null && loyaltyPoints > 0 && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-600 border border-amber-200">
+              ⭐ {loyaltyPoints} pts
+            </span>
+          )}
 
           {/* Cart summary */}
           <div className="flex items-center gap-2 pl-3 border-l border-gray-200">

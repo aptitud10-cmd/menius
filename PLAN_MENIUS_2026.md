@@ -209,7 +209,7 @@
 
 ---
 
-### 3.3 Loyalty visible en menú público (#10 part 1)
+### 3.3 Loyalty visible en menú público (#10 part 1) ✅ COMPLETO
 
 `migration-loyalty.sql` ya existe ✅. Falta:
 - Mostrar puntos del cliente en el header del menú: `"⭐ 240 pts"`.

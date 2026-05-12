@@ -26,6 +26,7 @@ interface CartPanelProps {
   onReorder?: () => void;
   suggestions?: Product[];
   onSuggestionAdd?: (product: Product) => void;
+  loyaltyData?: { points: number; config: { min_redeem_points: number; peso_per_point: number } | null } | null;
 }
 
 // ── Swipeable cart item ──────────────────────────────────────────────────────
@@ -74,6 +75,7 @@ export function CartPanel({
   onReorder,
   suggestions,
   onSuggestionAdd,
+  loyaltyData,
 }: CartPanelProps) {
   const items = useCartStore((s) => s.items);
   const updateQty = useCartStore((s) => s.updateQty);
@@ -424,6 +426,36 @@ export function CartPanel({
           </div>
         </div>
       )}
+
+      {/* ── Loyalty progress banner ── */}
+      {loyaltyData && loyaltyData.points > 0 && loyaltyData.config && (() => {
+        const { points, config } = loyaltyData;
+        const minRedeem = config.min_redeem_points;
+        const ptsLeft = minRedeem - points;
+        return ptsLeft > 0 ? (
+          <div className="mx-4 mb-2 px-3 py-2.5 rounded-xl bg-amber-50 border border-amber-100 flex items-center gap-2 flex-shrink-0">
+            <span className="text-base leading-none">⭐</span>
+            <div className="flex-1 min-w-0">
+              <div className="w-full bg-amber-100 rounded-full h-1.5 mb-1">
+                <div
+                  className="bg-amber-400 h-1.5 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (points / minRedeem) * 100)}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-amber-700 font-medium">
+                {points} pts · {ptsLeft} más para canjear
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="mx-4 mb-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-100 flex items-center gap-2 flex-shrink-0">
+            <span className="text-base leading-none">🎁</span>
+            <p className="text-[11px] text-amber-700 font-semibold">
+              Tenés {points} pts disponibles para canjear en el checkout
+            </p>
+          </div>
+        );
+      })()}
 
       {/* ── Footer: breakdown + checkout ── */}
       <div className="border-t border-gray-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex-shrink-0">

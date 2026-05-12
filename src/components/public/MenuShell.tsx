@@ -14,6 +14,7 @@ import { DIETARY_TAGS } from '@/lib/dietary-tags';
 import { getLocaleFlag, SUPPORTED_LOCALES, tName, tDesc } from '@/lib/i18n';
 import { trackEvent } from '@/lib/analytics';
 
+import { useCheckoutStore } from '@/lib/store/checkoutStore';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { supabaseLoader } from '@/lib/image-loader';
@@ -105,6 +106,9 @@ export function MenuShell({
 
   const [hasMounted, setHasMounted] = useState(false);
   const [reorderDismissed, setReorderDismissed] = useState(false);
+  const [loyaltyData, setLoyaltyData] = useState<{ points: number; config: { min_redeem_points: number; peso_per_point: number } | null } | null>(null);
+  const savedCustomer = useCheckoutStore((s) => s.customer);
+  const isReturningCustomer = useCheckoutStore((s) => s.isReturningCustomer);
   const [cartResumeShown, setCartResumeShown] = useState(false);
   const [tableBannerDismissed, setTableBannerDismissed] = useState(false);
   const [activeTableName, setActiveTableName] = useState<string | null>(null);
@@ -151,6 +155,16 @@ export function MenuShell({
       setTimeout(() => setCartResumeShown(false), 4000);
     }
   }, [restaurant.id, restaurant.slug, tableName, setRestaurantId, setTableName, router]);
+
+  useEffect(() => {
+    if (!hasMounted || !isReturningCustomer() || !savedCustomer?.phone) return;
+    const digits = savedCustomer.phone.replace(/\D/g, '');
+    if (digits.length < 7) return;
+    fetch(`/api/public/loyalty/balance?phone=${encodeURIComponent(savedCustomer.phone)}&restaurant_id=${restaurant.id}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data && typeof data.points === 'number') setLoyaltyData({ points: data.points, config: data.config ?? null }); })
+      .catch(() => {});
+  }, [hasMounted, restaurant.id, savedCustomer, isReturningCustomer]);
 
   const cartCount = hasMounted ? rawCartCount : 0;
   const cartTotal = hasMounted ? rawCartTotal : 0;
@@ -1200,6 +1214,7 @@ export function MenuShell({
         isScrolled={headerScrolled}
         hasCover={hasCover}
         locale={locale}
+        loyaltyPoints={loyaltyData?.points ?? null}
       />
       </div>
 
@@ -1947,6 +1962,7 @@ export function MenuShell({
             onReorder={handleReorder}
             suggestions={cartBasedSuggestions}
             onSuggestionAdd={handleCartSuggestionAdd}
+            loyaltyData={loyaltyData}
           />
           </MenuErrorBoundary>
         </aside>
@@ -2053,6 +2069,7 @@ export function MenuShell({
                   onReorder={() => { handleReorder(); setOpen(false); }}
                   suggestions={cartBasedSuggestions}
                   onSuggestionAdd={handleCartSuggestionAdd}
+                  loyaltyData={loyaltyData}
                 />
               </div>
               <div className="pb-[env(safe-area-inset-bottom)] flex-shrink-0" />

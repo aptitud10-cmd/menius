@@ -33,6 +33,7 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
   isScrolled = false,
   hasCover = false,
   locale = 'es',
+  loyaltyPoints,
 }: MenuHeaderProps) {
   const [isOwner, setIsOwner] = useState(false);
   useEffect(() => {
@@ -78,8 +79,16 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
           {restaurant.name}
         </span>
 
-        {/* Right: Dashboard + Search */}
+        {/* Right: Loyalty badge + Dashboard + Search */}
         <div className="ml-auto flex items-center flex-shrink-0">
+          {loyaltyPoints != null && loyaltyPoints > 0 && (
+            <span className={cn(
+              'inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold mr-1',
+              isTransparent ? 'bg-black/30 text-white' : 'bg-amber-50 text-amber-600 border border-amber-200'
+            )}>
+              ⭐ {loyaltyPoints}
+            </span>
+          )}
           {isOwner && (
             <Link
               href="/app"

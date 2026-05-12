@@ -28,6 +28,7 @@ export interface MenuHeaderProps {
   isScrolled?: boolean;
   hasCover?: boolean;
   locale?: string;
+  loyaltyPoints?: number | null;
 }
 
 /** Utility shared by both mobile and desktop sub-components */
