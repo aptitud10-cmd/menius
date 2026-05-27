@@ -22,6 +22,7 @@ export interface Restaurant {
   phone?: string;
   email?: string;
   website?: string;
+  instagram_url?: string | null;
   google_business_url?: string | null;
   custom_domain?: string | null;
   operating_hours?: Record<string, { open: string; close: string; closed?: boolean }>;

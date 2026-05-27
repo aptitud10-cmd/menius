@@ -41,6 +41,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
     phone: initialData.phone ?? '',
     email: initialData.email ?? '',
     website: initialData.website ?? '',
+    instagram_url: initialData.instagram_url ?? '',
     timezone: initialData.timezone ?? 'America/New_York',
     currency: initialData.currency ?? 'USD',
     locale: initialData.locale ?? 'es',
@@ -482,6 +483,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
           </div>
           <Field label={t.settings_email} value={form.email} onChange={(v) => handleChange('email', v)} placeholder="contacto@mirestaurante.com" />
           <Field label={t.settings_website} value={form.website} onChange={(v) => handleChange('website', v)} placeholder="https://..." />
+          <Field label="Instagram" value={form.instagram_url} onChange={(v) => handleChange('instagram_url', v)} placeholder="https://instagram.com/mirestaurante" />
         </div>
       </div>
 
