@@ -84,8 +84,12 @@ function mpSignature(dataId: string, requestId: string, ts: string, secret: stri
 describe('POST /api/payments/webhook (Stripe)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Resetear la queue de Once para evitar que Onces no consumidos contaminen tests siguientes
+    mockMaybeSingle.mockReset();
+    mockInsert.mockReset();
     // Default: event not yet processed
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
+    mockInsert.mockResolvedValue({ error: null });
     mockUpsert.mockResolvedValue({ error: null });
     mockUpdate.mockReturnValue({ eq: mockEq });
     mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq });
@@ -221,6 +225,9 @@ describe('POST /api/payments/wompi-webhook', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Resetear la queue de Once para evitar contaminación entre describes
+    mockMaybeSingle.mockReset();
+    mockInsert.mockReset();
     vi.stubEnv('WOMPI_EVENTS_SECRET', WOMPI_SECRET);
     mockInsert.mockResolvedValue({ error: null });
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
@@ -324,8 +331,12 @@ describe('POST /api/payments/mercadopago-webhook', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Resetear la queue de Once para evitar contaminación entre describes
+    mockMaybeSingle.mockReset();
+    mockInsert.mockReset();
     vi.stubEnv('MP_WEBHOOK_SECRET', MP_SECRET);
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
+    mockInsert.mockResolvedValue({ error: null });
     mockUpdate.mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
     mockEq.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, select: mockSelect, neq: mockNeq });
     mockSelect.mockReturnValue({ eq: mockEq, maybeSingle: mockMaybeSingle, neq: mockNeq });
