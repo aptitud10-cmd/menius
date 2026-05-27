@@ -210,45 +210,64 @@ export function CartPanel({
     <div className="flex flex-col h-full">
 
       {/* ── Header: drag pill + item count + clear + close ── */}
-      <div className="px-4 pt-2 pb-2 flex items-center gap-2 flex-shrink-0">
-        {/* Drag handle pill centered */}
-        <div className="flex-1 flex justify-start">
-          {(() => {
-            const totalQty = items.reduce((s, i) => s + i.qty, 0);
-            return (
-              <motion.span
-                key={totalQty}
-                initial={{ scale: 1.4 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full tabular-nums font-semibold inline-block"
-              >
-                {totalQty} {t.items}
-              </motion.span>
-            );
-          })()}
-        </div>
-        <button
-          onClick={handleClearTap}
-          title={t.clearCart}
-          className={cn(
-            'p-2 rounded-lg transition-all duration-150',
-            clearStep === 1
-              ? 'bg-red-50 text-red-500'
-              : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'
-          )}
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-        {onClose && (
+      <div className="px-4 pt-2 pb-2 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          {/* Item count pill */}
+          <div className="flex-1 flex justify-start">
+            {(() => {
+              const totalQty = items.reduce((s, i) => s + i.qty, 0);
+              return (
+                <motion.span
+                  key={totalQty}
+                  initial={{ scale: 1.4 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                  className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full tabular-nums font-semibold inline-block"
+                >
+                  {totalQty} {t.items}
+                </motion.span>
+              );
+            })()}
+          </div>
           <button
-            onClick={onClose}
-            className="p-2 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-all duration-150"
-            aria-label={t.closeCart}
+            type="button"
+            onClick={handleClearTap}
+            title={t.clearCart}
+            aria-label={t.clearCart}
+            className={cn(
+              'p-2 rounded-lg transition-all duration-150',
+              clearStep === 1
+                ? 'bg-red-50 text-red-500'
+                : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'
+            )}
           >
-            <X className="w-4 h-4" />
+            <Trash2 className="w-4 h-4" />
           </button>
-        )}
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-100 transition-all duration-150"
+              aria-label={t.closeCart}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        {/* Confirmation hint — shown on first clear tap */}
+        <AnimatePresence>
+          {clearStep === 1 && (
+            <motion.p
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.18 }}
+              className="text-xs text-red-500 mt-1 overflow-hidden"
+            >
+              {t.clearCartConfirm}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* ── Scrollable items only ── */}
@@ -391,41 +410,6 @@ export function CartPanel({
         </AnimatePresence>
       </div>
 
-      {/* ── Upsell suggestions ── */}
-      {suggestions && suggestions.length > 0 && onSuggestionAdd && (
-        <div className="px-4 pb-2 pt-3 border-t border-gray-100 flex-shrink-0">
-          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">
-            {t.upsellTitle}
-          </p>
-          <div className="flex gap-2.5 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
-            {suggestions.slice(0, 5).map((p) => (
-              <button
-                key={p.id}
-                onClick={() => onSuggestionAdd(p)}
-                className="flex-shrink-0 w-[100px] flex flex-col gap-1 rounded-xl border border-gray-100 bg-white shadow-sm p-2 active:scale-95 transition-transform text-left"
-              >
-                {p.image_url ? (
-                  <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-100">
-                    <Image
-                      src={p.image_url}
-                      alt={p.name}
-                      fill
-                      sizes="100px"
-                      className="object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-full aspect-square rounded-lg bg-gray-100 flex items-center justify-center">
-                    <span className="text-xl">🍽️</span>
-                  </div>
-                )}
-                <span className="text-[11px] font-semibold text-gray-800 line-clamp-2 leading-tight">{p.name}</span>
-                <span className="text-[11px] font-bold text-[#05c8a7] tabular-nums">{fmtPrice(Number(p.price))}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* ── Loyalty progress banner ── */}
       {loyaltyData && loyaltyData.points > 0 && loyaltyData.config && (() => {
