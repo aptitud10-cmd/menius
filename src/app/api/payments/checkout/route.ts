@@ -114,7 +114,12 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    const session = await stripe.checkout.sessions.create(sessionParams);
+    // Idempotency: a double-click (or network retry) with the same order must not
+    // create a second Checkout Session — that risks charging the customer twice.
+    // Keying on order_id makes Stripe return the same session for repeat requests.
+    const session = await stripe.checkout.sessions.create(sessionParams, {
+      idempotencyKey: `checkout:${order.id}`,
+    });
 
     return NextResponse.json({ url: session.url });
   } catch (err: unknown) {
