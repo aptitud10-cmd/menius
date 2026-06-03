@@ -31,6 +31,8 @@ export interface Restaurant {
   notifications_enabled?: boolean;
   order_types_enabled?: OrderType[];
   payment_methods_enabled?: PaymentMethod[];
+  /** ISO timestamp until which online ordering is paused; null = accepting orders */
+  orders_paused_until?: string | null;
   estimated_delivery_minutes?: number | null;
   delivery_fee?: number | null;
   delivery_radius_km?: number | null;

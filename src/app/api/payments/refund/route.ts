@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     // Fetch order — verify it belongs to this tenant's restaurant
     const { data: order, error: orderErr } = await adminDb
       .from('orders')
-      .select('id, order_number, total, payment_status, payment_intent_id, status, restaurant_id, restaurants(stripe_account_id, stripe_onboarding_complete, commission_plan)')
+      .select('id, order_number, total, payment_status, payment_intent_id, status, promo_code, restaurant_id, restaurants(stripe_account_id, stripe_onboarding_complete, commission_plan)')
       .eq('id', order_id)
       .eq('restaurant_id', tenant.restaurantId)
       .maybeSingle();
@@ -87,6 +87,17 @@ export async function POST(req: NextRequest) {
       });
       captureError(new Error('Refund DB sync failure'), { orderId: order.id, refundId: refund.id });
       return NextResponse.json({ error: 'Reembolso procesado en Stripe pero no se pudo actualizar la orden. Contacta soporte.' }, { status: 500 });
+    }
+
+    // Release the promo usage this order consumed so a cancelled order doesn't
+    // permanently eat into the campaign's budget. Fire-and-forget: the refund
+    // already succeeded; a failed decrement must not fail the request.
+    if ((order as any).promo_code) {
+      adminDb
+        .rpc('decrement_promo_usage', { p_code: (order as any).promo_code, p_restaurant_id: order.restaurant_id })
+        .then(({ error: decErr }) => {
+          if (decErr) logger.warn('promo decrement failed on refund', { orderId: order.id, error: decErr.message });
+        });
     }
 
     logger.info('Order refunded', { orderId: order.id, orderNumber: order.order_number, refundId: refund.id });

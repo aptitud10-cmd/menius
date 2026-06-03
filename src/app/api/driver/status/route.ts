@@ -85,9 +85,17 @@ export async function POST(req: NextRequest) {
     if (!(order as any).driver_picked_up_at) {
       return NextResponse.json({ error: 'Cannot mark delivered before picked_up' }, { status: 409 });
     }
-    // Only update if the transition is valid (guards delivered/cancelled orders)
+    // Guard delivered/cancelled orders. Already-delivered is idempotent (200);
+    // any other invalid source state is a real conflict (409) so a buggy driver
+    // app surfaces the rejection instead of silently treating it as success.
     if (!canTransition(order.status, 'delivered')) {
-      return NextResponse.json({ ok: true, skipped: true, action });
+      if (order.status === 'delivered') {
+        return NextResponse.json({ ok: true, skipped: true, action });
+      }
+      return NextResponse.json(
+        { error: `Cannot transition from ${order.status} to delivered`, action },
+        { status: 409 }
+      );
     }
     // Single update: status + timestamp together
     const { error: statusErr } = await supabase

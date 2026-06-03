@@ -213,7 +213,7 @@ export function MenuShell({
   // Realtime in_stock overrides: updated live without page reload
   const [stockOverrides, setStockOverrides] = useState<Map<string, boolean>>(new Map());
   // Realtime pause state: updated live when restaurant pauses orders
-  const [pausedUntil, setPausedUntil] = useState<string | null>(() => (restaurant as any).orders_paused_until ?? null);
+  const [pausedUntil, setPausedUntil] = useState<string | null>(() => restaurant.orders_paused_until ?? null);
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const stockAlertTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const audioCtxRef = useRef<AudioContext | null>(null);

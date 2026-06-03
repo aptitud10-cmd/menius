@@ -653,7 +653,7 @@ export function CustomizationSheet({
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0 bg-white z-10">
           <div className="flex items-center gap-3 min-w-0">
             {!isPreview && (
-              <button onClick={onClose} aria-label="Volver" className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0">
+              <button onClick={onClose} aria-label={locale === 'es' ? 'Volver' : 'Back'} className="flex items-center gap-1.5 p-2 -ml-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors flex-shrink-0">
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
             )}
