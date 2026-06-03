@@ -75,7 +75,7 @@ class AutoAcceptServiceImpl {
     if (!this._config.enabled) return false;
 
     const activeCount = allOrders.filter(
-      (o) => o.id !== order.id && !['delivered', 'cancelled'].includes(o.status)
+      (o) => o.id !== order.id && !['delivered', 'completed', 'cancelled'].includes(o.status)
     ).length;
 
     if (activeCount >= this._config.maxConcurrentOrders) return false;

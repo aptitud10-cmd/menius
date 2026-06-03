@@ -387,6 +387,9 @@ export function CounterView({
 
   // ── Order actions state ──
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  // Synchronous in-flight guard for accept — survives the stale-closure window
+  // that React state can't (auto-accept + manual tap firing in the same tick).
+  const acceptingRef = useRef<Set<string>>(new Set());
   const [eta, setEta] = useState(15);
   const [suggestedEta, setSuggestedEta] = useState<number | null>(null);
   const [busyExtra, setBusyExtra] = useState(0);
@@ -662,19 +665,6 @@ export function CounterView({
     });
   });
 
-  // Auto-accept
-  useEffect(() => {
-    const firstNew = newOrders[0];
-    if (!firstNew || !AutoAcceptService.shouldAutoAccept(firstNew, orders)) return;
-    const effectiveEta = eta + busyExtra;
-    (async () => {
-      await updateOrderETA(firstNew.id, effectiveEta).catch(() => {});
-      await updateOrderStatus(firstNew.id, 'preparing').catch(() => {});
-      PrinterService.printOrder(firstNew, effectiveEta, restaurantName, currency, locale, taxLabel, taxIncluded).catch(() => {});
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newOrders.map(o => o.id).join(',')]);
-
   // ── Derived ──
   const selectedOrder = orders.find(o => o.id === selectedId) ?? null;
 
@@ -722,6 +712,12 @@ export function CounterView({
 
   // ── Actions ──
   const handleAccept = useCallback(async (order: Order) => {
+    // Guard against double-fire: auto-accept (countdown) and a manual tap can
+    // both target the same order in the same tick. The ref is synchronous, so the
+    // second caller sees it immediately — prevents duplicate status updates and
+    // printer tickets. (React state would still be stale within the same tick.)
+    if (acceptingRef.current.has(order.id) || order.status !== 'pending') return;
+    acceptingRef.current.add(order.id);
     setUpdatingId(order.id);
     const eff = eta + busyExtra;
     // Optimistic update — move order to 'preparing' immediately in the UI
@@ -750,8 +746,21 @@ export function CounterView({
     } catch {
       updateOrderLocally(order.id, { status: order.status }); // revert
       showError(t.en ? 'Unexpected error' : 'Error inesperado');
-    } finally { setUpdatingId(null); }
+    } finally {
+      setUpdatingId(null);
+      acceptingRef.current.delete(order.id);
+    }
   }, [eta, busyExtra, restaurantName, currency, autoPrint, t, updateOrderLocally, locale, taxLabel, taxIncluded, showNotif]);
+
+  // Auto-accept — delegate to handleAccept so ETA/status failures are handled
+  // (revert + error surfaced) instead of silently swallowed, and the in-flight
+  // guard prevents racing with a manual tap on the same order.
+  useEffect(() => {
+    const firstNew = newOrders[0];
+    if (!firstNew || !AutoAcceptService.shouldAutoAccept(firstNew, orders)) return;
+    handleAccept(firstNew);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newOrders.map(o => o.id).join(',')]);
 
   const handleMarkReady = useCallback(async (order: Order) => {
     setUpdatingId(order.id);

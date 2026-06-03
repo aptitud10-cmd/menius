@@ -125,16 +125,24 @@ export async function GET(request: NextRequest) {
 
     const deliveredOrderIds = (deliveredOrders ?? []).map(o => o.id);
     const reviewedOrderIds = new Set<string>();
+    // Orders that already received a review-request email — prevents duplicate
+    // sends if this cron is retried within the same 1–2 day window (idempotency).
+    const emailedOrderIds = new Set<string>();
     if (deliveredOrderIds.length > 0) {
-      const { data: existingReviews } = await supabase
-        .from('reviews')
-        .select('order_id')
-        .in('order_id', deliveredOrderIds);
+      const [{ data: existingReviews }, { data: sentEmails }] = await Promise.all([
+        supabase.from('reviews').select('order_id').in('order_id', deliveredOrderIds),
+        supabase
+          .from('order_notification_log')
+          .select('order_id')
+          .eq('event', 'review_request_email')
+          .in('order_id', deliveredOrderIds),
+      ]);
       (existingReviews ?? []).forEach(r => r.order_id && reviewedOrderIds.add(r.order_id));
+      (sentEmails ?? []).forEach(r => r.order_id && emailedOrderIds.add(r.order_id));
     }
 
     for (const order of deliveredOrders ?? []) {
-      if (reviewedOrderIds.has(order.id)) continue;
+      if (reviewedOrderIds.has(order.id) || emailedOrderIds.has(order.id)) continue;
 
       const restaurant = await getRestaurant(order.restaurant_id);
       if (!restaurant) continue;
@@ -151,6 +159,14 @@ export async function GET(request: NextRequest) {
 
       if (sent) {
         results.review_request++;
+        // Mark as sent so a cron retry doesn't email the same customer again.
+        await supabase.from('order_notification_log').insert({
+          order_id: order.id,
+          restaurant_id: order.restaurant_id,
+          event: 'review_request_email',
+          channel: 'email',
+          success: true,
+        });
       } else {
         results.errors++;
         logger.warn('Review request email failed to send', { order_id: order.id, email: order.customer_email });
