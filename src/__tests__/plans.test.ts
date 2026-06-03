@@ -125,7 +125,7 @@ describe('PLANS structure', () => {
 });
 
 describe('TRIAL_DAYS', () => {
-  it('is 0 (trial disabled)', () => {
-    expect(TRIAL_DAYS).toBe(0);
+  it('is 14 — must match the INTERVAL in create_restaurant_with_subscription RPC', () => {
+    expect(TRIAL_DAYS).toBe(14);
   });
 });

@@ -105,6 +105,13 @@ export async function POST(request: NextRequest) {
       () => stripe.checkout.sessions.create({
         customer: customerId!,
         payment_method_types: ['card'],
+        // Require a card even when the subscription starts with a trial.
+        // Without this, Stripe skips card collection for trials and customers
+        // simply vanish at trial_end with no payment method on file — the root
+        // cause of the ~4% trial→paid conversion. With 'always', the card is
+        // captured up front and the first charge fires automatically at trial_end
+        // unless the customer cancels.
+        payment_method_collection: 'always',
         line_items: [{ price: priceId, quantity: 1 }],
         mode: 'subscription',
         success_url: `${appUrl}/app/billing?checkout=success`,

@@ -31,8 +31,8 @@ export interface PlanConfig {
   isFree?: boolean;
 }
 
-/** Trial disabled — kept for backward compat with existing 'trialing' subscriptions in DB */
-export const TRIAL_DAYS = 0;
+/** Trial length. Must match the INTERVAL in the create_restaurant_with_subscription RPC. */
+export const TRIAL_DAYS = 14;
 
 /** No longer enforced — Free plan has unlimited orders to avoid customer-facing failures */
 export const FREE_MONTHLY_ORDER_LIMIT = -1;
