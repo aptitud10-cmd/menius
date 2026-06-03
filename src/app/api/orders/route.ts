@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { publicOrderSchema } from '@/lib/validations';
 import { NextRequest, NextResponse } from 'next/server';
-import { notifyNewOrder } from '@/lib/notifications/order-notifications';
+import { notifyNewOrder, notifyStatusChange } from '@/lib/notifications/order-notifications';
 import { sendEmail } from '@/lib/notifications/email';
 import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
 import { verifyOrderToken } from '@/lib/order-token';
@@ -715,6 +715,19 @@ export async function POST(request: NextRequest) {
             .from('orders')
             .update({ status: 'cancelled', notes: '[auto-cancelled: detail insert failed]' })
             .eq('id', order.id);
+          // Degraded path only: the delete failed, so a cancelled order now lives in DB.
+          // The customer may have paid — notify them it was cancelled so they aren't left
+          // waiting on an order that will never progress. Fire-and-forget (never blocks the
+          // 500 response). On the happy path above the order is fully deleted → nothing to notify.
+          notifyStatusChange({
+            orderId: order.id,
+            orderNumber: order.order_number,
+            restaurantId: restaurant_id,
+            status: 'cancelled',
+            customerName: parsed.data.customer_name,
+            customerEmail: customer_email || undefined,
+            customerPhone: parsed.data.customer_phone || undefined,
+          }).catch(() => {});
         }
         return NextResponse.json(
           { error: en ? 'Error saving order details. Please try again.' : 'Error guardando detalles del pedido. Intenta de nuevo.' },

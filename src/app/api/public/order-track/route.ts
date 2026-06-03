@@ -26,6 +26,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // Admin client is intentional here (AUDIT2 S1b — accepted with mitigation).
+    // Public order tracking needs the order + its order_items join, which anon RLS
+    // cannot satisfy (public_read_order_items requires restaurant ownership). Hardened
+    // as a server-side gateway: IP rate limit (30/60s), UUID-validated restaurant_id,
+    // lookup scoped to order_number + restaurant_id, and an explicit field allowlist
+    // below. Equivalent in trust to a SECURITY DEFINER RPC.
     const db = createAdminClient();
 
     // Only select fields needed for the tracking UI — never expose payment tokens or internal tokens

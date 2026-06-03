@@ -28,6 +28,13 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Admin client is intentional here (AUDIT2 S1a — accepted with mitigation).
+    // This public endpoint looks up a customer's last order by phone, which RLS
+    // cannot express for anon (no x-order-id, and order_items reads require
+    // restaurant ownership). It is hardened as a server-side gateway: IP rate
+    // limit (5/60s), UUID-validated restaurant_id, phone-scoped query, and a
+    // response that exposes only menu re-order fields — never tokens or PII
+    // beyond the requester's own order. Equivalent in trust to a SECURITY DEFINER RPC.
     const adminDb = createAdminClient();
 
     const { data: lastOrder } = await adminDb

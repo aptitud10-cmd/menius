@@ -1,0 +1,16 @@
+-- Drop the orphan RLS policy `anon_realtime_orders` on `orders`.
+--
+-- This policy (SELECT, role anon, USING (true)) was created manually in the
+-- Supabase dashboard and never lived in a migration. Because SELECT policies
+-- combine with OR, it overrode the correctly-scoped `public_read_own_order`
+-- (which gates anon reads to a single order via the `x-order-id` request header).
+-- Net effect: any anonymous client could SELECT every row of `orders` across all
+-- restaurants — exposing customer_name, customer_phone, customer_email and
+-- delivery_address platform-wide.
+--
+-- Safe to drop: no anon client subscribes to postgres_changes on `orders`.
+--  - OrderTracker (public) uses Realtime `broadcast`, which bypasses RLS.
+--  - OrderNotifier (dashboard) uses postgres_changes as the authenticated owner,
+--    covered by `owners_manage_orders`.
+--  - MenuShell (public) subscribes only to `products` and `restaurants`.
+DROP POLICY IF EXISTS "anon_realtime_orders" ON public.orders;
