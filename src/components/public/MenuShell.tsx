@@ -10,7 +10,7 @@ import { useFavoritesStore } from '@/store/favoritesStore';
 import { formatPrice, cn } from '@/lib/utils';
 import { getTranslations, type Locale } from '@/lib/translations';
 import type { Restaurant, Category, Product, OrderType, DietaryTag } from '@/types';
-import { DIETARY_TAGS } from '@/lib/dietary-tags';
+import { DIETARY_TAGS, getTagConfig } from '@/lib/dietary-tags';
 import { getLocaleFlag, SUPPORTED_LOCALES, tName, tDesc } from '@/lib/i18n';
 import { trackEvent } from '@/lib/analytics';
 
@@ -1641,6 +1641,47 @@ export function MenuShell({
               <p className="font-medium">{t.noDietMatch}</p>
               <button onClick={() => setActiveDiet(null)} className="mt-1 text-sm text-[#05c8a7] font-semibold hover:text-[#047a65] transition-colors">{t.viewFullMenu}</button>
             </motion.div>
+          ) : activeDiet ? (
+            // Dietary filter active with matches: show them as one compact grid
+            // (not split across categories), so a tag with few products reads as
+            // "N results" instead of a near-empty menu scattered over categories.
+            <div>
+              <div className="flex items-center gap-2 mb-4 py-1">
+                <span aria-hidden="true" className="text-lg">{DIETARY_TAGS.find((d) => d.id === activeDiet)?.emoji}</span>
+                <h2 className="text-lg font-bold text-gray-900">
+                  {locale === 'en' ? getTagConfig(activeDiet)?.labelEn : getTagConfig(activeDiet)?.labelEs}
+                </h2>
+                <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full tabular-nums">
+                  {filteredProducts.length}
+                </span>
+                <button
+                  onClick={() => setActiveDiet(null)}
+                  className="ml-auto text-sm text-[#05c8a7] font-semibold hover:text-[#047a65] transition-colors"
+                >
+                  {t.viewFullMenu}
+                </button>
+              </div>
+              <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    restaurantId={restaurant.id}
+                    onSelect={handleProductSelect}
+                    onQuickAdd={handleQuickAdd}
+                    fmtPrice={fmtPrice}
+                    addLabel={t.addToCart}
+                    customizeLabel={t.customize}
+                    popularLabel={t.popular}
+                    soldOutLabel={t.soldOut}
+                    unavailableLabel={t.unavailable}
+                    addedShortLabel={t.addedShort}
+                    locale={locale}
+                    defaultLocale={defaultLocale}
+                  />
+                ))}
+              </div>
+            </div>
           ) : (
             <MenuErrorBoundary section="products" locale={locale}>
             <div

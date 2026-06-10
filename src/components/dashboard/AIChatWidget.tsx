@@ -498,8 +498,11 @@ export function AIChatWidget() {
         )}
 
         {/* Drawer — slides up from bottom, sits above the MobileBottomNav */}
+        {/* When closed, translate by the panel height PLUS the 56px bottom offset.
+            translate-y-full alone only shifts by the element's own height, which is
+            (100dvh - 56px) — leaving the 56px header peeking above the bottom nav. */}
         <div
-          className={`fixed inset-x-0 bottom-14 z-50 transition-transform duration-300 ease-out ${open ? 'translate-y-0' : 'translate-y-full'}`}
+          className={`fixed inset-x-0 bottom-14 z-50 transition-transform duration-300 ease-out ${open ? 'translate-y-0' : 'translate-y-[calc(100%+56px)]'}`}
           style={{ height: 'calc(100dvh - 56px)', paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
           <ChatPanel {...sharedPanelProps} />
