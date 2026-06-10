@@ -159,9 +159,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching restaurant menu:', error);
-    return NextResponse.json(
-      { error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown' },
-      { status: 500 }
-    );
+    // Don't leak error.message (could reveal DB schema / RLS details) to the client.
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

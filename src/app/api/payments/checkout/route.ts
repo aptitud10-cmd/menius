@@ -124,6 +124,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (err: unknown) {
     captureError(err, { route: '/api/payments/checkout' });
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error creando sesión de pago' }, { status: 500 });
+    // Generic message to the client — the real error is in Sentry. Returning
+    // err.message would leak Stripe/DB internals.
+    return NextResponse.json({ error: 'Error creando sesión de pago' }, { status: 500 });
   }
 }

@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err) {
     captureError(err, { route: '/api/payments/wompi' });
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error interno' }, { status: 500 });
+    // Generic message — real error is in Sentry; err.message would leak gateway/DB internals.
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
   }
 }

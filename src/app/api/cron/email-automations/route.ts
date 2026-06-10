@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
         await supabase.from('customers').update({ tags: newTags }).eq('id', customer.id);
       } else {
         results.errors++;
-        logger.warn('Welcome email failed to send', { customer_id: customer.id, email: customer.email });
+        logger.warn('Welcome email failed to send', { customer_id: customer.id });
       }
     }
 
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
         await supabase.from('customers').update({ tags: newTags }).eq('id', customer.id);
       } else {
         results.errors++;
-        logger.warn('Reactivation email failed to send', { customer_id: customer.id, email: customer.email });
+        logger.warn('Reactivation email failed to send', { customer_id: customer.id });
       }
     }
 
@@ -169,7 +169,7 @@ export async function GET(request: NextRequest) {
         });
       } else {
         results.errors++;
-        logger.warn('Review request email failed to send', { order_id: order.id, email: order.customer_email });
+        logger.warn('Review request email failed to send', { order_id: order.id });
       }
     }
 
@@ -385,7 +385,7 @@ export async function GET(request: NextRequest) {
             } catch { /* non-blocking */ }
           } else {
             results.errors++;
-            logger.warn('Monthly report email failed to send', { restaurant_id: restaurant.id, email: restaurant.notification_email });
+            logger.warn('Monthly report email failed to send', { restaurant_id: restaurant.id });
           }
         }
       }

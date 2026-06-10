@@ -38,6 +38,7 @@ export async function POST() {
   } catch (err: unknown) {
     logger.error('Billing portal error', { error: err instanceof Error ? err.message : String(err) });
     captureError(err, { route: '/api/billing/portal' });
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error' }, { status: 500 });
+    // Generic message — real error is logged + in Sentry; err.message would leak internals.
+    return NextResponse.json({ error: 'Error' }, { status: 500 });
   }
 }

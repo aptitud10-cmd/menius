@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });
   } catch (err: unknown) {
     captureError(err, { route: '/api/payments/intent' });
-    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error creating payment intent' }, { status: 500 });
+    // Generic message — real error is in Sentry; err.message would leak Stripe/DB internals.
+    return NextResponse.json({ error: 'Error creating payment intent' }, { status: 500 });
   }
 }
