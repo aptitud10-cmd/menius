@@ -55,6 +55,10 @@
     {
       "path": "/api/cron/recalc-popularity",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/rls-drift-check",
+      "schedule": "0 6 * * *"
     }
   ]
 }
