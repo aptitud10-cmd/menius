@@ -48,16 +48,16 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
       ref={navRef}
       className={`fixed top-0 w-full z-[120] bg-[#050505]/95 md:bg-[#050505]/80 md:backdrop-blur-2xl border-b transition-colors duration-300 ${scrolled ? 'border-white/[0.09] shadow-[0_1px_0_rgba(255,255,255,0.04)]' : 'border-white/[0.04]'}`}
     >
-      <div className="max-w-7xl mx-auto px-5 lg:px-8 h-14 md:h-16 grid grid-cols-[auto_1fr_auto] items-center">
-        <Link href="/" className="font-display text-lg font-bold tracking-[-0.04em] text-white">MENIUS</Link>
+      <div className="max-w-7xl mx-auto px-5 lg:px-8 h-14 md:h-16 grid grid-cols-[auto_1fr_auto] items-stretch">
+        <Link href="/" className="flex items-center font-display text-lg font-bold tracking-[-0.04em] text-white leading-none">MENIUS</Link>
 
-        <nav className="hidden md:flex items-center justify-center gap-8">
+        <nav className="hidden md:flex items-center justify-center gap-8 leading-none">
           <Link href="/#funciones" className="text-sm text-gray-400 hover:text-white transition-colors">{n.features}</Link>
           <Link href="/#precios" className="text-sm text-gray-400 hover:text-white transition-colors">{n.pricing}</Link>
           <Link href="/demo" className="text-sm text-gray-400 hover:text-white transition-colors">{n.demo}</Link>
         </nav>
 
-        <div className="flex items-center justify-end gap-4">
+        <div className="flex items-center justify-end gap-4 leading-none">
           <div className="hidden md:flex items-center gap-1 text-xs">
             <button onClick={() => switchLocale('es')} className={`px-1.5 py-0.5 rounded transition-colors ${locale === 'es' ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'}`}>ES</button>
             <span className="text-gray-600">|</span>
