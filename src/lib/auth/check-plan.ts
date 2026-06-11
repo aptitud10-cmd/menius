@@ -13,6 +13,14 @@ function rank(planId: string): number {
 }
 
 /**
+ * Dunning grace period: how long a 'past_due' subscription keeps its paid plan
+ * after the first failed charge. Stripe Smart Retries run on its own during this
+ * window; after it elapses the restaurant degrades to 'free' (menu stays live,
+ * paid features turn off) until payment recovers.
+ */
+export const PAST_DUE_GRACE_DAYS = 7;
+
+/**
  * Legacy Free limits — applied to restaurants grandfathered before 2026-04-29.
  * These match the generous Free plan that existed before plan-limit tightening.
  */
@@ -64,9 +72,10 @@ export async function getEffectivePlanLimits(
  *
  * Priority:
  *  1. commission_plan = true  → 'starter' (pay-per-order model, no subscription needed)
- *  2. Active/past_due subscription → subscription.plan_id
- *  3. Valid trial → plan_id (usually 'starter')
- *  4. Otherwise → 'free'
+ *  2. Active subscription → subscription.plan_id
+ *  3. past_due within grace period → subscription.plan_id; after grace → 'free'
+ *  4. Valid trial → plan_id (usually 'starter')
+ *  5. Otherwise → 'free'
  */
 export async function getEffectivePlanId(restaurantId: string): Promise<string> {
   const supabase = await createClient();
@@ -82,12 +91,25 @@ export async function getEffectivePlanId(restaurantId: string): Promise<string> 
 
   const { data: sub } = await supabase
     .from('subscriptions')
-    .select('plan_id, status, trial_end')
+    .select('plan_id, status, trial_end, past_due_since')
     .eq('restaurant_id', restaurantId)
     .maybeSingle();
 
   if (!sub) return 'free';
-  if (sub.status === 'active' || sub.status === 'past_due') return sub.plan_id ?? 'free';
+  if (sub.status === 'active') return sub.plan_id ?? 'free';
+
+  // past_due: keep the paid plan during the grace window, then degrade to free.
+  // Stripe keeps retrying the charge in the background; if it recovers, invoice.paid
+  // flips status back to 'active' and clears past_due_since.
+  if (sub.status === 'past_due') {
+    const since = (sub as any).past_due_since;
+    // No timestamp recorded (legacy row) → fall back to keeping the plan, so we
+    // never wrongly cut off an existing customer we have no grace data for.
+    if (!since) return sub.plan_id ?? 'free';
+    const graceEnd = new Date(since).getTime() + PAST_DUE_GRACE_DAYS * 86400_000;
+    return Date.now() < graceEnd ? (sub.plan_id ?? 'free') : 'free';
+  }
+
   if (
     sub.status === 'trialing' &&
     sub.trial_end &&

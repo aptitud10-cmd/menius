@@ -136,6 +136,17 @@ export async function POST(request: NextRequest) {
           updateData.trial_end = new Date(sub.trial_end * 1000).toISOString();
         }
 
+        // Keep the dunning grace clock in sync with Stripe's status:
+        //  - entering past_due  → stamp the clock if not already set
+        //  - leaving past_due    → clear it (payment recovered or plan changed)
+        if (status === 'past_due') {
+          if (previousStatus !== 'past_due') {
+            updateData.past_due_since = new Date().toISOString();
+          }
+        } else {
+          updateData.past_due_since = null;
+        }
+
         let dbError;
         if (restaurantId) {
           const r = await supabase.from('subscriptions').update(updateData).eq('restaurant_id', restaurantId);
@@ -316,9 +327,27 @@ export async function POST(request: NextRequest) {
 
         if (customerId) {
           const resolvedId = await resolveRestaurantId(null, customerId);
+
+          // Only stamp past_due_since on the FIRST transition into past_due, so the
+          // 7-day grace window is measured from the first failure — not reset on
+          // every Stripe Smart Retry that fails again.
+          const { data: curSub } = await supabase
+            .from('subscriptions')
+            .select('status, past_due_since')
+            .eq('stripe_customer_id', customerId)
+            .maybeSingle();
+
+          const updatePayload: Record<string, unknown> = {
+            status: 'past_due',
+            updated_at: new Date().toISOString(),
+          };
+          if (!curSub?.past_due_since) {
+            updatePayload.past_due_since = new Date().toISOString();
+          }
+
           const { error: dbError } = await supabase
             .from('subscriptions')
-            .update({ status: 'past_due', updated_at: new Date().toISOString() })
+            .update(updatePayload)
             .eq('stripe_customer_id', customerId);
           if (dbError) {
             logger.error('DB update failed for invoice.payment_failed', { error: dbError.message });
@@ -349,7 +378,8 @@ export async function POST(request: NextRequest) {
           const resolvedId = await resolveRestaurantId(null, customerId);
           const { error: dbError } = await supabase
             .from('subscriptions')
-            .update({ status: 'active', updated_at: new Date().toISOString() })
+            // Payment recovered — clear the grace-period clock.
+            .update({ status: 'active', past_due_since: null, updated_at: new Date().toISOString() })
             .eq('stripe_customer_id', customerId)
             .eq('stripe_subscription_id', subId);
           if (dbError) {
