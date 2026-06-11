@@ -434,7 +434,7 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
               : Math.floor(planConfig.price.annual / 12);
             const displayPrice = annual ? annualPerMonth : monthlyPrice;
 
-            const currencySymbol = isColombia ? '$' : '$';
+            const currencySymbol = '$';
             const formatPrice = (n: number) => isColombia ? formatCOP(n) : String(n);
 
             return (
@@ -629,6 +629,8 @@ function FaqSection({ locale }: { locale: LandingLocale }) {
 
 /* ─── MAIN ─── */
 
+const SECTION_PY = 'py-24 md:py-28 lg:py-40' as const;
+
 export function LandingSections({ locale, country }: { locale: LandingLocale; country?: string }) {
   const t = getLandingT(locale);
   const isColombia = country === 'CO';
@@ -641,7 +643,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Pricing ── */}
-      <section id="precios" className="relative py-24 md:py-28 lg:py-40 overflow-clip">
+      <section id="precios" className={`relative ${SECTION_PY} overflow-clip`}>
         <div className="section-glow section-glow-blue" />
         <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-[#05c8a7]/15 blur-[100px] pointer-events-none" />
         <div className="relative z-10 max-w-5xl mx-auto px-6">
@@ -655,7 +657,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Savings Calculator ── */}
-      <section id="calculadora" className="relative py-24 md:py-28 lg:py-40 overflow-clip">
+      <section id="calculadora" className={`relative ${SECTION_PY} overflow-clip`}>
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
@@ -678,7 +680,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Features with Tabs ── */}
-      <section id="funciones" className="relative py-24 md:py-28 lg:py-40 overflow-clip">
+      <section id="funciones" className={`relative ${SECTION_PY} overflow-clip`}>
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
@@ -701,7 +703,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Comparison ── */}
-      <section className="relative py-24 md:py-28 lg:py-40 overflow-clip">
+      <section className={`relative ${SECTION_PY} overflow-clip`}>
         <div className="section-glow section-glow-teal" />
 
         <div className="relative z-10 max-w-4xl mx-auto px-6">
@@ -774,7 +776,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── How it works ── */}
-      <section className="relative py-24 md:py-28 lg:py-40 overflow-clip">
+      <section className={`relative ${SECTION_PY} overflow-clip`}>
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-4xl mx-auto px-6">
@@ -806,7 +808,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Industry Insights (replaces fake testimonials) ── */}
-      <section className="relative py-24 md:py-28 lg:py-40 overflow-clip">
+      <section className={`relative ${SECTION_PY} overflow-clip`}>
         <div className="section-glow section-glow-teal" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
