@@ -779,6 +779,110 @@ export function buildTrialEndingEmail(params: {
   return shell(accentColor, header, body, footer);
 }
 
+// ---------- Dunning / Failed Payment (restaurant owner) ----------
+
+/**
+ * Dunning sequence sent while a subscription is past_due.
+ * stage: 1 = payment failed (day 0), 2 = reminder (day 1),
+ *        3 = urgent / last chance (day 4), 4 = downgraded to free (day 7).
+ */
+export function buildDunningEmail(params: {
+  ownerName: string;
+  restaurantName: string;
+  planName: string;        // e.g. "Pro"
+  billingUrl: string;
+  stage: 1 | 2 | 3 | 4;
+  graceDays: number;       // total grace window (e.g. 7)
+  locale?: string;
+}): string {
+  const { ownerName, restaurantName, planName, billingUrl, stage, graceDays, locale } = params;
+  const en = locale === 'en';
+
+  // Per-stage copy + accent. Escalates from soft amber to red, then neutral on downgrade.
+  const stages: Record<number, {
+    icon: string; color: string; box: string; boxText: string; boxBorder: string;
+    titleEn: string; titleEs: string;
+    leadEn: string; leadEs: string;
+    boxEn: string; boxEs: string;
+    ctaEn: string; ctaEs: string;
+  }> = {
+    1: {
+      icon: '⚠️', color: '#d97706', box: '#fef3c7', boxText: '#92400e', boxBorder: '#d97706',
+      titleEn: 'Your payment failed',
+      titleEs: 'Tu pago no se pudo procesar',
+      leadEn: `Hi <strong>${esc(ownerName)}</strong> — we couldn't process the payment for your <strong>${esc(planName)}</strong> plan. This usually means an expired card or insufficient funds.`,
+      leadEs: `Hola <strong>${esc(ownerName)}</strong> — no pudimos procesar el pago de tu plan <strong>${esc(planName)}</strong>. Suele ser por una tarjeta vencida o fondos insuficientes.`,
+      boxEn: `No rush — we'll keep your plan active and retry automatically. Update your card any time in the next ${graceDays} days to avoid interruption.`,
+      boxEs: `Sin apuro — mantenemos tu plan activo y reintentaremos automáticamente. Actualiza tu tarjeta en los próximos ${graceDays} días para evitar interrupciones.`,
+      ctaEn: 'Update my card', ctaEs: 'Actualizar mi tarjeta',
+    },
+    2: {
+      icon: '⏰', color: '#d97706', box: '#fef3c7', boxText: '#92400e', boxBorder: '#d97706',
+      titleEn: 'Reminder: update your payment method',
+      titleEs: 'Recordatorio: actualiza tu método de pago',
+      leadEn: `Hi <strong>${esc(ownerName)}</strong> — your <strong>${esc(planName)}</strong> payment is still pending. Your plan is active, but we haven't been able to charge your card yet.`,
+      leadEs: `Hola <strong>${esc(ownerName)}</strong> — el pago de tu plan <strong>${esc(planName)}</strong> sigue pendiente. Tu plan está activo, pero aún no pudimos cobrar tu tarjeta.`,
+      boxEn: `Update your card to keep ${esc(restaurantName)} on ${esc(planName)} without interruption.`,
+      boxEs: `Actualiza tu tarjeta para mantener a ${esc(restaurantName)} en ${esc(planName)} sin interrupciones.`,
+      ctaEn: 'Update my card', ctaEs: 'Actualizar mi tarjeta',
+    },
+    3: {
+      icon: '🚨', color: '#dc2626', box: '#fee2e2', boxText: '#991b1b', boxBorder: '#dc2626',
+      titleEn: 'Last chance — your plan will downgrade soon',
+      titleEs: 'Última oportunidad — tu plan bajará pronto',
+      leadEn: `Hi <strong>${esc(ownerName)}</strong> — we still can't process your <strong>${esc(planName)}</strong> payment. To keep your paid features, update your card now.`,
+      leadEs: `Hola <strong>${esc(ownerName)}</strong> — todavía no podemos procesar el pago de tu plan <strong>${esc(planName)}</strong>. Para conservar tus funciones de pago, actualiza tu tarjeta ahora.`,
+      boxEn: `In a few days ${esc(restaurantName)} will drop to the Free plan — your menu stays online, but you'll lose ${esc(planName)} features (delivery, WhatsApp alerts, extra staff, analytics).`,
+      boxEs: `En pocos días ${esc(restaurantName)} pasará al plan Free — tu menú sigue online, pero perderás las funciones de ${esc(planName)} (delivery, alertas WhatsApp, staff adicional, analytics).`,
+      ctaEn: 'Keep my plan', ctaEs: 'Conservar mi plan',
+    },
+    4: {
+      icon: '📉', color: '#6b7280', box: '#f3f4f6', boxText: '#374151', boxBorder: '#9ca3af',
+      titleEn: 'Your account moved to the Free plan',
+      titleEs: 'Tu cuenta pasó al plan Free',
+      leadEn: `Hi <strong>${esc(ownerName)}</strong> — since we couldn't process your payment, ${esc(restaurantName)} is now on the <strong>Free plan</strong>. Your menu and orders keep working.`,
+      leadEs: `Hola <strong>${esc(ownerName)}</strong> — como no pudimos procesar tu pago, ${esc(restaurantName)} ahora está en el <strong>plan Free</strong>. Tu menú y pedidos siguen funcionando.`,
+      boxEn: `Reactivate ${esc(planName)} any time by updating your payment method — your data and settings are exactly where you left them.`,
+      boxEs: `Reactiva ${esc(planName)} cuando quieras actualizando tu método de pago — tus datos y configuración están intactos.`,
+      ctaEn: `Reactivate ${esc(planName)}`, ctaEs: `Reactivar ${esc(planName)}`,
+    },
+  };
+
+  const s = stages[stage];
+
+  const header = `
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td style="padding:36px 32px 28px;text-align:center;border-bottom:1px solid #f0f0f0;">
+        <p style="margin:0 0 12px;font-size:40px;line-height:1;">${s.icon}</p>
+        <p style="margin:0 0 4px;font-size:20px;font-weight:800;color:${s.color};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${en ? s.titleEn : s.titleEs}</p>
+        <p style="margin:0;font-size:13px;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${esc(restaurantName)}</p>
+      </td>
+    </tr>
+  </table>`;
+
+  const body = `
+  <p style="margin:0 0 24px;font-size:15px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
+    ${en ? s.leadEn : s.leadEs}
+  </p>
+
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:24px;">
+    <tr>
+      <td style="background-color:${s.box};border-radius:12px;padding:16px 20px;border-left:4px solid ${s.boxBorder};">
+        <p style="margin:0;font-size:13px;color:${s.boxText};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
+          ${en ? s.boxEn : s.boxEs}
+        </p>
+      </td>
+    </tr>
+  </table>
+
+  ${ctaButton(billingUrl, (en ? s.ctaEn : s.ctaEs), s.color)}`;
+
+  const footer = `MENIUS &nbsp;·&nbsp; <a href="${billingUrl}" style="color:#7c3aed;text-decoration:none;">${en ? 'Manage subscription' : 'Gestionar suscripción'}</a>`;
+
+  return shell(s.color, header, body, footer);
+}
+
 // ---------- Social Post Digest (admin) ----------
 
 export interface SocialPostDigestItem {

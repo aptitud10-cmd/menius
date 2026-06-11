@@ -142,9 +142,11 @@ export async function POST(request: NextRequest) {
         if (status === 'past_due') {
           if (previousStatus !== 'past_due') {
             updateData.past_due_since = new Date().toISOString();
+            updateData.dunning_stage = 0;
           }
         } else {
           updateData.past_due_since = null;
+          updateData.dunning_stage = 0;
         }
 
         let dbError;
@@ -342,7 +344,10 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString(),
           };
           if (!curSub?.past_due_since) {
+            // First failure of this dunning cycle — stamp the clock and reset the
+            // email sequence so the /api/cron/dunning run starts fresh from stage 1.
             updatePayload.past_due_since = new Date().toISOString();
+            updatePayload.dunning_stage = 0;
           }
 
           const { error: dbError } = await supabase
@@ -378,8 +383,8 @@ export async function POST(request: NextRequest) {
           const resolvedId = await resolveRestaurantId(null, customerId);
           const { error: dbError } = await supabase
             .from('subscriptions')
-            // Payment recovered — clear the grace-period clock.
-            .update({ status: 'active', past_due_since: null, updated_at: new Date().toISOString() })
+            // Payment recovered — clear the grace-period clock and dunning sequence.
+            .update({ status: 'active', past_due_since: null, dunning_stage: 0, updated_at: new Date().toISOString() })
             .eq('stripe_customer_id', customerId)
             .eq('stripe_subscription_id', subId);
           if (dbError) {
