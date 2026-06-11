@@ -48,34 +48,34 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
       ref={navRef}
       className={`fixed top-0 w-full z-[120] bg-[#050505]/95 md:bg-[#050505]/80 md:backdrop-blur-2xl border-b transition-colors duration-300 ${scrolled ? 'border-white/[0.09] shadow-[0_1px_0_rgba(255,255,255,0.04)]' : 'border-white/[0.04]'}`}
     >
-      <div className="max-w-6xl mx-auto px-5 h-14 md:h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-5 lg:px-8 h-14 md:h-16 grid grid-cols-[auto_1fr_auto] items-center">
         <Link href="/" className="font-display text-lg font-bold tracking-[-0.04em] text-white">MENIUS</Link>
 
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center justify-center gap-8">
           <Link href="/#funciones" className="text-sm text-gray-400 hover:text-white transition-colors">{n.features}</Link>
           <Link href="/#precios" className="text-sm text-gray-400 hover:text-white transition-colors">{n.pricing}</Link>
           <Link href="/demo" className="text-sm text-gray-400 hover:text-white transition-colors">{n.demo}</Link>
         </nav>
 
-        <div className="hidden md:flex items-center gap-4">
-          <div className="flex items-center gap-1 text-xs">
+        <div className="flex items-center justify-end gap-4">
+          <div className="hidden md:flex items-center gap-1 text-xs">
             <button onClick={() => switchLocale('es')} className={`px-1.5 py-0.5 rounded transition-colors ${locale === 'es' ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'}`}>ES</button>
             <span className="text-gray-600">|</span>
             <button onClick={() => switchLocale('en')} className={`px-1.5 py-0.5 rounded transition-colors ${locale === 'en' ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'}`}>EN</button>
           </div>
-          <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">{n.login}</Link>
-          <Link href="/signup" className="text-sm font-medium px-5 py-2.5 rounded-xl bg-white text-black hover:bg-gray-100 transition-colors">{n.startFree}</Link>
+          <Link href="/login" className="hidden md:block text-sm text-gray-400 hover:text-white transition-colors">{n.login}</Link>
+          <Link href="/signup" className="hidden md:block text-sm font-medium px-5 py-2.5 rounded-xl bg-white text-black hover:bg-gray-100 transition-colors">{n.startFree}</Link>
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            className="md:hidden flex flex-col items-center justify-center w-11 h-11 gap-[5px]"
+            aria-label={n.menuLabel}
+          >
+            <span className={`block w-5 h-[1.5px] bg-gray-300 transition-all duration-300 ${open ? 'rotate-45 translate-y-[6.5px]' : ''}`} />
+            <span className={`block w-5 h-[1.5px] bg-gray-300 transition-all duration-300 ${open ? 'opacity-0' : ''}`} />
+            <span className={`block w-5 h-[1.5px] bg-gray-300 transition-all duration-300 ${open ? '-rotate-45 -translate-y-[6.5px]' : ''}`} />
+          </button>
         </div>
-
-        <button
-          onClick={() => setOpen(!open)}
-          className="md:hidden flex flex-col items-center justify-center w-11 h-11 gap-[5px]"
-          aria-label={n.menuLabel}
-        >
-          <span className={`block w-5 h-[1.5px] bg-gray-300 transition-all duration-300 ${open ? 'rotate-45 translate-y-[6.5px]' : ''}`} />
-          <span className={`block w-5 h-[1.5px] bg-gray-300 transition-all duration-300 ${open ? 'opacity-0' : ''}`} />
-          <span className={`block w-5 h-[1.5px] bg-gray-300 transition-all duration-300 ${open ? '-rotate-45 -translate-y-[6.5px]' : ''}`} />
-        </button>
       </div>
 
       {open && (

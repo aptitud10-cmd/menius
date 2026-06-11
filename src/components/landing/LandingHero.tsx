@@ -13,13 +13,13 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
   const h = getLandingT(locale).hero;
 
   return (
-    <section className="relative min-h-[100vh] min-h-[100dvh] flex items-center overflow-clip">
+    <section className="relative min-h-[640px] md:min-h-svh xl:min-h-[100dvh] flex items-center overflow-clip">
       <div className="hero-gradient" />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 sm:px-6 w-full pt-16 pb-16 md:py-0">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-6 lg:px-8 w-full pt-16 pb-16 xl:py-0">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 xl:gap-20 items-center">
 
-          <div className="text-center lg:text-left">
+          <div className="text-center xl:text-left">
             <h1
               className="d-fade-up d-delay-1 font-display font-extrabold leading-[1.06] tracking-[-0.03em] text-white"
               style={{ fontSize: 'clamp(2.5rem, 5.5vw, 4.5rem)' }}
@@ -28,15 +28,15 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
               <span className="text-gradient-premium">{h.titleHighlight}</span>
             </h1>
 
-            <p className="d-fade-up d-delay-2 mt-5 md:mt-6 text-base sm:text-lg text-[#05c8a7] font-medium max-w-[480px] mx-auto lg:mx-0">
+            <p className="d-fade-up d-delay-2 mt-5 md:mt-6 text-base sm:text-lg text-[#05c8a7] font-medium max-w-[480px] mx-auto xl:mx-0">
               {h.productLine}
             </p>
 
-            <p className="d-fade-up d-delay-2 mt-3 text-lg sm:text-xl text-gray-300 max-w-[480px] mx-auto lg:mx-0 leading-relaxed font-light">
+            <p className="d-fade-up d-delay-2 mt-3 text-lg sm:text-xl text-gray-300 max-w-[480px] mx-auto xl:mx-0 leading-relaxed font-light">
               {h.subtitle}
             </p>
 
-            <div className="d-fade-up d-delay-3 mt-8 md:mt-9 flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-3.5">
+            <div className="d-fade-up d-delay-3 mt-8 md:mt-9 flex flex-col sm:flex-row items-center xl:items-start justify-center xl:justify-start gap-3.5">
               <Link
                 href="/signup"
                 className="group w-full sm:w-auto px-8 py-5 rounded-2xl bg-white text-black font-extrabold text-[17px] hover:bg-gray-100 hover:shadow-[0_6px_24px_rgba(255,255,255,0.22)] active:scale-[0.97] active:shadow-none transition-[transform,box-shadow,background] duration-150 text-center shadow-[0_4px_20px_rgba(255,255,255,0.15)]"
@@ -52,15 +52,15 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
               </Link>
             </div>
 
-            <p className="d-fade-up d-delay-3 mt-3 text-xs text-gray-500 text-center lg:text-left">{h.badge}</p>
+            <p className="d-fade-up d-delay-3 mt-3 text-xs text-gray-500 text-center xl:text-left">{h.badge}</p>
 
-            <div className="d-fade-up d-delay-3 mt-4 flex items-center justify-center lg:justify-start gap-2.5 flex-wrap">
+            <div className="d-fade-up d-delay-3 mt-4 flex items-center justify-center xl:justify-start gap-2.5 flex-wrap">
               {['SSL', 'Stripe', 'CCPA'].map((b) => (
                 <span key={b} className="text-xs text-gray-400 border border-gray-700 rounded-full px-2.5 py-0.5">{b}</span>
               ))}
             </div>
 
-            <div className="d-fade-up d-delay-4 mt-12 md:mt-14 w-full flex items-start justify-center lg:justify-start gap-4 sm:gap-8">
+            <div className="d-fade-up d-delay-4 mt-12 md:mt-14 w-full flex items-start justify-center xl:justify-start gap-4 sm:gap-8">
               {h.stats.map((s, i) => {
                 const isDynamic = i === 1 && ordersCount != null && ordersCount > 0;
                 const value = isDynamic ? formatCount(ordersCount!) : s.value;
@@ -68,7 +68,7 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
                   ? (locale === 'es' ? 'Pedidos sin comisión' : 'Orders, zero commission')
                   : s.label;
                 return (
-                  <div key={s.label} className="text-center lg:text-left min-w-0">
+                  <div key={s.label} className="text-center xl:text-left min-w-0">
                     <p className="text-xl sm:text-3xl font-semibold text-white tracking-tight">{value}</p>
                     <p className="text-xs sm:text-sm text-gray-400 mt-1.5 font-medium">{label}</p>
                   </div>
@@ -77,7 +77,7 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
             </div>
           </div>
 
-          <div className="hidden lg:flex justify-center items-center d-scale-in d-delay-3">
+          <div className="hidden xl:flex justify-center items-center d-scale-in d-delay-3">
             <PhoneMockup locale={locale} />
           </div>
 

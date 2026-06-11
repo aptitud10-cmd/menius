@@ -440,7 +440,7 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
             return (
               <div
                 key={plan.name}
-                className={`relative rounded-2xl p-8 flex flex-col transition-all duration-300 ${
+                className={`relative rounded-2xl p-6 lg:p-8 flex flex-col transition-all duration-300 ${
                   isPopular
                     ? 'card-popular-glow bg-white/[0.04] border border-[#05c8a7]/20 shimmer-border'
                     : 'card-gradient-border bg-white/[0.02] rounded-2xl hover:bg-white/[0.04]'
@@ -455,7 +455,7 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
                 <p className="text-sm text-gray-400 mt-1.5">{plan.desc}</p>
                 <div className="mt-7 mb-1">
                   <div className="flex items-end gap-1.5">
-                    <span className="text-5xl font-bold text-white tracking-tight transition-all duration-300">
+                    <span className="text-4xl lg:text-5xl font-bold text-white tracking-tight transition-all duration-300">
                       {currencySymbol}{formatPrice(displayPrice)}
                     </span>
                     <span className="text-sm text-gray-400 mb-1.5 leading-tight">
@@ -582,7 +582,7 @@ function FaqSection({ locale }: { locale: LandingLocale }) {
   const isEs = locale === 'es';
 
   return (
-    <section id="faq" className="relative py-24 md:py-32 overflow-clip">
+    <section id="faq" className="relative py-24 md:py-28 lg:py-32 overflow-clip">
       <div className="relative z-10 max-w-3xl mx-auto px-6">
         <div className="text-center mb-12">
           <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white tracking-[-0.02em]">
@@ -641,7 +641,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Pricing ── */}
-      <section id="precios" className="relative py-24 md:py-40 overflow-clip">
+      <section id="precios" className="relative py-24 md:py-28 lg:py-40 overflow-clip">
         <div className="section-glow section-glow-blue" />
         <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-[#05c8a7]/15 blur-[100px] pointer-events-none" />
         <div className="relative z-10 max-w-5xl mx-auto px-6">
@@ -655,7 +655,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Savings Calculator ── */}
-      <section id="calculadora" className="relative py-24 md:py-40 overflow-clip">
+      <section id="calculadora" className="relative py-24 md:py-28 lg:py-40 overflow-clip">
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
@@ -678,7 +678,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Features with Tabs ── */}
-      <section id="funciones" className="relative py-24 md:py-40 overflow-clip">
+      <section id="funciones" className="relative py-24 md:py-28 lg:py-40 overflow-clip">
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
@@ -701,7 +701,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Comparison ── */}
-      <section className="relative py-24 md:py-40 overflow-clip">
+      <section className="relative py-24 md:py-28 lg:py-40 overflow-clip">
         <div className="section-glow section-glow-teal" />
 
         <div className="relative z-10 max-w-4xl mx-auto px-6">
@@ -774,7 +774,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── How it works ── */}
-      <section className="relative py-24 md:py-40 overflow-clip">
+      <section className="relative py-24 md:py-28 lg:py-40 overflow-clip">
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-4xl mx-auto px-6">
@@ -806,7 +806,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Industry Insights (replaces fake testimonials) ── */}
-      <section className="relative py-24 md:py-40 overflow-clip">
+      <section className="relative py-24 md:py-28 lg:py-40 overflow-clip">
         <div className="section-glow section-glow-teal" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
@@ -832,7 +832,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Final CTA ── */}
-      <section className="relative py-24 md:py-52 overflow-clip">
+      <section className="relative py-24 md:py-32 lg:py-52 overflow-clip">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-[#05c8a7]/20 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">

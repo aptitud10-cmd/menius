@@ -313,11 +313,16 @@ export async function notifyStatusChange(params: {
     // Push notification — fire-and-forget
     if (orderId) {
       const TERMINAL_STATUSES = ['delivered', 'completed', 'cancelled'];
-      import('./push').then(({ sendPushToOrder, getStatusPushPayload }) => {
+      import('./push').then(({ sendPushToOrder, sendExpoPushToCustomerByPhone, getStatusPushPayload }) => {
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
         const trackUrl = `${appUrl}/${restaurant.slug}/orden/${orderNumber}`;
         const payload = getStatusPushPayload(status, orderNumber, restaurant.name, trackUrl, resolvedCustomerLocale, orderType);
+        // Web push (browser notifications on menius.app tab)
         sendPushToOrder(orderId, payload).catch(() => {});
+        // Expo push (Menius mobile app — guest-first, matched by phone)
+        if (customerPhone) {
+          sendExpoPushToCustomerByPhone(customerPhone, payload).catch(() => {});
+        }
 
         // Clean up subscriptions after terminal statuses — no more updates coming
         if (TERMINAL_STATUSES.includes(status)) {

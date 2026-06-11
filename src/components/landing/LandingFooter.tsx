@@ -71,14 +71,17 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
 
   return (
     <footer className="relative bg-black overflow-clip">
-      <div className="relative hidden md:flex justify-center pt-12 pb-0 select-none pointer-events-none" aria-hidden="true">
-        <span className="text-[19rem] lg:text-[25rem] font-bold text-white/[0.04] tracking-tighter leading-none whitespace-nowrap">
+      <div className="relative hidden md:flex justify-center pt-12 pb-0 select-none pointer-events-none overflow-clip" aria-hidden="true">
+        <span
+          className="font-bold text-white/[0.04] tracking-tighter leading-none whitespace-nowrap"
+          style={{ fontSize: 'min(23vw, 25rem)' }}
+        >
           MENIUS
         </span>
       </div>
 
-      <div className="relative z-10 md:-mt-[7rem] lg:-mt-[9rem] bg-black pt-10 md:pt-10 pb-[max(2rem,env(safe-area-inset-bottom))] md:pb-16">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6">
+      <div className="relative z-10 -mt-[10vw] xl:-mt-[9rem] bg-black pt-10 md:pt-10 pb-[max(2rem,env(safe-area-inset-bottom))] md:pb-16">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
           {/* Mobile footer */}
           <div className="md:hidden space-y-6">
             <div>
@@ -124,10 +127,10 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
 
           {/* Desktop footer */}
           <div className="hidden md:block">
-            <div className="grid grid-cols-5 gap-x-8 gap-y-10">
-              <div className="col-span-1">
+            <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr] gap-x-8 lg:gap-x-12 gap-y-10">
+              <div>
                 <Link href="/" className="font-display text-lg font-bold tracking-[-0.04em] text-white">MENIUS</Link>
-                <p className="text-[13px] text-gray-500 mt-4 leading-relaxed max-w-[200px]">{f.tagline}</p>
+                <p className="text-[13px] text-gray-500 mt-4 leading-relaxed max-w-[240px]">{f.tagline}</p>
                 <div className="flex items-center gap-2 mt-5">
                   {['SSL', 'Stripe', 'CCPA'].map((b) => (
                     <span key={b} className="px-2 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-[9px] text-gray-500 font-medium tracking-wide">{b}</span>

@@ -52,6 +52,116 @@ export async function sendPushToOrder(orderId: string, payload: PushPayload): Pr
   }
 }
 
+/**
+ * Send an Expo Push notification to every active device whose customer phone
+ * matches the given E.164-ish string. Used to notify the Menius mobile app
+ * (guest-first, identity stored in app_devices keyed by phone).
+ *
+ * Fire-and-forget: failures are logged, never thrown.
+ */
+export async function sendExpoPushToCustomerByPhone(
+  phone: string,
+  payload: PushPayload,
+): Promise<void> {
+  if (!phone) return;
+
+  try {
+    const adminDb = createAdminClient();
+
+    // Find all devices that match this phone, then their active tokens.
+    const { data: devices } = await adminDb
+      .from('app_devices')
+      .select('id')
+      .eq('phone', phone);
+
+    if (!devices?.length) return;
+    const deviceIds = devices.map((d) => d.id);
+
+    const { data: tokens } = await adminDb
+      .from('app_device_tokens')
+      .select('expo_push_token, id')
+      .in('device_id', deviceIds)
+      .eq('is_active', true);
+
+    if (!tokens?.length) return;
+
+    type ExpoMessage = {
+      to: string;
+      title: string;
+      body: string;
+      data: { url: string };
+      sound: 'default';
+      priority: 'high';
+      channelId: string;
+    };
+    type ExpoTicket = { status: 'ok' | 'error'; message?: string; details?: { error?: string } };
+
+    const messages: (ExpoMessage & { _tokenId: string })[] = tokens.map((t) => ({
+      to: t.expo_push_token,
+      _tokenId: t.id,
+      title: payload.title,
+      body: payload.body,
+      data: { url: payload.url ?? '' },
+      sound: 'default' as const,
+      priority: 'high' as const,
+      channelId: 'order-updates',
+    }));
+
+    // Expo enforces a 100-message-per-request limit.
+    const EXPO_CHUNK = 100;
+    const chunks: (typeof messages)[] = [];
+    for (let i = 0; i < messages.length; i += EXPO_CHUNK) {
+      chunks.push(messages.slice(i, i + EXPO_CHUNK));
+    }
+
+    const invalidIds: string[] = [];
+
+    for (const chunk of chunks) {
+      // Strip internal _tokenId before sending — Expo doesn't accept extra fields.
+      const body = chunk.map(({ _tokenId: _, ...msg }) => msg);
+
+      const res = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'Accept-Encoding': 'gzip, deflate',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        logger.error('Expo push send failed', { status: res.status });
+        continue;
+      }
+
+      const json = (await res.json()) as { data?: ExpoTicket[] };
+      const tickets = json.data ?? [];
+
+      // Map by index within this chunk — Expo guarantees positional alignment
+      // within a single request. Guard against truncated responses.
+      tickets.forEach((r, i) => {
+        if (i < chunk.length && r.status === 'error' && r.details?.error === 'DeviceNotRegistered') {
+          invalidIds.push(chunk[i]._tokenId);
+        }
+      });
+    }
+
+    // Deactivate tokens Expo reports as invalid (DeviceNotRegistered).
+    if (invalidIds.length) {
+      await adminDb
+        .from('app_device_tokens')
+        .update({ is_active: false })
+        .in('id', invalidIds)
+        .then(({ error }) => {
+          if (error) logger.error('Failed to deactivate invalid expo tokens', { error, invalidIds });
+        });
+    }
+  } catch (err) {
+    logger.error('sendExpoPushToCustomerByPhone failed', { err });
+  }
+}
+
 export function getStatusPushPayload(
   status: string,
   orderNumber: string,
