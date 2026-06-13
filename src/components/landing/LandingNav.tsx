@@ -49,7 +49,7 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
       className={`fixed top-0 w-full z-[120] bg-[#050505]/95 md:bg-[#050505]/80 md:backdrop-blur-2xl border-b transition-colors duration-300 ${scrolled ? 'border-white/[0.09] shadow-[0_1px_0_rgba(255,255,255,0.04)]' : 'border-white/[0.04]'}`}
     >
       <div className="max-w-7xl mx-auto px-5 lg:px-8 h-14 md:h-16 grid grid-cols-[auto_1fr_auto]">
-        <Link href="/" className="flex items-center font-display text-lg font-bold tracking-[-0.04em] text-white">MENIUS</Link>
+        <Link href="/" className="flex items-center pr-3 font-display text-lg font-bold tracking-[-0.04em] text-white">MENIUS</Link>
 
         <nav className="hidden md:flex items-center justify-center gap-8">
           <Link href="/#funciones" className="flex items-center text-sm text-gray-400 hover:text-white transition-colors">{n.features}</Link>
@@ -57,48 +57,62 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
           <Link href="/demo" className="flex items-center text-sm text-gray-400 hover:text-white transition-colors">{n.demo}</Link>
         </nav>
 
-        <div className="flex items-center justify-end gap-4">
+        <div className="flex items-center justify-end gap-2.5 md:gap-4">
           <div className="hidden md:flex items-center gap-1 text-xs">
             <button onClick={() => switchLocale('es')} className={`px-1.5 py-0.5 rounded transition-colors ${locale === 'es' ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'}`}>ES</button>
             <span className="text-gray-600">|</span>
             <button onClick={() => switchLocale('en')} className={`px-1.5 py-0.5 rounded transition-colors ${locale === 'en' ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'}`}>EN</button>
           </div>
-          <Link href="/login" className="hidden md:block text-sm text-gray-400 hover:text-white transition-colors">{n.login}</Link>
-          <Link href="/signup" className="hidden md:block text-sm font-medium px-5 py-2.5 rounded-xl bg-white text-black hover:bg-gray-100 transition-colors">{n.startFree}</Link>
+          <Link href="/login" className="flex items-center text-[13px] md:text-sm text-gray-300 md:text-gray-400 hover:text-white transition-colors whitespace-nowrap">{n.login}</Link>
+          <Link href="/signup" className="flex items-center text-[13px] md:text-sm font-medium px-3.5 md:px-5 py-2 md:py-2.5 rounded-xl bg-white text-black hover:bg-gray-100 transition-colors whitespace-nowrap">{n.startFree}</Link>
           <button
             type="button"
             onClick={() => setOpen(!open)}
-            className="md:hidden flex flex-col items-center justify-center w-11 h-11 gap-[5px]"
+            className={`md:hidden relative z-[130] flex flex-col items-center justify-center w-10 h-10 gap-[5px] rounded-lg border transition-colors duration-300 ${open ? 'border-[#05c8a7]/40 bg-[#05c8a7]/[0.06]' : 'border-[#05c8a7]/20 hover:border-[#05c8a7]/40'}`}
             aria-label={n.menuLabel}
+            aria-expanded={open ? 'true' : 'false'}
           >
-            <span className={`block w-5 h-[1.5px] bg-gray-300 transition-all duration-300 ${open ? 'rotate-45 translate-y-[6.5px]' : ''}`} />
-            <span className={`block w-5 h-[1.5px] bg-gray-300 transition-all duration-300 ${open ? 'opacity-0' : ''}`} />
-            <span className={`block w-5 h-[1.5px] bg-gray-300 transition-all duration-300 ${open ? '-rotate-45 -translate-y-[6.5px]' : ''}`} />
+            <span className={`block w-[18px] h-[1.5px] bg-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${open ? 'rotate-45 translate-y-[6.5px]' : ''}`} />
+            <span className={`block w-[18px] h-[1.5px] bg-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${open ? 'opacity-0' : ''}`} />
+            <span className={`block w-[18px] h-[1.5px] bg-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${open ? '-rotate-45 -translate-y-[6.5px]' : ''}`} />
           </button>
         </div>
       </div>
 
       {open && (
         <div
-          className="md:hidden border-t border-white/[0.06] bg-[#050505]/95 overflow-y-auto"
-          style={{
-            maxHeight: 'calc(100dvh - 3.5rem)',
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          }}
+          className="md:hidden fixed top-14 left-0 right-0 bottom-0 z-[110] flex flex-col bg-[#050505]/96 backdrop-blur-2xl animate-fade-in"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          <nav className="flex flex-col px-5 py-4 gap-1">
-            <Link href="/#funciones" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors active:text-white">{n.features}</Link>
-            <Link href="/#precios" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors active:text-white">{n.pricing}</Link>
-            <Link href="/demo" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-300 hover:text-white transition-colors active:text-white">{n.demo}</Link>
-            <div className="h-px bg-white/[0.06] my-2" />
-            <div className="flex items-center gap-3 py-3">
-              <button onClick={() => switchLocale('es')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'es' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}>ES</button>
-              <button onClick={() => switchLocale('en')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'en' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}>EN</button>
-            </div>
-            <div className="h-px bg-white/[0.06] my-2" />
-            <Link href="/login" onClick={() => setOpen(false)} className="py-3 text-[15px] text-gray-400 hover:text-white transition-colors active:text-white">{n.login}</Link>
-            <Link href="/signup" onClick={() => setOpen(false)} className="mt-2 mb-2 block text-center py-3.5 rounded-xl bg-white text-black font-semibold text-[15px] active:bg-gray-100 hover:bg-gray-100 transition-all">{n.startFree}</Link>
+          {/* Navegación — items oversized con entrada escalonada */}
+          <nav className="flex flex-col px-6 pt-10 gap-1">
+            {[
+              { href: '/#funciones', label: n.features },
+              { href: '/#precios', label: n.pricing },
+              { href: '/demo', label: n.demo },
+            ].map((item, i) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
+                className="animate-fade-in-up py-2 font-display text-[2.75rem] leading-tight font-bold tracking-[-0.03em] text-white hover:text-[#05c8a7] active:text-[#05c8a7] transition-colors"
+                style={{ animationDelay: `${120 + i * 70}ms` }}
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
+
+          {/* Footer del panel — idioma (Sign in / Start free quedan siempre visibles en el header) */}
+          <div
+            className="animate-fade-in-up mt-auto px-6 pb-8 pt-6"
+            style={{ animationDelay: `${120 + 3 * 70}ms` }}
+          >
+            <div className="flex items-center gap-3 border-t border-white/[0.06] pt-6">
+              <button onClick={() => switchLocale('es')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'es' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}>ES</button>
+              <button onClick={() => switchLocale('en')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'en' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}>EN</button>
+            </div>
+          </div>
         </div>
       )}
     </header>

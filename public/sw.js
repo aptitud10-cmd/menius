@@ -1,4 +1,4 @@
-// SW v16 — MENIUS PWA
+// SW v17 — MENIUS PWA
 // Strategy:
 //   - Static assets (JS/CSS/fonts/icons): Cache-first, very long TTL
 //   - HTML pages: Network-first with cache fallback (keeps menus fresh)
@@ -6,7 +6,7 @@
 //   - Offline: serve /offline fallback page (driver pages → /driver/offline)
 //   - Background Sync: replay queued driver status actions on reconnect
 
-const CACHE_NAME = 'menius-v16';
+const CACHE_NAME = 'menius-v17';
 const OFFLINE_URL = '/offline';
 const DRIVER_OFFLINE_URL = '/driver/offline';
 
