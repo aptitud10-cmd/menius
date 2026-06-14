@@ -91,7 +91,7 @@ describe('PLANS structure', () => {
   });
 
   it('free plan limits are correct', () => {
-    expect(PLANS.free.limits.maxTables).toBe(1);
+    expect(PLANS.free.limits.maxTables).toBe(5);
     expect(PLANS.free.limits.maxUsers).toBe(1);
     expect(PLANS.free.limits.maxOrdersPerMonth).toBe(-1);
     expect(PLANS.free.limits.maxProducts).toBe(15);

@@ -184,18 +184,21 @@ function SavingsCalculator({ t }: { t: LandingT['savings'] }) {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-10 text-center">
-        <label className="text-sm text-gray-400 mb-4 block font-medium">{t.sliderLabel}</label>
+        <label htmlFor="savings-revenue-slider" className="text-sm text-gray-400 mb-4 block font-medium">{t.sliderLabel}</label>
         <p className="text-4xl md:text-5xl font-bold text-white mb-8 tracking-tight">
           ${revenue.toLocaleString()}
           <span className="text-lg text-gray-500 font-normal ml-1">{t.perMonth}</span>
         </p>
         <input
+          id="savings-revenue-slider"
           type="range"
           min={3000}
           max={80000}
           step={1000}
           value={revenue}
           onChange={(e) => setRevenue(Number(e.target.value))}
+          aria-label={t.sliderLabel}
+          aria-valuetext={`$${revenue.toLocaleString()} ${t.perMonth}`}
           className="calc-slider w-full max-w-md"
         />
         <div className="flex justify-between max-w-md mx-auto mt-2">

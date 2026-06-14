@@ -89,14 +89,14 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
               <p className="text-sm text-gray-400 mt-3 leading-relaxed">{f.tagline}</p>
               <div className="flex items-center gap-2 mt-4">
                 {['SSL', 'Stripe', 'CCPA'].map((b) => (
-                  <span key={b} className="px-2 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-[9px] text-gray-500 font-medium tracking-wide">{b}</span>
+                  <span key={b} className="px-2 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-[9px] text-gray-400 font-medium tracking-wide">{b}</span>
                 ))}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{f.product}</h4>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{f.product}</h3>
                 <ul className="space-y-2.5">
                   <li><a href="#funciones" className="text-sm text-gray-400 hover:text-white transition-colors">{f.features}</a></li>
                   <li><a href="#precios" className="text-sm text-gray-400 hover:text-white transition-colors">{f.pricing}</a></li>
@@ -104,7 +104,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
                 </ul>
               </div>
               <div>
-                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{f.resources}</h4>
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{f.resources}</h3>
                 <ul className="space-y-2.5">
                   <li><Link href="/blog" className="text-sm text-gray-400 hover:text-white transition-colors">{f.blog}</Link></li>
                   <li><Link href="/faq" className="text-sm text-gray-400 hover:text-white transition-colors">{f.faq}</Link></li>
@@ -117,13 +117,13 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
             </div>
 
             <div className="flex items-center gap-4 flex-wrap">
-              <Link href="/privacy" className="text-xs text-gray-500 hover:text-white transition-colors">{f.privacy}</Link>
-              <Link href="/terms" className="text-xs text-gray-500 hover:text-white transition-colors">{f.terms}</Link>
-              <Link href="/cookies" className="text-xs text-gray-500 hover:text-white transition-colors">{f.cookies}</Link>
+              <Link href="/privacy" className="text-xs text-gray-400 hover:text-white transition-colors">{f.privacy}</Link>
+              <Link href="/terms" className="text-xs text-gray-400 hover:text-white transition-colors">{f.terms}</Link>
+              <Link href="/cookies" className="text-xs text-gray-400 hover:text-white transition-colors">{f.cookies}</Link>
             </div>
 
             <div className="border-t border-white/[0.06] pt-5 flex items-center justify-between">
-              <p className="text-xs text-gray-500" suppressHydrationWarning>&copy; {new Date().getFullYear()} MENIUS LLC</p>
+              <p className="text-xs text-gray-400" suppressHydrationWarning>&copy; {new Date().getFullYear()} MENIUS LLC</p>
               <div className="flex items-center gap-3">
                 <LocaleSwitcher locale={locale} />
                 <SocialLinks />
@@ -139,13 +139,13 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
                 <p className="text-[13px] text-gray-500 mt-4 leading-relaxed max-w-[240px]">{f.tagline}</p>
                 <div className="flex items-center gap-2 mt-5">
                   {['SSL', 'Stripe', 'CCPA'].map((b) => (
-                    <span key={b} className="px-2 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-[9px] text-gray-500 font-medium tracking-wide">{b}</span>
+                    <span key={b} className="px-2 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-[9px] text-gray-400 font-medium tracking-wide">{b}</span>
                   ))}
                 </div>
                 <SocialLinks />
               </div>
               <div>
-                <h4 className="text-[11px] font-medium text-gray-500 uppercase tracking-[0.15em] mb-4">{f.product}</h4>
+                <h3 className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] mb-4">{f.product}</h3>
                 <ul className="space-y-2.5">
                   <li><a href="#funciones" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.features}</a></li>
                   <li><a href="#precios" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.pricing}</a></li>
@@ -153,7 +153,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
                 </ul>
               </div>
               <div>
-                <h4 className="text-[11px] font-medium text-gray-500 uppercase tracking-[0.15em] mb-4">{f.resources}</h4>
+                <h3 className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] mb-4">{f.resources}</h3>
                 <ul className="space-y-2.5">
                   <li><Link href="/blog" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.blog}</Link></li>
                   <li><Link href="/faq" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.faq}</Link></li>
@@ -164,7 +164,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
                 </ul>
               </div>
               <div>
-                <h4 className="text-[11px] font-medium text-gray-500 uppercase tracking-[0.15em] mb-4">{f.legal}</h4>
+                <h3 className="text-[11px] font-medium text-gray-400 uppercase tracking-[0.15em] mb-4">{f.legal}</h3>
                 <ul className="space-y-2.5">
                   <li><Link href="/privacy" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.privacy}</Link></li>
                   <li><Link href="/terms" className="text-[13px] text-gray-500 hover:text-white transition-colors">{f.terms}</Link></li>
