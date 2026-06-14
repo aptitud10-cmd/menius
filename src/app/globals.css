@@ -182,6 +182,17 @@ label {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* ── iOS safe-area utilities ──
+   Requires viewport-fit=cover (set in layout.tsx) — without it env() returns 0.
+   On desktop / non-notch devices the inset is 0, so these are layout-safe.
+   For elements that ALSO need base padding, prefer max()/calc() inline:
+   e.g. pb-[max(1rem,env(safe-area-inset-bottom))] — never replace the whole padding.
+   Tailwind 3 here, so these are plain utilities (TW4 would use @theme --spacing-safe-b). */
+.pb-safe-b { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.pt-safe-t { padding-top: env(safe-area-inset-top, 0px); }
+/* Alias used by InstallBanner.tsx (was referenced but never defined → no-op bug) */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
 /* ── View Transitions (page navigation) ── */
 @view-transition {
   navigation: auto;
