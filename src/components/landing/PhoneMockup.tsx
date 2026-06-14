@@ -20,7 +20,7 @@ const SHADOWS = [
   '0 10px 20px rgba(0,0,0,0.25)',
   '0 20px 40px rgba(0,0,0,0.18)',
   '0 40px 70px rgba(0,0,0,0.12)',
-  '0 0 60px 2px rgba(13,148,136,0.06)',
+  '0 0 60px 2px rgba(5,200,167,0.06)',
 ].join(', ');
 
 /* ─── Static content ─────────────────────────────────────── */
@@ -41,7 +41,7 @@ function StatusBar() {
         <svg width="20" height="10" viewBox="0 0 20 10" fill="none">
           <rect x="0.5" y="0.5" width="16" height="9" rx="2.2" stroke="rgba(255,255,255,0.35)" />
           <rect x="17" y="3"   width="2.5" height="4" rx="1.2" fill="rgba(255,255,255,0.35)" />
-          <rect x="1.5" y="1.5" width="12" height="7" rx="1.5" fill="#0d9488" />
+          <rect x="1.5" y="1.5" width="12" height="7" rx="1.5" fill="#05c8a7" />
         </svg>
       </div>
     </div>
@@ -53,10 +53,10 @@ function RestaurantHeader({ isEs }: { isEs: boolean }) {
     <div style={{ padding: '10px 20px 0', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
       <div style={{
         width: 38, height: 38, borderRadius: 11,
-        background: '#0d9488',
+        background: '#05c8a7',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0,
-        boxShadow: '0 3px 12px rgba(13,148,136,0.45)',
+        boxShadow: '0 3px 12px rgba(5,200,167,0.45)',
       }}>
         <span style={{ fontSize: 16, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>M</span>
       </div>
@@ -96,7 +96,7 @@ function CategoryTabs({ categories, isEs }: { categories: string[]; isEs: boolea
                 position: 'absolute', bottom: 0, left: '50%',
                 transform: 'translateX(-50%)',
                 width: 20, height: 2, borderRadius: 99,
-                background: '#0d9488',
+                background: '#05c8a7',
               }} />
             )}
           </div>
@@ -158,9 +158,9 @@ function MenuItem({
           <span style={{ fontSize: 10.5, fontWeight: 700, color: '#fff', letterSpacing: '-0.2px' }}>{price}</span>
           <div style={{
             width: 22, height: 22, borderRadius: 7,
-            background: '#0d9488',
+            background: '#05c8a7',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 6px rgba(13,148,136,0.4)',
+            boxShadow: '0 2px 6px rgba(5,200,167,0.4)',
           }}>
             <span style={{ color: '#fff', fontSize: 14, lineHeight: 1, fontWeight: 300 }}>+</span>
           </div>
@@ -212,13 +212,13 @@ function MenuScreen({ locale }: { locale: LandingLocale }) {
       <div style={{ padding: '8px 16px 6px', flexShrink: 0 }}>
         <motion.div
           animate={{ scale: [1, 1.025, 1], boxShadow: [
-            '0 0 0 0 rgba(13,148,136,0)',
-            '0 0 0 6px rgba(13,148,136,0.15)',
-            '0 0 0 0 rgba(13,148,136,0)',
+            '0 0 0 0 rgba(5,200,167,0)',
+            '0 0 0 6px rgba(5,200,167,0.15)',
+            '0 0 0 0 rgba(5,200,167,0)',
           ] }}
           transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
           style={{
-            background: '#0d9488',
+            background: '#05c8a7',
             borderRadius: 14,
             padding: '11px 18px',
             display: 'flex',
@@ -230,7 +230,7 @@ function MenuScreen({ locale }: { locale: LandingLocale }) {
             {isEs ? '🛒 Ver carrito' : '🛒 View cart'}
           </span>
           <span style={{
-            fontSize: 10, fontWeight: 800, color: '#0d9488',
+            fontSize: 10, fontWeight: 800, color: '#05c8a7',
             background: '#fff', borderRadius: 8, padding: '3px 9px',
           }}>
             $40.48
