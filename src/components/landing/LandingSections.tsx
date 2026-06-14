@@ -313,7 +313,7 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
   return (
     <div className="d-fade-up">
       <div className="text-center mb-10">
-        <p className="text-sm text-blue-400 uppercase tracking-[0.2em] font-medium mb-3">{pc.sectionLabel}</p>
+        <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-3">{pc.sectionLabel}</p>
         <h3 className="font-display text-3xl md:text-4xl font-extrabold text-white tracking-tight">{pc.sectionTitle}</h3>
         <p className="text-gray-400 mt-2 text-sm max-w-md mx-auto">{pc.sectionDesc}</p>
       </div>
@@ -388,7 +388,7 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
   return (
     <>
       <div className="text-center mb-10 md:mb-14 d-fade-up">
-        <p className="text-sm text-blue-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{tp.sectionLabel}</p>
+        <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{tp.sectionLabel}</p>
         <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
           {tp.sectionTitle}
         </h2>
@@ -708,7 +708,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
 
         <div className="relative z-10 max-w-4xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-sky-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.comparison.sectionLabel}</p>
+            <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.comparison.sectionLabel}</p>
             <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
               {t.comparison.sectionTitle}
             </h2>
@@ -813,7 +813,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
           <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-amber-400 uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.testimonials.sectionLabel}</p>
+            <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.testimonials.sectionLabel}</p>
             <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
               {t.testimonials.sectionTitle}
             </h2>
