@@ -81,11 +81,11 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
 
       {open && (
         <div
-          className="md:hidden fixed top-14 left-0 right-0 bottom-0 z-[110] flex flex-col bg-[#050505]/96 backdrop-blur-2xl animate-fade-in"
+          className="md:hidden fixed top-14 left-0 right-0 bottom-0 z-[110] flex flex-col bg-[#050505] animate-fade-in"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          {/* Navegación — items oversized con entrada escalonada */}
-          <nav className="flex flex-col px-6 pt-10 gap-1">
+          {/* Navegación — items oversized centrados con entrada escalonada */}
+          <nav className="flex flex-1 flex-col items-center justify-center px-6 gap-2 text-center">
             {[
               { href: '/#funciones', label: n.features },
               { href: '/#precios', label: n.pricing },
