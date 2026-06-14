@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { NextRequest, NextResponse } from 'next/server';
 import { computeTaxAmount } from '@/lib/tax-presets';
 import { z } from 'zod';
@@ -56,7 +56,10 @@ export async function POST(request: NextRequest) {
 
     const { restaurant_id, order_type, items, promo_code, loyalty_account_id, loyalty_points_redeemed, tip_amount } = parsed.data;
 
-    const supabase = await createClient();
+    // Admin client: this is a public read-only quote endpoint. anon lost direct
+    // SELECT on `restaurants` (security fix 2026-06-14). Every query below scopes
+    // by restaurant_id explicitly, so tenant isolation is enforced in code, not RLS.
+    const supabase = createAdminClient();
 
     const { data: restaurant } = await supabase
       .from('restaurants')
