@@ -328,7 +328,7 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
               const key = colKeys[i];
               const isPro = i === proIdx;
               const price = isColombia
-                ? ({ starter: '$89K', pro: '$179K', business: '$349K', free: '$0' } as Record<ColKey, string>)[key]
+                ? (key === 'free' ? '$0' : `$${formatCOP(COP_PRICES[key as typeof PLAN_IDS[number]].monthly)}`)
                 : COL_PRICES[key];
               const suffix = getSuffix(key);
               return (
@@ -342,6 +342,7 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
                   <span className={`text-sm font-bold whitespace-nowrap ${isPro ? 'text-[#05c8a7]' : 'text-gray-200'}`}>{label}</span>
                   <span className="text-xs text-gray-500 whitespace-nowrap">
                     <span className={`font-semibold ${isPro ? 'text-[#05c8a7]/80' : 'text-gray-400'}`}>{price}</span>
+                    {isColombia && key !== 'free' && <span className="text-gray-600"> COP</span>}
                     {suffix && <span className="text-gray-600">{suffix}</span>}
                   </span>
                 </div>
@@ -528,14 +529,13 @@ function TestimonialsSection({ t }: { t: LandingT['testimonials'] }) {
       {t.items.map((item) => (
         <div key={item.name} className="card-premium rounded-2xl p-6 md:p-7 flex flex-col gap-4">
           {/* Big stat */}
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
             <span
-              className="font-extrabold tracking-tight text-white leading-none"
+              className="font-display font-extrabold tracking-tight text-[#05c8a7] leading-none"
               style={{ fontSize: 'clamp(2.2rem, 5vw, 3rem)' }}
             >
               {item.name}
             </span>
-            <span className="text-2xl flex-shrink-0 mt-1" aria-hidden="true">{item.initials}</span>
           </div>
 
           {/* Explanation */}

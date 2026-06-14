@@ -87,6 +87,11 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
             <div>
               <Link href="/" className="text-lg font-bold tracking-tight text-white">MENIUS</Link>
               <p className="text-sm text-gray-400 mt-3 leading-relaxed">{f.tagline}</p>
+              <div className="flex items-center gap-2 mt-4">
+                {['SSL', 'Stripe', 'CCPA'].map((b) => (
+                  <span key={b} className="px-2 py-0.5 rounded border border-white/[0.08] bg-white/[0.03] text-[9px] text-gray-500 font-medium tracking-wide">{b}</span>
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-6">
@@ -105,6 +110,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
                   <li><Link href="/faq" className="text-sm text-gray-400 hover:text-white transition-colors">{f.faq}</Link></li>
                   <li><Link href="/changelog" className="text-sm text-gray-400 hover:text-white transition-colors">{f.changelog}</Link></li>
                   <li><Link href="/status" className="text-sm text-gray-400 hover:text-white transition-colors">{f.status}</Link></li>
+                  <li><Link href="/setup-profesional" className="text-sm text-gray-400 hover:text-white transition-colors">{f.professionalSetup}</Link></li>
                   <li><Link href="/support" className="text-sm text-gray-400 hover:text-white transition-colors">{f.support}</Link></li>
                 </ul>
               </div>
@@ -117,7 +123,7 @@ export function LandingFooter({ locale }: { locale: LandingLocale }) {
             </div>
 
             <div className="border-t border-white/[0.06] pt-5 flex items-center justify-between">
-              <p className="text-xs text-gray-500" suppressHydrationWarning>&copy; {new Date().getFullYear()} MENIUS</p>
+              <p className="text-xs text-gray-500" suppressHydrationWarning>&copy; {new Date().getFullYear()} MENIUS LLC</p>
               <div className="flex items-center gap-3">
                 <LocaleSwitcher locale={locale} />
                 <SocialLinks />
