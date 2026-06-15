@@ -61,6 +61,19 @@ function emit(level: LogLevel, context: string, message: string, data?: Record<s
   }
 }
 
+/**
+ * Mask an email for logging/telemetry: keep the first char + domain, hide the rest.
+ * `juan.perez@gmail.com` → `j***@gmail.com`. Avoids retaining customer/owner PII in
+ * log aggregators and Sentry while keeping logs useful for debugging (domain + initial).
+ * Returns '[redacted]' for malformed input, undefined/null passthrough.
+ */
+export function maskEmail(email: string | null | undefined): string | null | undefined {
+  if (email == null) return email;
+  const at = email.indexOf('@');
+  if (at < 1) return '[redacted]';
+  return `${email[0]}***${email.slice(at)}`;
+}
+
 export function createLogger(context: string) {
   return {
     debug: (message: string, data?: Record<string, unknown>) => emit('debug', context, message, data),

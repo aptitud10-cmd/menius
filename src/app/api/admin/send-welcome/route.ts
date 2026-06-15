@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/notifications/email';
 import { verifyAdmin } from '@/lib/auth/verify-admin';
-import { createLogger } from '@/lib/logger';
+import { createLogger, maskEmail } from '@/lib/logger';
 
 const logger = createLogger('admin-send-welcome');
 
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       const ok = await sendEmail({ to: r.notification_email, subject, html });
       if (ok) sent++; else failed++;
       results.push({ slug: r.slug, email: r.notification_email, ok });
-      logger.info('Welcome email', { slug: r.slug, email: r.notification_email, ok });
+      logger.info('Welcome email', { slug: r.slug, email: maskEmail(r.notification_email), ok });
     }
 
     return NextResponse.json({ sent, failed, total: restaurants.length, results });

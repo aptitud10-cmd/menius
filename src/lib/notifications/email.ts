@@ -10,7 +10,7 @@
  *  - Full item details: variant, modifiers, extras, notes
  */
 
-import { createLogger } from '@/lib/logger';
+import { createLogger, maskEmail } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 
 const logger = createLogger('email');
@@ -55,7 +55,7 @@ export async function sendEmail({ to, from, replyTo, subject, html }: EmailMessa
     return false;
   }
 
-  logger.info('Sending email', { subject, to });
+  logger.info('Sending email', { subject, to: maskEmail(to) });
 
   try {
     const payload: Record<string, unknown> = {
@@ -77,16 +77,16 @@ export async function sendEmail({ to, from, replyTo, subject, html }: EmailMessa
 
     if (!res.ok) {
       const errBody = await res.text();
-      logger.error('Resend HTTP error', { status: res.status, to, errBody });
-      captureError(new Error(`Resend HTTP ${res.status}: ${errBody}`), { context: 'sendEmail', to });
+      logger.error('Resend HTTP error', { status: res.status, to: maskEmail(to), errBody });
+      captureError(new Error(`Resend HTTP ${res.status}: ${errBody}`), { context: 'sendEmail', to: maskEmail(to) });
       return false;
     }
     const body = await res.json().catch(() => ({}));
-    logger.info('Email sent', { to, id: (body as Record<string, unknown>)?.id ?? 'unknown' });
+    logger.info('Email sent', { to: maskEmail(to), id: (body as Record<string, unknown>)?.id ?? 'unknown' });
     return true;
   } catch (err) {
-    logger.error('Network error sending email', { to, error: err instanceof Error ? err.message : String(err) });
-    captureError(err, { context: 'sendEmail', to });
+    logger.error('Network error sending email', { to: maskEmail(to), error: err instanceof Error ? err.message : String(err) });
+    captureError(err, { context: 'sendEmail', to: maskEmail(to) });
     return false;
   }
 }

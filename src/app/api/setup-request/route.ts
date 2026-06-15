@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimitAsync as checkRateLimit } from '@/lib/rate-limit';
-import { createLogger } from '@/lib/logger';
+import { createLogger, maskEmail } from '@/lib/logger';
 
 const logger = createLogger('setup-request');
 
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    logger.info('Setup request received', { name, email, restaurant_name, package_name });
+    logger.info('Setup request received', { email: maskEmail(email), restaurant_name, package_name });
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {

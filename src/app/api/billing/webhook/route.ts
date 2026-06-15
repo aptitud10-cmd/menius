@@ -7,6 +7,7 @@ import { createLogger } from '@/lib/logger';
 import { getStripe, getWebhookSecret } from '@/lib/stripe';
 import { captureError } from '@/lib/error-reporting';
 import { createDashboardNotification } from '@/lib/notifications/dashboard-notifications';
+import { sendTelegramAlert } from '@/lib/notifications/telegram';
 
 const logger = createLogger('billing-webhook');
 
@@ -178,6 +179,21 @@ export async function POST(request: NextRequest) {
             actionUrl: '/app/billing',
             metadata: { plan_id: plan.id, status },
           }).catch(() => {});
+
+          // Telegram alert to the operator on the meaningful transitions.
+          if (status === 'active' || status === 'past_due') {
+            const { data: restRow } = await supabase
+              .from('restaurants')
+              .select('name, slug')
+              .eq('id', resolvedId)
+              .maybeSingle();
+            const who = restRow ? `${restRow.name} (${restRow.slug})` : resolvedId;
+            if (status === 'active') {
+              void sendTelegramAlert(`<b>Nueva suscripción</b>\n${who} → plan ${plan.id}`, 'info');
+            } else {
+              void sendTelegramAlert(`<b>Pago fallido</b>\n${who} entró en past_due (plan ${plan.id})`, 'warn');
+            }
+          }
         }
 
         // Auto-seed style anchors only on first transition to Pro/Business (not every webhook update)
