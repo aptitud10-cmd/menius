@@ -203,6 +203,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const [orderError, setOrderError] = useState('');
   const [orderNumber, setOrderNumber] = useState('');
   const [orderId, setOrderId] = useState('');
+  const [trackingToken, setTrackingToken] = useState('');
   const [payLoading, setPayLoading] = useState(false);
   const confirmRef = useRef<HTMLDivElement>(null);
   const confettiTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -308,8 +309,9 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     if (step !== 'confirmation' || !orderNumber || !orderId) return;
     if (orderId === 'demo-order-id') return;
     if (paymentMethod === 'online') return;
+    const tokenQs = trackingToken ? `?t=${encodeURIComponent(trackingToken)}` : '';
     trackRedirectTimer.current = setTimeout(() => {
-      router.push(`/${slug}/orden/${orderNumber}`);
+      router.push(`/${slug}/orden/${orderNumber}${tokenQs}`);
     }, 1000);
     return () => {
       if (trackRedirectTimer.current) {
@@ -317,7 +319,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         trackRedirectTimer.current = null;
       }
     };
-  }, [step, orderNumber, orderId, paymentMethod, router, slug]);
+  }, [step, orderNumber, orderId, paymentMethod, router, slug, trackingToken]);
 
 
   // Reactive form validation — drives CTA disabled state
@@ -551,6 +553,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
         order_id?: string;
         total?: number;
         stripe_url?: string;
+        tracking_token?: string;
         idempotent?: boolean;
       }>(text);
       if (!parsed.ok) {
@@ -575,6 +578,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       }
       setOrderNumber(data.order_number);
       setOrderId(data.order_id);
+      if (data.tracking_token) setTrackingToken(data.tracking_token);
       // Demo restaurant + online payment → show simulated card payment step
       if (restaurant.id.startsWith('demo') && paymentMethod === 'online') {
         setStep('payment');
@@ -1237,7 +1241,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
             )}
             {!restaurant.id.startsWith('demo') && orderNumber && (
               <a
-                href={`/${slug}/orden/${orderNumber}`}
+                href={`/${slug}/orden/${orderNumber}${trackingToken ? `?t=${encodeURIComponent(trackingToken)}` : ''}`}
                 onClick={() => {
                   if (trackRedirectTimer.current) {
                     clearTimeout(trackRedirectTimer.current);

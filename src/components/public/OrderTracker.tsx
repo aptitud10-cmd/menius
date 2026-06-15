@@ -260,6 +260,8 @@ interface OrderTrackerProps {
   restaurantAddress?: string;
   restaurantPhone?: string;
   orderNumber: string;
+  /** Opaque per-order token; required for the API to return customer/driver PII */
+  trackingToken?: string;
   currency?: string;
   locale?: string;
   showPaidBanner?: boolean;
@@ -267,7 +269,7 @@ interface OrderTrackerProps {
   initialOrder?: any;
 }
 
-export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, restaurantPhone, orderNumber, currency = 'MXN', locale, showPaidBanner = false, initialOrder }: OrderTrackerProps) {
+export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, restaurantAddress, restaurantPhone, orderNumber, trackingToken, currency = 'MXN', locale, showPaidBanner = false, initialOrder }: OrderTrackerProps) {
   const t = getT(locale);
   const [order, setOrder] = useState<any>(initialOrder ?? null);
   const [loading, setLoading] = useState(!initialOrder);
@@ -285,8 +287,9 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
 
   const fetchOrder = useCallback(async () => {
     try {
+      const tokenParam = trackingToken ? `&t=${encodeURIComponent(trackingToken)}` : '';
       const res = await fetch(
-        `/api/public/order-track?order=${encodeURIComponent(orderNumber)}&restaurant=${encodeURIComponent(restaurantId)}`,
+        `/api/public/order-track?order=${encodeURIComponent(orderNumber)}&restaurant=${encodeURIComponent(restaurantId)}${tokenParam}`,
         { cache: 'no-store' }
       );
       if (!res.ok) {
@@ -305,7 +308,7 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
     } finally {
       setLoading(false);
     }
-  }, [orderNumber, restaurantId, hasInitialOrder]);
+  }, [orderNumber, restaurantId, trackingToken, hasInitialOrder]);
 
   useEffect(() => {
     // If we already have initialOrder, still refresh in background to get latest status

@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const adminDb = createAdminClient();
     const { data: order, error } = await adminDb
       .from('orders')
-      .select('id, order_number, total, customer_name, customer_email, customer_phone, restaurant_id, payment_status, restaurants ( currency, country_code )')
+      .select('id, order_number, total, customer_name, customer_email, customer_phone, restaurant_id, payment_status, driver_tracking_token, restaurants ( currency, country_code )')
       .eq('id', order_id)
       .maybeSingle();
 
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     const amountInCents = Math.round(Number(order.total) * 100);
     const reference = order.order_number;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://menius.app';
-    const redirectUrl = `${appUrl}/${slug}/orden/${order.order_number}?paid=true`;
+    const redirectUrl = `${appUrl}/${slug}/orden/${order.order_number}?paid=true${(order as any).driver_tracking_token ? `&t=${(order as any).driver_tracking_token}` : ''}`;
 
     // Generate SHA256 integrity hash: reference + amountInCents + currency + integritySecret
     const toHash = `${reference}${amountInCents}${currency}${integritySecret}`;

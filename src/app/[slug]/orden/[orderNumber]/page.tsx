@@ -9,7 +9,7 @@ import { OrderTracker } from '@/components/public/OrderTracker';
 
 interface PageProps {
   params: { slug: string; orderNumber: string };
-  searchParams: { paid?: string };
+  searchParams: { paid?: string; t?: string };
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -22,6 +22,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function OrderTrackingPage({ params, searchParams }: PageProps) {
   const paidSuccess = searchParams.paid === 'true';
+  const token = searchParams.t ?? null;
 
   let restaurant: { id: string; name: string; slug: string; currency: string | null; address: string | null; locale: string | null; phone: string | null } | null = null;
   let initialOrder: any = null;
@@ -65,8 +66,21 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
         .maybeSingle();
 
       if (!orderErr && orderData) {
+        // order_number is sequential/guessable. PII (customer + driver fields) is only
+        // exposed when the URL carries the matching opaque token (?t=). Otherwise null
+        // it out — status/items/totals stay visible. Mirrors /api/public/order-track.
+        const orderToken = (orderData as any).driver_tracking_token as string | null;
+        const authorized = !!token && !!orderToken && token === orderToken;
+        const { driver_tracking_token: _omit, ...safeOrder } = orderData as any;
         initialOrder = {
-          ...orderData,
+          ...safeOrder,
+          customer_name: authorized ? safeOrder.customer_name : null,
+          customer_phone: authorized ? safeOrder.customer_phone : null,
+          customer_email: authorized ? safeOrder.customer_email : null,
+          delivery_address: authorized ? safeOrder.delivery_address : null,
+          driver_name: authorized ? safeOrder.driver_name : null,
+          driver_phone: authorized ? safeOrder.driver_phone : null,
+          authorized,
           table_name: (orderData.table as any)?.name ?? null,
           order_items: ((orderData.order_items ?? []) as any[]).map((item: any) => ({
             id: item.id,
@@ -123,6 +137,7 @@ export default async function OrderTrackingPage({ params, searchParams }: PagePr
       restaurantAddress={restaurant.address ?? undefined}
       restaurantPhone={restaurant.phone ?? undefined}
       orderNumber={params.orderNumber}
+      trackingToken={token ?? undefined}
       currency={restaurant.currency ?? 'MXN'}
       locale={restaurant.locale ?? 'es'}
       showPaidBanner={paidSuccess}

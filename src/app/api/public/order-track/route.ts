@@ -16,6 +16,11 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const orderNumber = searchParams.get('order');
   const restaurantId = searchParams.get('restaurant');
+  // Opaque per-order token (driver_tracking_token). The order_number is sequential
+  // and guessable, so PII (customer + driver fields) is ONLY returned when the caller
+  // proves possession of this token. Without it, the response degrades to non-PII
+  // status/items — closing the IDOR while keeping old (token-less) links working.
+  const token = searchParams.get('t');
 
   if (!orderNumber || !restaurantId) {
     return NextResponse.json({ error: 'missing_params' }, { status: 400 });
@@ -34,7 +39,8 @@ export async function GET(req: NextRequest) {
     // below. Equivalent in trust to a SECURITY DEFINER RPC.
     const db = createAdminClient();
 
-    // Only select fields needed for the tracking UI — never expose payment tokens or internal tokens
+    // Only select fields needed for the tracking UI — never expose payment tokens or internal tokens.
+    // driver_tracking_token is selected solely to authenticate the caller; it is NOT returned.
     const { data: order, error } = await db
       .from('orders')
       .select(`
@@ -44,7 +50,7 @@ export async function GET(req: NextRequest) {
         estimated_ready_minutes,
         driver_name, driver_phone, driver_assigned_at,
         driver_lat, driver_lng, driver_picked_up_at, driver_at_door_at, driver_delivered_at,
-        delivery_photo_url,
+        delivery_photo_url, driver_tracking_token,
         table:table_id(name),
         order_items(
           id, qty, unit_price, line_total, notes,
@@ -64,8 +70,25 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
 
+    // Authenticated only if the caller presents the matching opaque token.
+    // order_number is sequential/guessable, so without the token we must not leak PII.
+    const orderToken = (order as any).driver_tracking_token as string | null;
+    const authorized = !!token && !!orderToken && token === orderToken;
+
+    // Strip the token from the payload regardless — it must never reach the client.
+    const { driver_tracking_token: _omit, ...safeOrder } = order as any;
+
     const shaped = {
-      ...order,
+      ...safeOrder,
+      // PII is returned only to a caller holding the token. Otherwise null it out —
+      // status, items, totals and ETA stay visible so the tracker still works.
+      customer_name: authorized ? safeOrder.customer_name : null,
+      customer_phone: authorized ? safeOrder.customer_phone : null,
+      customer_email: authorized ? safeOrder.customer_email : null,
+      delivery_address: authorized ? safeOrder.delivery_address : null,
+      driver_name: authorized ? safeOrder.driver_name : null,
+      driver_phone: authorized ? safeOrder.driver_phone : null,
+      authorized,
       table_name: (order.table as any)?.name ?? null,
       order_items: ((order.order_items ?? []) as any[]).map((item: any) => ({
         id: item.id,

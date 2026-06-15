@@ -466,11 +466,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Pre-generate tracking token for delivery orders so QR can be printed on initial ticket
+    // Opaque tracking token, generated for EVERY order. It serves two purposes:
+    //  1. delivery: QR for the driver tracking link (printed on the ticket)
+    //  2. all orders: authenticates the public order-track endpoint so the
+    //     guessable sequential order_number alone can't expose customer PII.
     const isDelivery = parsed.data.order_type === 'delivery';
-    const preToken = isDelivery ? crypto.randomUUID() : null;
-    // Token expires 24 h after order creation
-    const preTokenExpiresAt = preToken
+    const preToken = crypto.randomUUID();
+    // Driver-link expiry stays delivery-only (the customer tracker doesn't expire it).
+    const preTokenExpiresAt = isDelivery
       ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
       : null;
 
@@ -857,7 +860,7 @@ export async function POST(request: NextRequest) {
         const sessionParams: import('stripe').Stripe.Checkout.SessionCreateParams = {
           line_items: lineItems,
           mode: 'payment',
-          success_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=true`,
+          success_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=true&t=${preToken}`,
           cancel_url: `${appUrl}/${restaurant.slug}/orden/${order.order_number}?paid=false`,
           metadata: { order_id: order.id, order_number: order.order_number },
           payment_intent_data: {
@@ -983,6 +986,8 @@ export async function POST(request: NextRequest) {
       slug: restaurant.slug,
       stripe_url: stripeUrl,
       driver_tracking_url: driverTrackingUrl,
+      // Opaque token the customer uses to view their own order PII on the tracker.
+      tracking_token: preToken,
     });
   } catch (err) {
     captureError(err, { route: '/api/orders' });
