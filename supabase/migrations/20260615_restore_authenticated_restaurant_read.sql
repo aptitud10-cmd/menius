@@ -1,0 +1,14 @@
+-- HOTFIX (2026-06-15): the 2026-06-14 security revoke over-reached and broke login.
+--
+-- 20260614_revoke_sensitive_restaurant_columns.sql revoked the sensitive columns from
+-- `authenticated` too. Postgres collapsed the table grant, so authenticated lost SELECT
+-- on ALL of restaurants. The dashboard reads the owner's own restaurant via the server
+-- client (authenticated role) with select('*'), so every logged-in owner got
+-- 42501 "permission denied" → blank page on login. (Prod postgres logs were flooded
+-- with "permission denied for table restaurants".)
+--
+-- A logged-in owner SHOULD read their own restaurant in full — email, whatsapp, stripe
+-- and fiscal data are THEIR own. Restore full table SELECT to authenticated. Row-level
+-- scoping is handled by the policy change in the companion migration
+-- 20260615_scope_public_restaurant_read_to_anon.sql.
+GRANT SELECT ON public.restaurants TO authenticated;
