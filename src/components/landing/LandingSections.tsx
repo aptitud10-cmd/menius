@@ -23,13 +23,13 @@ const featureIcons = [
   </svg>,
 ];
 
-const featureAccents = ['indigo', 'blue', 'emerald', 'amber'];
-
-const accentColors: Record<string, { bg: string; text: string; border: string; glow: string }> = {
-  indigo: { bg: 'bg-indigo-500/[0.08]', text: 'text-indigo-400', border: 'border-indigo-500/20', glow: 'bg-indigo-500/20' },
-  blue: { bg: 'bg-blue-500/[0.08]', text: 'text-blue-400', border: 'border-blue-500/20', glow: 'bg-blue-500/20' },
-  emerald: { bg: 'bg-emerald-500/[0.08]', text: 'text-emerald-400', border: 'border-emerald-500/20', glow: 'bg-emerald-500/20' },
-  amber: { bg: 'bg-amber-500/[0.08]', text: 'text-amber-400', border: 'border-amber-500/20', glow: 'bg-amber-500/20' },
+// Single brand accent for all feature tabs (was a 4-color indigo/blue/emerald/amber
+// set that broke the mono-accent system — every other section uses #05c8a7).
+const brandAccent = {
+  bg: 'bg-[#05c8a7]/[0.08]',
+  text: 'text-[#05c8a7]',
+  border: 'border-[#05c8a7]/20',
+  glow: 'bg-[#05c8a7]/20',
 };
 
 
@@ -39,7 +39,7 @@ function FeatureTabs({ t }: { t: LandingT }) {
   const [active, setActive] = useState(0);
   const ft = t.features;
   const item = ft.items[active];
-  const colors = accentColors[featureAccents[active]];
+  const colors = brandAccent;
 
   return (
     <div>
@@ -499,17 +499,17 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
 
         <Link
           href="/signup"
-          className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] hover:bg-emerald-500/[0.08] hover:border-emerald-500/30 transition-all"
+          className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl border border-[#05c8a7]/20 bg-[#05c8a7]/[0.04] hover:bg-[#05c8a7]/[0.08] hover:border-[#05c8a7]/30 transition-all"
         >
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
             <span className="text-sm text-gray-400">
               {tp.freeBannerPrefix}{' '}
-              <strong className="text-emerald-400">{tp.freeBannerPlan}</strong>
+              <strong className="text-[#05c8a7]">{tp.freeBannerPlan}</strong>
               {' '}—{' '}
               <span className="text-gray-400">{tp.freeBannerDesc}</span>
             </span>
           </div>
-          <span className="shrink-0 text-sm font-medium text-emerald-400 whitespace-nowrap">
+          <span className="shrink-0 text-sm font-medium text-[#05c8a7] whitespace-nowrap">
             {tp.freeBannerCta}
           </span>
         </Link>
@@ -605,9 +605,10 @@ function FaqSection({ locale }: { locale: LandingLocale }) {
             return (
               <div key={i} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] overflow-hidden">
                 <button
+                  type="button"
                   onClick={() => setOpen(isOpen ? null : i)}
-                  aria-expanded={isOpen}
-                  className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-inset"
+                  aria-expanded={isOpen ? 'true' : 'false'}
+                  className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]/60 focus-visible:ring-inset"
                 >
                   <span className="text-sm sm:text-base font-semibold text-white">{item.q}</span>
                   <span className={`flex-shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`}>
