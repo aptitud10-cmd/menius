@@ -1,13 +1,32 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import {
   motion,
   useMotionValue,
   useSpring,
   useTransform,
+  useReducedMotion,
 } from 'framer-motion';
 import type { LandingLocale } from '@/lib/landing-translations';
+
+/**
+ * Whether the decorative cart pulse should auto-play. Off on mobile (≤1024px)
+ * and when the user prefers reduced motion — an infinite loop on a mid-range
+ * phone janks the scroll and drains battery (see motion-stack skill).
+ */
+function useShouldAnimate(): boolean {
+  const reduced = useReducedMotion();
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    setWide(mq.matches);
+    const on = () => setWide(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return wide && !reduced;
+}
 
 const W = 288;
 const H = Math.round(W * 2.165);
@@ -173,6 +192,7 @@ function MenuItem({
 
 function MenuScreen({ locale }: { locale: LandingLocale }) {
   const isEs = locale === 'es';
+  const animate = useShouldAnimate();
 
   const items = [
     { name: 'Tacos al Pastor',    price: '$12.99', desc: isEs ? 'Piña, cilantro, cebolla'       : 'Pineapple, cilantro, onion',     popular: true  },
@@ -208,34 +228,48 @@ function MenuScreen({ locale }: { locale: LandingLocale }) {
         ))}
       </div>
 
-      {/* Cart CTA — pulsing badge */}
+      {/* Cart CTA — pulsing badge.
+          GPU-clean pulse: a glow layer behind the button animates only opacity+scale
+          (compositor-only, no repaint). Replaces the old box-shadow keyframe loop,
+          which forced a repaint every frame and janked on mid-range mobile.
+          Animation is disabled on mobile / reduced-motion (no auto-play to save battery). */}
       <div style={{ padding: '8px 16px 6px', flexShrink: 0 }}>
-        <motion.div
-          animate={{ scale: [1, 1.025, 1], boxShadow: [
-            '0 0 0 0 rgba(5,200,167,0)',
-            '0 0 0 6px rgba(5,200,167,0.15)',
-            '0 0 0 0 rgba(5,200,167,0)',
-          ] }}
-          transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
-          style={{
-            background: '#05c8a7',
-            borderRadius: 14,
-            padding: '11px 18px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', letterSpacing: '-0.1px' }}>
-            {isEs ? '🛒 Ver carrito' : '🛒 View cart'}
-          </span>
-          <span style={{
-            fontSize: 10, fontWeight: 800, color: '#05c8a7',
-            background: '#fff', borderRadius: 8, padding: '3px 9px',
-          }}>
-            $40.48
-          </span>
-        </motion.div>
+        <div style={{ position: 'relative' }}>
+          {animate && (
+            <motion.div
+              aria-hidden
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: [0, 0.45, 0], scale: [0.96, 1.06, 0.96] }}
+              transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+              style={{
+                position: 'absolute', inset: 0, borderRadius: 14,
+                background: '#05c8a7', filter: 'blur(8px)',
+                transformOrigin: 'center', pointerEvents: 'none', zIndex: 0,
+              }}
+            />
+          )}
+          <div
+            style={{
+              position: 'relative', zIndex: 1,
+              background: '#05c8a7',
+              borderRadius: 14,
+              padding: '11px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', letterSpacing: '-0.1px' }}>
+              {isEs ? '🛒 Ver carrito' : '🛒 View cart'}
+            </span>
+            <span style={{
+              fontSize: 10, fontWeight: 800, color: '#05c8a7',
+              background: '#fff', borderRadius: 8, padding: '3px 9px',
+            }}>
+              $40.48
+            </span>
+          </div>
+        </div>
       </div>
 
 
@@ -302,6 +336,9 @@ export function PhoneMockup({ locale }: { locale: LandingLocale }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
+  // Float + tilt only on desktop without reduced-motion. On mobile the tilt has no
+  // mouse to drive it and an infinite float loop wastes battery, so we render static.
+  const animate = useShouldAnimate();
 
   const rotY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-TILT, TILT]), { stiffness: 160, damping: 26 });
   const rotX = useSpring(useTransform(mouseY, [-0.5, 0.5], [TILT, -TILT]), { stiffness: 160, damping: 26 });
@@ -310,18 +347,20 @@ export function PhoneMockup({ locale }: { locale: LandingLocale }) {
     <div
       ref={containerRef}
       style={{ perspective: '1100px', cursor: 'default' }}
-      onMouseMove={(e) => {
+      onMouseMove={animate ? (e) => {
         const r = containerRef.current?.getBoundingClientRect();
         if (!r) return;
         mouseX.set((e.clientX - r.left) / r.width - 0.5);
         mouseY.set((e.clientY - r.top) / r.height - 0.5);
-      }}
-      onMouseLeave={() => { mouseX.set(0); mouseY.set(0); }}
+      } : undefined}
+      onMouseLeave={animate ? () => { mouseX.set(0); mouseY.set(0); } : undefined}
     >
       <motion.div
-        style={{ rotateX: rotX, rotateY: rotY, transformStyle: 'preserve-3d', willChange: 'transform' }}
-        animate={{ y: [0, -14, 0] }}
-        transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut' }}
+        style={animate
+          ? { rotateX: rotX, rotateY: rotY, transformStyle: 'preserve-3d', willChange: 'transform' }
+          : undefined}
+        animate={animate ? { y: [0, -14, 0] } : undefined}
+        transition={animate ? { duration: 5.5, repeat: Infinity, ease: 'easeInOut' } : undefined}
       >
         <PhoneFrame locale={locale} />
       </motion.div>

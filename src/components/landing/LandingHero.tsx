@@ -77,7 +77,11 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
             </div>
           </div>
 
-          <div className="hidden xl:flex justify-center items-center d-scale-in d-delay-3">
+          {/* Product mockup — shown on every viewport (was xl-only, hiding the
+              strongest visual asset exactly where mobile traffic lives). Scaled
+              down on small screens so it fits without dominating the fold; motion
+              auto-disables on mobile (see PhoneMockup). */}
+          <div className="flex justify-center items-center d-scale-in d-delay-3 scale-[0.78] sm:scale-90 xl:scale-100 origin-top">
             <PhoneMockup locale={locale} />
           </div>
 
