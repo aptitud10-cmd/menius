@@ -159,9 +159,11 @@ function SocialProof({ t }: { t: LandingT['socialProof'] }) {
   return (
     <section className="relative py-20 md:py-24 overflow-clip">
       <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center scroll-reveal d-fade-in">
-          <p className="text-sm text-[#05c8a7]/80 font-medium mb-8 tracking-wide uppercase">{t.headline}</p>
-          <div className="flex items-center justify-center gap-8 md:gap-14 flex-wrap">
+        <div className="text-left md:text-center scroll-reveal d-fade-in">
+          {/* 01 — numbered index on mobile to match the rest of the system */}
+          <span className="font-mono text-xs tracking-[0.2em] text-[#05c8a7]/70 mb-6 block md:hidden">01 / {t.headline}</span>
+          <p className="hidden md:block text-sm text-[#05c8a7]/80 font-medium mb-8 tracking-wide uppercase">{t.headline}</p>
+          <div className="flex items-center justify-start md:justify-center gap-7 md:gap-14 flex-wrap">
             {t.logos.map((name) => {
               const brandColor: Record<string, string> = {
                 'Stripe': '#635BFF',

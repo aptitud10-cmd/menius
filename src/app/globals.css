@@ -119,6 +119,13 @@ label {
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* Editorial serif for display headings (2026 serif/sans contrast trial). */
+.font-serif-display {
+  font-family: var(--font-serif), Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
 /* FAQ / landing: horizontal category tabs — must scroll on mobile (touch + thin bar) */
 .faq-category-tabs {
   overflow-x: auto;

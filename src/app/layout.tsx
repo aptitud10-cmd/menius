@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Bricolage_Grotesque } from 'next/font/google';
+import { Inter, Bricolage_Grotesque, Instrument_Serif } from 'next/font/google';
 import './globals.css';
 import { Suspense } from 'react';
 import { cookies } from 'next/headers';
@@ -19,6 +19,16 @@ const bricolage = Bricolage_Grotesque({
   variable: '--font-display',
   display: 'swap',
   adjustFontFallback: false,
+});
+
+// Editorial serif for display headings — 2026 serif/sans contrast trend.
+// Trial: applied via .font-serif-display utility, not globally.
+const instrumentSerif = Instrument_Serif({
+  subsets: ['latin'],
+  weight: '400',
+  style: ['normal', 'italic'],
+  variable: '--font-serif',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -100,7 +110,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   };
 
   return (
-    <html lang={locale} className={`${inter.variable} ${bricolage.variable}`} suppressHydrationWarning>
+    <html lang={locale} className={`${inter.variable} ${bricolage.variable} ${instrumentSerif.variable}`} suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

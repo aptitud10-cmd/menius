@@ -35,7 +35,9 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
               style={{ fontSize: 'clamp(3.25rem, 14vw, 4.5rem)' }}
             >
               {h.titleLine1}
-              <span className="text-gradient-premium">{h.titleHighlight}</span>
+              {/* Serif-italic accent on its own line so it never breaks mid-phrase
+                  ("Sin" dangling). Block on mobile, inline from sm+ where it fits. */}
+              <span className="block sm:inline font-serif-display italic font-normal tracking-[-0.005em] leading-[1.1] text-gradient-premium">{h.titleHighlight}</span>
             </h1>
 
             {/* Mobile: one short, punchy line. Desktop: the full subtitle. */}
