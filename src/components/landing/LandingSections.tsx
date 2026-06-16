@@ -35,6 +35,33 @@ const brandAccent = {
 
 /* ─── COMPONENTS ─── */
 
+/* Shared 2026 section heading: numbered mono index + flush-left title + concise
+   left body on mobile; falls back to the original centered treatment on md+ so
+   desktop stays untouched. This is what gives the 8 sections one coherent
+   language instead of 8 different centered eyebrows. */
+function SectionHeading({
+  index, label, title, desc, className = 'mb-10 md:mb-14',
+}: {
+  index: string;
+  label: string;
+  title: string;
+  desc?: string;
+  className?: string;
+}) {
+  return (
+    <div className={`text-left md:text-center d-fade-up ${className}`}>
+      <span className="font-mono text-xs tracking-[0.2em] text-[#05c8a7]/70 md:hidden">{index} / {label}</span>
+      <p className="hidden md:block text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{label}</p>
+      <h2 className="font-display mt-3 md:mt-0 font-extrabold text-white tracking-[-0.03em] md:tracking-[-0.025em] leading-[1.05] text-[clamp(2.25rem,9vw,3rem)] md:text-5xl lg:text-6xl">
+        {title}
+      </h2>
+      {desc && (
+        <p className="text-gray-300 mt-3 md:mt-5 text-lg md:text-xl font-light max-w-[34ch] md:max-w-lg md:mx-auto">{desc}</p>
+      )}
+    </div>
+  );
+}
+
 function FeatureTabs({ t }: { t: LandingT }) {
   const [active, setActive] = useState(0);
   const ft = t.features;
@@ -297,6 +324,89 @@ function DashIcon() {
   );
 }
 
+type PlanComparisonT = LandingT['pricing']['planComparison'];
+
+function PlanAccordionMobile({
+  pc, colKeys, colLabels, isColombia, proIdx, getSuffix,
+}: {
+  pc: PlanComparisonT;
+  colKeys: ColKey[];
+  colLabels: string[];
+  isColombia: boolean;
+  proIdx: number;
+  getSuffix: (key: ColKey) => string;
+}) {
+  // Pro expanded by default — it's the plan we want them to read first.
+  const [open, setOpen] = useState<number>(proIdx);
+
+  return (
+    <>
+      {colKeys.map((key, i) => {
+        const isOpen = open === i;
+        const isPro = i === proIdx;
+        const label = colLabels[i];
+        const price = isColombia
+          ? (key === 'free' ? '$0' : `$${formatCOP(COP_PRICES[key as typeof PLAN_IDS[number]].monthly)}`)
+          : COL_PRICES[key];
+        const suffix = getSuffix(key);
+
+        return (
+          <div
+            key={key}
+            className={`rounded-2xl border overflow-hidden transition-colors ${
+              isPro ? 'border-[#05c8a7]/30 bg-[#05c8a7]/[0.05]' : 'border-white/[0.08] bg-white/[0.02]'
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => setOpen(isOpen ? -1 : i)}
+              aria-expanded={isOpen ? 'true' : 'false'}
+              className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]/60 focus-visible:ring-inset"
+            >
+              <span className="flex items-center gap-2.5">
+                <span className={`text-lg font-bold ${isPro ? 'text-[#05c8a7]' : 'text-white'}`}>{label}</span>
+                {isPro && (
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-[#05c8a7] bg-[#05c8a7]/15 px-2 py-0.5 rounded-full">Popular</span>
+                )}
+              </span>
+              <span className="flex items-center gap-3">
+                <span className={`text-base font-bold ${isPro ? 'text-[#05c8a7]' : 'text-gray-200'}`}>
+                  {price}
+                  {isColombia && key !== 'free' && <span className="text-xs text-gray-500"> COP</span>}
+                  {suffix && <span className="text-xs text-gray-500 font-normal">{suffix}</span>}
+                </span>
+                <span className={`flex-shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-45' : ''}`}>
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                </span>
+              </span>
+            </button>
+
+            {isOpen && (
+              <div className="px-5 pb-4 divide-y divide-white/[0.05]">
+                {pc.rows.map((row) => {
+                  const val = row[key];
+                  return (
+                    <div key={row.feature} className="flex items-center justify-between gap-4 py-3">
+                      <span className="text-sm text-gray-300">{row.feature}</span>
+                      <span className="flex-shrink-0">
+                        {val === '✓' ? <CheckIcon /> : val === '—' ? <DashIcon /> : (
+                          <span className={`text-sm font-semibold ${isPro ? 'text-[#05c8a7]' : 'text-gray-200'}`}>{val}</span>
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boolean }) {
   const pc = t.pricing.planComparison;
   const colKeys: ColKey[] = ['free', 'starter', 'pro', 'business'];
@@ -321,8 +431,14 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
         <p className="text-gray-400 mt-2 text-sm max-w-md mx-auto">{pc.sectionDesc}</p>
       </div>
 
-      {/* Mobile: horizontal scroll */}
-      <div className="overflow-x-auto -mx-2 px-2">
+      {/* Mobile: accordion per plan — no horizontal scroll. Each plan expands
+          to show its features with ✓/— against every comparison row. */}
+      <div className="md:hidden space-y-2.5">
+        <PlanAccordionMobile pc={pc} colKeys={colKeys} colLabels={colLabels} isColombia={isColombia} proIdx={proIdx} getSuffix={getSuffix} />
+      </div>
+
+      {/* Desktop: full comparison grid */}
+      <div className="hidden md:block overflow-x-auto -mx-2 px-2">
         <div className="min-w-[600px] rounded-2xl border border-white/[0.08] overflow-hidden bg-white/[0.02]">
           {/* Header */}
           <div className="grid border-b border-white/[0.08]" style={{ gridTemplateColumns: `1.4fr repeat(${colKeys.length}, minmax(90px, 1fr))` }}>
@@ -385,21 +501,120 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
   );
 }
 
+/* ─── PRICING MOBILE — full 2026 rebuild (not the desktop layout shrunk) ───
+   Hero plan (Pro) takes the full width with a protagonist price; Starter +
+   Business are subordinated below in an asymmetric bento. A giant ghost price
+   sits behind the header for typographic tension. Left-aligned, numbered index,
+   own vertical rhythm. Desktop keeps PricingSection untouched. */
+function PricingMobile({ t, isColombia, annual }: { t: LandingT; isColombia: boolean; annual: boolean }) {
+  const tp = t.pricing;
+  const formatPrice = (n: number) => (isColombia ? formatCOP(n) : String(n));
+
+  const priceFor = (idx: number) => {
+    const planId = PLAN_IDS[idx];
+    const monthly = isColombia ? COP_PRICES[planId].monthly : PLANS[planId].price.monthly;
+    const perMonthAnnual = isColombia
+      ? Math.floor(COP_PRICES[planId].annual / 12)
+      : Math.floor(PLANS[planId].price.annual / 12);
+    return annual ? perMonthAnnual : monthly;
+  };
+
+  const heroIdx = 1; // Pro
+  const hero = tp.plans[heroIdx];
+  const subs = [0, 2]; // Starter, Business
+
+  return (
+    <div className="md:hidden">
+      {/* Hero plan — Pro as protagonist */}
+      <div className="relative overflow-hidden rounded-[1.75rem] border border-[#05c8a7]/30 bg-[#05c8a7]/[0.06] p-7 pt-8">
+        {/* Ghost mega-price for typographic tension (R: mega-number bg) */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -right-2 -top-6 font-display font-black leading-none text-[#05c8a7]/[0.10] select-none"
+          style={{ fontSize: '9rem' }}
+        >
+          ${formatPrice(priceFor(heroIdx))}
+        </span>
+
+        <div className="relative">
+          <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#05c8a7]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#05c8a7] shadow-[0_0_8px_var(--brand-40)]" />
+            {tp.popularBadge}
+          </span>
+
+          <h3 className="mt-4 font-display text-3xl font-extrabold tracking-tight text-white">{hero.name}</h3>
+          <p className="mt-1.5 text-sm text-gray-300/80 max-w-[26ch]">{hero.desc}</p>
+
+          {/* Protagonist price */}
+          <div className="mt-7 flex items-end gap-2">
+            <span className="font-display font-black tracking-tight text-white leading-[0.9]" style={{ fontSize: 'clamp(3.5rem, 18vw, 5rem)' }}>
+              ${formatPrice(priceFor(heroIdx))}
+            </span>
+            <span className="mb-2 text-sm text-gray-400">
+              {isColombia ? 'COP' : ''}{annual ? tp.annualPerMonth : tp.perMonth}
+            </span>
+          </div>
+
+          <ul className="mt-7 grid grid-cols-1 gap-x-4 gap-y-3">
+            {hero.features.slice(0, 6).map((feat) => (
+              <li key={feat} className="flex items-start gap-2.5">
+                <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#05c8a7]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                <span className="text-[15px] leading-snug text-gray-200">{feat}</span>
+              </li>
+            ))}
+          </ul>
+
+          <Link
+            href={`/signup?plan=pro${annual ? '&billing=annual' : ''}`}
+            className="mt-8 flex items-center justify-center rounded-2xl bg-white py-4 text-[16px] font-extrabold text-black active:scale-[0.97] transition-transform duration-150"
+          >
+            {hero.cta} <span className="ml-1.5">&rarr;</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Subordinate plans — asymmetric bento, no feature wall */}
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        {subs.map((idx) => {
+          const p = tp.plans[idx];
+          return (
+            <Link
+              key={p.name}
+              href={`/signup?plan=${p.name.toLowerCase()}${annual ? '&billing=annual' : ''}`}
+              className="group flex flex-col rounded-[1.5rem] border border-white/[0.08] bg-white/[0.02] p-5 active:scale-[0.98] transition-transform duration-150"
+            >
+              <span className="font-display text-xl font-bold text-white">{p.name}</span>
+              <div className="mt-3 flex items-end gap-1">
+                <span className="font-display text-3xl font-extrabold tracking-tight text-white leading-none">${formatPrice(priceFor(idx))}</span>
+                <span className="mb-0.5 text-xs text-gray-500">{annual ? tp.annualPerMonth : tp.perMonth}</span>
+              </div>
+              <span className="mt-3 text-xs leading-snug text-gray-400">{p.features[0]}</span>
+              <span className="mt-auto pt-5 text-sm font-semibold text-[#05c8a7] group-hover:translate-x-0.5 transition-transform">{p.cta} →</span>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean }) {
   const [annual, setAnnual] = useState(false);
   const tp = t.pricing;
 
   return (
     <>
-      <div className="text-center mb-10 md:mb-14 d-fade-up">
-        <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{tp.sectionLabel}</p>
-        <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
+      <div className="text-left md:text-center mb-10 md:mb-14 d-fade-up">
+        {/* S1 — numbered index left, not centered uppercase eyebrow */}
+        <span className="font-mono text-xs tracking-[0.2em] text-[#05c8a7]/70 md:hidden">02 / {tp.sectionLabel}</span>
+        <p className="hidden md:block text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{tp.sectionLabel}</p>
+        <h2 className="font-display mt-3 md:mt-0 font-extrabold text-white tracking-[-0.03em] md:tracking-[-0.025em] leading-[1.05] text-[clamp(2.25rem,9vw,3rem)] md:text-5xl lg:text-6xl">
           {tp.sectionTitle}
         </h2>
-        <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl font-light">{tp.sectionDesc}</p>
+        <p className="text-gray-300 mt-3 md:mt-5 text-lg md:text-xl font-light max-w-[34ch] md:max-w-none">{tp.sectionDesc}</p>
 
-        {/* Billing toggle */}
-        <div className="mt-8 inline-flex items-center gap-1 p-1 rounded-xl bg-white/[0.06] border border-white/[0.08]">
+        {/* Billing toggle — left on mobile, centered md+ */}
+        <div className="mt-7 md:mt-8 inline-flex items-center gap-1 p-1 rounded-xl bg-white/[0.06] border border-white/[0.08]">
           <button
             onClick={() => setAnnual(false)}
             className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
@@ -424,7 +639,13 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
         </div>
       </div>
 
-      <div className="d-scale-in d-delay-2">
+      {/* Mobile: full 2026 rebuild */}
+      <div className="d-fade-up d-delay-2">
+        <PricingMobile t={t} isColombia={isColombia} annual={annual} />
+      </div>
+
+      {/* Desktop: original 3-card grid */}
+      <div className="d-scale-in d-delay-2 hidden md:block">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {tp.plans.map((plan, idx) => {
             const isPopular = idx === 1;
@@ -446,16 +667,18 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
                 key={plan.name}
                 className={`relative rounded-2xl p-6 lg:p-8 flex flex-col transition-all duration-300 ${
                   isPopular
-                    ? 'card-popular-glow bg-white/[0.04] border border-[#05c8a7]/20 shimmer-border'
+                    ? 'card-popular-glow bg-[#05c8a7]/[0.07] md:bg-white/[0.04] border border-[#05c8a7]/30 md:border-[#05c8a7]/20 shimmer-border'
                     : 'card-gradient-border bg-white/[0.02] rounded-2xl hover:bg-white/[0.04]'
                 }`}
               >
+                {/* S5 — recommended plan differentiated by fill + left badge, not a
+                    centered "Most Popular" pill (2021 tell). */}
                 {isPopular && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-5 py-1.5 bg-[#05c8a7] text-black text-[11px] font-semibold rounded-full uppercase tracking-wider shadow-lg shadow-[#05c8a7]/25">
+                  <span className="absolute -top-3 left-6 md:left-1/2 md:-translate-x-1/2 px-4 py-1.5 bg-[#05c8a7] text-black text-[11px] font-semibold rounded-full uppercase tracking-wider shadow-lg shadow-[#05c8a7]/25">
                     {tp.popularBadge}
                   </span>
                 )}
-                <h3 className="text-lg font-semibold text-white">{plan.name}</h3>
+                <h3 className={`text-xl md:text-lg font-bold md:font-semibold ${isPopular ? 'text-[#05c8a7]' : 'text-white'}`}>{plan.name}</h3>
                 <p className="text-sm text-gray-400 mt-1.5">{plan.desc}</p>
                 <div className="mt-7 mb-1">
                   <div className="flex items-end gap-1.5">
@@ -496,32 +719,33 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
             );
           })}
         </div>
-
-        <Link
-          href="/signup"
-          className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl border border-[#05c8a7]/20 bg-[#05c8a7]/[0.04] hover:bg-[#05c8a7]/[0.08] hover:border-[#05c8a7]/30 transition-all"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-            <span className="text-sm text-gray-400">
-              {tp.freeBannerPrefix}{' '}
-              <strong className="text-[#05c8a7]">{tp.freeBannerPlan}</strong>
-              {' '}—{' '}
-              <span className="text-gray-400">{tp.freeBannerDesc}</span>
-            </span>
-          </div>
-          <span className="shrink-0 text-sm font-medium text-[#05c8a7] whitespace-nowrap">
-            {tp.freeBannerCta}
-          </span>
-        </Link>
-
-        <Link
-          href="/setup-profesional"
-          className="mt-3 flex items-center justify-between p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all group"
-        >
-          <span className="text-sm text-gray-400">{tp.setupCtaPrefix} <strong className="text-gray-200">{tp.setupCtaBold}</strong> {tp.setupCtaSuffix}</span>
-          <svg className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-        </Link>
       </div>
+
+      {/* Free plan + setup banners — shared mobile + desktop */}
+      <Link
+        href="/signup"
+        className="mt-4 md:mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4 p-5 rounded-2xl border border-[#05c8a7]/20 bg-[#05c8a7]/[0.04] hover:bg-[#05c8a7]/[0.08] hover:border-[#05c8a7]/30 transition-all"
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          <span className="text-sm text-gray-400">
+            {tp.freeBannerPrefix}{' '}
+            <strong className="text-[#05c8a7]">{tp.freeBannerPlan}</strong>
+            {' '}—{' '}
+            <span className="text-gray-400">{tp.freeBannerDesc}</span>
+          </span>
+        </div>
+        <span className="shrink-0 text-sm font-medium text-[#05c8a7] whitespace-nowrap">
+          {tp.freeBannerCta}
+        </span>
+      </Link>
+
+      <Link
+        href="/setup-profesional"
+        className="mt-3 flex items-center justify-between p-5 rounded-2xl border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-white/[0.1] transition-all group"
+      >
+        <span className="text-sm text-gray-400">{tp.setupCtaPrefix} <strong className="text-gray-200">{tp.setupCtaBold}</strong> {tp.setupCtaSuffix}</span>
+        <svg className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+      </Link>
     </>
   );
 }
@@ -587,8 +811,9 @@ function FaqSection({ locale }: { locale: LandingLocale }) {
   return (
     <section id="faq" className="relative py-24 md:py-28 lg:py-32 overflow-clip">
       <div className="relative z-10 max-w-3xl mx-auto px-6">
-        <div className="text-center mb-12">
-          <h2 className="font-display text-3xl md:text-4xl font-extrabold text-white tracking-[-0.02em]">
+        <div className="text-left md:text-center mb-10 md:mb-12">
+          <span className="font-mono text-xs tracking-[0.2em] text-[#05c8a7]/70 md:hidden">08 / FAQ</span>
+          <h2 className="font-display mt-3 md:mt-0 text-[clamp(2.25rem,9vw,3rem)] leading-[1.05] md:text-4xl font-extrabold text-white tracking-[-0.03em] md:tracking-[-0.02em]">
             {isEs ? 'Preguntas frecuentes' : 'Frequently asked questions'}
           </h2>
           <p className="mt-3 text-gray-400 text-base">
@@ -665,15 +890,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
-          <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.savings.sectionLabel}</p>
-            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
-              {t.savings.sectionTitle}
-            </h2>
-            <p className="text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
-              {t.savings.sectionDesc}
-            </p>
-          </div>
+          <SectionHeading index="03" label={t.savings.sectionLabel} title={t.savings.sectionTitle} desc={t.savings.sectionDesc} />
 
           <div className="d-fade-up d-delay-2">
             <SavingsCalculator t={t.savings} />
@@ -688,15 +905,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
-          <div className="text-center mb-8 d-fade-up">
-            <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.features.sectionLabel}</p>
-            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
-              {t.features.sectionTitle}
-            </h2>
-            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
-              {t.features.sectionDesc}
-            </p>
-          </div>
+          <SectionHeading index="04" label={t.features.sectionLabel} title={t.features.sectionTitle} desc={t.features.sectionDesc} className="mb-8 md:mb-10" />
 
           <div className="d-fade-up d-delay-2">
             <FeatureTabs t={t} />
@@ -711,15 +920,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
         <div className="section-glow section-glow-teal" />
 
         <div className="relative z-10 max-w-4xl mx-auto px-6">
-          <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.comparison.sectionLabel}</p>
-            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
-              {t.comparison.sectionTitle}
-            </h2>
-            <p className="text-gray-200 md:text-gray-300 mt-4 md:mt-5 text-lg md:text-xl max-w-lg mx-auto font-light">
-              {t.comparison.sectionDesc}
-            </p>
-          </div>
+          <SectionHeading index="05" label={t.comparison.sectionLabel} title={t.comparison.sectionTitle} desc={t.comparison.sectionDesc} />
 
           <div>
             <div className="md:hidden space-y-3">
@@ -784,14 +985,25 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-4xl mx-auto px-6">
-          <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.howItWorks.sectionLabel}</p>
-            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
-              {t.howItWorks.sectionTitle}
-            </h2>
+          <SectionHeading index="06" label={t.howItWorks.sectionLabel} title={t.howItWorks.sectionTitle} />
+
+          {/* Mobile: numbered steps with a big left index + vertical connector
+              line (2026 pattern — Linear/Sakazuki). Desktop keeps the card grid. */}
+          <div className="d-fade-up d-delay-2 md:hidden">
+            <ol className="relative border-l border-[#05c8a7]/20 ml-5">
+              {t.howItWorks.steps.map((item) => (
+                <li key={item.step} className="relative pl-7 pb-9 last:pb-0">
+                  <span className="absolute -left-[1.15rem] -top-1 flex h-9 w-9 items-center justify-center rounded-full bg-[#050505] font-display text-lg font-extrabold text-[#05c8a7] ring-1 ring-[#05c8a7]/30">
+                    {item.step}
+                  </span>
+                  <p className="text-lg font-bold text-white leading-tight">{item.title}</p>
+                  <p className="mt-2 text-[15px] text-gray-400 leading-relaxed max-w-[34ch]">{item.desc}</p>
+                </li>
+              ))}
+            </ol>
           </div>
 
-          <div className="d-fade-up d-delay-2">
+          <div className="d-fade-up d-delay-2 hidden md:block">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
               {t.howItWorks.steps.map((item) => (
                 <div key={item.step} className="card-premium rounded-2xl p-6 md:p-8 flex gap-5">
@@ -816,12 +1028,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
         <div className="section-glow section-glow-teal" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
-          <div className="text-center mb-10 md:mb-14 d-fade-up">
-            <p className="text-sm text-[#05c8a7] uppercase tracking-[0.2em] font-medium mb-4 md:mb-5">{t.testimonials.sectionLabel}</p>
-            <h2 className="font-display text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.025em]">
-              {t.testimonials.sectionTitle}
-            </h2>
-          </div>
+          <SectionHeading index="07" label={t.testimonials.sectionLabel} title={t.testimonials.sectionTitle} />
 
           <div className="d-fade-up d-delay-2">
             <TestimonialsSection t={t.testimonials} />
@@ -843,7 +1050,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
 
         <div className="relative z-10 max-w-3xl mx-auto px-6 text-center">
           <div className="d-fade-up">
-            <h2 className="font-display text-3xl md:text-5xl lg:text-7xl font-extrabold text-white tracking-[-0.03em] leading-[1.05]">
+            <h2 className="font-display text-[2.9rem] md:text-5xl lg:text-7xl font-extrabold text-white tracking-[-0.035em] md:tracking-[-0.03em] leading-[1.02] md:leading-[1.05]">
               {t.finalCta.line1}
               <br />
               <span className="text-gradient-premium">{t.finalCta.line2}</span>
