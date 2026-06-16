@@ -93,6 +93,7 @@ const es = {
     login: 'Iniciar sesión',
     startFree: 'Empezar gratis',
     menuLabel: 'Menú',
+    closeLabel: 'Cerrar',
   },
   hero: {
     badge: 'Sin tarjeta · Sin contrato · Cancela cuando quieras',
@@ -100,6 +101,7 @@ const es = {
     titleHighlight: 'Sin intermediarios.',
     productLine: 'Menú digital + pedidos online para tu restaurante.',
     subtitle: 'Menú con QR, pedidos en tiempo real y pagos directos. Listo en minutos, sin comisiones.',
+    subtitleShort: 'Menú con QR y pedidos online. Cero comisiones.',
     ctaPrimary: 'Empezar gratis — sin tarjeta',
     ctaSecondary: 'Calcula tu ahorro',
     stats: [
@@ -475,6 +477,7 @@ const en: LandingT = {
     login: 'Sign in',
     startFree: 'Start free',
     menuLabel: 'Menu',
+    closeLabel: 'Close',
   },
   hero: {
     badge: 'No card · No contract · Cancel anytime',
@@ -482,6 +485,7 @@ const en: LandingT = {
     titleHighlight: 'No middlemen.',
     productLine: 'Digital menu + online orders for your restaurant.',
     subtitle: 'QR menu, real-time orders, and direct payments. Ready in minutes, no commissions.',
+    subtitleShort: 'QR menu and online orders. Zero commissions.',
     ctaPrimary: 'Start free — no card needed',
     ctaSecondary: 'Calculate your savings',
     stats: [

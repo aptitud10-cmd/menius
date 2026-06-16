@@ -63,18 +63,21 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
             <span className="text-gray-600">|</span>
             <button onClick={() => switchLocale('en')} className={`px-1.5 py-0.5 rounded transition-colors ${locale === 'en' ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'}`}>EN</button>
           </div>
-          <Link href="/login" className="flex items-center text-[13px] md:text-sm text-gray-300 md:text-gray-400 hover:text-white transition-colors whitespace-nowrap">{n.login}</Link>
-          <Link href="/signup" className="flex items-center text-[13px] md:text-sm font-medium px-3.5 md:px-5 py-2 md:py-2.5 rounded-xl bg-white text-black hover:bg-gray-100 transition-colors whitespace-nowrap">{n.startFree}</Link>
+          {/* Sign in lives inside the mobile menu (below) to keep the bar to
+              logo · Start free · hamburger. Shown inline only from md+. */}
+          <Link href="/login" className="hidden md:flex items-center text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap">{n.login}</Link>
+          {/* Hidden on mobile while the panel is open → header reads "MENIUS · Cerrar". */}
+          <Link href="/signup" className={`${open ? 'hidden md:flex' : 'flex'} items-center text-[13px] md:text-sm font-medium px-4 md:px-5 py-2 md:py-2.5 rounded-xl bg-white text-black hover:bg-gray-100 transition-colors whitespace-nowrap`}>{n.startFree}</Link>
+          {/* Editorial toggle (Locomotive-style): plain text "Menú" ⇄ "Cerrar",
+              no icon box. Reads as a magazine nav, not an app. */}
           <button
             type="button"
             onClick={() => setOpen(!open)}
-            className={`md:hidden relative z-[130] flex flex-col items-center justify-center w-10 h-10 gap-[5px] rounded-lg border transition-colors duration-300 ${open ? 'border-[#05c8a7]/40 bg-[#05c8a7]/[0.06]' : 'border-[#05c8a7]/20 hover:border-[#05c8a7]/40'}`}
-            aria-label={n.menuLabel}
-            aria-expanded={open ? 'true' : 'false'}
+            className="md:hidden relative z-[130] flex items-center text-[15px] font-semibold tracking-tight text-white py-2 -mr-1 pl-1"
+            aria-label={open ? n.closeLabel : n.menuLabel}
+            aria-expanded={open}
           >
-            <span className={`block w-[18px] h-[1.5px] bg-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${open ? 'rotate-45 translate-y-[6.5px]' : ''}`} />
-            <span className={`block w-[18px] h-[1.5px] bg-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${open ? 'opacity-0' : ''}`} />
-            <span className={`block w-[18px] h-[1.5px] bg-white transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${open ? '-rotate-45 -translate-y-[6.5px]' : ''}`} />
+            {open ? n.closeLabel : n.menuLabel}
           </button>
         </div>
       </div>
@@ -84,8 +87,10 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
           className="md:hidden fixed top-14 left-0 right-0 bottom-0 z-[110] flex flex-col bg-[#050505] animate-fade-in"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-          {/* Navegación — items oversized centrados con entrada escalonada */}
-          <nav className="flex flex-1 flex-col items-center justify-center px-6 gap-2 text-center">
+          {/* Navegación editorial (estilo Locomotive): items grandes alineados
+              IZQUIERDA, anclados arriba con respiro generoso del header — no
+              centrados al medio. Sign in cierra la lista como ítem destacado. */}
+          <nav className="flex flex-col items-start px-6 pt-20 gap-1">
             {[
               { href: '/#funciones', label: n.features },
               { href: '/#precios', label: n.pricing },
@@ -95,22 +100,31 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className="animate-fade-in-up py-2 font-display text-[2.75rem] leading-tight font-bold tracking-[-0.03em] text-white hover:text-[#05c8a7] active:text-[#05c8a7] transition-colors"
+                className="animate-fade-in-up py-1.5 font-display text-[3.25rem] leading-[1.05] font-bold tracking-[-0.035em] text-white hover:text-[#05c8a7] active:text-[#05c8a7] transition-colors"
                 style={{ animationDelay: `${120 + i * 70}ms` }}
               >
                 {item.label}
               </Link>
             ))}
+            {/* Sign in — destacado en verde para diferenciarlo de la nav */}
+            <Link
+              href="/login"
+              onClick={() => setOpen(false)}
+              className="animate-fade-in-up mt-6 py-1.5 font-display text-[3.25rem] leading-[1.05] font-bold tracking-[-0.035em] text-[#05c8a7] active:opacity-70 transition-opacity"
+              style={{ animationDelay: `${120 + 3 * 70}ms` }}
+            >
+              {n.login}
+            </Link>
           </nav>
 
-          {/* Footer del panel — idioma (Sign in / Start free quedan siempre visibles en el header) */}
+          {/* Footer del panel — idioma abajo-izquierda, como la referencia */}
           <div
-            className="animate-fade-in-up mt-auto px-6 pb-8 pt-6"
-            style={{ animationDelay: `${120 + 3 * 70}ms` }}
+            className="animate-fade-in-up mt-auto px-6 pt-6"
+            style={{ animationDelay: `${120 + 4 * 70}ms`, paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
           >
             <div className="flex items-center gap-3 border-t border-white/[0.06] pt-6">
-              <button onClick={() => switchLocale('es')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'es' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}>ES</button>
-              <button onClick={() => switchLocale('en')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'en' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}>EN</button>
+              <button type="button" onClick={() => switchLocale('es')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'es' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}>ES</button>
+              <button type="button" onClick={() => switchLocale('en')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'en' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}>EN</button>
             </div>
           </div>
         </div>
