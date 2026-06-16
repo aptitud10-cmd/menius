@@ -16,7 +16,7 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
     <section className="relative min-h-[640px] md:min-h-svh xl:min-h-[100dvh] flex items-start xl:items-center overflow-clip">
       <div className="hero-gradient" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-6 lg:px-8 w-full pt-28 pb-16 xl:py-0">
+      <div className="relative z-30 max-w-7xl mx-auto px-6 sm:px-6 lg:px-8 w-full pt-28 pb-16 xl:py-0">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-10 xl:gap-20 items-center">
 
           {/* Mobile: left-aligned tipographic hero, aggressively trimmed.

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { getLandingT, type LandingLocale, type LandingT } from '@/lib/landing-translations';
 import { PLANS } from '@/lib/plans';
@@ -70,25 +70,30 @@ function FeatureTabs({ t }: { t: LandingT }) {
 
   return (
     <div>
-      <div className="flex flex-wrap gap-1 p-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.06] w-fit mx-auto mb-10 md:mb-14">
-        {ft.items.map((feat, i) => (
-          <button
-            key={feat.tab}
-            onClick={() => setActive(i)}
-            className={`px-4 sm:px-6 py-3 sm:py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
-              active === i
-                ? 'bg-white text-black shadow-lg shadow-white/10'
-                : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.03]'
-            }`}
-          >
-            {feat.tab}
-          </button>
-        ))}
+      {/* Mobile: tabs scroll horizontally (no wrap to 2 ugly rows) — the approved
+          pattern for tab nav (Sakazuki). Edge-bleed hints there's more. md+: pill row. */}
+      <div className="-mx-6 px-6 md:mx-auto md:px-0 overflow-x-auto scrollbar-hide mb-8 md:mb-14 md:w-fit">
+        <div className="flex gap-1 p-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.06] w-max md:w-fit md:mx-auto">
+          {ft.items.map((feat, i) => (
+            <button
+              key={feat.tab}
+              type="button"
+              onClick={() => setActive(i)}
+              className={`whitespace-nowrap px-4 sm:px-6 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
+                active === i
+                  ? 'bg-white text-black shadow-lg shadow-white/10'
+                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/[0.03]'
+              }`}
+            >
+              {feat.tab}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
         <div>
-          <h3 className="font-display text-3xl md:text-4xl font-bold text-white leading-tight tracking-[-0.025em]">
+          <h3 className="font-display text-[clamp(1.9rem,7vw,2.25rem)] md:text-4xl font-bold text-white leading-tight tracking-[-0.025em]">
             {item.title}
           </h3>
           <p className="mt-4 md:mt-6 text-lg md:text-xl text-gray-200 md:text-gray-300 leading-relaxed font-light">
@@ -200,12 +205,46 @@ function getRecommendedPlan(revenue: number) {
   return PLANS.business;
 }
 
+// Animate a number toward `target` over ~500ms with rAF (ease-out). No library.
+// Respects reduced-motion by snapping. The savings figure is the money shot of
+// this section — it should count up as the user drags, not jump (2026 pattern).
+function useCountUp(target: number): number {
+  const [display, setDisplay] = useState(target);
+  const fromRef = useRef(target);
+  const rafRef = useRef(0);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setDisplay(target);
+      return;
+    }
+    const from = fromRef.current;
+    const delta = target - from;
+    if (delta === 0) return;
+    let startTs: number | null = null;
+    const duration = 500;
+    const tick = (ts: number) => {
+      if (startTs === null) startTs = ts;
+      const p = Math.min((ts - startTs) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisplay(Math.round(from + delta * eased));
+      if (p < 1) rafRef.current = requestAnimationFrame(tick);
+      else fromRef.current = target;
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target]);
+
+  return display;
+}
+
 function SavingsCalculator({ t }: { t: LandingT['savings'] }) {
   const [revenue, setRevenue] = useState(15000);
   const commissionLoss = Math.round(revenue * 0.25);
   const recommendedPlan = getRecommendedPlan(revenue);
   const meniusCost = recommendedPlan.price.monthly;
   const annualSavings = (commissionLoss - meniusCost) * 12;
+  const animatedSavings = useCountUp(annualSavings);
   const withMeniusLabel = `${t.withMeniusPrefix ?? 'Con MENIUS'} ${recommendedPlan.name}`;
 
   return (
@@ -249,8 +288,8 @@ function SavingsCalculator({ t }: { t: LandingT['savings'] }) {
 
       <div className="rounded-2xl border border-[#05c8a7]/20 bg-[#05c8a7]/[0.06] p-6 md:p-8 text-center">
         <p className="text-sm text-gray-400 mb-2 font-medium">{t.savingsLabel}</p>
-        <p className="text-4xl md:text-6xl font-bold text-white tracking-tight">
-          ${annualSavings.toLocaleString()}
+        <p className="font-display font-black text-white tracking-tight tabular-nums text-[clamp(3rem,15vw,4.5rem)] md:text-6xl leading-none">
+          ${animatedSavings.toLocaleString()}
         </p>
         <p className="text-lg text-[#05c8a7] font-semibold mt-1">{t.perYear}</p>
       </div>
@@ -527,11 +566,12 @@ function PricingMobile({ t, isColombia, annual }: { t: LandingT; isColombia: boo
     <div className="md:hidden">
       {/* Hero plan — Pro as protagonist */}
       <div className="relative overflow-hidden rounded-[1.75rem] border border-[#05c8a7]/30 bg-[#05c8a7]/[0.06] p-7 pt-8">
-        {/* Ghost mega-price for typographic tension (R: mega-number bg) */}
+        {/* Ghost mega-price for typographic tension. Smaller in COP (long
+            numbers) so it doesn't overrun; the card's overflow-hidden clips it. */}
         <span
           aria-hidden
-          className="pointer-events-none absolute -right-2 -top-6 font-display font-black leading-none text-[#05c8a7]/[0.10] select-none"
-          style={{ fontSize: '9rem' }}
+          className="pointer-events-none absolute -right-2 -top-6 font-display font-black leading-none text-[#05c8a7]/[0.10] select-none whitespace-nowrap"
+          style={{ fontSize: isColombia ? '4.5rem' : '9rem' }}
         >
           ${formatPrice(priceFor(heroIdx))}
         </span>
@@ -545,9 +585,13 @@ function PricingMobile({ t, isColombia, annual }: { t: LandingT; isColombia: boo
           <h3 className="mt-4 font-display text-3xl font-extrabold tracking-tight text-white">{hero.name}</h3>
           <p className="mt-1.5 text-sm text-gray-300/80 max-w-[26ch]">{hero.desc}</p>
 
-          {/* Protagonist price */}
-          <div className="mt-7 flex items-end gap-2">
-            <span className="font-display font-black tracking-tight text-white leading-[0.9]" style={{ fontSize: 'clamp(3.5rem, 18vw, 5rem)' }}>
+          {/* Protagonist price — smaller scale factor for COP's long numbers so
+              it never overflows 375px. */}
+          <div className="mt-7 flex flex-wrap items-end gap-x-2 gap-y-1">
+            <span
+              className="font-display font-black tracking-tight text-white leading-[0.9] break-all"
+              style={{ fontSize: isColombia ? 'clamp(2.5rem, 11vw, 3.5rem)' : 'clamp(3.5rem, 18vw, 5rem)' }}
+            >
               ${formatPrice(priceFor(heroIdx))}
             </span>
             <span className="mb-2 text-sm text-gray-400">
@@ -584,9 +628,9 @@ function PricingMobile({ t, isColombia, annual }: { t: LandingT; isColombia: boo
               className="group flex flex-col rounded-[1.5rem] border border-white/[0.08] bg-white/[0.02] p-5 active:scale-[0.98] transition-transform duration-150"
             >
               <span className="font-display text-xl font-bold text-white">{p.name}</span>
-              <div className="mt-3 flex items-end gap-1">
-                <span className="font-display text-3xl font-extrabold tracking-tight text-white leading-none">${formatPrice(priceFor(idx))}</span>
-                <span className="mb-0.5 text-xs text-gray-500">{annual ? tp.annualPerMonth : tp.perMonth}</span>
+              <div className="mt-3 min-w-0">
+                <span className={`font-display font-extrabold tracking-tight text-white leading-none block ${isColombia ? 'text-xl' : 'text-3xl'}`}>${formatPrice(priceFor(idx))}</span>
+                <span className="mt-1 block text-xs text-gray-500">{annual ? tp.annualPerMonth : tp.perMonth}</span>
               </div>
               <span className="mt-3 text-xs leading-snug text-gray-400">{p.features[0]}</span>
               <span className="mt-auto pt-5 text-sm font-semibold text-[#05c8a7] group-hover:translate-x-0.5 transition-transform">{p.cta} →</span>
@@ -752,32 +796,52 @@ function PricingSection({ t, isColombia }: { t: LandingT; isColombia: boolean })
 
 function TestimonialsSection({ t }: { t: LandingT['testimonials'] }) {
   return (
-    <div className="max-w-5xl mx-auto space-y-4 md:space-y-0 md:grid md:grid-cols-3 md:gap-5">
-      {t.items.map((item) => (
-        <div key={item.name} className="card-premium rounded-2xl p-6 md:p-7 flex flex-col gap-4">
-          {/* Big stat */}
-          <div className="flex items-start gap-3">
+    <>
+      {/* Mobile: editorial list — the stat is the protagonist (oversized,
+          flush-left), quote alongside, hairline divider instead of a boxed card.
+          Each insight reads like an entry, not a uniform card. */}
+      <div className="md:hidden">
+        {t.items.map((item, i) => (
+          <div
+            key={item.name}
+            className={`d-fade-up py-8 ${i < t.items.length - 1 ? 'border-b border-white/[0.07]' : ''}`}
+            style={{ animationDelay: `${i * 90}ms` }}
+          >
             <span
-              className="font-display font-extrabold tracking-tight text-[#05c8a7] leading-none"
-              style={{ fontSize: 'clamp(2.2rem, 5vw, 3rem)' }}
+              className="font-display font-black tracking-tight text-[#05c8a7] leading-[0.9] block break-words"
+              style={{ fontSize: 'clamp(3rem, 13vw, 4.5rem)' }}
             >
               {item.name}
             </span>
+            <p className="mt-4 text-[15px] text-gray-200 leading-relaxed">{item.quote}</p>
+            <p className="mt-3 text-xs text-gray-500 tracking-wide">— {item.role}</p>
           </div>
+        ))}
+      </div>
 
-          {/* Explanation */}
-          <p className="text-sm text-gray-300 leading-relaxed flex-1">{item.quote}</p>
-
-          {/* Source attribution */}
-          <div className="flex items-center gap-2 pt-3 border-t border-white/[0.06]">
-            <svg className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <span className="text-[11px] text-gray-600 leading-tight">{item.role}</span>
+      {/* Desktop: 3-card grid (unchanged) */}
+      <div className="hidden md:grid max-w-5xl mx-auto md:grid-cols-3 md:gap-5">
+        {t.items.map((item) => (
+          <div key={item.name} className="card-premium rounded-2xl p-6 md:p-7 flex flex-col gap-4">
+            <div className="flex items-start gap-3">
+              <span
+                className="font-display font-extrabold tracking-tight text-[#05c8a7] leading-none"
+                style={{ fontSize: 'clamp(2.2rem, 5vw, 3rem)' }}
+              >
+                {item.name}
+              </span>
+            </div>
+            <p className="text-sm text-gray-300 leading-relaxed flex-1">{item.quote}</p>
+            <div className="flex items-center gap-2 pt-3 border-t border-white/[0.06]">
+              <svg className="w-3.5 h-3.5 text-gray-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="text-[11px] text-gray-600 leading-tight">{item.role}</span>
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -886,7 +950,7 @@ export function LandingSections({ locale, country }: { locale: LandingLocale; co
       <div className="separator-gradient max-w-5xl mx-auto" />
 
       {/* ── Savings Calculator ── */}
-      <section id="calculadora" className={`relative ${SECTION_PY} overflow-clip`}>
+      <section id="calculadora" className={`relative py-32 md:py-28 lg:py-40 overflow-clip`}>
         <div className="section-glow section-glow-purple" />
 
         <div className="relative z-10 max-w-6xl mx-auto px-6">
