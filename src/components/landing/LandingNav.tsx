@@ -26,12 +26,13 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
   }, [open]);
 
   useEffect(() => {
-    // On mobile the scroller is <body> (body-scroll-container fix in globals.css),
-    // on desktop it's window. Read + listen on the right one so the nav shrink
-    // still fires after the scroll moved off the root.
+    // On mobile the scroller is .root-scroll (body-scroll-container fix in
+    // globals.css), on desktop it's window. Read + listen on the right one so
+    // the nav shrink still fires after the scroll moved off the root.
     const mobile = window.matchMedia('(max-width: 768px)').matches;
-    const target: HTMLElement | Window = mobile ? document.body : window;
-    const getY = () => (mobile ? document.body.scrollTop : window.scrollY);
+    const scroller = mobile ? (document.querySelector('.root-scroll') as HTMLElement | null) : null;
+    const target: HTMLElement | Window = scroller ?? window;
+    const getY = () => (scroller ? scroller.scrollTop : window.scrollY);
     let rafId = 0;
     const onScroll = () => {
       // rAF batches scroll events during Safari momentum scrolling,

@@ -102,26 +102,24 @@ body {
   min-height: 100dvh;
 }
 
-/* ── iOS "scroll/padding eterno" fix — body scroll container ──
-   On mobile, move the scroller from the root (<html>) to <body>. iOS Safari
-   IGNORES overscroll-behavior when the scroller is the ROOT, leaving an empty
-   gap that STAYS at the end of the page ("scroll eterno"). It IS respected on a
-   non-root container, so the body becomes the scroller here.
-   Scoped to ≤768px: only landing/marketing pages scroll on the root (stores +
-   dashboards already use their own custom scroll containers, so they're immune
-   and unaffected by this — their inner scrollers keep working).
-   JS that reads scroll on these pages must use document.body.scrollTop /
-   document.body.scrollTo (see LandingNav, HeroScrollCue, BlogGrid, FaqClient). */
+/* ── iOS "scroll/padding eterno" fix — non-root scroll container ──
+   iOS Safari IGNORES overscroll-behavior when the scroller is the ROOT, leaving
+   an empty gap that STAYS at the end of the page ("scroll eterno"). It IS
+   respected on a non-root container. So the landing/marketing page wraps its
+   content in a .root-scroll element that becomes the scroller.
+
+   IMPORTANT — scoped to .root-scroll ONLY, NOT to <body> globally. The dashboard
+   and stores build their own layout (sticky headers, flex columns, custom
+   scrollers); turning <body> into the scroller globally broke their sticky
+   header and fixed chat panel. This targets just the landing wrapper.
+
+   JS reading scroll on these pages uses the .root-scroll element via
+   useScrollPosition (LandingNav, HeroScrollCue, BlogGrid, FaqClient). */
 @media (max-width: 768px) {
-  html {
-    height: 100%;
+  .root-scroll {
+    height: 100dvh;
     overflow-x: clip;
-    overflow-y: hidden;        /* the html no longer scrolls */
-  }
-  body {
-    height: 100%;
-    overflow-x: clip;
-    overflow-y: auto;          /* the BODY is now the scroller */
+    overflow-y: auto;                /* the wrapper is the scroller, not <html> */
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;  /* stops dead, no eternal scroll */
   }
