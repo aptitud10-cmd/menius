@@ -544,9 +544,8 @@ function PlanComparisonTable({ t, isColombia }: { t: LandingT; isColombia: boole
 
 /* ─── PRICING MOBILE — full 2026 rebuild (not the desktop layout shrunk) ───
    Hero plan (Pro) takes the full width with a protagonist price; Starter +
-   Business are subordinated below in an asymmetric bento. A giant ghost price
-   sits behind the header for typographic tension. Left-aligned, numbered index,
-   own vertical rhythm. Desktop keeps PricingSection untouched. */
+   Business are subordinated below in an asymmetric bento. Left-aligned,
+   numbered index, own vertical rhythm. Desktop keeps PricingSection untouched. */
 function PricingMobile({ t, isColombia, annual }: { t: LandingT; isColombia: boolean; annual: boolean }) {
   const tp = t.pricing;
   const formatPrice = (n: number) => (isColombia ? formatCOP(n) : String(n));
@@ -568,17 +567,7 @@ function PricingMobile({ t, isColombia, annual }: { t: LandingT; isColombia: boo
     <div className="md:hidden">
       {/* Hero plan — Pro as protagonist */}
       <div className="relative overflow-hidden rounded-[1.75rem] border border-[#05c8a7]/30 bg-[#05c8a7]/[0.06] p-7 pt-8">
-        {/* Ghost mega-price for typographic tension. Smaller in COP (long
-            numbers) so it doesn't overrun; the card's overflow-hidden clips it. */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -right-2 -top-6 font-display font-black leading-none text-[#05c8a7]/[0.10] select-none whitespace-nowrap"
-          style={{ fontSize: isColombia ? '4.5rem' : '9rem' }}
-        >
-          ${formatPrice(priceFor(heroIdx))}
-        </span>
-
-        <div className="relative">
+        <div>
           <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#05c8a7]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#05c8a7] shadow-[0_0_8px_var(--brand-40)]" />
             {tp.popularBadge}
