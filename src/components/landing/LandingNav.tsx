@@ -30,7 +30,7 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
     // globals.css), on desktop it's window. Read + listen on the right one so
     // the nav shrink still fires after the scroll moved off the root.
     const mobile = window.matchMedia('(max-width: 768px)').matches;
-    const scroller = mobile ? (document.querySelector('.root-scroll') as HTMLElement | null) : null;
+    const scroller = mobile ? (document.querySelector('.landing-bg, .root-scroll') as HTMLElement | null) : null;
     const target: HTMLElement | Window = scroller ?? window;
     const getY = () => (scroller ? scroller.scrollTop : window.scrollY);
     let rafId = 0;

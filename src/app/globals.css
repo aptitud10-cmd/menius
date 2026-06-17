@@ -116,6 +116,11 @@ body {
    JS reading scroll on these pages uses the .root-scroll element via
    useScrollPosition (LandingNav, HeroScrollCue, BlogGrid, FaqClient). */
 @media (max-width: 768px) {
+  /* .landing-bg is the wrapper on every marketing/auth page (landing, blog, faq,
+     terms, privacy, cookies, signup, login, etc.) — making it the scroller fixes
+     the eternal scroll on all of them at once, and on any future landing-bg page.
+     .root-scroll kept as an alias for explicit opt-in. */
+  .landing-bg,
   .root-scroll {
     height: 100dvh;
     overflow-x: clip;

@@ -557,7 +557,10 @@ export function AIChatWidget() {
           </div>
         )}
 
-        <div className="fixed bottom-4 right-4 z-50">
+        {/* Launcher is hidden on mobile while the chat is open — the panel has its
+            own close (✕) in its header, and a second floating ✕ down here was
+            landing on top of the panel's send button. Desktop keeps the toggle. */}
+        <div className={`fixed bottom-4 right-4 z-50 ${open ? 'hidden md:block' : ''}`}>
           <button
             onClick={handleOpen}
             className={`relative w-14 h-14 rounded-2xl shadow-2xl flex items-center justify-center motion-reduce:transition-none transition-all duration-300 hover:scale-105 ${

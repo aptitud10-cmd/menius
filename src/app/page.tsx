@@ -120,7 +120,7 @@ export default async function LandingPage() {
   };
 
   return (
-    <div className="root-scroll landing-bg relative w-full max-w-[100vw] overflow-x-clip">
+    <div className="landing-bg relative w-full max-w-[100vw] overflow-x-clip">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppSchema) }}

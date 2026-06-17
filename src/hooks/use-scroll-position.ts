@@ -16,7 +16,7 @@ export function useScrollPosition(cb: (y: number) => void) {
   useEffect(() => {
     const mobile = window.matchMedia('(max-width: 768px)').matches;
     const scroller = mobile
-      ? (document.querySelector('.root-scroll') as HTMLElement | null)
+      ? (document.querySelector('.landing-bg, .root-scroll') as HTMLElement | null)
       : null;
     // Mobile reads/listens on the .root-scroll element; desktop on window.
     const target: HTMLElement | Window = scroller ?? window;
