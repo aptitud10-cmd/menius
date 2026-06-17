@@ -65,7 +65,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  logger.info('Master anchor updated', { id: body.id, by: admin.user.email });
+  logger.info('Master anchor updated', { id: body.id, by: admin.user.id });
   return NextResponse.json({ anchor: data });
 }
 
@@ -93,6 +93,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  logger.info('Master anchor cleared', { id: body.id, by: admin.user.email });
+  logger.info('Master anchor cleared', { id: body.id, by: admin.user.id });
   return NextResponse.json({ ok: true });
 }

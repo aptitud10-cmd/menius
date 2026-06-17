@@ -29,8 +29,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ points: 0, config: null });
   }
 
-  // Allow only digits, +, -, spaces, and parentheses (standard phone chars)
-  const sanitizedPhone = phone.replace(/[^0-9+\-() ]/g, '');
+  // Allow only digits, +, -, and spaces (standard phone chars). Parentheses
+  // were allowed before but aren't needed and only widen the input surface.
+  const sanitizedPhone = phone.replace(/[^0-9+\- ]/g, '');
   if (!sanitizedPhone) {
     return NextResponse.json({ points: 0, config: null });
   }

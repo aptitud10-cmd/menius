@@ -182,6 +182,12 @@
       "parameters": {
         "method": "POST",
         "url": "={{ $env.MENIUS_API_URL }}/api/social/update-status",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.MENIUS_CRON_SECRET }}" }
+          ]
+        },
         "sendBody": true,
         "bodyParameters": {
           "parameters": [

@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createLogger } from '@/lib/logger';
+import { createLogger, maskEmail } from '@/lib/logger';
 
 const logger = createLogger('inbound-email');
 
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
         }),
       });
     } else {
-      logger.info('Email forwarded successfully', { to: forwardTo });
+      logger.info('Email forwarded successfully', { to: maskEmail(forwardTo) });
     }
 
     return NextResponse.json({ ok: true, forwarded: true });
