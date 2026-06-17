@@ -7,7 +7,7 @@ import { getLandingT, type LandingLocale } from '@/lib/landing-translations';
 export function LandingNav({ locale }: { locale: LandingLocale }) {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const navRef = useRef<HTMLElement>(null);
+  const navRef = useRef<HTMLDivElement>(null);
   const n = getLandingT(locale).nav;
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
   }, [open]);
 
   useEffect(() => {
-    // On mobile the scroller is .root-scroll (body-scroll-container fix in
+    // On mobile the scroller is .landing-bg (body-scroll-container fix in
     // globals.css), on desktop it's window. Read + listen on the right one so
     // the nav shrink still fires after the scroll moved off the root.
     const mobile = window.matchMedia('(max-width: 768px)').matches;
@@ -50,92 +50,129 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
     window.location.reload();
   };
 
-  return (
-    <header
-      ref={navRef}
-      className={`fixed top-0 w-full z-[120] bg-[#050505]/95 md:bg-[#050505]/80 md:backdrop-blur-2xl border-b transition-colors duration-300 ${scrolled ? 'border-white/[0.09] shadow-[0_1px_0_rgba(255,255,255,0.04)]' : 'border-white/[0.04]'}`}
+  const Logo = (
+    <Link href="/" className="flex items-center gap-1.5 font-display text-lg font-bold tracking-[-0.04em] text-white">
+      MENIUS
+      <span className="h-1.5 w-1.5 rounded-full bg-[#05c8a7] shadow-[0_0_8px_var(--brand-40)]" aria-hidden />
+    </Link>
+  );
+
+  const MenuToggle = (
+    <button
+      type="button"
+      onClick={() => setOpen(!open)}
+      className="relative z-[130] flex items-center text-[15px] font-semibold tracking-tight text-white py-2 -mr-1 pl-1"
+      aria-label={open ? n.closeLabel : n.menuLabel}
+      aria-expanded={open}
     >
-      <div className="max-w-7xl mx-auto px-5 lg:px-8 h-14 md:h-16 grid grid-cols-[auto_1fr_auto]">
-        <Link href="/" className="flex items-center pr-3 font-display text-lg font-bold tracking-[-0.04em] text-white">MENIUS</Link>
+      {open ? n.closeLabel : n.menuLabel}
+    </button>
+  );
 
-        <nav className="hidden md:flex items-center justify-center gap-8">
-          <Link href="/#funciones" className="flex items-center text-sm text-gray-400 hover:text-white transition-colors">{n.features}</Link>
-          <Link href="/#precios" className="flex items-center text-sm text-gray-400 hover:text-white transition-colors">{n.pricing}</Link>
-          <Link href="/demo" className="flex items-center text-sm text-gray-400 hover:text-white transition-colors">{n.demo}</Link>
-        </nav>
-
-        <div className="flex items-center justify-end gap-2.5 md:gap-4">
-          <div className="hidden md:flex items-center gap-1 text-xs">
-            <button onClick={() => switchLocale('es')} className={`px-1.5 py-0.5 rounded transition-colors ${locale === 'es' ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'}`}>ES</button>
-            <span className="text-gray-600">|</span>
-            <button onClick={() => switchLocale('en')} className={`px-1.5 py-0.5 rounded transition-colors ${locale === 'en' ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'}`}>EN</button>
-          </div>
-          {/* Sign in lives inside the mobile menu (below) to keep the bar to
-              logo · Start free · hamburger. Shown inline only from md+. */}
-          <Link href="/login" className="hidden md:flex items-center text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap">{n.login}</Link>
-          {/* Hidden on mobile while the panel is open → header reads "MENIUS · Cerrar". */}
-          <Link href="/signup" className={`${open ? 'hidden md:flex' : 'flex'} items-center text-[13px] md:text-sm font-medium px-4 md:px-5 py-2 md:py-2.5 rounded-xl bg-white text-black hover:bg-gray-100 transition-colors whitespace-nowrap`}>{n.startFree}</Link>
-          {/* Editorial toggle (Locomotive-style): plain text "Menú" ⇄ "Cerrar",
-              no icon box. Reads as a magazine nav, not an app. */}
-          <button
-            type="button"
-            onClick={() => setOpen(!open)}
-            className="md:hidden relative z-[130] flex items-center text-[15px] font-semibold tracking-tight text-white py-2 -mr-1 pl-1"
-            aria-label={open ? n.closeLabel : n.menuLabel}
-            aria-expanded={open}
-          >
-            {open ? n.closeLabel : n.menuLabel}
-          </button>
-        </div>
-      </div>
-
-      {open && (
-        <div
-          className="md:hidden fixed top-14 left-0 right-0 bottom-0 z-[110] flex flex-col bg-[#050505] animate-fade-in"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-        >
-          {/* Navegación editorial (estilo Locomotive): items grandes alineados
-              IZQUIERDA, anclados arriba con respiro generoso del header — no
-              centrados al medio. Sign in cierra la lista como ítem destacado. */}
-          <nav className="flex flex-col items-start px-6 pt-20 gap-1">
-            {[
-              { href: '/#funciones', label: n.features },
-              { href: '/#precios', label: n.pricing },
-              { href: '/demo', label: n.demo },
-            ].map((item, i) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className="animate-fade-in-up py-1.5 font-display text-[3.25rem] leading-[1.05] font-bold tracking-[-0.035em] text-white hover:text-[#05c8a7] active:text-[#05c8a7] transition-colors"
-                style={{ animationDelay: `${120 + i * 70}ms` }}
-              >
-                {item.label}
-              </Link>
-            ))}
-            {/* Sign in — destacado en verde para diferenciarlo de la nav */}
-            <Link
-              href="/login"
-              onClick={() => setOpen(false)}
-              className="animate-fade-in-up mt-6 py-1.5 font-display text-[3.25rem] leading-[1.05] font-bold tracking-[-0.035em] text-[#05c8a7] active:opacity-70 transition-opacity"
-              style={{ animationDelay: `${120 + 3 * 70}ms` }}
-            >
-              {n.login}
-            </Link>
+  return (
+    <>
+      {/* ── DESKTOP: barra fija full-width (sin cambios) ─────────────────── */}
+      <header
+        className={`hidden md:block fixed top-0 w-full z-[120] bg-[#050505]/80 backdrop-blur-2xl border-b transition-colors duration-300 ${scrolled ? 'border-white/[0.09] shadow-[0_1px_0_rgba(255,255,255,0.04)]' : 'border-white/[0.04]'}`}
+      >
+        <div className="max-w-7xl mx-auto px-5 lg:px-8 h-16 grid grid-cols-[auto_1fr_auto] items-center">
+          <Link href="/" className="flex items-center gap-1.5 pr-3 font-display text-lg font-bold tracking-[-0.04em] text-white">
+            MENIUS
+            <span className="h-1.5 w-1.5 rounded-full bg-[#05c8a7] shadow-[0_0_8px_var(--brand-40)]" aria-hidden />
+          </Link>
+          <nav className="flex items-center justify-center gap-8">
+            <Link href="/#funciones" className="flex items-center text-sm text-gray-400 hover:text-white transition-colors">{n.features}</Link>
+            <Link href="/#precios" className="flex items-center text-sm text-gray-400 hover:text-white transition-colors">{n.pricing}</Link>
+            <Link href="/demo" className="flex items-center text-sm text-gray-400 hover:text-white transition-colors">{n.demo}</Link>
           </nav>
+          <div className="flex items-center justify-end gap-4">
+            <div className="flex items-center gap-1 text-xs">
+              <button onClick={() => switchLocale('es')} className={`px-1.5 py-0.5 rounded transition-colors ${locale === 'es' ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'}`}>ES</button>
+              <span className="text-gray-600">|</span>
+              <button onClick={() => switchLocale('en')} className={`px-1.5 py-0.5 rounded transition-colors ${locale === 'en' ? 'text-white font-semibold' : 'text-gray-500 hover:text-gray-300'}`}>EN</button>
+            </div>
+            <Link href="/login" className="flex items-center text-sm text-gray-400 hover:text-white transition-colors whitespace-nowrap">{n.login}</Link>
+            <Link
+              href="/signup"
+              className="flex items-center text-sm font-semibold px-5 py-2.5 rounded-xl bg-[#05c8a7] text-black hover:bg-[#04b396] active:scale-[0.97] transition-[transform,background-color] duration-150 whitespace-nowrap"
+            >
+              {n.startFree}
+            </Link>
+          </div>
+        </div>
+      </header>
 
-          {/* Footer del panel — idioma abajo-izquierda, como la referencia */}
+      {/* ── MOBILE: pill flotante con blur que se encoge al scrollear ────── */}
+      <div className="md:hidden" ref={navRef}>
+        {/* Barra full-width arriba de todo; al scrollear se despega de los
+            bordes (px) y se convierte en una píldora flotante con blur. */}
+        <header
+          className={`fixed top-0 left-0 right-0 z-[120] transition-[padding] duration-300 ${scrolled ? 'pt-2.5 px-3' : 'pt-0 px-0'}`}
+        >
           <div
-            className="animate-fade-in-up mt-auto px-6 pt-6"
-            style={{ animationDelay: `${120 + 4 * 70}ms`, paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
+            className={`flex items-center justify-between transition-all duration-300 ${
+              scrolled
+                ? 'h-12 px-4 rounded-2xl bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/[0.08] shadow-[0_8px_30px_rgba(0,0,0,0.5)]'
+                : 'h-14 px-5 rounded-none bg-[#050505]/95 border-b border-white/[0.04]'
+            }`}
           >
-            <div className="flex items-center gap-3 border-t border-white/[0.06] pt-6">
-              <button type="button" onClick={() => switchLocale('es')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'es' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}>ES</button>
-              <button type="button" onClick={() => switchLocale('en')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'en' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}>EN</button>
+            {Logo}
+            {MenuToggle}
+          </div>
+        </header>
+
+        {/* Panel full-screen del menú — CTA grande verde vive acá adentro. */}
+        {open && (
+          <div
+            className="fixed top-0 left-0 right-0 bottom-0 z-[110] flex flex-col bg-[#050505] animate-fade-in"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          >
+            <nav className="flex flex-col items-start px-6 pt-24 gap-1">
+              {[
+                { href: '/#funciones', label: n.features },
+                { href: '/#precios', label: n.pricing },
+                { href: '/demo', label: n.demo },
+              ].map((item, i) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className="animate-fade-in-up py-1.5 font-display text-[3.25rem] leading-[1.05] font-bold tracking-[-0.035em] text-white hover:text-[#05c8a7] active:text-[#05c8a7] transition-colors"
+                  style={{ animationDelay: `${120 + i * 70}ms` }}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="animate-fade-in-up mt-6 py-1.5 font-display text-[3.25rem] leading-[1.05] font-bold tracking-[-0.035em] text-[#05c8a7] active:opacity-70 transition-opacity"
+                style={{ animationDelay: `${120 + 3 * 70}ms` }}
+              >
+                {n.login}
+              </Link>
+            </nav>
+
+            {/* CTA grande + idioma al pie del panel */}
+            <div
+              className="animate-fade-in-up mt-auto px-6 pt-6"
+              style={{ animationDelay: `${120 + 4 * 70}ms`, paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
+            >
+              <Link
+                href="/signup"
+                onClick={() => setOpen(false)}
+                className="flex items-center justify-center w-full py-4 rounded-2xl bg-[#05c8a7] text-black text-base font-bold tracking-tight hover:bg-[#04b396] active:scale-[0.98] transition-[transform,background-color] duration-150"
+              >
+                {n.startFree}
+              </Link>
+              <div className="flex items-center gap-3 border-t border-white/[0.06] mt-6 pt-6">
+                <button type="button" onClick={() => switchLocale('es')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'es' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}>ES</button>
+                <button type="button" onClick={() => switchLocale('en')} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${locale === 'en' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-white'}`}>EN</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </header>
+        )}
+      </div>
+    </>
   );
 }
