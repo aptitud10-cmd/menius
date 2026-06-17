@@ -230,6 +230,10 @@ export function AIChatWidget() {
   const [showProactive, setShowProactive] = useState(false);
   const [panelW, setPanelW] = useState(360);
   const [panelH, setPanelH] = useState(520);
+  // Alto del teclado en iOS. visualViewport.height SÍ se encoge cuando sube el
+  // teclado (a diferencia de 100dvh, que no lo hace en iOS Safari) → medimos el
+  // hueco que el teclado le come a la ventana y recortamos el drawer mobile.
+  const [keyboardInset, setKeyboardInset] = useState(0);
 
   const resizingRef = useRef(false);
   const resizeStartRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
@@ -333,6 +337,31 @@ export function AIChatWidget() {
       document.body.style.overflow = '';
     }
     return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
+  // iOS keyboard: cuando el chat está abierto en mobile y sube el teclado,
+  // visualViewport se encoge. Medimos cuánto (innerHeight − viewport visible −
+  // offset) y lo pasamos como padding-bottom al drawer para que el input quede
+  // por encima del teclado, no debajo. Solo afecta mobile con el chat abierto.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const vv = window.visualViewport;
+    if (!vv) return; // navegador sin soporte → degrada a comportamiento actual
+    const isMobile = window.innerWidth < 768;
+    if (!isMobile || !open) { setKeyboardInset(0); return; }
+    const update = () => {
+      // Cuánto de la ventana tapa el teclado (incluye su desplazamiento).
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKeyboardInset(inset);
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+      setKeyboardInset(0);
+    };
   }, [open]);
 
   const handleNewConversation = useCallback(() => {
@@ -502,8 +531,17 @@ export function AIChatWidget() {
             translate-y-full alone only shifts by the element's own height, which is
             (100dvh - 56px) — leaving the 56px header peeking above the bottom nav. */}
         <div
-          className={`fixed inset-x-0 bottom-14 z-50 transition-transform duration-300 ease-out ${open ? 'translate-y-0' : 'translate-y-[calc(100%+56px)]'}`}
-          style={{ height: 'calc(100dvh - 56px)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+          className={`fixed inset-x-0 z-50 transition-transform duration-300 ease-out ${open ? 'translate-y-0' : 'translate-y-[calc(100%+56px)]'}`}
+          style={{
+            // Sin teclado: anclado 56px sobre el borde (encima del bottom-nav),
+            // alto = pantalla − 56px, con safe-area al pie.
+            // Con teclado (iOS): lo anclamos al borde superior del teclado
+            // (bottom = keyboardInset) y recortamos la altura ese mismo monto,
+            // así el input queda justo encima del teclado y sigue visible.
+            bottom: keyboardInset > 0 ? keyboardInset : 56,
+            height: `calc(100dvh - 56px - ${keyboardInset}px)`,
+            paddingBottom: keyboardInset > 0 ? 0 : 'env(safe-area-inset-bottom)',
+          }}
         >
           <ChatPanel {...sharedPanelProps} />
         </div>
