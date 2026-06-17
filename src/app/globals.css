@@ -102,6 +102,31 @@ body {
   min-height: 100dvh;
 }
 
+/* ── iOS "scroll/padding eterno" fix — body scroll container ──
+   On mobile, move the scroller from the root (<html>) to <body>. iOS Safari
+   IGNORES overscroll-behavior when the scroller is the ROOT, leaving an empty
+   gap that STAYS at the end of the page ("scroll eterno"). It IS respected on a
+   non-root container, so the body becomes the scroller here.
+   Scoped to ≤768px: only landing/marketing pages scroll on the root (stores +
+   dashboards already use their own custom scroll containers, so they're immune
+   and unaffected by this — their inner scrollers keep working).
+   JS that reads scroll on these pages must use document.body.scrollTop /
+   document.body.scrollTo (see LandingNav, HeroScrollCue, BlogGrid, FaqClient). */
+@media (max-width: 768px) {
+  html {
+    height: 100%;
+    overflow-x: clip;
+    overflow-y: hidden;        /* the html no longer scrolls */
+  }
+  body {
+    height: 100%;
+    overflow-x: clip;
+    overflow-y: auto;          /* the BODY is now the scroller */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;  /* stops dead, no eternal scroll */
+  }
+}
+
 /* Eliminate blue tap flash on Android/Chrome and grey highlight on iOS */
 * {
   -webkit-tap-highlight-color: transparent;

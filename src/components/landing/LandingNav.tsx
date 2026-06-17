@@ -26,15 +26,21 @@ export function LandingNav({ locale }: { locale: LandingLocale }) {
   }, [open]);
 
   useEffect(() => {
+    // On mobile the scroller is <body> (body-scroll-container fix in globals.css),
+    // on desktop it's window. Read + listen on the right one so the nav shrink
+    // still fires after the scroll moved off the root.
+    const mobile = window.matchMedia('(max-width: 768px)').matches;
+    const target: HTMLElement | Window = mobile ? document.body : window;
+    const getY = () => (mobile ? document.body.scrollTop : window.scrollY);
     let rafId = 0;
     const onScroll = () => {
       // rAF batches scroll events during Safari momentum scrolling,
       // preventing the header from flickering during deceleration
       cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => setScrolled(window.scrollY > 16));
+      rafId = requestAnimationFrame(() => setScrolled(getY() > 16));
     };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => { window.removeEventListener('scroll', onScroll); cancelAnimationFrame(rafId); };
+    target.addEventListener('scroll', onScroll, { passive: true });
+    return () => { target.removeEventListener('scroll', onScroll); cancelAnimationFrame(rafId); };
   }, []);
 
   const switchLocale = (l: LandingLocale) => {

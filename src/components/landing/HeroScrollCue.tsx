@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useScrollPosition } from '@/hooks/use-scroll-position';
 
 /**
  * Scroll cue at the bottom of the hero. Auto-hides as soon as the user
@@ -10,12 +11,7 @@ import { useEffect, useState } from 'react';
 export function HeroScrollCue() {
   const [hidden, setHidden] = useState(false);
 
-  useEffect(() => {
-    const onScroll = () => setHidden(window.scrollY > 60);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  useScrollPosition((y) => setHidden(y > 60));
 
   return (
     <div

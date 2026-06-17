@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import type { FaqCategory } from '@/lib/faq-data';
 import { CategoryFilter } from '@/components/ui/CategoryFilter';
+import { useScrollPosition } from '@/hooks/use-scroll-position';
 
 interface FaqPageText {
   badge: string;
@@ -24,18 +25,14 @@ export function FaqClient({ categories, pt }: FaqClientProps) {
   const [hidden, setHidden] = useState(false);
   const lastScrollY = useRef(0);
 
-  useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
-      const delta = y - lastScrollY.current;
-      if (y < 80) setHidden(false);
-      else if (delta > 6) setHidden(true);
-      else if (delta < -6) setHidden(false);
-      lastScrollY.current = y;
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  // Auto-hide sticky tabs; reads from the right scroller (body on mobile).
+  useScrollPosition((y) => {
+    const delta = y - lastScrollY.current;
+    if (y < 80) setHidden(false);
+    else if (delta > 6) setHidden(true);
+    else if (delta < -6) setHidden(false);
+    lastScrollY.current = y;
+  });
 
   const active = categories.find((c) => c.id === activeId) ?? categories[0];
 

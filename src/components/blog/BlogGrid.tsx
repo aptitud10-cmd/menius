@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import type { BlogPost } from '@/lib/blog-data';
 import { CategoryFilter } from '@/components/ui/CategoryFilter';
+import { useScrollPosition } from '@/hooks/use-scroll-position';
 
 interface BlogGridProps {
   posts: BlogPost[];
@@ -47,24 +48,16 @@ export function BlogGrid({ posts, categories, locale = 'es' }: BlogGridProps) {
   const lastScrollY = useRef(0);
   const ui = getUiText(locale);
 
-  // Auto-hide sticky on scroll-down, reveal on scroll-up (mobile UX)
-  useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY;
-      const delta = y - lastScrollY.current;
-      // Only react past 80px and on meaningful deltas (avoid jitter)
-      if (y < 80) {
-        setHidden(false);
-      } else if (delta > 6) {
-        setHidden(true);
-      } else if (delta < -6) {
-        setHidden(false);
-      }
-      lastScrollY.current = y;
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  // Auto-hide sticky on scroll-down, reveal on scroll-up (mobile UX).
+  // Reads from the right scroller (body on mobile) via useScrollPosition.
+  useScrollPosition((y) => {
+    const delta = y - lastScrollY.current;
+    // Only react past 80px and on meaningful deltas (avoid jitter)
+    if (y < 80) setHidden(false);
+    else if (delta > 6) setHidden(true);
+    else if (delta < -6) setHidden(false);
+    lastScrollY.current = y;
+  });
 
   const filtered = active ? posts.filter((p) => p.category === active) : posts;
   const featured = filtered[0];
