@@ -585,7 +585,11 @@ CREATE TABLE public.restaurants (
   cuisine_type text,
   is_legacy_free boolean NOT NULL DEFAULT false,
   hero_video_url text,
-  instagram_url text
+  instagram_url text,
+  wompi_public_key text,
+  wompi_integrity_secret_enc text,
+  wompi_events_secret_enc text,
+  wompi_connected boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE public.reviews (
