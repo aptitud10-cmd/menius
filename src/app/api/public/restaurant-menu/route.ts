@@ -24,10 +24,16 @@ export async function GET(request: NextRequest) {
     const adminDb = createAdminClient();
 
     // Step 1: Fetch restaurant (required — fail fast if not found)
-    // Exclude sensitive/internal fields: owner_user_id
+    // Explicit column list verified against supabase/schema.sql (prod truth).
+    // Sensitive/internal fields (owner_user_id, stripe_*, fiscal_*) are excluded.
+    // NOTE: 14 columns previously listed here did NOT exist in prod (rating,
+    // delivery_time_minutes, min/max_order_amount, accepts_*, table_ordering_enabled,
+    // primary/secondary_color, pause_orders, pause_message, tip_enabled,
+    // tip_percentages, whatsapp_number) — they made this endpoint 42703 on every
+    // call. Removed. Use notification_whatsapp / order_types_enabled / orders_paused_until.
     const { data: restaurant, error: restaurantError } = await adminDb
       .from('restaurants')
-      .select('id, name, slug, description, logo_url, cover_image_url, address, phone, email, currency, timezone, is_active, rating, delivery_time_minutes, estimated_delivery_minutes, delivery_fee, min_order_amount, max_order_amount, accepts_delivery, accepts_pickup, accepts_dine_in, table_ordering_enabled, custom_domain, primary_color, secondary_color, pause_orders, pause_message, locale, country_code, tax_rate, tax_included, tax_label, tip_enabled, tip_percentages, whatsapp_number, instagram_url, created_at')
+      .select('id, name, slug, description, logo_url, cover_image_url, address, phone, email, currency, timezone, is_active, estimated_delivery_minutes, delivery_fee, order_types_enabled, custom_domain, locale, country_code, tax_rate, tax_included, tax_label, instagram_url, notification_whatsapp, orders_paused_until, created_at')
       .eq('slug', slug)
       .eq('is_active', true)
       .maybeSingle();
@@ -108,18 +114,21 @@ export async function GET(request: NextRequest) {
 
     const modifierOptions = modifierOptionsData ?? [];
 
-    // Calculate statistics from review data only — no order data exposed publicly
+    // Calculate statistics from review data only — no order data exposed publicly.
+    // restaurants has no `rating` column in prod, so fall back to 0 when there
+    // are no reviews to average.
     const averageRating =
       reviews.length > 0
         ? parseFloat(
             (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1)
           )
-        : restaurant.rating || 0;
+        : 0;
 
     const statistics = {
       averageRating,
       totalReviews: reviews.length,
-      averagePreparationTime: restaurant.delivery_time_minutes || 30,
+      // No per-restaurant prep-time column in prod; use a sane default.
+      averagePreparationTime: restaurant.estimated_delivery_minutes ?? 30,
     };
 
     // Featured products act as bestsellers (set by the owner in the dashboard)

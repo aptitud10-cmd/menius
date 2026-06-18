@@ -91,7 +91,7 @@ Filtros por categoría + layout distinto de ProductCard.
 8. Stripe webhooks: verificar signature + 200 rápido
 9. Product slim pattern (arriba)
 10. `ADMIN_EMAIL` puede ser CSV
-11. **Columnas en select explícito**: Si un query usa columnas específicas (no `select('*')`), CADA columna debe tener su migración en `supabase/migrations/`. Antes de hacer un select explícito, verificar que todas las columnas existen buscando en las migraciones. Un select explícito que incluya una columna inexistente en prod rompe TODAS las tiendas (error 42703 → notFound()).
+11. **Columnas en select explícito**: Si un query usa columnas específicas (no `select('*')`), CADA columna debe existir en `supabase/schema.sql` (dump real de prod, fuente de verdad). Antes de hacer un select explícito, verificar TODAS las columnas ahí — NO en `supabase/migrations/`, que está incompleto (muchas columnas se aplicaron a mano sin migración). Un select explícito con una columna inexistente en prod rompe la tienda (error 42703 → notFound()). Regenerar `schema.sql` desde prod tras cualquier cambio de schema (vía MCP Supabase o `supabase db dump`).
 
 ## Android Counter app
 `apps/menius-counter-android/` — APK único para todos los restaurantes.
