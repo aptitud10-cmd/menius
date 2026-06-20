@@ -1,7 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimitAsync } from '@/lib/rate-limit';
 import { verifyTurnstile } from '@/lib/turnstile';
@@ -102,11 +102,22 @@ export async function updatePassword(newPassword: string) {
     return { error: 'La contraseña debe tener al menos 8 caracteres' };
   }
 
+  // Require the one-shot recovery cookie set by the email-link callback. Without
+  // it, an already-logged-in user (e.g. on a shared device) could change the
+  // password without knowing the current one. Recovery via email is unaffected.
+  const cookieStore = await cookies();
+  if (cookieStore.get('menius_pwd_recovery')?.value !== '1') {
+    return { error: 'Enlace de recuperación inválido o expirado. Solicita uno nuevo.' };
+  }
+
   const supabase = await createClient();
 
   const { error } = await supabase.auth.updateUser({ password: newPassword });
 
   if (error) return { error: error.message };
+
+  // Consume the cookie — single use.
+  cookieStore.set({ name: 'menius_pwd_recovery', value: '', maxAge: 0, path: '/' });
   return { success: true };
 }
 

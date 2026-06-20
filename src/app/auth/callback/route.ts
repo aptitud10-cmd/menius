@@ -17,8 +17,24 @@ async function resolveRedirect(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(new URL(next, origin));
 
-  // For password recovery, go straight to the reset page — no restaurant check needed.
-  if (type === 'recovery') return NextResponse.redirect(new URL(next, origin));
+  // For password recovery, go straight to the reset page — no restaurant check
+  // needed. Set a short-lived, one-shot cookie that updatePassword() requires:
+  // this proves the password change was reached via the email recovery link,
+  // not by an already-logged-in user navigating to /reset-password on a shared
+  // device (which could otherwise change the password without knowing the old one).
+  if (type === 'recovery') {
+    const res = NextResponse.redirect(new URL(next, origin));
+    res.cookies.set({
+      name: 'menius_pwd_recovery',
+      value: '1',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 15, // 15 min to complete the reset
+    });
+    return res;
+  }
 
   const { data: profile } = await supabase
     .from('profiles')

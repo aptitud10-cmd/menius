@@ -5,4 +5,8 @@
         android:id="@+id/action_printer"
         android:title="@string/menu_printer"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_logout"
+        android:title="@string/menu_logout"
+        app:showAsAction="never" />
 </menu>

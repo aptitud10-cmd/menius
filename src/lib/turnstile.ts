@@ -25,7 +25,14 @@ export async function verifyTurnstile(token: string | undefined | null): Promise
 
   // Permissive mode when not configured (dev / staging without keys)
   if (!secret) return true;
-  if (!token) return true; // fail-open: widget passed, trust it
+
+  // Fail-CLOSED: the front always attaches a token. Its absence means the
+  // request bypassed the widget (e.g. a script hitting the server action
+  // directly) — reject it.
+  if (!token) {
+    console.warn('[turnstile] missing token — rejecting');
+    return false;
+  }
 
   try {
     const res = await fetch(VERIFY_URL, {
@@ -34,14 +41,22 @@ export async function verifyTurnstile(token: string | undefined | null): Promise
       body: new URLSearchParams({ secret, response: token }),
     });
 
-    if (!res.ok) return true; // fail-open on HTTP error
+    // Fail-OPEN only on Cloudflare being unreachable / erroring — so a CF
+    // outage never locks out legitimate users. A definitive "this is a bot"
+    // verdict (success:false) is fail-CLOSED below.
+    if (!res.ok) {
+      console.warn('[turnstile] CF returned HTTP', res.status, '— allowing (fail-open on outage)');
+      return true;
+    }
     const data = await res.json() as { success: boolean; 'error-codes'?: string[] };
     if (!data.success) {
       console.warn('[turnstile] verification failed:', data['error-codes']);
-      return true; // fail-open while debugging — widget showed Success
+      return false; // fail-CLOSED: CF says this is not a human → block
     }
     return true;
-  } catch {
+  } catch (err) {
+    // Network/parse failure → treat as CF outage, fail-open.
+    console.warn('[turnstile] verify threw — allowing (fail-open on outage):', err);
     return true;
   }
 }

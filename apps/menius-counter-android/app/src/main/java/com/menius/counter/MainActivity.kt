@@ -14,6 +14,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.net.toUri
 import com.menius.counter.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -29,11 +30,16 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
         binding.toolbar.inflateMenu(R.menu.main_menu)
         binding.toolbar.setOnMenuItemClickListener { item ->
-            if (item.itemId == R.id.action_printer) {
-                startActivity(Intent(this, PrinterSettingsActivity::class.java))
-                true
-            } else {
-                false
+            when (item.itemId) {
+                R.id.action_printer -> {
+                    startActivity(Intent(this, PrinterSettingsActivity::class.java))
+                    true
+                }
+                R.id.action_logout -> {
+                    logout()
+                    true
+                }
+                else -> false
             }
         }
 
@@ -50,10 +56,20 @@ class MainActivity : AppCompatActivity() {
             addJavascriptInterface(MeniusJsBridge(this@MainActivity), "MeniusAndroid")
 
             webViewClient = object : WebViewClient() {
+                // Keep navigation inside the MENIUS host. Any link that tries to
+                // leave it (phishing, an injected redirect) is opened in the
+                // system browser instead of hijacking the Counter WebView.
                 override fun shouldOverrideUrlLoading(
                     view: WebView?,
                     request: WebResourceRequest?
-                ): Boolean = false
+                ): Boolean {
+                    val host = request?.url?.host ?: return false
+                    val allowed = host == APP_HOST || host.endsWith(".$APP_HOST")
+                    if (allowed) return false // let the WebView handle it
+                    // External link → hand off to the browser, don't load in-app.
+                    runCatching { startActivity(Intent(Intent.ACTION_VIEW, request.url)) }
+                    return true
+                }
             }
 
             loadUrl(AppConfig.BASE_URL.trimEnd('/') + AppConfig.START_PATH)
@@ -71,6 +87,23 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         )
+    }
+
+    /** Persist cookies to disk so the login session survives the app being killed. */
+    override fun onPause() {
+        super.onPause()
+        CookieManager.getInstance().flush()
+    }
+
+    /** Clear the session and return to the login screen so a different
+     *  restaurant can sign in without reinstalling / clearing app data. */
+    private fun logout() {
+        val cookies = CookieManager.getInstance()
+        cookies.removeAllCookies {
+            cookies.flush()
+            binding.webView.clearHistory()
+            binding.webView.loadUrl(AppConfig.BASE_URL.trimEnd('/') + AppConfig.START_PATH)
+        }
     }
 
     private fun requestBluetoothPermissionsIfNeeded() {
@@ -93,5 +126,8 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val REQ_BT = 0x701
+        /** Host the WebView is allowed to navigate within (derived from BASE_URL). */
+        private val APP_HOST: String =
+            AppConfig.BASE_URL.toUri().host ?: "menius.app"
     }
 }

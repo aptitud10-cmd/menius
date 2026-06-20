@@ -2,6 +2,7 @@
     <string name="app_name">MENIUS Counter</string>
     <string name="printer_settings_title">Printer</string>
     <string name="menu_printer">Printer</string>
+    <string name="menu_logout">Log out / switch account</string>
 
     <!-- Mode -->
     <string name="connection_mode_label">Connection mode</string>
