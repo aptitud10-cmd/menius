@@ -1,19 +1,18 @@
-import { revalidatePath, revalidateTag } from 'next/cache';
+import { revalidatePath } from 'next/cache';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Invalidate Next.js cache for the public menu of a restaurant.
  * Call after any change to products, categories, modifiers, or public restaurant fields.
- * Uses a per-restaurant tag so only this restaurant's cache entry is flushed,
- * not all restaurants simultaneously.
+ * The menu uses ISR (revalidate=300) + React cache() — NOT unstable_cache with tags —
+ * so invalidation is path-based via revalidatePath. (Prior revalidateTag calls here
+ * were dead code: React.cache() doesn't honor tags.)
  */
 export function revalidatePublicMenu(slug: string | null | undefined): void {
   if (!slug) return;
   revalidatePath(`/${slug}`, 'page');
   revalidatePath(`/${slug}/checkout`, 'page');
   revalidatePath(`/${slug}/[table]`, 'layout');
-  revalidateTag(`menu-data:${slug}`);
-  revalidateTag(`menu-data`);
 }
 
 /**

@@ -58,9 +58,9 @@ Reduce RSC payload de ~2MB → ~200KB en catálogos grandes (ej: Buccaneer).
 **No añadir `modifier_groups` al prop sin actualizar el patrón de lazy load.**
 
 ## Caching
-- ISR menús: `export const revalidate = 300`
-- `unstable_cache` de datos del menú: 1h, tags `menu-data:${slug}`
-- **Al editar menú**: `revalidateTag('menu-data:' + slug)`
+- ISR menús: `export const revalidate = 300` (esta es la capa de cache real del menú)
+- `menu-data.ts` usa `React.cache()` (dedup dentro del render), NO `unstable_cache` con tags
+- **Al editar menú**: `revalidatePublicMenu(slug)` → `revalidatePath` (path-based, no tags)
 - No uses `Date.now()` en queries (rompe cache)
 
 ## Convenciones código
