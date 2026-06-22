@@ -1,9 +1,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
 const COOKIE_KEY = 'menius-cookie-consent';
+
+// El banner solo aplica a páginas públicas de marketing/sitio. NO debe mostrarse
+// en los menús de tienda (/[slug] y subrutas), donde un comensal escanea el QR
+// para pedir y el banner le tapa el primer producto + el botón de agregar.
+// Allowlist en vez de blocklist: una tienda nueva nunca dispara el banner, y
+// las áreas logueadas (dashboard, counter, kds, driver) tampoco lo necesitan.
+const MARKETING_PATHS = new Set([
+  '/', '/blog', '/demo', '/faq', '/changelog', '/cookies',
+  '/privacy', '/terms', '/status', '/support', '/setup-profesional', '/ai-fotos',
+]);
+
+function isMarketingPath(pathname: string): boolean {
+  if (MARKETING_PATHS.has(pathname)) return true;
+  // Subrutas de marketing (ej. /blog/algun-post)
+  return pathname.startsWith('/blog/');
+}
 
 function getLocale(): 'es' | 'en' {
   if (typeof document === 'undefined') return 'es';
@@ -27,15 +44,17 @@ const t = {
 export default function CookieConsent() {
   const [visible, setVisible] = useState(false);
   const [locale, setLocale] = useState<'es' | 'en'>('es');
+  const pathname = usePathname();
 
   useEffect(() => {
+    if (!isMarketingPath(pathname)) return;
     setLocale(getLocale());
     const consent = localStorage.getItem(COOKIE_KEY);
     if (!consent) {
       const timer = setTimeout(() => setVisible(true), 1500);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [pathname]);
 
   const accept = () => {
     localStorage.setItem(COOKIE_KEY, 'accepted');

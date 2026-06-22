@@ -1089,7 +1089,7 @@ export function MenuShell({
   );
 
   const mobileCategoryPills = (
-    <div className="lg:hidden sticky z-40 bg-[#f5f5f3] border-b border-gray-100" style={{ top: HEADER_HEIGHT, willChange: 'transform' }}>
+    <div className="lg:hidden sticky z-40 bg-[#f5f5f3] border-b border-gray-100" style={{ top: `calc(${HEADER_HEIGHT}px + env(safe-area-inset-top))`, willChange: 'transform' }}>
       <div className="flex items-center relative">
       {/* Hamburger — opens category bottom sheet */}
       <button
@@ -1335,7 +1335,7 @@ export function MenuShell({
 
         {/* Dietary filter pills — mobile, below category pills */}
         {availableDietTags.length > 0 && (
-          <div className="lg:hidden sticky z-30 bg-[#f5f5f3] border-b border-gray-100" style={{ top: HEADER_HEIGHT + 40 }}>
+          <div className="lg:hidden sticky z-30 bg-[#f5f5f3] border-b border-gray-100" style={{ top: `calc(${HEADER_HEIGHT + 40}px + env(safe-area-inset-top))` }}>
             {dietaryPills}
           </div>
         )}

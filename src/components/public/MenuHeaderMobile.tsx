@@ -48,6 +48,10 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
     <header
       className={cn(
         'flex-shrink-0 z-40 transition-colors duration-300',
+        // Push content below the iOS notch / Dynamic Island. The inset is 0 on
+        // devices without a notch (and on desktop), so this never adds dead space
+        // where it isn't needed.
+        'pt-[env(safe-area-inset-top)]',
         isTransparent
           ? 'bg-transparent border-transparent'
           : cn('bg-white border-b', isScrolled ? 'border-gray-200 shadow-[0_1px_8px_rgba(0,0,0,0.08)]' : 'border-gray-200')
@@ -109,7 +113,7 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
             )}
             aria-label={t.searchProducts}
           >
-            <Search className={cn('w-4 h-4', isTransparent ? 'text-white' : 'text-gray-500')} />
+            <Search className={cn('w-5 h-5', isTransparent ? 'text-white' : 'text-gray-700')} />
           </button>
         </div>
       </div>

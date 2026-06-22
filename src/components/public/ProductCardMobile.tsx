@@ -110,8 +110,8 @@ export const ProductCardMobile = memo(function ProductCardMobile({
             />
           </>
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-50">
-            <UtensilsCrossed className="w-8 h-8 text-gray-200" aria-hidden="true" />
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+            <UtensilsCrossed className="w-9 h-9 text-gray-300" aria-hidden="true" />
           </div>
         )}
 
@@ -167,7 +167,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           </p>
         )}
         {hasModifiers && !outOfStock && (
-          <span className="inline-flex items-center gap-0.5 text-xs text-[#05c8a7] font-medium mt-1">
+          <span className="inline-flex items-center gap-0.5 text-xs text-gray-500 font-medium mt-1">
             {customizeLabel}
             <ChevronRight className="w-3 h-3" />
           </span>
