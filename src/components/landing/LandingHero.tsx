@@ -13,7 +13,7 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
   const h = getLandingT(locale).hero;
 
   return (
-    <section className="relative min-h-[640px] md:min-h-svh xl:min-h-[100dvh] flex items-start xl:items-center overflow-clip">
+    <section className="relative min-h-[640px] xl:min-h-[100dvh] flex items-start xl:items-center overflow-clip">
       <div className="hero-gradient" />
 
       <div className="relative z-30 max-w-7xl mx-auto px-6 sm:px-6 lg:px-8 w-full pt-28 pb-16 xl:py-0">
@@ -23,7 +23,7 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
               3 levels only — (1) headline dominates, (2) one short line + CTA,
               (3) a single inline trust stat. No eyebrow, no chip row.
               Desktop (xl:) keeps the original product line + full subtitle. */}
-          <div className="text-left xl:text-left">
+          <div className="text-left md:text-center xl:text-left">
             {/* Product line is desktop-only now — on mobile the headline carries it. */}
             <p className="d-fade-up d-delay-1 hidden xl:inline-flex items-center gap-2 text-[13px] font-medium text-[#05c8a7] tracking-wide">
               <span className="h-1.5 w-1.5 rounded-full bg-[#05c8a7] shadow-[0_0_8px_var(--brand-40)]" />
@@ -41,14 +41,14 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
             </h1>
 
             {/* Mobile: one short, punchy line. Desktop: the full subtitle. */}
-            <p className="d-fade-up d-delay-2 mt-6 xl:hidden text-lg text-gray-300/90 max-w-[300px] leading-snug font-light">
+            <p className="d-fade-up d-delay-2 mt-6 xl:hidden text-lg text-gray-300/90 max-w-[300px] md:max-w-[460px] md:mx-auto xl:mx-0 leading-snug font-light">
               {h.subtitleShort}
             </p>
             <p className="d-fade-up d-delay-2 mt-5 hidden xl:block text-lg text-gray-300/90 max-w-[440px] leading-relaxed font-light">
               {h.subtitle}
             </p>
 
-            <div className="d-fade-up d-delay-3 mt-10 xl:mt-9 flex flex-col sm:flex-row items-stretch sm:items-center xl:items-start justify-start gap-3">
+            <div className="d-fade-up d-delay-3 mt-10 xl:mt-9 flex flex-col sm:flex-row items-stretch sm:items-center xl:items-start justify-start md:justify-center xl:justify-start gap-3">
               <Link
                 href="/signup"
                 className="group inline-flex items-center justify-center px-7 py-4 rounded-2xl bg-white text-black font-extrabold text-[16px] hover:bg-gray-100 hover:shadow-[0_6px_24px_rgba(255,255,255,0.22)] active:scale-[0.97] active:shadow-none transition-[transform,box-shadow,background] duration-150 text-center shadow-[0_4px_20px_rgba(255,255,255,0.12)]"
@@ -67,7 +67,7 @@ export function LandingHero({ locale, ordersCount }: { locale: LandingLocale; or
 
             {/* Level 3 — one inline trust stat. On mobile that's all the room
                 premium hero needs; SSL/Stripe/CCPA chips show from md+ only. */}
-            <div className="d-fade-up d-delay-4 mt-12 flex flex-wrap items-center gap-x-3 gap-y-2.5 text-sm">
+            <div className="d-fade-up d-delay-4 mt-12 flex flex-wrap items-center justify-start md:justify-center xl:justify-start gap-x-3 gap-y-2.5 text-sm">
               {(() => {
                 const isDynamic = ordersCount != null && ordersCount > 0;
                 const headlineStat = h.stats[0];
