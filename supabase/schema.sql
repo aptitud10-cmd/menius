@@ -158,7 +158,9 @@ CREATE TABLE public.drivers (
   name text NOT NULL,
   phone text NOT NULL DEFAULT ''::text,
   is_active boolean NOT NULL DEFAULT true,
-  created_at timestamp with time zone DEFAULT now()
+  created_at timestamp with time zone DEFAULT now(),
+  auth_user_id uuid,
+  phone_e164 text
 );
 
 CREATE TABLE public.kds_stations (
@@ -384,6 +386,7 @@ CREATE TABLE public.orders (
   delivery_fee numeric DEFAULT 0,
   driver_name text,
   driver_phone text,
+  driver_id uuid,
   driver_assigned_at timestamp with time zone,
   estimated_ready_minutes integer,
   cancellation_reason text,

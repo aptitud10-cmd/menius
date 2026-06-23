@@ -1091,6 +1091,7 @@ export async function assignDriver(
   orderId: string,
   driverName: string,
   driverPhone: string,
+  driverId?: string,
 ) {
   const { supabase, restaurantId, error: authErr } = await getAuthenticatedRestaurant();
   if (authErr) return { error: authErr };
@@ -1110,22 +1111,29 @@ export async function assignDriver(
     ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     : null;
 
+  const updatePayload: Record<string, unknown> = {
+    driver_name: driverName.trim() || null,
+    driver_phone: driverPhone.trim() || null,
+    driver_assigned_at: driverName.trim() ? new Date().toISOString() : null,
+    driver_tracking_token: token,
+    driver_token_expires_at: tokenExpiresAt,
+    // Reset GPS y progreso de entrega en cada nueva asignación
+    driver_lat: null,
+    driver_lng: null,
+    driver_updated_at: null,
+    driver_picked_up_at: null,
+    driver_at_door_at: null,
+    driver_delivered_at: null,
+  };
+
+  // Vincular driver_id si se proporciona (usado desde la app nativa)
+  if (driverId !== undefined) {
+    updatePayload.driver_id = driverId || null;
+  }
+
   const { error } = await supabase
     .from('orders')
-    .update({
-      driver_name: driverName.trim() || null,
-      driver_phone: driverPhone.trim() || null,
-      driver_assigned_at: driverName.trim() ? new Date().toISOString() : null,
-      driver_tracking_token: token,
-      driver_token_expires_at: tokenExpiresAt,
-      // Reset GPS and delivery progress on new assignment
-      driver_lat: null,
-      driver_lng: null,
-      driver_updated_at: null,
-      driver_picked_up_at: null,
-      driver_at_door_at: null,
-      driver_delivered_at: null,
-    })
+    .update(updatePayload)
     .eq('id', orderId)
     .eq('restaurant_id', restaurantId);
 
