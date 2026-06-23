@@ -24,7 +24,9 @@ export async function POST(req: NextRequest) {
 
   // Rate limit per token (driver identity) — not per IP.
   const rlKey = token ? `driver-location:${token.slice(0, 16)}` : `driver-location:ip:${getClientIP(req)}`;
-  const rl = await checkRateLimitAsync(rlKey, { limit: 30, windowSec: 60 });
+  // 60/min: con throttle de 2s en el cliente el driver postea ~30/min en
+  // movimiento; el doble deja holgura para reintentos sin cortar con 429.
+  const rl = await checkRateLimitAsync(rlKey, { limit: 60, windowSec: 60 });
   if (!rl.allowed) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }

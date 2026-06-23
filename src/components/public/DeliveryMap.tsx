@@ -131,6 +131,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
   const driverMarkerRef = useRef<any>(null);
   const driverElRef = useRef<HTMLDivElement | null>(null);
   const currentDriverPos = useRef<Coords | null>(null);
+  const driverHeadingRef = useRef<number>(0);
   const animFrameRef = useRef<number | null>(null);
   const lastRoutePosRef = useRef<Coords | null>(null);
   const [ready, setReady] = useState(false);
@@ -145,6 +146,23 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
     const start = currentDriverPos.current ?? target;
     const startTime = performance.now();
     const duration = 1500; // 1.5s smooth animation
+
+    // Rotación del marcador según dirección de avance (bearing) — da el toque
+    // "va manejando" estilo Uber. Solo si hubo desplazamiento real (>~5m), para
+    // no girar el ícono por jitter de GPS cuando el driver está detenido.
+    const dLat = target.lat - start.lat;
+    const dLng = target.lng - start.lng;
+    if (Math.abs(dLat) > 0.00005 || Math.abs(dLng) > 0.00005) {
+      const toRad = (d: number) => (d * Math.PI) / 180;
+      const y = Math.sin(toRad(dLng)) * Math.cos(toRad(target.lat));
+      const x =
+        Math.cos(toRad(start.lat)) * Math.sin(toRad(target.lat)) -
+        Math.sin(toRad(start.lat)) * Math.cos(toRad(target.lat)) * Math.cos(toRad(dLng));
+      const bearing = (Math.atan2(y, x) * 180) / Math.PI;
+      driverHeadingRef.current = bearing;
+      // El emoji 🛵 ya "mira" a la izquierda; -90° lo orienta hacia el avance.
+      driverElRef.current.style.transform = `rotate(${bearing - 90}deg)`;
+    }
 
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
 
@@ -282,7 +300,7 @@ function LiveMap({ restaurantCoords, deliveryCoords, restaurantName, driverCoord
 
       // Driver marker (moto) — always created, hidden if no coords yet
       const driverEl = document.createElement('div');
-      driverEl.style.cssText = 'width:44px;height:44px;border-radius:50%;background:#f97316;border:3px solid white;box-shadow:0 3px 14px rgba(249,115,22,0.5);display:flex;align-items:center;justify-content:center;font-size:22px;transition:opacity 0.3s ease;';
+      driverEl.style.cssText = 'width:44px;height:44px;border-radius:50%;background:#f97316;border:3px solid white;box-shadow:0 3px 14px rgba(249,115,22,0.5);display:flex;align-items:center;justify-content:center;font-size:22px;transition:opacity 0.3s ease, transform 0.8s ease-out;';
       driverEl.textContent = '🛵';
       driverElRef.current = driverEl;
 

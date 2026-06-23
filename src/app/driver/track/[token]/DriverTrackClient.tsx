@@ -229,7 +229,10 @@ export function DriverTrackClient({ token, lang }: { token: string; lang: string
       const dt = now - last.ts;
       const dlat = Math.abs(lat - last.lat);
       const dlng = Math.abs(lng - last.lng);
-      if (dt < 4_000 && dlat < 0.000135 && dlng < 0.000135) return;
+      // 2s throttle (Uber-like cadence). Uber posts every 1-2s; 4s producía
+      // saltos visibles en el mapa del cliente entre interpolaciones de 1.5s.
+      // El umbral de movimiento (~15m) evita spamear cuando el driver está quieto.
+      if (dt < 2_000 && dlat < 0.000135 && dlng < 0.000135) return;
     }
 
     try {
