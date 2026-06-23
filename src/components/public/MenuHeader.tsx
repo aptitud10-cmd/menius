@@ -11,7 +11,11 @@ import type { Restaurant } from '@/types';
 import { MenuHeaderMobile } from './MenuHeaderMobile';
 import { MenuHeaderDesktop } from './MenuHeaderDesktop';
 
-export const HEADER_HEIGHT = 56;
+// Altura del header mobile (px). Compartida con el sticky de categorías en
+// MenuShell para alinear su `top:` justo debajo del header. Solo afecta mobile;
+// en desktop el offset se fuerza a 0 (ver MenuShell:824). Mantener sincronizada
+// con la clase de altura del <header> en MenuHeaderMobile (h-12 = 48px).
+export const HEADER_HEIGHT = 48;
 
 export interface MenuHeaderProps {
   restaurant: Restaurant;
