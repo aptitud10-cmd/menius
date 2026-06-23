@@ -707,11 +707,13 @@ export function CustomizationSheet({
           <div className="w-10 h-1 rounded-full bg-gray-300" />
         </div>
 
-        {/* Header — large X, no back arrow */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 flex-shrink-0 bg-white z-10">
+        {/* Header — large X, no back arrow. Altura fija 48px (h-12) para igualar
+            el header del restaurante; nombre en sans extrabold tracking apretado
+            (Opción C) para mantener consistencia visual entre ambos headers. */}
+        <div className="flex items-center justify-between h-12 px-5 border-b border-gray-100 flex-shrink-0 bg-white z-10">
           <div className="min-w-0 flex-1">
             {isPreview && previewBadge}
-            <h2 id="customization-dialog-title" className="text-base font-bold text-gray-900 truncate">
+            <h2 id="customization-dialog-title" className="text-[17px] font-extrabold tracking-[-0.03em] text-gray-900 truncate">
               {isEditing ? t.editItem : displayName}
             </h2>
           </div>

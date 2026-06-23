@@ -74,9 +74,11 @@ export const MenuHeaderMobile = memo(function MenuHeaderMobile({
           )}
         </div>
 
-        {/* Center: Restaurant name — absolutely centered */}
+        {/* Center: Restaurant name — absolutely centered.
+            Sans extrabold con tracking apretado (Opción C): más carácter que el
+            bold plano sin perder legibilidad en mobile — el patrón de Uber Eats. */}
         <span className={cn(
-          'absolute left-0 right-0 text-center font-bold text-[20px] px-16 truncate pointer-events-none',
+          'absolute left-0 right-0 text-center font-extrabold text-[20px] tracking-[-0.03em] px-16 truncate pointer-events-none',
           !showName && 'invisible',
           isTransparent ? 'text-white drop-shadow' : 'text-gray-900'
         )}>

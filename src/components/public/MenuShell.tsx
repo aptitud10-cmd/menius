@@ -1263,8 +1263,18 @@ export function MenuShell({
               className="object-cover animate-cover-zoom"
               priority
             />
-            {/* Mobile: gradient — dark at top for header, dark at bottom for info legibility */}
-            <div className="lg:hidden absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/65" />
+            {/* Mobile: gradient. Multi-stop con aceleración hacia abajo (ease-in) en
+                lugar de un 2-stop transparent→negro, que produce banding gris visible
+                ~al 50% (el artefacto que delata los headers baratos; ver Material
+                Design scrim guidance). Sutil arriba para el header, oscuro abajo para
+                la legibilidad del nombre/rating. */}
+            <div
+              className="lg:hidden absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.12) 18%, rgba(0,0,0,0.02) 40%, rgba(0,0,0,0.10) 62%, rgba(0,0,0,0.40) 82%, rgba(0,0,0,0.66) 100%)',
+              }}
+            />
 
             {/* Desktop: gradient + info overlay */}
             <div className="hidden lg:block absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
