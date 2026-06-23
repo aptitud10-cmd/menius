@@ -27,6 +27,7 @@ import { CartPanel } from './CartPanel';
 import dynamic from 'next/dynamic';
 const CustomizationSheet = dynamic(() => import('./CustomizationSheet').then(m => m.CustomizationSheet), { ssr: false });
 import { InstallBanner } from './InstallBanner';
+import { registerVisit } from '@/lib/recurring-visitor';
 import { MenuErrorBoundary } from './MenuErrorBoundary';
 import { ReservationWidget } from './ReservationWidget';
 import { MenuUpdateBanner } from './MenuUpdateBanner';
@@ -105,6 +106,7 @@ export function MenuShell({
   const cartDragControls = useDragControls();
 
   const [hasMounted, setHasMounted] = useState(false);
+  const [visitCount, setVisitCount] = useState(0);
   const [reorderDismissed, setReorderDismissed] = useState(false);
   const [loyaltyData, setLoyaltyData] = useState<{ points: number; config: { min_redeem_points: number; peso_per_point: number } | null } | null>(null);
   const savedCustomer = useCheckoutStore((s) => s.customer);
@@ -128,6 +130,13 @@ export function MenuShell({
     lastOrder.restaurantId === restaurant.id &&
     lastOrder.items.length > 0;
 
+  // Cliente recurrente → candidato a instalar la PWA. Volvió 2+ veces a este
+  // restaurante, o ya pidió acá antes (lastOrder del mismo restaurante).
+  const isRecurringVisitor =
+    hasMounted &&
+    (visitCount >= 2 ||
+      (!!lastOrder && lastOrder.restaurantId === restaurant.id && lastOrder.items.length > 0));
+
   const handleReorder = useCallback(() => {
     const added = reorder(products);
     if (added > 0) {
@@ -142,6 +151,7 @@ export function MenuShell({
 
   useEffect(() => {
     setHasMounted(true);
+    setVisitCount(registerVisit(restaurant.id));
     setRestaurantId(restaurant.id);
     // tableName comes from the server as null (page is static); read ?table= from URL on client
     const resolvedTable = tableName ?? new URLSearchParams(window.location.search).get('table');
@@ -2434,6 +2444,7 @@ export function MenuShell({
         slug={restaurant.slug}
         logoUrl={(restaurant as any).logo_url ?? null}
         locale={locale === 'en' ? 'en' : 'es'}
+        recurring={isRecurringVisitor}
       />
 
       {/* ── Language Switcher (floating pill) ── */}

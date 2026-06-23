@@ -11,6 +11,12 @@ interface InstallBannerProps {
   slug: string;
   logoUrl?: string | null;
   locale?: 'es' | 'en';
+  /**
+   * Solo mostrar el prompt a clientes recurrentes (volvieron 2+ veces o ya
+   * pidieron acá). El comensal de una sola visita no instala — mostrárselo es
+   * ruido. Default false: sin señal de recurrencia, no se muestra.
+   */
+  recurring?: boolean;
 }
 
 function isIOS() {
@@ -23,7 +29,7 @@ function isInStandaloneMode() {
   return window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
 }
 
-export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es' }: InstallBannerProps) {
+export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es', recurring = false }: InstallBannerProps) {
   const t = getTranslations(locale);
   const { canInstall, install } = usePWAInstall();
   const [dismissed, setDismissed] = useState(true); // start hidden to avoid flash
@@ -33,6 +39,8 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es' }: 
   const DISMISS_KEY = `install-dismissed-${slug}`;
 
   useEffect(() => {
+    // Solo a recurrentes: el visitante de una sola vez no instala.
+    if (!recurring) return;
     if (isInStandaloneMode()) return;
     const wasDismissed = localStorage.getItem(DISMISS_KEY);
     if (wasDismissed) return;
@@ -44,7 +52,7 @@ export function InstallBanner({ restaurantName, slug, logoUrl, locale = 'es' }: 
       const timer = setTimeout(() => setIosHint(true), 8000);
       return () => clearTimeout(timer);
     }
-  }, [DISMISS_KEY, canInstall]);
+  }, [DISMISS_KEY, canInstall, recurring]);
 
   const dismiss = () => {
     setDismissed(true);
