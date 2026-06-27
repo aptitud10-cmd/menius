@@ -150,9 +150,11 @@ export async function POST(req: NextRequest) {
       );
     }
     // Single update: status + timestamp together
+    // Double-filter by token + id — prevents a guessed id from updating a different order
     const { error: statusErr } = await supabase
       .from("orders")
       .update({ status: "delivered", driver_delivered_at: now })
+      .eq("driver_tracking_token", token)
       .eq("id", order.id);
 
     if (statusErr)

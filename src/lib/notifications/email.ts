@@ -126,9 +126,20 @@ function shell(
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <title></title>
   <!--[if mso]><style>body,table,td,p,a{font-family:Arial,Helvetica,sans-serif !important;}</style><![endif]-->
+  <style>
+    @media (prefers-color-scheme: dark) {
+      body, .email-bg { background-color:#1a1a2e !important; }
+      .email-card { background-color:#16213e !important; }
+      .email-text { color:#e2e8f0 !important; }
+      .email-muted { color:#94a3b8 !important; }
+      .email-footer { border-top-color:#2d3748 !important; }
+      .email-divider { background-color:#2d3748 !important; }
+      a { color:#a78bfa !important; }
+    }
+  </style>
 </head>
 <body style="margin:0;padding:0;background-color:#f4f4f5;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
-<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f4f4f5;">
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" class="email-bg" style="background-color:#f4f4f5;">
   <tr>
     <td align="center" style="padding:32px 16px 40px;">
 
@@ -142,7 +153,7 @@ function shell(
 
         <!-- Card -->
         <tr>
-          <td style="background-color:#ffffff;border-radius:0 0 16px 16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+          <td class="email-card" style="background-color:#ffffff;border-radius:0 0 16px 16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
 
             <!-- Header -->
             ${headerContent}
@@ -156,7 +167,7 @@ function shell(
 
             <!-- Footer inside card -->
             <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
-              <tr><td style="padding:24px 32px 28px;border-top:1px solid #f0f0f0;margin-top:24px;">
+              <tr><td class="email-footer" style="padding:24px 32px 28px;border-top:1px solid #f0f0f0;margin-top:24px;">
                 <p style="margin:0;font-size:11px;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
                   ${footerContent}
                 </p>
