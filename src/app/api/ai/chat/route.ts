@@ -566,7 +566,7 @@ DASHBOARD GUIDE (step-by-step for each section):
 - **Marketing Hub** (Pro+): Email Campaigns (segmented: all/VIP/inactive/recent), Social Media AI generator (Instagram/Facebook/TikTok), SMS Campaigns, 9 pre-built Automations (birthday, reactivation, VIP reward, etc.).
 - **Promotions** (Pro+): Discount coupons — percentage or fixed amount, with code, max uses, expiration date, minimum order.
 - **Loyalty Program** (Pro+): Points per order, redeem as discount. Manage from dashboard or via chat.
-- **Team/Staff** (Starter+): Add employees with roles (admin, manager, staff, kitchen). Add delivery drivers. Each gets their own login.
+- **Team/Staff** (Starter+): Add employees with roles (admin, manager, staff, kitchen). Add delivery drivers. Drivers get a dedicated tracking link per delivery — no app install required.
 - **Settings**: Logo, cover photo, public URL (slug), custom domain (Pro+), basic info, order types (dine-in/pickup/delivery), payment methods (cash/card/Stripe Connect/Wompi), operating hours, email notifications, order notification phone (for the restaurant's own WhatsApp button), taxes (rate, label, included/on-top), printers (thermal, per-device config).
 - **Billing**: Plan status, usage vs limits, upgrade/downgrade, invoices, Stripe billing portal, cancel subscription.
 - **API Keys** (Business): Generate API keys for integrations. Full REST API available.

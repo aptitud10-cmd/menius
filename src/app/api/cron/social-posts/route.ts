@@ -1,13 +1,17 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-import { NextRequest, NextResponse } from 'next/server';
-import { sendEmail, buildSocialPostDigestEmail, type SocialPostDigestItem } from '@/lib/notifications/email';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { createLogger } from '@/lib/logger';
-import { publishPost, isAutoPublishEnabled } from '@/lib/social/publish';
+import { NextRequest, NextResponse } from "next/server";
+import {
+  sendEmail,
+  buildSocialPostDigestEmail,
+  type SocialPostDigestItem,
+} from "@/lib/notifications/email";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createLogger } from "@/lib/logger";
+import { publishPost, isAutoPublishEnabled } from "@/lib/social/publish";
 
-const logger = createLogger('cron-social-posts');
+const logger = createLogger("cron-social-posts");
 
 const CRON_SECRET = process.env.CRON_SECRET;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
@@ -16,25 +20,32 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
    Content pillars — rotate automatically
    ────────────────────────────────────── */
 const POST_TYPES = [
-  'pain_point',
-  'comparison',
-  'testimonial',
-  'educational',
-  'stat',
-  'promotion',
-  'product_launch',
-  'behind_scenes',
+  "pain_point",
+  "comparison",
+  "testimonial",
+  "educational",
+  "stat",
+  "promotion",
+  "product_launch",
+  "behind_scenes",
 ] as const;
 
 const POST_TYPE_DESCRIPTIONS: Record<string, string> = {
-  pain_point: 'Address a real restaurant pain point that MENIUS solves. Focus on the emotional and financial toll of paying 15-30% commissions to delivery apps, or struggling with paper menus, or losing customers because they have no online presence.',
-  comparison: 'Compare MENIUS vs a specific competitor. Pick ONE from: Rappi (30% commission), UberEats (25-30%), DoorDash (15-30%), iFood (27%), or generic "delivery apps". Use concrete numbers and a clear "switch" CTA.',
-  testimonial: 'Write a realistic testimonial from a fictional but believable restaurant owner. Include their name, restaurant type, city, and specific results (e.g. "saved $2,400/month", "orders increased 40%"). Make it feel genuine, not scripted.',
-  educational: 'Teach restaurant owners something valuable: how QR menus increase average ticket by 20%, why 73% of diners check menus online before visiting, how to reduce food waste with real-time stock, digital marketing tips for restaurants.',
+  pain_point:
+    "Address a real restaurant pain point that MENIUS solves. Focus on the emotional and financial toll of paying 15-30% commissions to delivery apps, or struggling with paper menus, or losing customers because they have no online presence.",
+  comparison:
+    'Compare MENIUS vs a specific competitor. Pick ONE from: Rappi (30% commission), UberEats (25-30%), DoorDash (15-30%), iFood (27%), or generic "delivery apps". Use concrete numbers and a clear "switch" CTA.',
+  testimonial:
+    'Write a realistic testimonial from a fictional but believable restaurant owner. Include their name, restaurant type, city, and specific results (e.g. "saved $2,400/month", "orders increased 40%"). Make it feel genuine, not scripted.',
+  educational:
+    "Teach restaurant owners something valuable: how QR menus increase average ticket by 20%, why 73% of diners check menus online before visiting, how to reduce food waste with real-time stock, digital marketing tips for restaurants.",
   stat: 'Lead with a compelling industry statistic and connect it to MENIUS. Use real data points: "67% of restaurants fail in the first year", "Restaurant profit margins average 3-5%", "Digital menus reduce order errors by 95%".',
-  promotion: 'Promote MENIUS free plan. Emphasize: free forever, no credit card, 0% commission on all plans, setup in 2 minutes, AI generates product images. Create urgency without being pushy.',
-  product_launch: 'Spotlight a specific MENIUS feature as if it just launched. Pick from: AI image generation, email & push notifications, QR code generator, customer CRM, marketing automation, analytics dashboard, OCR menu import.',
-  behind_scenes: 'Share a behind-the-scenes moment of building MENIUS. Topics: why we built it (founder frustrated with restaurant tech), the tech stack (Next.js, Supabase, Stripe, Gemini AI), a user story, a milestone, or a lesson learned.',
+  promotion:
+    "Promote MENIUS free plan. Emphasize: free forever, no credit card, 0% commission on all plans, setup in 2 minutes, AI generates product images. Create urgency without being pushy.",
+  product_launch:
+    "Spotlight a specific MENIUS feature as if it just launched. Pick from: AI image generation, email & push notifications, QR code generator, customer CRM, marketing automation, analytics dashboard, OCR menu import.",
+  behind_scenes:
+    "Share a behind-the-scenes moment of building MENIUS. Topics: why we built it (founder frustrated with restaurant tech), the tech stack (Next.js, Supabase, Stripe, Gemini AI), a user story, a milestone, or a lesson learned.",
 };
 
 /* ──────────────────────────────────────
@@ -42,16 +53,16 @@ const POST_TYPE_DESCRIPTIONS: Record<string, string> = {
    ────────────────────────────────────── */
 const PLATFORMS = [
   {
-    id: 'instagram',
+    id: "instagram",
     style: `Write for INSTAGRAM. Use line breaks for readability. Start with a powerful hook (first line people see before "...more"). Use 3-5 emojis spread naturally. End the caption with a clear CTA. Add exactly 15 relevant hashtags on a separate line.
 Max 2200 characters for caption (excluding hashtags).`,
   },
   {
-    id: 'facebook',
+    id: "facebook",
     style: `Write for FACEBOOK. Conversational and informative tone. Include a link mention to menius.app naturally. Use 1-3 emojis max. Ask a question to drive comments. Shorter than Instagram — aim for 100-200 words. Add 3-5 hashtags at the end.`,
   },
   {
-    id: 'linkedin',
+    id: "linkedin",
     style: `Write for LINKEDIN. Professional thought-leadership tone. Start with a contrarian or surprising statement to stop the scroll. Use short paragraphs (1-2 sentences each). Share data or insights. End with a question or invitation for discussion. Add 3-5 hashtags. No emojis or max 1.`,
   },
 ] as const;
@@ -59,9 +70,14 @@ Max 2200 characters for caption (excluding hashtags).`,
 /* ──────────────────────────────────────
    Master prompt (RCTC Framework)
    ────────────────────────────────────── */
-function buildMasterPrompt(platform: typeof PLATFORMS[number], postType: string, language: 'es' | 'en'): string {
-  const lang = language === 'en' ? 'English' : 'Spanish';
-  const typeDesc = POST_TYPE_DESCRIPTIONS[postType] || POST_TYPE_DESCRIPTIONS.pain_point;
+function buildMasterPrompt(
+  platform: (typeof PLATFORMS)[number],
+  postType: string,
+  language: "es" | "en",
+): string {
+  const lang = language === "en" ? "English" : "Spanish";
+  const typeDesc =
+    POST_TYPE_DESCRIPTIONS[postType] || POST_TYPE_DESCRIPTIONS.pain_point;
 
   return `ROLE: You are the Head of Growth Marketing at MENIUS, a $10M ARR SaaS company. You have 15 years of experience in B2B SaaS marketing and deep expertise in the restaurant industry. You write posts that get 10x more engagement than average because you understand both the platform algorithm and the restaurant owner's psychology.
 
@@ -106,9 +122,12 @@ RESPOND IN THIS EXACT JSON FORMAT (nothing else):
 /* ──────────────────────────────────────
    Image generation
    ────────────────────────────────────── */
-async function generateMarketingImage(imageIdea: string, apiKey: string): Promise<string | null> {
+async function generateMarketingImage(
+  imageIdea: string,
+  apiKey: string,
+): Promise<string | null> {
   try {
-    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
     const genAI = new GoogleGenerativeAI(apiKey);
 
     const prompt = `Generate a professional SaaS marketing graphic for social media.
@@ -129,9 +148,9 @@ STYLE REQUIREMENTS:
 - High contrast, crisp edges, modern typography`;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash-image',
+      model: "gemini-2.5-flash-image",
       generationConfig: {
-        responseModalities: ['TEXT', 'IMAGE'],
+        responseModalities: ["TEXT", "IMAGE"],
       } as any,
     });
 
@@ -147,37 +166,44 @@ STYLE REQUIREMENTS:
     }
     return null;
   } catch (err) {
-    logger.error('Image generation failed', { error: err instanceof Error ? err.message : String(err) });
+    logger.error("Image generation failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return null;
   }
 }
 
-async function uploadImage(base64: string, platform: string): Promise<string | null> {
+async function uploadImage(
+  base64: string,
+  platform: string,
+): Promise<string | null> {
   try {
     const supabase = createAdminClient();
-    const buffer = Buffer.from(base64, 'base64');
+    const buffer = Buffer.from(base64, "base64");
     const fileName = `social/${platform}-${Date.now()}.png`;
 
     const { error } = await supabase.storage
-      .from('menius-posts')
+      .from("menius-posts")
       .upload(fileName, buffer, {
-        contentType: 'image/png',
-        cacheControl: '31536000',
+        contentType: "image/png",
+        cacheControl: "31536000",
         upsert: false,
       });
 
     if (error) {
-      logger.error('Image upload failed', { error: error.message });
+      logger.error("Image upload failed", { error: error.message });
       return null;
     }
 
     const { data: urlData } = supabase.storage
-      .from('menius-posts')
+      .from("menius-posts")
       .getPublicUrl(fileName);
 
     return urlData.publicUrl;
   } catch (err) {
-    logger.error('Upload error', { error: err instanceof Error ? err.message : String(err) });
+    logger.error("Upload error", {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return null;
   }
 }
@@ -203,17 +229,19 @@ async function savePost(post: {
   try {
     const supabase = createAdminClient();
     const { data, error } = await supabase
-      .from('menius_posts')
+      .from("menius_posts")
       .insert(post)
-      .select('id')
+      .select("id")
       .single();
     if (error) {
-      logger.error('DB save failed', { error: error.message });
+      logger.error("DB save failed", { error: error.message });
       return null;
     }
     return data?.id ?? null;
   } catch (err) {
-    logger.error('Save error', { error: err instanceof Error ? err.message : String(err) });
+    logger.error("Save error", {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return null;
   }
 }
@@ -229,13 +257,13 @@ async function updatePostPublishResult(
   try {
     const supabase = createAdminClient();
     await supabase
-      .from('menius_posts')
+      .from("menius_posts")
       .update({
-        status: success ? 'published' : 'sent',
+        status: success ? "published" : "sent",
         ...(externalPostId ? { external_post_id: externalPostId } : {}),
         published_at: success ? new Date().toISOString() : null,
       })
-      .eq('id', id);
+      .eq("id", id);
   } catch {
     // Non-critical — log nothing (columns may not exist yet in older deployments)
   }
@@ -245,7 +273,10 @@ async function updatePostPublishResult(
    Determine which post type to use
    ────────────────────────────────────── */
 function getPostTypeForRun(): string {
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  const dayOfYear = Math.floor(
+    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) /
+      86400000,
+  );
   return POST_TYPES[dayOfYear % POST_TYPES.length];
 }
 
@@ -253,19 +284,19 @@ function getPostTypeForRun(): string {
    Generate one post (text + image)
    ────────────────────────────────────── */
 async function generatePost(
-  platform: typeof PLATFORMS[number],
+  platform: (typeof PLATFORMS)[number],
   postType: string,
-  language: 'es' | 'en',
+  language: "es" | "en",
   apiKey: string,
 ): Promise<SocialPostDigestItem | null> {
   try {
     const prompt = buildMasterPrompt(platform, postType, language);
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { temperature: 0.9, maxOutputTokens: 2000 },
@@ -274,12 +305,14 @@ async function generatePost(
     );
 
     if (!res.ok) {
-      logger.error(`Gemini text failed for ${platform.id}`, { status: res.status });
+      logger.error(`Gemini text failed for ${platform.id}`, {
+        status: res.status,
+      });
       return null;
     }
 
     const data = await res.json();
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       logger.error(`Could not parse response for ${platform.id}`);
@@ -290,7 +323,10 @@ async function generatePost(
 
     let imageUrl: string | null = null;
     if (parsed.imageIdea) {
-      const imageBase64 = await generateMarketingImage(parsed.imageIdea, apiKey);
+      const imageBase64 = await generateMarketingImage(
+        parsed.imageIdea,
+        apiKey,
+      );
       if (imageBase64) {
         imageUrl = await uploadImage(imageBase64, platform.id);
       }
@@ -302,23 +338,23 @@ async function generatePost(
       platform: platform.id,
       post_type: postType,
       language,
-      hook: parsed.hook ?? '',
-      caption: parsed.caption ?? '',
-      hashtags: parsed.hashtags ?? '',
-      cta: parsed.cta ?? '',
+      hook: parsed.hook ?? "",
+      caption: parsed.caption ?? "",
+      hashtags: parsed.hashtags ?? "",
+      cta: parsed.cta ?? "",
       image_url: imageUrl,
-      image_idea: parsed.imageIdea ?? '',
-      best_time: parsed.bestTimeToPost ?? '',
-      tip: parsed.tip ?? '',
-      status: 'draft',
-      source: 'auto',
+      image_idea: parsed.imageIdea ?? "",
+      best_time: parsed.bestTimeToPost ?? "",
+      tip: parsed.tip ?? "",
+      status: "draft",
+      source: "auto",
     });
 
     if (autoPublish) {
       const result = await publishPost(
         platform.id,
-        parsed.caption ?? '',
-        parsed.hashtags ?? '',
+        parsed.caption ?? "",
+        parsed.hashtags ?? "",
         imageUrl,
         dbId,
       );
@@ -326,23 +362,27 @@ async function generatePost(
         await updatePostPublishResult(dbId, result.success, result.postId);
       }
       if (!result.success && !result.skipped) {
-        logger.warn(`Auto-publish failed for ${platform.id}`, { error: result.error });
+        logger.warn(`Auto-publish failed for ${platform.id}`, {
+          error: result.error,
+        });
       }
     }
 
     return {
       platform: platform.id,
-      hook: parsed.hook ?? '',
-      caption: parsed.caption ?? '',
-      hashtags: parsed.hashtags ?? '',
-      cta: parsed.cta ?? '',
+      hook: parsed.hook ?? "",
+      caption: parsed.caption ?? "",
+      hashtags: parsed.hashtags ?? "",
+      cta: parsed.cta ?? "",
       image_url: imageUrl,
       image_idea: parsed.imageIdea,
       best_time: parsed.bestTimeToPost,
       tip: parsed.tip,
     };
   } catch (err) {
-    logger.error(`Post generation failed for ${platform.id}`, { error: err instanceof Error ? err.message : String(err) });
+    logger.error(`Post generation failed for ${platform.id}`, {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return null;
   }
 }
@@ -351,40 +391,55 @@ async function generatePost(
    Main cron handler
    ────────────────────────────────────── */
 export async function GET(request: NextRequest) {
-  const auth = request.headers.get('authorization');
+  const auth = request.headers.get("authorization");
   if (!CRON_SECRET || auth !== `Bearer ${CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const apiKey = (process.env.GEMINI_API_KEY ?? '').trim();
+  const apiKey = (process.env.GEMINI_API_KEY ?? "").trim();
   if (!apiKey) {
-    return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 503 });
+    return NextResponse.json(
+      { error: "GEMINI_API_KEY not configured" },
+      { status: 503 },
+    );
   }
 
   const postType = getPostTypeForRun();
-  const languages: Array<'es' | 'en'> = ['es', 'en'];
+  const languages: Array<"es" | "en"> = ["es", "en"];
   const language = languages[new Date().getDay() % 2];
 
-  logger.info(`Starting social post generation: type=${postType}, lang=${language}`);
+  logger.info(
+    `Starting social post generation: type=${postType}, lang=${language}`,
+  );
 
   const postResults = await Promise.allSettled(
-    PLATFORMS.map(platform => generatePost(platform, postType, language, apiKey)),
+    PLATFORMS.map((platform) =>
+      generatePost(platform, postType, language, apiKey),
+    ),
   );
   const generatedPosts: SocialPostDigestItem[] = postResults
-    .filter((r): r is PromiseFulfilledResult<SocialPostDigestItem> => r.status === 'fulfilled' && r.value !== null)
-    .map(r => r.value);
+    .filter(
+      (r): r is PromiseFulfilledResult<SocialPostDigestItem> =>
+        r.status === "fulfilled" && r.value !== null,
+    )
+    .map((r) => r.value);
 
   if (generatedPosts.length > 0) {
-    const dateStr = new Date().toLocaleDateString('en-US', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    const dateStr = new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
 
     const html = buildSocialPostDigestEmail(generatedPosts, dateStr);
 
     if (!ADMIN_EMAIL) {
-      logger.warn('ADMIN_EMAIL env var is not set — skipping digest email');
+      logger.warn("ADMIN_EMAIL env var is not set — skipping digest email");
     } else {
-      const adminEmails = ADMIN_EMAIL.split(',').map(e => e.trim()).filter(Boolean);
+      const adminEmails = ADMIN_EMAIL.split(",")
+        .map((e) => e.trim())
+        .filter(Boolean);
       for (const email of adminEmails) {
         await sendEmail({
           to: email,
@@ -392,10 +447,12 @@ export async function GET(request: NextRequest) {
           html,
         });
       }
-      logger.info(`Generated ${generatedPosts.length} posts, email sent to ${adminEmails.join(', ')}`);
+      logger.info(
+        `Generated ${generatedPosts.length} posts, email sent to ${adminEmails.join(", ")}`,
+      );
     }
   } else {
-    logger.error('No posts were generated');
+    logger.error("No posts were generated");
   }
 
   return NextResponse.json({
@@ -403,6 +460,6 @@ export async function GET(request: NextRequest) {
     postsGenerated: generatedPosts.length,
     postType,
     language,
-    platforms: generatedPosts.map(p => p.platform),
+    platforms: generatedPosts.map((p) => p.platform),
   });
 }
