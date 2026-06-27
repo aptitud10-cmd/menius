@@ -1,10 +1,23 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Image from 'next/image';
-import { Sparkles, Copy, CheckCircle2, Loader2, Clock, Lightbulb, ImageIcon, Instagram, Facebook, Twitter, Download, Wand2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
+import { useState } from "react";
+import Image from "next/image";
+import {
+  Sparkles,
+  Copy,
+  CheckCircle2,
+  Loader2,
+  Clock,
+  Lightbulb,
+  ImageIcon,
+  Instagram,
+  Facebook,
+  Twitter,
+  Download,
+  Wand2,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useDashboardLocale } from "@/hooks/use-dashboard-locale";
 
 interface Props {
   restaurantName: string;
@@ -12,10 +25,34 @@ interface Props {
   restaurantLocale: string;
 }
 
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.77a4.85 4.85 0 0 1-1.01-.08z" />
+    </svg>
+  );
+}
+
 const PLATFORMS = [
-  { value: 'instagram', label: 'Instagram', icon: Instagram, color: 'bg-gradient-to-r from-purple-500 to-pink-500', comingSoon: false },
-  { value: 'facebook', label: 'Facebook', icon: Facebook, color: 'bg-blue-600', comingSoon: false },
-  { value: 'twitter', label: 'X / Twitter', icon: Twitter, color: 'bg-black', comingSoon: true },
+  {
+    value: "instagram",
+    label: "Instagram",
+    icon: Instagram,
+    color: "bg-gradient-to-r from-purple-500 to-pink-500",
+  },
+  {
+    value: "facebook",
+    label: "Facebook",
+    icon: Facebook,
+    color: "bg-blue-600",
+  },
+  { value: "twitter", label: "X / Twitter", icon: Twitter, color: "bg-black" },
+  { value: "tiktok", label: "TikTok", icon: TikTokIcon, color: "bg-gray-900" },
 ];
 
 /* POST_TYPES moved inside component for translation */
@@ -28,49 +65,55 @@ interface GeneratedPost {
   tip: string;
 }
 
-export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale }: Props) {
+export function SocialMediaManager({
+  restaurantName,
+  menuSlug,
+  restaurantLocale,
+}: Props) {
   const { t, locale } = useDashboardLocale();
 
   const POST_TYPES = [
-    { value: 'promo', label: t.social_typePromo },
-    { value: 'new_dish', label: t.social_typeNewDish },
-    { value: 'daily_special', label: t.social_typeDailySpecial },
-    { value: 'behind_scenes', label: t.social_typeBehindScenes },
-    { value: 'customer_review', label: t.social_typeCustomerReview },
-    { value: 'general', label: t.social_typeGeneral },
-    { value: 'event', label: t.social_typeEvent },
-    { value: 'story', label: t.social_typeStory },
+    { value: "promo", label: t.social_typePromo },
+    { value: "new_dish", label: t.social_typeNewDish },
+    { value: "daily_special", label: t.social_typeDailySpecial },
+    { value: "behind_scenes", label: t.social_typeBehindScenes },
+    { value: "customer_review", label: t.social_typeCustomerReview },
+    { value: "general", label: t.social_typeGeneral },
+    { value: "event", label: t.social_typeEvent },
+    { value: "story", label: t.social_typeStory },
   ];
-  const [platform, setPlatform] = useState('instagram');
-  const [postType, setPostType] = useState('promo');
-  const [customPrompt, setCustomPrompt] = useState('');
+  const [platform, setPlatform] = useState("instagram");
+  const [postType, setPostType] = useState("promo");
+  const [customPrompt, setCustomPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [post, setPost] = useState<GeneratedPost | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [generatingImage, setGeneratingImage] = useState(false);
-  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
-  const [imageError, setImageError] = useState('');
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(
+    null,
+  );
+  const [imageError, setImageError] = useState("");
 
   const handleGenerateImage = async () => {
     if (!post?.imageIdea) return;
     setGeneratingImage(true);
-    setImageError('');
+    setImageError("");
     setGeneratedImageUrl(null);
     try {
       const styleMap: Record<string, string> = {
-        instagram: 'vibrant',
-        facebook: 'professional',
-        twitter: 'professional',
-        tiktok: 'vibrant',
+        instagram: "vibrant",
+        facebook: "professional",
+        twitter: "professional",
+        tiktok: "vibrant",
       };
-      const res = await fetch('/api/ai/generate-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/ai/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           productName: restaurantName,
           description: post.imageIdea,
-          style: styleMap[platform] ?? 'vibrant',
+          style: styleMap[platform] ?? "vibrant",
         }),
       });
       const data = await res.json();
@@ -89,33 +132,38 @@ export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale 
       const response = await fetch(generatedImageUrl);
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `${restaurantName.replace(/\s+/g, '-').toLowerCase()}-post.jpg`;
+      a.download = `${restaurantName.replace(/\s+/g, "-").toLowerCase()}-post.jpg`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
       // fallback: open in new tab
-      window.open(generatedImageUrl, '_blank');
+      window.open(generatedImageUrl, "_blank");
     }
   };
 
   const handleGenerate = async () => {
     setGenerating(true);
-    setError('');
+    setError("");
     setPost(null);
     setGeneratedImageUrl(null);
-    setImageError('');
+    setImageError("");
     try {
-      const res = await fetch('/api/ai/social-post', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform, postType, locale: restaurantLocale, customPrompt: customPrompt.trim() || undefined }),
+      const res = await fetch("/api/ai/social-post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          platform,
+          postType,
+          locale: restaurantLocale,
+          customPrompt: customPrompt.trim() || undefined,
+        }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error generando post');
+      if (!res.ok) throw new Error(data.error || "Error generando post");
       setPost(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : t.email_errorGenerating);
@@ -130,37 +178,45 @@ export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale 
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const selectedPlatform = PLATFORMS.find(p => p.value === platform)!;
+  const selectedPlatform = PLATFORMS.find((p) => p.value === platform)!;
 
   return (
     <div className="space-y-6">
       {/* Platform selector */}
       <div>
-        <p className="text-xs text-gray-500 font-medium mb-3">{t.social_choosePlatform}</p>
+        <p className="text-xs text-gray-500 font-medium mb-3">
+          {t.social_choosePlatform}
+        </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {PLATFORMS.map(p => {
+          {PLATFORMS.map((p) => {
             const Icon = p.icon;
             return (
               <button
                 key={p.value}
-                onClick={() => !p.comingSoon && setPlatform(p.value)}
-                disabled={p.comingSoon}
+                onClick={() => setPlatform(p.value)}
                 className={cn(
-                  'relative flex items-center gap-2.5 p-3.5 rounded-xl border-2 transition-all',
-                  p.comingSoon
-                    ? 'border-gray-100 bg-gray-50 cursor-not-allowed opacity-60'
-                    : platform === p.value
-                      ? 'border-purple-500 bg-purple-50 shadow-sm'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  "relative flex items-center gap-2.5 p-3.5 rounded-xl border-2 transition-all",
+                  platform === p.value
+                    ? "border-purple-500 bg-purple-50 shadow-sm"
+                    : "border-gray-200 bg-white hover:border-gray-300",
                 )}
               >
-                <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center text-white', p.color)}>
+                <div
+                  className={cn(
+                    "w-8 h-8 rounded-lg flex items-center justify-center text-white",
+                    p.color,
+                  )}
+                >
                   <Icon className="w-4 h-4" />
                 </div>
-                <div className="flex flex-col items-start">
-                  <span className={cn('text-sm font-medium', p.comingSoon ? 'text-gray-400' : platform === p.value ? 'text-purple-700' : 'text-gray-700')}>{p.label}</span>
-                  {p.comingSoon && <span className="text-[10px] font-semibold text-gray-400 leading-none">Coming soon</span>}
-                </div>
+                <span
+                  className={cn(
+                    "text-sm font-medium",
+                    platform === p.value ? "text-purple-700" : "text-gray-700",
+                  )}
+                >
+                  {p.label}
+                </span>
               </button>
             );
           })}
@@ -170,27 +226,40 @@ export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale 
       {/* Post type + custom prompt */}
       <div className="bg-purple-50 border border-purple-200 rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-purple-600" /> {t.social_generatePost} {selectedPlatform.label}
+          <Sparkles className="w-4 h-4 text-purple-600" />{" "}
+          {t.social_generatePost} {selectedPlatform.label}
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block">{t.social_postType}</label>
+            <label className="text-xs text-gray-500 mb-1.5 block">
+              {t.social_postType}
+            </label>
             <select
               value={postType}
               onChange={(e) => setPostType(e.target.value)}
               className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
             >
-              {POST_TYPES.map(pt => <option key={pt.value} value={pt.value}>{pt.label}</option>)}
+              {POST_TYPES.map((pt) => (
+                <option key={pt.value} value={pt.value}>
+                  {pt.label}
+                </option>
+              ))}
             </select>
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block">{t.social_extraInstructions}</label>
+            <label className="text-xs text-gray-500 mb-1.5 block">
+              {t.social_extraInstructions}
+            </label>
             <input
               type="text"
               value={customPrompt}
               onChange={(e) => setCustomPrompt(e.target.value)}
-              placeholder={restaurantLocale === 'en' ? 'E.g.: Mention the 2-for-1 pizza deal on Tuesdays...' : 'Ej: Menciona el 2x1 en pizzas los martes...'}
+              placeholder={
+                restaurantLocale === "en"
+                  ? "E.g.: Mention the 2-for-1 pizza deal on Tuesdays..."
+                  : "Ej: Menciona el 2x1 en pizzas los martes..."
+              }
               className="w-full bg-white border border-purple-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-purple-500/30"
             />
           </div>
@@ -202,9 +271,13 @@ export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale 
           className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
         >
           {generating ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> {t.social_generating}</>
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" /> {t.social_generating}
+            </>
           ) : (
-            <><Sparkles className="w-4 h-4" /> {t.social_generateButton}</>
+            <>
+              <Sparkles className="w-4 h-4" /> {t.social_generateButton}
+            </>
           )}
         </button>
       </div>
@@ -221,18 +294,39 @@ export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale 
           {/* Caption */}
           <div className="bg-white border border-gray-200 rounded-xl p-5">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t.social_captionText}</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                {t.social_captionText}
+              </p>
               <button
-                onClick={() => copyToClipboard(post.hashtags ? `${post.caption}\n\n${post.hashtags}` : post.caption, 'caption')}
+                onClick={() =>
+                  copyToClipboard(
+                    post.hashtags
+                      ? `${post.caption}\n\n${post.hashtags}`
+                      : post.caption,
+                    "caption",
+                  )
+                }
                 className="flex items-center gap-1.5 text-xs text-purple-600 hover:text-purple-700 font-medium"
               >
-                {copied === 'caption' ? <><CheckCircle2 className="w-3.5 h-3.5" /> {t.social_copied}</> : <><Copy className="w-3.5 h-3.5" /> {t.social_copyAll}</>}
+                {copied === "caption" ? (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5" /> {t.social_copied}
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" /> {t.social_copyAll}
+                  </>
+                )}
               </button>
             </div>
-            <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{post.caption}</p>
+            <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+              {post.caption}
+            </p>
             {post.hashtags && (
               <div className="mt-4 pt-3 border-t border-gray-100">
-                <p className="text-xs text-blue-600 leading-relaxed">{post.hashtags}</p>
+                <p className="text-xs text-blue-600 leading-relaxed">
+                  {post.hashtags}
+                </p>
               </div>
             )}
           </div>
@@ -253,7 +347,9 @@ export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale 
               )}
             </div>
 
-            <p className="text-xs text-amber-900 leading-relaxed">{post.imageIdea}</p>
+            <p className="text-xs text-amber-900 leading-relaxed">
+              {post.imageIdea}
+            </p>
 
             {!generatedImageUrl && (
               <button
@@ -262,23 +358,37 @@ export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale 
                 className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors disabled:opacity-60"
               >
                 {generatingImage ? (
-                  <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t.social_generatingImage}</>
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />{" "}
+                    {t.social_generatingImage}
+                  </>
                 ) : (
-                  <><Wand2 className="w-3.5 h-3.5" /> {t.social_generateImage}</>
+                  <>
+                    <Wand2 className="w-3.5 h-3.5" /> {t.social_generateImage}
+                  </>
                 )}
               </button>
             )}
 
             {imageError && (
-              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{imageError}</p>
+              <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {imageError}
+              </p>
             )}
 
             {generatedImageUrl && (
               <div className="space-y-2">
-                <div className="relative w-full rounded-lg overflow-hidden" style={{ maxHeight: '300px', minHeight: '200px' }}>
+                <div
+                  className="relative w-full rounded-lg overflow-hidden"
+                  style={{ maxHeight: "300px", minHeight: "200px" }}
+                >
                   <Image
                     src={generatedImageUrl}
-                    alt={locale === 'en' ? 'AI generated post image' : 'Imagen de post generada por IA'}
+                    alt={
+                      locale === "en"
+                        ? "AI generated post image"
+                        : "Imagen de post generada por IA"
+                    }
                     fill
                     sizes="(max-width: 640px) 100vw, 480px"
                     className="object-cover"
@@ -286,7 +396,10 @@ export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale 
                   />
                 </div>
                 <button
-                  onClick={() => { setGeneratedImageUrl(null); setImageError(''); }}
+                  onClick={() => {
+                    setGeneratedImageUrl(null);
+                    setImageError("");
+                  }}
                   disabled={generatingImage}
                   className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg border border-amber-300 text-amber-700 hover:bg-amber-100 text-xs font-medium transition-colors disabled:opacity-60"
                 >
@@ -302,13 +415,17 @@ export function SocialMediaManager({ restaurantName, menuSlug, restaurantLocale 
               <div className="flex items-center gap-1.5 text-xs font-medium text-blue-700 mb-2">
                 <Clock className="w-3.5 h-3.5" /> {t.social_bestTime}
               </div>
-              <p className="text-xs text-blue-900 leading-relaxed">{post.bestTime}</p>
+              <p className="text-xs text-blue-900 leading-relaxed">
+                {post.bestTime}
+              </p>
             </div>
             <div className="bg-green-50 border border-green-200 rounded-xl p-4">
               <div className="flex items-center gap-1.5 text-xs font-medium text-green-700 mb-2">
                 <Lightbulb className="w-3.5 h-3.5" /> {t.social_proTip}
               </div>
-              <p className="text-xs text-green-900 leading-relaxed">{post.tip}</p>
+              <p className="text-xs text-green-900 leading-relaxed">
+                {post.tip}
+              </p>
             </div>
           </div>
 
