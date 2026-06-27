@@ -10,27 +10,27 @@
  *  - Full item details: variant, modifiers, extras, notes
  */
 
-import { createLogger, maskEmail } from '@/lib/logger';
-import { captureError } from '@/lib/error-reporting';
+import { createLogger, maskEmail } from "@/lib/logger";
+import { captureError } from "@/lib/error-reporting";
 
-const logger = createLogger('email');
+const logger = createLogger("email");
 
 // ---------- Types ----------
 
 export interface OrderEmailItem {
   name: string;
   qty: number;
-  price: string;           // formatted string
+  price: string; // formatted string
   variant?: string;
-  modifiers?: string[];    // e.g. ["Sin cebolla", "Extra queso"]
-  extras?: string[];       // e.g. ["Papa extra (+$20)"]
+  modifiers?: string[]; // e.g. ["Sin cebolla", "Extra queso"]
+  extras?: string[]; // e.g. ["Papa extra (+$20)"]
   notes?: string;
 }
 
 interface EmailMessage {
   to: string;
-  from?: string;           // overrides default sender
-  replyTo?: string;        // reply-to address
+  from?: string; // overrides default sender
+  replyTo?: string; // reply-to address
   subject: string;
   html: string;
 }
@@ -38,62 +38,86 @@ interface EmailMessage {
 // ---------- HTML escaping ----------
 
 function esc(s: string | null | undefined): string {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 // ---------- Transport ----------
 
-export async function sendEmail({ to, from, replyTo, subject, html }: EmailMessage): Promise<boolean> {
-  const apiKey = (process.env.RESEND_API_KEY ?? '').trim();
+export async function sendEmail({
+  to,
+  from,
+  replyTo,
+  subject,
+  html,
+}: EmailMessage): Promise<boolean> {
+  const apiKey = (process.env.RESEND_API_KEY ?? "").trim();
   if (!apiKey) {
-    logger.error('RESEND_API_KEY not configured — emails will not be sent');
+    logger.error("RESEND_API_KEY not configured — emails will not be sent");
     return false;
   }
 
-  logger.info('Sending email', { subject, to: maskEmail(to) });
+  logger.info("Sending email", { subject, to: maskEmail(to) });
 
   try {
     const payload: Record<string, unknown> = {
-      from: from ?? 'MENIUS <noreply@menius.app>',
+      from: from ?? "MENIUS <noreply@menius.app>",
       to: [to],
       subject,
       html,
     };
     if (replyTo) payload.reply_to = [replyTo];
 
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
       const errBody = await res.text();
-      logger.error('Resend HTTP error', { status: res.status, to: maskEmail(to), errBody });
-      captureError(new Error(`Resend HTTP ${res.status}: ${errBody}`), { context: 'sendEmail', to: maskEmail(to) });
+      logger.error("Resend HTTP error", {
+        status: res.status,
+        to: maskEmail(to),
+        errBody,
+      });
+      captureError(new Error(`Resend HTTP ${res.status}: ${errBody}`), {
+        context: "sendEmail",
+        to: maskEmail(to),
+      });
       return false;
     }
     const body = await res.json().catch(() => ({}));
-    logger.info('Email sent', { to: maskEmail(to), id: (body as Record<string, unknown>)?.id ?? 'unknown' });
+    logger.info("Email sent", {
+      to: maskEmail(to),
+      id: (body as Record<string, unknown>)?.id ?? "unknown",
+    });
     return true;
   } catch (err) {
-    logger.error('Network error sending email', { to: maskEmail(to), error: err instanceof Error ? err.message : String(err) });
-    captureError(err, { context: 'sendEmail', to: maskEmail(to) });
+    logger.error("Network error sending email", {
+      to: maskEmail(to),
+      error: err instanceof Error ? err.message : String(err),
+    });
+    captureError(err, { context: "sendEmail", to: maskEmail(to) });
     return false;
   }
 }
 
 // ---------- Shared shell ----------
 
-function shell(accentColor: string, headerContent: string, bodyContent: string, footerContent: string) {
+function shell(
+  accentColor: string,
+  headerContent: string,
+  bodyContent: string,
+  footerContent: string,
+) {
   return `<!DOCTYPE html>
 <html lang="und" xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -166,32 +190,45 @@ function shell(accentColor: string, headerContent: string, bodyContent: string, 
 // ---------- Helpers ----------
 
 function itemsTable(items: OrderEmailItem[], currency?: string): string {
-  if (!items.length) return '';
+  if (!items.length) return "";
 
-  const rows = items.map(item => {
-    const subLines: string[] = [];
-    if (item.variant) subLines.push(`<span style="color:#6b7280;">${esc(item.variant)}</span>`);
-    if (item.modifiers?.length) {
-      subLines.push(...item.modifiers.map(m => `<span style="color:#6b7280;">· ${esc(m)}</span>`));
-    }
-    if (item.extras?.length) {
-      subLines.push(...item.extras.map(e => `<span style="color:#7c3aed;">+ ${esc(e)}</span>`));
-    }
-    if (item.notes) {
-      subLines.push(`<em style="color:#d97706;">"${esc(item.notes)}"</em>`);
-    }
+  const rows = items
+    .map((item) => {
+      const subLines: string[] = [];
+      if (item.variant)
+        subLines.push(
+          `<span style="color:#6b7280;">${esc(item.variant)}</span>`,
+        );
+      if (item.modifiers?.length) {
+        subLines.push(
+          ...item.modifiers.map(
+            (m) => `<span style="color:#6b7280;">· ${esc(m)}</span>`,
+          ),
+        );
+      }
+      if (item.extras?.length) {
+        subLines.push(
+          ...item.extras.map(
+            (e) => `<span style="color:#7c3aed;">+ ${esc(e)}</span>`,
+          ),
+        );
+      }
+      if (item.notes) {
+        subLines.push(`<em style="color:#d97706;">"${esc(item.notes)}"</em>`);
+      }
 
-    return `
+      return `
     <tr>
       <td style="padding:10px 0 10px;border-bottom:1px solid #f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;vertical-align:top;">
         <span style="font-size:14px;font-weight:600;color:#111827;">${esc(String(item.qty))}&times;&nbsp;${esc(item.name)}</span>
-        ${subLines.length ? `<br/><span style="font-size:12px;line-height:1.8;">${subLines.join('<br/>')}</span>` : ''}
+        ${subLines.length ? `<br/><span style="font-size:12px;line-height:1.8;">${subLines.join("<br/>")}</span>` : ""}
       </td>
       <td style="padding:10px 0 10px;border-bottom:1px solid #f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;text-align:right;vertical-align:top;white-space:nowrap;">
         <span style="font-size:14px;font-weight:600;color:#111827;">${item.price}</span>
       </td>
     </tr>`;
-  }).join('');
+    })
+    .join("");
 
   return `
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
@@ -240,18 +277,48 @@ export function buildOrderConfirmationEmail(params: {
   notes?: string | null;
   locale?: string;
 }): string {
-  const { customerName, orderNumber, restaurantName, total, items, trackingUrl, orderType, paymentMethod, tableNumber, notes, locale } = params;
-  const en = locale === 'en';
+  const {
+    customerName,
+    orderNumber,
+    restaurantName,
+    total,
+    items,
+    trackingUrl,
+    orderType,
+    paymentMethod,
+    tableNumber,
+    notes,
+    locale,
+  } = params;
+  const en = locale === "en";
 
-  const orderTypeLabels: Record<string, { en: string; es: string; color: string; bg: string }> = {
-    dine_in:  { en: 'Dine-in',  es: 'En restaurante', color: '#7c3aed', bg: '#f3f0ff' },
-    pickup:   { en: 'Pickup',   es: 'Para recoger',   color: '#0891b2', bg: '#ecfeff' },
-    delivery: { en: 'Delivery', es: 'Delivery',        color: '#059669', bg: '#f0fdf4' },
+  const orderTypeLabels: Record<
+    string,
+    { en: string; es: string; color: string; bg: string }
+  > = {
+    dine_in: {
+      en: "Dine-in",
+      es: "En restaurante",
+      color: "#7c3aed",
+      bg: "#f3f0ff",
+    },
+    pickup: {
+      en: "Pickup",
+      es: "Para recoger",
+      color: "#0891b2",
+      bg: "#ecfeff",
+    },
+    delivery: {
+      en: "Delivery",
+      es: "Delivery",
+      color: "#059669",
+      bg: "#f0fdf4",
+    },
   };
   const paymentLabels: Record<string, { en: string; es: string }> = {
-    cash:   { en: 'Cash', es: 'Efectivo' },
-    online: { en: 'Online', es: 'En línea' },
-    card:   { en: 'Card', es: 'Tarjeta' },
+    cash: { en: "Cash", es: "Efectivo" },
+    online: { en: "Online", es: "En línea" },
+    card: { en: "Card", es: "Tarjeta" },
   };
 
   const ot = orderType ? orderTypeLabels[orderType] : null;
@@ -273,7 +340,7 @@ export function buildOrderConfirmationEmail(params: {
             </td>
             <td style="vertical-align:middle;">
               <span style="font-size:13px;font-weight:600;color:#059669;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                ${en ? 'Order confirmed' : 'Pedido confirmado'}
+                ${en ? "Order confirmed" : "Pedido confirmado"}
               </span>
             </td>
           </tr>
@@ -283,13 +350,26 @@ export function buildOrderConfirmationEmail(params: {
   </table>`;
 
   const metaRows: string[] = [
-    metaRow(en ? 'Order' : 'Pedido', `<span style="font-family:monospace;background:#f3f4f6;padding:2px 6px;border-radius:4px;">#${esc(orderNumber)}</span>`),
-    metaRow(en ? 'Customer' : 'Cliente', esc(customerName)),
+    metaRow(
+      en ? "Order" : "Pedido",
+      `<span style="font-family:monospace;background:#f3f4f6;padding:2px 6px;border-radius:4px;">#${esc(orderNumber)}</span>`,
+    ),
+    metaRow(en ? "Customer" : "Cliente", esc(customerName)),
   ];
-  if (ot) metaRows.push(metaRow(en ? 'Type' : 'Tipo', pill(en ? ot.en : ot.es, ot.bg, ot.color)));
-  if (pm) metaRows.push(metaRow(en ? 'Payment' : 'Pago', en ? pm.en : pm.es));
-  if (tableNumber) metaRows.push(metaRow(en ? 'Table' : 'Mesa', esc(tableNumber)));
-  if (notes) metaRows.push(metaRow(en ? 'Notes' : 'Notas', `<em style="color:#6b7280;">${esc(notes)}</em>`));
+  if (ot)
+    metaRows.push(
+      metaRow(en ? "Type" : "Tipo", pill(en ? ot.en : ot.es, ot.bg, ot.color)),
+    );
+  if (pm) metaRows.push(metaRow(en ? "Payment" : "Pago", en ? pm.en : pm.es));
+  if (tableNumber)
+    metaRows.push(metaRow(en ? "Table" : "Mesa", esc(tableNumber)));
+  if (notes)
+    metaRows.push(
+      metaRow(
+        en ? "Notes" : "Notas",
+        `<em style="color:#6b7280;">${esc(notes)}</em>`,
+      ),
+    );
 
   const body = `
   <p style="margin:0 0 20px;font-size:15px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
@@ -298,12 +378,12 @@ export function buildOrderConfirmationEmail(params: {
 
   <!-- Meta info -->
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:24px;">
-    ${metaRows.join('')}
+    ${metaRows.join("")}
   </table>
 
   <!-- Divider -->
   <p style="margin:0 0 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    ${en ? 'Your order' : 'Tu pedido'}
+    ${en ? "Your order" : "Tu pedido"}
   </p>
 
   ${itemsTable(items)}
@@ -316,15 +396,15 @@ export function buildOrderConfirmationEmail(params: {
     </tr>
   </table>
 
-  ${ctaButton(trackingUrl, en ? '📦 Track my order' : '📦 Seguir mi pedido', '#7c3aed')}
+  ${ctaButton(trackingUrl, en ? "📦 Track my order" : "📦 Seguir mi pedido", "#7c3aed")}
 
   <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    ${en ? 'Tap the button above to follow your order in real time.' : 'Toca el botón para seguir tu pedido en tiempo real.'}
+    ${en ? "Tap the button above to follow your order in real time." : "Toca el botón para seguir tu pedido en tiempo real."}
   </p>`;
 
-  const footer = `${en ? `This email was sent by` : `Este correo fue enviado por`} <strong style="color:#111827;">${esc(restaurantName)}</strong> ${en ? 'using the MENIUS platform.' : 'a través de la plataforma MENIUS.'}`;
+  const footer = `${en ? `This email was sent by` : `Este correo fue enviado por`} <strong style="color:#111827;">${esc(restaurantName)}</strong> ${en ? "using the MENIUS platform." : "a través de la plataforma MENIUS."}`;
 
-  return shell('#7c3aed', header, body, footer);
+  return shell("#7c3aed", header, body, footer);
 }
 
 // ---------- Payment Receipt (customer) ----------
@@ -339,15 +419,28 @@ export function buildPaymentReceiptEmail(params: {
   orderType?: string;
   locale?: string;
 }): string {
-  const { customerName, orderNumber, restaurantName, total, items, trackingUrl, orderType, locale } = params;
-  const en = locale === 'en';
+  const {
+    customerName,
+    orderNumber,
+    restaurantName,
+    total,
+    items,
+    trackingUrl,
+    orderType,
+    locale,
+  } = params;
+  const en = locale === "en";
 
   const orderTypeLabels: Record<string, { en: string; es: string }> = {
-    dine_in:  { en: 'Dine-in',  es: 'En restaurante' },
-    pickup:   { en: 'Pickup',   es: 'Para recoger' },
-    delivery: { en: 'Delivery', es: 'Delivery' },
+    dine_in: { en: "Dine-in", es: "En restaurante" },
+    pickup: { en: "Pickup", es: "Para recoger" },
+    delivery: { en: "Delivery", es: "Delivery" },
   };
-  const otLabel = orderType ? (en ? orderTypeLabels[orderType]?.en : orderTypeLabels[orderType]?.es) : null;
+  const otLabel = orderType
+    ? en
+      ? orderTypeLabels[orderType]?.en
+      : orderTypeLabels[orderType]?.es
+    : null;
 
   const header = `
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
@@ -363,7 +456,7 @@ export function buildPaymentReceiptEmail(params: {
             </td>
             <td style="vertical-align:middle;">
               <span style="font-size:13px;font-weight:600;color:#059669;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                ${en ? 'Payment confirmed' : 'Pago confirmado'}
+                ${en ? "Payment confirmed" : "Pago confirmado"}
               </span>
             </td>
           </tr>
@@ -373,9 +466,12 @@ export function buildPaymentReceiptEmail(params: {
   </table>`;
 
   const metaRows = [
-    metaRow(en ? 'Receipt' : 'Recibo', `<span style="font-family:monospace;background:#f3f4f6;padding:2px 6px;border-radius:4px;">#${esc(orderNumber)}</span>`),
-    metaRow(en ? 'Customer' : 'Cliente', esc(customerName)),
-    ...(otLabel ? [metaRow(en ? 'Type' : 'Tipo', otLabel)] : []),
+    metaRow(
+      en ? "Receipt" : "Recibo",
+      `<span style="font-family:monospace;background:#f3f4f6;padding:2px 6px;border-radius:4px;">#${esc(orderNumber)}</span>`,
+    ),
+    metaRow(en ? "Customer" : "Cliente", esc(customerName)),
+    ...(otLabel ? [metaRow(en ? "Type" : "Tipo", otLabel)] : []),
   ];
 
   const body = `
@@ -384,11 +480,11 @@ export function buildPaymentReceiptEmail(params: {
   </p>
 
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:24px;">
-    ${metaRows.join('')}
+    ${metaRows.join("")}
   </table>
 
   <p style="margin:0 0 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    ${en ? 'Order summary' : 'Resumen del pedido'}
+    ${en ? "Order summary" : "Resumen del pedido"}
   </p>
 
   ${itemsTable(items)}
@@ -397,17 +493,17 @@ export function buildPaymentReceiptEmail(params: {
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top:4px;border-top:2px solid #f3f4f6;">
     <tr>
       <td style="padding:16px 0 0;font-size:16px;font-weight:700;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-        ${en ? 'Total paid' : 'Total pagado'}
+        ${en ? "Total paid" : "Total pagado"}
       </td>
       <td style="padding:16px 0 0;text-align:right;font-size:22px;font-weight:800;color:#059669;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${total}</td>
     </tr>
   </table>
 
-  ${ctaButton(trackingUrl, en ? '📦 Track my order' : '📦 Seguir mi pedido', '#059669')}`;
+  ${ctaButton(trackingUrl, en ? "📦 Track my order" : "📦 Seguir mi pedido", "#059669")}`;
 
-  const footer = `${en ? `Payment processed for` : `Pago procesado para`} <strong style="color:#111827;">${esc(restaurantName)}</strong> ${en ? 'via MENIUS.' : 'vía MENIUS.'}`;
+  const footer = `${en ? `Payment processed for` : `Pago procesado para`} <strong style="color:#111827;">${esc(restaurantName)}</strong> ${en ? "via MENIUS." : "vía MENIUS."}`;
 
-  return shell('#059669', header, body, footer);
+  return shell("#059669", header, body, footer);
 }
 
 // ---------- Status Update (customer) ----------
@@ -423,76 +519,115 @@ export function buildStatusUpdateEmail(params: {
   orderType?: string;
   estimatedMinutes?: number;
 }): string {
-  const { customerName, orderNumber, restaurantName, status, trackingUrl, reviewUrl, locale, orderType, estimatedMinutes } = params;
-  const en = locale === 'en';
+  const {
+    customerName,
+    orderNumber,
+    restaurantName,
+    status,
+    trackingUrl,
+    reviewUrl,
+    locale,
+    orderType,
+    estimatedMinutes,
+  } = params;
+  const en = locale === "en";
 
-  type StatusInfo = { icon: string; titleEn: string; titleEs: string; msgEn: string; msgEs: string; color: string };
+  type StatusInfo = {
+    icon: string;
+    titleEn: string;
+    titleEs: string;
+    msgEn: string;
+    msgEs: string;
+    color: string;
+  };
   const STATUS: Record<string, StatusInfo> = {
     confirmed: {
-      icon: '✅',
-      titleEn: 'Order confirmed!',   titleEs: '¡Pedido confirmado!',
-      msgEn:   'Your order has been accepted. The kitchen will start preparing it shortly.',
-      msgEs:   'Tu pedido fue aceptado. La cocina empezará a prepararlo en breve.',
-      color: '#059669',
+      icon: "✅",
+      titleEn: "Order confirmed!",
+      titleEs: "¡Pedido confirmado!",
+      msgEn:
+        "Your order has been accepted. The kitchen will start preparing it shortly.",
+      msgEs:
+        "Tu pedido fue aceptado. La cocina empezará a prepararlo en breve.",
+      color: "#059669",
     },
     preparing: {
-      icon: '👨‍🍳',
-      titleEn: 'Being prepared…',    titleEs: 'En preparación…',
-      msgEn:   estimatedMinutes
+      icon: "👨‍🍳",
+      titleEn: "Being prepared…",
+      titleEs: "En preparación…",
+      msgEn: estimatedMinutes
         ? `The chef is working on your order right now. Ready in ~${estimatedMinutes} min!`
         : "The chef is working on your order right now. Won't be long!",
-      msgEs:   estimatedMinutes
+      msgEs: estimatedMinutes
         ? `El chef está trabajando en tu pedido ahora mismo. ¡Listo en ~${estimatedMinutes} min!`
-        : 'El chef está trabajando en tu pedido ahora mismo. ¡Ya casi!',
-      color: '#7c3aed',
+        : "El chef está trabajando en tu pedido ahora mismo. ¡Ya casi!",
+      color: "#7c3aed",
     },
     ready: {
-      icon: '🔔',
-      titleEn: 'Your order is ready!', titleEs: '¡Tu pedido está listo!',
-      msgEn:   'Your order is ready and waiting for you. Come and get it!',
-      msgEs:   'Tu pedido está listo y te espera. ¡Pásalo a recoger!',
-      color: '#d97706',
+      icon: "🔔",
+      titleEn: "Your order is ready!",
+      titleEs: "¡Tu pedido está listo!",
+      msgEn: "Your order is ready and waiting for you. Come and get it!",
+      msgEs: "Tu pedido está listo y te espera. ¡Pásalo a recoger!",
+      color: "#d97706",
     },
     delivered: (() => {
-      if (orderType === 'pickup') return {
-        icon: '🥡',
-        titleEn: 'Order picked up — enjoy!', titleEs: '¡Pedido recogido — buen provecho!',
-        msgEn:   'We hope everything was perfect. It would mean a lot to us if you shared your experience!',
-        msgEs:   'Esperamos que todo haya estado perfecto. ¡Nos encantaría saber qué te pareció!',
-        color: '#059669',
-      };
-      if (orderType === 'dine_in') return {
-        icon: '🍽️',
-        titleEn: 'Order served — enjoy!', titleEs: '¡Pedido servido — buen provecho!',
-        msgEn:   'We hope everything was perfect. It would mean a lot to us if you shared your experience!',
-        msgEs:   'Esperamos que todo haya estado perfecto. ¡Nos encantaría saber qué te pareció!',
-        color: '#059669',
-      };
+      if (orderType === "pickup")
+        return {
+          icon: "🥡",
+          titleEn: "Order picked up — enjoy!",
+          titleEs: "¡Pedido recogido — buen provecho!",
+          msgEn:
+            "We hope everything was perfect. It would mean a lot to us if you shared your experience!",
+          msgEs:
+            "Esperamos que todo haya estado perfecto. ¡Nos encantaría saber qué te pareció!",
+          color: "#059669",
+        };
+      if (orderType === "dine_in")
+        return {
+          icon: "🍽️",
+          titleEn: "Order served — enjoy!",
+          titleEs: "¡Pedido servido — buen provecho!",
+          msgEn:
+            "We hope everything was perfect. It would mean a lot to us if you shared your experience!",
+          msgEs:
+            "Esperamos que todo haya estado perfecto. ¡Nos encantaría saber qué te pareció!",
+          color: "#059669",
+        };
       return {
-        icon: '🎉',
-        titleEn: 'Order delivered — enjoy!', titleEs: '¡Pedido entregado — buen provecho!',
-        msgEn:   'We hope everything was perfect. It would mean a lot to us if you shared your experience!',
-        msgEs:   'Esperamos que todo haya estado perfecto. ¡Nos encantaría saber qué te pareció!',
-        color: '#059669',
+        icon: "🎉",
+        titleEn: "Order delivered — enjoy!",
+        titleEs: "¡Pedido entregado — buen provecho!",
+        msgEn:
+          "We hope everything was perfect. It would mean a lot to us if you shared your experience!",
+        msgEs:
+          "Esperamos que todo haya estado perfecto. ¡Nos encantaría saber qué te pareció!",
+        color: "#059669",
       };
     })(),
     cancelled: {
-      icon: '❌',
-      titleEn: 'Order cancelled',    titleEs: 'Pedido cancelado',
-      msgEn:   'Unfortunately your order was cancelled. Contact the restaurant if you have questions.',
-      msgEs:   'Lamentablemente tu pedido fue cancelado. Contacta al restaurante si tienes dudas.',
-      color: '#dc2626',
+      icon: "❌",
+      titleEn: "Order cancelled",
+      titleEs: "Pedido cancelado",
+      msgEn:
+        "Unfortunately your order was cancelled. Contact the restaurant if you have questions.",
+      msgEs:
+        "Lamentablemente tu pedido fue cancelado. Contacta al restaurante si tienes dudas.",
+      color: "#dc2626",
     },
   };
 
   const s = STATUS[status] ?? {
-    icon: '📋', titleEn: `Status: ${status}`, titleEs: `Estado: ${status}`,
-    msgEn: 'Your order status has changed.', msgEs: 'El estado de tu pedido cambió.',
-    color: '#6b7280',
+    icon: "📋",
+    titleEn: `Status: ${status}`,
+    titleEs: `Estado: ${status}`,
+    msgEn: "Your order status has changed.",
+    msgEs: "El estado de tu pedido cambió.",
+    color: "#6b7280",
   };
 
   const title = en ? s.titleEn : s.titleEs;
-  const msg   = en ? s.msgEn   : s.msgEs;
+  const msg = en ? s.msgEn : s.msgEs;
 
   const header = `
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
@@ -500,30 +635,32 @@ export function buildStatusUpdateEmail(params: {
       <td style="padding:36px 32px 28px;text-align:center;border-bottom:1px solid #f0f0f0;">
         <p style="margin:0 0 12px;font-size:40px;line-height:1;">${s.icon}</p>
         <p style="margin:0 0 4px;font-size:20px;font-weight:800;color:${s.color};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${esc(title)}</p>
-        <p style="margin:0;font-size:13px;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${esc(restaurantName)} &nbsp;·&nbsp; ${en ? 'Order' : 'Pedido'} #${esc(orderNumber)}</p>
+        <p style="margin:0;font-size:13px;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${esc(restaurantName)} &nbsp;·&nbsp; ${en ? "Order" : "Pedido"} #${esc(orderNumber)}</p>
       </td>
     </tr>
   </table>`;
 
-  const reviewCtaUrl = status === 'delivered' ? (reviewUrl ?? trackingUrl) : trackingUrl;
-  const reviewCta = status === 'delivered'
-    ? `
+  const reviewCtaUrl =
+    status === "delivered" ? (reviewUrl ?? trackingUrl) : trackingUrl;
+  const reviewCta =
+    status === "delivered"
+      ? `
   <div style="margin:24px 0 0;text-align:center;">
     <p style="margin:0 0 12px;font-size:13px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-      ${en ? '⭐ Rate your experience' : '⭐ Califica tu experiencia'}
+      ${en ? "⭐ Rate your experience" : "⭐ Califica tu experiencia"}
     </p>
-    ${ctaButton(reviewCtaUrl, en ? '🌟 Leave a review' : '🌟 Dejar una reseña', '#f59e0b')}
+    ${ctaButton(reviewCtaUrl, en ? "🌟 Leave a review" : "🌟 Dejar una reseña", "#f59e0b")}
   </div>`
-    : '';
+      : "";
 
   const body = `
   <p style="margin:0 0 24px;font-size:15px;color:#374151;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
     ${en ? `Hi <strong>${esc(customerName)}</strong>` : `Hola <strong>${esc(customerName)}</strong>`} — ${esc(msg)}
   </p>
-  ${status !== 'delivered' ? ctaButton(trackingUrl, en ? '📍 View my order' : '📍 Ver mi pedido', s.color) : ''}
+  ${status !== "delivered" ? ctaButton(trackingUrl, en ? "📍 View my order" : "📍 Ver mi pedido", s.color) : ""}
   ${reviewCta}`;
 
-  const footer = `${en ? 'Sent by' : 'Enviado por'} <strong style="color:#111827;">${esc(restaurantName)}</strong> ${en ? 'via MENIUS.' : 'vía MENIUS.'}`;
+  const footer = `${en ? "Sent by" : "Enviado por"} <strong style="color:#111827;">${esc(restaurantName)}</strong> ${en ? "via MENIUS." : "vía MENIUS."}`;
 
   return shell(s.color, header, body, footer);
 }
@@ -545,17 +682,57 @@ export function buildOwnerNewOrderEmail(params: {
   tableNumber?: string | null;
   locale?: string;
 }): string {
-  const { orderNumber, restaurantName, customerName, customerPhone, customerEmail, orderType, deliveryAddress, total, items, dashboardUrl, notes, tableNumber, locale } = params;
-  const en = locale === 'en';
+  const {
+    orderNumber,
+    restaurantName,
+    customerName,
+    customerPhone,
+    customerEmail,
+    orderType,
+    deliveryAddress,
+    total,
+    items,
+    dashboardUrl,
+    notes,
+    tableNumber,
+    locale,
+  } = params;
+  const en = locale === "en";
 
-  const orderTypeLabels: Record<string, { en: string; es: string; color: string; bg: string }> = {
-    dine_in:  { en: 'Dine-in',  es: 'En restaurante', color: '#7c3aed', bg: '#f3f0ff' },
-    pickup:   { en: 'Pickup',   es: 'Para recoger',   color: '#0891b2', bg: '#ecfeff' },
-    delivery: { en: 'Delivery', es: 'Delivery',        color: '#059669', bg: '#f0fdf4' },
+  const orderTypeLabels: Record<
+    string,
+    { en: string; es: string; color: string; bg: string }
+  > = {
+    dine_in: {
+      en: "Dine-in",
+      es: "En restaurante",
+      color: "#7c3aed",
+      bg: "#f3f0ff",
+    },
+    pickup: {
+      en: "Pickup",
+      es: "Para recoger",
+      color: "#0891b2",
+      bg: "#ecfeff",
+    },
+    delivery: {
+      en: "Delivery",
+      es: "Delivery",
+      color: "#059669",
+      bg: "#f0fdf4",
+    },
   };
-  const ot = orderTypeLabels[orderType] ?? { en: orderType, es: orderType, color: '#6b7280', bg: '#f4f4f5' };
+  const ot = orderTypeLabels[orderType] ?? {
+    en: orderType,
+    es: orderType,
+    color: "#6b7280",
+    bg: "#f4f4f5",
+  };
 
-  const now = new Date().toLocaleTimeString(en ? 'en-US' : 'es-MX', { hour: '2-digit', minute: '2-digit' });
+  const now = new Date().toLocaleTimeString(en ? "en-US" : "es-MX", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   const header = `
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#111827;">
@@ -568,7 +745,7 @@ export function buildOwnerNewOrderEmail(params: {
                 ${esc(restaurantName)}
               </p>
               <p style="margin:0;font-size:20px;font-weight:800;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-                🔔 ${en ? 'New order!' : '¡Nuevo pedido!'}
+                🔔 ${en ? "New order!" : "¡Nuevo pedido!"}
               </p>
             </td>
             <td style="text-align:right;vertical-align:middle;">
@@ -582,22 +759,43 @@ export function buildOwnerNewOrderEmail(params: {
   </table>`;
 
   const metaRows: string[] = [
-    metaRow(en ? 'Customer' : 'Cliente', esc(customerName)),
+    metaRow(en ? "Customer" : "Cliente", esc(customerName)),
   ];
-  if (customerPhone) metaRows.push(metaRow(en ? 'Phone' : 'Teléfono', `<a href="tel:${esc(customerPhone)}" style="color:#7c3aed;text-decoration:none;">${esc(customerPhone)}</a>`));
-  if (customerEmail) metaRows.push(metaRow('Email', esc(customerEmail)));
-  metaRows.push(metaRow(en ? 'Type' : 'Tipo', pill(en ? ot.en : ot.es, ot.bg, ot.color)));
-  if (tableNumber) metaRows.push(metaRow(en ? 'Table' : 'Mesa', esc(tableNumber)));
-  if (orderType === 'delivery' && deliveryAddress) metaRows.push(metaRow(en ? 'Delivery address' : 'Dirección de entrega', esc(deliveryAddress)));
-  if (notes) metaRows.push(metaRow(en ? 'Notes' : 'Notas', `<em style="color:#d97706;">"${esc(notes)}"</em>`));
+  if (customerPhone)
+    metaRows.push(
+      metaRow(
+        en ? "Phone" : "Teléfono",
+        `<a href="tel:${esc(customerPhone)}" style="color:#7c3aed;text-decoration:none;">${esc(customerPhone)}</a>`,
+      ),
+    );
+  if (customerEmail) metaRows.push(metaRow("Email", esc(customerEmail)));
+  metaRows.push(
+    metaRow(en ? "Type" : "Tipo", pill(en ? ot.en : ot.es, ot.bg, ot.color)),
+  );
+  if (tableNumber)
+    metaRows.push(metaRow(en ? "Table" : "Mesa", esc(tableNumber)));
+  if (orderType === "delivery" && deliveryAddress)
+    metaRows.push(
+      metaRow(
+        en ? "Delivery address" : "Dirección de entrega",
+        esc(deliveryAddress),
+      ),
+    );
+  if (notes)
+    metaRows.push(
+      metaRow(
+        en ? "Notes" : "Notas",
+        `<em style="color:#d97706;">"${esc(notes)}"</em>`,
+      ),
+    );
 
   const body = `
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:24px;">
-    ${metaRows.join('')}
+    ${metaRows.join("")}
   </table>
 
   <p style="margin:0 0 12px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    ${en ? 'Items ordered' : 'Productos'}
+    ${en ? "Items ordered" : "Productos"}
   </p>
 
   ${itemsTable(items)}
@@ -610,11 +808,11 @@ export function buildOwnerNewOrderEmail(params: {
     </tr>
   </table>
 
-  ${ctaButton(dashboardUrl, en ? '⚡ Open in dashboard' : '⚡ Abrir en el dashboard', '#111827')}`;
+  ${ctaButton(dashboardUrl, en ? "⚡ Open in dashboard" : "⚡ Abrir en el dashboard", "#111827")}`;
 
-  const footer = `${en ? 'Automatic notification from MENIUS for' : 'Notificación automática de MENIUS para'} <strong style="color:#111827;">${esc(restaurantName)}</strong>.`;
+  const footer = `${en ? "Automatic notification from MENIUS for" : "Notificación automática de MENIUS para"} <strong style="color:#111827;">${esc(restaurantName)}</strong>.`;
 
-  return shell('#111827', header, body, footer);
+  return shell("#111827", header, body, footer);
 }
 
 // ---------- Welcome (restaurant owner) ----------
@@ -627,21 +825,47 @@ export function buildWelcomeEmail(params: {
   locale?: string;
 }): string {
   const { ownerName, restaurantName, dashboardUrl, menuUrl, locale } = params;
-  const en = locale === 'en';
+  const en = locale === "en";
 
   const steps = en
     ? [
-        { n: '1', t: 'Complete your menu', d: 'Add your products, photos, and prices.' },
-        { n: '2', t: 'Set up your tables', d: 'Generate QR codes for each table.' },
-        { n: '3', t: 'Share & go live',    d: 'Share your link and start receiving orders.' },
+        {
+          n: "1",
+          t: "Complete your menu",
+          d: "Add your products, photos, and prices.",
+        },
+        {
+          n: "2",
+          t: "Set up your tables",
+          d: "Generate QR codes for each table.",
+        },
+        {
+          n: "3",
+          t: "Share & go live",
+          d: "Share your link and start receiving orders.",
+        },
       ]
     : [
-        { n: '1', t: 'Completa tu menú',   d: 'Agrega tus productos, fotos y precios.' },
-        { n: '2', t: 'Configura tus mesas', d: 'Genera los códigos QR para cada mesa.' },
-        { n: '3', t: 'Comparte y lanza',    d: 'Comparte tu enlace y empieza a recibir pedidos.' },
+        {
+          n: "1",
+          t: "Completa tu menú",
+          d: "Agrega tus productos, fotos y precios.",
+        },
+        {
+          n: "2",
+          t: "Configura tus mesas",
+          d: "Genera los códigos QR para cada mesa.",
+        },
+        {
+          n: "3",
+          t: "Comparte y lanza",
+          d: "Comparte tu enlace y empieza a recibir pedidos.",
+        },
       ];
 
-  const stepsHtml = steps.map(s => `
+  const stepsHtml = steps
+    .map(
+      (s) => `
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:12px;">
     <tr>
       <td style="width:32px;vertical-align:top;padding-top:2px;">
@@ -654,7 +878,9 @@ export function buildWelcomeEmail(params: {
         <p style="margin:0;font-size:13px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${s.d}</p>
       </td>
     </tr>
-  </table>`).join('');
+  </table>`,
+    )
+    .join("");
 
   const header = `
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
@@ -662,7 +888,7 @@ export function buildWelcomeEmail(params: {
       <td style="padding:36px 32px 28px;text-align:center;border-bottom:1px solid #f0f0f0;">
         <p style="margin:0 0 16px;font-size:40px;line-height:1;">🎉</p>
         <p style="margin:0 0 4px;font-size:22px;font-weight:800;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;letter-spacing:-0.02em;">
-          ${en ? 'Welcome to MENIUS!' : '¡Bienvenido a MENIUS!'}
+          ${en ? "Welcome to MENIUS!" : "¡Bienvenido a MENIUS!"}
         </p>
         <p style="margin:4px 0 0;font-size:14px;color:#7c3aed;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
           ${esc(restaurantName)}
@@ -673,9 +899,11 @@ export function buildWelcomeEmail(params: {
 
   const body = `
   <p style="margin:0 0 24px;font-size:15px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
-    ${en
-      ? `Hi <strong>${esc(ownerName)}</strong> — your restaurant is now live on MENIUS. You are on the <strong>Free plan</strong> — upgrade anytime to unlock more features. No credit card required.`
-      : `Hola <strong>${esc(ownerName)}</strong> — tu restaurante ya está activo en MENIUS. Estás en el <strong>plan gratuito</strong> — mejora tu plan en cualquier momento para desbloquear más funciones. Sin tarjeta de crédito.`}
+    ${
+      en
+        ? `Hi <strong>${esc(ownerName)}</strong> — your restaurant is now live on MENIUS. You are on the <strong>Free plan</strong> — upgrade anytime to unlock more features. No credit card required.`
+        : `Hola <strong>${esc(ownerName)}</strong> — tu restaurante ya está activo en MENIUS. Estás en el <strong>plan gratuito</strong> — mejora tu plan en cualquier momento para desbloquear más funciones. Sin tarjeta de crédito.`
+    }
   </p>
 
   <!-- Trial badge -->
@@ -683,30 +911,30 @@ export function buildWelcomeEmail(params: {
     <tr>
       <td style="background-color:#f3f0ff;border-radius:12px;padding:16px 20px;border-left:4px solid #7c3aed;">
         <p style="margin:0;font-size:14px;font-weight:700;color:#7c3aed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-          ${en ? '✨ Forever free plan · Upgrade anytime' : '✨ Plan gratis para siempre · Mejora cuando quieras'}
+          ${en ? "✨ Forever free plan · Upgrade anytime" : "✨ Plan gratis para siempre · Mejora cuando quieras"}
         </p>
         <p style="margin:4px 0 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-          ${en ? 'Digital menu · Real-time orders · QR codes · Analytics · WhatsApp alerts' : 'Menú digital · Pedidos en tiempo real · QR codes · Analytics · Alertas WhatsApp'}
+          ${en ? "Digital menu · Real-time orders · QR codes · Analytics · Email notifications" : "Menú digital · Pedidos en tiempo real · QR codes · Analytics · Notificaciones por email"}
         </p>
       </td>
     </tr>
   </table>
 
   <p style="margin:0 0 16px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    ${en ? 'Get started in 3 steps' : 'Empieza en 3 pasos'}
+    ${en ? "Get started in 3 steps" : "Empieza en 3 pasos"}
   </p>
 
   ${stepsHtml}
 
-  ${ctaButton(dashboardUrl, en ? '🚀 Go to my dashboard' : '🚀 Ir a mi dashboard', '#7c3aed')}
+  ${ctaButton(dashboardUrl, en ? "🚀 Go to my dashboard" : "🚀 Ir a mi dashboard", "#7c3aed")}
 
   <p style="margin:16px 0 0;text-align:center;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-    <a href="${menuUrl}" style="color:#7c3aed;text-decoration:none;font-weight:600;">${en ? 'Preview my public menu →' : 'Ver mi menú público →'}</a>
+    <a href="${menuUrl}" style="color:#7c3aed;text-decoration:none;font-weight:600;">${en ? "Preview my public menu →" : "Ver mi menú público →"}</a>
   </p>`;
 
-  const footer = `${en ? 'Questions? Reply to this email and we\'ll help you.' : '¿Tienes dudas? Responde este correo y te ayudamos.'}`;
+  const footer = `${en ? "Questions? Reply to this email and we'll help you." : "¿Tienes dudas? Responde este correo y te ayudamos."}`;
 
-  return shell('#7c3aed', header, body, footer);
+  return shell("#7c3aed", header, body, footer);
 }
 
 // ---------- Trial Ending (restaurant owner) ----------
@@ -719,13 +947,17 @@ export function buildTrialEndingEmail(params: {
   locale?: string;
 }): string {
   const { ownerName, restaurantName, daysLeft, billingUrl, locale } = params;
-  const en = locale === 'en';
+  const en = locale === "en";
 
   const urgent = daysLeft <= 1;
-  const accentColor = urgent ? '#dc2626' : '#d97706';
-  const icon = urgent ? '🚨' : '⏰';
-  const titleEn = urgent ? 'Your trial ends tomorrow' : `Your trial ends in ${daysLeft} days`;
-  const titleEs = urgent ? 'Tu prueba termina mañana' : `Tu prueba termina en ${daysLeft} días`;
+  const accentColor = urgent ? "#dc2626" : "#d97706";
+  const icon = urgent ? "🚨" : "⏰";
+  const titleEn = urgent
+    ? "Your trial ends tomorrow"
+    : `Your trial ends in ${daysLeft} days`;
+  const titleEs = urgent
+    ? "Tu prueba termina mañana"
+    : `Tu prueba termina en ${daysLeft} días`;
 
   const header = `
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
@@ -740,9 +972,11 @@ export function buildTrialEndingEmail(params: {
 
   const body = `
   <p style="margin:0 0 24px;font-size:15px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
-    ${en
-      ? `Hi <strong>${esc(ownerName)}</strong> — you're on the free plan. Upgrade to unlock unlimited orders, WhatsApp notifications, delivery, and more.`
-      : `Hola <strong>${esc(ownerName)}</strong> — estás en el plan gratuito. Mejora tu plan para desbloquear pedidos ilimitados, notificaciones WhatsApp, delivery y mucho más.`}
+    ${
+      en
+        ? `Hi <strong>${esc(ownerName)}</strong> — you're on the free plan. Upgrade to unlock unlimited orders, delivery, analytics, and more.`
+        : `Hola <strong>${esc(ownerName)}</strong> — estás en el plan gratuito. Mejora tu plan para desbloquear pedidos ilimitados, delivery, analytics y mucho más.`
+    }
   </p>
 
   <!-- Warning box -->
@@ -750,31 +984,33 @@ export function buildTrialEndingEmail(params: {
     <tr>
       <td style="background-color:#fef3c7;border-radius:12px;padding:16px 20px;border-left:4px solid #d97706;">
         <p style="margin:0;font-size:13px;color:#92400e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
-          ${en
-            ? "On the free plan you're limited to 50 orders/month and dine-in only. Upgrade to remove limits and get delivery, WhatsApp alerts, and priority support."
-            : 'En el plan gratuito tienes un límite de 50 pedidos/mes y solo dine-in. Mejora tu plan para eliminar límites y obtener delivery, alertas WhatsApp y soporte prioritario.'}
+          ${
+            en
+              ? "On the free plan you're limited to 50 orders/month and dine-in only. Upgrade to remove limits and get delivery, analytics, and priority support."
+              : "En el plan gratuito tienes un límite de 50 pedidos/mes y solo dine-in. Mejora tu plan para eliminar límites y obtener delivery, analytics y soporte prioritario."
+          }
         </p>
       </td>
     </tr>
   </table>
 
-  ${ctaButton(billingUrl, en ? '⚡ Choose my plan' : '⚡ Elegir mi plan', accentColor)}
+  ${ctaButton(billingUrl, en ? "⚡ Choose my plan" : "⚡ Elegir mi plan", accentColor)}
 
   <!-- Plan hint -->
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top:20px;">
     <tr>
       <td style="background-color:#f9fafb;border-radius:12px;padding:16px 20px;text-align:center;">
         <p style="margin:0;font-size:13px;font-weight:700;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-          ${en ? 'Pro plan · $79/mo · Most popular' : 'Plan Pro · $79/mes · El más popular'}
+          ${en ? "Pro plan · $79/mo · Most popular" : "Plan Pro · $79/mes · El más popular"}
         </p>
         <p style="margin:4px 0 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-          ${en ? 'Delivery · WhatsApp · Analytics · Up to 3 staff users' : 'Delivery · WhatsApp · Analytics · Hasta 3 usuarios de staff'}
+          ${en ? "Delivery · Analytics · Up to 3 staff users · CRM" : "Delivery · Analytics · Hasta 3 usuarios de staff · CRM"}
         </p>
       </td>
     </tr>
   </table>`;
 
-  const footer = `MENIUS &nbsp;·&nbsp; <a href="${billingUrl}" style="color:#7c3aed;text-decoration:none;">${en ? 'Manage subscription' : 'Gestionar suscripción'}</a>`;
+  const footer = `MENIUS &nbsp;·&nbsp; <a href="${billingUrl}" style="color:#7c3aed;text-decoration:none;">${en ? "Manage subscription" : "Gestionar suscripción"}</a>`;
 
   return shell(accentColor, header, body, footer);
 }
@@ -789,62 +1025,101 @@ export function buildTrialEndingEmail(params: {
 export function buildDunningEmail(params: {
   ownerName: string;
   restaurantName: string;
-  planName: string;        // e.g. "Pro"
+  planName: string; // e.g. "Pro"
   billingUrl: string;
   stage: 1 | 2 | 3 | 4;
-  graceDays: number;       // total grace window (e.g. 7)
+  graceDays: number; // total grace window (e.g. 7)
   locale?: string;
 }): string {
-  const { ownerName, restaurantName, planName, billingUrl, stage, graceDays, locale } = params;
-  const en = locale === 'en';
+  const {
+    ownerName,
+    restaurantName,
+    planName,
+    billingUrl,
+    stage,
+    graceDays,
+    locale,
+  } = params;
+  const en = locale === "en";
 
   // Per-stage copy + accent. Escalates from soft amber to red, then neutral on downgrade.
-  const stages: Record<number, {
-    icon: string; color: string; box: string; boxText: string; boxBorder: string;
-    titleEn: string; titleEs: string;
-    leadEn: string; leadEs: string;
-    boxEn: string; boxEs: string;
-    ctaEn: string; ctaEs: string;
-  }> = {
+  const stages: Record<
+    number,
+    {
+      icon: string;
+      color: string;
+      box: string;
+      boxText: string;
+      boxBorder: string;
+      titleEn: string;
+      titleEs: string;
+      leadEn: string;
+      leadEs: string;
+      boxEn: string;
+      boxEs: string;
+      ctaEn: string;
+      ctaEs: string;
+    }
+  > = {
     1: {
-      icon: '⚠️', color: '#d97706', box: '#fef3c7', boxText: '#92400e', boxBorder: '#d97706',
-      titleEn: 'Your payment failed',
-      titleEs: 'Tu pago no se pudo procesar',
+      icon: "⚠️",
+      color: "#d97706",
+      box: "#fef3c7",
+      boxText: "#92400e",
+      boxBorder: "#d97706",
+      titleEn: "Your payment failed",
+      titleEs: "Tu pago no se pudo procesar",
       leadEn: `Hi <strong>${esc(ownerName)}</strong> — we couldn't process the payment for your <strong>${esc(planName)}</strong> plan. This usually means an expired card or insufficient funds.`,
       leadEs: `Hola <strong>${esc(ownerName)}</strong> — no pudimos procesar el pago de tu plan <strong>${esc(planName)}</strong>. Suele ser por una tarjeta vencida o fondos insuficientes.`,
       boxEn: `No rush — we'll keep your plan active and retry automatically. Update your card any time in the next ${graceDays} days to avoid interruption.`,
       boxEs: `Sin apuro — mantenemos tu plan activo y reintentaremos automáticamente. Actualiza tu tarjeta en los próximos ${graceDays} días para evitar interrupciones.`,
-      ctaEn: 'Update my card', ctaEs: 'Actualizar mi tarjeta',
+      ctaEn: "Update my card",
+      ctaEs: "Actualizar mi tarjeta",
     },
     2: {
-      icon: '⏰', color: '#d97706', box: '#fef3c7', boxText: '#92400e', boxBorder: '#d97706',
-      titleEn: 'Reminder: update your payment method',
-      titleEs: 'Recordatorio: actualiza tu método de pago',
+      icon: "⏰",
+      color: "#d97706",
+      box: "#fef3c7",
+      boxText: "#92400e",
+      boxBorder: "#d97706",
+      titleEn: "Reminder: update your payment method",
+      titleEs: "Recordatorio: actualiza tu método de pago",
       leadEn: `Hi <strong>${esc(ownerName)}</strong> — your <strong>${esc(planName)}</strong> payment is still pending. Your plan is active, but we haven't been able to charge your card yet.`,
       leadEs: `Hola <strong>${esc(ownerName)}</strong> — el pago de tu plan <strong>${esc(planName)}</strong> sigue pendiente. Tu plan está activo, pero aún no pudimos cobrar tu tarjeta.`,
       boxEn: `Update your card to keep ${esc(restaurantName)} on ${esc(planName)} without interruption.`,
       boxEs: `Actualiza tu tarjeta para mantener a ${esc(restaurantName)} en ${esc(planName)} sin interrupciones.`,
-      ctaEn: 'Update my card', ctaEs: 'Actualizar mi tarjeta',
+      ctaEn: "Update my card",
+      ctaEs: "Actualizar mi tarjeta",
     },
     3: {
-      icon: '🚨', color: '#dc2626', box: '#fee2e2', boxText: '#991b1b', boxBorder: '#dc2626',
-      titleEn: 'Last chance — your plan will downgrade soon',
-      titleEs: 'Última oportunidad — tu plan bajará pronto',
+      icon: "🚨",
+      color: "#dc2626",
+      box: "#fee2e2",
+      boxText: "#991b1b",
+      boxBorder: "#dc2626",
+      titleEn: "Last chance — your plan will downgrade soon",
+      titleEs: "Última oportunidad — tu plan bajará pronto",
       leadEn: `Hi <strong>${esc(ownerName)}</strong> — we still can't process your <strong>${esc(planName)}</strong> payment. To keep your paid features, update your card now.`,
       leadEs: `Hola <strong>${esc(ownerName)}</strong> — todavía no podemos procesar el pago de tu plan <strong>${esc(planName)}</strong>. Para conservar tus funciones de pago, actualiza tu tarjeta ahora.`,
-      boxEn: `In a few days ${esc(restaurantName)} will drop to the Free plan — your menu stays online, but you'll lose ${esc(planName)} features (delivery, WhatsApp alerts, extra staff, analytics).`,
-      boxEs: `En pocos días ${esc(restaurantName)} pasará al plan Free — tu menú sigue online, pero perderás las funciones de ${esc(planName)} (delivery, alertas WhatsApp, staff adicional, analytics).`,
-      ctaEn: 'Keep my plan', ctaEs: 'Conservar mi plan',
+      boxEn: `In a few days ${esc(restaurantName)} will drop to the Free plan — your menu stays online, but you'll lose ${esc(planName)} features (delivery, extra staff, analytics, CRM).`,
+      boxEs: `En pocos días ${esc(restaurantName)} pasará al plan Free — tu menú sigue online, pero perderás las funciones de ${esc(planName)} (delivery, staff adicional, analytics, CRM).`,
+      ctaEn: "Keep my plan",
+      ctaEs: "Conservar mi plan",
     },
     4: {
-      icon: '📉', color: '#6b7280', box: '#f3f4f6', boxText: '#374151', boxBorder: '#9ca3af',
-      titleEn: 'Your account moved to the Free plan',
-      titleEs: 'Tu cuenta pasó al plan Free',
+      icon: "📉",
+      color: "#6b7280",
+      box: "#f3f4f6",
+      boxText: "#374151",
+      boxBorder: "#9ca3af",
+      titleEn: "Your account moved to the Free plan",
+      titleEs: "Tu cuenta pasó al plan Free",
       leadEn: `Hi <strong>${esc(ownerName)}</strong> — since we couldn't process your payment, ${esc(restaurantName)} is now on the <strong>Free plan</strong>. Your menu and orders keep working.`,
       leadEs: `Hola <strong>${esc(ownerName)}</strong> — como no pudimos procesar tu pago, ${esc(restaurantName)} ahora está en el <strong>plan Free</strong>. Tu menú y pedidos siguen funcionando.`,
       boxEn: `Reactivate ${esc(planName)} any time by updating your payment method — your data and settings are exactly where you left them.`,
       boxEs: `Reactiva ${esc(planName)} cuando quieras actualizando tu método de pago — tus datos y configuración están intactos.`,
-      ctaEn: `Reactivate ${esc(planName)}`, ctaEs: `Reactivar ${esc(planName)}`,
+      ctaEn: `Reactivate ${esc(planName)}`,
+      ctaEs: `Reactivar ${esc(planName)}`,
     },
   };
 
@@ -876,9 +1151,9 @@ export function buildDunningEmail(params: {
     </tr>
   </table>
 
-  ${ctaButton(billingUrl, (en ? s.ctaEn : s.ctaEs), s.color)}`;
+  ${ctaButton(billingUrl, en ? s.ctaEn : s.ctaEs, s.color)}`;
 
-  const footer = `MENIUS &nbsp;·&nbsp; <a href="${billingUrl}" style="color:#7c3aed;text-decoration:none;">${en ? 'Manage subscription' : 'Gestionar suscripción'}</a>`;
+  const footer = `MENIUS &nbsp;·&nbsp; <a href="${billingUrl}" style="color:#7c3aed;text-decoration:none;">${en ? "Manage subscription" : "Gestionar suscripción"}</a>`;
 
   return shell(s.color, header, body, footer);
 }
@@ -898,27 +1173,41 @@ export interface SocialPostDigestItem {
 }
 
 const PLATFORM_EMOJI: Record<string, string> = {
-  instagram: '📸', facebook: '👥', linkedin: '💼', twitter: '🐦', tiktok: '🎵',
+  instagram: "📸",
+  facebook: "👥",
+  linkedin: "💼",
+  twitter: "🐦",
+  tiktok: "🎵",
 };
 const PLATFORM_COLOR: Record<string, string> = {
-  instagram: '#E1306C', facebook: '#1877F2', linkedin: '#0A66C2', twitter: '#1DA1F2', tiktok: '#000000',
+  instagram: "#E1306C",
+  facebook: "#1877F2",
+  linkedin: "#0A66C2",
+  twitter: "#1DA1F2",
+  tiktok: "#000000",
 };
 
-export function buildSocialPostDigestEmail(posts: SocialPostDigestItem[], date: string): string {
-  const postsHtml = posts.map((p) => {
-    const emoji = PLATFORM_EMOJI[p.platform] || '📱';
-    const color = PLATFORM_COLOR[p.platform] || '#6b7280';
-    const platformName = p.platform.charAt(0).toUpperCase() + p.platform.slice(1);
-    const captionPreview = p.caption.length > 300 ? p.caption.slice(0, 300) + '…' : p.caption;
+export function buildSocialPostDigestEmail(
+  posts: SocialPostDigestItem[],
+  date: string,
+): string {
+  const postsHtml = posts
+    .map((p) => {
+      const emoji = PLATFORM_EMOJI[p.platform] || "📱";
+      const color = PLATFORM_COLOR[p.platform] || "#6b7280";
+      const platformName =
+        p.platform.charAt(0).toUpperCase() + p.platform.slice(1);
+      const captionPreview =
+        p.caption.length > 300 ? p.caption.slice(0, 300) + "…" : p.caption;
 
-    return `
+      return `
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:24px;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
       <tr>
         <td style="background-color:${color};padding:14px 20px;">
           <span style="color:#fff;font-size:16px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${emoji} ${platformName}</span>
         </td>
       </tr>
-      ${p.image_url ? `<tr><td style="text-align:center;background:#f9fafb;padding:12px;"><img src="${p.image_url}" alt="Post" style="max-width:100%;max-height:360px;border-radius:8px;" /></td></tr>` : ''}
+      ${p.image_url ? `<tr><td style="text-align:center;background:#f9fafb;padding:12px;"><img src="${p.image_url}" alt="Post" style="max-width:100%;max-height:360px;border-radius:8px;" /></td></tr>` : ""}
       <tr>
         <td style="background:#fff;padding:20px;">
           <p style="margin:0 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#059669;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">HOOK</p>
@@ -926,12 +1215,13 @@ export function buildSocialPostDigestEmail(posts: SocialPostDigestItem[], date: 
           <p style="margin:0 0 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#9ca3af;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">CAPTION</p>
           <p style="margin:0 0 16px;font-size:13px;color:#374151;line-height:1.6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;white-space:pre-line;">${captionPreview}</p>
           <p style="margin:0 0 6px;font-size:12px;color:#6366f1;word-break:break-all;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">${p.hashtags}</p>
-          ${p.best_time ? `<p style="margin:8px 0 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">⏰ <strong>Best time:</strong> ${p.best_time}</p>` : ''}
-          ${p.tip ? `<p style="margin:6px 0 0;font-size:12px;color:#059669;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">💡 ${p.tip}</p>` : ''}
+          ${p.best_time ? `<p style="margin:8px 0 0;font-size:12px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">⏰ <strong>Best time:</strong> ${p.best_time}</p>` : ""}
+          ${p.tip ? `<p style="margin:6px 0 0;font-size:12px;color:#059669;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">💡 ${p.tip}</p>` : ""}
         </td>
       </tr>
     </table>`;
-  }).join('');
+    })
+    .join("");
 
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
