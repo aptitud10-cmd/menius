@@ -60,45 +60,53 @@ export async function GET(request: NextRequest) {
       .gte("created_at", oneDayAgo)
       .limit(100);
 
-    for (const customer of newCustomers ?? []) {
-      if ((customer.tags ?? []).includes("welcome_sent")) continue;
-      if ((customer.tags ?? []).includes("unsubscribed")) continue;
+    const welcomeOutcomes = await Promise.allSettled(
+      (newCustomers ?? []).map(async (customer) => {
+        if ((customer.tags ?? []).includes("welcome_sent")) return false;
+        if ((customer.tags ?? []).includes("unsubscribed")) return false;
 
-      const restaurant = await getRestaurant(customer.restaurant_id);
-      if (!restaurant) continue;
+        const restaurant = await getRestaurant(customer.restaurant_id);
+        if (!restaurant) return false;
 
-      const en = restaurant.locale === "en";
-      const menuUrl = `${appUrl}/${restaurant.slug}`;
-      const unsubUrl = `${appUrl}/api/unsubscribe?id=${customer.id}`;
+        const en = restaurant.locale === "en";
+        const menuUrl = `${appUrl}/${restaurant.slug}`;
+        const unsubUrl = `${appUrl}/api/unsubscribe?id=${customer.id}`;
 
-      const sent = await sendEmail({
-        to: customer.email,
-        subject: en
-          ? `Welcome to ${restaurant.name}! 🎉`
-          : `¡Bienvenido a ${restaurant.name}! 🎉`,
-        html: buildWelcomeEmail(
-          customer.name || (en ? "Customer" : "Cliente"),
-          restaurant.name,
-          menuUrl,
-          unsubUrl,
-          en,
-        ),
-      });
-
-      if (sent) {
-        results.welcome++;
-        const newTags = [...(customer.tags ?? []), "welcome_sent"];
-        await supabase
-          .from("customers")
-          .update({ tags: newTags })
-          .eq("id", customer.id);
-      } else {
-        results.errors++;
-        logger.warn("Welcome email failed to send", {
-          customer_id: customer.id,
+        const sent = await sendEmail({
+          to: customer.email,
+          subject: en
+            ? `Welcome to ${restaurant.name}! 🎉`
+            : `¡Bienvenido a ${restaurant.name}! 🎉`,
+          html: buildWelcomeEmail(
+            customer.name || (en ? "Customer" : "Cliente"),
+            restaurant.name,
+            menuUrl,
+            unsubUrl,
+            en,
+          ),
         });
-      }
-    }
+
+        if (sent) {
+          const newTags = [...(customer.tags ?? []), "welcome_sent"];
+          await supabase
+            .from("customers")
+            .update({ tags: newTags })
+            .eq("id", customer.id);
+          return true;
+        } else {
+          logger.warn("Welcome email failed to send", {
+            customer_id: customer.id,
+          });
+          return false;
+        }
+      }),
+    );
+    results.welcome = welcomeOutcomes.filter(
+      (r) => r.status === "fulfilled" && r.value === true,
+    ).length;
+    results.errors += welcomeOutcomes.filter(
+      (r) => r.status === "rejected",
+    ).length;
 
     // 2. Reactivation: customers inactive 30+ days
     const thirtyDaysAgo = new Date(
@@ -116,45 +124,53 @@ export async function GET(request: NextRequest) {
       .gte("last_order_at", sixtyDaysAgo)
       .limit(50);
 
-    for (const customer of inactiveCustomers ?? []) {
-      if ((customer.tags ?? []).includes("reactivation_sent")) continue;
-      if ((customer.tags ?? []).includes("unsubscribed")) continue;
+    const reactivationOutcomes = await Promise.allSettled(
+      (inactiveCustomers ?? []).map(async (customer) => {
+        if ((customer.tags ?? []).includes("reactivation_sent")) return false;
+        if ((customer.tags ?? []).includes("unsubscribed")) return false;
 
-      const restaurant = await getRestaurant(customer.restaurant_id);
-      if (!restaurant) continue;
+        const restaurant = await getRestaurant(customer.restaurant_id);
+        if (!restaurant) return false;
 
-      const en = restaurant.locale === "en";
-      const menuUrl = `${appUrl}/${restaurant.slug}`;
-      const unsubUrl = `${appUrl}/api/unsubscribe?id=${customer.id}`;
+        const en = restaurant.locale === "en";
+        const menuUrl = `${appUrl}/${restaurant.slug}`;
+        const unsubUrl = `${appUrl}/api/unsubscribe?id=${customer.id}`;
 
-      const sent = await sendEmail({
-        to: customer.email,
-        subject: en
-          ? `${customer.name ? customer.name + ", your" : "Your"} table at ${restaurant.name} is waiting`
-          : `${customer.name ? customer.name + ", tu" : "Tu"} mesa en ${restaurant.name} te espera`,
-        html: buildReactivationEmail(
-          customer.name || (en ? "Customer" : "Cliente"),
-          restaurant.name,
-          menuUrl,
-          unsubUrl,
-          en,
-        ),
-      });
-
-      if (sent) {
-        results.reactivation++;
-        const newTags = [...(customer.tags ?? []), "reactivation_sent"];
-        await supabase
-          .from("customers")
-          .update({ tags: newTags })
-          .eq("id", customer.id);
-      } else {
-        results.errors++;
-        logger.warn("Reactivation email failed to send", {
-          customer_id: customer.id,
+        const sent = await sendEmail({
+          to: customer.email,
+          subject: en
+            ? `${customer.name ? customer.name + ", your" : "Your"} table at ${restaurant.name} is waiting`
+            : `${customer.name ? customer.name + ", tu" : "Tu"} mesa en ${restaurant.name} te espera`,
+          html: buildReactivationEmail(
+            customer.name || (en ? "Customer" : "Cliente"),
+            restaurant.name,
+            menuUrl,
+            unsubUrl,
+            en,
+          ),
         });
-      }
-    }
+
+        if (sent) {
+          const newTags = [...(customer.tags ?? []), "reactivation_sent"];
+          await supabase
+            .from("customers")
+            .update({ tags: newTags })
+            .eq("id", customer.id);
+          return true;
+        } else {
+          logger.warn("Reactivation email failed to send", {
+            customer_id: customer.id,
+          });
+          return false;
+        }
+      }),
+    );
+    results.reactivation = reactivationOutcomes.filter(
+      (r) => r.status === "fulfilled" && r.value === true,
+    ).length;
+    results.errors += reactivationOutcomes.filter(
+      (r) => r.status === "rejected",
+    ).length;
 
     // 3. Review request: delivered orders from 1-2 days ago without a review
     const twoDaysAgo = new Date(
@@ -196,47 +212,55 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    for (const order of deliveredOrders ?? []) {
-      if (reviewedOrderIds.has(order.id) || emailedOrderIds.has(order.id))
-        continue;
+    const reviewOutcomes = await Promise.allSettled(
+      (deliveredOrders ?? []).map(async (order) => {
+        if (reviewedOrderIds.has(order.id) || emailedOrderIds.has(order.id))
+          return false;
 
-      const restaurant = await getRestaurant(order.restaurant_id);
-      if (!restaurant) continue;
+        const restaurant = await getRestaurant(order.restaurant_id);
+        if (!restaurant) return false;
 
-      const en = restaurant.locale === "en";
-      // Link directly to the order tracker page so the review form is visible immediately
-      const reviewUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}`;
+        const en = restaurant.locale === "en";
+        // Link directly to the order tracker page so the review form is visible immediately
+        const reviewUrl = `${appUrl}/${restaurant.slug}/orden/${order.order_number}`;
 
-      const sent = await sendEmail({
-        to: order.customer_email,
-        subject: en
-          ? `How was your order at ${restaurant.name}? ⭐`
-          : `¿Cómo estuvo tu pedido en ${restaurant.name}? ⭐`,
-        html: buildReviewRequestEmail(
-          order.customer_name || (en ? "Customer" : "Cliente"),
-          restaurant.name,
-          reviewUrl,
-          en,
-        ),
-      });
-
-      if (sent) {
-        results.review_request++;
-        // Mark as sent so a cron retry doesn't email the same customer again.
-        await supabase.from("order_notification_log").insert({
-          order_id: order.id,
-          restaurant_id: order.restaurant_id,
-          event: "review_request_email",
-          channel: "email",
-          success: true,
+        const sent = await sendEmail({
+          to: order.customer_email,
+          subject: en
+            ? `How was your order at ${restaurant.name}? ⭐`
+            : `¿Cómo estuvo tu pedido en ${restaurant.name}? ⭐`,
+          html: buildReviewRequestEmail(
+            order.customer_name || (en ? "Customer" : "Cliente"),
+            restaurant.name,
+            reviewUrl,
+            en,
+          ),
         });
-      } else {
-        results.errors++;
-        logger.warn("Review request email failed to send", {
-          order_id: order.id,
-        });
-      }
-    }
+
+        if (sent) {
+          // Mark as sent so a cron retry doesn't email the same customer again.
+          await supabase.from("order_notification_log").insert({
+            order_id: order.id,
+            restaurant_id: order.restaurant_id,
+            event: "review_request_email",
+            channel: "email",
+            success: true,
+          });
+          return true;
+        } else {
+          logger.warn("Review request email failed to send", {
+            order_id: order.id,
+          });
+          return false;
+        }
+      }),
+    );
+    results.review_request = reviewOutcomes.filter(
+      (r) => r.status === "fulfilled" && r.value === true,
+    ).length;
+    results.errors += reviewOutcomes.filter(
+      (r) => r.status === "rejected",
+    ).length;
 
     // ═══════════════════════════════════════════════════════════
     // PLATFORM → RESTAURANT OWNER automations (MENIUS marketing)
@@ -260,42 +284,49 @@ export async function GET(request: NextRequest) {
       .not("notification_email", "is", null)
       .limit(50);
 
-    for (const restaurant of newRestaurants ?? []) {
-      if (!restaurant.notification_email) continue;
-      if ((restaurant.tags ?? []).includes("setup_email_sent")) continue;
+    const setupOutcomes = await Promise.allSettled(
+      (newRestaurants ?? []).map(async (restaurant) => {
+        if (!restaurant.notification_email) return false;
+        if ((restaurant.tags ?? []).includes("setup_email_sent")) return false;
 
-      const { count } = await supabase
-        .from("products")
-        .select("id", { count: "exact", head: true })
-        .eq("restaurant_id", restaurant.id);
+        const { count } = await supabase
+          .from("products")
+          .select("id", { count: "exact", head: true })
+          .eq("restaurant_id", restaurant.id);
 
-      if ((count ?? 0) > 0) continue;
+        if ((count ?? 0) > 0) return false;
 
-      const en = restaurant.locale === "en";
-      const setupUrl = `${appUrl}/app/menu/products`;
+        const en = restaurant.locale === "en";
+        const setupUrl = `${appUrl}/app/menu/products`;
 
-      const sent = await sendEmail({
-        to: restaurant.notification_email,
-        subject: en
-          ? `🍽️ ${restaurant.name}: your menu is empty — set it up in minutes`
-          : `🍽️ ${restaurant.name}: tu menú está vacío — configúralo en minutos`,
-        html: buildSetupIncompleteEmail(restaurant.name, setupUrl, en),
-      });
+        const sent = await sendEmail({
+          to: restaurant.notification_email,
+          subject: en
+            ? `🍽️ ${restaurant.name}: your menu is empty — set it up in minutes`
+            : `🍽️ ${restaurant.name}: tu menú está vacío — configúralo en minutos`,
+          html: buildSetupIncompleteEmail(restaurant.name, setupUrl, en),
+        });
 
-      if (sent) {
-        results.platform_setup++;
-        try {
-          await supabase.rpc("append_restaurant_tag", {
-            p_restaurant_id: restaurant.id,
-            p_tag: "setup_email_sent",
-          });
-        } catch {
-          /* non-blocking */
+        if (sent) {
+          try {
+            await supabase.rpc("append_restaurant_tag", {
+              p_restaurant_id: restaurant.id,
+              p_tag: "setup_email_sent",
+            });
+          } catch {
+            /* non-blocking */
+          }
+          return true;
         }
-      } else {
-        results.errors++;
-      }
-    }
+        return false;
+      }),
+    );
+    results.platform_setup = setupOutcomes.filter(
+      (r) => r.status === "fulfilled" && r.value === true,
+    ).length;
+    results.errors += setupOutcomes.filter(
+      (r) => r.status === "rejected",
+    ).length;
 
     // 6. No orders nudge: restaurants with products but 0 orders in last 14 days
     const { data: activeRestaurants } = await supabase
@@ -332,42 +363,50 @@ export async function GET(request: NextRequest) {
         (recentOrders ?? []).map((o) => o.restaurant_id),
       );
 
-      for (const restaurant of activeRestaurants) {
-        if (!restaurant.notification_email) continue;
-        if (!hasProducts.has(restaurant.id)) continue;
-        if (hasRecentOrders.has(restaurant.id)) continue;
-        if ((restaurant.tags ?? []).includes("no_orders_email_sent")) continue;
+      const inactiveOutcomes = await Promise.allSettled(
+        activeRestaurants.map(async (restaurant) => {
+          if (!restaurant.notification_email) return false;
+          if (!hasProducts.has(restaurant.id)) return false;
+          if (hasRecentOrders.has(restaurant.id)) return false;
+          if ((restaurant.tags ?? []).includes("no_orders_email_sent"))
+            return false;
 
-        const en = restaurant.locale === "en";
-        const tipsUrl = `${appUrl}/app`;
+          const en = restaurant.locale === "en";
+          const tipsUrl = `${appUrl}/app`;
 
-        const sent = await sendEmail({
-          to: restaurant.notification_email,
-          subject: en
-            ? `📊 Tips to get your first order at ${restaurant.name}`
-            : `📊 Tips para recibir tu primer pedido en ${restaurant.name}`,
-          html: buildNoOrdersEmail(
-            restaurant.name,
-            `${appUrl}/${restaurant.slug}`,
-            tipsUrl,
-            en,
-          ),
-        });
+          const sent = await sendEmail({
+            to: restaurant.notification_email,
+            subject: en
+              ? `📊 Tips to get your first order at ${restaurant.name}`
+              : `📊 Tips para recibir tu primer pedido en ${restaurant.name}`,
+            html: buildNoOrdersEmail(
+              restaurant.name,
+              `${appUrl}/${restaurant.slug}`,
+              tipsUrl,
+              en,
+            ),
+          });
 
-        if (sent) {
-          results.platform_inactive++;
-          try {
-            await supabase.rpc("append_restaurant_tag", {
-              p_restaurant_id: restaurant.id,
-              p_tag: "no_orders_email_sent",
-            });
-          } catch {
-            /* non-blocking */
+          if (sent) {
+            try {
+              await supabase.rpc("append_restaurant_tag", {
+                p_restaurant_id: restaurant.id,
+                p_tag: "no_orders_email_sent",
+              });
+            } catch {
+              /* non-blocking */
+            }
+            return true;
           }
-        } else {
-          results.errors++;
-        }
-      }
+          return false;
+        }),
+      );
+      results.platform_inactive = inactiveOutcomes.filter(
+        (r) => r.status === "fulfilled" && r.value === true,
+      ).length;
+      results.errors += inactiveOutcomes.filter(
+        (r) => r.status === "rejected",
+      ).length;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -395,55 +434,74 @@ export async function GET(request: NextRequest) {
       },
     ];
 
-    for (const step of onboardingDays) {
-      const targetDate = new Date(Date.now() - step.days * 24 * 60 * 60 * 1000);
-      const dayStart = new Date(
-        targetDate.getFullYear(),
-        targetDate.getMonth(),
-        targetDate.getDate(),
-      );
-      const dayEnd = new Date(dayStart);
-      dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+    const onboardingStepOutcomes = await Promise.allSettled(
+      onboardingDays.map(async (step) => {
+        const targetDate = new Date(
+          Date.now() - step.days * 24 * 60 * 60 * 1000,
+        );
+        const dayStart = new Date(
+          targetDate.getFullYear(),
+          targetDate.getMonth(),
+          targetDate.getDate(),
+        );
+        const dayEnd = new Date(dayStart);
+        dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
 
-      const { data: targetRestaurants } = await supabase
-        .from("restaurants")
-        .select("id, name, slug, notification_email, locale, tags")
-        .gte("created_at", dayStart.toISOString())
-        .lt("created_at", dayEnd.toISOString())
-        .not("notification_email", "is", null)
-        .limit(50);
+        const { data: targetRestaurants } = await supabase
+          .from("restaurants")
+          .select("id, name, slug, notification_email, locale, tags")
+          .gte("created_at", dayStart.toISOString())
+          .lt("created_at", dayEnd.toISOString())
+          .not("notification_email", "is", null)
+          .limit(50);
 
-      for (const restaurant of targetRestaurants ?? []) {
-        if (!restaurant.notification_email) continue;
-        if ((restaurant.tags ?? []).includes(step.tag)) continue;
+        const perRestOutcomes = await Promise.allSettled(
+          (targetRestaurants ?? []).map(async (restaurant) => {
+            if (!restaurant.notification_email) return false;
+            if ((restaurant.tags ?? []).includes(step.tag)) return false;
 
-        const en = restaurant.locale === "en";
-        const dashUrl = `${appUrl}/app`;
-        const menuUrl = `${appUrl}/${restaurant.slug}`;
+            const en = restaurant.locale === "en";
+            const dashUrl = `${appUrl}/app`;
+            const menuUrl = `${appUrl}/${restaurant.slug}`;
 
-        const sent = await sendEmail({
-          to: restaurant.notification_email,
-          subject: step.builder(
-            "subject",
-            restaurant.name,
-            undefined,
-            undefined,
-            en,
-          ),
-          html: step.builder("html", restaurant.name, dashUrl, menuUrl, en),
-        });
-
-        if (sent) {
-          results[step.key]++;
-          try {
-            await supabase.rpc("append_restaurant_tag", {
-              p_restaurant_id: restaurant.id,
-              p_tag: step.tag,
+            const sent = await sendEmail({
+              to: restaurant.notification_email,
+              subject: step.builder(
+                "subject",
+                restaurant.name,
+                undefined,
+                undefined,
+                en,
+              ),
+              html: step.builder("html", restaurant.name, dashUrl, menuUrl, en),
             });
-          } catch {}
-        } else {
-          results.errors++;
-        }
+
+            if (sent) {
+              try {
+                await supabase.rpc("append_restaurant_tag", {
+                  p_restaurant_id: restaurant.id,
+                  p_tag: step.tag,
+                });
+              } catch {}
+              return true;
+            }
+            return false;
+          }),
+        );
+
+        return {
+          key: step.key,
+          sent: perRestOutcomes.filter(
+            (r) => r.status === "fulfilled" && r.value === true,
+          ).length,
+          errors: perRestOutcomes.filter((r) => r.status === "rejected").length,
+        };
+      }),
+    );
+    for (const outcome of onboardingStepOutcomes) {
+      if (outcome.status === "fulfilled") {
+        results[outcome.value.key] = outcome.value.sent;
+        results.errors += outcome.value.errors;
       }
     }
 
@@ -516,52 +574,60 @@ export async function GET(request: NextRequest) {
           );
         }
 
-        for (const restaurant of activeRests) {
-          if (!restaurant.notification_email) continue;
+        const monthlyOutcomes = await Promise.allSettled(
+          activeRests.map(async (restaurant) => {
+            if (!restaurant.notification_email) return false;
 
-          // Skip if already sent for this month (idempotency)
-          if ((restaurant.tags ?? []).includes(reportMonthTag)) continue;
+            // Skip if already sent for this month (idempotency)
+            if ((restaurant.tags ?? []).includes(reportMonthTag)) return false;
 
-          const en = restaurant.locale === "en";
-          const stats = ordersByRest.get(restaurant.id) ?? {
-            count: 0,
-            revenue: 0,
-          };
-          const newCustCount = customersByRest.get(restaurant.id) ?? 0;
-          const dashUrl = `${appUrl}/app/analytics`;
+            const en = restaurant.locale === "en";
+            const stats = ordersByRest.get(restaurant.id) ?? {
+              count: 0,
+              revenue: 0,
+            };
+            const newCustCount = customersByRest.get(restaurant.id) ?? 0;
+            const dashUrl = `${appUrl}/app/analytics`;
 
-          const sent = await sendEmail({
-            to: restaurant.notification_email,
-            subject: en
-              ? `📊 Monthly report for ${restaurant.name} — MENIUS`
-              : `📊 Resumen mensual de ${restaurant.name} — MENIUS`,
-            html: buildMonthlyReportEmail(
-              restaurant.name,
-              stats.count,
-              newCustCount,
-              stats.revenue,
-              dashUrl,
-              en,
-            ),
-          });
-
-          if (sent) {
-            results.monthly_report++;
-            try {
-              await supabase.rpc("append_restaurant_tag", {
-                p_restaurant_id: restaurant.id,
-                p_tag: reportMonthTag,
-              });
-            } catch {
-              /* non-blocking */
-            }
-          } else {
-            results.errors++;
-            logger.warn("Monthly report email failed to send", {
-              restaurant_id: restaurant.id,
+            const sent = await sendEmail({
+              to: restaurant.notification_email,
+              subject: en
+                ? `📊 Monthly report for ${restaurant.name} — MENIUS`
+                : `📊 Resumen mensual de ${restaurant.name} — MENIUS`,
+              html: buildMonthlyReportEmail(
+                restaurant.name,
+                stats.count,
+                newCustCount,
+                stats.revenue,
+                dashUrl,
+                en,
+              ),
             });
-          }
-        }
+
+            if (sent) {
+              try {
+                await supabase.rpc("append_restaurant_tag", {
+                  p_restaurant_id: restaurant.id,
+                  p_tag: reportMonthTag,
+                });
+              } catch {
+                /* non-blocking */
+              }
+              return true;
+            } else {
+              logger.warn("Monthly report email failed to send", {
+                restaurant_id: restaurant.id,
+              });
+              return false;
+            }
+          }),
+        );
+        results.monthly_report = monthlyOutcomes.filter(
+          (r) => r.status === "fulfilled" && r.value === true,
+        ).length;
+        results.errors += monthlyOutcomes.filter(
+          (r) => r.status === "rejected",
+        ).length;
       }
     }
 

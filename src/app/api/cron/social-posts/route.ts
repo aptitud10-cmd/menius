@@ -65,6 +65,10 @@ Max 2200 characters for caption (excluding hashtags).`,
     id: "linkedin",
     style: `Write for LINKEDIN. Professional thought-leadership tone. Start with a contrarian or surprising statement to stop the scroll. Use short paragraphs (1-2 sentences each). Share data or insights. End with a question or invitation for discussion. Add 3-5 hashtags. No emojis or max 1.`,
   },
+  {
+    id: "tiktok",
+    style: `Write for TIKTOK. Caption max 150 chars — it's a visual platform, caption supports the video. Use 1-2 punchy sentences max. Skip hashtags — TikTok's algorithm doesn't need them like Instagram. Include ONE clear hook in the caption. Write like you're talking to a friend, not marketing. Emojis: 1-2 max.`,
+  },
 ] as const;
 
 /* ──────────────────────────────────────

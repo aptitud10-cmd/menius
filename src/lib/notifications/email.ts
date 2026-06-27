@@ -187,6 +187,19 @@ function shell(
 </html>`;
 }
 
+// ---------- MENIUS brand logo header ----------
+
+function meniusLogoHeader(): string {
+  return `
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td align="center" style="padding:28px 32px 20px;border-bottom:1px solid #f0f0f0;">
+        <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:22px;font-weight:800;color:#7c3aed;letter-spacing:-0.5px;">MENIUS</span>
+      </td>
+    </tr>
+  </table>`;
+}
+
 // ---------- Helpers ----------
 
 function itemsTable(items: OrderEmailItem[], currency?: string): string {
@@ -882,7 +895,9 @@ export function buildWelcomeEmail(params: {
     )
     .join("");
 
-  const header = `
+  const header =
+    meniusLogoHeader() +
+    `
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
     <tr>
       <td style="padding:36px 32px 28px;text-align:center;border-bottom:1px solid #f0f0f0;">
@@ -959,7 +974,9 @@ export function buildTrialEndingEmail(params: {
     ? "Tu prueba termina mañana"
     : `Tu prueba termina en ${daysLeft} días`;
 
-  const header = `
+  const header =
+    meniusLogoHeader() +
+    `
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
     <tr>
       <td style="padding:36px 32px 28px;text-align:center;border-bottom:1px solid #f0f0f0;">
@@ -1125,7 +1142,9 @@ export function buildDunningEmail(params: {
 
   const s = stages[stage];
 
-  const header = `
+  const header =
+    meniusLogoHeader() +
+    `
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
     <tr>
       <td style="padding:36px 32px 28px;text-align:center;border-bottom:1px solid #f0f0f0;">
