@@ -16,9 +16,7 @@ interface ChatMessage {
   text: string;
 }
 
-async function gatherRestaurantContext(
-  restaurantId: string,
-): Promise<{
+async function gatherRestaurantContext(restaurantId: string): Promise<{
   context: string;
   locale: string;
   restaurantName: string;
@@ -237,8 +235,6 @@ async function gatherRestaurantContext(
     const customerMap: Record<
       string,
       {
-        name: string;
-        phone: string;
         orders: number;
         total: number;
         lastOrder: string;
@@ -248,8 +244,6 @@ async function gatherRestaurantContext(
       const key = o.customer_phone || o.customer_name || "anon";
       if (!customerMap[key]) {
         customerMap[key] = {
-          name: o.customer_name,
-          phone: o.customer_phone || "",
           orders: 0,
           total: 0,
           lastOrder: o.created_at,
@@ -392,7 +386,7 @@ ${topProducts5.length > 0 ? topProducts5.map((p, i) => `${i + 1}. ${p.name} — 
 ${zeroSalesProducts.length > 0 ? `\n${en ? "Active products with 0 sales this month" : "Productos activos sin ventas este mes"}: ${zeroSalesProducts.map((p) => p.name).join(", ")}` : ""}
 
 === ${en ? "TOP CUSTOMERS (30 days)" : "CLIENTES TOP (30 días)"} ===
-${topCustomers.length > 0 ? topCustomers.map((c, i) => `${i + 1}. ${c.name || (en ? "Anonymous" : "Anónimo")}${c.phone ? ` (${c.phone})` : ""} — ${c.orders} ${en ? "orders" : "ordenes"}, $${c.total.toFixed(2)} total`).join("\n") : en ? "No customer data yet" : "Sin datos de clientes aún"}
+${topCustomers.length > 0 ? topCustomers.map((c, i) => `${i + 1}. ${en ? "Customer" : "Cliente"} #${i + 1} — ${c.orders} ${en ? "orders" : "ordenes"}, $${c.total.toFixed(2)} total`).join("\n") : en ? "No customer data yet" : "Sin datos de clientes aún"}
 
 === ${en ? "REVIEWS" : "RESEÑAS"} ===
 ${en ? "Average rating" : "Rating promedio"}: ${avgRating}
@@ -423,7 +417,7 @@ ${
         .slice(0, 15)
         .map(
           (c, i) =>
-            `${i + 1}. ${c.name || (en ? "Anonymous" : "Anónimo")} — ${c.total_orders} ${en ? "orders" : "ordenes"}, $${Number(c.total_spent).toFixed(2)} total [${c.segment}]${c.tags?.length > 0 ? ` [${c.tags.join(", ")}]` : ""}${c.last_order_at ? ` — ${en ? "last" : "última"}: ${new Date(c.last_order_at).toLocaleDateString()}` : ""}`,
+            `${i + 1}. ${en ? "Customer" : "Cliente"} #${i + 1} — ${c.total_orders} ${en ? "orders" : "ordenes"}, $${Number(c.total_spent).toFixed(2)} total [${c.segment}]${c.tags?.length > 0 ? ` [${c.tags.join(", ")}]` : ""}${c.last_order_at ? ` — ${en ? "last" : "última"}: ${new Date(c.last_order_at).toLocaleDateString()}` : ""}`,
         )
         .join("\n")
     : en
@@ -434,7 +428,7 @@ ${
 ${
   (atRiskCustomers ?? []).length > 0
     ? `=== ${en ? "AT-RISK CUSTOMERS (no order in 21+ days)" : "CLIENTES EN RIESGO (sin orden en 21+ días)"} ===
-${(atRiskCustomers ?? []).map((c) => `- ${c.name || (en ? "Anonymous" : "Anónimo")}${c.phone ? ` (${c.phone})` : ""} — ${c.total_orders} ${en ? "orders total" : "órdenes total"}, ${en ? "last order" : "última orden"}: ${new Date(c.last_order_at).toLocaleDateString()}`).join("\n")}`
+${(atRiskCustomers ?? []).map((c) => `- ${en ? "Customer" : "Cliente"} — ${c.total_orders} ${en ? "orders total" : "órdenes total"}, ${en ? "last order" : "última orden"}: ${new Date(c.last_order_at).toLocaleDateString()}`).join("\n")}`
     : ""
 }
 
@@ -444,7 +438,7 @@ ${
     .slice(0, 10)
     .map(
       (o) =>
-        `#${o.order_number} — ${o.customer_name || (en ? "No name" : "Sin nombre")} — $${Number(o.total).toFixed(2)} — ${o.status} — ${o.order_type ?? "dine_in"}`,
+        `#${o.order_number} — $${Number(o.total).toFixed(2)} — ${o.status} — ${o.order_type ?? "dine_in"}`,
     )
     .join("\n") || (en ? "No orders today" : "Sin ordenes hoy")
 }
