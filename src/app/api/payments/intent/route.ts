@@ -1,46 +1,70 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-import { createAdminClient } from '@/lib/supabase/admin';
-import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimitAsync, getClientIP } from '@/lib/rate-limit';
-import { getStripe } from '@/lib/stripe';
-import { captureError } from '@/lib/error-reporting';
+import { createAdminClient } from "@/lib/supabase/admin";
+import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimitAsync, getClientIP } from "@/lib/rate-limit";
+import { getStripe } from "@/lib/stripe";
+import { captureError } from "@/lib/error-reporting";
 
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIP(request);
-    const { allowed } = await checkRateLimitAsync(`pay-intent:${ip}`, { limit: 10, windowSec: 60 });
+    const { allowed } = await checkRateLimitAsync(`pay-intent:${ip}`, {
+      limit: 10,
+      windowSec: 60,
+    });
     if (!allowed) {
       return NextResponse.json(
-        { error: 'Too many requests' },
-        { status: 429, headers: { 'Retry-After': '60' } }
+        { error: "Too many requests" },
+        { status: 429, headers: { "Retry-After": "60" } },
       );
     }
 
     const body = await request.json();
     const order_id = body.order_id;
 
-    if (!order_id || typeof order_id !== 'string' || !/^[0-9a-f-]{36}$/.test(order_id)) {
-      return NextResponse.json({ error: 'Valid order_id required' }, { status: 400 });
+    if (
+      !order_id ||
+      typeof order_id !== "string" ||
+      !/^[0-9a-f-]{36}$/.test(order_id)
+    ) {
+      return NextResponse.json(
+        { error: "Valid order_id required" },
+        { status: 400 },
+      );
     }
 
     const adminDb = createAdminClient();
     const { data: order } = await adminDb
-      .from('orders')
-      .select('id, total, order_number, payment_intent_id, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete, commission_plan )')
-      .eq('id', order_id)
+      .from("orders")
+      .select(
+        "id, total, order_number, payment_intent_id, restaurant_id, restaurants ( currency, stripe_account_id, stripe_onboarding_complete, commission_plan )",
+      )
+      .eq("id", order_id)
       .maybeSingle();
 
     if (!order) {
-      return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
+      return NextResponse.json(
+        { error: "Orden no encontrada" },
+        { status: 404 },
+      );
+    }
+
+    if ((order as any).payment_status === "paid") {
+      return NextResponse.json(
+        { error: "Esta orden ya fue pagada" },
+        { status: 409 },
+      );
     }
 
     // Idempotency: if a PaymentIntent already exists for this order, retrieve and return it
     if (order.payment_intent_id) {
       const stripeClient = getStripe();
       try {
-        const existing = await stripeClient.paymentIntents.retrieve(order.payment_intent_id);
-        if (existing.status !== 'canceled') {
+        const existing = await stripeClient.paymentIntents.retrieve(
+          order.payment_intent_id,
+        );
+        if (existing.status !== "canceled") {
           return NextResponse.json({ clientSecret: existing.client_secret });
         }
         // If canceled, fall through to create a new one
@@ -50,11 +74,11 @@ export async function POST(request: NextRequest) {
     }
 
     const rest = (order as any)?.restaurants;
-    const currency = (rest?.currency || 'mxn').toLowerCase();
+    const currency = (rest?.currency || "mxn").toLowerCase();
     const amount = Math.round(Number(order.total) * 100);
 
     if (amount <= 0) {
-      return NextResponse.json({ error: 'Monto inválido' }, { status: 400 });
+      return NextResponse.json({ error: "Monto inválido" }, { status: 400 });
     }
 
     const connectedAccount: string | null = rest?.stripe_onboarding_complete
@@ -65,28 +89,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            'El pago en línea no está disponible para este restaurante aún. Por favor paga en persona.',
+            "El pago en línea no está disponible para este restaurante aún. Por favor paga en persona.",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const commissionBps = (rest as any)?.commission_plan === true ? 400 : 0;
-    const applicationFeeAmount = commissionBps > 0
-      ? Math.round(amount * commissionBps / 10000)
-      : undefined;
+    const applicationFeeAmount =
+      commissionBps > 0
+        ? Math.round((amount * commissionBps) / 10000)
+        : undefined;
 
-    const intentParams: import('stripe').Stripe.PaymentIntentCreateParams = {
+    const intentParams: import("stripe").Stripe.PaymentIntentCreateParams = {
       amount,
       currency,
       metadata: {
         order_id: order.id,
-        order_number: order.order_number ?? '',
+        order_number: order.order_number ?? "",
       },
       transfer_data: { destination: connectedAccount },
-      ...(applicationFeeAmount && applicationFeeAmount > 0 && {
-        application_fee_amount: applicationFeeAmount,
-      }),
+      ...(applicationFeeAmount &&
+        applicationFeeAmount > 0 && {
+          application_fee_amount: applicationFeeAmount,
+        }),
     };
 
     const stripe = getStripe();
@@ -94,14 +120,17 @@ export async function POST(request: NextRequest) {
 
     // Persist so retries return the same PI instead of creating duplicates
     await adminDb
-      .from('orders')
+      .from("orders")
       .update({ payment_intent_id: paymentIntent.id })
-      .eq('id', order_id);
+      .eq("id", order_id);
 
     return NextResponse.json({ clientSecret: paymentIntent.client_secret });
   } catch (err: unknown) {
-    captureError(err, { route: '/api/payments/intent' });
+    captureError(err, { route: "/api/payments/intent" });
     // Generic message — real error is in Sentry; err.message would leak Stripe/DB internals.
-    return NextResponse.json({ error: 'Error creating payment intent' }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error creating payment intent" },
+      { status: 500 },
+    );
   }
 }

@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
 
       const { data: order } = await adminDb
         .from("orders")
-        .select("id, payment_status")
+        .select("id, payment_status, total")
         .eq("order_number", reference)
         .maybeSingle();
 
@@ -104,6 +104,18 @@ export async function POST(request: NextRequest) {
       }
 
       if (order.payment_status === "paid") {
+        return NextResponse.json({ received: true });
+      }
+
+      // Validate amount matches order total (Wompi sends amount_in_cents)
+      const expectedCents = Math.round(Number(order.total) * 100);
+      const receivedCents = Number(transaction.amount_in_cents ?? 0);
+      if (receivedCents !== expectedCents) {
+        logger.warn("Wompi amount mismatch — rejecting", {
+          reference,
+          expected: expectedCents,
+          received: receivedCents,
+        });
         return NextResponse.json({ received: true });
       }
 
