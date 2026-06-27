@@ -357,8 +357,7 @@ export function MenuShell({
 
   // Realtime: notify customer if a cart item goes out of stock (86'd)
   useEffect(() => {
-    const cartItems = useCartStore.getState().items;
-    if (!restaurant.id || cartItems.length === 0) return;
+    if (!restaurant.id) return;
 
     const supabase = getSupabaseBrowser();
     const channel = supabase

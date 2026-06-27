@@ -1,4 +1,4 @@
-import { computeTaxAmount } from './tax-presets';
+import { computeTaxAmount } from "./tax-presets";
 
 export interface PricedItem {
   product_id: string;
@@ -40,25 +40,27 @@ export function computeUnitPrice(
   modOptionMap: Map<string, ModOptionRecord>,
 ): UnitPriceResult {
   const dbProduct = productMap.get(item.product_id);
-  if (!dbProduct) return { unitPrice: 0, error: 'product_not_found' };
+  if (!dbProduct) return { unitPrice: 0, error: "product_not_found" };
 
   let unitPrice = Number(dbProduct.price);
 
   if (item.variant_id) {
     const v = variantMap.get(item.variant_id);
-    if (!v || v.product_id !== item.product_id) return { unitPrice: 0, error: 'invalid_variant' };
+    if (!v || v.product_id !== item.product_id)
+      return { unitPrice: 0, error: "invalid_variant" };
     unitPrice += Number(v.price_delta);
   }
 
   for (const ex of item.extras) {
     const dbExtra = extraMap.get(ex.extra_id);
-    if (!dbExtra || dbExtra.product_id !== item.product_id) return { unitPrice: 0, error: 'invalid_extra' };
+    if (!dbExtra || dbExtra.product_id !== item.product_id)
+      return { unitPrice: 0, error: "invalid_extra" };
     unitPrice += Number(dbExtra.price);
   }
 
-  for (const mod of (item.modifiers ?? [])) {
-    const oid = mod.option_id ?? '';
-    const isLegacy = !oid || oid.startsWith('__legacy');
+  for (const mod of item.modifiers ?? []) {
+    const oid = mod.option_id ?? "";
+    const isLegacy = !oid || oid.startsWith("__legacy");
     if (!isLegacy) {
       const dbOpt = modOptionMap.get(oid);
       if (dbOpt) unitPrice += Number(dbOpt.price_delta);
@@ -91,7 +93,10 @@ export interface OrderTotals {
 }
 
 export function computeOrderTotals(input: OrderTotalsInput): OrderTotals {
-  const subtotal = input.items.reduce((sum, i) => sum + i.unit_price * i.qty, 0);
+  const subtotal = input.items.reduce(
+    (sum, i) => sum + i.unit_price * i.qty,
+    0,
+  );
 
   // Tip clamped to 100% of subtotal
   const tipAmt = Math.min(Math.max(0, input.rawTip), subtotal);
@@ -100,11 +105,19 @@ export function computeOrderTotals(input: OrderTotalsInput): OrderTotals {
 
   const totalDiscountAmt = input.discountAmt + input.loyaltyDiscountAmt;
   const taxableBase = Math.max(0, subtotal - totalDiscountAmt);
-  const taxAmt = computeTaxAmount(taxableBase, input.taxRate, input.taxIncluded);
+  const taxAmt = computeTaxAmount(
+    taxableBase,
+    input.taxRate,
+    input.taxIncluded,
+  );
 
   const total = Math.max(
     0,
-    subtotal - totalDiscountAmt + tipAmt + deliveryFeeAmt + (input.taxIncluded ? 0 : taxAmt),
+    subtotal -
+      totalDiscountAmt +
+      tipAmt +
+      deliveryFeeAmt +
+      (input.taxIncluded ? 0 : taxAmt),
   );
 
   return { subtotal, tipAmt, deliveryFeeAmt, totalDiscountAmt, taxAmt, total };
@@ -118,7 +131,12 @@ export interface SubscriptionSnapshot {
   status: string;
   trial_end?: string | null;
   plan_id?: string | null;
+  /** ISO timestamp del primer fallo de cobro; ausente en filas legacy. */
+  past_due_since?: string | null;
 }
+
+/** Debe coincidir con PAST_DUE_GRACE_DAYS en src/lib/auth/check-plan.ts */
+const PAST_DUE_GRACE_DAYS = 7;
 
 export function resolveCommission(
   commissionPlan: boolean,
@@ -132,7 +150,19 @@ export function resolveCommission(
   const { status } = sub;
   const trialStillValid = sub.trial_end && new Date(sub.trial_end) > now;
 
-  if (status === 'active' || status === 'past_due') return { commissionBps: 0, isFreeTier: false };
+  if (status === "active") return { commissionBps: 0, isFreeTier: false };
+
+  if (status === "past_due") {
+    // Sin timestamp legacy: no cortar al cliente del que no tenemos datos de grace.
+    if (!sub.past_due_since) return { commissionBps: 0, isFreeTier: false };
+    const graceEnd =
+      new Date(sub.past_due_since).getTime() + PAST_DUE_GRACE_DAYS * 86400_000;
+    // Dentro del grace period: plan pago vigente. Vencido: degradar a free tier.
+    if (now.getTime() < graceEnd)
+      return { commissionBps: 0, isFreeTier: false };
+    return { commissionBps: 0, isFreeTier: true };
+  }
+
   if (trialStillValid) return { commissionBps: 0, isFreeTier: false };
 
   return { commissionBps: 0, isFreeTier: true };
