@@ -558,16 +558,16 @@ DASHBOARD GUIDE (step-by-step for each section):
 - **Tables & QR**: Create tables, generate printable QR codes per table. Each QR links directly to that table's ordering page.
 - **Counter**: Cashier/POS screen. Accept walk-in orders, set ETA, assign delivery drivers, print tickets. Works on tablet/iPad.
 - **Kitchen (KDS)**: Full-screen real-time kitchen display with sound alerts. Requires Pro plan. Open at menius.app/kds
-- **Orders**: Full history, filter by status/date/type. Click order for details, contact customer via WhatsApp, see order items.
+- **Orders**: Full history, filter by status/date/type. Click order for details, see order items, contact customer.
 - **Reservations** (Starter+): Manage bookings from public menu. See calendar view, confirm/cancel. Auto-notifications to customer.
-- **Customers (CRM)** (Starter+): Auto-built from orders. Segments: VIP (5+ orders), regular, at-risk (no order 21+ days). Profile shows full history, total spent, tags, notes. Actions: send WhatsApp, send email, add tags, add notes, export.
+- **Customers (CRM)** (Starter+): Auto-built from orders. Segments: VIP (5+ orders), regular, at-risk (no order 21+ days). Profile shows full history, total spent, tags, notes. Actions: send email, add tags, add notes, export.
 - **Analytics** (Starter+): Sales charts by day/week/month, top products by revenue, order type breakdown (dine-in/pickup/delivery), peak hours heatmap, cancellation rate.
 - **Reviews** (Pro+): See ratings and comments from customers. Reply from dashboard. Flag reviews.
-- **Marketing Hub** (Pro+): Email Campaigns (segmented: all/VIP/inactive/recent), Social Media AI generator (Instagram/Facebook/WhatsApp), SMS Campaigns, 9 pre-built Automations (birthday, reactivation, VIP reward, etc.).
+- **Marketing Hub** (Pro+): Email Campaigns (segmented: all/VIP/inactive/recent), Social Media AI generator (Instagram/Facebook/TikTok), SMS Campaigns, 9 pre-built Automations (birthday, reactivation, VIP reward, etc.).
 - **Promotions** (Pro+): Discount coupons — percentage or fixed amount, with code, max uses, expiration date, minimum order.
 - **Loyalty Program** (Pro+): Points per order, redeem as discount. Manage from dashboard or via chat.
 - **Team/Staff** (Starter+): Add employees with roles (admin, manager, staff, kitchen). Add delivery drivers. Each gets their own login.
-- **Settings**: Logo, cover photo, public URL (slug), custom domain (Pro+), basic info, order types (dine-in/pickup/delivery), payment methods (cash/card/Stripe Connect/Wompi), operating hours, WhatsApp notifications, email notifications, taxes (rate, label, included/on-top), printers (thermal, per-device config).
+- **Settings**: Logo, cover photo, public URL (slug), custom domain (Pro+), basic info, order types (dine-in/pickup/delivery), payment methods (cash/card/Stripe Connect/Wompi), operating hours, email notifications, order notification phone (for the restaurant's own WhatsApp button), taxes (rate, label, included/on-top), printers (thermal, per-device config).
 - **Billing**: Plan status, usage vs limits, upgrade/downgrade, invoices, Stripe billing portal, cancel subscription.
 - **API Keys** (Business): Generate API keys for integrations. Full REST API available.
 - **Data & Privacy**: Export all data as JSON (GDPR). Delete account permanently.
@@ -579,7 +579,7 @@ When a new restaurant is missing key data, guide them in this priority order:
 2. Add categories + products → Menu > Categories, then Menu > Products
 3. Configure order types → Settings > Order Types (dine-in, pickup, delivery)
 4. Set payment methods → Settings > Payments (start with Cash, add card later)
-5. Configure notifications → Settings > Notifications (add WhatsApp number for instant order alerts — CRITICAL)
+5. Configure notifications → Settings > Notifications (add email for order alerts — CRITICAL)
 6. Create QR codes → Tables & QR (print and place on tables)
 7. Set operating hours → Settings > Hours
 8. Share menu link → Home > "Share menu" button or menius.app/{slug}
@@ -630,7 +630,7 @@ ANALYTICS INTERPRETATION:
 - Zero-sales products: feature them, discount, or remove to simplify menu.
 
 TROUBLESHOOTING:
-- Orders not appearing: Settings > Notifications — master toggle must be ON, add WhatsApp/email.
+- Orders not appearing: Settings > Notifications — master toggle must be ON, add email for alerts.
 - Payment issues: Settings > Payment Methods — Stripe Connect must show green badge.
 - Menu not updating: takes 1-2 min. Check product is Active.
 - Product shows sold out: Menu > Products > click product > toggle "In Stock" ON.
@@ -638,7 +638,6 @@ TROUBLESHOOTING:
 - Printer not printing: Settings > Printers — enable at least one option. Use Chrome/Edge.
 - KDS not showing orders: check you're on the /kds page and have Pro plan.
 - Reservations not showing: check Starter plan is active.
-- WhatsApp notification not arriving: verify the number in Settings > Notifications includes country code (e.g. +573001234567).
 
 ESCALATION:
 - After 3 unresolved exchanges, or billing/payment dispute, or critical bug → soporte@menius.app
@@ -657,14 +656,15 @@ AVAILABLE ACTIONS (tools you can execute):
 10. get_inventory_status — see out-of-stock and low-stock products
 
 RULES:
-- Max 350 words, clear and direct
-- Use **bold** and lists when it improves readability
+- Length is adaptive: simple questions → 1-3 sentences. Complex analysis (why did sales drop? what's my best strategy?) → as long as needed to be genuinely useful, no artificial cap.
+- Use **bold** and lists when it improves readability. Prose for conversational answers.
 - Say exactly where to go in the dashboard when action is needed
 - Use the restaurant's currency for amounts
 - Max 2-3 emojis per response, only when they add value
 - Never make up data — say "I don't have that data yet"
 - On first message / hello, give a quick status summary with 2-3 actionable tips from real data
 - When owner asks "what can you do?" or "ayúdame", list the available actions above
+- For analytics questions: always compare periods (today vs yesterday, this week vs last week) when data allows. Identify the WHY behind numbers, not just the numbers.
 - CRITICAL: Always respond in the same language the user writes in`;
 
 function getSystemPrompt(locale: string, restaurantName?: string) {
@@ -700,7 +700,9 @@ function buildProactiveTips(
   context: string,
   atRiskCount: number,
   zeroSalesNames: string[],
+  locale: string,
 ): string {
+  const en = locale === "en";
   const tips: string[] = [];
 
   const noImageMatch = context.match(
@@ -708,34 +710,50 @@ function buildProactiveTips(
   );
   if (noImageMatch && parseInt(noImageMatch[1]) > 0) {
     tips.push(
-      `ALERT: ${noImageMatch[1]} products without images — products with images sell up to 30% more.`,
+      en
+        ? `ALERT: ${noImageMatch[1]} products without images — products with images sell up to 30% more.`
+        : `ALERTA: ${noImageMatch[1]} productos sin imagen — los productos con foto venden hasta 30% más.`,
     );
   }
 
   const cancelledMatch = context.match(/(?:Cancelled|Canceladas): (\d+)/);
   if (cancelledMatch && parseInt(cancelledMatch[1]) > 3) {
     tips.push(
-      `ALERT: ${cancelledMatch[1]} cancellations this month — worth investigating why.`,
+      en
+        ? `ALERT: ${cancelledMatch[1]} cancellations this month — worth investigating why.`
+        : `ALERTA: ${cancelledMatch[1]} cancelaciones este mes — vale la pena investigar la causa.`,
     );
   }
 
   const pendingMatch = context.match(/(?:Pending now|Pendientes ahora): (\d+)/);
   if (pendingMatch && parseInt(pendingMatch[1]) > 0) {
-    tips.push(`URGENT: ${pendingMatch[1]} pending orders unattended.`);
+    tips.push(
+      en
+        ? `URGENT: ${pendingMatch[1]} pending orders unattended.`
+        : `URGENTE: ${pendingMatch[1]} órdenes pendientes sin atender.`,
+    );
   }
 
   if (
     context.includes("Address: Not set") ||
     context.includes("Dirección: No configurado")
   ) {
-    tips.push("IMPROVE: No address configured.");
+    tips.push(
+      en
+        ? "IMPROVE: No address configured."
+        : "MEJORAR: Sin dirección configurada.",
+    );
   }
 
   if (
     context.includes("Schedule: Not set") ||
     context.includes("Horario: No configurado")
   ) {
-    tips.push("IMPROVE: No schedule configured.");
+    tips.push(
+      en
+        ? "IMPROVE: No schedule configured."
+        : "MEJORAR: Sin horario configurado.",
+    );
   }
 
   if (
@@ -743,7 +761,9 @@ function buildProactiveTips(
     context.includes("Sin promociones activas")
   ) {
     tips.push(
-      "OPPORTUNITY: No active promotions — promos can increase sales 15-20%.",
+      en
+        ? "OPPORTUNITY: No active promotions — promos can increase sales 15-20%."
+        : "OPORTUNIDAD: Sin promociones activas — las promos pueden aumentar ventas un 15-20%.",
     );
   }
 
@@ -752,7 +772,9 @@ function buildProactiveTips(
   );
   if (ratingMatch && parseFloat(ratingMatch[1]) < 4.0) {
     tips.push(
-      `ATTENTION: Rating at ${ratingMatch[1]} — review comments to improve.`,
+      en
+        ? `ATTENTION: Rating at ${ratingMatch[1]} — review comments to improve.`
+        : `ATENCIÓN: Rating en ${ratingMatch[1]} — revisá los comentarios para mejorar.`,
     );
   }
 
@@ -760,23 +782,32 @@ function buildProactiveTips(
     /(?:Trial days left|Días de prueba restantes): (\d+)/,
   );
   if (trialMatch && parseInt(trialMatch[1]) <= 5) {
-    tips.push(`NOTICE: Only ${trialMatch[1]} trial days left.`);
+    tips.push(
+      en
+        ? `NOTICE: Only ${trialMatch[1]} trial days left.`
+        : `AVISO: Solo quedan ${trialMatch[1]} días de prueba.`,
+    );
   }
 
   if (atRiskCount > 0) {
     tips.push(
-      `RETENTION: ${atRiskCount} customers haven't ordered in 21+ days — a targeted promo could bring them back.`,
+      en
+        ? `RETENTION: ${atRiskCount} customers haven't ordered in 21+ days — a targeted promo could bring them back.`
+        : `RETENCIÓN: ${atRiskCount} clientes sin ordenar en 21+ días — una promo dirigida puede traerlos de vuelta.`,
     );
   }
 
   if (zeroSalesNames.length > 0) {
     tips.push(
-      `MENU: ${zeroSalesNames.join(", ")} — active but 0 sales this month. Consider featuring, discounting, or removing.`,
+      en
+        ? `MENU: ${zeroSalesNames.join(", ")} — active but 0 sales this month. Consider featuring, discounting, or removing.`
+        : `MENÚ: ${zeroSalesNames.join(", ")} — activos pero sin ventas este mes. Considerá destacarlos, ponerlos en promo o eliminarlos.`,
     );
   }
 
   if (tips.length === 0) return "";
-  return `\n\n=== ALERTS & OPPORTUNITIES ===\n${tips.join("\n")}`;
+  const header = en ? "ALERTS & OPPORTUNITIES" : "ALERTAS Y OPORTUNIDADES";
+  return `\n\n=== ${header} ===\n${tips.join("\n")}`;
 }
 
 // Execute a tool call and return a human-readable result
@@ -1322,10 +1353,38 @@ export async function POST(request: NextRequest) {
     context,
     atRiskCount,
     zeroSalesNames,
+    restaurantLocale,
   );
   const systemPrompt = getSystemPrompt(restaurantLocale, restaurantName);
   const menuUrl = `${(process.env.NEXT_PUBLIC_APP_URL ?? "https://menius.app").replace(/\/$/, "")}/${restaurantSlug}`;
-  const fullSystemPrompt = `${systemPrompt}\n\n${restaurantLocale === "en" ? "CURRENT RESTAURANT DATA" : "DATOS ACTUALES DEL RESTAURANTE"}:\n${context}${proactiveTips}`;
+
+  const now = new Date();
+  const dayNames =
+    restaurantLocale === "en"
+      ? [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+        ]
+      : [
+          "Domingo",
+          "Lunes",
+          "Martes",
+          "Miércoles",
+          "Jueves",
+          "Viernes",
+          "Sábado",
+        ];
+  const temporalCtx =
+    restaurantLocale === "en"
+      ? `=== CURRENT MOMENT ===\nDate: ${now.toISOString().slice(0, 10)} (${dayNames[now.getUTCDay()]})\nUTC time: ${now.toISOString().slice(11, 16)} — adjust for restaurant's local timezone when giving time-sensitive advice.`
+      : `=== MOMENTO ACTUAL ===\nFecha: ${now.toISOString().slice(0, 10)} (${dayNames[now.getUTCDay()]})\nHora UTC: ${now.toISOString().slice(11, 16)} — ajustá para la zona horaria local del restaurante cuando des consejos sensibles al tiempo.`;
+
+  const fullSystemPrompt = `${systemPrompt}\n\n${temporalCtx}\n\n${restaurantLocale === "en" ? "CURRENT RESTAURANT DATA" : "DATOS ACTUALES DEL RESTAURANTE"}:\n${context}${proactiveTips}`;
 
   // Claude tool definitions (same capabilities as before)
   const claudeTools: import("@anthropic-ai/sdk/resources").Tool[] = [
