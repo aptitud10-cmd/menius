@@ -3058,9 +3058,18 @@ export function MenuShell({
                 defaultLocale={defaultLocale}
                 suggestedProducts={suggestedProducts}
                 onSuggestAdd={(p) => {
-                  // Suggestions always quick-add — never replace the current sheet.
-                  // This keeps the current product visible so the user can still add it.
-                  handleQuickAdd(p);
+                  // Si el producto tiene variantes, extras o modifier groups,
+                  // abrir el sheet de customización. Si no, quick-add directo.
+                  if (
+                    (p.variants?.length ?? 0) > 0 ||
+                    (p.extras?.length ?? 0) > 0 ||
+                    p.has_modifiers
+                  ) {
+                    setCustomization({ product: p, editIndex: null });
+                    setOpen(false);
+                  } else {
+                    handleQuickAdd(p);
+                  }
                 }}
               />
             )}

@@ -661,7 +661,8 @@ export async function POST(request: NextRequest) {
         if (
           account &&
           phoneMatches &&
-          account.points >= loyaltyConfig.min_redeem_points
+          account.points >= loyaltyConfig.min_redeem_points &&
+          loyalty_points_redeemed >= loyaltyConfig.min_redeem_points
         ) {
           // Clamp to what the customer actually has
           const pointsToRedeem = Math.min(

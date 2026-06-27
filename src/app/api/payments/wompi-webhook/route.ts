@@ -1,13 +1,13 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-import { createAdminClient } from '@/lib/supabase/admin';
-import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'crypto';
-import { createLogger } from '@/lib/logger';
-import { captureError } from '@/lib/error-reporting';
-import { sendPaymentConfirmedNotifications } from '@/lib/notifications/order-notifications';
+import { createAdminClient } from "@/lib/supabase/admin";
+import { NextRequest, NextResponse } from "next/server";
+import { createHash, timingSafeEqual } from "crypto";
+import { createLogger } from "@/lib/logger";
+import { captureError } from "@/lib/error-reporting";
+import { sendPaymentConfirmedNotifications } from "@/lib/notifications/order-notifications";
 
-const logger = createLogger('wompi-webhook');
+const logger = createLogger("wompi-webhook");
 
 /**
  * POST /api/payments/wompi-webhook
@@ -23,8 +23,13 @@ export async function POST(request: NextRequest) {
     // Without this guard, any HTTP client can forge a payment confirmation.
     const eventsSecret = process.env.WOMPI_EVENTS_SECRET?.trim();
     if (!eventsSecret) {
-      logger.error('WOMPI_EVENTS_SECRET is not configured — rejecting webhook to prevent spoofed payment confirmations');
-      return NextResponse.json({ error: 'Webhook not configured' }, { status: 503 });
+      logger.error(
+        "WOMPI_EVENTS_SECRET is not configured — rejecting webhook to prevent spoofed payment confirmations",
+      );
+      return NextResponse.json(
+        { error: "Webhook not configured" },
+        { status: 503 },
+      );
     }
 
     const body = await request.json();
@@ -33,34 +38,41 @@ export async function POST(request: NextRequest) {
     // Verify checksum: SHA256(properties.map(p => body[p]).join('') + eventsSecret)
     const sig = body?.signature;
     if (!sig?.properties || !sig?.checksum) {
-      logger.warn('Wompi webhook missing signature fields');
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+      logger.warn("Wompi webhook missing signature fields");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    const toHash = sig.properties
-      .map((prop: string) => {
-        const parts = prop.split('.');
-        let val: unknown = body;
-        for (const p of parts) val = (val as Record<string, unknown>)?.[p];
-        return String(val ?? '');
-      })
-      .join('') + eventsSecret;
-    const computed = createHash('sha256').update(toHash).digest('hex');
-    if (computed !== sig.checksum) {
-      logger.warn('Wompi webhook signature mismatch');
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    const toHash =
+      sig.properties
+        .map((prop: string) => {
+          const parts = prop.split(".");
+          let val: unknown = body;
+          for (const p of parts) val = (val as Record<string, unknown>)?.[p];
+          return String(val ?? "");
+        })
+        .join("") + eventsSecret;
+    const computed = createHash("sha256").update(toHash).digest("hex");
+    const safe = (a: string, b: string) =>
+      a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
+    if (!safe(computed, sig.checksum)) {
+      logger.warn("Wompi webhook signature mismatch");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    const event: string = body?.event ?? '';
+    const event: string = body?.event ?? "";
     const transaction = body?.data?.transaction;
 
     if (!transaction) {
       return NextResponse.json({ received: true });
     }
 
-    logger.info('Wompi event received', { event, reference: transaction.reference, status: transaction.status });
+    logger.info("Wompi event received", {
+      event,
+      reference: transaction.reference,
+      status: transaction.status,
+    });
 
-    if (event === 'transaction.updated' && transaction.status === 'APPROVED') {
+    if (event === "transaction.updated" && transaction.status === "APPROVED") {
       const reference: string = transaction.reference;
       if (!reference) return NextResponse.json({ received: true });
 
@@ -69,58 +81,72 @@ export async function POST(request: NextRequest) {
       // Idempotency guard — duplicate event_id raises a 23505 unique violation, not a null row.
       const eventId = `wompi:${transaction.id}`;
       const { error: insertErr } = await adminDb
-        .from('processed_webhook_events')
+        .from("processed_webhook_events")
         .insert({ event_id: eventId, event_type: event });
 
       if (insertErr) {
-        if (insertErr.code === '23505') {
-          logger.info('Duplicate Wompi webhook — skipping', { eventId });
+        if (insertErr.code === "23505") {
+          logger.info("Duplicate Wompi webhook — skipping", { eventId });
           return NextResponse.json({ received: true });
         }
         throw insertErr;
       }
 
       const { data: order } = await adminDb
-        .from('orders')
-        .select('id, payment_status')
-        .eq('order_number', reference)
+        .from("orders")
+        .select("id, payment_status")
+        .eq("order_number", reference)
         .maybeSingle();
 
       if (!order) {
-        logger.warn('Order not found for Wompi reference', { reference });
+        logger.warn("Order not found for Wompi reference", { reference });
         return NextResponse.json({ received: true });
       }
 
-      if (order.payment_status === 'paid') {
+      if (order.payment_status === "paid") {
         return NextResponse.json({ received: true });
       }
 
       const { error } = await adminDb
-        .from('orders')
+        .from("orders")
         .update({
-          payment_status: 'paid',
+          payment_status: "paid",
           payment_intent_id: transaction.id,
         })
-        .eq('id', order.id);
+        .eq("id", order.id);
 
       if (error) {
         // Delete the idempotency claim so Wompi can retry successfully
-        await adminDb.from('processed_webhook_events').delete().eq('event_id', eventId);
-        logger.error('Failed to update order payment', { orderId: order.id, error: error.message });
+        await adminDb
+          .from("processed_webhook_events")
+          .delete()
+          .eq("event_id", eventId);
+        logger.error("Failed to update order payment", {
+          orderId: order.id,
+          error: error.message,
+        });
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
       sendPaymentConfirmedNotifications(order.id).catch((err) => {
-        logger.error('sendPaymentConfirmedNotifications failed', { orderId: order.id, error: err?.message });
+        logger.error("sendPaymentConfirmedNotifications failed", {
+          orderId: order.id,
+          error: err?.message,
+        });
       });
 
-      logger.info('Order marked as paid via Wompi', { orderId: order.id, reference });
+      logger.info("Order marked as paid via Wompi", {
+        orderId: order.id,
+        reference,
+      });
     }
 
     return NextResponse.json({ received: true });
   } catch (err) {
-    captureError(err, { route: '/api/payments/wompi-webhook' });
-    logger.error('Webhook processing failed', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    captureError(err, { route: "/api/payments/wompi-webhook" });
+    logger.error("Webhook processing failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
