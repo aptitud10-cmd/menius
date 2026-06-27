@@ -1559,7 +1559,7 @@ export async function POST(request: NextRequest) {
 
       try {
         const claudeStream = anthropic.messages.stream({
-          model: "claude-haiku-4-5-20251001",
+          model: "claude-sonnet-4-6",
           max_tokens: 2500,
           system: fullSystemPrompt,
           tools: claudeTools,
@@ -1610,7 +1610,7 @@ export async function POST(request: NextRequest) {
 
             fullReply = "";
             const claudeStream2 = anthropic.messages.stream({
-              model: "claude-haiku-4-5-20251001",
+              model: "claude-sonnet-4-6",
               max_tokens: 2500,
               system: fullSystemPrompt,
               tools: claudeTools,
