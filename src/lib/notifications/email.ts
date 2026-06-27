@@ -1287,3 +1287,82 @@ export function buildSocialPostDigestEmail(
 </table>
 </body></html>`;
 }
+
+// ---------- Menu Optimizer Weekly Alert (MENIUS → Restaurant Owner) ----------
+
+export interface MenuOptimizerAlertParams {
+  to: string;
+  restaurantName: string;
+  insights: Array<{
+    type: string;
+    title: string;
+    description: string;
+    action: string;
+  }>;
+  dashboardUrl: string;
+  locale: string;
+}
+
+export function buildMenuOptimizerAlertEmail(
+  params: MenuOptimizerAlertParams,
+): string {
+  const { restaurantName, insights, dashboardUrl, locale } = params;
+  const en = locale === "en";
+
+  const header =
+    meniusLogoHeader() +
+    `
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td style="padding:36px 32px 28px;text-align:center;border-bottom:1px solid #f0f0f0;">
+        <p style="margin:0 0 12px;font-size:40px;line-height:1;">📊</p>
+        <p style="margin:0 0 4px;font-size:20px;font-weight:800;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;letter-spacing:-0.02em;">
+          ${en ? "Your menu has opportunities this week" : "Tu menú tiene oportunidades esta semana"}
+        </p>
+        <p style="margin:4px 0 0;font-size:13px;color:#7c3aed;font-weight:600;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          ${esc(restaurantName)}
+        </p>
+      </td>
+    </tr>
+  </table>`;
+
+  const insightsHtml = insights
+    .map(
+      (insight) => `
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom:12px;">
+    <tr>
+      <td style="background-color:#f9f7ff;border-radius:12px;padding:16px 20px;border-left:4px solid #7c3aed;">
+        <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#111827;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          ${esc(insight.title)}
+        </p>
+        <p style="margin:0 0 8px;font-size:13px;color:#6b7280;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
+          ${esc(insight.description)}
+        </p>
+        <p style="margin:0;font-size:13px;color:#059669;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-weight:600;">
+          → ${esc(insight.action)}
+        </p>
+      </td>
+    </tr>
+  </table>`,
+    )
+    .join("");
+
+  const body = `
+  <p style="margin:0 0 20px;font-size:15px;color:#374151;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;line-height:1.6;">
+    ${
+      en
+        ? `Our AI analyzed <strong>${esc(restaurantName)}</strong>'s data from the last 30 days and found <strong>${insights.length} high-priority opportunit${insights.length === 1 ? "y" : "ies"}</strong> to grow your revenue:`
+        : `Nuestra IA analizó los datos de <strong>${esc(restaurantName)}</strong> de los últimos 30 días y encontró <strong>${insights.length} oportunidad${insights.length === 1 ? "" : "es"} de alta prioridad</strong> para crecer tu revenue:`
+    }
+  </p>
+
+  ${insightsHtml}
+
+  ${ctaButton(dashboardUrl, en ? "View full analysis" : "Ver análisis completo", "#7c3aed")}`;
+
+  const footer = en
+    ? "This alert is sent weekly only when high-priority opportunities are detected. No spam — only insights that matter."
+    : "Esta alerta se envía semanalmente solo cuando se detectan oportunidades de alta prioridad. Sin spam — solo insights que importan.";
+
+  return shell("#7c3aed", header, body, footer);
+}

@@ -1,36 +1,86 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
-import { createClient } from '@/lib/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
-import { getTenant } from '@/lib/auth/get-tenant';
-import { createLogger } from '@/lib/logger';
+import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getTenant } from "@/lib/auth/get-tenant";
+import { createLogger } from "@/lib/logger";
 
-const logger = createLogger('api:reviews');
+const logger = createLogger("api:reviews");
 
-export async function PATCH(request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     const tenant = await getTenant();
-    if (!tenant) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    if (!tenant)
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-    const { id, is_visible } = await request.json();
-    if (!id || typeof is_visible !== 'boolean') {
-      return NextResponse.json({ error: 'id y is_visible requeridos' }, { status: 400 });
+    const { id, owner_response } = await request.json();
+    if (!id || typeof owner_response !== "string") {
+      return NextResponse.json(
+        { error: "id y owner_response requeridos" },
+        { status: 400 },
+      );
     }
-    const { UUID_RE } = await import('@/lib/constants');
-    if (!UUID_RE.test(String(id))) return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
+    const { UUID_RE } = await import("@/lib/constants");
+    if (!UUID_RE.test(String(id)))
+      return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+    if (owner_response.trim().length > 500) {
+      return NextResponse.json(
+        { error: "owner_response no puede superar 500 caracteres" },
+        { status: 400 },
+      );
+    }
 
     const supabase = await createClient();
 
     const { error } = await supabase
-      .from('reviews')
-      .update({ is_visible })
-      .eq('id', id)
-      .eq('restaurant_id', tenant.restaurantId);
+      .from("reviews")
+      .update({ owner_response: owner_response.trim() })
+      .eq("id", id)
+      .eq("restaurant_id", tenant.restaurantId);
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
   } catch (err) {
-    logger.error('reviews error', { error: err instanceof Error ? err.message : String(err) });
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+    logger.error("reviews POST error", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const tenant = await getTenant();
+    if (!tenant)
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+
+    const { id, is_visible } = await request.json();
+    if (!id || typeof is_visible !== "boolean") {
+      return NextResponse.json(
+        { error: "id y is_visible requeridos" },
+        { status: 400 },
+      );
+    }
+    const { UUID_RE } = await import("@/lib/constants");
+    if (!UUID_RE.test(String(id)))
+      return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+
+    const supabase = await createClient();
+
+    const { error } = await supabase
+      .from("reviews")
+      .update({ is_visible })
+      .eq("id", id)
+      .eq("restaurant_id", tenant.restaurantId);
+
+    if (error)
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    logger.error("reviews error", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
   }
 }
