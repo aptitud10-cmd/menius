@@ -78,6 +78,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Token expired" }, { status: 410 });
   }
 
+  // Block delivery-specific actions on non-delivery orders
+  if (action !== "notify_outside" && (order as any).order_type !== "delivery") {
+    return NextResponse.json(
+      {
+        error: `Action '${action}' is only valid for delivery orders. This order is '${(order as any).order_type}'.`,
+      },
+      { status: 409 },
+    );
+  }
+
   type RestRow = {
     name: string;
     locale: string | null;
@@ -93,10 +103,13 @@ export async function POST(req: NextRequest) {
   let updateData: Record<string, unknown> = {};
 
   if (action === "picked_up") {
-    const advanceToReady = canTransition(order.status, "ready");
+    const advanceToOutForDelivery = canTransition(
+      order.status,
+      "out_for_delivery",
+    );
     updateData = {
       driver_picked_up_at: now,
-      ...(advanceToReady ? { status: "ready" } : {}),
+      ...(advanceToOutForDelivery ? { status: "out_for_delivery" } : {}),
     };
   }
 
@@ -190,7 +203,9 @@ export async function POST(req: NextRequest) {
 
     // Only broadcast if the row was actually updated (prevents duplicate events on concurrent requests)
     if (updated) {
-      broadcastOrderUpdate(order.id, order.status).catch(() => {});
+      const newStatus =
+        (updateData.status as string | undefined) ?? order.status;
+      broadcastOrderUpdate(order.id, newStatus).catch(() => {});
     }
   }
 
