@@ -217,19 +217,30 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
 
     const productsWithModifiers = new Set((modGroupRows ?? []).map((g: any) => g.product_id));
 
-    const mappedProducts = ((products ?? []) as any[]).map((p: any) => ({
-      ...p,
-      variants: ((p.product_variants ?? []) as any[]).sort(
+    const mappedProducts = ((products ?? []) as any[]).map((p: any) => {
+      const variants = ((p.product_variants ?? []) as any[]).sort(
         (a: any, b: any) => a.sort_order - b.sort_order
-      ),
-      extras: ((p.product_extras ?? []) as any[]).sort(
+      );
+      const extras = ((p.product_extras ?? []) as any[]).sort(
         (a: any, b: any) => a.sort_order - b.sort_order
-      ),
-      // modifier_groups fetched lazily by /api/product-modifiers when user opens CustomizationSheet.
-      // has_modifiers flag comes from the lightweight modifier_groups presence check above.
-      modifier_groups: [],
-      has_modifiers: productsWithModifiers.has(p.id),
-    }));
+      );
+      return {
+        ...p,
+        variants,
+        extras,
+        // modifier_groups fetched lazily by /api/product-modifiers when user opens CustomizationSheet.
+        // has_modifiers must reflect ANY customization system: new modifier_groups OR
+        // legacy variants/extras. The slim pattern later empties variants/extras, so consumers
+        // (e.g. the suggestions quick-add) rely solely on this flag to decide whether to open
+        // the customization sheet — if it ignored legacy products, they'd be added to the cart
+        // uncustomized and break at checkout.
+        modifier_groups: [],
+        has_modifiers:
+          productsWithModifiers.has(p.id) ||
+          variants.length > 0 ||
+          extras.length > 0,
+      };
+    });
 
     let reviewStats: ReviewStats | null = null;
     const reviews = (reviewRows ?? []) as any[];
