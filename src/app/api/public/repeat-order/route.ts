@@ -66,6 +66,21 @@ export async function GET(request: NextRequest) {
 
     const availableProducts = new Map((currentProducts ?? []).map((p) => [p.id, p]));
 
+    // Which of these products require customization? Mirrors menu-data's logic:
+    // a product needs the customization sheet if it has modifier_groups OR legacy
+    // variants/extras. Quick-reorder only auto-adds the NON-customizable ones; the
+    // rest are flagged so the customer picks options instead of adding them raw.
+    const [modGroups, prodVariants, prodExtras] = await Promise.all([
+      adminDb.from('modifier_groups').select('product_id').in('product_id', productIds),
+      adminDb.from('product_variants').select('product_id').in('product_id', productIds),
+      adminDb.from('product_extras').select('product_id').in('product_id', productIds),
+    ]);
+    const needsCustomization = new Set<string>([
+      ...((modGroups.data ?? []) as { product_id: string }[]).map((r) => r.product_id),
+      ...((prodVariants.data ?? []) as { product_id: string }[]).map((r) => r.product_id),
+      ...((prodExtras.data ?? []) as { product_id: string }[]).map((r) => r.product_id),
+    ]);
+
     const orderItems = lastOrder.order_items as Array<{
       product_id: string;
       variant_id: string | null;
@@ -91,6 +106,7 @@ export async function GET(request: NextRequest) {
           image_url: current.image_url,
           notes: item.notes,
           price_changed: Math.abs(Number(current.price) - Number(item.unit_price)) > 0.01,
+          requires_customization: needsCustomization.has(item.product_id),
         };
       });
 

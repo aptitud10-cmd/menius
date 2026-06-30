@@ -51,6 +51,9 @@ const CustomizationSheet = dynamic(
   () => import("./CustomizationSheet").then((m) => m.CustomizationSheet),
   { ssr: false },
 );
+const RepeatOrderButton = dynamic(() => import("./RepeatOrderButton"), {
+  ssr: false,
+});
 import { InstallBanner } from "./InstallBanner";
 import { registerVisit } from "@/lib/recurring-visitor";
 import { MenuErrorBoundary } from "./MenuErrorBoundary";
@@ -3075,6 +3078,10 @@ export function MenuShell({
             )}
           </AnimatePresence>
         </MenuErrorBoundary>
+
+        {/* Reorder: floating "order again" button. Self-gates — only renders when a
+            saved phone has a previous order at this restaurant. */}
+        <RepeatOrderButton restaurantId={restaurant.id} locale={locale as "es" | "en"} />
 
         {/* ── Mobile Full-screen Search Overlay ── */}
         <AnimatePresence>

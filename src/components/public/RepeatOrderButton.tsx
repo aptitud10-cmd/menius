@@ -17,6 +17,7 @@ interface RepeatOrderItem {
   image_url: string | null;
   notes: string;
   price_changed: boolean;
+  requires_customization: boolean;
 }
 
 interface RepeatOrderData {
@@ -72,7 +73,12 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
     if (!data) return;
     setLoading(true);
 
+    // Only auto-add items that don't need customization. Items with modifiers/
+    // variants/extras can't be faithfully restored (the original selections aren't
+    // stored reusably), so adding them raw would break checkout — the customer adds
+    // those from the menu instead.
     for (const item of data.items) {
+      if (item.requires_customization) continue;
       const product = {
         id: item.product_id,
         name: item.product_name,
@@ -115,6 +121,7 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
   return (
     <>
       <button
+        type="button"
         onClick={() => setShowSheet(true)}
         className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 px-5 py-3 rounded-full bg-brand-600 text-white shadow-lg shadow-brand-600/30 hover:bg-brand-700 transition-all active:scale-95"
         data-testid="repeat-order-btn"
@@ -171,6 +178,11 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
                         {t.repeatPriceUpdated}
                       </p>
                     )}
+                    {item.requires_customization && (
+                      <p className="text-xs text-brand-600 font-medium">
+                        {t.repeatNeedsCustomization}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold">${item.current_price.toFixed(2)}</p>
@@ -180,21 +192,28 @@ export default function RepeatOrderButton({ restaurantId, locale }: Props) {
               ))}
             </div>
 
-            <button
-              onClick={handleRepeatAll}
-              disabled={loading}
-              className="w-full py-3.5 rounded-xl bg-brand-600 text-white font-bold text-base hover:bg-brand-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              data-testid="repeat-order-confirm-btn"
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <>
-                  <RotateCcw className="w-4 h-4" />
-                  {t.repeatAddItemsToCart(data.items.length)}
-                </>
-              )}
-            </button>
+            {(() => {
+              const addableCount = data.items.filter((i) => !i.requires_customization).length;
+              if (addableCount === 0) return null;
+              return (
+                <button
+                  type="button"
+                  onClick={handleRepeatAll}
+                  disabled={loading}
+                  className="w-full py-3.5 rounded-xl bg-brand-600 text-white font-bold text-base hover:bg-brand-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  data-testid="repeat-order-confirm-btn"
+                >
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <RotateCcw className="w-4 h-4" />
+                      {t.repeatAddItemsToCart(addableCount)}
+                    </>
+                  )}
+                </button>
+              );
+            })()}
           </div>
         </div>
       )}

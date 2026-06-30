@@ -382,6 +382,7 @@ export interface Translations {
   repeatSomeUnavailable: string;
   repeatPriceUpdated: string;
   repeatAddItemsToCart: (n: number) => string;
+  repeatNeedsCustomization: string;
 }
 
 const es: Translations = {
@@ -720,6 +721,7 @@ const es: Translations = {
   repeatSomeUnavailable: 'Algunos productos ya no están disponibles',
   repeatPriceUpdated: 'Precio actualizado',
   repeatAddItemsToCart: (n) => `Agregar ${n} productos al carrito`,
+  repeatNeedsCustomization: 'Elegí opciones en el menú',
 };
 
 const en: Translations = {
@@ -1058,6 +1060,7 @@ const en: Translations = {
   repeatSomeUnavailable: 'Some items are no longer available',
   repeatPriceUpdated: 'Price updated',
   repeatAddItemsToCart: (n) => `Add ${n} items to cart`,
+  repeatNeedsCustomization: 'Choose options on the menu',
 };
 
 const translations: Record<string, Translations> = { es, en };
