@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
-import { X, Minus, Plus, Check, ArrowLeft } from "lucide-react";
+import { X, Minus, Plus, Check, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, useDragControls, type PanInfo } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
 import { cn } from "@/lib/utils";
@@ -284,6 +284,14 @@ export function CustomizationSheet({
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  // Desktop arrow nav: scroll the suggestions carousel by ~2 cards. Mobile uses
+  // touch swipe (the arrows are hidden on mobile).
+  const scrollSuggestions = useCallback((dir: "left" | "right") => {
+    const el = suggestionsScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir === "left" ? -360 : 360, behavior: "smooth" });
   }, []);
 
   // Validation — use Set to ensure each group name appears at most once
@@ -664,7 +672,12 @@ export function CustomizationSheet({
         );
       })}
 
-      {/* ── Smart complementary suggestions ── */}
+      {/* ── Smart complementary suggestions ──
+          Horizontal carousel on BOTH desktop and mobile (the pattern Uber Eats /
+          DoorDash use inside the item detail). Mobile: swipe. Desktop: arrow
+          buttons + wheel-to-horizontal. Cards peek past the right edge to signal
+          there's more. The quick-add control is an OUTLINE "+" so it stays
+          visually subordinate to the solid sticky CTA below (avoids confusion). */}
       {!isEditing && (suggestedProducts ?? []).length > 0 && (
         <div className="pt-5 pb-6">
           <div className="flex items-center gap-1.5 mb-3 px-5">
@@ -672,65 +685,87 @@ export function CustomizationSheet({
               ✨
             </span>
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-              {locale === "es" ? "Agregar al pedido" : "Add to your order"}
+              {locale === "es" ? "Combiná tu pedido" : "Pair it with"}
             </p>
           </div>
-          {/* Outer wrapper is relative so the fade overlay can be positioned over the scroll area */}
-          <div className="relative">
+          <div className="relative group/sugg">
             <div
               ref={suggestionsScrollRef}
-              className="flex gap-2.5 overflow-x-auto"
+              className="flex gap-3 overflow-x-auto px-5 pb-1 scroll-smooth"
               style={
                 {
                   WebkitOverflowScrolling: "touch",
                   scrollbarWidth: "none",
                   msOverflowStyle: "none",
-                  paddingLeft: "20px",
-                  paddingRight: "20px",
                 } as React.CSSProperties
               }
             >
-              {(suggestedProducts ?? []).slice(0, 8).map((p) => (
-                <div
+              {(suggestedProducts ?? []).slice(0, 12).map((p) => (
+                <button
+                  type="button"
                   key={p.id}
                   onClick={() => onSuggestAdd?.(p)}
-                  className="flex-shrink-0 w-[120px] bg-gray-50 rounded-2xl overflow-hidden border border-gray-100 cursor-pointer active:scale-[0.97] transition-transform"
+                  aria-label={
+                    locale === "es"
+                      ? `Agregar ${tName(p, locale, defaultLocale)}`
+                      : `Add ${tName(p, locale, defaultLocale)}`
+                  }
+                  className="group/card flex-shrink-0 w-[132px] lg:w-[160px] text-left bg-white rounded-2xl overflow-hidden cursor-pointer active:scale-[0.97] transition-all duration-200 shadow-[0_1px_3px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
                 >
-                  {p.image_url ? (
-                    <div className="relative w-full h-[76px] bg-gray-100">
+                  <div className="relative w-full aspect-square bg-gray-100">
+                    {p.image_url ? (
                       <Image
                         src={p.image_url}
                         alt={tName(p, locale, defaultLocale)}
                         fill
-                        sizes="120px"
+                        sizes="160px"
                         className="object-cover"
                       />
-                    </div>
-                  ) : (
-                    <div className="w-full h-[76px] bg-gray-100 flex items-center justify-center text-2xl">
-                      🍽️
-                    </div>
-                  )}
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-3xl">
+                        🍽️
+                      </div>
+                    )}
+                    {/* Outline quick-add "+" — white fill, brand border, sits over
+                        the image corner. Deliberately lighter weight than the CTA. */}
+                    <span className="absolute bottom-2 right-2 w-7 h-7 rounded-full bg-white border-[1.5px] border-[#05c8a7] flex items-center justify-center shadow-sm group-hover/card:bg-[#05c8a7] transition-colors">
+                      <Plus className="w-4 h-4 text-[#05c8a7] group-hover/card:text-white transition-colors" />
+                    </span>
+                  </div>
                   <div className="p-2.5">
-                    <p className="text-[11px] font-semibold text-gray-800 line-clamp-2 leading-tight mb-2">
+                    <p className="text-[12px] font-medium text-gray-800 line-clamp-2 leading-tight mb-1">
                       {tName(p, locale, defaultLocale)}
                     </p>
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-[11px] font-bold text-gray-900 tabular-nums">
-                        {fmtPrice(Number(p.price))}
-                      </span>
-                      <div className="w-6 h-6 rounded-full bg-[#d0f7f1] flex items-center justify-center flex-shrink-0">
-                        <Plus className="w-3 h-3 text-[#05c8a7]" />
-                      </div>
-                    </div>
+                    <span className="text-[13px] font-semibold text-gray-700 tabular-nums">
+                      {fmtPrice(Number(p.price))}
+                    </span>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
-            {/* Fade gradient on the right edge to signal more scrollable content */}
+
+            {/* Desktop arrow controls — appear on hover. Hidden on mobile (swipe). */}
+            <button
+              type="button"
+              onClick={() => scrollSuggestions("left")}
+              aria-label={locale === "es" ? "Ver anteriores" : "Scroll left"}
+              className="hidden lg:flex absolute left-1.5 top-[78px] -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-md border border-gray-100 items-center justify-center text-gray-600 hover:text-gray-900 hover:scale-105 transition-all opacity-0 group-hover/sugg:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollSuggestions("right")}
+              aria-label={locale === "es" ? "Ver más" : "Scroll right"}
+              className="hidden lg:flex absolute right-1.5 top-[78px] -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-md border border-gray-100 items-center justify-center text-gray-600 hover:text-gray-900 hover:scale-105 transition-all opacity-0 group-hover/sugg:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+
+            {/* Right-edge fade — signals more content past the peek. */}
             {(suggestedProducts ?? []).length > 3 && (
               <div
-                className="pointer-events-none absolute top-0 right-0 h-full w-10"
+                className="pointer-events-none absolute top-0 right-0 h-full w-12"
                 style={{
                   background: "linear-gradient(to right, transparent, white)",
                 }}

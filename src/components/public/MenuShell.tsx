@@ -852,7 +852,7 @@ export function MenuShell({
         `${p.name} ${categories.find((c) => c.id === p.category_id)?.name ?? ""}`,
       );
 
-    const MAX_SUGGESTIONS = 6;
+    const MAX_SUGGESTIONS = 12;
 
     // 1. Data-driven: pairings first, then co-occurrence
     const dataProducts: Product[] = dataBasedSuggestionIds
