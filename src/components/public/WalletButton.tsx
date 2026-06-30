@@ -7,10 +7,16 @@ import { cn } from '@/lib/utils';
 interface WalletButtonProps {
   amount: number;
   currency: string;
+  /** ISO country of the restaurant's Stripe account (US, MX, …). Apple Pay
+   *  requires the correct country or the sheet won't appear / will be rejected. */
+  country: string;
   label: string;
   onSuccess: (orderId: string, orderNumber: string) => void;
   onError: (msg: string) => void;
   onCreateOrder: () => Promise<{ orderId: string; orderNumber: string } | { error: string }>;
+  /** Fires when the wallet sheet opens/closes so the parent can disable its own
+   *  submit button and avoid a parallel order. */
+  onPayingChange?: (paying: boolean) => void;
   disabled?: boolean;
 }
 
@@ -21,10 +27,12 @@ const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 export function WalletButton({
   amount,
   currency,
+  country,
   label,
   onSuccess,
   onError,
   onCreateOrder,
+  onPayingChange,
   disabled,
 }: WalletButtonProps) {
   const [canPay, setCanPay] = useState(false);
@@ -36,6 +44,13 @@ export function WalletButton({
   const callbacksRef = useRef({ onSuccess, onError, onCreateOrder, amount, currency });
   callbacksRef.current = { onSuccess, onError, onCreateOrder, amount, currency };
 
+  // Surface the paying state to the parent (to disable its submit button).
+  const onPayingChangeRef = useRef(onPayingChange);
+  onPayingChangeRef.current = onPayingChange;
+  useEffect(() => {
+    onPayingChangeRef.current?.(paying);
+  }, [paying]);
+
   useEffect(() => {
     if (!stripePromise) return;
     let cancelled = false;
@@ -45,7 +60,7 @@ export function WalletButton({
       stripeRef.current = s;
 
       const paymentRequest = s.paymentRequest({
-        country: 'MX',
+        country: (country || 'US').toUpperCase(),
         currency: currency.toLowerCase(),
         total: { label, amount: Math.round(amount * 100) },
         requestPayerName: false,
@@ -94,6 +109,7 @@ export function WalletButton({
           }
 
           if (paymentIntent?.status === 'requires_action') {
+            // Must close the wallet sheet (complete) before the 3DS modal can show.
             ev.complete('success');
             const { error: confirmError } = await s.confirmCardPayment(data.clientSecret);
             if (confirmError) {
@@ -150,20 +166,29 @@ export function WalletButton({
     prRef.current.show();
   }, [paying, disabled]);
 
-  // Only show for native wallets (Apple Pay / Google Pay). Stripe Link is excluded
-  // to avoid showing garbled/confusing UI in browsers that support it but lack a card.
-  if (!canPay || walletType === 'link' || walletType === null) return null;
+  // Show for Apple Pay, Google Pay AND Stripe Link. Each gets its own styling so
+  // Link doesn't render as a confusing black "Apple Pay-style" button (the reason
+  // it used to be excluded). Link adds a meaningful conversion lift for returning
+  // customers who already have it set up.
+  if (!canPay || walletType === null) return null;
 
   const isApple = walletType === 'applePay';
+  const isLink = walletType === 'link';
+  const ariaLabel = isApple ? 'Pay with Apple Pay' : isLink ? 'Pay with Link' : 'Pay with Google Pay';
 
   return (
     <button
+      type="button"
       onClick={handleClick}
       disabled={paying || disabled}
-      aria-label={isApple ? 'Pay with Apple Pay' : 'Pay with Google Pay'}
+      aria-label={ariaLabel}
       className={cn(
         'w-full py-4 rounded-xl font-bold text-base flex items-center justify-center gap-2 active:scale-[0.98] transition-all duration-150 disabled:opacity-50',
-        isApple ? 'bg-black text-white' : 'bg-white text-gray-900 border-2 border-gray-200'
+        isApple
+          ? 'bg-black text-white'
+          : isLink
+            ? 'bg-[#00D66F] text-black'
+            : 'bg-white text-gray-900 border-2 border-gray-200'
       )}
     >
       {paying ? (
@@ -173,6 +198,8 @@ export function WalletButton({
         </svg>
       ) : isApple ? (
         <ApplePayIcon />
+      ) : isLink ? (
+        <span className="flex items-center gap-1.5">Pay with <strong>Link</strong></span>
       ) : (
         <GooglePayIcon />
       )}

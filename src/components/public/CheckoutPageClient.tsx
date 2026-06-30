@@ -31,6 +31,10 @@ const PhoneField = dynamic(
   () => import('@/components/ui/PhoneField').then((m) => ({ default: m.PhoneField })),
   { ssr: false, loading: () => fieldSkeleton }
 );
+const WalletButton = dynamic(
+  () => import('./WalletButton').then((m) => ({ default: m.WalletButton })),
+  { ssr: false }
+);
 
 interface CartQuoteResponse {
   subtotal: number;
@@ -208,8 +212,15 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
   const confirmRef = useRef<HTMLDivElement>(null);
   const confettiTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const submittingRef = useRef(false);
-  // Generated once per checkout session — prevents duplicate orders on network retry
+  // Generated once per checkout session — prevents duplicate orders on network retry.
+  // The wallet path uses a distinct derived key so that cancelling Apple/Google Pay
+  // and then using the normal button doesn't return the un-charged 'wallet' order
+  // (which would skip payment). Each path still has its own retry idempotency.
   const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
+  const walletIdempotencyKeyRef = useRef<string>(`${idempotencyKeyRef.current}-w`);
+  // True while the Apple/Google Pay sheet is open + charging, so the normal CTA
+  // is disabled and the user can't submit a second order in parallel.
+  const [walletPaying, setWalletPaying] = useState(false);
   // Double-tap confirm before removing last qty of an item
   const [confirmRemoveIdx, setConfirmRemoveIdx] = useState<number | null>(null);
   const confirmRemoveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -434,6 +445,118 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
       return;
     }
   };
+
+  // Builds the items array sent to /api/orders. Shared by the standard submit
+  // path and the wallet (Apple/Google Pay) path so they stay byte-for-byte identical.
+  const buildOrderItemsPayload = useCallback(() => {
+    return items.map((item) => ({
+      product_id: item.product.id,
+      variant_id: item.variant?.id ?? null,
+      qty: item.qty,
+      unit_price:
+        Number(item.product.price) +
+        (item.variant?.price_delta ?? 0) +
+        item.extras.reduce((s, e) => s + Number(e.price), 0) +
+        (item.modifierSelections ?? []).reduce((s, ms) => s + ms.selectedOptions.reduce((ss, o) => ss + Number(o.price_delta), 0), 0),
+      line_total: item.lineTotal,
+      notes: item.notes,
+      extras: item.extras.map((e) => ({ extra_id: e.id, price: Number(e.price) })),
+      modifiers: (item.modifierSelections ?? []).flatMap((ms) =>
+        ms.selectedOptions.map((opt) => ({
+          group_id: ms.group.id,
+          group_name: ms.group.name,
+          option_id: opt.id,
+          option_name: opt.name,
+          price_delta: Number(opt.price_delta),
+        }))
+      ),
+    }));
+  }, [items]);
+
+  // Wallet (Apple/Google Pay) path: creates the order WITHOUT advancing the step,
+  // returning ids so WalletButton can charge the PaymentIntent. The standard flow
+  // (handleSubmitOrder) is untouched and still used by the main CTA / cash / redirect.
+  const createOrderForWallet = useCallback(async (): Promise<{ orderId: string; orderNumber: string } | { error: string }> => {
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': walletIdempotencyKeyRef.current },
+        body: JSON.stringify({
+          restaurant_id: restaurant.id,
+          locale,
+          _ot: orderToken,
+          _hp: honeypot,
+          customer_name: customerName.trim(),
+          customer_phone: customerPhone.trim(),
+          customer_email: customerEmail.trim() || undefined,
+          notes: (() => {
+            const arrival = orderType === 'dine_in' && !tableName && arrivalTime
+              ? `[${t.arrivesLabel}: ${arrivalTime}] `
+              : '';
+            return arrival + orderNotes.trim() || undefined;
+          })(),
+          order_type: orderType,
+          payment_method: 'wallet',
+          delivery_address: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
+          table_name: orderType === 'dine_in' ? (tableName || manualTableName.trim() || undefined) : undefined,
+          promo_code: promoResult?.valid ? promoCode.trim() : undefined,
+          discount_amount: discount,
+          loyalty_points_redeemed: loyaltyPointsToRedeem > 0 ? loyaltyPointsToRedeem : undefined,
+          loyalty_account_id: loyaltyPointsToRedeem > 0 ? loyaltyBalance?.account_id : undefined,
+          tip_amount: tipAmount > 0 ? tipAmount : undefined,
+          include_utensils: includeUtensils,
+          scheduled_for: scheduleEnabled && scheduledFor ? scheduledFor : undefined,
+          items: buildOrderItemsPayload(),
+        }),
+      });
+      const parsed = safeParseJson<{ error?: string; order_number?: string; order_id?: string; tracking_token?: string }>(await res.text());
+      if (!parsed.ok || !res.ok || !parsed.data.order_id || !parsed.data.order_number) {
+        return { error: formatOrderSubmitError(res.status, parsed.ok ? parsed.data.error : undefined, locale) };
+      }
+      setOrderNumber(parsed.data.order_number);
+      setOrderId(parsed.data.order_id);
+      if (parsed.data.tracking_token) setTrackingToken(parsed.data.tracking_token);
+      return { orderId: parsed.data.order_id, orderNumber: parsed.data.order_number };
+    } catch {
+      return { error: t.noConnectionRetry };
+    }
+  }, [restaurant.id, locale, orderToken, honeypot, customerName, customerPhone, customerEmail, orderNotes, arrivalTime, orderType, deliveryAddress, tableName, manualTableName, promoResult, promoCode, discount, loyaltyPointsToRedeem, loyaltyBalance, tipAmount, includeUtensils, scheduleEnabled, scheduledFor, buildOrderItemsPayload, t]);
+
+  // Wallet success: order already created + charged. Mirror the confirmation
+  // bookkeeping from handleSubmitOrder (snapshot, save customer, track, confetti).
+  const handleWalletSuccess = useCallback((_orderId: string, orderNum: string) => {
+    saveLastOrder();
+    setConfirmedItems(items.map(i => ({ name: i.product.name, qty: i.qty, variant: i.variant?.name, lineTotal: i.lineTotal })));
+    setConfirmedTotal(displayTotal);
+    try {
+      if (rememberMe) {
+        saveCustomer({
+          name: customerName.trim(),
+          phone: customerPhone.trim(),
+          email: customerEmail.trim(),
+          lastOrderType: orderType,
+          lastPaymentMethod: 'online',
+          deliveryAddress: deliveryAddress.trim() || undefined,
+        });
+        localStorage.setItem('menius_customer_phone', customerPhone.trim());
+      }
+    } catch {}
+    trackEvent('order_placed', {
+      restaurant_id: restaurant.id,
+      restaurant_slug: restaurant.slug,
+      order_number: orderNum,
+      order_type: orderType,
+      payment_method: 'wallet',
+      item_count: items.length,
+      total: cartTotal,
+      currency: restaurant.currency,
+    });
+    clearCart();
+    setStep('confirmation');
+    playSuccessChime();
+    confettiTimer.current = setTimeout(() => { if (confirmRef.current) spawnConfetti(confirmRef.current); }, 200);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saveLastOrder, items, displayTotal, rememberMe, saveCustomer, customerName, customerPhone, customerEmail, orderType, deliveryAddress, restaurant, cartTotal, clearCart]);
 
   const handleSubmitOrder = async () => {
     if (submittingRef.current) return;
@@ -1885,9 +2008,32 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
               {t.completeFormToContinue}
             </p>
           )}
+          {/* Apple Pay / Google Pay / Link — surfaced EARLY (above the main CTA) for
+              the 2x-conversion "wallet first" effect. Stripe markets only (gated out
+              of Colombia/Wompi). One tap: Face ID → creates order → charges. */}
+          {paymentMethod === 'online' && stripeConnectReady && !isColombianRestaurant && isFormReady && (
+            <div className="space-y-2 mb-2">
+              <WalletButton
+                amount={displayTotal}
+                currency={restaurant.currency}
+                country={restaurant.country_code || 'US'}
+                label={restaurant.name}
+                onCreateOrder={createOrderForWallet}
+                onSuccess={(oid, onum) => { setWalletPaying(false); handleWalletSuccess(oid, onum); }}
+                onError={(msg) => { setWalletPaying(false); setOrderError(msg); }}
+                onPayingChange={setWalletPaying}
+                disabled={submitting || items.length === 0}
+              />
+              <div className="flex items-center gap-3 py-1">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wide">{locale === 'en' ? 'or' : 'o'}</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+            </div>
+          )}
           <motion.button
             onClick={handleSubmitOrder}
-            disabled={submitting || networkRetrying || items.length === 0}
+            disabled={submitting || networkRetrying || walletPaying || items.length === 0}
             aria-label={t.placeOrderAriaLabel}
             animate={ctaShake ? { x: [0, -8, 8, -6, 6, -4, 4, 0] } : { x: 0 }}
             transition={{ duration: 0.5 }}
