@@ -295,24 +295,22 @@ COLOR SCIENCE: Rich warm tonal depth. Deep shadows with warm amber undertones â€
             (kontextResult as any)?.images?.[0]?.url ??
             null;
         } else {
-          // flux-pro/v1.1-ultra: improved architecture with fewer corner artifacts
-          const v1Result = await (fal as any).subscribe(
-            "fal-ai/flux-pro/v1.1-ultra",
+          // nano-banana-2 (Google Gemini 3.1 Flash Image): best-in-class for
+          // photoreal food/product shots. Reasoning-guided, fewer artifacts.
+          const nbResult = await (fal as any).subscribe(
+            "fal-ai/nano-banana-2",
             {
               input: {
                 prompt: finalPrompt,
                 aspect_ratio: isBanner ? "16:9" : "4:3",
-                num_inference_steps: 28,
-                guidance_scale: 3.5,
+                output_resolution: "2K",
                 num_images: 1,
-                output_format: "jpeg",
-                safety_tolerance: "5",
               },
             },
           );
           falImageUrl =
-            (v1Result as any)?.data?.images?.[0]?.url ??
-            (v1Result as any)?.images?.[0]?.url ??
+            (nbResult as any)?.data?.images?.[0]?.url ??
+            (nbResult as any)?.images?.[0]?.url ??
             null;
         }
 

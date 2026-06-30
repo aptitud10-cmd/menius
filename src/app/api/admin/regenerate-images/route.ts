@@ -174,16 +174,13 @@ export async function POST(request: NextRequest) {
               return null;
 
             } else {
-              // ── Flux Pro v1.1-ultra: single image per product in bulk mode ──
-              const result = await falClient.subscribe('fal-ai/flux-pro/v1.1-ultra', {
+              // ── nano-banana-2: best photoreal food model, single image in bulk ──
+              const result = await falClient.subscribe('fal-ai/nano-banana-2', {
                 input: {
                   prompt,
                   aspect_ratio: '1:1',
-                  num_inference_steps: 28,
-                  guidance_scale: 3.5,
+                  output_resolution: '2K',
                   num_images: 1,
-                  output_format: 'jpeg',
-                  safety_tolerance: '5',
                 },
               });
               const images: Array<{ url: string }> = result?.data?.images ?? result?.images ?? [];

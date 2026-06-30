@@ -94,54 +94,6 @@ const dofMap: Record<string, string> = {
     "f/4.0 — all shrimp in sharp focus, vibrant color and char detail clear",
 };
 
-const surfaceMap: Record<string, string> = {
-  Beverages:
-    "polished dark basalt stone bar counter, surface has subtle dark grain texture. Background: deep out-of-focus dark charcoal, smooth and featureless. No props, no food, no plates around.",
-  Drinks:
-    "polished dark basalt stone bar counter, surface has subtle dark grain texture. Background: deep out-of-focus dark charcoal, smooth and featureless.",
-  "Hot drinks":
-    "warm light oak wood table surface with visible wood grain. A thin ceramic saucer underneath the cup. Background: soft warm cream out-of-focus.",
-  Cocktails:
-    "sleek dark honed marble bar counter with subtle veining. One carefully folded linen cocktail napkin to the side. Background: deep out-of-focus black.",
-  Burgers:
-    "matte dark slate stone surface, rough texture. Background: deep matte charcoal. No extra props.",
-  Chicken:
-    "matte black ceramic tile surface. Background: deep charcoal. No extra props.",
-  Pizza:
-    "worn rustic wood board on a rough dark stone surface. Background: warm dark wood tones.",
-  Tacos:
-    "warm terracotta ceramic surface with a small natural woven cloth underneath. Background: warm earth tones.",
-  Desserts:
-    "white Carrara marble surface with soft gray veining. Background: elegant soft gray, barely perceptible.",
-  Salads:
-    "clean white marble surface. Background: bright soft natural light, airy white.",
-  Soups:
-    "dark slate or matte ceramic tile surface. Background: deep warm moody charcoal.",
-  Pasta:
-    "white linen cloth draped over a wooden restaurant table. Background: warm ambient restaurant.",
-  Breakfast:
-    "light oak wood breakfast table with fine wood grain. Background: soft warm morning light.",
-  Dinner: "polished dark slate restaurant surface. Background: deep charcoal.",
-  Appetizers:
-    "rustic wooden serving board or dark ceramic tile. Background: warm dark tones.",
-  Sandwiches:
-    "rustic weathered wooden board. Background: warm natural ambient.",
-  Grills:
-    "matte black slate stone surface with subtle rough grain. A steak knife resting diagonally to the right of the plate. Background: deep dramatic charcoal black, completely smooth.",
-  Steaks:
-    "honed dark basalt stone surface, rough and matte. A sharp steak knife visible at the edge. Background: near-black charcoal with subtle depth.",
-  Beef: "dark matte slate surface. Background: deep charcoal, moody and dramatic.",
-  Carnes:
-    "dark matte slate or black ceramic tile surface. Background: deep charcoal, no distractions.",
-  BBQ: "worn dark wood board with a natural grain, slight char stains visible for authenticity. Background: warm deep dark tones.",
-  Meat: "matte dark slate surface. Background: deep charcoal black.",
-  Seafood:
-    "white Carrara marble surface with cool gray veining. A lemon wedge and fresh herb sprig to the side. Background: soft cool gray, elegant and clean.",
-  Fish: "white ceramic tile or light marble surface. A lemon wedge and dill sprig to the side. Background: soft neutral gray.",
-  Shrimp:
-    "dark polished slate surface. A halved lemon beside the plate. Background: deep charcoal.",
-};
-
 const latinCuisineMap: Record<string, string> = {
   Mexican:
     "Served on a rustic clay or hand-painted Talavera ceramic plate. Warm terracotta tones. Cilantro, lime wedge, and vibrant salsa as natural garnishes.",
@@ -333,10 +285,14 @@ function getContainer(lowerName: string, isDrink: boolean): string {
   if (/smoothie|batido/.test(lowerName))
     return "a tall frosted glass with a paper straw and fresh fruit garnish on the rim";
   if (/agua mineral|sparkling water|water/.test(lowerName))
-    return "a clear glass bottle with condensation and a lemon slice beside it on the surface";
+    return "a clear glass bottle of water with heavy cold condensation on the glass, standing on crushed ice — NO fruit, NO lemon, NO lime, NO garnish of any kind";
   if (/jugo|juice/.test(lowerName)) return getJuiceContainer(lowerName);
-  if (/café|coffee|espresso|latte|cappuccino|olla/.test(lowerName))
-    return "a beautiful ceramic coffee mug or artisan clay pot, steam gently curling upward";
+  if (/olla/.test(lowerName))
+    return "a traditional Mexican clay jarro (clay mug) filled with dark black coffee, a cinnamon stick resting inside, gentle steam — NO milk, NO latte art";
+  if (/cold brew|iced coffee|café helado|café frío/.test(lowerName))
+    return "a tall clear glass of cold coffee over ice cubes, condensation on the glass — cold drink, NO steam, NO mug, NO latte art";
+  if (/café|coffee|espresso|latte|cappuccino/.test(lowerName))
+    return "a beautiful ceramic coffee mug, steam gently curling upward";
   if (/tea|té/.test(lowerName))
     return "a delicate ceramic mug or clear glass cup showing the tea color";
   if (/hot chocolate|chocolate caliente/.test(lowerName))
@@ -442,8 +398,14 @@ function getFoodStylingDetails(lowerName: string, isDrink: boolean): string {
     if (/smoothie/.test(lowerName))
       return "Thick vibrant tropical smoothie. Fresh fruit garnish on the rim. Straw at a natural relaxed angle.";
     if (/juice|jugo/.test(lowerName)) return getJuiceStyling(lowerName);
-    if (/coffee|café|espresso|latte|cappuccino/.test(lowerName))
+    if (/olla/.test(lowerName))
+      return "Dark black coffee in a rustic clay jarro, a cinnamon stick inside, gentle steam rising. NO milk, NO latte art — traditional Mexican café de olla.";
+    if (/cold brew|iced coffee|café helado|café frío/.test(lowerName))
+      return "Cold coffee over clear ice cubes, a swirl of cream cascading through it, condensation on the glass. Cold beverage, NO steam, NO latte art.";
+    if (/latte|cappuccino/.test(lowerName))
       return "Perfect latte art rosette or tulip pattern. Steam rising delicately. Crema golden-brown and smooth. Impeccable barista craft visible.";
+    if (/coffee|café|espresso/.test(lowerName))
+      return "Rich dark coffee, gentle steam rising, smooth crema. Clean and appetizing — only add latte art if it is a milk-based coffee.";
     return "Drink fresh, vibrant, and perfectly prepared. Garnish precisely placed. Condensation visible on cold glass. Every detail of the preparation visible.";
   }
   if (/burger|hamburguesa/.test(lowerName))
@@ -684,13 +646,16 @@ export function buildFoodPrompt({
       ? dofMap[category]
       : "f/2.8 — subject in focus, background gently defocused";
 
-  const surfaceInstruction =
-    category && surfaceMap[category]
-      ? surfaceMap[category]
-      : "clean dark matte restaurant table surface. Background: deep charcoal, smooth and out-of-focus.";
+  // Desserts must NOT inherit savory cuisine garnishes (cilantro/lime/salsa) or
+  // rustic Talavera plating — those only make sense for savory dishes.
+  const isDessert =
+    category === "Desserts" ||
+    /flan|churro|cheesecake|pay de queso|tiramisu|cr[eè]me br[uû]l[eé]e|brownie|helado|ice.?cream|tres.?leches|pastel|cake|postre|dessert|pie\b|pay\b/.test(
+      lowerName,
+    );
 
   let effectiveCuisineContext = "";
-  if (!isDrink) {
+  if (!isDrink && !isDessert) {
     if (cuisine && cuisine !== "General" && latinCuisineMap[cuisine]) {
       effectiveCuisineContext = latinCuisineMap[cuisine];
     } else if (!cuisine || cuisine === "General") {
@@ -713,13 +678,16 @@ export function buildFoodPrompt({
     }
   }
 
+  // Style overrides only affect COLOR/MOOD now — surface, angle and lighting
+  // equipment are owned by the BRAND SYSTEM below (C2). Keeping these limited to
+  // color temperature avoids contradicting the fixed slate/45°/no-softbox setup.
   const styleOverride =
     style === "rustic"
-      ? "AESTHETIC: Warm rustic feel — reclaimed wood surface with visible knots and grain, golden-hour side lighting casting long warm shadows, aged linen napkin partially visible at the edge of frame. Color temperature very warm (3200K)."
+      ? "AESTHETIC: Warm rustic mood — golden-hour side lighting casting long warm shadows. Color temperature very warm (3200K)."
       : style === "modern"
-        ? "AESTHETIC: Modern minimalist — matte ceramic vessel on a solid muted background (warm gray or off-white), single shadowless studio softbox overhead, flat-lay or 20-degree overhead angle. Negative space dominant. Color temperature neutral (5000K)."
+        ? "AESTHETIC: Modern minimalist mood — clean, restrained, generous negative space. Color temperature neutral (5000K)."
         : style === "vibrant"
-          ? "AESTHETIC: Vibrant editorial — fully saturated colors, hard natural daylight casting sharp defined shadows, high contrast between subject and background, punchy and energetic. Color temperature slightly cool (6000K)."
+          ? "AESTHETIC: Vibrant editorial mood — fully saturated colors, high contrast between subject and background, punchy and energetic. Color temperature slightly cool (6000K)."
           : "";
 
   const container = getContainer(lowerName, isDrink);
@@ -728,6 +696,20 @@ export function buildFoodPrompt({
   const ingredientSection = ingredientAnalysis
     ? buildIngredientSection(ingredientAnalysis)
     : "";
+
+  // ─── BRAND SYSTEM (C2 — global coherence across the whole platform) ────────
+  // A single fixed visual system applied to every store, every dish, so each
+  // menu reads as one cohesive professional photoshoot (like a chain brand).
+  // This OWNS surface, plating and lighting-equipment (it replaces the old
+  // per-category surfaceMap, which made tacos→terracotta, dessert→marble, etc.
+  // — that variety is what broke brand coherence). It deliberately does NOT
+  // fix the camera angle: angleMap keeps the correct per-type angle (pizza/soup
+  // flat-lay, sushi low, dessert layered) — a real chain shoots each dish TYPE
+  // consistently, not every dish at one literal angle. Dark matte slate won a
+  // 42% CTR study vs white marble; white plate maximizes contrast.
+  const brandSystem = isDrink
+    ? `BRAND SYSTEM (the single source of truth for surface & setting, replacing any other surface mentioned above): the glass sits on a dark matte slate surface, deep dark background softly out of focus with subtle warm bokeh. NO studio softbox, reflector or lighting equipment anywhere in frame. NO bright washed-out corners — every corner filled with the dark background.`
+    : `BRAND SYSTEM (the single source of truth for surface & plating, replacing any other surface mentioned above): the food is served on a CLEAN PLAIN WHITE ceramic plate (a white shallow bowl only for soups or very saucy dishes) — NEVER a cup, mug, clay pot, molcajete, Talavera, terracotta or patterned dish. The plate sits on a dark matte slate stone surface with a deep dark background softly out of focus. NO studio softbox, reflector or lighting equipment anywhere in frame. NO bright washed-out corners — every corner filled with the dark slate/background.`;
 
   return `NOT CGI, NOT 3D render, NOT illustration — this is a REAL photograph. NO cooking equipment visible, NO text or logos, NO human hands.
 
@@ -740,7 +722,7 @@ CAMERA: 50mm or 85mm prime lens, ${dofInstruction}, ISO 400 — authentic DSLR p
 ANGLE: ${angleInstruction}.
 COMPOSITION: Square 1:1 frame. Subject CENTERED in the frame — plate/bowl/glass at the geometric center. Subject fills 60-65% of the frame. Negative space distributed evenly on all four sides. SAFE ZONE: all food/drink within the central 80% — outer 10% may be cropped by UI. DO NOT shift the subject left or right — center is mandatory.
 
-SURFACE & SETTING: ${surfaceInstruction}
+SURFACE & SETTING: ${brandSystem}
 ${styleOverride ? styleOverride : ""}
 
 LIGHTING: ${lighting}
