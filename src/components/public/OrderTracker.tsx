@@ -535,6 +535,27 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
           50%      { transform: translateY(-5px); }
         }
         .float-bob { animation: floatBob 2.5s ease-in-out infinite; }
+        /* Flowing shimmer on the in-progress timeline segment (the line leaving
+           the active step). Repeating gradient slides left→right to read as
+           "this stage is happening now" — the Uber-style animated bars. */
+        @keyframes timelineFlow {
+          from { background-position: 0 0; }
+          to   { background-position: 24px 0; }
+        }
+        .timeline-flow {
+          background-image: repeating-linear-gradient(
+            90deg,
+            #05c8a7 0px,
+            #05c8a7 8px,
+            #7ee8d6 8px,
+            #7ee8d6 16px
+          );
+          background-size: 24px 100%;
+          animation: timelineFlow 0.7s linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .timeline-flow { animation: none; }
+        }
       `}</style>
 
       {/* Sticky nav bar — minimal: back + name + live badge only */}
@@ -877,17 +898,26 @@ export function OrderTracker({ restaurantId, restaurantName, restaurantSlug, res
                           </span>
                         </div>
 
-                        {/* Connecting line between circles — fills with brand color as steps complete */}
-                        {i < CUSTOMER_STEPS.length - 1 && (
-                          <div className="flex-1 h-0.5 mt-[18px] mx-1 bg-gray-100 relative overflow-hidden rounded-full">
-                            <motion.div
-                              className="absolute inset-y-0 left-0 bg-brand-500 rounded-full"
-                              initial={false}
-                              animate={{ width: i < currentStepIndex ? '100%' : '0%' }}
-                              transition={{ duration: 0.7, ease: 'easeOut' }}
-                            />
-                          </div>
-                        )}
+                        {/* Connecting line between circles — fills with brand color as
+                            steps complete. The segment LEAVING the active step shows a
+                            flowing shimmer ("this stage is in progress"). */}
+                        {i < CUSTOMER_STEPS.length - 1 && (() => {
+                          const isInProgress = i === currentStepIndex && !isComplete;
+                          return (
+                            <div className="flex-1 h-0.5 mt-[18px] mx-1 bg-gray-100 relative overflow-hidden rounded-full">
+                              {isInProgress ? (
+                                <span className="timeline-flow absolute inset-0 rounded-full opacity-80" />
+                              ) : (
+                                <motion.div
+                                  className="absolute inset-y-0 left-0 bg-brand-500 rounded-full"
+                                  initial={false}
+                                  animate={{ width: i < currentStepIndex ? '100%' : '0%' }}
+                                  transition={{ duration: 0.7, ease: 'easeOut' }}
+                                />
+                              )}
+                            </div>
+                          );
+                        })()}
                       </Fragment>
                     );
                   })}

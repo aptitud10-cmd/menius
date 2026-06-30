@@ -107,18 +107,20 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
   const productMap = useMemo(() => new Map(allProducts.map((p) => [p.id, p])), [allProducts]);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="bg-white rounded-xl border-2 border-indigo-200 ring-1 ring-indigo-100 p-5">
       <div className="flex items-center gap-2 mb-1">
-        <Link2 className="w-4 h-4 text-indigo-500" />
-        <h2 className="text-sm font-semibold text-gray-900">
-          {isEn ? 'Manual Pairings' : 'Sugerencias manuales'}
+        <span className="flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-100 flex-shrink-0">
+          <Link2 className="w-4 h-4 text-indigo-600" />
+        </span>
+        <h2 className="text-sm font-bold text-gray-900">
+          {isEn ? 'Boost sales — suggested pairings' : 'Vendé más — sugerencias del producto'}
         </h2>
         {saving && <Loader2 className="w-3.5 h-3.5 text-gray-400 animate-spin ml-auto" />}
       </div>
       <p className="text-xs text-gray-500 mb-4">
         {isEn
-          ? 'Pin specific products to always appear as suggestions when customers view this item.'
-          : 'Fija productos específicos para que aparezcan como sugerencias cuando el cliente vea este artículo.'}
+          ? 'Pick products that pair well (e.g. a drink and fries with a burger). They appear as one-tap add-ons when a customer opens this item — a proven way to raise the average order.'
+          : 'Elegí productos que combinan (ej. una bebida y papas con una hamburguesa). Aparecen como agregados de un toque cuando el cliente abre este artículo — sube el ticket promedio.'}
       </p>
 
       {loading ? (
@@ -158,6 +160,7 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
                     <button
                       type="button"
                       onClick={() => removePairing(pairing.id)}
+                      aria-label={isEn ? `Remove ${p.name}` : `Quitar ${p.name}`}
                       className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors flex-shrink-0"
                     >
                       <X className="w-4 h-4" />
@@ -186,6 +189,7 @@ export function PairingsEditor({ productId, restaurantId, allProducts }: Props) 
                     <button
                       type="button"
                       onClick={() => { setShowPicker(false); setSearch(''); }}
+                      aria-label={isEn ? 'Close search' : 'Cerrar búsqueda'}
                       className="p-1 text-gray-400 hover:text-gray-600 rounded"
                     >
                       <X className="w-4 h-4" />
