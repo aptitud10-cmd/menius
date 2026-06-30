@@ -9,9 +9,14 @@ export async function POST(request: NextRequest) {
     // Called by the n8n social workflow (service-to-service). Uses the same
     // shared secret as the crons — without it, anyone could flip the publish
     // state of any post via this service-role write. Fail closed if unset.
-    const expected = process.env.CRON_SECRET;
+    // Accept either CRON_SECRET (the platform-wide cron secret) or
+    // MENIUS_CRON_SECRET — the n8n social workflow has historically used the
+    // latter name, so allowing both avoids a silent 401 from a naming mismatch.
+    const accepted = [process.env.CRON_SECRET, process.env.MENIUS_CRON_SECRET]
+      .filter(Boolean)
+      .map((s) => `Bearer ${s}`);
     const auth = request.headers.get('authorization');
-    if (!expected || auth !== `Bearer ${expected}`) {
+    if (accepted.length === 0 || !auth || !accepted.includes(auth)) {
       return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
     }
 
