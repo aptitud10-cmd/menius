@@ -195,7 +195,7 @@ export const demoProducts: Product[] = [
     id: 'demo-p-club', restaurant_id: RID, category_id: CAT_ALMUERZOS,
     name: 'Club Sándwich',
     description: 'Triple piso con pollo, tocino, lechuga, tomate, aguacate y papas a la francesa.',
-    price: 13.49, image_url: '/seed/en/club-sandwich.webp',
+    price: 13.49, image_url: '/seed/es/club-sandwich.webp',
     is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
@@ -248,7 +248,7 @@ export const demoProducts: Product[] = [
     id: 'demo-p-quesadillas', restaurant_id: RID, category_id: CAT_CENAS,
     name: 'Quesadillas de Flor de Calabaza',
     description: 'Tortillas de maíz rellenas de flor de calabaza, queso Oaxaca y epazote.',
-    price: 9.99, image_url: '/seed/es/tacos.webp',
+    price: 9.99, image_url: '/seed/es/quesadillas.webp',
     is_active: true, sort_order: 6, created_at: now, dietary_tags: ['vegetarian'], variants: [], extras: [],
   },
 
@@ -264,7 +264,7 @@ export const demoProducts: Product[] = [
     id: 'demo-p-ceviche', restaurant_id: RID, category_id: CAT_APERITIVOS,
     name: 'Ceviche de Camarón',
     description: 'Camarones frescos marinados en limón con pepino, cebolla morada y aguacate.',
-    price: 12.99, image_url: '/seed/en/shrimp.webp',
+    price: 12.99, image_url: '/seed/es/ceviche.webp',
     is_active: true, sort_order: 2, created_at: now, dietary_tags: ['gluten_free'], variants: [], extras: [],
   },
   {
@@ -367,14 +367,14 @@ export const demoProducts: Product[] = [
     id: 'demo-p-seltzer', restaurant_id: RID, category_id: CAT_BEBIDAS,
     name: 'Seltzer Water',
     description: 'Agua mineral con gas, sin calorías ni azúcar. Botella 500 ml.',
-    price: 2.49, image_url: '/seed/en/water.webp',
+    price: 2.49, image_url: '/seed/es/seltzer.webp',
     is_active: true, sort_order: 9, created_at: older, dietary_tags: ['vegan', 'gluten_free'], variants: [], extras: [],
   },
   {
     id: 'demo-p-agua', restaurant_id: RID, category_id: CAT_BEBIDAS,
     name: 'Agua Natural',
     description: 'Botella de agua purificada sin gas, 500 ml.',
-    price: 1.99, image_url: '/seed/en/water.webp',
+    price: 1.99, image_url: '/seed/es/agua.webp',
     is_active: true, sort_order: 10, created_at: older, dietary_tags: ['vegan', 'gluten_free'], variants: [], extras: [],
   },
 
@@ -417,14 +417,14 @@ export const demoProducts: Product[] = [
     id: 'demo-p-vino', restaurant_id: RID, category_id: CAT_LICORES,
     name: 'Copa de Vino Tinto',
     description: 'Selección de vino tinto de casa del Valle de Guadalupe.',
-    price: 9.99, image_url: '/seed/en/wine.webp',
+    price: 9.99, image_url: '/seed/es/vino.webp',
     is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
   {
     id: 'demo-p-michelada', restaurant_id: RID, category_id: CAT_LICORES,
     name: 'Michelada Clásica',
     description: 'Cerveza con jugo de limón, sal, salsa picante y chamoy.',
-    price: 7.49, image_url: '/seed/es/cerveza.webp',
+    price: 7.49, image_url: '/seed/es/michelada.webp',
     is_active: true, sort_order: 6, created_at: older, dietary_tags: ['spicy'], variants: [], extras: [],
   },
 

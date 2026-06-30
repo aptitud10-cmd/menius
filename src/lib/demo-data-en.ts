@@ -118,7 +118,7 @@ export const grillHouseProducts: Product[] = [
     id: 'buc-p-burrito', restaurant_id: RID, category_id: CAT_BREAKFAST,
     name: 'Breakfast Burrito',
     description: 'Flour tortilla stuffed with scrambled eggs, cheddar, sausage, peppers, and salsa verde.',
-    price: 12.99, image_url: '/seed/en/omelette.webp',
+    price: 12.99, image_url: '/seed/en/breakfast-burrito.webp',
     is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
@@ -157,7 +157,7 @@ export const grillHouseProducts: Product[] = [
     id: 'buc-p-fishnchips', restaurant_id: RID, category_id: CAT_LUNCH,
     name: 'Fish & Chips',
     description: 'Beer-battered Atlantic cod with golden fries, coleslaw, and tartar sauce.',
-    price: 15.99, image_url: '/seed/en/calamari.webp',
+    price: 15.99, image_url: '/seed/en/fish-and-chips.webp',
     is_active: true, sort_order: 4, created_at: older, variants: [], extras: [],
   },
   {
@@ -200,7 +200,7 @@ export const grillHouseProducts: Product[] = [
     id: 'buc-p-lambchops', restaurant_id: RID, category_id: CAT_DINNER,
     name: 'Lamb Chops',
     description: 'Herb-crusted New Zealand lamb chops with mint jelly, roasted potatoes and asparagus.',
-    price: 29.99, image_url: '/seed/en/steak.webp',
+    price: 29.99, image_url: '/seed/en/lamb-chops.webp',
     is_active: true, sort_order: 3, created_at: older, variants: [], extras: [],
   },
   {
@@ -214,14 +214,14 @@ export const grillHouseProducts: Product[] = [
     id: 'buc-p-chickparm', restaurant_id: RID, category_id: CAT_DINNER,
     name: 'Chicken Parmesan',
     description: 'Breaded chicken breast topped with marinara and melted mozzarella over spaghetti.',
-    price: 18.99, image_url: '/seed/en/grilled-chicken.webp',
+    price: 18.99, image_url: '/seed/en/chicken-parmesan.webp',
     is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
   {
     id: 'buc-p-risotto', restaurant_id: RID, category_id: CAT_DINNER,
     name: 'Mushroom Risotto',
     description: 'Creamy Arborio rice with wild mushrooms, parmesan, truffle oil and fresh thyme.',
-    price: 19.99, image_url: '/seed/en/pasta.webp',
+    price: 19.99, image_url: '/seed/en/mushroom-risotto.webp',
     is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
@@ -251,7 +251,7 @@ export const grillHouseProducts: Product[] = [
     id: 'buc-p-bruschetta', restaurant_id: RID, category_id: CAT_APPETIZER,
     name: 'Bruschetta',
     description: 'Toasted ciabatta topped with diced tomatoes, basil, garlic, and balsamic glaze.',
-    price: 9.99, image_url: '/seed/en/sliders.webp',
+    price: 9.99, image_url: '/seed/en/bruschetta.webp',
     is_active: true, sort_order: 3, created_at: now, variants: [], extras: [],
   },
   {
@@ -272,7 +272,7 @@ export const grillHouseProducts: Product[] = [
     id: 'buc-p-mushrooms', restaurant_id: RID, category_id: CAT_APPETIZER,
     name: 'Stuffed Mushrooms',
     description: 'Button mushrooms filled with herbed cream cheese and breadcrumbs, baked golden.',
-    price: 10.99, image_url: '/seed/en/onion-rings.webp',
+    price: 10.99, image_url: '/seed/en/stuffed-mushrooms.webp',
     is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
@@ -314,14 +314,14 @@ export const grillHouseProducts: Product[] = [
     id: 'buc-p-freshjuice', restaurant_id: RID, category_id: CAT_BEVERAGE,
     name: 'Fresh Orange Juice',
     description: 'Freshly squeezed orange juice, no added sugar. Pure sunshine in a glass.',
-    price: 5.49, image_url: '/seed/en/smoothie.webp',
+    price: 5.49, image_url: '/seed/en/orange-juice.webp',
     is_active: true, sort_order: 5, created_at: older, variants: [], extras: [],
   },
   {
     id: 'buc-p-hotchoc', restaurant_id: RID, category_id: CAT_BEVERAGE,
     name: 'Hot Chocolate',
     description: 'Rich Belgian hot chocolate topped with whipped cream and chocolate shavings.',
-    price: 4.99, image_url: '/seed/en/coffee.webp',
+    price: 4.99, image_url: '/seed/en/hot-chocolate.webp',
     is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
@@ -371,7 +371,7 @@ export const grillHouseProducts: Product[] = [
     id: 'buc-p-espressomartini', restaurant_id: RID, category_id: CAT_DRINKS,
     name: 'Espresso Martini',
     description: 'Vodka, fresh espresso, coffee liqueur, and simple syrup. Shaken until frothy.',
-    price: 13.49, image_url: '/seed/en/whiskey.webp',
+    price: 13.49, image_url: '/seed/en/espresso-martini.webp',
     is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 
@@ -420,7 +420,7 @@ export const grillHouseProducts: Product[] = [
     id: 'buc-p-baklava', restaurant_id: RID, category_id: CAT_DESSERTS,
     name: 'Homemade Baklava',
     description: 'Flaky phyllo pastry layered with walnuts and pistachios, drizzled with honey syrup.',
-    price: 7.99, image_url: '/seed/en/tiramisu.webp',
+    price: 7.99, image_url: '/seed/en/baklava.webp',
     is_active: true, sort_order: 6, created_at: older, variants: [], extras: [],
   },
 ];
