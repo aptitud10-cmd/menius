@@ -101,6 +101,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
               fill
               sizes="(max-width: 640px) 46vw, (max-width: 1024px) 33vw, 25vw"
               priority={priority}
+              loading={priority ? undefined : 'lazy'}
               loader={product.image_url.includes('.supabase.co/storage/') ? supabaseLoader : undefined}
               placeholder={getBlurUrl(product.image_url) ? 'blur' : undefined}
               blurDataURL={getBlurUrl(product.image_url)}

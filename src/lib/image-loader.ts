@@ -43,11 +43,21 @@ export function supabaseLoader({ src, width, quality }: LoaderParams): string {
  * Generate a tiny blur placeholder data URL for a Supabase-hosted image.
  * Returns a 16px-wide version suitable for blurDataURL.
  */
-export function getBlurUrl(src: string | null | undefined): string | undefined {
-  if (!src || !src.includes('.supabase.co/storage/')) return undefined;
+// Neutral gray placeholder for images we can't generate a real blur for (external
+// hosts like Unsplash, or AI/admin-regen files that don't support /render/image/).
+// Zero network cost — a 1×1 gray SVG that Next.js scales up as the blur backdrop,
+// so cards fade in from gray instead of flashing on slow connections.
+const GENERIC_BLUR =
+  'data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221%22 height=%221%22%3E%3Crect width=%221%22 height=%221%22 fill=%22%23f3f4f6%22/%3E%3C/svg%3E';
 
-  // AI-generated and admin-regen images bypass /render/image/ (returns 400); no blur placeholder.
-  if (src.includes('/ai-') || src.includes('/admin-regen/')) return undefined;
+export function getBlurUrl(src: string | null | undefined): string | undefined {
+  if (!src) return undefined;
+
+  // External (non-Supabase) images: no transform API, use the neutral placeholder.
+  if (!src.includes('.supabase.co/storage/')) return GENERIC_BLUR;
+
+  // AI-generated and admin-regen images bypass /render/image/ (returns 400).
+  if (src.includes('/ai-') || src.includes('/admin-regen/')) return GENERIC_BLUR;
 
   const transformUrl = src.replace(
     '/storage/v1/object/public/',
