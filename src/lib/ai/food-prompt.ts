@@ -716,7 +716,7 @@ export function buildFoodPrompt({
 This is an award-winning commercial food photograph in the style of Lyan van Furth — the world's best food photographer. Every element is deliberate and masterfully composed.
 
 SUBJECT: "${productName}"${description ? ` — ${description}` : ""}.
-${ingredientSection ? `${ingredientSection}\n` : ""}SERVED IN/ON: ${container}.
+${description ? `INGREDIENT FIDELITY (critical): show ONLY the ingredients named in the subject/description above. Do NOT add garnishes, sides, croutons, cheese, herbs, sauces, fruit or any component that is not explicitly named — a "simple lettuce and tomato salad" must contain ONLY lettuce and tomato, nothing else. A tasteful minimal plate that matches the description exactly is better than an embellished one that misleads the customer.\n` : ""}${ingredientSection ? `${ingredientSection}\n` : ""}SERVED IN/ON: ${container}.
 ${effectiveCuisineContext ? `PLATING IDENTITY: ${effectiveCuisineContext}` : ""}
 CAMERA: 50mm or 85mm prime lens, ${dofInstruction}, ISO 400 — authentic DSLR photograph with natural film grain.
 ANGLE: ${angleInstruction}.
