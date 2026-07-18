@@ -42,3 +42,21 @@ export function canTransition(from: string, to: string): boolean {
 }
 
 export const ALL_STATUSES: OrderStatus[] = Object.keys(VALID_TRANSITIONS) as OrderStatus[];
+
+/**
+ * Estados que cuentan como REVENUE REALIZADO (dinero efectivamente cobrado).
+ * 'ready' NO cuenta: comida lista pero aún no entregada/pagada.
+ * 'pending' tampoco: recién entrado, sin cobro confirmado.
+ * 'served' SÍ cuenta: en dine-in el staff deja la orden en "Servida" como
+ * estado final de reposo (no avanza a 'completed'). Excluirlo escondía ventas
+ * de mesa del revenue en home/analytics/business overview.
+ *
+ * Definición ÚNICA compartida por todas las superficies (home, analytics,
+ * business overview) para que el mismo restaurante no muestre cifras distintas.
+ */
+export const REVENUE_STATUSES: OrderStatus[] = ['completed', 'delivered', 'served'];
+
+/** True si el status representa una orden cuyo importe ya es venta cobrada. */
+export function isRevenueStatus(status: string): boolean {
+  return REVENUE_STATUSES.includes(status as OrderStatus);
+}

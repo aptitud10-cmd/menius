@@ -947,11 +947,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   if (!hasMounted) {
     return (
-      <div className="min-h-[100dvh] bg-[#f5f5f5] flex flex-col">
+      <div className="h-[100dvh] bg-[#f5f5f5] flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4">
           <div className="h-5 w-24 skeleton rounded-full" />
         </header>
-        <div className="flex-1 px-4 py-5 space-y-4 max-w-lg mx-auto w-full">
+        <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4 max-w-lg mx-auto w-full">
           <div className="h-2.5 w-20 skeleton rounded-full" />
           <div className="bg-white rounded-2xl p-5 space-y-3 border border-gray-200">
             <div className="h-12 skeleton rounded-xl" />
@@ -980,7 +980,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   if (items.length === 0 && step !== 'confirmation') {
     return (
-      <div className="min-h-[100dvh] bg-gray-50 flex flex-col">
+      <div className="h-[100dvh] bg-gray-50 flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4">
           <button onClick={goBack} aria-label={t.backToMenu} className="flex items-center gap-2 text-gray-600 active:text-gray-900 transition-colors">
             <ArrowLeft className="w-5 h-5" />
@@ -1040,7 +1040,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     const restaurantInitial = restaurant.name.charAt(0).toUpperCase();
 
     return (
-      <div className="min-h-[100dvh] flex flex-col" style={{ backgroundColor: '#f6f9fc' }}>
+      <div className="h-[100dvh] flex flex-col" style={{ backgroundColor: '#f6f9fc' }}>
 
         {/* Stripe-style header */}
         <div className="w-full bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
@@ -1250,7 +1250,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   if (step === 'confirmation') {
     return (
-      <div className="min-h-[100dvh] bg-white flex flex-col">
+      <div className="h-[100dvh] bg-white flex flex-col">
         <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4 flex justify-between items-center">
           <span className="text-sm font-semibold text-gray-900">{restaurant.name}</span>
           <button onClick={goBack} className="text-sm text-[#05c8a7] font-medium">{t.backToMenu}</button>
@@ -1424,7 +1424,7 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
 
   return (
     <div
-      className="min-h-[100dvh] bg-[#f5f5f5] flex flex-col"
+      className="h-[100dvh] bg-[#f5f5f5] flex flex-col"
     >
       {/* Sticky header */}
       <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-5 py-4 flex items-center justify-between">

@@ -1,5 +1,7 @@
 import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { BusinessOverview } from '@/components/dashboard/BusinessOverview';
+import { getStartOfDayUTC } from '@/lib/date-utils';
+import { isRevenueStatus } from '@/lib/order-state';
 
 export const metadata = {
   title: 'Business Overview — MENIUS',
@@ -11,31 +13,34 @@ export default async function BusinessPage() {
   // Fetch all branches owned by this user
   const { data: branches } = await supabase
     .from('restaurants')
-    .select('id, name, slug, is_active, currency, locale, logo_url, created_at')
+    .select('id, name, slug, is_active, currency, locale, logo_url, created_at, timezone')
     .eq('owner_user_id', userId)
     .order('created_at', { ascending: true });
 
-  // Fetch today's order stats for each branch in parallel
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayISO = today.toISOString();
-
   const branchList = branches ?? [];
 
+  // "Hoy" se corta con la timezone REAL de cada sucursal, no con la medianoche
+  // UTC del runtime de Vercel (que desfasaría el corte varias horas). Cada
+  // sucursal puede tener timezone distinta, por eso el corte es per-branch.
   const statsResults = await Promise.all(
-    branchList.map(branch =>
-      supabase
+    branchList.map(branch => {
+      const todayISO = getStartOfDayUTC(branch.timezone ?? 'America/Mexico_City').toISOString();
+      return supabase
         .from('orders')
         .select('id, total, status, created_at')
         .eq('restaurant_id', branch.id)
-        .gte('created_at', todayISO)
-    )
+        .gte('created_at', todayISO);
+    })
   );
 
   const branchStats = branchList.map((branch, i) => {
     const orders = statsResults[i].data ?? [];
-    const completed = orders.filter(o => ['delivered', 'completed', 'ready'].includes(o.status));
-    const active = orders.filter(o => ['new', 'confirmed', 'preparing'].includes(o.status));
+    // Revenue realizado = definición única compartida (isRevenueStatus).
+    // 'ready' NO cuenta: comida lista pero aún no entregada/pagada.
+    const completed = orders.filter(o => isRevenueStatus(o.status));
+    // 'pending' es el estado inicial real ('new' no existe en la DB); incluirlo
+    // para que las órdenes recién entradas cuenten como activas.
+    const active = orders.filter(o => ['pending', 'confirmed', 'preparing'].includes(o.status));
     const revenue = completed.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
     return {
       ...branch,

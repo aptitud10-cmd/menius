@@ -485,6 +485,49 @@ export async function createProduct(
   return { success: true, id: created?.id };
 }
 
+// Trae las relaciones completas (variants, extras, modifier groups + options) de
+// UN producto, on-demand. Se usa al DUPLICAR: la lista del dashboard ya no carga
+// estas relaciones para todos los productos (payload slim), así que el duplicado
+// las pide solo del producto elegido. Valida ownership del tenant.
+export async function getProductForDuplication(productId: string) {
+  const {
+    supabase,
+    restaurantId,
+    error: authErr,
+  } = await getAuthenticatedRestaurant();
+  if (authErr) return { error: authErr };
+
+  const { data: product, error } = await supabase
+    .from("products")
+    .select(
+      "id, product_variants(name, price_delta, sort_order), product_extras(name, price, sort_order), modifier_groups(name, selection_type, min_select, max_select, is_required, sort_order, modifier_options(name, price_delta, is_default, sort_order))",
+    )
+    .eq("id", productId)
+    .eq("restaurant_id", restaurantId)
+    .maybeSingle();
+
+  if (error) return { error: error.message };
+  if (!product) return { error: "No encontrado" };
+
+  return {
+    success: true as const,
+    variants: (product.product_variants ?? []).sort(
+      (a, b) => a.sort_order - b.sort_order,
+    ),
+    extras: (product.product_extras ?? []).sort(
+      (a, b) => a.sort_order - b.sort_order,
+    ),
+    modifier_groups: (product.modifier_groups ?? [])
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((g) => ({
+        ...g,
+        options: (g.modifier_options ?? []).sort(
+          (a, b) => a.sort_order - b.sort_order,
+        ),
+      })),
+  };
+}
+
 export async function updateProduct(
   id: string,
   data: Partial<ProductInput> & { image_url?: string },

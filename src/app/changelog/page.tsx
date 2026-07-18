@@ -60,11 +60,6 @@ const releases: Release[] = [
         en: "Cancel subscription from the dashboard: button visible in Billing when you have an active plan. Opens the Stripe portal where you can cancel — your plan stays active until the end of the paid period and then automatically reverts to the free plan.",
       },
       {
-        type: "new",
-        es: "Desactivar plan comisión 4%: si estás en el plan de comisión por transacción, ahora puedes desactivarlo directamente desde Billing sin contactar soporte. Tu cuenta vuelve al plan gratuito al instante.",
-        en: "Deactivate 4% commission plan: if you're on the per-transaction commission plan, you can now deactivate it directly from Billing without contacting support. Your account reverts to the free plan instantly.",
-      },
-      {
         type: "improved",
         es: "Billing: modal de confirmación antes de cancelar, con detalle del plan, fecha de vencimiento y lista de funciones que perderás.",
         en: "Billing: confirmation modal before cancelling, showing your plan name, expiration date, and a list of features you'll lose.",
@@ -93,8 +88,8 @@ const releases: Release[] = [
     changes: [
       {
         type: "new",
-        es: "Pagos online con Stripe Connect disponibles desde el plan Starter — 0% de comisión MENIUS en todos los planes de suscripción (Starter, Pro, Business). El plan Free solo acepta efectivo. Wompi (Colombia) tampoco cobra comisión. Existe también un plan alternativo sin cuota mensual con 4% por transacción.",
-        en: "Online payments via Stripe Connect available from the Starter plan — 0% MENIUS commission on all subscription plans (Starter, Pro, Business). The Free plan only accepts cash. Wompi (Colombia) also has no MENIUS fee. There is also an alternative no-monthly-fee plan with 4% per transaction.",
+        es: "Pagos online con Stripe Connect disponibles desde el plan Starter — 0% de comisión MENIUS en todos los planes de suscripción (Starter, Pro, Business). El plan Free solo acepta efectivo. Wompi (Colombia) tampoco cobra comisión.",
+        en: "Online payments via Stripe Connect available from the Starter plan — 0% MENIUS commission on all subscription plans (Starter, Pro, Business). The Free plan only accepts cash. Wompi (Colombia) also has no MENIUS fee.",
       },
       {
         type: "new",

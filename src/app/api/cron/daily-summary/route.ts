@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/notifications/email';
 import { buildWeeklyDigestEmail } from '@/lib/notifications/retention-emails';
 import { createLogger } from '@/lib/logger';
+import { isRevenueStatus } from '@/lib/order-state';
 
 const logger = createLogger('weekly-digest');
 
@@ -42,7 +43,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to fetch restaurants' }, { status: 500 });
   }
 
-  const completedStatuses = ['completed', 'delivered', 'ready'];
   let sent = 0;
   let skipped = 0;
 
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
         admin.from('promotions').select('id').eq('restaurant_id', rid).eq('is_active', true),
       ]);
 
-      const completedWeek = (weekOrders ?? []).filter(o => completedStatuses.includes(o.status));
+      const completedWeek = (weekOrders ?? []).filter(o => isRevenueStatus(o.status));
       const weekRevenue = completedWeek.reduce((s, o) => s + Number(o.total), 0);
       const weekOrderCount = completedWeek.length;
 
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      const completedPrev = (prevWeekOrders ?? []).filter(o => completedStatuses.includes(o.status));
+      const completedPrev = (prevWeekOrders ?? []).filter(o => isRevenueStatus(o.status));
       const prevWeekRevenue = completedPrev.reduce((s, o) => s + Number(o.total), 0);
       const prevWeekOrderCount = completedPrev.length;
 

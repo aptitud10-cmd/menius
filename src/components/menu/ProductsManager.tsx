@@ -26,6 +26,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   createProduct, updateProduct, deleteProduct, reorderProducts, toggleProductStock,
   createVariant, createExtra, createModifierGroup, createModifierOption,
+  getProductForDuplication,
 } from '@/lib/actions/restaurant';
 import { formatPrice, cn } from '@/lib/utils';
 import type { Product, Category } from '@/types';
@@ -127,9 +128,17 @@ export function ProductsManager({
   const curr = currency || 'USD';
   const [products, setProducts] = useState(initialProducts);
   const [categories, setCategories] = useState(initialCategories);
-  const [expanded, setExpanded] = useState<Set<string>>(
-    () => new Set(initialCategories.map(c => c.id)),
-  );
+  // En catálogos grandes (>80 productos, ej. Buccaneer: 380) arrancar con TODAS
+  // las categorías expandidas monta cientos de filas dnd-kit en el primer paint
+  // y la página "se cuelga". Colapsamos por default y dejamos solo la primera
+  // categoría abierta. Misma heurística large-catalog que usa la tienda pública.
+  const [expanded, setExpanded] = useState<Set<string>>(() => {
+    const isLargeCatalog = initialProducts.length > 80;
+    if (isLargeCatalog) {
+      return new Set(initialCategories.slice(0, 1).map(c => c.id));
+    }
+    return new Set(initialCategories.map(c => c.id));
+  });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -187,18 +196,27 @@ export function ProductsManager({
         return;
       }
       const newId = res.id;
+      // La lista viene slim (sin variants/extras/modifiers), así que traemos las
+      // relaciones completas del producto original on-demand antes de copiarlas.
+      const full = await getProductForDuplication(p.id);
+      if ('error' in full) {
+        // El producto base ya se creó; avisamos que las relaciones no se copiaron.
+        toastError(defaultLocale === 'en' ? 'Could not copy variants/modifiers' : 'No se pudieron copiar variantes/modificadores');
+        window.location.reload();
+        return;
+      }
       // Copy variants
-      const variants = (p as any).variants ?? [];
+      const variants = full.variants ?? [];
       for (const v of variants) {
         await createVariant(newId, { name: v.name, price_delta: v.price_delta, sort_order: v.sort_order });
       }
       // Copy extras
-      const extras = (p as any).extras ?? [];
+      const extras = full.extras ?? [];
       for (const e of extras) {
         await createExtra(newId, { name: e.name, price: e.price, sort_order: e.sort_order });
       }
       // Copy modifier groups and their options
-      const groups = (p.modifier_groups ?? []) as any[];
+      const groups = full.modifier_groups ?? [];
       for (const g of groups) {
         const gRes = await createModifierGroup(newId, {
           name: g.name,

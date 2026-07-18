@@ -1,34 +1,8 @@
 import { redirect } from 'next/navigation';
 import { getDashboardContext } from '@/lib/get-dashboard-context';
 import { DashboardHome } from '@/components/dashboard/DashboardHome';
-
-/**
- * Returns the UTC timestamp that corresponds to midnight in the given timezone
- * for the current day (or daysAgo days before), so DB queries filter correctly.
- */
-function getStartOfDayUTC(timezone: string, daysAgo = 0): Date {
-  const now = new Date();
-  // Get the local date string (YYYY-MM-DD) in the target timezone
-  const localDateStr = now.toLocaleDateString('en-CA', { timeZone: timezone });
-  const [year, month, day] = localDateStr.split('-').map(Number);
-
-  // Build the target date (going back daysAgo days)
-  const targetDate = new Date(Date.UTC(year, month - 1, day - daysAgo));
-  const targetDateStr = targetDate.toISOString().slice(0, 10);
-
-  // Find the UTC offset at noon UTC on that day (noon avoids DST edge cases at midnight)
-  const noonUTC = new Date(`${targetDateStr}T12:00:00Z`);
-  const hourAtNoon = parseInt(
-    new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: 'numeric', hour12: false }).format(noonUTC),
-    10,
-  );
-  const normalizedHour = hourAtNoon === 24 ? 0 : hourAtNoon;
-  const offsetHours = normalizedHour - 12; // positive = east (UTC+), negative = west (UTC-)
-
-  // Midnight in the target timezone = midnight UTC minus the offset
-  const midnightUTC = new Date(`${targetDateStr}T00:00:00Z`);
-  return new Date(midnightUTC.getTime() - offsetHours * 3600 * 1000);
-}
+import { getStartOfDayUTC } from '@/lib/date-utils';
+import { isRevenueStatus } from '@/lib/order-state';
 
 /** Returns the hour (0-23) for a given Date in the specified timezone. */
 function getHourInTimezone(date: Date, timezone: string): number {
@@ -141,11 +115,14 @@ export default async function DashboardPage() {
   ]);
 
   const todaysOrders = ordersRes.data ?? [];
-  const validToday = todaysOrders.filter((o) => o.status !== 'cancelled');
-  const salesToday = validToday.reduce((sum, o) => sum + Number(o.total), 0);
+  // Revenue = solo órdenes cobradas (completed+delivered), definición única
+  // compartida con analytics y business. Antes contaba TODO lo non-cancelled
+  // (incl. pending/ready/served), inflando "Ventas hoy" ~25%.
+  const revenueToday = todaysOrders.filter((o) => isRevenueStatus(o.status));
+  const salesToday = revenueToday.reduce((sum, o) => sum + Number(o.total), 0);
   const pendingOrders = todaysOrders.filter((o) => o.status === 'pending').length;
   const cancelledToday = todaysOrders.filter((o) => o.status === 'cancelled').length;
-  const avgOrderToday = validToday.length > 0 ? salesToday / validToday.length : 0;
+  const avgOrderToday = revenueToday.length > 0 ? salesToday / revenueToday.length : 0;
 
   const activeProducts = productsRes.data?.length ?? 0;
   const activeTables = tablesRes.data?.length ?? 0;
@@ -155,13 +132,13 @@ export default async function DashboardPage() {
   const weekOrders = weekOrdersRes.data ?? [];
   const yesterdayOrders = weekOrders.filter((o) => {
     const d = new Date(o.created_at);
-    return d >= yesterdayStart && d < todayStart && o.status !== 'cancelled';
+    return d >= yesterdayStart && d < todayStart && isRevenueStatus(o.status);
   });
   const salesYesterday = yesterdayOrders.reduce((s, o) => s + Number(o.total), 0);
 
-  // Revenue by order type (today)
+  // Revenue by order type (today) — solo órdenes cobradas
   const revenueByType = { dine_in: 0, pickup: 0, delivery: 0 };
-  for (const o of validToday) {
+  for (const o of revenueToday) {
     const t = (o.order_type || 'dine_in') as keyof typeof revenueByType;
     if (t in revenueByType) revenueByType[t] += Number(o.total);
   }
@@ -194,8 +171,10 @@ export default async function DashboardPage() {
     const key = getDateStrInTimezone(new Date(o.created_at), timezone);
     const entry = dailyMap.get(key);
     if (entry) {
+      // orders = actividad del día (todo lo non-cancelled);
+      // revenue = solo órdenes cobradas, consistente con "Ventas hoy".
       entry.orders += 1;
-      entry.revenue += Number(o.total);
+      if (isRevenueStatus(o.status)) entry.revenue += Number(o.total);
     }
   }
   const chartLocale = restaurant.locale === 'en' ? 'en-US' : 'es';

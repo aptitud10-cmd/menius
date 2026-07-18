@@ -8,6 +8,7 @@ import { hasPlanAccess } from "@/lib/auth/check-plan";
 import { checkRateLimitAsync } from "@/lib/rate-limit";
 import { getPlan } from "@/lib/plans";
 import { createLogger } from "@/lib/logger";
+import { REVENUE_STATUSES, isRevenueStatus } from "@/lib/order-state";
 
 const logger = createLogger("ai-chat");
 
@@ -154,13 +155,12 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
       .select("created_at")
       .eq("restaurant_id", restaurantId)
       .gte("created_at", monthAgo)
-      .in("status", ["completed", "delivered", "ready"]),
+      .in("status", REVENUE_STATUSES),
   ]);
 
-  const completedStatuses = ["completed", "delivered", "ready"];
   const allMonth = monthOrders ?? [];
   const completedMonth = allMonth.filter((o) =>
-    completedStatuses.includes(o.status),
+    isRevenueStatus(o.status),
   );
   const monthRevenue = completedMonth.reduce((s, o) => s + Number(o.total), 0);
   const monthDiscount = allMonth.reduce(
@@ -170,13 +170,13 @@ async function gatherRestaurantContext(restaurantId: string): Promise<{
 
   const allWeek = weekOrders ?? [];
   const completedWeek = allWeek.filter((o) =>
-    completedStatuses.includes(o.status),
+    isRevenueStatus(o.status),
   );
   const weekRevenue = completedWeek.reduce((s, o) => s + Number(o.total), 0);
 
   const allToday = todayOrders ?? [];
   const completedToday = allToday.filter((o) =>
-    completedStatuses.includes(o.status),
+    isRevenueStatus(o.status),
   );
   const todayRevenue = completedToday.reduce((s, o) => s + Number(o.total), 0);
 

@@ -49,6 +49,8 @@ export const ORDER_STATUS_CONFIG: Record<string, { label: string; color: string;
   confirmed: { label: 'Confirmada', color: 'text-blue-300', bg: 'bg-blue-500/[0.12]' },
   preparing: { label: 'Preparando', color: 'text-violet-300', bg: 'bg-violet-500/[0.12]' },
   ready: { label: 'Lista', color: 'text-emerald-300', bg: 'bg-emerald-500/[0.12]' },
+  served: { label: 'Servida', color: 'text-teal-300', bg: 'bg-teal-500/[0.12]' },
   delivered: { label: 'Entregada', color: 'text-gray-400', bg: 'bg-white/[0.06]' },
+  completed: { label: 'Completada', color: 'text-gray-400', bg: 'bg-white/[0.06]' },
   cancelled: { label: 'Cancelada', color: 'text-red-300', bg: 'bg-red-500/[0.12]' },
 };

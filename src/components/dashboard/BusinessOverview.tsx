@@ -4,6 +4,7 @@ import { useTransition, useState } from 'react';
 import Image from 'next/image';
 import { Store, TrendingUp, ShoppingBag, Activity, Plus, ArrowRight, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatCurrencyByCode } from '@/lib/country-config';
 import { switchRestaurant } from '@/lib/actions/restaurant';
 import { useRouter } from 'next/navigation';
 
@@ -27,7 +28,11 @@ interface Props {
 
 function fmt(amount: number, currency: string) {
   try {
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency, minimumFractionDigits: 0 }).format(amount);
+    // Deriva el locale de la moneda (USD→en-US, MXN→es-MX, etc.), consistente
+    // con el resto del dashboard (formatPrice). Antes fijaba 'es-MX' y mostraba
+    // "USD 1,234" en negocios en dólares.
+    // Revenue sin decimales ("$1,234", no "$1,234.00") como el resto del overview.
+    return formatCurrencyByCode(amount, currency, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   } catch {
     return `$${amount.toFixed(0)}`;
   }
@@ -161,7 +166,7 @@ export function BusinessOverview({ branches, currentRestaurantId, locale }: Prop
                   <p className="text-[10px] text-amber-600 font-medium leading-tight">{isEn ? 'Active' : 'Activas'}</p>
                 </div>
                 <div className="bg-emerald-50 rounded-xl p-2.5 text-center">
-                  <p className="text-base font-bold text-emerald-700 text-[13px]">{fmt(branch.todayRevenue, branch.currency)}</p>
+                  <p className="text-[13px] font-bold text-emerald-700 tabular-nums">{fmt(branch.todayRevenue, branch.currency)}</p>
                   <p className="text-[10px] text-emerald-600 font-medium leading-tight">{isEn ? 'Revenue' : 'Ingresos'}</p>
                 </div>
               </div>
@@ -189,7 +194,7 @@ export function BusinessOverview({ branches, currentRestaurantId, locale }: Prop
                   </a>
                 )}
                 <a
-                  href={`/menu/${branch.slug}`}
+                  href={`/${branch.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors flex-shrink-0"

@@ -6,6 +6,7 @@ import { getTenant } from '@/lib/auth/get-tenant';
 import { createLogger } from '@/lib/logger';
 import { captureError } from '@/lib/error-reporting';
 import { getDashboardPlan, meetsMinPlan } from '@/lib/plan-access';
+import { isRevenueStatus } from '@/lib/order-state';
 
 const logger = createLogger('tenant-analytics');
 
@@ -117,11 +118,10 @@ export async function GET(request: NextRequest) {
     const allOrders = currentRes.data ?? [];
     const prevOrders = prevRes.data ?? [];
 
-    // 'ready' is excluded — it means food is prepared but not yet paid/delivered.
-    // Revenue is counted only for truly finalised orders.
-    const completedStatuses = ['completed', 'delivered'];
-    const completedOrders = allOrders.filter(o => completedStatuses.includes(o.status));
-    const prevCompleted = prevOrders.filter(o => completedStatuses.includes(o.status));
+    // Revenue realizado = isRevenueStatus (completed+delivered), definición única
+    // compartida con home y business. 'ready' se excluye: comida lista pero no cobrada.
+    const completedOrders = allOrders.filter(o => isRevenueStatus(o.status));
+    const prevCompleted = prevOrders.filter(o => isRevenueStatus(o.status));
 
     const totalRevenue = completedOrders.reduce((s, o) => s + Number(o.total), 0);
     const prevRevenue = prevCompleted.reduce((s, o) => s + Number(o.total), 0);
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
       const d = toLocalDate(o.created_at);
       if (!salesByDay[d]) salesByDay[d] = { date: d, orders: 0, revenue: 0 };
       salesByDay[d].orders++;
-      if (completedStatuses.includes(o.status)) {
+      if (isRevenueStatus(o.status)) {
         salesByDay[d].revenue += Number(o.total);
       }
     }

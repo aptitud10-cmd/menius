@@ -85,12 +85,18 @@ export function formatCurrency(amount: number, countryCode: string): string {
 }
 
 /** Format a monetary amount when only the ISO 4217 currency code is known (not the country). */
-export function formatCurrencyByCode(amount: number, currencyCode: string): string {
+export function formatCurrencyByCode(
+  amount: number,
+  currencyCode: string,
+  opts?: { maximumFractionDigits?: number; minimumFractionDigits?: number },
+): string {
   const entry = CURRENCY_TO_CONFIG[currencyCode];
   return new Intl.NumberFormat(entry?.locale ?? 'en-US', {
     style: 'currency',
     currency: currencyCode,
     currencyDisplay: 'symbol',
+    ...(opts?.minimumFractionDigits !== undefined && { minimumFractionDigits: opts.minimumFractionDigits }),
+    ...(opts?.maximumFractionDigits !== undefined && { maximumFractionDigits: opts.maximumFractionDigits }),
   }).format(amount);
 }
 
