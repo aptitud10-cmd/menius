@@ -124,8 +124,8 @@ const es = {
     },
   },
   socialProof: {
-    headline: 'Con tecnología de los mejores del mundo',
-    logos: ['Stripe', 'Google Gemini', 'Supabase', 'Vercel', 'Cloudflare'],
+    headline: 'Pagos seguros. Datos protegidos.',
+    logos: ['Stripe', 'Cloudflare'],
     stats: [
       { value: '0%', label: 'Comisión por pedido' },
       { value: '2 min', label: 'Menú listo' },
@@ -508,8 +508,8 @@ const en: LandingT = {
     },
   },
   socialProof: {
-    headline: 'Built with the best technology in the world',
-    logos: ['Stripe', 'Google Gemini', 'Supabase', 'Vercel', 'Cloudflare'],
+    headline: 'Secure payments. Protected data.',
+    logos: ['Stripe', 'Cloudflare'],
     stats: [
       { value: '0%', label: 'Commission per order' },
       { value: '2 min', label: 'Menu ready' },
