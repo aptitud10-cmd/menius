@@ -1382,12 +1382,13 @@ export function MenuShell({
       className="lg:hidden sticky z-40 bg-[#f5f5f3] border-b border-gray-100"
       style={{
         // Con cover, el header es absolute/top-0 y se superpone al scroll →
-        // las pills deben esquivar su alto. Sin cover, el header está en flujo
-        // (arriba del scroll), así que sumar su alto hacía doble conteo y las
-        // empujaba muy abajo. Sin cover: solo el safe-area.
+        // las pills deben esquivar su alto + notch. Sin cover, el header está en
+        // flujo arriba del scroller Y ya consumió el notch con su propio
+        // pt-[safe-area-inset-top], así que el scroller ya empieza debajo →
+        // las pills se pegan al tope del scroller con top: 0.
         top: hasCover
           ? `calc(${HEADER_HEIGHT}px + env(safe-area-inset-top))`
-          : "env(safe-area-inset-top)",
+          : 0,
         willChange: "transform",
       }}
     >
@@ -1715,11 +1716,11 @@ export function MenuShell({
             <div
               className="lg:hidden sticky z-30 bg-[#f5f5f3] border-b border-gray-100"
               style={{
-                // Con cover suma header+category pills; sin cover solo las
-                // category pills (40px), porque el header ya está en flujo.
+                // Con cover suma header+category pills+notch; sin cover solo las
+                // category pills (40px) — el header en flujo ya consumió el notch.
                 top: hasCover
                   ? `calc(${HEADER_HEIGHT + 40}px + env(safe-area-inset-top))`
-                  : `calc(40px + env(safe-area-inset-top))`,
+                  : `40px`,
               }}
             >
               {dietaryPills}

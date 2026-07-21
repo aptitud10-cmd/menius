@@ -542,13 +542,14 @@ export function AIChatWidget() {
             // Sin teclado: anclado 56px sobre el borde (encima del bottom-nav),
             // alto = pantalla − 56px, con safe-area al pie.
             // Con teclado (iOS): anclamos al borde superior del teclado
-            // (bottom = keyboardInset) y usamos la altura del viewport VISIBLE
-            // (viewportH, que ya excluye el teclado) − 56px. Usar 100dvh acá
-            // sobredimensionaba el panel y empujaba su tope fuera de pantalla.
+            // (bottom = keyboardInset) y usamos la altura COMPLETA del viewport
+            // visible (viewportH ya excluye el teclado). NO restar 56 acá: el
+            // bottom-nav queda tapado por el teclado, así que el panel ocupa todo
+            // lo visible. Restar 56 sub-dimensionaba el panel (franja muerta arriba).
             bottom: keyboardInset > 0 ? keyboardInset : 56,
             height:
               keyboardInset > 0 && viewportH > 0
-                ? `${Math.max(0, viewportH - 56)}px`
+                ? `${viewportH}px`
                 : `calc(100dvh - 56px)`,
             paddingBottom: keyboardInset > 0 ? 0 : 'env(safe-area-inset-bottom)',
           }}

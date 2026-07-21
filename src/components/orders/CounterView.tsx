@@ -1141,7 +1141,7 @@ export function CounterView({
   }
 
   return (
-    <div className="h-screen w-full bg-[#F2F2F2] flex flex-col overflow-hidden select-none">
+    <div className="h-full w-full bg-[#F2F2F2] flex flex-col overflow-hidden select-none">
 
       {/* ── New order splash ── */}
       {splashQueue.length > 0 && (

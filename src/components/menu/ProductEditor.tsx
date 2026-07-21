@@ -483,8 +483,10 @@ export function ProductEditor({
 
   return (
     <div className="min-h-[calc(100vh-64px)]">
-      {/* Sticky header */}
-      <div className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 sm:px-6 py-3">
+      {/* Sticky header. En mobile ancla DEBAJO del header de la app (sticky top-0
+          h-14 z-30) → top-14; si no, el botón Guardar quedaba tapado al scrollear.
+          En desktop la app usa sidebar lateral, así que top-0 es correcto. */}
+      <div className="sticky top-14 md:top-0 z-30 bg-white border-b border-gray-200 px-4 sm:px-6 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <button

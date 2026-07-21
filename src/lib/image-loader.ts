@@ -28,12 +28,6 @@ export function supabaseLoader({ src, width, quality }: LoaderParams): string {
   // Supabase's /render/image/ endpoint returns 400 for these files, so serve them directly.
   if (src.includes('/ai-') || src.includes('/admin-regen/')) return src;
 
-  // Manual uploads (tenant/upload) YA se guardan optimizadas: sharp las redimensiona
-  // a 800×800 webp q72 en el bucket product-images. Pasarlas por /render/image/ es un
-  // transform redundante que en tiendas nuevas paga el cold-start (segundos) sin
-  // beneficio. La extensión .webp del bucket product-images marca que pasaron por sharp.
-  if (src.includes('/product-images/') && src.endsWith('.webp')) return src;
-
   const q = quality ?? 75;
 
   const transformUrl = src.replace(
@@ -64,10 +58,6 @@ export function getBlurUrl(src: string | null | undefined): string | undefined {
 
   // AI-generated and admin-regen images bypass /render/image/ (returns 400).
   if (src.includes('/ai-') || src.includes('/admin-regen/')) return GENERIC_BLUR;
-
-  // Uploads ya optimizados (product-images/*.webp): no pasan por /render/image/,
-  // así que no hay versión de 16px que pedir — usar el placeholder neutro.
-  if (src.includes('/product-images/') && src.endsWith('.webp')) return GENERIC_BLUR;
 
   const transformUrl = src.replace(
     '/storage/v1/object/public/',

@@ -1027,7 +1027,7 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
       </div>
 
       {/* Payment Methods */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5">
+      <div id="pagos" className="bg-white rounded-2xl border border-gray-200 p-5 scroll-mt-20">
         <div className="flex items-center gap-2 mb-4">
           <CreditCard className="w-4 h-4 text-gray-500" />
           <h2 className="font-semibold text-sm text-gray-900">{t.settings_paymentMethods}</h2>

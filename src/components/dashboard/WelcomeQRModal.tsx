@@ -116,7 +116,7 @@ export function WelcomeQRModal({ slug, restaurantName, locale = 'es' }: WelcomeQ
 
   return (
     <div
-      className="fixed inset-0 z-[9999] hidden md:flex items-center justify-center p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-label={s.headline}
@@ -127,8 +127,9 @@ export function WelcomeQRModal({ slug, restaurantName, locale = 'es' }: WelcomeQ
         onClick={dismiss}
       />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+      {/* Modal — max-h + scroll interno para que en iPhone chico (o con teclado)
+          el contenido inferior y el CTA no queden inaccesibles. */}
+      <div className="relative w-full max-w-md max-h-[90dvh] overflow-y-auto bg-white rounded-3xl shadow-2xl animate-in fade-in zoom-in-95 duration-300">
 
         {/* Close */}
         <button
