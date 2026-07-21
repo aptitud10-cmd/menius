@@ -234,6 +234,9 @@ export function AIChatWidget() {
   // teclado (a diferencia de 100dvh, que no lo hace en iOS Safari) → medimos el
   // hueco que el teclado le come a la ventana y recortamos el drawer mobile.
   const [keyboardInset, setKeyboardInset] = useState(0);
+  // Altura del viewport VISIBLE (visualViewport). En iOS esta SÍ se encoge con
+  // el teclado, a diferencia de 100dvh. 0 = usar fallback dvh.
+  const [viewportH, setViewportH] = useState(0);
 
   const resizingRef = useRef(false);
   const resizeStartRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
@@ -348,11 +351,13 @@ export function AIChatWidget() {
     const vv = window.visualViewport;
     if (!vv) return; // navegador sin soporte → degrada a comportamiento actual
     const isMobile = window.innerWidth < 768;
-    if (!isMobile || !open) { setKeyboardInset(0); return; }
+    if (!isMobile || !open) { setKeyboardInset(0); setViewportH(0); return; }
     const update = () => {
       // Cuánto de la ventana tapa el teclado (incluye su desplazamiento).
       const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
       setKeyboardInset(inset);
+      // Altura visible real: 100dvh en iOS NO se encoge con el teclado, vv.height sí.
+      setViewportH(vv.height);
     };
     update();
     vv.addEventListener('resize', update);
@@ -361,6 +366,7 @@ export function AIChatWidget() {
       vv.removeEventListener('resize', update);
       vv.removeEventListener('scroll', update);
       setKeyboardInset(0);
+      setViewportH(0);
     };
   }, [open]);
 
@@ -535,19 +541,25 @@ export function AIChatWidget() {
           style={{
             // Sin teclado: anclado 56px sobre el borde (encima del bottom-nav),
             // alto = pantalla − 56px, con safe-area al pie.
-            // Con teclado (iOS): lo anclamos al borde superior del teclado
-            // (bottom = keyboardInset) y recortamos la altura ese mismo monto,
-            // así el input queda justo encima del teclado y sigue visible.
+            // Con teclado (iOS): anclamos al borde superior del teclado
+            // (bottom = keyboardInset) y usamos la altura del viewport VISIBLE
+            // (viewportH, que ya excluye el teclado) − 56px. Usar 100dvh acá
+            // sobredimensionaba el panel y empujaba su tope fuera de pantalla.
             bottom: keyboardInset > 0 ? keyboardInset : 56,
-            height: `calc(100dvh - 56px - ${keyboardInset}px)`,
+            height:
+              keyboardInset > 0 && viewportH > 0
+                ? `${Math.max(0, viewportH - 56)}px`
+                : `calc(100dvh - 56px)`,
             paddingBottom: keyboardInset > 0 ? 0 : 'env(safe-area-inset-bottom)',
           }}
         >
           <ChatPanel {...sharedPanelProps} />
         </div>
 
-        {/* Mobile launcher button — sits above the MobileBottomNav (~56px) + gap */}
-        <div className="fixed bottom-[84px] right-4 z-50">
+        {/* Mobile launcher button — sits above the MobileBottomNav (~56px) + gap.
+            Se oculta cuando el chat está abierto: con open, su ícono X se solapaba
+            con el botón enviar del panel (misma esquina inferior derecha). */}
+        <div className={`fixed bottom-[84px] right-4 z-50 ${open ? 'hidden' : ''}`}>
           {showProactive && !open && (
             <div className="absolute bottom-full right-0 mb-2 pointer-events-none">
               <div className="bg-gray-900 text-white text-xs px-3 py-2 rounded-xl shadow-xl whitespace-nowrap border border-white/10">

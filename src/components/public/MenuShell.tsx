@@ -1381,7 +1381,13 @@ export function MenuShell({
     <div
       className="lg:hidden sticky z-40 bg-[#f5f5f3] border-b border-gray-100"
       style={{
-        top: `calc(${HEADER_HEIGHT}px + env(safe-area-inset-top))`,
+        // Con cover, el header es absolute/top-0 y se superpone al scroll →
+        // las pills deben esquivar su alto. Sin cover, el header está en flujo
+        // (arriba del scroll), así que sumar su alto hacía doble conteo y las
+        // empujaba muy abajo. Sin cover: solo el safe-area.
+        top: hasCover
+          ? `calc(${HEADER_HEIGHT}px + env(safe-area-inset-top))`
+          : "env(safe-area-inset-top)",
         willChange: "transform",
       }}
     >
@@ -1709,7 +1715,11 @@ export function MenuShell({
             <div
               className="lg:hidden sticky z-30 bg-[#f5f5f3] border-b border-gray-100"
               style={{
-                top: `calc(${HEADER_HEIGHT + 40}px + env(safe-area-inset-top))`,
+                // Con cover suma header+category pills; sin cover solo las
+                // category pills (40px), porque el header ya está en flujo.
+                top: hasCover
+                  ? `calc(${HEADER_HEIGHT + 40}px + env(safe-area-inset-top))`
+                  : `calc(40px + env(safe-area-inset-top))`,
               }}
             >
               {dietaryPills}
@@ -2491,8 +2501,12 @@ export function MenuShell({
                                         }
                                       >
                                         {items.map((product) => {
+                                          // Solo las primeras imágenes above-the-fold
+                                          // en priority (eager). 8 saturaba la conexión
+                                          // mobile en el LCP de tiendas nuevas sin CDN
+                                          // caliente; el resto carga lazy al scrollear.
                                           const isPriority =
-                                            globalProductIdx < 8;
+                                            globalProductIdx < 4;
                                           globalProductIdx++;
                                           return (
                                             <motion.div

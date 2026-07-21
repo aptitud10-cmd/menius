@@ -49,7 +49,7 @@ export function StripeConnectBanner({ stripeOnboardingComplete, isEn = false }: 
           : 'Acepta pagos con tarjeta y vende hasta 30% más'}
         {' — '}
         <Link
-          href="/app/settings"
+          href="/app/billing"
           className="underline underline-offset-2 font-semibold hover:opacity-80 transition-opacity"
         >
           {isEn ? 'Set up now' : 'Configúralo ahora'}

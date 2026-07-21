@@ -6,6 +6,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 export interface DashboardContext {
   supabase: SupabaseClient;
   userId: string;
+  userEmail: string | null;
   restaurantId: string;
 }
 
@@ -26,6 +27,7 @@ export const getDashboardContext = cache(async (): Promise<DashboardContext> => 
   return {
     supabase,
     userId: user.id,
+    userEmail: user.email ?? null,
     restaurantId: profile.default_restaurant_id,
   };
 });

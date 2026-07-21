@@ -1227,7 +1227,7 @@ export function CounterView({
         </span>
 
         {/* Tabs */}
-        <nav className="flex items-center gap-1 flex-1 overflow-x-auto px-1">
+        <nav className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto [-webkit-overflow-scrolling:touch] px-1">
           <TabBtn
             label={t.tabNew} count={newOrders.length}
             active={activeTab === 'new'} urgent={newOrders.length > 0}

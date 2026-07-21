@@ -24,14 +24,14 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { supabase, userId, restaurantId } = await getDashboardContext();
+  const { supabase, userId, userEmail, restaurantId } =
+    await getDashboardContext();
 
+  // getDashboardContext ya autenticó al usuario (una llamada a auth.getUser).
+  // Reusamos su email en vez de un segundo getUser() de red aquí.
   const [
     { data: profile },
     { data: restaurant },
-    {
-      data: { user },
-    },
     { data: subscription },
   ] = await Promise.all([
     supabase
@@ -44,7 +44,6 @@ export default async function DashboardLayout({
       .select("name, slug, locale, currency, stripe_onboarding_complete")
       .eq("id", restaurantId)
       .maybeSingle(),
-    supabase.auth.getUser(),
     supabase
       .from("subscriptions")
       .select("plan_id, status, trial_end")
@@ -67,7 +66,7 @@ export default async function DashboardLayout({
 
   if (!restaurant) redirect("/onboarding/create-restaurant");
 
-  const initials = (profile?.full_name || user?.email || "U")
+  const initials = (profile?.full_name || userEmail || "U")
     .split(" ")
     .map((w: string) => w[0])
     .join("")
@@ -114,7 +113,7 @@ export default async function DashboardLayout({
               />
             </div>
 
-            <TrialBanner />
+            <TrialBanner initialSub={subscription ?? null} />
             <LimitWarningBanner />
 
             {/* User profile + sound toggle + notification bell */}
@@ -128,7 +127,7 @@ export default async function DashboardLayout({
                     {profile?.full_name || "Sin nombre"}
                   </p>
                   <p className="text-[11px] text-gray-400 truncate">
-                    {user?.email}
+                    {userEmail}
                   </p>
                 </div>
                 <NotificationBell restaurantId={restaurantId} />
@@ -165,7 +164,7 @@ export default async function DashboardLayout({
             </header>
 
             <div className="md:hidden">
-              <TrialBanner />
+              <TrialBanner initialSub={subscription ?? null} />
               <LimitWarningBanner />
             </div>
 
@@ -189,7 +188,7 @@ export default async function DashboardLayout({
           <CommandPalette slug={restaurant?.slug ?? ""} />
           <AIChatWidget />
           <CrispChat
-            userEmail={user?.email ?? undefined}
+            userEmail={userEmail ?? undefined}
             userName={profile?.full_name ?? undefined}
             hideWidget
           />
@@ -204,7 +203,7 @@ export default async function DashboardLayout({
           />
           <IdentifyUser
             userId={userId}
-            email={user?.email ?? undefined}
+            email={userEmail ?? undefined}
             name={profile?.full_name ?? undefined}
             restaurantId={restaurantId}
             restaurantName={restaurant?.name ?? undefined}

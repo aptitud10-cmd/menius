@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, BellOff } from 'lucide-react';
+import { Volume2, VolumeX } from 'lucide-react';
 import { useSoundStore } from '@/store/sound';
 import { useDashboardLocale } from '@/hooks/use-dashboard-locale';
 
@@ -36,9 +36,9 @@ export function SidebarSoundButton({ mobile = false }: SidebarSoundButtonProps) 
         }`}
       >
         {soundEnabled ? (
-          <Bell className={`w-4 h-4 ${shaking ? 'bell-shake' : ''}`} />
+          <Volume2 className={`w-4 h-4 ${shaking ? 'bell-shake' : ''}`} />
         ) : (
-          <BellOff className="w-4 h-4" />
+          <VolumeX className="w-4 h-4" />
         )}
       </button>
     );
@@ -60,9 +60,9 @@ export function SidebarSoundButton({ mobile = false }: SidebarSoundButtonProps) 
         }`}
       >
         {soundEnabled ? (
-          <Bell className={`w-3.5 h-3.5 ${shaking ? 'bell-shake' : ''}`} />
+          <Volume2 className={`w-3.5 h-3.5 ${shaking ? 'bell-shake' : ''}`} />
         ) : (
-          <BellOff className="w-3.5 h-3.5" />
+          <VolumeX className="w-3.5 h-3.5" />
         )}
       </div>
       <span className="text-[12px] font-medium truncate">

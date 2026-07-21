@@ -12,16 +12,20 @@ interface SubInfo {
   trial_end: string | null;
 }
 
-export function TrialBanner() {
+// `initialSub` viene del layout server-side (ya cargó la subscription). Si se
+// pasa, evitamos el fetch client-side redundante (y su layout shift). Sin él,
+// degrada al fetch como antes.
+export function TrialBanner({ initialSub }: { initialSub?: SubInfo | null } = {}) {
   const { locale } = useDashboardLocale();
-  const [sub, setSub] = useState<SubInfo | null>(null);
+  const [sub, setSub] = useState<SubInfo | null>(initialSub ?? null);
 
   useEffect(() => {
+    if (initialSub !== undefined) return; // data ya provista por el server
     fetch('/api/billing/subscription')
       .then((r) => r.json())
       .then((d) => setSub(d.subscription ?? null))
       .catch(() => {});
-  }, []);
+  }, [initialSub]);
 
   if (!sub) return null;
 
