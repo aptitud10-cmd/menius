@@ -204,7 +204,7 @@ export function DashboardNav({ slug, mobile, planId = 'free' }: DashboardNavProp
       <>
         <button
           onClick={() => setOpen(!open)}
-          className="p-2 -mr-2 rounded-lg hover:bg-gray-100 transition-colors"
+          className="flex items-center justify-center w-11 h-11 -mr-2 rounded-lg hover:bg-gray-100 transition-colors"
           aria-label={open ? t.nav_closeMenu : t.nav_openMenu}
           aria-expanded={open}
         >
@@ -219,7 +219,7 @@ export function DashboardNav({ slug, mobile, planId = 'free' }: DashboardNavProp
             <div
               className="fixed top-14 left-0 right-0 bottom-14 bg-white z-50 px-4 pt-4 overflow-y-auto overscroll-contain animate-fade-in"
               style={{
-                paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+                paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
                 WebkitOverflowScrolling: 'touch',
               }}
             >

@@ -29,7 +29,7 @@ export function SidebarSoundButton({ mobile = false }: SidebarSoundButtonProps) 
       <button
         onClick={() => setSoundEnabled(!soundEnabled)}
         title={soundEnabled ? t.notif_mute : t.notif_unmute}
-        className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 ${
+        className={`w-11 h-11 rounded-lg flex items-center justify-center transition-all duration-200 ${
           soundEnabled
             ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
             : 'bg-gray-100 text-gray-400 hover:bg-gray-200'

@@ -2675,7 +2675,7 @@ function OrderDetail({
           {/* Action icons */}
           <div className="flex items-center gap-1.5 flex-shrink-0 relative">
             <button onClick={onPrint}
-              className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+              className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
               title="Print">
               <Printer className="w-4 h-4 text-white" />
             </button>
@@ -2683,7 +2683,7 @@ function OrderDetail({
               <div className="relative">
                 <button
                   onClick={() => setMoreActionsOpen(v => !v)}
-                  className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+                  className="w-11 h-11 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
                   title={t.moreActions}
                 >
                   <Settings2 className="w-4 h-4 text-white" />
@@ -2707,7 +2707,7 @@ function OrderDetail({
             {/* Cancel/Reject button */}
             <button
               onClick={() => onCancelRequest(tab === 'new' ? 'reject' : 'cancel')}
-              className="w-9 h-9 rounded-full bg-white/20 hover:bg-red-500/70 flex items-center justify-center transition-colors"
+              className="w-11 h-11 rounded-full bg-white/20 hover:bg-red-500/70 flex items-center justify-center transition-colors"
               title={tab === 'new' ? t.rejectOrder : t.cancelOrder}
             >
               <X className="w-4 h-4 text-white" />
@@ -3072,7 +3072,12 @@ function OrderDetail({
       <StatusHistory orderId={order.id} t={t} />
 
       {/* ── Action Buttons ── */}
-      <div className="flex-none p-4 bg-white border-t border-[#E8E8E8] space-y-2">
+      {/* pb con safe-area: el botón primario no debe caer bajo la barra de gestos
+          de iOS (home indicator) en Counter abierto en navegador móvil. */}
+      <div
+        className="flex-none px-4 pt-4 bg-white border-t border-[#E8E8E8] space-y-2"
+        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+      >
 
         {/* NEW tab: confirm button */}
         {tab === 'new' && (
@@ -3090,13 +3095,15 @@ function OrderDetail({
 
         {/* PREP tab: dine-in → serve directly; pickup/delivery → mark ready */}
         {tab === 'prep' && (
-          <div className="space-y-2">
-            {/* Secondary: almost ready — only show when not already almost_ready */}
+          <div className="space-y-3">
+            {/* Secondary: almost ready — only show when not already almost_ready.
+                h-11 + gap mayor al primario para evitar mistap bajo presión de servicio
+                (avanzar estado es irreversible + notifica al cliente). */}
             {order.status !== 'almost_ready' && (
               <button
                 disabled={isUpdating}
                 onClick={() => onMarkAlmostReady(order)}
-                className="w-full h-10 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border-2 transition-all active:scale-[0.98] disabled:opacity-40"
+                className="w-full h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border-2 transition-all active:scale-[0.98] disabled:opacity-40"
                 style={{ borderColor: '#E0E0E0', color: '#555', background: '#FAFAFA' }}
               >
                 {t.almostReadyBtn} <span className="text-amber-400">⏱</span>

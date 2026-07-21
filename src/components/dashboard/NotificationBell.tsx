@@ -215,7 +215,7 @@ export function NotificationBell({ restaurantId }: NotificationBellProps) {
         onClick={handleOpen}
         aria-label={t.notif_bell_title}
         className={cn(
-          "relative flex items-center justify-center w-8 h-8 rounded-lg transition-colors",
+          "relative flex items-center justify-center w-11 h-11 rounded-lg transition-colors",
           open
             ? "bg-gray-100 text-gray-700"
             : "text-gray-400 hover:bg-gray-100 hover:text-gray-700",

@@ -26,7 +26,7 @@ export function MobileBottomNav() {
   return (
     <nav
       className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom))' }}
     >
       <div className="flex items-stretch">
         {NAV_ITEMS.map((item) => {

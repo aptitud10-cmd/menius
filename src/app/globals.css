@@ -290,6 +290,11 @@ html, body {
   }
   input, select, textarea {
     min-height: 48px;
+    /* iOS Safari hace auto-zoom al enfocar cualquier control < 16px. Forzar 16px
+       SOLO en dispositivos táctiles evita el zoom sin agrandar la tipografía de
+       14px en desktop. Cubre .dash-input/.dash-select y cualquier input con
+       text-sm (ej. editor de modificadores) de forma sistémica. */
+    font-size: 16px;
   }
 }
 
