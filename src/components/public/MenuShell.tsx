@@ -1649,9 +1649,15 @@ export function MenuShell({
               {/* Desktop: nombre + info a la izquierda, rating a la derecha */}
               <div className="hidden lg:flex absolute bottom-0 left-0 right-0 px-8 pb-5 items-end justify-between gap-4">
                 <div className="min-w-0">
-                  <h1 className="text-4xl font-black text-white drop-shadow-sm leading-tight truncate">
+                  {/* Gemelo desktop del <h1> mobile de arriba: CSS oculta uno,
+                      pero AMBOS quedan en el DOM y los crawlers leían el nombre
+                      del restaurante duplicado. Solo el primero es <h1>. */}
+                  <div
+                    role="presentation"
+                    className="text-4xl font-black text-white drop-shadow-sm leading-tight truncate"
+                  >
                     {restaurant.name}
-                  </h1>
+                  </div>
                   {restaurant.description && (
                     <p className="text-sm text-white/75 mt-1 max-w-lg line-clamp-1">
                       {restaurant.description}
@@ -1884,9 +1890,14 @@ export function MenuShell({
                     <div className="hidden lg:block mb-8">
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <h1 className="text-3xl font-black text-gray-950">
+                          {/* Gemelo desktop del <h1> mobile (bloque lg:hidden
+                              de arriba). Mismo motivo: un solo <h1> por página. */}
+                          <div
+                            role="presentation"
+                            className="text-3xl font-black text-gray-950"
+                          >
                             {restaurant.name}
-                          </h1>
+                          </div>
                           {restaurant.description && (
                             <p className="text-base text-gray-500 mt-1.5 max-w-xl">
                               {restaurant.description}
@@ -3096,7 +3107,10 @@ export function MenuShell({
 
         {/* Reorder: floating "order again" button. Self-gates — only renders when a
             saved phone has a previous order at this restaurant. */}
-        <RepeatOrderButton restaurantId={restaurant.id} locale={locale as "es" | "en"} />
+        <RepeatOrderButton
+          restaurantId={restaurant.id}
+          locale={locale as "es" | "en"}
+        />
 
         {/* ── Mobile Full-screen Search Overlay ── */}
         <AnimatePresence>

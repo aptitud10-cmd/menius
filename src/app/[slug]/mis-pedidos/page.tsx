@@ -9,7 +9,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   return {
-    title: `Mis pedidos | MENIUS`,
+    title: `Mis pedidos`,
     description: 'Consulta el historial de tus pedidos',
     robots: { index: false },
   };

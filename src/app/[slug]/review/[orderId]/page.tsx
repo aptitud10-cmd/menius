@@ -11,7 +11,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   return {
-    title: `Leave a review | MENIUS`,
+    title: `Leave a review`,
     description: 'Rate your experience',
     robots: { index: false, follow: false },
   };
