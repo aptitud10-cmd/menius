@@ -1,6 +1,14 @@
 export interface BlogPost {
   slug: string;
+  /** Titular del articulo — es el <h1> visible de la pagina. */
   title: string;
+  /**
+   * Titulo para el <title> de la pagina, cuando `title` pasa los ~60
+   * caracteres que muestra Google y se corta a la mitad. El <h1> sigue usando
+   * `title` completo: el lector ve el titular largo, el buscador el corto.
+   * Si no esta definido, el <title> cae a `title`.
+   */
+  seoTitle?: string;
   description: string;
   category: string;
   readTime: number;
@@ -8,18 +16,22 @@ export interface BlogPost {
   author: string;
   content: string;
   title_en?: string;
+  seoTitle_en?: string;
   description_en?: string;
   category_en?: string;
   content_en?: string;
 }
 
-type Locale = 'es' | 'en';
+type Locale = "es" | "en";
 
 export function getLocalizedPost(post: BlogPost, locale: Locale): BlogPost {
-  if (locale === 'en' && post.title_en) {
+  if (locale === "en" && post.title_en) {
     return {
       ...post,
       title: post.title_en,
+      // Sin esto, un post en ingles heredaria el seoTitle en espanol.
+      // Si no hay version EN corta, cae al title_en completo.
+      seoTitle: post.seoTitle_en,
       description: post.description_en || post.description,
       category: post.category_en || post.category,
       content: post.content_en || post.content,
@@ -29,38 +41,56 @@ export function getLocalizedPost(post: BlogPost, locale: Locale): BlogPost {
 }
 
 export function getLocalizedBlogPosts(locale: Locale): BlogPost[] {
-  return blogPosts.map(p => getLocalizedPost(p, locale));
+  return blogPosts.map((p) => getLocalizedPost(p, locale));
 }
 
-export function getLocalizedBlogPost(slug: string, locale: Locale): BlogPost | undefined {
-  const post = blogPosts.find(p => p.slug === slug);
+export function getLocalizedBlogPost(
+  slug: string,
+  locale: Locale,
+): BlogPost | undefined {
+  const post = blogPosts.find((p) => p.slug === slug);
   if (!post) return undefined;
   return getLocalizedPost(post, locale);
 }
 
-export function getLocalizedRelatedPosts(slug: string, locale: Locale, limit = 3): BlogPost[] {
-  const current = blogPosts.find(p => p.slug === slug);
+export function getLocalizedRelatedPosts(
+  slug: string,
+  locale: Locale,
+  limit = 3,
+): BlogPost[] {
+  const current = blogPosts.find((p) => p.slug === slug);
   if (!current) return getLocalizedBlogPosts(locale).slice(0, limit);
   return blogPosts
-    .filter(p => p.slug !== slug)
-    .sort((a, b) => (a.category === current.category ? -1 : b.category === current.category ? 1 : 0))
+    .filter((p) => p.slug !== slug)
+    .sort((a, b) =>
+      a.category === current.category
+        ? -1
+        : b.category === current.category
+          ? 1
+          : 0,
+    )
     .slice(0, limit)
-    .map(p => getLocalizedPost(p, locale));
+    .map((p) => getLocalizedPost(p, locale));
 }
 
 export function getLocalizedCategories(locale: Locale): string[] {
-  return Array.from(new Set(getLocalizedBlogPosts(locale).map(p => p.category)));
+  return Array.from(
+    new Set(getLocalizedBlogPosts(locale).map((p) => p.category)),
+  );
 }
 
 export const blogPosts: BlogPost[] = [
   {
-    slug: 'como-crear-menu-digital-restaurante',
-    title: 'Cómo crear un menú digital para tu restaurante en 2026: Guía completa',
-    description: 'Aprende paso a paso cómo digitalizar tu menú, generar códigos QR para tus mesas, y empezar a recibir pedidos online desde el celular de tus clientes.',
-    category: 'Guías',
+    slug: "como-crear-menu-digital-restaurante",
+    title:
+      "Cómo crear un menú digital para tu restaurante en 2026: Guía completa",
+    seoTitle: "Cómo crear un menú digital para tu restaurante",
+    description:
+      "Aprende paso a paso cómo digitalizar tu menú, generar códigos QR para tus mesas, y empezar a recibir pedidos online desde el celular de tus clientes.",
+    category: "Guías",
     readTime: 8,
-    date: '2026-02-10',
-    author: 'MENIUS',
+    date: "2026-02-10",
+    author: "MENIUS",
     content: `
 ## ¿Por qué necesitas un menú digital en 2026?
 
@@ -129,9 +159,11 @@ Con tu menú digital activo, los pedidos llegan a tu dashboard en tiempo real. P
 
 Digitalizar tu menú es una de las mejores inversiones que puedes hacer para tu restaurante. No solo mejora la experiencia del cliente, sino que aumenta tus ventas, reduce errores, y te da datos valiosos para tomar mejores decisiones.
     `,
-    title_en: 'How to Create a Digital Menu for Your Restaurant in 2026: Complete Guide',
-    description_en: 'Learn step by step how to digitize your menu, generate QR codes for your tables, and start receiving online orders from your customers\' phones.',
-    category_en: 'Guides',
+    title_en:
+      "How to Create a Digital Menu for Your Restaurant in 2026: Complete Guide",
+    description_en:
+      "Learn step by step how to digitize your menu, generate QR codes for your tables, and start receiving online orders from your customers' phones.",
+    category_en: "Guides",
     content_en: `
 ## Why Do You Need a Digital Menu in 2026?
 
@@ -202,13 +234,14 @@ Digitizing your menu is one of the best investments you can make for your restau
     `,
   },
   {
-    slug: 'menu-digital-vs-apps-delivery',
-    title: 'Menú digital propio vs Apps de delivery: ¿Cuál conviene más?',
-    description: 'Comparamos los costos, beneficios y desventajas de tener tu propio menú digital vs depender de apps de delivery como Uber Eats, Rappi o DoorDash.',
-    category: 'Comparativas',
+    slug: "menu-digital-vs-apps-delivery",
+    title: "Menú digital propio vs Apps de delivery: ¿Cuál conviene más?",
+    description:
+      "Comparamos los costos, beneficios y desventajas de tener tu propio menú digital vs depender de apps de delivery como Uber Eats, Rappi o DoorDash.",
+    category: "Comparativas",
     readTime: 6,
-    date: '2026-02-08',
-    author: 'MENIUS',
+    date: "2026-02-08",
+    author: "MENIUS",
     content: `
 ## El dilema de todo restaurantero
 
@@ -261,9 +294,10 @@ La clave es migrar gradualmente a tus clientes al canal directo, donde tú contr
 
 No se trata de elegir uno u otro, sino de entender que cada canal tiene su propósito. Pero si hoy dependes 100% de apps de delivery, estás dejando miles de dólares sobre la mesa cada año.
     `,
-    title_en: 'Your Own Digital Menu vs Delivery Apps: Which Is Better?',
-    description_en: 'We compare the costs, benefits, and drawbacks of having your own digital menu vs depending on delivery apps like Uber Eats, Rappi, or DoorDash.',
-    category_en: 'Comparisons',
+    title_en: "Your Own Digital Menu vs Delivery Apps: Which Is Better?",
+    description_en:
+      "We compare the costs, benefits, and drawbacks of having your own digital menu vs depending on delivery apps like Uber Eats, Rappi, or DoorDash.",
+    category_en: "Comparisons",
     content_en: `
 ## Every Restaurant Owner's Dilemma
 
@@ -318,13 +352,15 @@ It's not about choosing one or the other, but understanding that each channel ha
     `,
   },
   {
-    slug: 'beneficios-codigos-qr-restaurantes',
-    title: '7 beneficios de los códigos QR en restaurantes que debes conocer',
-    description: 'Descubre cómo los códigos QR transforman la experiencia de tu restaurante: desde menús digitales hasta pedidos más rápidos y menos errores.',
-    category: 'Tecnología',
+    slug: "beneficios-codigos-qr-restaurantes",
+    title: "7 beneficios de los códigos QR en restaurantes que debes conocer",
+    seoTitle: "7 beneficios de los códigos QR en restaurantes",
+    description:
+      "Descubre cómo los códigos QR transforman la experiencia de tu restaurante: desde menús digitales hasta pedidos más rápidos y menos errores.",
+    category: "Tecnología",
     readTime: 5,
-    date: '2026-02-05',
-    author: 'MENIUS',
+    date: "2026-02-05",
+    author: "MENIUS",
     content: `
 ## Los códigos QR llegaron para quedarse
 
@@ -367,9 +403,10 @@ Un restaurante promedio gasta entre $500 y $2,000 al año en impresión de menú
 5. Capacita brevemente a tu equipo
 6. ¡Empieza a recibir pedidos digitales!
     `,
-    title_en: '7 Benefits of QR Codes in Restaurants You Need to Know',
-    description_en: 'Discover how QR codes transform your restaurant experience: from digital menus to faster orders and fewer errors.',
-    category_en: 'Technology',
+    title_en: "7 Benefits of QR Codes in Restaurants You Need to Know",
+    description_en:
+      "Discover how QR codes transform your restaurant experience: from digital menus to faster orders and fewer errors.",
+    category_en: "Technology",
     content_en: `
 ## QR Codes Are Here to Stay
 
@@ -414,13 +451,15 @@ An average restaurant spends between $500 and $2,000 per year on menu printing. 
     `,
   },
   {
-    slug: 'aumentar-ventas-menu-digital',
-    title: 'Cómo aumentar las ventas de tu restaurante con un menú digital',
-    description: '5 estrategias probadas para vender más usando tu menú digital: fotos, upselling, promociones, reviews y analytics.',
-    category: 'Estrategia',
+    slug: "aumentar-ventas-menu-digital",
+    title: "Cómo aumentar las ventas de tu restaurante con un menú digital",
+    seoTitle: "Cómo aumentar las ventas con un menú digital",
+    description:
+      "5 estrategias probadas para vender más usando tu menú digital: fotos, upselling, promociones, reviews y analytics.",
+    category: "Estrategia",
     readTime: 7,
-    date: '2026-02-01',
-    author: 'MENIUS',
+    date: "2026-02-01",
+    author: "MENIUS",
     content: `
 ## Un menú digital no solo digitaliza — puede multiplicar tus ventas
 
@@ -473,9 +512,10 @@ La estructura ideal de un menú digital para maximizar ventas:
 
 Demasiadas opciones generan parálisis. Menos opciones = decisiones más rápidas = más ventas.
     `,
-    title_en: 'How to Increase Your Restaurant Sales with a Digital Menu',
-    description_en: '5 proven strategies to sell more using your digital menu: photos, upselling, promotions, reviews, and analytics.',
-    category_en: 'Strategy',
+    title_en: "How to Increase Your Restaurant Sales with a Digital Menu",
+    description_en:
+      "5 proven strategies to sell more using your digital menu: photos, upselling, promotions, reviews, and analytics.",
+    category_en: "Strategy",
     content_en: `
 ## A Digital Menu Doesn't Just Digitize — It Can Multiply Your Sales
 
@@ -530,13 +570,16 @@ Too many options create paralysis. Fewer options = faster decisions = more sales
     `,
   },
   {
-    slug: 'fotos-comida-inteligencia-artificial',
-    title: 'Fotos de comida con inteligencia artificial: Guía para restaurantes',
-    description: 'Cómo usar IA para generar fotos profesionales de tus platillos sin contratar un fotógrafo. Ahorra tiempo y dinero.',
-    category: 'Tecnología',
+    slug: "fotos-comida-inteligencia-artificial",
+    title:
+      "Fotos de comida con inteligencia artificial: Guía para restaurantes",
+    seoTitle: "Fotos de comida con IA: guía para restaurantes",
+    description:
+      "Cómo usar IA para generar fotos profesionales de tus platillos sin contratar un fotógrafo. Ahorra tiempo y dinero.",
+    category: "Tecnología",
     readTime: 5,
-    date: '2026-01-28',
-    author: 'MENIUS',
+    date: "2026-01-28",
+    author: "MENIUS",
     content: `
 ## El problema: Fotos profesionales son caras
 
@@ -583,9 +626,11 @@ Sí, siempre que las fotos representen fielmente lo que el cliente va a recibir.
 
 La IA no reemplaza completamente la fotografía profesional, pero democratiza el acceso a fotos de calidad para restaurantes de todos los tamaños. Ya no necesitas un gran presupuesto para tener un menú visualmente atractivo.
     `,
-    title_en: 'Food Photos with Artificial Intelligence: A Guide for Restaurants',
-    description_en: 'How to use AI to generate professional photos of your dishes without hiring a photographer. Save time and money.',
-    category_en: 'Technology',
+    title_en:
+      "Food Photos with Artificial Intelligence: A Guide for Restaurants",
+    description_en:
+      "How to use AI to generate professional photos of your dishes without hiring a photographer. Save time and money.",
+    category_en: "Technology",
     content_en: `
 ## The Problem: Professional Photos Are Expensive
 
@@ -634,13 +679,14 @@ AI doesn't completely replace professional photography, but it democratizes acce
     `,
   },
   {
-    slug: 'errores-digitalizar-restaurante',
-    title: 'Los 8 errores más comunes al digitalizar tu restaurante',
-    description: 'Evita estos errores frecuentes que cometen los restaurantes al implementar menús digitales, pedidos online y códigos QR.',
-    category: 'Educación',
+    slug: "errores-digitalizar-restaurante",
+    title: "Los 8 errores más comunes al digitalizar tu restaurante",
+    description:
+      "Evita estos errores frecuentes que cometen los restaurantes al implementar menús digitales, pedidos online y códigos QR.",
+    category: "Educación",
     readTime: 6,
-    date: '2026-01-25',
-    author: 'MENIUS',
+    date: "2026-01-25",
+    author: "MENIUS",
     content: `
 ## Digitalizar no es solo "poner un QR en la mesa"
 
@@ -686,9 +732,10 @@ No pongas todos tus huevos en una sola canasta. Combina tu menú digital propio 
 4. Revisa analytics semanalmente
 5. Itera y mejora constantemente
     `,
-    title_en: 'The 8 Most Common Mistakes When Digitizing Your Restaurant',
-    description_en: 'Avoid these frequent mistakes restaurants make when implementing digital menus, online orders, and QR codes.',
-    category_en: 'Education',
+    title_en: "The 8 Most Common Mistakes When Digitizing Your Restaurant",
+    description_en:
+      "Avoid these frequent mistakes restaurants make when implementing digital menus, online orders, and QR codes.",
+    category_en: "Education",
     content_en: `
 ## Digitizing Isn't Just "Putting a QR on the Table"
 
@@ -736,13 +783,15 @@ Don't put all your eggs in one basket. Combine your own digital menu with delive
     `,
   },
   {
-    slug: 'reducir-costos-restaurante-tecnologia',
-    title: 'Cómo reducir costos operativos en tu restaurante con tecnología',
-    description: 'Descubre cómo la tecnología puede ayudarte a ahorrar en impresión, personal, errores y comisiones de delivery.',
-    category: 'Estrategia',
+    slug: "reducir-costos-restaurante-tecnologia",
+    title: "Cómo reducir costos operativos en tu restaurante con tecnología",
+    seoTitle: "Cómo reducir costos con tecnología",
+    description:
+      "Descubre cómo la tecnología puede ayudarte a ahorrar en impresión, personal, errores y comisiones de delivery.",
+    category: "Estrategia",
     readTime: 6,
-    date: '2026-01-20',
-    author: 'MENIUS',
+    date: "2026-01-20",
+    author: "MENIUS",
     content: `
 ## Los márgenes en restaurantes son estrechos
 
@@ -803,9 +852,11 @@ Eso es un retorno de inversión de **3,380%**.
 
 La tecnología no es un gasto, es una inversión. Y en un negocio con márgenes estrechos como un restaurante, cada optimización cuenta.
     `,
-    title_en: 'How to Reduce Operating Costs in Your Restaurant with Technology',
-    description_en: 'Discover how technology can help you save on printing, staff, errors, and delivery commissions.',
-    category_en: 'Strategy',
+    title_en:
+      "How to Reduce Operating Costs in Your Restaurant with Technology",
+    description_en:
+      "Discover how technology can help you save on printing, staff, errors, and delivery commissions.",
+    category_en: "Strategy",
     content_en: `
 ## Restaurant Margins Are Tight
 
@@ -868,13 +919,14 @@ Technology isn't an expense, it's an investment. And in a business with tight ma
     `,
   },
   {
-    slug: 'tendencias-restaurantes-2026',
-    title: 'Tendencias de restaurantes en 2026: Lo que necesitas saber',
-    description: 'Las 6 tendencias más importantes que están transformando la industria restaurantera este año.',
-    category: 'Tendencias',
+    slug: "tendencias-restaurantes-2026",
+    title: "Tendencias de restaurantes en 2026: Lo que necesitas saber",
+    description:
+      "Las 6 tendencias más importantes que están transformando la industria restaurantera este año.",
+    category: "Tendencias",
     readTime: 7,
-    date: '2026-01-15',
-    author: 'MENIUS',
+    date: "2026-01-15",
+    author: "MENIUS",
     content: `
 ## La industria restaurantera evoluciona rápido
 
@@ -932,9 +984,10 @@ El pago debe ser invisible. Los restaurantes que ofrecen múltiples opciones de 
 
 Los restaurantes que adopten estas tendencias hoy estarán mejor posicionados para el futuro.
     `,
-    title_en: 'Restaurant Trends in 2026: What You Need to Know',
-    description_en: 'The 6 most important trends transforming the restaurant industry this year.',
-    category_en: 'Trends',
+    title_en: "Restaurant Trends in 2026: What You Need to Know",
+    description_en:
+      "The 6 most important trends transforming the restaurant industry this year.",
+    category_en: "Trends",
     content_en: `
 ## The Restaurant Industry Is Evolving Fast
 
@@ -994,13 +1047,15 @@ Restaurants that adopt these trends today will be better positioned for the futu
     `,
   },
   {
-    slug: 'configurar-pedidos-online-restaurante',
-    title: 'Cómo configurar pedidos online para tu restaurante paso a paso',
-    description: 'Tutorial completo para implementar pedidos online en tu restaurante: desde el menú digital hasta el primer pedido.',
-    category: 'Guías',
+    slug: "configurar-pedidos-online-restaurante",
+    title: "Cómo configurar pedidos online para tu restaurante paso a paso",
+    seoTitle: "Cómo configurar pedidos online paso a paso",
+    description:
+      "Tutorial completo para implementar pedidos online en tu restaurante: desde el menú digital hasta el primer pedido.",
+    category: "Guías",
     readTime: 8,
-    date: '2026-01-10',
-    author: 'MENIUS',
+    date: "2026-01-10",
+    author: "MENIUS",
     content: `
 ## Pedidos online: La oportunidad que no puedes ignorar
 
@@ -1096,9 +1151,10 @@ Una vez que todo funciona correctamente:
 - Crea promociones para impulsar ventas
 - Responde a las reseñas de tus clientes
     `,
-    title_en: 'How to Set Up Online Orders for Your Restaurant Step by Step',
-    description_en: 'Complete tutorial to implement online orders in your restaurant: from the digital menu to the first order.',
-    category_en: 'Guides',
+    title_en: "How to Set Up Online Orders for Your Restaurant Step by Step",
+    description_en:
+      "Complete tutorial to implement online orders in your restaurant: from the digital menu to the first order.",
+    category_en: "Guides",
     content_en: `
 ## Online Orders: The Opportunity You Can't Ignore
 
@@ -1196,13 +1252,16 @@ Once everything works correctly:
     `,
   },
   {
-    slug: 'restaurantes-abandonan-apps-delivery',
-    title: 'Por qué cada vez más restaurantes están abandonando las apps de delivery',
-    description: 'Análisis de por qué los restaurantes están migrando de apps de delivery a canales propios y cómo esto mejora sus márgenes.',
-    category: 'Opinión',
+    slug: "restaurantes-abandonan-apps-delivery",
+    title:
+      "Por qué cada vez más restaurantes están abandonando las apps de delivery",
+    seoTitle: "Por qué los restaurantes dejan el delivery",
+    description:
+      "Análisis de por qué los restaurantes están migrando de apps de delivery a canales propios y cómo esto mejora sus márgenes.",
+    category: "Opinión",
     readTime: 6,
-    date: '2026-01-05',
-    author: 'MENIUS',
+    date: "2026-01-05",
+    author: "MENIUS",
     content: `
 ## El romance con las apps de delivery está terminando
 
@@ -1264,9 +1323,10 @@ La lógica es simple:
 
 Las apps de delivery seguirán existiendo y tienen su lugar en la estrategia de un restaurante. Pero depender exclusivamente de ellas es un error financiero. Los restaurantes más inteligentes están construyendo sus propios canales digitales para controlar su destino.
     `,
-    title_en: 'Why More and More Restaurants Are Leaving Delivery Apps',
-    description_en: 'Analysis of why restaurants are migrating from delivery apps to their own channels and how this improves their margins.',
-    category_en: 'Opinion',
+    title_en: "Why More and More Restaurants Are Leaving Delivery Apps",
+    description_en:
+      "Analysis of why restaurants are migrating from delivery apps to their own channels and how this improves their margins.",
+    category_en: "Opinion",
     content_en: `
 ## The Romance with Delivery Apps Is Ending
 
@@ -1330,13 +1390,16 @@ Delivery apps will continue to exist and have their place in a restaurant's stra
     `,
   },
   {
-    slug: 'asistente-ia-restaurantes-menius-ai',
-    title: 'MENIUS AI: Cómo un asistente inteligente está transformando la gestión de restaurantes',
-    description: 'Descubre cómo MENIUS AI, el asistente inteligente integrado en tu dashboard, te ayuda a analizar ventas, entender a tus clientes y tomar mejores decisiones para tu restaurante.',
-    category: 'Tecnología',
+    slug: "asistente-ia-restaurantes-menius-ai",
+    title:
+      "MENIUS AI: Cómo un asistente inteligente está transformando la gestión de restaurantes",
+    seoTitle: "MENIUS AI: asistente para restaurantes",
+    description:
+      "Descubre cómo MENIUS AI, el asistente inteligente integrado en tu dashboard, te ayuda a analizar ventas, entender a tus clientes y tomar mejores decisiones para tu restaurante.",
+    category: "Tecnología",
     readTime: 7,
-    date: '2026-02-16',
-    author: 'MENIUS',
+    date: "2026-02-16",
+    author: "MENIUS",
     content: `
 ## La inteligencia artificial llega al restaurante
 
@@ -1385,9 +1448,11 @@ Nada adicional. MENIUS AI está incluido en todos los planes de MENIUS, incluyen
 
 La IA ya no es el futuro — es el presente. Los restaurantes que adopten herramientas inteligentes hoy tendrán una ventaja competitiva enorme. Con MENIUS AI, tienes un analista de negocio, un consultor, y un asistente técnico — todo en uno, todo gratis, todo el tiempo.
     `,
-    title_en: 'MENIUS AI: How an Intelligent Assistant Is Transforming Restaurant Management',
-    description_en: 'Discover how MENIUS AI, the intelligent assistant built into your dashboard, helps you analyze sales, understand your customers, and make better decisions for your restaurant.',
-    category_en: 'Technology',
+    title_en:
+      "MENIUS AI: How an Intelligent Assistant Is Transforming Restaurant Management",
+    description_en:
+      "Discover how MENIUS AI, the intelligent assistant built into your dashboard, helps you analyze sales, understand your customers, and make better decisions for your restaurant.",
+    category_en: "Technology",
     content_en: `
 ## Artificial Intelligence Arrives at the Restaurant
 
@@ -1438,13 +1503,16 @@ AI is no longer the future — it's the present. Restaurants that adopt intellig
     `,
   },
   {
-    slug: 'google-maps-menu-digital-restaurante',
-    title: 'Por qué Google Maps en tu menú digital es clave para atraer más clientes',
-    description: 'Integrar Google Maps en tu menú digital ayuda a los clientes a encontrarte fácilmente y aumenta la confianza en tu restaurante. Descubre cómo MENIUS lo hace automáticamente.',
-    category: 'Marketing',
+    slug: "google-maps-menu-digital-restaurante",
+    title:
+      "Por qué Google Maps en tu menú digital es clave para atraer más clientes",
+    seoTitle: "Google Maps en tu menú digital: por qué importa",
+    description:
+      "Integrar Google Maps en tu menú digital ayuda a los clientes a encontrarte fácilmente y aumenta la confianza en tu restaurante. Descubre cómo MENIUS lo hace automáticamente.",
+    category: "Marketing",
     readTime: 5,
-    date: '2026-02-14',
-    author: 'MENIUS',
+    date: "2026-02-14",
+    author: "MENIUS",
     content: `
 ## La ubicación importa más de lo que crees
 
@@ -1491,9 +1559,11 @@ Según estudios de Google:
 
 Un mapa no es un detalle menor — es una herramienta de conversión. Los restaurantes que facilitan que sus clientes los encuentren, venden más. Con MENIUS, Google Maps viene integrado sin costo y sin configuración técnica.
     `,
-    title_en: 'Why Google Maps in Your Digital Menu Is Key to Attracting More Customers',
-    description_en: 'Integrating Google Maps into your digital menu helps customers find you easily and increases trust in your restaurant. Discover how MENIUS does it automatically.',
-    category_en: 'Marketing',
+    title_en:
+      "Why Google Maps in Your Digital Menu Is Key to Attracting More Customers",
+    description_en:
+      "Integrating Google Maps into your digital menu helps customers find you easily and increases trust in your restaurant. Discover how MENIUS does it automatically.",
+    category_en: "Marketing",
     content_en: `
 ## Location Matters More Than You Think
 
@@ -1542,13 +1612,16 @@ A map is not a minor detail — it's a conversion tool. Restaurants that make it
     `,
   },
   {
-    slug: 'cocina-kds-pedidos-tiempo-real',
-    title: 'Kitchen Display System (KDS): La pantalla que elimina errores en tu cocina',
-    description: 'Un KDS muestra los pedidos en tiempo real en la cocina, elimina los tickets de papel y reduce errores. Descubre cómo funciona el KDS de MENIUS.',
-    category: 'Operación',
+    slug: "cocina-kds-pedidos-tiempo-real",
+    title:
+      "Kitchen Display System (KDS): La pantalla que elimina errores en tu cocina",
+    seoTitle: "KDS: la pantalla que elimina errores en tu cocina",
+    description:
+      "Un KDS muestra los pedidos en tiempo real en la cocina, elimina los tickets de papel y reduce errores. Descubre cómo funciona el KDS de MENIUS.",
+    category: "Operación",
     readTime: 6,
-    date: '2026-02-12',
-    author: 'MENIUS',
+    date: "2026-02-12",
+    author: "MENIUS",
     content: `
 ## ¿Qué es un KDS (Kitchen Display System)?
 
@@ -1600,9 +1673,11 @@ Solo una tablet o monitor en la cocina con conexión a internet. Abres la secci�
 
 Un KDS no es un lujo — es una necesidad operativa. Elimina errores, acelera la cocina, y mejora la experiencia del cliente. Con MENIUS, el KDS viene incluido en todos los planes y funciona desde cualquier dispositivo con navegador.
     `,
-    title_en: 'Kitchen Display System (KDS): The Screen That Eliminates Errors in Your Kitchen',
-    description_en: 'A KDS shows orders in real time in the kitchen, eliminates paper tickets, and reduces errors. Discover how the MENIUS KDS works.',
-    category_en: 'Operations',
+    title_en:
+      "Kitchen Display System (KDS): The Screen That Eliminates Errors in Your Kitchen",
+    description_en:
+      "A KDS shows orders in real time in the kitchen, eliminates paper tickets, and reduces errors. Discover how the MENIUS KDS works.",
+    category_en: "Operations",
     content_en: `
 ## What Is a KDS (Kitchen Display System)?
 
@@ -1658,16 +1733,21 @@ A KDS is not a luxury — it's an operational necessity. It eliminates errors, s
 
   // ── Post 14: Manejar reviews negativas ──────────────────────────────────
   {
-    slug: 'como-manejar-reviews-negativas-restaurante',
-    title: 'Cómo responder reviews negativas en tu restaurante (y convertirlas en clientes fieles)',
-    description: 'Una mala reseña no tiene que destruir tu reputación. Aprende el método profesional para responder críticas, recuperar clientes insatisfechos y mejorar tu rating.',
-    category: 'Estrategia',
+    slug: "como-manejar-reviews-negativas-restaurante",
+    title:
+      "Cómo responder reviews negativas en tu restaurante (y convertirlas en clientes fieles)",
+    seoTitle: "Cómo responder reviews negativas",
+    description:
+      "Una mala reseña no tiene que destruir tu reputación. Aprende el método profesional para responder críticas, recuperar clientes insatisfechos y mejorar tu rating.",
+    category: "Estrategia",
     readTime: 6,
-    date: '2026-03-01',
-    author: 'MENIUS',
-    title_en: 'How to Handle Negative Reviews at Your Restaurant (and Turn Them into Loyal Customers)',
-    description_en: 'A bad review doesn\'t have to destroy your reputation. Learn the professional method to respond to criticism, recover unhappy customers, and improve your rating.',
-    category_en: 'Strategy',
+    date: "2026-03-01",
+    author: "MENIUS",
+    title_en:
+      "How to Handle Negative Reviews at Your Restaurant (and Turn Them into Loyal Customers)",
+    description_en:
+      "A bad review doesn't have to destroy your reputation. Learn the professional method to respond to criticism, recover unhappy customers, and improve your rating.",
+    category_en: "Strategy",
     content: `
 ## La realidad de las reseñas negativas
 
@@ -1840,16 +1920,21 @@ The goal isn't 5.0 — it's being the restaurant that responds best when somethi
 
   // ── Post 15: Fotos con celular ────────────────────────────────────────────
   {
-    slug: 'fotos-comida-celular-restaurante',
-    title: 'Cómo tomar fotos de comida profesionales con tu celular (sin fotógrafo)',
-    description: 'Aprende técnicas simples de fotografía gastronómica con smartphone: iluminación, ángulos, composición y edición gratuita para que tus platillos se vean irresistibles.',
-    category: 'Marketing',
+    slug: "fotos-comida-celular-restaurante",
+    title:
+      "Cómo tomar fotos de comida profesionales con tu celular (sin fotógrafo)",
+    seoTitle: "Cómo tomar fotos de comida con tu celular",
+    description:
+      "Aprende técnicas simples de fotografía gastronómica con smartphone: iluminación, ángulos, composición y edición gratuita para que tus platillos se vean irresistibles.",
+    category: "Marketing",
     readTime: 7,
-    date: '2026-03-03',
-    author: 'MENIUS',
-    title_en: 'How to Take Professional Food Photos with Your Phone (No Photographer Needed)',
-    description_en: 'Learn simple smartphone food photography techniques: lighting, angles, composition, and free editing so your dishes look irresistible.',
-    category_en: 'Marketing',
+    date: "2026-03-03",
+    author: "MENIUS",
+    title_en:
+      "How to Take Professional Food Photos with Your Phone (No Photographer Needed)",
+    description_en:
+      "Learn simple smartphone food photography techniques: lighting, angles, composition, and free editing so your dishes look irresistible.",
+    category_en: "Marketing",
     content: `
 ## Por qué las fotos son tu herramienta de ventas más poderosa
 
@@ -2006,16 +2091,21 @@ You don't need a professional photographer to have a digital menu that sells. Yo
 
   // ── Post 16: Checklist apertura restaurante ───────────────────────────────
   {
-    slug: 'checklist-apertura-restaurante-digital',
-    title: 'Checklist completo: Todo lo que necesitas para abrir tu restaurante con menú digital desde el día 1',
-    description: 'La lista definitiva de 47 puntos para lanzar tu restaurante correctamente: permisos, menú digital, pagos online, marketing inicial y primeras semanas de operación.',
-    category: 'Guías',
+    slug: "checklist-apertura-restaurante-digital",
+    title:
+      "Checklist completo: Todo lo que necesitas para abrir tu restaurante con menú digital desde el día 1",
+    seoTitle: "Checklist para abrir tu restaurante digital",
+    description:
+      "La lista definitiva de 47 puntos para lanzar tu restaurante correctamente: permisos, menú digital, pagos online, marketing inicial y primeras semanas de operación.",
+    category: "Guías",
     readTime: 9,
-    date: '2026-03-05',
-    author: 'MENIUS',
-    title_en: 'Complete Checklist: Everything You Need to Open Your Restaurant with a Digital Menu from Day 1',
-    description_en: 'The definitive 47-point list to launch your restaurant correctly: permits, digital menu, online payments, initial marketing, and first weeks of operation.',
-    category_en: 'Guides',
+    date: "2026-03-05",
+    author: "MENIUS",
+    title_en:
+      "Complete Checklist: Everything You Need to Open Your Restaurant with a Digital Menu from Day 1",
+    description_en:
+      "The definitive 47-point list to launch your restaurant correctly: permits, digital menu, online payments, initial marketing, and first weeks of operation.",
+    category_en: "Guides",
     content: `
 ## Por qué los primeros 90 días definen el éxito de tu restaurante
 
@@ -2221,16 +2311,21 @@ Opening a successful restaurant requires preparation, not just good food. This c
 
   // ── Post 17: Fidelizar sin apps delivery ──────────────────────────────────
   {
-    slug: 'fidelizar-clientes-restaurante-sin-apps-delivery',
-    title: 'Cómo fidelizar clientes de tu restaurante sin depender de apps de delivery',
-    description: 'Las apps de delivery se quedan con tus clientes. Aprende estrategias concretas para construir tu propia base de clientes fieles que ordenan directamente contigo.',
-    category: 'Estrategia',
+    slug: "fidelizar-clientes-restaurante-sin-apps-delivery",
+    title:
+      "Cómo fidelizar clientes de tu restaurante sin depender de apps de delivery",
+    seoTitle: "Cómo fidelizar clientes sin apps de delivery",
+    description:
+      "Las apps de delivery se quedan con tus clientes. Aprende estrategias concretas para construir tu propia base de clientes fieles que ordenan directamente contigo.",
+    category: "Estrategia",
     readTime: 7,
-    date: '2026-03-07',
-    author: 'MENIUS',
-    title_en: 'How to Build Customer Loyalty at Your Restaurant Without Delivery Apps',
-    description_en: 'Delivery apps keep your customers. Learn concrete strategies to build your own loyal customer base that orders directly from you.',
-    category_en: 'Strategy',
+    date: "2026-03-07",
+    author: "MENIUS",
+    title_en:
+      "How to Build Customer Loyalty at Your Restaurant Without Delivery Apps",
+    description_en:
+      "Delivery apps keep your customers. Learn concrete strategies to build your own loyal customer base that orders directly from you.",
+    category_en: "Strategy",
     content: `
 ## El problema real con las apps de delivery: No son tus clientes
 
@@ -2384,16 +2479,21 @@ Target: 70-80% direct orders, 20-30% apps for new customer acquisition.
     `,
   },
   {
-    slug: 'marketing-hub-automatizaciones-restaurante',
-    title: 'Marketing Hub: Cómo automatizar el marketing de tu restaurante sin ser experto',
-    description: 'Descubre cómo usar campañas de email, SMS, generador de posts con IA y las 9 automatizaciones preconfiguradas de MENIUS para atraer y retener clientes en piloto automático.',
-    category: 'Marketing',
+    slug: "marketing-hub-automatizaciones-restaurante",
+    title:
+      "Marketing Hub: Cómo automatizar el marketing de tu restaurante sin ser experto",
+    seoTitle: "Marketing Hub para tu restaurante",
+    description:
+      "Descubre cómo usar campañas de email, SMS, generador de posts con IA y las 9 automatizaciones preconfiguradas de MENIUS para atraer y retener clientes en piloto automático.",
+    category: "Marketing",
     readTime: 7,
-    date: '2026-03-08',
-    author: 'MENIUS',
-    title_en: 'Marketing Hub: How to Automate Your Restaurant Marketing Without Being an Expert',
-    description_en: 'Discover how to use email campaigns, SMS, AI post generator, and the 9 pre-built automations in MENIUS to attract and retain customers on autopilot.',
-    category_en: 'Marketing',
+    date: "2026-03-08",
+    author: "MENIUS",
+    title_en:
+      "Marketing Hub: How to Automate Your Restaurant Marketing Without Being an Expert",
+    description_en:
+      "Discover how to use email campaigns, SMS, AI post generator, and the 9 pre-built automations in MENIUS to attract and retain customers on autopilot.",
+    category_en: "Marketing",
     content: `
 ## El problema del marketing en restaurantes
 
@@ -2567,16 +2667,21 @@ Restaurants using automations report:
     `,
   },
   {
-    slug: 'programa-lealtad-puntos-restaurante',
-    title: 'Cómo crear un programa de lealtad para tu restaurante (sin tarjetas físicas)',
-    description: 'Un programa de puntos bien diseñado puede aumentar la frecuencia de visita hasta un 30%. Aprende cómo configurarlo en minutos con MENIUS y por qué es más efectivo que los descuentos.',
-    category: 'Estrategia',
+    slug: "programa-lealtad-puntos-restaurante",
+    title:
+      "Cómo crear un programa de lealtad para tu restaurante (sin tarjetas físicas)",
+    seoTitle: "Programa de lealtad para tu restaurante",
+    description:
+      "Un programa de puntos bien diseñado puede aumentar la frecuencia de visita hasta un 30%. Aprende cómo configurarlo en minutos con MENIUS y por qué es más efectivo que los descuentos.",
+    category: "Estrategia",
     readTime: 6,
-    date: '2026-03-10',
-    author: 'MENIUS',
-    title_en: 'How to Create a Loyalty Program for Your Restaurant (Without Physical Cards)',
-    description_en: 'A well-designed points program can increase visit frequency by up to 30%. Learn how to set it up in minutes with MENIUS and why it\'s more effective than discounts.',
-    category_en: 'Strategy',
+    date: "2026-03-10",
+    author: "MENIUS",
+    title_en:
+      "How to Create a Loyalty Program for Your Restaurant (Without Physical Cards)",
+    description_en:
+      "A well-designed points program can increase visit frequency by up to 30%. Learn how to set it up in minutes with MENIUS and why it's more effective than discounts.",
+    category_en: "Strategy",
     content: `
 ## ¿Por qué los programas de lealtad funcionan?
 
@@ -2713,16 +2818,21 @@ Discounts attract deal-hunters who leave when the offer ends. Points attract loy
     `,
   },
   {
-    slug: 'counter-pos-pedidos-manuales-restaurante',
-    title: 'Counter MENIUS: el punto de venta que necesita tu restaurante (sin hardware costoso)',
-    description: 'Descubre cómo el Counter de MENIUS funciona como un POS completo para pedidos presenciales, llamadas telefónicas y control de flujo entre caja y cocina. Sin tablets especiales, sin software adicional.',
-    category: 'Operación',
+    slug: "counter-pos-pedidos-manuales-restaurante",
+    title:
+      "Counter MENIUS: el punto de venta que necesita tu restaurante (sin hardware costoso)",
+    seoTitle: "Counter MENIUS: punto de venta sin hardware",
+    description:
+      "Descubre cómo el Counter de MENIUS funciona como un POS completo para pedidos presenciales, llamadas telefónicas y control de flujo entre caja y cocina. Sin tablets especiales, sin software adicional.",
+    category: "Operación",
     readTime: 5,
-    date: '2026-03-12',
-    author: 'MENIUS',
-    title_en: 'MENIUS Counter: The Point of Sale Your Restaurant Needs (Without Expensive Hardware)',
-    description_en: 'Discover how the MENIUS Counter works as a full POS for in-person orders, phone calls, and flow control between cashier and kitchen — no special tablets, no additional software.',
-    category_en: 'Operations',
+    date: "2026-03-12",
+    author: "MENIUS",
+    title_en:
+      "MENIUS Counter: The Point of Sale Your Restaurant Needs (Without Expensive Hardware)",
+    description_en:
+      "Discover how the MENIUS Counter works as a full POS for in-person orders, phone calls, and flow control between cashier and kitchen — no special tablets, no additional software.",
+    category_en: "Operations",
     content: `
 ## El problema del flujo de pedidos en restaurantes
 
@@ -2879,13 +2989,14 @@ The Counter is the central nervous system of your operation: it receives, filter
     `,
   },
   {
-    slug: 'pagos-con-wompi-bancolombia-restaurante',
-    title: 'Cómo recibir pagos con Wompi (Bancolombia) en tu restaurante',
-    description: 'Guía completa para activar pagos con Wompi en MENIUS: tarjetas, PSE, Nequi y Daviplata para restaurantes en Colombia con pesos colombianos (COP).',
-    category: 'Pagos',
+    slug: "pagos-con-wompi-bancolombia-restaurante",
+    title: "Cómo recibir pagos con Wompi (Bancolombia) en tu restaurante",
+    description:
+      "Guía completa para activar pagos con Wompi en MENIUS: tarjetas, PSE, Nequi y Daviplata para restaurantes en Colombia con pesos colombianos (COP).",
+    category: "Pagos",
     readTime: 5,
-    date: '2026-03-19',
-    author: 'MENIUS',
+    date: "2026-03-19",
+    author: "MENIUS",
     content: `
 ## ¿Qué es Wompi y por qué usarlo en tu restaurante?
 
@@ -2961,9 +3072,11 @@ Wompi maneja sus tarifas directamente con cada comercio según el volumen de ven
 
 Con MENIUS + Wompi, tus clientes colombianos pueden pagar exactamente como prefieren, sin necesidad de tarjeta internacional.
     `,
-    title_en: 'How to Accept Payments with Wompi (Bancolombia) in Your Restaurant',
-    description_en: 'Complete guide to enable Wompi payments in MENIUS: cards, PSE, Nequi and Daviplata for restaurants in Colombia using COP.',
-    category_en: 'Payments',
+    title_en:
+      "How to Accept Payments with Wompi (Bancolombia) in Your Restaurant",
+    description_en:
+      "Complete guide to enable Wompi payments in MENIUS: cards, PSE, Nequi and Daviplata for restaurants in Colombia using COP.",
+    category_en: "Payments",
     content_en: `
 ## What is Wompi and why use it?
 
@@ -2991,13 +3104,15 @@ MENIUS auto-marks orders as paid when Wompi confirms the transaction via webhook
     `,
   },
   {
-    slug: 'sistema-reservaciones-digitales-restaurante',
-    title: 'Reservaciones digitales para tu restaurante: la guía completa 2026',
-    description: 'Cómo activar el sistema de reservas en MENIUS para que tus clientes reserven mesa desde el menú digital, sin llamadas ni apps externas.',
-    category: 'Operaciones',
+    slug: "sistema-reservaciones-digitales-restaurante",
+    title: "Reservaciones digitales para tu restaurante: la guía completa 2026",
+    seoTitle: "Reservaciones digitales para restaurantes",
+    description:
+      "Cómo activar el sistema de reservas en MENIUS para que tus clientes reserven mesa desde el menú digital, sin llamadas ni apps externas.",
+    category: "Operaciones",
     readTime: 4,
-    date: '2026-03-19',
-    author: 'MENIUS',
+    date: "2026-03-19",
+    author: "MENIUS",
     content: `
 ## ¿Por qué ofrecer reservaciones digitales?
 
@@ -3073,9 +3188,11 @@ Las reservaciones digitales son uno de los diferenciadores más fáciles de acti
 
 Activa MENIUS Reservaciones en 2 minutos y empieza a llenar tus mesas con más organización y menos estrés.
     `,
-    title_en: 'Digital Table Reservations for Your Restaurant: The 2026 Complete Guide',
-    description_en: 'How to activate the reservation system in MENIUS so your customers can book a table directly from the digital menu — no calls, no third-party apps.',
-    category_en: 'Operations',
+    title_en:
+      "Digital Table Reservations for Your Restaurant: The 2026 Complete Guide",
+    description_en:
+      "How to activate the reservation system in MENIUS so your customers can book a table directly from the digital menu — no calls, no third-party apps.",
+    category_en: "Operations",
     content_en: `
 ## Why offer digital reservations?
 
@@ -3105,13 +3222,16 @@ Activate MENIUS Reservations and start filling your tables with less phone calls
     `,
   },
   {
-    slug: 'app-repartidor-offline-delivery-restaurante',
-    title: 'App de repartidor offline: nunca pierdas una entrega aunque no haya señal',
-    description: 'MENIUS lanzó la PWA para repartidores con soporte offline. Tus repartidores pueden confirmar entregas, compartir GPS y actualizar el estado del pedido aunque estén en un túnel o zona sin señal.',
-    category: 'Operaciones',
+    slug: "app-repartidor-offline-delivery-restaurante",
+    title:
+      "App de repartidor offline: nunca pierdas una entrega aunque no haya señal",
+    seoTitle: "App de repartidor offline para tu delivery",
+    description:
+      "MENIUS lanzó la PWA para repartidores con soporte offline. Tus repartidores pueden confirmar entregas, compartir GPS y actualizar el estado del pedido aunque estén en un túnel o zona sin señal.",
+    category: "Operaciones",
     readTime: 5,
-    date: '2026-04-10',
-    author: 'MENIUS',
+    date: "2026-04-10",
+    author: "MENIUS",
     content: `
 ## El problema real del delivery: la señal se corta
 
@@ -3168,9 +3288,10 @@ Si el repartidor abre la app sin internet antes de cargarla, ve una pantalla de 
 
 El delivery ocurre en el mundo real, donde la señal no siempre es perfecta. La PWA del repartidor de MENIUS fue diseñada para ese mundo: acciones que nunca se pierden, tracking que siempre llega, y una interfaz tan simple que cualquier repartidor puede usarla en su primer día.
     `,
-    title_en: 'Offline driver app: never lose a delivery even without signal',
-    description_en: 'MENIUS launched the driver PWA with full offline support. Your drivers can confirm deliveries, share GPS, and update order status even in tunnels or areas with no signal.',
-    category_en: 'Operations',
+    title_en: "Offline driver app: never lose a delivery even without signal",
+    description_en:
+      "MENIUS launched the driver PWA with full offline support. Your drivers can confirm deliveries, share GPS, and update order status even in tunnels or areas with no signal.",
+    category_en: "Operations",
     content_en: `
 ## The real delivery problem: signal drops
 
@@ -3240,6 +3361,12 @@ export function getRelatedPosts(slug: string, limit = 3): BlogPost[] {
 
   return blogPosts
     .filter((p) => p.slug !== slug)
-    .sort((a, b) => (a.category === current.category ? -1 : b.category === current.category ? 1 : 0))
+    .sort((a, b) =>
+      a.category === current.category
+        ? -1
+        : b.category === current.category
+          ? 1
+          : 0,
+    )
     .slice(0, limit);
 }
