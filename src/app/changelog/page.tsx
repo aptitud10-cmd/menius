@@ -6,7 +6,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = await cookies();
   const locale = cookieStore.get("menius_locale")?.value ?? "es";
   return {
-    title: "Changelog — MENIUS",
+    title: "Changelog",
     description:
       locale === "en"
         ? "Every update, improvement and new feature in MENIUS. See how your platform evolves."

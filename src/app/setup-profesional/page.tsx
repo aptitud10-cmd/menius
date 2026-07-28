@@ -7,7 +7,7 @@ import type { LandingLocale } from "@/lib/landing-translations";
 import { SetupForm } from "./SetupForm";
 
 export const metadata: Metadata = {
-  title: "Professional Setup — MENIUS",
+  title: "Professional Setup",
   description:
     "Our team sets up your digital menu, uploads your products with AI photos, and gets your restaurant ready to receive orders.",
   alternates: { canonical: "/setup-profesional" },

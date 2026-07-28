@@ -6,7 +6,7 @@ import { LandingFooter } from "@/components/landing/LandingFooter";
 import type { LandingLocale } from "@/lib/landing-translations";
 
 export const metadata: Metadata = {
-  title: "Política de Privacidad — MENIUS",
+  title: "Política de Privacidad",
   description:
     "Política de privacidad de MENIUS. Cómo recopilamos, usamos y protegemos tus datos.",
   alternates: { canonical: "/privacy" },

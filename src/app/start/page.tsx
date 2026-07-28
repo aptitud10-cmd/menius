@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 
 export const metadata: Metadata = {
-  title: 'Quick Start Guide — MENIUS',
+  title: 'Quick Start Guide',
   description: 'Set up your digital menu in 30 minutes. Follow this step-by-step guide to launch your restaurant on MENIUS.',
   alternates: { canonical: 'https://menius.app/start' },
   robots: { index: true, follow: true },

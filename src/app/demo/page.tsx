@@ -7,7 +7,7 @@ import { LandingFooter } from '@/components/landing/LandingFooter';
 import type { LandingLocale } from '@/lib/landing-translations';
 
 export const metadata: Metadata = {
-  title: 'Demo — MENIUS',
+  title: 'Demo',
   description: 'Explore live demos of MENIUS digital menus. Try the full experience — menu, cart, checkout & order tracking.',
   alternates: { canonical: '/demo' },
 };
