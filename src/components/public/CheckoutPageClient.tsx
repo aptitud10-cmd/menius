@@ -159,6 +159,11 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     setOrderType((prev) => (prev !== correct ? correct : prev));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableName, welcomeOrderType]);
+
+  // dine_in_only products (e.g. alcohol) can't be ordered for pickup/delivery.
+  // Enforced server-side too; this is the UX guard so the customer sees why before submitting.
+  const dineInOnlyItems = items.filter((i) => i.product.dine_in_only === true);
+  const dineInOnlyBlocked = orderType !== 'dine_in' && dineInOnlyItems.length > 0;
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -583,6 +588,14 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
     if (orderType === 'delivery' && !deliveryAddress.trim()) {
       setOrderError(t.validationDeliveryAddressRequired);
       trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'delivery_address', order_type: orderType });
+      setCtaShake(true);
+      clearTimeout(ctaShakeTimer.current);
+      ctaShakeTimer.current = setTimeout(() => setCtaShake(false), 600);
+      return;
+    }
+    if (dineInOnlyBlocked) {
+      setOrderError(t.validationDineInOnlyItems);
+      trackEvent('checkout_validation_error', { restaurant_id: restaurant.id, field: 'dine_in_only', order_type: orderType });
       setCtaShake(true);
       clearTimeout(ctaShakeTimer.current);
       ctaShakeTimer.current = setTimeout(() => setCtaShake(false), 600);
@@ -1610,6 +1623,30 @@ export function CheckoutPageClient({ restaurant, locale, slug, orderToken = '' }
                 </button>
               ))}
             </div>
+            {dineInOnlyBlocked && (
+              <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3.5">
+                <p className="text-[13px] font-medium text-amber-900">
+                  {t.validationDineInOnlyItems}
+                </p>
+                <ul className="mt-2 space-y-1.5">
+                  {dineInOnlyItems.map((item) => (
+                    <li key={item.uid} className="flex items-center justify-between gap-2 text-[13px] text-amber-900">
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <span aria-hidden>🍷</span>
+                        <span className="truncate">{item.qty}× {item.product.name}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeItem(items.indexOf(item))}
+                        className="flex-shrink-0 text-[12px] font-semibold text-amber-700 underline underline-offset-2 active:opacity-70"
+                      >
+                        {t.removeItem}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {orderType === 'delivery' && (
               <div className="mt-4">
                 <AddressAutocomplete

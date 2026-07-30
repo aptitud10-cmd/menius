@@ -469,6 +469,7 @@ export async function createProduct(
       is_active: data.is_active,
       ...(data.is_featured != null && { is_featured: data.is_featured }),
       ...(data.is_new != null && { is_new: data.is_new }),
+      ...(data.dine_in_only != null && { dine_in_only: data.dine_in_only }),
       ...(data.dietary_tags && { dietary_tags: data.dietary_tags }),
       ...(data.image_url && { image_url: data.image_url }),
       ...(data.prep_time_minutes != null && {

@@ -367,7 +367,7 @@ export async function POST(request: NextRequest) {
     ] = await Promise.all([
       supabase
         .from("products")
-        .select("id, name, price, in_stock")
+        .select("id, name, price, in_stock, dine_in_only")
         .in("id", productIds)
         .eq("restaurant_id", restaurant_id),
       supabase
@@ -438,6 +438,21 @@ export async function POST(request: NextRequest) {
       if (dbProduct.in_stock === false) {
         return NextResponse.json(
           { error: "Uno de los productos está agotado." },
+          { status: 400 },
+        );
+      }
+      // dine_in_only products (e.g. alcohol) can only be ordered when eating in.
+      // Enforced server-side so it can't be bypassed via delivery/pickup, API, or a stale cart.
+      if (
+        (dbProduct as { dine_in_only?: boolean }).dine_in_only === true &&
+        parsed.data.order_type !== "dine_in"
+      ) {
+        return NextResponse.json(
+          {
+            error: en
+              ? `"${dbProduct.name}" is only available for dine-in.`
+              : `"${dbProduct.name}" solo está disponible para consumo en el local.`,
+          },
           { status: 400 },
         );
       }

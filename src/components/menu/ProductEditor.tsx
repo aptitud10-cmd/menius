@@ -155,6 +155,7 @@ export function ProductEditor({
     in_stock: product?.in_stock ?? true,
     is_featured: product?.is_featured ?? false,
     is_new: product?.is_new ?? false,
+    dine_in_only: product?.dine_in_only ?? false,
     prep_time_minutes: product?.prep_time_minutes ? String(product.prep_time_minutes) : '',
     cost_price: (product as any)?.cost_price != null ? String((product as any).cost_price) : '',
     compare_at_price: (product as any)?.compare_at_price != null ? String((product as any).compare_at_price) : '',
@@ -264,6 +265,7 @@ export function ProductEditor({
       in_stock: true,
       is_featured: false,
       is_new: false,
+      dine_in_only: false,
       category_id: '',
       restaurant_id: '',
       sort_order: 0,
@@ -406,6 +408,7 @@ export function ProductEditor({
             in_stock: form.in_stock,
             is_featured: form.is_featured,
             is_new: form.is_new,
+            dine_in_only: form.dine_in_only,
             prep_time_minutes: !isNaN(prepTime as number) && prepTime !== null && prepTime > 0 ? prepTime : null,
             cost_price: costPrice != null && !isNaN(costPrice) && costPrice >= 0 ? costPrice : null,
             compare_at_price: compareAtPrice != null && !isNaN(compareAtPrice) && compareAtPrice > 0 ? compareAtPrice : null,
@@ -428,6 +431,7 @@ export function ProductEditor({
             category_id: form.category_id,
             is_active: form.is_active,
             is_new: form.is_new,
+            dine_in_only: form.dine_in_only,
             prep_time_minutes: !isNaN(prepTime as number) && prepTime !== null && prepTime > 0 ? prepTime : null,
             cost_price: costPrice != null && !isNaN(costPrice) && costPrice >= 0 ? costPrice : null,
             compare_at_price: compareAtPrice != null && !isNaN(compareAtPrice) && compareAtPrice > 0 ? compareAtPrice : null,
@@ -957,6 +961,28 @@ export function ProductEditor({
                     <span className={cn(
                       'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm',
                       form.is_new && 'translate-x-5',
+                    )} />
+                  </button>
+                </label>
+
+                <label className="flex items-center justify-between cursor-pointer group">
+                  <span className="flex items-center gap-2 text-sm text-gray-700">
+                    <span className="text-base">🍷</span>
+                    {t.editor_dineInOnly}
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={form.dine_in_only}
+                    onClick={() => setForm(prev => ({ ...prev, dine_in_only: !prev.dine_in_only }))}
+                    className={cn(
+                      'relative w-11 h-6 rounded-full transition-colors',
+                      form.dine_in_only ? 'bg-amber-500' : 'bg-gray-300',
+                    )}
+                  >
+                    <span className={cn(
+                      'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm',
+                      form.dine_in_only && 'translate-x-5',
                     )} />
                   </button>
                 </label>
