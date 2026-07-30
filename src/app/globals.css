@@ -132,13 +132,18 @@ body {
   /* Store pages (menu/checkout/order) can't use a .landing-bg wrapper — they own
      their full-height layout. So we move the scroller off <html> onto <body>
      directly, but ONLY when a store page is mounted (StoreScrollFix tags the body
-     with data-store-scroll). This keeps the dashboard/counter untouched — applying
-     it to <body> globally previously broke their sticky headers. */
-  html:has(body[data-store-scroll]) {
+     with data-store-scroll). Same technique now applied to the dashboard
+     (data-dashboard-scroll) — its mobile header is sticky INSIDE the body
+     scroller so it keeps working, exactly like the store headers do. The old
+     warning about "breaking sticky headers" was from applying this to <body>
+     GLOBALLY (all pages at once); scoping it per-page via a data attr avoids that. */
+  html:has(body[data-store-scroll]),
+  html:has(body[data-dashboard-scroll]) {
     height: 100%;
     overflow-y: hidden;              /* <html> no longer scrolls → no root rubber-band */
   }
-  body[data-store-scroll] {
+  body[data-store-scroll],
+  body[data-dashboard-scroll] {
     height: 100%;
     height: 100dvh;
     overflow-y: auto;                /* the BODY is the scroller now */

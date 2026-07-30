@@ -15,6 +15,7 @@ import { StripeConnectBanner } from "@/components/dashboard/StripeConnectBanner"
 import { WelcomeQRModal } from "@/components/dashboard/WelcomeQRModal";
 import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { MobileBottomNav } from "@/components/dashboard/MobileBottomNav";
+import { DashboardScrollFix } from "@/components/dashboard/DashboardScrollFix";
 import { DashToastProvider } from "@/components/dashboard/DashToast";
 import { RestaurantSwitcher } from "@/components/dashboard/RestaurantSwitcher";
 import { redirect } from "next/navigation";
@@ -80,6 +81,7 @@ export default async function DashboardLayout({
   return (
     <DashboardLocaleProvider defaultLocale={defaultLocale}>
       <DashToastProvider>
+        <DashboardScrollFix />
         <div className="min-h-[100dvh] bg-gray-50 text-gray-900 flex overflow-x-hidden">
           {/* Sidebar */}
           <aside className="hidden md:flex flex-col w-[260px] bg-white border-r border-gray-200 sticky top-0 h-dvh">
