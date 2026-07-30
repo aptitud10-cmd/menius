@@ -20,14 +20,24 @@ interface UsageData {
 
 const WARN_THRESHOLD = 0.8; // 80%
 
+// El banner se monta dos veces (sidebar desktop + header mobile), ocultas por CSS.
+// Cacheamos la promesa a nivel módulo para que /api/billing/usage se pida UNA sola vez
+// por carga del dashboard, no una por instancia montada.
+let usagePromise: Promise<UsageData> | null = null;
+function fetchUsageOnce(): Promise<UsageData> {
+  if (!usagePromise) {
+    usagePromise = fetch('/api/billing/usage').then((r) => r.json());
+  }
+  return usagePromise;
+}
+
 export function LimitWarningBanner() {
   const { locale } = useDashboardLocale();
   const [usage, setUsage] = useState<UsageData | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    fetch('/api/billing/usage')
-      .then((r) => r.json())
+    fetchUsageOnce()
       .then((data) => setUsage(data))
       .catch(() => {});
   }, []);
