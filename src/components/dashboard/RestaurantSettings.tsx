@@ -398,18 +398,18 @@ export function RestaurantSettings({ initialData }: { initialData: Restaurant })
         {coverUrl ? (
           <div className="relative w-full aspect-[3/1] rounded-xl overflow-hidden bg-gray-100 group">
             <Image src={coverUrl} alt="Banner" fill className="object-cover" sizes="(max-width: 640px) 100vw, 640px" />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center gap-3">
+            <div className="absolute inset-0 bg-black/25 md:bg-black/0 md:group-hover:bg-black/40 transition-colors flex items-center justify-center gap-3">
               <button
                 onClick={() => coverRef.current?.click()}
                 disabled={uploadingCover}
-                className="opacity-0 group-hover:opacity-100 px-3 py-2 bg-white rounded-lg text-sm font-medium hover:bg-gray-100 transition-all"
+                className="md:opacity-0 md:group-hover:opacity-100 px-3 py-2 bg-white rounded-lg text-sm font-medium hover:bg-gray-100 active:bg-gray-200 transition-all"
               >
                 {uploadingCover ? <Loader2 className="w-4 h-4 animate-spin inline mr-1" /> : <Camera className="w-4 h-4 inline mr-1" />}
                 {t.settings_change}
               </button>
               <button
                 onClick={() => { setCoverUrl(''); setSaved(false); }}
-                className="opacity-0 group-hover:opacity-100 px-3 py-2 bg-white rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-all"
+                className="md:opacity-0 md:group-hover:opacity-100 px-3 py-2 bg-white rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 active:bg-red-100 transition-all"
               >
                 {t.settings_remove}
               </button>

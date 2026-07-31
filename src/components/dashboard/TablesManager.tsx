@@ -514,7 +514,8 @@ function QRTableCard({
               )}
               <button
                 onClick={() => setEditing(true)}
-                className="p-1 rounded-lg hover:bg-white/20 transition-colors opacity-0 group-hover:opacity-100"
+                aria-label="Editar mesa"
+                className="p-1 rounded-lg hover:bg-white/20 active:bg-white/30 transition-colors md:opacity-60 md:group-hover:opacity-100"
               >
                 <Pencil className="w-3 h-3 text-white/70" />
               </button>
