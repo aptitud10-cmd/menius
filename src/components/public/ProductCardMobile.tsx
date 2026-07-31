@@ -38,6 +38,13 @@ export const ProductCardMobile = memo(function ProductCardMobile({
   const hasModifiers = product.has_modifiers ?? (hasVariants || hasExtras || hasModifierGroups);
   const outOfStock = product.in_stock === false;
 
+  // dine_in_only products (e.g. alcohol) can't be ordered for pickup/delivery.
+  // Only surface the badge when the order isn't dine-in — at a table it's just noise.
+  const tableName = useCartStore((s) => s.tableName);
+  const selectedOrderType = useCartStore((s) => s.selectedOrderType);
+  const isDineIn = tableName != null || selectedOrderType === 'dine_in';
+  const showDineInOnly = product.dine_in_only === true && !isDineIn;
+
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
@@ -132,6 +139,12 @@ export const ProductCardMobile = memo(function ProductCardMobile({
           if (product.is_new) return <span className="absolute top-2 left-2 text-[10px] font-bold text-white bg-blue-500 px-2 py-0.5 rounded-full leading-none shadow-sm">{t.productNew}</span>;
           return null;
         })()}
+        {!outOfStock && showDineInOnly && (
+          <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 text-[10px] font-bold text-amber-950 bg-amber-100/95 border border-amber-300 px-2 py-0.5 rounded-full leading-none shadow-sm backdrop-blur-sm">
+            <span aria-hidden>🍷</span>
+            {t.dineInOnlyBadge}
+          </span>
+        )}
 
         {!outOfStock && cartQty > 0 && (
           <motion.span

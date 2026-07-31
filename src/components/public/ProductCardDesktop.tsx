@@ -42,6 +42,13 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
   const hasModifiers = product.has_modifiers ?? (hasVariants || hasExtras || hasModifierGroups);
   const outOfStock = product.in_stock === false;
 
+  // dine_in_only products (e.g. alcohol) can't be ordered for pickup/delivery.
+  // Only surface the badge when the order isn't dine-in — at a table it's just noise.
+  const tableName = useCartStore((s) => s.tableName);
+  const selectedOrderType = useCartStore((s) => s.selectedOrderType);
+  const isDineIn = tableName != null || selectedOrderType === 'dine_in';
+  const showDineInOnly = product.dine_in_only === true && !isDineIn;
+
   const [imgError, setImgError] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
@@ -134,6 +141,12 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold shadow-sm">{t.productNew}</span>;
             return null;
           })()}
+          {!outOfStock && showDineInOnly && (
+            <span className="absolute bottom-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100/95 border border-amber-300 text-amber-950 text-[10px] font-bold shadow-sm backdrop-blur-sm">
+              <span aria-hidden>🍷</span>
+              {t.dineInOnlyBadge}
+            </span>
+          )}
           {!outOfStock && cartQty > 0 && (
             <motion.span
               key={cartQty}
@@ -170,6 +183,12 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
             if (product.is_new) return <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-1 rounded-full bg-blue-500 text-white text-[10px] font-bold shadow-sm">{t.productNew}</span>;
             return null;
           })()}
+          {!outOfStock && showDineInOnly && (
+            <span className="absolute bottom-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100/95 border border-amber-300 text-amber-950 text-[10px] font-bold shadow-sm backdrop-blur-sm">
+              <span aria-hidden>🍷</span>
+              {t.dineInOnlyBadge}
+            </span>
+          )}
           {!outOfStock && cartQty > 0 && (
             <motion.span
               key={cartQty}
