@@ -360,16 +360,21 @@ export function CustomizationSheet({
       .filter((g) => (selections[g.id] ?? []).length > 0)
       .map((g) => ({ group: g, selectedOptions: selections[g.id] }));
 
-    // Legacy compat: extract variant/extras for old cart format
+    // Legacy compat: extract variant/extras for old cart format.
+    // Resolve against the lazily-fetched data first: the slim pattern empties
+    // product.variants/extras on large catalogs, so looking only there returns
+    // undefined and the cart loses price_delta (e.g. a $20 wine bottle bills as $0 extra).
+    const sourceVariants = lazyModifiers?.variants ?? product.variants ?? [];
+    const sourceExtras = lazyModifiers?.extras ?? product.extras ?? [];
     const legacyVariant =
       !hasModifierGroups && selections["__legacy_variants"]?.[0]
-        ? ((product.variants ?? []).find(
+        ? (sourceVariants.find(
             (v) => v.id === selections["__legacy_variants"][0].id,
           ) ?? null)
         : null;
     const legacyExtras =
       !hasModifierGroups && selections["__legacy_extras"]
-        ? (product.extras ?? []).filter((e) =>
+        ? sourceExtras.filter((e) =>
             selections["__legacy_extras"].some((s) => s.id === e.id),
           )
         : [];

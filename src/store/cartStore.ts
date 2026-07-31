@@ -7,6 +7,10 @@ interface SavedOrderItem {
   productName: string;
   variantId: string | null;
   variantName: string | null;
+  /** Snapshot of the variant surcharge. The slim pattern empties product.variants on
+   *  large catalogs, so reorder can't look the delta up again — without this the
+   *  reordered line silently drops it (e.g. a $20 wine bottle re-added at base price). */
+  variantPriceDelta?: number | null;
   qty: number;
 }
 
@@ -133,6 +137,7 @@ export const useCartStore = create<CartState>()(
               productName: i.product.name,
               variantId: i.variant?.id ?? null,
               variantName: i.variant?.name ?? null,
+              variantPriceDelta: i.variant?.price_delta ?? null,
               qty: i.qty,
             })),
             date: new Date().toISOString(),
@@ -148,8 +153,16 @@ export const useCartStore = create<CartState>()(
         for (const saved of lastOrder.items) {
           const product = productMap.get(saved.productId);
           if (!product || !product.is_active) continue;
-          const variant = saved.variantId
-            ? product.variants?.find((v) => v.id === saved.variantId) ?? null
+          // product.variants is empty under the slim pattern, so fall back to the
+          // snapshot saved with the order — otherwise the surcharge is lost.
+          const variant: ProductVariant | null = saved.variantId
+            ? (product.variants?.find((v) => v.id === saved.variantId) ?? {
+                id: saved.variantId,
+                product_id: product.id,
+                name: saved.variantName ?? '',
+                price_delta: saved.variantPriceDelta ?? 0,
+                sort_order: 0,
+              })
             : null;
           const lineTotal = calcLineTotal(product, variant, [], saved.qty);
           const uid = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
