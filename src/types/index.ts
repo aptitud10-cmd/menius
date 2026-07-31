@@ -116,6 +116,8 @@ export interface Product {
   in_stock?: boolean;
   is_featured?: boolean;
   is_new?: boolean;
+  /** When true, this product can only be ordered for dine-in (e.g. alcohol). Enforced server-side in /api/orders. */
+  dine_in_only?: boolean;
   prep_time_minutes?: number | null;
   translations?: Record<string, ContentTranslation>;
   dietary_tags?: DietaryTag[];
