@@ -466,6 +466,7 @@ export interface DashboardTranslations {
   editor_outOfStockLabel: string;
   editor_featured: string;
   editor_isNew: string;
+  editor_dineInOnly: string;
   editor_dietaryTags: string;
   editor_translations: string;
   editor_deleteProduct: string;
@@ -1714,6 +1715,7 @@ const es: DashboardTranslations = {
   editor_outOfStockLabel: "Agotado",
   editor_featured: "Destacado",
   editor_isNew: "Nuevo",
+  editor_dineInOnly: "Solo en el local (dine-in)",
   editor_dietaryTags: "Etiquetas dietéticas",
   editor_translations: "Traducciones",
   editor_deleteProduct: "Eliminar producto",
@@ -3026,6 +3028,7 @@ const en: DashboardTranslations = {
   editor_outOfStockLabel: "Out of stock",
   editor_featured: "Featured",
   editor_isNew: "New",
+  editor_dineInOnly: "Dine-in only",
   editor_dietaryTags: "Dietary tags",
   editor_translations: "Translations",
   editor_deleteProduct: "Delete product",

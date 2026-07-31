@@ -260,6 +260,8 @@ export interface Translations {
   validationNamePhoneRequired: string;
   validationEmailRequiredOrder: string;
   validationDeliveryAddressRequired: string;
+  validationDineInOnlyItems: string;
+  dineInOnlyBadge: string;
   // CheckoutPageClient — network errors
   noConnectionRetry: string;
   noConnectionPayment: string;
@@ -601,6 +603,8 @@ const es: Translations = {
   validationNamePhoneRequired: 'Nombre y teléfono son requeridos',
   validationEmailRequiredOrder: 'Email requerido para recibir tu confirmación de pedido',
   validationDeliveryAddressRequired: 'Dirección de entrega requerida',
+  validationDineInOnlyItems: 'Algunos productos solo están disponibles para consumo en el local y no se pueden pedir para llevar ni a domicilio. Quítalos o cambia a "En mesa" para continuar.',
+  dineInOnlyBadge: 'Solo en el local',
   // CheckoutPageClient — network errors
   noConnectionRetry: 'Sin conexión. Revisa tu red e inténtalo de nuevo.',
   noConnectionPayment: 'Sin conexión al iniciar el pago. Revisa tu red e inténtalo.',
@@ -940,6 +944,8 @@ const en: Translations = {
   validationNamePhoneRequired: 'Name and phone required',
   validationEmailRequiredOrder: 'Email required to receive your order confirmation',
   validationDeliveryAddressRequired: 'Delivery address required',
+  validationDineInOnlyItems: 'Some items are only available for dine-in and cannot be ordered for pickup or delivery. Remove them or switch to "Dine-in" to continue.',
+  dineInOnlyBadge: 'Dine-in only',
   // CheckoutPageClient — network errors
   noConnectionRetry: 'No connection. Check your network and try again.',
   noConnectionPayment: 'Could not reach the server to start payment. Check your connection.',
