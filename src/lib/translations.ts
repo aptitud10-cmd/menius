@@ -92,6 +92,7 @@ export interface Translations {
   backToTop: string;
   // Search
   searchPlaceholder: string;
+  searchSuggestions: string;
   noResults: string;
   // Order type
   orderType: string;
@@ -458,6 +459,7 @@ const es: Translations = {
   filterWithOptions: 'Con opciones',
   backToTop: 'Volver arriba',
   searchPlaceholder: 'Buscar platillos...',
+  searchSuggestions: 'Explorar categorías',
   noResults: 'No se encontraron resultados',
   orderType: 'Tipo de orden',
   dineIn: 'En el restaurante',
@@ -799,6 +801,7 @@ const en: Translations = {
   filterWithOptions: 'With options',
   backToTop: 'Back to top',
   searchPlaceholder: 'Search dishes...',
+  searchSuggestions: 'Browse categories',
   noResults: 'No results found',
   orderType: 'Order type',
   dineIn: 'Dine in',

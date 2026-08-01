@@ -34,6 +34,7 @@ import type {
 } from "@/types";
 import { DIETARY_TAGS, getTagConfig } from "@/lib/dietary-tags";
 import { getLocaleFlag, SUPPORTED_LOCALES, tName, tDesc } from "@/lib/i18n";
+import { searchMenu, suggestedCategories } from "@/lib/menu-search";
 import { trackEvent } from "@/lib/analytics";
 
 import { useCheckoutStore } from "@/lib/store/checkoutStore";
@@ -1031,16 +1032,25 @@ export function MenuShell({
     return itemsByCategory;
   }, [isLargeCatalog, activeCatFilter, itemsByCategory]);
 
-  // Search results
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return null;
-    const q = searchQuery.toLowerCase();
-    return products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.description?.toLowerCase().includes(q),
-    );
-  }, [searchQuery, products]);
+  // Search results — see src/lib/menu-search.ts. Matches category names too, so
+  // "wine" finds everything in "Wine Selection" even though no product is named that.
+  const searchResults = useMemo(
+    () =>
+      searchMenu({
+        products,
+        categories,
+        query: searchQuery,
+        locale,
+        defaultLocale,
+      }),
+    [searchQuery, products, categories, locale, defaultLocale],
+  );
+
+  // Shown under an empty search field: a way in without typing.
+  const searchSuggestions = useMemo(
+    () => suggestedCategories(products, categories),
+    [products, categories],
+  );
 
   // Scroll-spy: disabled for large-catalog mode (one-category-at-a-time, no scroll needed)
   useEffect(() => {
@@ -3167,11 +3177,26 @@ export function MenuShell({
 
               <div className="flex-1 overflow-y-auto px-4 py-3">
                 {!searchQuery.trim() ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center px-8">
-                    <Search className="w-10 h-10 text-gray-200 mb-3" />
-                    <p className="text-sm text-gray-400">
-                      {t.searchPlaceholder}
+                  <div className="pt-1">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                      {t.searchSuggestions}
                     </p>
+                    <div className="flex flex-wrap gap-2">
+                      {searchSuggestions.map((cat) => (
+                        <button
+                          key={cat.id}
+                          onClick={() => {
+                            setShowSearch(false);
+                            setSearchQuery("");
+                            setActiveCatFilter(cat.id);
+                            setActiveCategory(cat.id);
+                          }}
+                          className="px-3.5 py-2 rounded-full border border-gray-200 text-sm text-gray-700 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#05c8a7]"
+                        >
+                          {tName(cat, locale, defaultLocale)}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 ) : searchResults && searchResults.length > 0 ? (
                   <div className="space-y-1">
