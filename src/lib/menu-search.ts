@@ -127,6 +127,8 @@ export function searchMenu({
     if (rankOf(name, q) !== null) matchedCategoryIds.add(cat.id);
   }
 
+  const descriptionSearchEnabled = matchedCategoryIds.size === 0;
+
   const hits: SearchHit[] = [];
 
   for (const product of products) {
@@ -146,6 +148,12 @@ export function searchMenu({
       });
       continue;
     }
+
+    // Descriptions are only searched when the query does NOT name a category.
+    // "wine" names a whole section, so the customer wants the drink — not the 13
+    // dishes cooked "in a white wine sauce". When no category matches, description
+    // search is what makes ingredient queries ("avocado", "gluten") work.
+    if (!descriptionSearchEnabled) continue;
 
     const description = normalize(tDesc(product, locale, defaultLocale));
     if (description.includes(q)) {
