@@ -131,12 +131,20 @@ export function CustomizationSheet({
     const variants = lazyModifiers?.variants ?? product.variants ?? [];
     const extras = lazyModifiers?.extras ?? product.extras ?? [];
 
-    const takenNames = new Set(
-      groups.flatMap((g) =>
-        (g.options ?? []).map((o) => o.name.trim().toLowerCase()),
-      ),
+    const takenNames = groups.flatMap((g) =>
+      (g.options ?? []).map((o) => o.name.trim().toLowerCase()),
     );
-    const isFree = (name: string) => !takenNames.has(name.trim().toLowerCase());
+    // Prefix match, not equality: the same option is often spelled out in the
+    // modifier group and abbreviated in the legacy row — variant "Deluxe" vs
+    // group option "Deluxe (w/ Fries & Coleslaw)". Exact matching missed 20 of
+    // Buccaneer's burgers and let the duplicate through at a different price.
+    const isFree = (name: string) => {
+      const n = name.trim().toLowerCase();
+      if (!n) return false;
+      return !takenNames.some(
+        (taken) => taken === n || taken.startsWith(n) || n.startsWith(taken),
+      );
+    };
 
     const freeVariants = variants.filter((v) => isFree(v.name));
     const freeExtras = extras.filter((e) => isFree(e.name));
