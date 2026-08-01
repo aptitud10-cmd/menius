@@ -154,10 +154,26 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
 
     // Lightweight modifier presence check — runs after we have product IDs.
     // Fetches only product_id (no options payload) so we can set has_modifiers on each product.
+    // Checks all three customization systems: the JOINs to product_variants/product_extras
+    // were removed from the products query above, so their arrays always arrive empty —
+    // presence MUST be probed here or has_modifiers is false for legacy-only products
+    // (e.g. Buccaneer wines with Glass/Bottle) and they get added to the cart uncustomized.
     const productIds = (products ?? []).map((p: any) => p.id);
-    const { data: modGroupRows } = productIds.length > 0
-      ? await db.from('modifier_groups').select('product_id').in('product_id', productIds)
-      : { data: [] as { product_id: string }[] };
+    const [
+      { data: modGroupRows },
+      { data: variantRows },
+      { data: extraRows },
+    ] = productIds.length > 0
+      ? await Promise.all([
+          db.from('modifier_groups').select('product_id').in('product_id', productIds),
+          db.from('product_variants').select('product_id').in('product_id', productIds),
+          db.from('product_extras').select('product_id').in('product_id', productIds),
+        ])
+      : [
+          { data: [] as { product_id: string }[] },
+          { data: [] as { product_id: string }[] },
+          { data: [] as { product_id: string }[] },
+        ];
 
     const DAILY_FREE_LIMIT = 3;
     let subscriptionExpired = false;
@@ -215,7 +231,11 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
       });
     }
 
-    const productsWithModifiers = new Set((modGroupRows ?? []).map((g: any) => g.product_id));
+    const productsWithModifiers = new Set([
+      ...(modGroupRows ?? []).map((g: any) => g.product_id),
+      ...(variantRows ?? []).map((v: any) => v.product_id),
+      ...(extraRows ?? []).map((e: any) => e.product_id),
+    ]);
 
     const mappedProducts = ((products ?? []) as any[]).map((p: any) => {
       const variants = ((p.product_variants ?? []) as any[]).sort(
@@ -228,12 +248,13 @@ async function fetchMenuDataFromDB(slug: string): Promise<MenuData | null> {
         ...p,
         variants,
         extras,
-        // modifier_groups fetched lazily by /api/product-modifiers when user opens CustomizationSheet.
+        // Payloads fetched lazily by /api/product-modifiers when user opens CustomizationSheet.
         // has_modifiers must reflect ANY customization system: new modifier_groups OR
-        // legacy variants/extras. The slim pattern later empties variants/extras, so consumers
-        // (e.g. the suggestions quick-add) rely solely on this flag to decide whether to open
-        // the customization sheet — if it ignored legacy products, they'd be added to the cart
-        // uncustomized and break at checkout.
+        // legacy variants/extras. It comes from productsWithModifiers, which probes all three
+        // tables — the local variants/extras arrays are empty here (no JOINs in the query) and
+        // are kept in the OR only as a safety net. Consumers (e.g. the suggestions quick-add)
+        // rely solely on this flag to decide whether to open the customization sheet; if it
+        // missed legacy products they'd be added to the cart uncustomized and ship the wrong item.
         modifier_groups: [],
         has_modifiers:
           productsWithModifiers.has(p.id) ||
