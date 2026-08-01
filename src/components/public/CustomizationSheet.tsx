@@ -117,22 +117,44 @@ export function CustomizationSheet({
     lazyModifiers?.modifier_groups ?? product.modifier_groups ?? [];
   const hasModifierGroups = groups.length > 0;
 
-  // Legacy fallback: if no modifier_groups but has old variants/extras, show them as groups
+  // Legacy variants/extras are merged with modifier_groups instead of being discarded.
+  // They used to be an all-or-nothing fallback, so a product with even one modifier_group
+  // hid its paid extras entirely (Add Avocado, Grilled Salmon...) — the customer could
+  // not buy them at all.
+  //
+  // But a legacy option whose name already exists in a modifier group is a DUPLICATE of
+  // the same question, usually at a different price (Buccaneer: variant Deluxe +$5.00 vs
+  // group Style Deluxe +$4.00). Showing both asks twice and contradicts itself, so the
+  // modifier group — the system that actually charges — always wins.
   const legacyGroups: ModifierGroup[] = [];
-  if (!hasModifierGroups) {
+  {
     const variants = lazyModifiers?.variants ?? product.variants ?? [];
     const extras = lazyModifiers?.extras ?? product.extras ?? [];
-    if (variants.length > 0) {
+
+    const takenNames = new Set(
+      groups.flatMap((g) =>
+        (g.options ?? []).map((o) => o.name.trim().toLowerCase()),
+      ),
+    );
+    const isFree = (name: string) => !takenNames.has(name.trim().toLowerCase());
+
+    const freeVariants = variants.filter((v) => isFree(v.name));
+    const freeExtras = extras.filter((e) => isFree(e.name));
+
+    if (freeVariants.length > 0) {
       legacyGroups.push({
         id: "__legacy_variants",
         product_id: product.id,
         name: t.variant,
         selection_type: "single",
-        min_select: 1,
+        // Only required when it's the product's sole customization: as a merged
+        // extra group, forcing a choice would block a product that already has
+        // its required questions answered by real modifier groups.
+        min_select: hasModifierGroups ? 0 : 1,
         max_select: 1,
-        is_required: true,
-        sort_order: 0,
-        options: variants.map((v, i) => ({
+        is_required: !hasModifierGroups,
+        sort_order: hasModifierGroups ? 98 : 0,
+        options: freeVariants.map((v, i) => ({
           id: v.id,
           group_id: "__legacy_variants",
           name: v.name,
@@ -142,7 +164,7 @@ export function CustomizationSheet({
         })),
       });
     }
-    if (extras.length > 0) {
+    if (freeExtras.length > 0) {
       legacyGroups.push({
         id: "__legacy_extras",
         product_id: product.id,
@@ -151,8 +173,8 @@ export function CustomizationSheet({
         min_select: 0,
         max_select: 99,
         is_required: false,
-        sort_order: 1,
-        options: extras.map((e, i) => ({
+        sort_order: 99,
+        options: freeExtras.map((e, i) => ({
           id: e.id,
           group_id: "__legacy_extras",
           name: e.name,
@@ -164,7 +186,7 @@ export function CustomizationSheet({
     }
   }
 
-  const activeGroups = hasModifierGroups ? groups : legacyGroups;
+  const activeGroups = [...groups, ...legacyGroups];
 
   // Initialize selections from edit item or defaults
   const initSelections = (): Record<string, ModifierOption[]> => {
@@ -176,7 +198,10 @@ export function CustomizationSheet({
       for (const ms of editItem.modifierSelections) {
         sel[ms.group.id] = [...ms.selectedOptions];
       }
-    } else if (editItem && !hasModifierGroups) {
+    }
+    // Not an else: an item can carry BOTH modifier selections and a legacy
+    // variant/extra now that the two systems render together.
+    if (editItem) {
       // Legacy edit: reconstruct from variant/extras
       if (editItem.variant) {
         sel["__legacy_variants"] = [
@@ -366,18 +391,18 @@ export function CustomizationSheet({
     // undefined and the cart loses price_delta (e.g. a $20 wine bottle bills as $0 extra).
     const sourceVariants = lazyModifiers?.variants ?? product.variants ?? [];
     const sourceExtras = lazyModifiers?.extras ?? product.extras ?? [];
-    const legacyVariant =
-      !hasModifierGroups && selections["__legacy_variants"]?.[0]
-        ? (sourceVariants.find(
-            (v) => v.id === selections["__legacy_variants"][0].id,
-          ) ?? null)
-        : null;
-    const legacyExtras =
-      !hasModifierGroups && selections["__legacy_extras"]
-        ? sourceExtras.filter((e) =>
-            selections["__legacy_extras"].some((s) => s.id === e.id),
-          )
-        : [];
+    // Keyed off the selection itself, not off hasModifierGroups: legacy groups now
+    // render alongside modifier groups, so a product can have both.
+    const legacyVariant = selections["__legacy_variants"]?.[0]
+      ? (sourceVariants.find(
+          (v) => v.id === selections["__legacy_variants"][0].id,
+        ) ?? null)
+      : null;
+    const legacyExtras = selections["__legacy_extras"]
+      ? sourceExtras.filter((e) =>
+          selections["__legacy_extras"].some((s) => s.id === e.id),
+        )
+      : [];
 
     if (isEditing && editIndex !== null) {
       replaceItem(

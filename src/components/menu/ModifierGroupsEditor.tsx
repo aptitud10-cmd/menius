@@ -75,7 +75,7 @@ function SortableOption({
   opt: ModifierOption;
   groupId: string;
   editOptionId: string | null;
-  optionForm: { name: string; price_delta: string };
+  optionForm: { name: string; price_delta: string; is_default: boolean };
   loading: boolean;
   t: ReturnType<typeof getDashboardTranslations>;
   lang: 'es' | 'en';
@@ -84,7 +84,7 @@ function SortableOption({
   onCancelEdit: () => void;
   onUpdate: (opt: ModifierOption, groupId: string) => void;
   onDelete: (optionId: string, groupId: string) => void;
-  setOptionForm: (f: { name: string; price_delta: string }) => void;
+  setOptionForm: (f: { name: string; price_delta: string; is_default: boolean }) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: opt.id });
   const style: React.CSSProperties = {
@@ -127,12 +127,28 @@ function SortableOption({
               className="w-full text-sm pl-6 pr-2 py-1.5 rounded bg-white border border-gray-200 text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-400"
             />
           </div>
+          <label className="flex items-center gap-1 cursor-pointer select-none" title={t.modifiers_isDefaultHint}>
+            <input
+              type="checkbox"
+              checked={optionForm.is_default}
+              onChange={e => setOptionForm({ ...optionForm, is_default: e.target.checked })}
+              className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400"
+            />
+            <span className="text-[10px] font-medium text-gray-600 whitespace-nowrap">{t.modifiers_isDefaultShort}</span>
+          </label>
           <button onClick={() => onUpdate(opt, groupId)} disabled={loading} className="text-xs font-medium text-emerald-600 disabled:opacity-50">{t.modifiers_save}</button>
           <button onClick={onCancelEdit} className="text-xs text-gray-500">{t.general_cancel}</button>
         </>
       ) : (
         <>
-          <span className="flex-1 text-sm text-gray-700 font-medium">{opt.name}</span>
+          <span className="flex-1 text-sm text-gray-700 font-medium">
+            {opt.name}
+            {opt.is_default && (
+              <span className="ml-2 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 align-middle">
+                {t.modifiers_isDefaultShort}
+              </span>
+            )}
+          </span>
           <span className={cn('text-sm font-mono px-2 py-0.5 rounded', Number(opt.price_delta) !== 0 ? 'bg-emerald-50 text-emerald-700 font-semibold' : 'text-gray-400')}>
             {Number(opt.price_delta) > 0 ? `+${currSymbol}${Number(opt.price_delta).toFixed(2)}` : Number(opt.price_delta) < 0 ? `-${currSymbol}${Math.abs(Number(opt.price_delta)).toFixed(2)}` : t.modifiers_base}
           </span>
@@ -181,7 +197,7 @@ function SortableGroup({
   editGroupId: string | null;
   groupForm: { name: string; selection_type: 'single' | 'multi'; min_select: string; max_select: string; is_required: boolean; display_type: 'list' | 'grid' };
   addingOptionFor: string | null;
-  optionForm: { name: string; price_delta: string };
+  optionForm: { name: string; price_delta: string; is_default: boolean };
   editOptionId: string | null;
   loading: boolean;
   t: ReturnType<typeof getDashboardTranslations>;
@@ -202,7 +218,7 @@ function SortableGroup({
   onCancelEditOption: () => void;
   onOptionDragEnd: (groupId: string, oldIndex: number, newIndex: number) => void;
   setGroupForm: (f: typeof groupForm) => void;
-  setOptionForm: (f: { name: string; price_delta: string }) => void;
+  setOptionForm: (f: { name: string; price_delta: string; is_default: boolean }) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: group.id });
   const style: React.CSSProperties = {
@@ -349,6 +365,18 @@ function SortableGroup({
                   <p className="text-[9px] text-gray-400 mt-0.5">{t.modifiers_priceHint}</p>
                 </div>
               </div>
+              <label className="flex items-start gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={optionForm.is_default}
+                  onChange={e => setOptionForm({ ...optionForm, is_default: e.target.checked })}
+                  className="mt-0.5 w-3.5 h-3.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-400"
+                />
+                <span>
+                  <span className="text-[11px] font-medium text-gray-700 block">{t.modifiers_isDefault}</span>
+                  <span className="text-[9px] text-gray-400 block">{t.modifiers_isDefaultHint}</span>
+                </span>
+              </label>
               <div className="flex items-center gap-2">
                 <button onClick={() => onAddOption(group.id)} disabled={loading || !optionForm.name.trim()} className="px-3 py-1.5 rounded-md bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 disabled:opacity-50 transition-colors">{loading ? '...' : t.general_add}</button>
                 <button onClick={onCancelAddOption} className="text-xs text-gray-500 hover:text-gray-700">{t.general_cancel}</button>
@@ -375,7 +403,7 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
   const [editGroupId, setEditGroupId] = useState<string | null>(null);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(groups[0]?.id ?? null);
   const [addingOptionFor, setAddingOptionFor] = useState<string | null>(null);
-  const [optionForm, setOptionForm] = useState({ name: '', price_delta: '' });
+  const [optionForm, setOptionForm] = useState({ name: '', price_delta: '', is_default: false });
   const [editOptionId, setEditOptionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const dashboard = useDashboardLocale();
@@ -508,6 +536,22 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
     reorderModifierGroups(productId, reordered.map(g => g.id));
   };
 
+  // A single-select group can only have one "included by default" option.
+  // Persist the un-marking of the others so the DB matches what the editor shows.
+  const clearOtherDefaults = async (group: ModifierGroup, keepId: string) => {
+    const stale = (group.options ?? []).filter(o => o.id !== keepId && o.is_default);
+    await Promise.all(
+      stale.map(o =>
+        updateModifierOption(o.id, {
+          name: o.name,
+          price_delta: o.price_delta,
+          is_default: false,
+          sort_order: o.sort_order,
+        }),
+      ),
+    );
+  };
+
   const handleAddOption = async (groupId: string) => {
     if (!optionForm.name.trim()) return;
     setLoading(true);
@@ -515,32 +559,59 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
     const result = await createModifierOption(groupId, {
       name: optionForm.name,
       price_delta: parseFloat(optionForm.price_delta) || 0,
-      is_default: false,
+      is_default: optionForm.is_default,
       sort_order: (group?.options.length ?? 0),
     });
     if (result.option) {
+      const added = result.option as ModifierOption;
       sync(items.map(g => g.id === groupId
-        ? { ...g, options: [...g.options, result.option as ModifierOption] }
+        ? {
+            ...g,
+            options: [
+              // In a single-select group only one option can be the included one.
+              ...(added.is_default && g.selection_type === 'single'
+                ? g.options.map(o => ({ ...o, is_default: false }))
+                : g.options),
+              added,
+            ],
+          }
         : g));
+      if (added.is_default && group?.selection_type === 'single') {
+        await clearOtherDefaults(group, added.id);
+      }
     }
-    setOptionForm({ name: '', price_delta: '' });
+    setOptionForm({ name: '', price_delta: '', is_default: false });
     setAddingOptionFor(null);
     setLoading(false);
   };
 
   const handleUpdateOption = async (opt: ModifierOption, groupId: string) => {
     setLoading(true);
+    const group = items.find(g => g.id === groupId);
+    const nextDefault = optionForm.is_default;
     await updateModifierOption(opt.id, {
       name: optionForm.name || opt.name,
       price_delta: parseFloat(optionForm.price_delta) || 0,
-      is_default: opt.is_default,
+      is_default: nextDefault,
       sort_order: opt.sort_order,
     });
+    if (nextDefault && group?.selection_type === 'single') {
+      await clearOtherDefaults(group, opt.id);
+    }
     sync(items.map(g => g.id === groupId
-      ? { ...g, options: g.options.map(o => o.id === opt.id ? { ...o, name: optionForm.name || o.name, price_delta: parseFloat(optionForm.price_delta) || 0 } : o) }
+      ? { ...g, options: g.options.map(o => {
+          const isTarget = o.id === opt.id;
+          // Single-select: marking one included un-marks the rest.
+          const is_default = isTarget
+            ? nextDefault
+            : (nextDefault && g.selection_type === 'single' ? false : o.is_default);
+          return isTarget
+            ? { ...o, name: optionForm.name || o.name, price_delta: parseFloat(optionForm.price_delta) || 0, is_default }
+            : { ...o, is_default };
+        }) }
       : g));
     setEditOptionId(null);
-    setOptionForm({ name: '', price_delta: '' });
+    setOptionForm({ name: '', price_delta: '', is_default: false });
     setLoading(false);
   };
 
@@ -718,12 +789,12 @@ export function ModifierGroupsEditor({ groups, productId, onUpdate, locale: loca
                 onDeleteGroup={handleDeleteGroup}
                 onToggleDisplayType={handleToggleDisplayType}
                 onAddOption={handleAddOption}
-                onStartAddOption={(gid) => { setAddingOptionFor(gid); setOptionForm({ name: '', price_delta: '' }); }}
-                onCancelAddOption={() => { setAddingOptionFor(null); setOptionForm({ name: '', price_delta: '' }); }}
+                onStartAddOption={(gid) => { setAddingOptionFor(gid); setOptionForm({ name: '', price_delta: '', is_default: false }); }}
+                onCancelAddOption={() => { setAddingOptionFor(null); setOptionForm({ name: '', price_delta: '', is_default: false }); }}
                 onUpdateOption={handleUpdateOption}
                 onDeleteOption={handleDeleteOption}
-                onStartEditOption={(opt) => { setEditOptionId(opt.id); setOptionForm({ name: opt.name, price_delta: String(opt.price_delta) }); }}
-                onCancelEditOption={() => { setEditOptionId(null); setOptionForm({ name: '', price_delta: '' }); }}
+                onStartEditOption={(opt) => { setEditOptionId(opt.id); setOptionForm({ name: opt.name, price_delta: String(opt.price_delta), is_default: opt.is_default ?? false }); }}
+                onCancelEditOption={() => { setEditOptionId(null); setOptionForm({ name: '', price_delta: '', is_default: false }); }}
                 onOptionDragEnd={handleOptionDragEndLocal}
                 setGroupForm={setGroupForm}
                 setOptionForm={setOptionForm}

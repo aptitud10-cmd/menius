@@ -550,6 +550,9 @@ export interface DashboardTranslations {
   modifiers_templateCustom: string;
   modifiers_templateCustomDesc: string;
   modifiers_priceHint: string;
+  modifiers_isDefault: string;
+  modifiers_isDefaultHint: string;
+  modifiers_isDefaultShort: string;
   modifiers_singleLabel: string;
   modifiers_multiLabel: string;
   modifiers_minHelper: string;
@@ -1803,6 +1806,9 @@ const es: DashboardTranslations = {
   modifiers_templateCustom: "Personalizado",
   modifiers_templateCustomDesc: "Crear desde cero",
   modifiers_priceHint: "$0.00 = incluido",
+  modifiers_isDefault: "Viene incluido por defecto",
+  modifiers_isDefaultHint: "Queda pre-seleccionado para el cliente. Usalo para lo que el plato ya trae (ej: papas fritas).",
+  modifiers_isDefaultShort: "Incluido",
   modifiers_singleLabel: "El cliente escoge UNA",
   modifiers_multiLabel: "El cliente escoge VARIAS",
   modifiers_minHelper: "Mínimo a elegir",
@@ -3116,6 +3122,9 @@ const en: DashboardTranslations = {
   modifiers_templateCustom: "Custom",
   modifiers_templateCustomDesc: "Build from scratch",
   modifiers_priceHint: "$0.00 = included",
+  modifiers_isDefault: "Comes included by default",
+  modifiers_isDefaultHint: "Pre-selected for the customer. Use it for what the dish already comes with (e.g. French Fries).",
+  modifiers_isDefaultShort: "Included",
   modifiers_singleLabel: "Customer picks ONE",
   modifiers_multiLabel: "Customer picks SEVERAL",
   modifiers_minHelper: "Minimum to pick",
