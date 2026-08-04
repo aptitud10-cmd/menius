@@ -1472,15 +1472,19 @@ export function MenuShell({
               }}
               style={{ touchAction: "manipulation" }}
               className={cn(
-                "flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-[7px] rounded-lg text-[13px] font-medium whitespace-nowrap",
+                "flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[13px] font-medium whitespace-nowrap",
                 !activeCatFilter && !showFavs && !activeDiet
-                  ? "bg-gray-900 text-white"
+                  ? // Popular keeps its amber treatment (from the premium mobile pass)
+                    // so it reads as a distinct section, not one more category.
+                    popularProducts.length > 0
+                    ? "bg-amber-500 text-white"
+                    : "bg-gray-900 text-white"
                   : "bg-white/70 text-gray-500 active:bg-gray-200",
               )}
             >
               {popularProducts.length > 0 ? (
                 <>
-                  <span className="text-xs leading-none">🔥</span>
+                  <span className="text-[13px] leading-none">🔥</span>
                   {t.popularItems}
                 </>
               ) : (
