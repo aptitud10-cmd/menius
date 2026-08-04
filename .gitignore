@@ -40,3 +40,11 @@ yarn-error.log*
 
 # Supabase CLI local state
 supabase/.temp/
+
+# Config local de herramientas de IA (por maquina, no del proyecto)
+.claude/
+.codex/
+
+# Samples de generacion de imagenes: 836K que Vercel serviria publicamente
+# desde /seed/. Son material de trabajo, no assets de la app.
+public/seed/_buccaneer-sample/
