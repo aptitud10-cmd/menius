@@ -794,11 +794,27 @@ export function MenuShell({
   );
 
   const popularProducts = useMemo(() => {
-    const featured = filteredProducts.filter(
-      (p) => p.is_featured && p.in_stock !== false,
+    const inStock = filteredProducts.filter((p) => p.in_stock !== false);
+
+    // Real sales data first — popularity_rank/orders_last_7d are filled weekly by
+    // the recalc-popularity cron and until now only drove a badge on the card.
+    // is_featured is the fallback: a new restaurant has no order history yet.
+    const ranked = inStock
+      .filter((p) => p.popularity_rank != null || (p.orders_last_7d ?? 0) > 0)
+      .sort((a, b) => {
+        const ra = a.popularity_rank ?? Number.MAX_SAFE_INTEGER;
+        const rb = b.popularity_rank ?? Number.MAX_SAFE_INTEGER;
+        if (ra !== rb) return ra - rb;
+        return (b.orders_last_7d ?? 0) - (a.orders_last_7d ?? 0);
+      });
+
+    const featured = inStock.filter(
+      (p) => p.is_featured && !ranked.some((r) => r.id === p.id),
     );
-    // Cap featured section for large catalogs to keep DOM lean
-    return isLargeCatalog ? featured.slice(0, 10) : featured;
+
+    const merged = [...ranked, ...featured];
+    // Cap for large catalogs to keep DOM lean
+    return isLargeCatalog ? merged.slice(0, 10) : merged;
   }, [filteredProducts, isLargeCatalog]);
 
   const cartProductIds = useCartStore(
@@ -1024,12 +1040,16 @@ export function MenuShell({
     t.popularItems,
   ]);
 
-  // In large-catalog mode, show only the active-filtered category (or all if none selected)
+  // In large-catalog mode, show only the active-filtered category.
+  // With no filter, land on "Popular" instead of dumping all 46 sections at once —
+  // that wall of ~410 products is what the customer used to hit on arrival.
   const displayedGroups = useMemo(() => {
-    if (isLargeCatalog && activeCatFilter) {
+    if (!isLargeCatalog) return itemsByCategory;
+    if (activeCatFilter) {
       return itemsByCategory.filter((g) => g.category.id === activeCatFilter);
     }
-    return itemsByCategory;
+    const popular = itemsByCategory.find((g) => g.category.id === POPULAR_ID);
+    return popular ? [popular] : itemsByCategory;
   }, [isLargeCatalog, activeCatFilter, itemsByCategory]);
 
   // Search results — see src/lib/menu-search.ts. Matches category names too, so
@@ -1334,7 +1354,11 @@ export function MenuShell({
     </button>
   );
 
-  const visibleCats = itemsByCategory.map((g) => g.category);
+  // In large-catalog mode the home pill already IS "Popular", so drop it from the
+  // scrollable list to avoid two identical pills side by side.
+  const visibleCats = itemsByCategory
+    .map((g) => g.category)
+    .filter((cat) => !(isLargeCatalog && cat.id === POPULAR_ID));
 
   // Desktop fav / diet pills
   const favPill = hasMounted && favIds.length > 0 && (
@@ -1436,7 +1460,8 @@ export function MenuShell({
             pillsTouchActiveRef.current = false;
           }}
         >
-          {/* Large catalog: "Todos" pill */}
+          {/* Large catalog: home pill. Labelled "Popular" because that's what the
+              unfiltered view now shows — calling it "All" would be a lie. */}
           {isLargeCatalog && (
             <button
               data-pill-id="__all__"
@@ -1447,13 +1472,20 @@ export function MenuShell({
               }}
               style={{ touchAction: "manipulation" }}
               className={cn(
-                "flex-shrink-0 inline-flex items-center px-3.5 py-[7px] rounded-lg text-[13px] font-medium whitespace-nowrap",
+                "flex-shrink-0 inline-flex items-center gap-1 px-3.5 py-[7px] rounded-lg text-[13px] font-medium whitespace-nowrap",
                 !activeCatFilter && !showFavs && !activeDiet
                   ? "bg-gray-900 text-white"
                   : "bg-white/70 text-gray-500 active:bg-gray-200",
               )}
             >
-              {t.filterAll}
+              {popularProducts.length > 0 ? (
+                <>
+                  <span className="text-xs leading-none">🔥</span>
+                  {t.popularItems}
+                </>
+              ) : (
+                t.filterAll
+              )}
             </button>
           )}
           {visibleCats.map((cat) =>
