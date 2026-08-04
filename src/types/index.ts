@@ -98,6 +98,11 @@ export interface Category {
   created_at: string;
   available_from?: string | null; // "HH:MM" 24h, null = always available
   available_to?: string | null;   // "HH:MM" 24h
+  /** Parent group for menu navigation on large catalogs (e.g. "Breakfast").
+   *  null = ungrouped; the menu falls back to the flat category list. */
+  group_name?: string | null;
+  /** Sort position of the parent group, shared by every category in it. */
+  group_sort_order?: number | null;
 }
 
 export type DietaryTag =

@@ -75,7 +75,9 @@ CREATE TABLE public.categories (
   is_active boolean DEFAULT true,
   created_at timestamp with time zone DEFAULT now(),
   available_from time without time zone,
-  available_to time without time zone
+  available_to time without time zone,
+  group_name text,
+  group_sort_order integer
 );
 
 CREATE TABLE public.cfdi_requests (

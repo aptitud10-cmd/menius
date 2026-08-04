@@ -99,6 +99,9 @@ interface CustomizationTarget {
 }
 
 const POPULAR_ID = "__popular__";
+/** Marks a synthetic pill id that stands for a category GROUP rather than a
+ *  single category. Real category ids are UUIDs, so there is no collision. */
+const GROUP_PREFIX = "__group__:";
 
 export function MenuShell({
   restaurant,
@@ -1040,12 +1043,24 @@ export function MenuShell({
     t.popularItems,
   ]);
 
+  /** Whether this restaurant groups its categories (see categories.group_name). */
+  const hasCategoryGroups = useMemo(
+    () => categories.some((c) => !!c.group_name),
+    [categories],
+  );
+
   // In large-catalog mode, show only the active-filtered category.
   // With no filter, land on "Popular" instead of dumping all 46 sections at once —
   // that wall of ~410 products is what the customer used to hit on arrival.
   const displayedGroups = useMemo(() => {
     if (!isLargeCatalog) return itemsByCategory;
     if (activeCatFilter) {
+      // A group pill keeps every category of that group, each rendered as its
+      // own subsection — that is what makes the 75 sandwiches readable.
+      if (activeCatFilter.startsWith(GROUP_PREFIX)) {
+        const grp = activeCatFilter.slice(GROUP_PREFIX.length);
+        return itemsByCategory.filter((g) => g.category.group_name === grp);
+      }
       return itemsByCategory.filter((g) => g.category.id === activeCatFilter);
     }
     const popular = itemsByCategory.find((g) => g.category.id === POPULAR_ID);
@@ -1356,9 +1371,53 @@ export function MenuShell({
 
   // In large-catalog mode the home pill already IS "Popular", so drop it from the
   // scrollable list to avoid two identical pills side by side.
-  const visibleCats = itemsByCategory
-    .map((g) => g.category)
-    .filter((cat) => !(isLargeCatalog && cat.id === POPULAR_ID));
+  //
+  // When categories declare a group_name, the pills list the ~9 parent GROUPS
+  // instead of the 47 categories: each pill carries a synthetic id (GROUP_PREFIX
+  // + name) and the categories themselves stay visible as subsection headings
+  // inside. Restaurants without group_name keep the flat list unchanged.
+  const visibleCats = useMemo(() => {
+    const cats = itemsByCategory
+      .map((g) => g.category)
+      .filter((cat) => !(isLargeCatalog && cat.id === POPULAR_ID));
+
+    if (!hasCategoryGroups) return cats;
+
+    const seen = new Map<string, { order: number; cat: Category }>();
+    for (const cat of cats) {
+      const grp = cat.group_name;
+      if (!grp) {
+        // Ungrouped categories stay as their own pill so nothing gets hidden.
+        seen.set(cat.id, { order: cat.sort_order ?? 0, cat });
+        continue;
+      }
+      if (seen.has(GROUP_PREFIX + grp)) continue;
+      seen.set(GROUP_PREFIX + grp, {
+        order: cat.group_sort_order ?? cat.sort_order ?? 0,
+        cat: { ...cat, id: GROUP_PREFIX + grp, name: grp, translations: {} },
+      });
+    }
+    return Array.from(seen.values())
+      .sort((a, b) => a.order - b.order)
+      .map((v) => v.cat);
+  }, [itemsByCategory, isLargeCatalog, hasCategoryGroups]);
+
+  /** Product count for a sidebar entry, resolving group pills to the sum of
+   *  every category they contain. */
+  const countForSidebar = useCallback(
+    (cat: Category) => {
+      if (cat.id === POPULAR_ID) return popularProducts.length;
+      if (cat.id.startsWith(GROUP_PREFIX)) {
+        const grp = cat.id.slice(GROUP_PREFIX.length);
+        const ids = new Set(
+          categories.filter((c) => c.group_name === grp).map((c) => c.id),
+        );
+        return products.filter((p) => ids.has(p.category_id)).length;
+      }
+      return products.filter((p) => p.category_id === cat.id).length;
+    },
+    [categories, products, popularProducts.length],
+  );
 
   // Desktop fav / diet pills
   const favPill = hasMounted && favIds.length > 0 && (
@@ -1789,7 +1848,7 @@ export function MenuShell({
               className="hidden lg:flex flex-col w-[200px] flex-shrink-0 border-r border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto"
             >
               <CategorySidebar
-                categories={categories}
+                categories={hasCategoryGroups ? visibleCats : categories}
                 products={products}
                 activeCategory={
                   isLargeCatalog ? (activeCatFilter ?? null) : activeCategory
@@ -1798,6 +1857,7 @@ export function MenuShell({
                 allLabel={t.allCategories}
                 locale={locale}
                 defaultLocale={defaultLocale}
+                countFor={hasCategoryGroups ? countForSidebar : undefined}
               />
             </aside>
 

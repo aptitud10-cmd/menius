@@ -15,6 +15,9 @@ interface CategorySidebarProps {
   allLabel?: string;
   locale?: string;
   defaultLocale?: string;
+  /** Overrides the product count. Group entries carry a synthetic id, so the
+   *  default count-by-category_id would return 0 and hide them. */
+  countFor?: (cat: Category) => number;
 }
 
 function isCategoryAvailableNow(cat: Category): boolean {
@@ -33,12 +36,15 @@ export const CategorySidebar = memo(function CategorySidebar({
   onSelect,
   locale = 'es',
   defaultLocale = 'es',
+  countFor,
 }: CategorySidebarProps) {
   return (
     <nav className="py-5 pr-3 font-sidebar">
       <div className="space-y-0.5">
         {categories.map((cat) => {
-          const count = products.filter((p) => p.category_id === cat.id).length;
+          const count = countFor
+            ? countFor(cat)
+            : products.filter((p) => p.category_id === cat.id).length;
           if (count === 0) return null;
           const isActive = activeCategory === cat.id;
           const available = isCategoryAvailableNow(cat);

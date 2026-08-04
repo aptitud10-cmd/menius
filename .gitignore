@@ -37,3 +37,6 @@ yarn-error.log*
 
 # Local screenshot/worktree scratch
 .worktrees/
+
+# Supabase CLI local state
+supabase/.temp/
