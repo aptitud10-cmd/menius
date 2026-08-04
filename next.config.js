@@ -18,7 +18,9 @@ const nextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: '*.supabase.co' },
     ],
-    formats: ['image/webp', 'image/avif'],
+    // Solo WebP: cada formato extra es una transformación facturable aparte en Vercel.
+    // AVIF ahorra ~15% de peso sobre WebP pero duplica el costo de Image Optimization.
+    formats: ['image/webp'],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
   async headers() {
