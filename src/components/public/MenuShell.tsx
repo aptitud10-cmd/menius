@@ -46,7 +46,6 @@ import { getStoreOverrides } from "@/lib/store-overrides";
 import { MenuHeader, HEADER_HEIGHT } from "./MenuHeader";
 import { CategorySidebar } from "./CategorySidebar";
 import { ProductCard } from "./ProductCard";
-import { ProductCardFeatured } from "./ProductCardFeatured";
 import { CartPanel } from "./CartPanel";
 import dynamic from "next/dynamic";
 const CustomizationSheet = dynamic(
@@ -817,16 +816,6 @@ export function MenuShell({
     // Cap for large catalogs to keep DOM lean
     return isLargeCatalog ? merged.slice(0, 10) : merged;
   }, [filteredProducts, isLargeCatalog]);
-
-  // A rank built on two or three orders is noise, not popularity: it would tell
-  // the customer the restaurant's "#1 this week" is a slice of cake. Below the
-  // threshold the carousel still shows the same products (they are the ones the
-  // owner featured) but drops the "#1 / N orders" badges.
-  const hasReliablePopularity = useMemo(
-    () =>
-      popularProducts.reduce((sum, p) => sum + (p.orders_last_7d ?? 0), 0) >= 25,
-    [popularProducts],
-  );
 
   const cartProductIds = useCartStore(
     (s) => new Set(s.items.map((i) => i.product.id)),
@@ -2435,15 +2424,7 @@ export function MenuShell({
                                 <section
                                   key={category.id}
                                   data-cat-id={category.id}
-                                  /* Popular opts out: content-visibility creates
-                                     a containment context that clips the
-                                     carousel's -mx-4 bleed, and being first on
-                                     screen it never gets skipped anyway. */
-                                  style={
-                                    isPopular
-                                      ? undefined
-                                      : { contentVisibility: "auto" }
-                                  }
+                                  style={{ contentVisibility: "auto" }}
                                   ref={(el) => {
                                     if (el)
                                       sectionRefs.current.set(category.id, el);
@@ -2473,7 +2454,7 @@ export function MenuShell({
                                         {category.available_to}
                                       </span>
                                     )}
-                                    {!isLocked && !isPopular && (
+                                    {!isLocked && (
                                       <span className="text-[11px] font-medium text-gray-400 tabular-nums">
                                         {items.length}
                                       </span>
@@ -2505,48 +2486,7 @@ export function MenuShell({
                                         </div>
                                       </div>
                                     )}
-                                    {isPopular && !isDesktopView ? (
-                                      /* Popular is a horizontal carousel, not a
-                                         grid: it reads as a recommendation
-                                         instead of the first rows of a 410-item
-                                         catalog. -mx-4 px-4 lets the cards bleed
-                                         to the screen edge so the strip is
-                                         visibly scrollable. */
-                                      <div
-                                        className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4 pb-7"
-                                        role="list"
-                                        aria-label={t.popularItems}
-                                      >
-                                        {items.map((product) => {
-                                          const isPriority =
-                                            globalProductIdx < 3;
-                                          globalProductIdx++;
-                                          return (
-                                            <div key={product.id} role="listitem">
-                                              <ProductCardFeatured
-                                                product={product}
-                                                restaurantId={restaurant.id}
-                                                onSelect={handleProductSelect}
-                                                onQuickAdd={handleQuickAdd}
-                                                fmtPrice={fmtPrice}
-                                                addLabel={t.addToCart}
-                                                customizeLabel={t.customize}
-                                                popularLabel={t.popular}
-                                                soldOutLabel={t.soldOut}
-                                                unavailableLabel={t.unavailable}
-                                                addedShortLabel={t.addedShort}
-                                                locale={locale}
-                                                defaultLocale={defaultLocale}
-                                                priority={isPriority}
-                                                showRankBadge={
-                                                  hasReliablePopularity
-                                                }
-                                              />
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    ) : lightMobileProductGrid ? (
+                                    {lightMobileProductGrid ? (
                                       <div
                                         className={cn(
                                           "grid grid-cols-2 xl:grid-cols-3 gap-3",
