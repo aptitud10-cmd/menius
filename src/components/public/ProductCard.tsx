@@ -31,6 +31,10 @@ export interface ProductCardProps {
   locale?: string;
   defaultLocale?: string;
   priority?: boolean;
+  /** Cards rendered inside the "Popular" section get the amber treatment, not
+   *  just the #1: the whole section is the recommendation, so a single
+   *  highlighted card made the other nine look like ordinary catalog rows. */
+  inPopularSection?: boolean;
 }
 
 export const ProductCard = memo(function ProductCard(props: ProductCardProps) {

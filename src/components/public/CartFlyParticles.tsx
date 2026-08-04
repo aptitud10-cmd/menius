@@ -46,7 +46,10 @@ export function CartFlyParticles({ cartColRef }: CartFlyParticlesProps) {
         return (
           <motion.div
             key={p.id}
-            className="fixed z-[999] pointer-events-none hidden lg:flex items-center justify-center"
+            // xl, matching the cart panel's breakpoint: below it the panel is
+            // hidden, cartColRef is null and the particle would fly to the
+            // fallback coordinates (straight up, off-screen).
+            className="fixed z-[999] pointer-events-none hidden xl:flex items-center justify-center"
             style={{ left: p.sx - 22, top: p.sy - 22, width: 44, height: 44 }}
             initial={{ scale: 0.8, opacity: 0, x: 0, y: 0 }}
             animate={{

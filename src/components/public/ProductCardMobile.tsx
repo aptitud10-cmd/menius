@@ -26,6 +26,7 @@ export const ProductCardMobile = memo(function ProductCardMobile({
   locale = 'es',
   defaultLocale = 'es',
   priority = false,
+  inPopularSection = false,
 }: ProductCardProps) {
   const t = getTranslations(locale);
   const labelSoldOut = soldOutLabel ?? t.soldOut;
@@ -88,10 +89,14 @@ export const ProductCardMobile = memo(function ProductCardMobile({
     <article
       onClick={outOfStock ? undefined : handleCardClick}
       className={cn(
-        'relative flex flex-col bg-white rounded-2xl shadow-[0_2px_12px_rgba(20,15,10,0.07)] overflow-hidden transition-all duration-150',
-        product.popularity_rank === 1 && !outOfStock
-          ? 'border-2 border-amber-400 shadow-amber-100'
-          : 'border border-gray-100',
+        'relative flex flex-col bg-white rounded-2xl overflow-hidden transition-all duration-150',
+        // Every card in the Popular section carries the amber treatment; the #1
+        // keeps a stronger border so it still leads within the section.
+        !outOfStock && product.popularity_rank === 1
+          ? 'border-2 border-amber-400 shadow-[0_2px_16px_rgba(245,158,11,0.20)]'
+          : !outOfStock && inPopularSection
+            ? 'border border-amber-200 shadow-[0_2px_14px_rgba(245,158,11,0.13)]'
+            : 'border border-gray-100 shadow-[0_2px_12px_rgba(20,15,10,0.07)]',
         outOfStock ? 'opacity-60' : 'cursor-pointer active:opacity-80'
       )}
     >

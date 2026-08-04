@@ -2072,7 +2072,7 @@ export function MenuShell({
                         </motion.div>
                       ) : (
                         <motion.div
-                          className="grid grid-cols-2 xl:grid-cols-3 gap-3"
+                          className="grid grid-cols-2 lg:grid-cols-3 gap-3"
                           initial="hidden"
                           animate="visible"
                           variants={{
@@ -2142,7 +2142,7 @@ export function MenuShell({
                           <p className="text-sm mt-1">{t.noFavoritesHint}</p>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                           {products
                             .filter((p) => favIds.includes(p.id))
                             .map((product) => (
@@ -2252,7 +2252,7 @@ export function MenuShell({
                           {t.viewFullMenu}
                         </button>
                       </div>
-                      <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                         {filteredProducts.map((product) => (
                           <ProductCard
                             key={product.id}
@@ -2489,7 +2489,7 @@ export function MenuShell({
                                     {lightMobileProductGrid ? (
                                       <div
                                         className={cn(
-                                          "grid grid-cols-2 xl:grid-cols-3 gap-3",
+                                          "grid grid-cols-2 lg:grid-cols-3 gap-3",
                                           isLocked && "opacity-40",
                                         )}
                                         {...(isLocked
@@ -2501,10 +2501,7 @@ export function MenuShell({
                                             globalProductIdx < 4;
                                           globalProductIdx++;
                                           return (
-                                            <div
-                                              key={product.id}
-                                              className="rounded-2xl overflow-hidden"
-                                            >
+                                            <div key={product.id}>
                                               <ProductCard
                                                 product={product}
                                                 restaurantId={restaurant.id}
@@ -2520,6 +2517,7 @@ export function MenuShell({
                                                 locale={locale}
                                                 defaultLocale={defaultLocale}
                                                 priority={isPriority}
+                                                inPopularSection={isPopular}
                                               />
                                             </div>
                                           );
@@ -2528,7 +2526,7 @@ export function MenuShell({
                                     ) : (
                                       <motion.div
                                         className={cn(
-                                          "grid grid-cols-2 xl:grid-cols-3 gap-3",
+                                          "grid grid-cols-2 lg:grid-cols-3 gap-3",
                                           isLocked && "opacity-40",
                                         )}
                                         {...(isLocked
@@ -2569,7 +2567,6 @@ export function MenuShell({
                                           return (
                                             <motion.div
                                               key={product.id}
-                                              className="rounded-2xl overflow-hidden"
                                               variants={
                                                 isDesktopView
                                                   ? {
@@ -2604,6 +2601,7 @@ export function MenuShell({
                                                 locale={locale}
                                                 defaultLocale={defaultLocale}
                                                 priority={isPriority}
+                                                inPopularSection={isPopular}
                                               />
                                             </motion.div>
                                           );
@@ -2931,10 +2929,15 @@ export function MenuShell({
             </div>
             {/* end center column wrapper */}
 
-            {/* Right: Cart — sticky, stays in place while content scrolls */}
+            {/* Right: Cart — sticky, stays in place while content scrolls.
+                xl and not lg: between 1024 and 1279px the sidebar (200px) plus
+                this panel (340px) left the grid too narrow for its 3rd column,
+                so tablets got two cramped cards next to an empty cart. On
+                tablet the floating cart bar + bottom sheet take over instead
+                (their breakpoints move with this one — see the xl:hidden below). */}
             <aside
               ref={cartColRef}
-              className="hidden lg:flex flex-col w-[340px] flex-shrink-0 border-l border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto"
+              className="hidden xl:flex flex-col w-[340px] flex-shrink-0 border-l border-gray-100 sticky top-0 h-[calc(100dvh-48px)] overflow-y-auto"
             >
               <MenuErrorBoundary section="cart" inline locale={locale}>
                 <CartPanel
@@ -2967,7 +2970,7 @@ export function MenuShell({
         {/* ── Mobile: Bottom cart bar ── */}
         {ordersLeft === 0 ? (
           /* Limit reached — generic "paused" bar, no mention of billing */
-          <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden pointer-events-none">
+          <div className="fixed bottom-0 left-0 right-0 z-30 xl:hidden pointer-events-none">
             <div className="px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-gradient-to-t from-white via-white/95 to-transparent">
               <div className="max-w-lg mx-auto pointer-events-auto">
                 <div className="w-full flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-gray-100 text-gray-500 text-sm font-semibold">
@@ -2991,7 +2994,7 @@ export function MenuShell({
           </div>
         ) : (
           cartCount > 0 && (
-            <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden pointer-events-none">
+            <div className="fixed bottom-0 left-0 right-0 z-30 xl:hidden pointer-events-none">
               <div className="px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-gradient-to-t from-white via-white/95 to-transparent">
                 <div className="max-w-lg mx-auto pointer-events-auto">
                   <button
@@ -3033,7 +3036,7 @@ export function MenuShell({
         <AnimatePresence>
           {isOpen && (
             <div
-              className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end"
+              className="fixed inset-0 z-50 xl:hidden flex flex-col justify-end"
               role="dialog"
               aria-modal="true"
               aria-labelledby="cart-sheet-title"

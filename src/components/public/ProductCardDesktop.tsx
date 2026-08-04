@@ -29,6 +29,7 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
   locale = 'es',
   defaultLocale = 'es',
   priority = false,
+  inPopularSection = false,
 }: ProductCardProps) {
   const t = getTranslations(locale);
   const labelSoldOut = soldOutLabel ?? t.soldOut;
@@ -95,9 +96,13 @@ export const ProductCardDesktop = memo(function ProductCardDesktop({
       onClick={outOfStock ? undefined : handleCardClick}
       className={cn(
         'group relative bg-white rounded-2xl shadow-sm overflow-hidden transition-[transform,box-shadow] duration-300 ease-out will-change-transform',
-        product.popularity_rank === 1 && !outOfStock
-          ? 'border-2 border-amber-400 shadow-amber-100'
-          : 'border border-gray-100',
+        // Every card in the Popular section carries the amber treatment; the #1
+        // keeps a stronger border so it still leads within the section.
+        !outOfStock && product.popularity_rank === 1
+          ? 'border-2 border-amber-400 shadow-[0_2px_16px_rgba(245,158,11,0.20)]'
+          : !outOfStock && inPopularSection
+            ? 'border border-amber-200 shadow-[0_2px_14px_rgba(245,158,11,0.13)]'
+            : 'border border-gray-100',
         outOfStock
           ? 'opacity-75'
           : 'cursor-pointer hover:shadow-[0_12px_40px_rgba(0,0,0,0.14)] hover:-translate-y-1 active:scale-[0.98]'
