@@ -69,7 +69,10 @@ export function computeUnitPrice(
     // legacy → $0 (intentional)
   }
 
-  return { unitPrice };
+  // Negative deltas are legitimate — a cheaper option inside a container product
+  // (Buccaneer's Seltzer Water is -$1.10 on a $3.55 soda) — but they must never
+  // drive the line below zero, which would turn an order into a credit.
+  return { unitPrice: Math.max(0, unitPrice) };
 }
 
 export interface OrderTotalsInput {

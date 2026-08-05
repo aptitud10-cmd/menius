@@ -22,6 +22,11 @@ const EXTRA_TOCINO: ExtraRecord = { id: 'ex-tocino', product_id: 'prod-a', price
 
 const MOD_PICANTE: ModOptionRecord = { id: 'opt-picante', price_delta: 5 };
 const MOD_GRATIS: ModOptionRecord = { id: 'opt-gratis', price_delta: 0 };
+/** A cheaper option inside a container product — Buccaneer's Seltzer Water sits
+ *  at -$1.10 inside a $3.55 "Assorted Sodas" item. */
+const MOD_BARATO: ModOptionRecord = { id: 'opt-barato', price_delta: -30 };
+/** Absurd negative delta, e.g. a data-entry slip in the dashboard. */
+const MOD_ABSURDO: ModOptionRecord = { id: 'opt-absurdo', price_delta: -500 };
 
 function makeProductMap(...products: ProductRecord[]) {
   return new Map(products.map((p) => [p.id, p]));
@@ -53,6 +58,31 @@ describe('computeUnitPrice', () => {
     );
     expect(result.error).toBeUndefined();
     expect(result.unitPrice).toBe(100);
+  });
+
+  it('applies a negative modifier delta', () => {
+    // Legitimate: a cheaper choice inside a container product.
+    const result = computeUnitPrice(
+      { product_id: 'prod-a', qty: 1, extras: [], modifiers: [{ option_id: 'opt-barato' }] },
+      makeProductMap(PROD_A),
+      emptyVariants,
+      emptyExtras,
+      makeModMap(MOD_BARATO),
+    );
+    expect(result.unitPrice).toBe(70); // 100 - 30
+  });
+
+  it('never lets a negative delta drive the price below zero', () => {
+    // price_delta has no CHECK constraint in the DB, so a bad dashboard entry
+    // could otherwise turn an order line into a credit.
+    const result = computeUnitPrice(
+      { product_id: 'prod-a', qty: 1, extras: [], modifiers: [{ option_id: 'opt-absurdo' }] },
+      makeProductMap(PROD_A),
+      emptyVariants,
+      emptyExtras,
+      makeModMap(MOD_ABSURDO),
+    );
+    expect(result.unitPrice).toBe(0); // 100 - 500, clamped
   });
 
   it('adds variant price_delta', () => {
