@@ -381,9 +381,7 @@ export async function POST(request: NextRequest) {
         .in("product_id", productIds),
       supabase
         .from("modifier_groups")
-        .select(
-          "id, product_id, name, is_required, min_select, max_select, depends_on_option_id",
-        )
+        .select("id, product_id, name, is_required, min_select, max_select")
         .in("product_id", productIds),
     ]);
 
@@ -466,43 +464,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Conditional groups: a group with depends_on_option_id only exists while
-      // that option is selected. Its modifiers are stripped here, BEFORE pricing,
-      // so a forged (or merely stale) cart cannot bill a side that the chosen
-      // Style never included — the client hides the group, the server refuses to
-      // charge for it.
-      const itemGroups = modGroupsByProduct.get(item.product_id) ?? [];
-      const conditionalGroups = itemGroups.filter(
-        (g) => g.depends_on_option_id,
-      );
-      if (conditionalGroups.length > 0 && (item.modifiers ?? []).length > 0) {
-        const chosen = new Set(
-          (item.modifiers ?? [])
-            .map((m) => m.option_id)
-            .filter((id): id is string => !!id),
-        );
-        const hiddenGroupIds = new Set(
-          conditionalGroups
-            .filter((g) => !chosen.has(g.depends_on_option_id as string))
-            .map((g) => g.id),
-        );
-        if (hiddenGroupIds.size > 0) {
-          const kept = (item.modifiers ?? []).filter((m) => {
-            const gid =
-              m.group_id ??
-              (m.option_id ? modOptionMap.get(m.option_id)?.group_id : null);
-            return !gid || !hiddenGroupIds.has(gid);
-          });
-          if (kept.length !== (item.modifiers ?? []).length) {
-            logger.warn("dropped modifiers of a hidden conditional group", {
-              restaurant_id,
-              product: item.product_id,
-            });
-          }
-          (item as Record<string, unknown>).modifiers = kept;
-        }
-      }
-
       const priceResult = computeUnitPrice(
         item,
         productMap,
@@ -552,21 +513,8 @@ export async function POST(request: NextRequest) {
       }
 
       const groups = modGroupsByProduct.get(item.product_id) ?? [];
-      const chosenAfterPrune = new Set(
-        (item.modifiers ?? [])
-          .map((m) => m.option_id)
-          .filter((id): id is string => !!id),
-      );
       for (const grp of groups) {
         if (!grp.is_required) continue;
-        // A hidden conditional group must not block the order: a Regular burger
-        // has no side to choose, so requiring one would reject a valid cart.
-        if (
-          grp.depends_on_option_id &&
-          !chosenAfterPrune.has(grp.depends_on_option_id)
-        ) {
-          continue;
-        }
         // Skip validation if the group has no options — avoids blocking orders
         // when a required modifier group was created but has no options yet
         if (!groupsWithOptions.has(grp.id)) continue;

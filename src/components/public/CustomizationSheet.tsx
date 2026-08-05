@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { X, Minus, Plus, Check, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, useDragControls, type PanInfo } from "framer-motion";
@@ -17,10 +17,6 @@ import type {
 import type { Translations, Locale } from "@/lib/translations";
 import { DIETARY_TAGS } from "@/lib/dietary-tags";
 import { tName, tDesc } from "@/lib/i18n";
-import {
-  visibleGroups,
-  pruneHiddenSelections,
-} from "@/lib/conditional-modifiers";
 import { supabaseLoader, getBlurUrl } from "@/lib/image-loader";
 
 const DIETARY_TAGS_MAP = Object.fromEntries(DIETARY_TAGS.map((t) => [t.id, t]));
@@ -198,7 +194,7 @@ export function CustomizationSheet({
     }
   }
 
-  const allGroups = [...groups, ...legacyGroups];
+  const activeGroups = [...groups, ...legacyGroups];
 
   // Initialize selections from edit item or defaults
   const initSelections = (): Record<string, ModifierOption[]> => {
@@ -239,7 +235,7 @@ export function CustomizationSheet({
       }
     }
     // Apply defaults for groups not in selections
-    for (const g of allGroups) {
+    for (const g of activeGroups) {
       if (!sel[g.id]) {
         const defaults = g.options.filter((o) => o.is_default);
         sel[g.id] = defaults;
@@ -250,23 +246,6 @@ export function CustomizationSheet({
 
   const [selections, setSelections] =
     useState<Record<string, ModifierOption[]>>(initSelections);
-
-  // Groups whose dependency is currently satisfied. Everything downstream —
-  // rendering, validation and pricing — works off this, never off allGroups, so
-  // a hidden group can neither block the Add button nor charge for its options.
-  const activeGroups = useMemo(
-    () => visibleGroups(allGroups, selections),
-    [allGroups, selections],
-  );
-
-  // A hidden group's stale selection would still reach the cart: picking
-  // Deluxe → Onion Rings (+$1.50) and switching back to Regular kept the
-  // surcharge. Pricing and submit read from here.
-  const effectiveSelections = useMemo(
-    () => pruneHiddenSelections(allGroups, selections),
-    [allGroups, selections],
-  );
-
   const [qty, setQty] = useState(editItem?.qty ?? 1);
   const [added, setAdded] = useState(false);
   const dragControls = useDragControls();
@@ -360,12 +339,11 @@ export function CustomizationSheet({
   const validationErrors = Array.from(validationErrorSet);
   const isValid = validationErrors.length === 0;
 
-  // Price calculation — from effectiveSelections, so options of a group the
-  // customer can no longer see are not charged.
-  const modifiersDelta = Object.values(effectiveSelections)
+  // Price calculation
+  const modifiersDelta = Object.values(selections)
     .flat()
     .reduce((sum, opt) => sum + Number(opt.price_delta), 0);
-  const unitPrice = Math.max(0, Number(product.price) + modifiersDelta);
+  const unitPrice = Number(product.price) + modifiersDelta;
 
   // NOTE: useBodyScrollLock() is intentionally NOT used here.
   // The app scrolls via a custom div (mainRef), not document.body — body scroll lock would
@@ -412,8 +390,8 @@ export function CustomizationSheet({
 
   const handleSubmit = () => {
     const modifierSelections: ModifierSelection[] = activeGroups
-      .filter((g) => (effectiveSelections[g.id] ?? []).length > 0)
-      .map((g) => ({ group: g, selectedOptions: effectiveSelections[g.id] }));
+      .filter((g) => (selections[g.id] ?? []).length > 0)
+      .map((g) => ({ group: g, selectedOptions: selections[g.id] }));
 
     // Legacy compat: extract variant/extras for old cart format.
     // Resolve against the lazily-fetched data first: the slim pattern empties
