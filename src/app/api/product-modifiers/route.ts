@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         .from('modifier_groups')
         .select(`
           id, product_id, name, selection_type, is_required,
-          min_select, max_select, sort_order, display_type,
+          min_select, max_select, sort_order, display_type, depends_on_option_id,
           modifier_options ( id, group_id, name, price_delta, is_default, sort_order )
         `)
         .eq('product_id', productId)
@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
       max_select: g.max_select,
       sort_order: g.sort_order,
       display_type: g.display_type,
+      depends_on_option_id: g.depends_on_option_id ?? null,
       options: ((g.modifier_options ?? []) as ModifierOption[]).sort(
         (a, b) => a.sort_order - b.sort_order
       ),
