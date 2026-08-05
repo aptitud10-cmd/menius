@@ -248,6 +248,7 @@ export interface Translations {
   ordersPaused: string;
   changeLanguageAriaLabel: string;
   exploreMenu: string;
+  jumpToSection: string;
   itemsUpdatedAlert: string;
   // CheckoutPageClient — validation
   validationNameRequired: string;
@@ -592,6 +593,7 @@ const es: Translations = {
   ordersPaused: 'Los pedidos están temporalmente pausados',
   changeLanguageAriaLabel: 'Cambiar idioma',
   exploreMenu: 'Explorar Menú',
+  jumpToSection: 'Ir a sección',
   itemsUpdatedAlert: 'Algunos productos fueron actualizados — agrégalos nuevamente para elegir las opciones requeridas.',
   // CheckoutPageClient — validation
   validationNameRequired: 'El nombre es obligatorio',
@@ -934,6 +936,7 @@ const en: Translations = {
   ordersPaused: 'Orders are temporarily paused',
   changeLanguageAriaLabel: 'Change language',
   exploreMenu: 'Explore Menu',
+  jumpToSection: 'Jump to section',
   itemsUpdatedAlert: 'Some items were updated — please add them again to select the required options.',
   // CheckoutPageClient — validation
   validationNameRequired: 'Name is required',

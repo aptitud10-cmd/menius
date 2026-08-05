@@ -277,6 +277,7 @@ export function MenuShell({
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [showCatSheet, setShowCatSheet] = useState(false);
+  const [showSubcatSheet, setShowSubcatSheet] = useState(false);
   const CATEGORY_PREVIEW = 8; // kept for potential future use
   // Activated automatically for stores with many products or categories (e.g. Buccaneer)
   const isLargeCatalog = products.length > 80 || categories.length > 12;
@@ -570,31 +571,10 @@ export function MenuShell({
     return () => observer.disconnect();
   }, [hasCover]);
 
-  const handleCategorySelect = useCallback(
-    (catId: string | null) => {
-      setSearchQuery("");
-      setShowSearch(false);
-      setShowFavs(false);
-      setActiveDiet(null);
-
-      // Mark as user-click so the horizontal pill bar doesn't auto-scroll
-      categoryClickedRef.current = true;
-
-      setActiveCategory(catId);
-
-      if (catId === null) {
-        mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
-
-      if (isLargeCatalog) {
-        setActiveCatFilter(catId);
-        if (bannerVisibleRef.current) {
-          mainRef.current?.scrollTo({ top: 0, behavior: "auto" });
-        }
-        return;
-      }
-
+  /** Scrolls the main container to a category section.
+   *  Extracted from handleCategorySelect so the subcategory sheet can jump to a
+   *  section without re-implementing the iOS Safari workarounds below. */
+  const scrollToSection = useCallback((catId: string) => {
       const section = sectionRefs.current.get(catId);
       if (section && mainRef.current) {
         const savedSidebarScroll = sidebarRef.current?.scrollTop ?? 0;
@@ -645,8 +625,38 @@ export function MenuShell({
           { once: true },
         );
       }
+  }, []);
+
+  const handleCategorySelect = useCallback(
+    (catId: string | null) => {
+      setSearchQuery("");
+      setShowSearch(false);
+      setShowFavs(false);
+      setActiveDiet(null);
+
+      // Mark as user-click so the horizontal pill bar doesn't auto-scroll
+      categoryClickedRef.current = true;
+
+      setActiveCategory(catId);
+
+      if (catId === null) {
+        mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+
+      if (isLargeCatalog) {
+        setActiveCatFilter(catId);
+        // Close the jump sheet: its list belongs to the group being left.
+        setShowSubcatSheet(false);
+        if (bannerVisibleRef.current) {
+          mainRef.current?.scrollTo({ top: 0, behavior: "auto" });
+        }
+        return;
+      }
+
+      scrollToSection(catId);
     },
-    [isLargeCatalog],
+    [isLargeCatalog, scrollToSection],
   );
 
   const handleProductSelect = useCallback(
@@ -1177,6 +1187,7 @@ export function MenuShell({
           setShowSearch(false);
           setSearchQuery("");
         } else if (customization) setCustomization(null);
+        else if (showSubcatSheet) setShowSubcatSheet(false);
         else if (isOpen) setOpen(false);
         return;
       }
@@ -1190,7 +1201,7 @@ export function MenuShell({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showSearch, customization, isOpen, setOpen]);
+  }, [showSearch, customization, isOpen, setOpen, showSubcatSheet]);
 
   // Auto-scroll pill bar + sidebar to show active category.
   // Pill bar: skipped when the change came from a user click (categoryClickedRef) to avoid
@@ -1401,6 +1412,17 @@ export function MenuShell({
     () => resolveActivePill(activeCategory, categories, { groupsActive }),
     [activeCategory, categories, groupsActive],
   );
+
+  /** Subcategories of the group currently on screen, for the jump sheet.
+   *  Only worth showing past a few sections — with one or two the user can see
+   *  everything by scrolling and the button would be pure noise. */
+  const subcatsOfActiveGroup = useMemo(() => {
+    if (!groupsActive || !activeCatFilter || !isGroupId(activeCatFilter)) {
+      return [];
+    }
+    const list = displayedGroups.filter((g) => g.category.id !== POPULAR_ID);
+    return list.length >= 3 ? list : [];
+  }, [groupsActive, activeCatFilter, displayedGroups]);
 
   /** Product count for a sidebar entry, resolving group pills to the sum of
    *  every category they contain. */
@@ -3027,6 +3049,35 @@ export function MenuShell({
         {/* ── Fly-to-cart particles (desktop only) — isolated component, no root re-renders ── */}
         <CartFlyParticles cartColRef={cartColRef} />
 
+        {/* ── Mobile: jump-to-subcategory button ──
+            A group like Breakfast stacks 81 products across 13 subsections, and
+            without this the only way to reach "French Toast" is scrolling blind.
+            Deliberately optional — Baymard measured 31% of users never reaching
+            the product list when a category page forces an intermediate tap, so
+            browsing by scroll stays untouched and this is just a shortcut.
+            Sits above the cart bar; both are fixed to the bottom edge. */}
+        {subcatsOfActiveGroup.length > 0 && !showSubcatSheet && (
+          <div
+            className="fixed left-0 right-0 z-30 xl:hidden pointer-events-none flex justify-center px-4"
+            style={{
+              bottom: cartCount > 0
+                ? `calc(84px + env(safe-area-inset-bottom))`
+                : `max(env(safe-area-inset-bottom), 16px)`,
+            }}
+          >
+            <button
+              onClick={() => setShowSubcatSheet(true)}
+              className="pointer-events-auto inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-gray-900/95 text-white text-[13px] font-semibold shadow-[0_4px_16px_rgba(0,0,0,0.25)] backdrop-blur-sm active:scale-95 transition-transform"
+            >
+              <AlignJustify className="w-4 h-4" aria-hidden="true" />
+              {groupNameFromId(activeCatFilter!)}
+              <span className="text-white/60 tabular-nums">
+                {subcatsOfActiveGroup.length}
+              </span>
+            </button>
+          </div>
+        )}
+
         {/* ── Mobile: Bottom cart bar ── */}
         {ordersLeft === 0 ? (
           /* Limit reached — generic "paused" bar, no mention of billing */
@@ -3618,6 +3669,82 @@ export function MenuShell({
                   </button>
                 </div>
                 {/* Safe area spacer — decoupled to prevent reflow during slide-in animation */}
+                <div className="flex-shrink-0 pb-[env(safe-area-inset-bottom)]" />
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* ── SUBCATEGORY JUMP SHEET ──
+            The "section menu" NN/g prescribes for 6–15 subcategories. Item
+            counts are part of the point: "Buttermilk Pancakes 14" tells the
+            customer how much is there before jumping. */}
+        <AnimatePresence>
+          {showSubcatSheet && (
+            <>
+              <motion.div
+                className="xl:hidden fixed inset-0 z-[80] bg-black/40"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowSubcatSheet(false)}
+              />
+              <motion.div
+                className="xl:hidden fixed bottom-0 left-0 right-0 z-[81] bg-white rounded-t-3xl overflow-hidden flex flex-col"
+                style={{ maxHeight: "75dvh" }}
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 30, stiffness: 320 }}
+                role="dialog"
+                aria-modal="true"
+                aria-label={t.jumpToSection}
+              >
+                <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+                  <div className="w-10 h-1 rounded-full bg-gray-200" />
+                </div>
+
+                <div className="px-6 pt-2 pb-3 flex-shrink-0">
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    {t.jumpToSection}
+                  </p>
+                  <p className="font-bold text-[17px] text-gray-900 leading-tight mt-0.5">
+                    {activeCatFilter ? groupNameFromId(activeCatFilter) : ""}
+                  </p>
+                </div>
+
+                <div className="overflow-y-auto flex-1 pb-2">
+                  {subcatsOfActiveGroup.map(({ category, items }) => (
+                    <button
+                      key={category.id}
+                      onClick={() => {
+                        setShowSubcatSheet(false);
+                        // Next frame: the sheet's exit animation must not fight
+                        // the smooth scroll on the container underneath.
+                        requestAnimationFrame(() =>
+                          scrollToSection(category.id),
+                        );
+                      }}
+                      className="w-full text-left px-6 py-3.5 text-[15px] text-gray-700 active:bg-gray-50 transition-colors flex items-center justify-between gap-3"
+                    >
+                      <span className="truncate">
+                        {tName(category, locale, defaultLocale)}
+                      </span>
+                      <span className="text-[13px] font-medium text-gray-400 tabular-nums flex-shrink-0">
+                        {items.length}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex-shrink-0 px-5 pb-5 pt-2 border-t border-gray-100">
+                  <button
+                    onClick={() => setShowSubcatSheet(false)}
+                    className="w-full py-3 rounded-2xl border border-gray-200 bg-transparent text-gray-600 font-semibold text-[15px] active:bg-gray-50 transition-colors"
+                  >
+                    {t.dismiss}
+                  </button>
+                </div>
                 <div className="flex-shrink-0 pb-[env(safe-area-inset-bottom)]" />
               </motion.div>
             </>
